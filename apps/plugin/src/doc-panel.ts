@@ -20,7 +20,8 @@
  *   - Theming: the default member in light and in dark side by side (Q406.6 A), each its mode pinned on the instance.
  *     The model draws Theming only when it is given modes, so the panel passes the file's: those of the color
  *     collection, `light` and `dark` among them;
- *   - Related components: each list as chips of component names.
+ *   - Related components: each list as a bulleted list of component names, each name a link to that component's set
+ *     in the file (#2970 item 3); a name with no set in the file, and each Replaces entry, is plain text.
  *
  * CANVAS FURNITURE, KEPT APART FROM ITS LABELS. The panel is a frame on the set's own parent, never inside the set, so
  * the update's hand-edit check and the as-built record stay blind to it, as they are to the labels. It carries its own
@@ -63,13 +64,16 @@ import { NS } from './persist-figma';
 import { STAMP_KEY } from './write-components';
 import { builtByPrism3, readBaseline } from './member-baseline';
 import { readTag } from './canvas-furniture';
-import { CAPTION, CHIP_SLOTS, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
+import { CAPTION, CHIP_SLOTS, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, TOP_PADDING, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
 
 export const DOC_PANEL_NS = 'prism3';
 export const DOC_PANEL_KEY = 'docPanel';
 /** What the panel held when it was drawn, and the plan it was drawn from. Shared, so another tool can read them. */
 export const DOC_PANEL_PRINT = 'docPanelPrint';
 export const DOC_PANEL_PLAN = 'docPanelPlan';
+/** The sets Related's names linked to when the panel was drawn, by def id (#2970): a set built, rebuilt or deleted since
+ *  makes the panel due, so its links never point at a node that is gone or miss one that is now there. */
+export const DOC_PANEL_LINKS = 'docPanelLinks';
 /** On the set's parent: each set whose panel the last draw found blocked, with the panel's height and plan then
  *  (`docPanelBlockers`). Cleared when the panel is drawn. */
 export const DOC_PANEL_BLOCKED = 'docPanelBlocked';
@@ -89,8 +93,15 @@ export const PANEL_DO_ITEMS = DO_ROWS;
 export const PANEL_MODES = ['light', 'dark'] as const;
 const SIZE: DocBlockSize = 'sm';
 /** Raise when the panel's layout moves without its plan moving, so every drawn panel reads as due again. 2: one panel
- *  per family, and the anatomy markers with their leaders (#2927). */
-const PANEL_FORMAT = 2;
+ *  per family, and the anatomy markers with their leaders (#2927). 3: the title sizes, the space above Do and Don't, and
+ *  Related as linked lists (#2970). */
+const PANEL_FORMAT = 3;
+/** THE TITLES (#2970 item 5, owner decision): the panel's title and each section's, in px, with their letter-spacing
+ *  in percent. The tracking is the studio's: its 20px page titles take `ls-tightest` (−4%) and its 16px section titles
+ *  `ls-tighter` (−3%), the default theme's values (`theme.ts` `LETTER_SPACINGS`). Written over the block's text style,
+ *  whose face and weight (`title/…/strong`) stay. */
+export const TITLE_TYPE = { size: 18, tracking: -4 } as const;
+export const SECTION_TYPE = { size: 16, tracking: -3 } as const;
 /** THE ANATOMY MARKERS' GEOMETRY (#2916, #2927; HELD FOR THE OWNER): the shortest leader, and its gap from the
  *  specimen's edge; the space between two markers, or a marker and its bracket; how far a leader or a bracket's tick
  *  reaches into its part, so it reads as touching it. */
@@ -108,6 +119,8 @@ export type PanelBlock =
   | { type: 'Field'; label: string; text: string }
   | { type: 'Do-Dont'; do: string[]; dont: string[] }
   | { type: 'Chips'; label: string; chips: string[]; note?: string }
+  /** A bulleted list (#2970 item 3): each item's name, and the def whose set it links to when the file has one. */
+  | { type: 'Links'; label: string; items: { name: string; def?: string }[] }
   /** The documented set's default member; `mode` pins one, `marks` numbers the parts on it (and on the members the
    *  draw adds for parts the default does not show). */
   | { type: 'Specimen'; mode?: string; caption?: string; marks?: AnatomyMark[] };
@@ -246,8 +259,8 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         for (const m of s.modes) blocks.push({ type: 'Specimen', mode: m, caption: sentence(m) });
         break;
       case 'related':
-        for (const l of s.lists) blocks.push({ type: 'Chips', label: l.label, chips: l.ids.map(name) });
-        if (s.replaces.length) blocks.push({ type: 'Chips', label: 'Replaces', chips: s.replaces.map(plain) });
+        for (const l of s.lists) blocks.push({ type: 'Links', label: l.label, items: l.ids.map((id) => ({ name: name(id), def: id })) });
+        if (s.replaces.length) blocks.push({ type: 'Links', label: 'Replaces', items: s.replaces.map((r) => ({ name: plain(r) })) });
         break;
     }
     sections.push({ id: s.id, title: s.title, blocks, ...(row ? { row } : {}) });
@@ -281,6 +294,11 @@ export interface PNode {
   readonly children?: readonly PNode[];
   characters?: string;
   readonly fontName?: unknown;
+  fontSize?: unknown;
+  letterSpacing?: unknown;
+  setRangeHyperlink?(start: number, end: number, link: { type: 'NODE' | 'URL'; value: string } | null): void;
+  setRangeListOptions?(start: number, end: number, options: { type: 'ORDERED' | 'UNORDERED' | 'NONE' }): void;
+  setRangeTextDecoration?(start: number, end: number, decoration: 'NONE' | 'UNDERLINE' | 'STRIKETHROUGH'): void;
   visible?: boolean;
   fills?: unknown;
   strokes?: unknown;
@@ -372,6 +390,18 @@ export const findDocBlock = (api: Pick<PanelApi, 'root'>): PNode | undefined => 
   const all = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[];
   return all.find((n) => n.type === 'COMPONENT_SET' && n.name === DOC_BLOCK_SET) ?? all.find((n) => n.type === 'COMPONENT_SET' && isTemplateSet(n.name, DOC_BLOCK_SET));
 };
+/** THE SETS RELATED LINKS TO (#2970 item 3): for each def a Links item names, its set in the file, found as the executor
+ *  finds it, by its exact name, document-wide. A def with no set, or with more than one, is left out: its name is plain. */
+export const panelLinks = (api: Pick<PanelApi, 'root'>, plan: PanelPlan): Record<string, string> => {
+  const want = new Set(plan.sections.flatMap((s) => s.blocks).flatMap((b) => (b.type === 'Links' ? b.items.flatMap((i) => (i.def ? [i.def] : [])) : [])));
+  if (!want.size) return {};
+  const sets = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).filter((n) => n.type === 'COMPONENT_SET' && !n.removed && want.has(String(n.name)));
+  const out: Record<string, string> = {};
+  for (const d of [...want].sort()) { const hit = sets.filter((n) => n.name === d); if (hit.length === 1 && hit[0].id) out[d] = String(hit[0].id); }
+  return out;
+};
+const linksKey = (l: Record<string, string>): string => JSON.stringify(l);
+
 /** How far each set's box reaches right for the update's spacing: past its panel when the file can draw one. */
 export const docPanelReach = (api: Pick<PanelApi, 'root'>): number => (findDocBlock(api) ? PANEL_REACH : 0);
 
@@ -460,7 +490,8 @@ export const docPanelDue = (api: Pick<PanelApi, 'root'>, set: PNode, plan: Panel
   const p = live[0].node;
   const at = panelSpot(set);
   const near = (a: number | undefined, b: number) => Math.abs((a ?? 0) - b) <= 0.5;
-  return p.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PLAN) === plan.hash && near(p.x, at.x) && near(p.y, at.y) ? 0 : 1;
+  return p.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PLAN) === plan.hash && near(p.x, at.x) && near(p.y, at.y)
+    && (p.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_LINKS) ?? '') === linksKey(panelLinks(api, plan)) ? 0 : 1;
 };
 
 /** Whether a node is a set Prism3 built: one of its members is, by the shared member test (`builtByPrism3`, #2510). */
@@ -613,13 +644,19 @@ export const drawDocPanel = async (
     return f;
   };
   const fill = (n: PNode): void => { try { n.layoutSizingHorizontal = 'FILL'; } catch { /* outside auto layout */ } };
-  const write = async (n: PNode | undefined, text: string, what: string): Promise<void> => {
-    if (!n) { out.misses.push(`${DOC_BLOCK_SET} has no ${what} layer`); return; }
+  /** Write `text` into a layer, and when `type` is given, its size and letter-spacing over the block's text style. */
+  const write = async (n: PNode | undefined, text: string, what: string, type?: { size: number; tracking: number }): Promise<boolean> => {
+    if (!n) { out.misses.push(`${DOC_BLOCK_SET} has no ${what} layer`); return false; }
     const f = n.fontName as { family?: unknown; style?: unknown } | undefined;
-    if (!f || typeof f.family !== 'string' || typeof f.style !== 'string') { out.misses.push(`${what}: mixed or unreadable font`); return; }
-    try { await api.loadFontAsync({ family: f.family, style: f.style }); } catch { out.misses.push(`${f.family} ${f.style} unavailable`); return; }
+    if (!f || typeof f.family !== 'string' || typeof f.style !== 'string') { out.misses.push(`${what}: mixed or unreadable font`); return false; }
+    try { await api.loadFontAsync({ family: f.family, style: f.style }); } catch { out.misses.push(`${f.family} ${f.style} unavailable`); return false; }
     n.characters = text;
+    if (type) {
+      try { n.fontSize = type.size; n.letterSpacing = { value: type.tracking, unit: 'PERCENT' }; } catch { out.misses.push(`${what}: size not set`); }
+    }
+    return true;
   };
+  const links = panelLinks(api, plan);
   const block = (type: DocBlockType, size?: DocBlockSize): PNode | undefined => {
     const v = variant(type, size);
     const i = v?.createInstance?.();
@@ -699,7 +736,7 @@ export const drawDocPanel = async (
     const i = block(type, size);
     if (!i) continue;
     header.appendChild?.(i); fill(i);
-    await write(findText(i, 'text'), text, 'text');
+    await write(findText(i, 'text'), text, 'text', type === 'Heading' ? TITLE_TYPE : undefined);
   }
   // THE FAMILY (#2927, Q551 A on Q1): every set the panel covers, by name. DRAFT label (Q10); links are a later phase.
   if (plan.family) {
@@ -712,7 +749,7 @@ export const drawDocPanel = async (
   }
 
   const draw = async (into: PNode, b: PanelBlock): Promise<void> => {
-    const i = block(b.type, b.type === 'Heading' || b.type === 'Paragraph' ? b.size : SIZE);
+    const i = block(b.type === 'Links' ? 'Field' : b.type, b.type === 'Heading' || b.type === 'Paragraph' ? b.size : SIZE);
     if (!i) return;
     into.appendChild?.(i);
     fill(i);
@@ -720,6 +757,8 @@ export const drawDocPanel = async (
       case 'Heading': case 'Paragraph': await write(findText(i, 'text'), b.text, 'text'); break;
       case 'Field': await write(findText(find(i, 'row') ?? i, 'label'), b.label, 'label'); await write(findText(find(i, 'row') ?? i, 'text'), b.text, 'text'); break;
       case 'Do-Dont':
+        // More room above the columns (#2970 item 2): the block's own Top padding spacer, over the section's gap.
+        setBool(i, TOP_PADDING, true);
         for (const [col, items] of [['do', b.do], ['dont', b.dont]] as const) {
           const c = find(i, col);
           if (!c) { out.misses.push(`${DOC_BLOCK_SET} has no ${col} column`); continue; }
@@ -743,6 +782,24 @@ export const drawDocPanel = async (
         }
         if (b.note) await write(findText(i, 'note'), b.note, 'note');
         else setBool(i, CAPTION, false);
+        break;
+      }
+      case 'Links': {
+        // One line per item, bulleted, each name a link to its component's set where the file has one (#2970 item 3).
+        const row = find(i, 'row') ?? i;
+        await write(findText(row, 'label'), b.label, 'label');
+        const t = findText(row, 'text');
+        if (!(await write(t, b.items.map((x) => x.name).join('\n'), 'text')) || !t) break;
+        try { t.setRangeListOptions?.(0, String(t.characters).length, { type: 'UNORDERED' }); } catch { out.misses.push('Related: list bullets not set'); }
+        let at = 0;
+        for (const x of b.items) {
+          const node = x.def ? links[x.def] : undefined;
+          if (node) {
+            try { t.setRangeHyperlink?.(at, at + x.name.length, { type: 'NODE', value: node }); t.setRangeTextDecoration?.(at, at + x.name.length, 'UNDERLINE'); }
+            catch { out.misses.push(`Related: no link to ${x.name}`); }
+          }
+          at += x.name.length + 1;
+        }
         break;
       }
       case 'Specimen':
@@ -883,7 +940,7 @@ export const drawDocPanel = async (
     panel.appendChild?.(sec);
     fill(sec);
     const h = block('Heading', SIZE);
-    if (h) { sec.appendChild?.(h); fill(h); await write(findText(h, 'text'), s.title, 'text'); }
+    if (h) { sec.appendChild?.(h); fill(h); await write(findText(h, 'text'), s.title, 'text', SECTION_TYPE); }
     const into = s.row ? frame('modes', 'HORIZONTAL', 16) : sec;
     if (s.row) { sec.appendChild?.(into); fill(into); }
     for (const b of s.blocks) {
@@ -923,6 +980,7 @@ export const drawDocPanel = async (
   const family = fam && fam.members.length > 1 ? { family: fam.page } : {};
   writeTag(panel, { v: 1, def: def.id, set: String(set.id ?? ''), state: 'live', ...family });
   panel.setSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PLAN, plan.hash);
+  panel.setSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_LINKS, linksKey(links));
   panel.setSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PRINT, await panelPrint(panel));
   out.drawn = true;
 
