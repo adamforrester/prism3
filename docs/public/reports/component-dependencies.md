@@ -15,21 +15,21 @@ Generated from the component definitions and the emission by `packages/engine/em
 | _slider-thumb | slider | slider |
 | badge | tab-item | tab-item, tabs |
 | breadcrumb-item | breadcrumbs | breadcrumbs |
-| button | button-group, password-field, toast | button-group, dialog, password-field, toast |
+| button | banner, button-group, password-field, toast | banner, button-group, dialog, password-field, toast |
 | button-group | dialog | dialog |
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
 | divider | accordion, dialog | accordion, dialog |
 | field-label | checkbox-group, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea | checkbox-group, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea |
 | field-message | checkbox-group, counter, password-field, radio-group, search-field, select, slider, text-field, textarea | checkbox-group, counter, password-field, radio-group, search-field, select, slider, text-field, textarea |
-| flush-icon-button-neutral | breadcrumb-item, counter, dialog, toast | breadcrumb-item, breadcrumbs, counter, dialog, toast |
-| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, search-field, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | _slider-thumb, accordion, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast |
+| flush-icon-button-neutral | banner, breadcrumb-item, counter, dialog, toast | banner, breadcrumb-item, breadcrumbs, counter, dialog, toast |
+| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, search-field, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast |
 | link | breadcrumb-item, breadcrumbs | breadcrumb-item, breadcrumbs |
 | list-item | list | list |
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
 | segmented-control-segment | segmented-control | segmented-control |
-| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | button, button-destructive, button-group, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field, toast |
+| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | banner, button, button-destructive, button-group, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field, toast |
 | switch-control | switch-row | switch-row |
 | tab-item | tabs | tabs |
 | text-field | slider | slider |
@@ -45,6 +45,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | _slider-thumb | 1 | focus-ring | focus-ring |
 | accordion | 1 | _accordion-indicator, divider, focus-ring | _accordion-indicator, divider, focus-ring |
 | badge | 0 | — | — |
+| banner | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
 | breadcrumb-item | 2 | _breadcrumb-separator, flush-icon-button-neutral, link | _breadcrumb-separator, flush-icon-button-neutral, focus-ring, link |
 | breadcrumbs | 3 | breadcrumb-item, link | _breadcrumb-separator, breadcrumb-item, flush-icon-button-neutral, focus-ring, link |
 | button | 1 | focus-ring, spinner | focus-ring, spinner |
@@ -102,6 +103,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | accordion | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | leadingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
 | accordion | trailingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
+| banner | action | nest | button | nest-fixed | appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| banner | dismiss | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=default, state=rest | — | — |
 | breadcrumb-item | crumb | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest | size | state |
 | breadcrumb-item | overflow | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=small, surface=default, state=rest | — | state |
 | breadcrumb-item | separator | nest | _breadcrumb-separator | nest-fixed | type=chevron | — | — |

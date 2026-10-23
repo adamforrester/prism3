@@ -301,6 +301,84 @@
       "sizes": []
     },
     {
+      "id": "banner",
+      "name": "Banner",
+      "category": "feedback",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "tone": [
+          "info",
+          "success",
+          "warning",
+          "danger"
+        ],
+        "width": [
+          "contained",
+          "full"
+        ]
+      },
+      "props": [
+        {
+          "name": "tone",
+          "default": "info",
+          "values": [
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ]
+        },
+        {
+          "name": "width",
+          "default": "contained",
+          "values": [
+            "contained",
+            "full"
+          ]
+        },
+        {
+          "name": "title"
+        },
+        {
+          "name": "children"
+        },
+        {
+          "name": "headingLevel",
+          "default": "2",
+          "values": [
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ]
+        },
+        {
+          "name": "icon"
+        },
+        {
+          "name": "actions"
+        },
+        {
+          "name": "dismissible",
+          "default": false
+        },
+        {
+          "name": "onDismiss"
+        },
+        {
+          "name": "announce",
+          "default": "auto",
+          "values": [
+            "auto",
+            "none"
+          ]
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "breadcrumb-item",
       "name": "BreadcrumbItem",
       "category": "navigation",
@@ -4955,6 +5033,17 @@
         "components": [
           "badge"
         ]
+      },
+      {
+        "values": [
+          "danger",
+          "info",
+          "success",
+          "warning"
+        ],
+        "components": [
+          "banner"
+        ]
       }
     ],
     "type": [
@@ -5049,6 +5138,15 @@
           "button-destructive",
           "button-neutral"
         ]
+      },
+      {
+        "values": [
+          "contained",
+          "full"
+        ],
+        "components": [
+          "banner"
+        ]
       }
     ]
   },
@@ -5059,6 +5157,9 @@
       }
     ],
     "actions": [
+      {
+        "id": "banner"
+      },
       {
         "id": "dialog"
       }
@@ -5080,6 +5181,16 @@
         "values": [
           "start",
           "center"
+        ]
+      }
+    ],
+    "announce": [
+      {
+        "id": "banner",
+        "default": "auto",
+        "values": [
+          "auto",
+          "none"
         ]
       }
     ],
@@ -5239,6 +5350,9 @@
     "children": [
       {
         "id": "accordion"
+      },
+      {
+        "id": "banner"
       },
       {
         "id": "dialog"
@@ -5472,6 +5586,10 @@
     ],
     "dismissible": [
       {
+        "id": "banner",
+        "default": false
+      },
+      {
         "id": "toast",
         "default": true
       }
@@ -5552,6 +5670,17 @@
           "5",
           "6"
         ]
+      },
+      {
+        "id": "banner",
+        "default": "2",
+        "values": [
+          "2",
+          "3",
+          "4",
+          "5",
+          "6"
+        ]
       }
     ],
     "helpText": [
@@ -5603,6 +5732,9 @@
       }
     ],
     "icon": [
+      {
+        "id": "banner"
+      },
       {
         "id": "field-message"
       },
@@ -6274,6 +6406,9 @@
       }
     ],
     "onDismiss": [
+      {
+        "id": "banner"
+      },
       {
         "id": "toast"
       }
@@ -7171,6 +7306,9 @@
         "id": "accordion"
       },
       {
+        "id": "banner"
+      },
+      {
         "id": "dialog"
       }
     ],
@@ -7180,6 +7318,16 @@
         "default": "neutral",
         "values": [
           "neutral",
+          "info",
+          "success",
+          "warning",
+          "danger"
+        ]
+      },
+      {
+        "id": "banner",
+        "default": "info",
+        "values": [
           "info",
           "success",
           "warning",
@@ -7604,6 +7752,14 @@
     ],
     "width": [
       {
+        "id": "banner",
+        "default": "contained",
+        "values": [
+          "contained",
+          "full"
+        ]
+      },
+      {
         "id": "segmented-control",
         "default": "auto",
         "values": [
@@ -7917,9 +8073,10 @@
       "subject": "axis tone",
       "components": [
         "badge",
+        "banner",
         "icon"
       ],
-      "detail": "the tone axis takes 2 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge"
+      "detail": "the tone axis takes 3 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge; [danger, info, success, warning] in banner"
     },
     {
       "kind": "axis values",
@@ -7942,6 +8099,17 @@
         "link"
       ],
       "detail": "the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis width",
+      "components": [
+        "banner",
+        "button",
+        "button-destructive",
+        "button-neutral"
+      ],
+      "detail": "the width axis takes 2 value sets — [auto, full] in button, button-destructive, button-neutral; [contained, full] in banner"
     },
     {
       "kind": "size order",
@@ -8254,6 +8422,24 @@
         "field-label"
       ],
       "detail": "field-label defaults size to small; 39 of 40 sized components default to medium"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop dismissible",
+      "components": [
+        "banner",
+        "toast"
+      ],
+      "detail": "dismissible defaults differ over the same values — false in banner; true in toast"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop headingLevel",
+      "components": [
+        "accordion",
+        "banner"
+      ],
+      "detail": "headingLevel defaults differ over the same values — 2 in banner; 3 in accordion"
     },
     {
       "kind": "prop default",

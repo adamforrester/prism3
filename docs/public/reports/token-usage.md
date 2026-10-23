@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 255 of 788 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 256 of 788 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -16,11 +16,12 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### `border-width.hairline`
 
-Type: dimension. Bound by 19 component(s).
+Type: dimension. Bound by 20 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `border-width` | surface | every member (20 of 20) |
+| banner | `border-width`, `width.contained.edge-side` | container | every member (8 of 8) |
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
@@ -59,6 +60,14 @@ Type: dimension. Bound by 2 component(s).
 |  |  | spaceEnd | size: medium (10 of 30) |
 |  |  | spaceStart | size: medium · type: range (5 of 30) |
 |  |  | track | size: medium (10 of 30) |
+
+### `border-width.none`
+
+Type: dimension. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| banner | `width.full.edge-side` | container | width: full (4 of 8) |
 
 ### `border-width.thick`
 
@@ -116,11 +125,12 @@ Type: color. Bound by 1 component(s).
 
 ### `color.border.danger`
 
-Type: color. Bound by 9 component(s).
+Type: color. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `danger.status.subtle.border` | surface | emphasis: subtle · tone: danger · type: status (1 of 20) |
+| banner | `danger.border` | container | tone: danger (2 of 8) |
 | checkbox-control | `error.checked.border.focus-visible`, `error.checked.border.hover`, `error.checked.border.pressed`, `error.checked.border.rest`, `error.indeterminate.border.focus-visible`, `error.indeterminate.border.hover`, `error.indeterminate.border.pressed`, `error.indeterminate.border.rest`, `error.unchecked.border.focus-visible`, `error.unchecked.border.hover`, `error.unchecked.border.pressed`, `error.unchecked.border.rest` | control | state: focus-visible, hover, pressed, rest · status: error (36 of 90) |
 | password-field | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
 | radio-control | `error.checked.border.focus-visible`, `error.checked.border.hover`, `error.checked.border.pressed`, `error.checked.border.rest`, `error.unchecked.border.focus-visible`, `error.unchecked.border.hover`, `error.unchecked.border.pressed`, `error.unchecked.border.rest` | control | state: focus-visible, hover, pressed, rest · status: error (24 of 60) |
@@ -158,11 +168,12 @@ Type: color. Bound by 19 component(s).
 
 ### `color.border.info`
 
-Type: color. Bound by 1 component(s).
+Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `info.status.subtle.border` | surface | emphasis: subtle · tone: info · type: status (1 of 20) |
+| banner | `info.border` | container | tone: info (2 of 8) |
 
 ### `color.border.primary`
 
@@ -188,11 +199,12 @@ Type: color. Bound by 5 component(s).
 
 ### `color.border.success`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `success.status.subtle.border` | surface | emphasis: subtle · tone: success · type: status (1 of 20) |
+| banner | `success.border` | container | tone: success (2 of 8) |
 | password-field | `success.border.empty`, `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
 | search-field | `success.border.empty`, `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
 | select | `success.border.empty`, `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
@@ -210,11 +222,12 @@ Type: color. Bound by 2 component(s).
 
 ### `color.border.warning`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `warning.status.subtle.border` | surface | emphasis: subtle · tone: warning · type: status (1 of 20) |
+| banner | `warning.border` | container | tone: warning (2 of 8) |
 | password-field | `warning.border.empty`, `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
 | search-field | `warning.border.empty`, `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
 | select | `warning.border.empty`, `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
@@ -409,11 +422,12 @@ Type: color. Bound by 1 component(s).
 
 ### `color.foreground.danger-subtle`
 
-Type: color. Bound by 1 component(s).
+Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `danger.status.subtle.fill` | surface | emphasis: subtle · tone: danger · type: status (1 of 20) |
+| banner | `danger.fill` | container | tone: danger (2 of 8) |
 
 ### `color.foreground.info`
 
@@ -425,11 +439,12 @@ Type: color. Bound by 1 component(s).
 
 ### `color.foreground.info-subtle`
 
-Type: color. Bound by 1 component(s).
+Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `info.status.subtle.fill` | surface | emphasis: subtle · tone: info · type: status (1 of 20) |
+| banner | `info.fill` | container | tone: info (2 of 8) |
 
 ### `color.foreground.primary`
 
@@ -457,11 +472,12 @@ Type: color. Bound by 1 component(s).
 
 ### `color.foreground.success-subtle`
 
-Type: color. Bound by 1 component(s).
+Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `success.status.subtle.fill` | surface | emphasis: subtle · tone: success · type: status (1 of 20) |
+| banner | `success.fill` | container | tone: success (2 of 8) |
 
 ### `color.foreground.warning`
 
@@ -473,11 +489,12 @@ Type: color. Bound by 1 component(s).
 
 ### `color.foreground.warning-subtle`
 
-Type: color. Bound by 1 component(s).
+Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `warning.status.subtle.fill` | surface | emphasis: subtle · tone: warning · type: status (1 of 20) |
+| banner | `warning.fill` | container | tone: warning (2 of 8) |
 
 ### `color.icon.brand`
 
@@ -489,19 +506,21 @@ Type: color. Bound by 1 component(s).
 
 ### `color.icon.danger`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| banner | `danger.icon` | dangerGlyph | tone: danger (2 of 8) |
 | field-message | `error.icon` | errorGlyph | status: error (1 of 4) |
 | icon | `tone.danger` | (not drawn) | — |
 
 ### `color.icon.info`
 
-Type: color. Bound by 1 component(s).
+Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| banner | `info.icon` | infoGlyph | tone: info (2 of 8) |
 | icon | `tone.info` | (not drawn) | — |
 
 ### `color.icon.link.default`
@@ -573,10 +592,11 @@ Type: color. Bound by 4 component(s).
 
 ### `color.icon.success`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| banner | `success.icon` | successGlyph | tone: success (2 of 8) |
 | field-message | `success.icon` | successGlyph | status: success (1 of 4) |
 | icon | `tone.success` | (not drawn) | — |
 
@@ -591,10 +611,11 @@ Type: color. Bound by 2 component(s).
 
 ### `color.icon.warning`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| banner | `warning.icon` | warningGlyph | tone: warning (2 of 8) |
 | field-message | `warning.icon` | warningGlyph | status: warning (1 of 4) |
 | icon | `tone.warning` | (not drawn) | — |
 
@@ -1853,12 +1874,14 @@ Type: color. Bound by 1 component(s).
 
 ### `color.text.primary`
 
-Type: color. Bound by 16 component(s).
+Type: color. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `body` | placeholder | expansion: expanded (12 of 24) |
 | badge | `neutral.status.subtle.label` | label | emphasis: subtle · tone: neutral · type: status (1 of 20) |
+| banner | `body`, `label` | placeholder | every member (8 of 8) |
+|  |  | title | every member (8 of 8) |
 | breadcrumb-item | `label` | current | kind: current · separator: chevron (2 of 10) |
 | checkbox-row | `label` | label | every member (6 of 6) |
 | counter | `ghost.label`, `outline.label` | value | state: focus-visible, rest (12 of 18) |
@@ -2323,7 +2346,7 @@ Type: dimension. Bound by 6 component(s).
 
 ### `icon.size.md`
 
-Type: dimension. Bound by 16 component(s).
+Type: dimension. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2332,6 +2355,10 @@ Type: dimension. Bound by 16 component(s).
 |  |  | frame | size: large (4 of 12) |
 |  |  | minusGlyph | expansion: expanded · indicator: plus-minus · size: large (1 of 12) |
 |  |  | plusGlyph | expansion: collapsed · indicator: plus-minus · size: large (1 of 12) |
+| banner | `glyph-size` | dangerGlyph | tone: danger (2 of 8) |
+|  |  | infoGlyph | tone: info (2 of 8) |
+|  |  | successGlyph | tone: success (2 of 8) |
+|  |  | warningGlyph | tone: warning (2 of 8) |
 | button | `size.large.icon` | leadingVisual | leading: true · size: large · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: large · state: pending (32 of 576) |
 |  |  | trailingVisual | size: large · trailing: true (88 of 576) |
@@ -2463,10 +2490,11 @@ Type: dimension. Bound by 1 component(s).
 
 ### `radius.md`
 
-Type: dimension. Bound by 7 component(s).
+Type: dimension. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| banner | `width.contained.radius` | container | width: contained (4 of 8) |
 | button | `radius` | container | every member (576 of 576) |
 | button-destructive | `radius` | container | every member (576 of 576) |
 | button-neutral | `radius` | container | every member (576 of 576) |
@@ -2477,10 +2505,11 @@ Type: dimension. Bound by 7 component(s).
 
 ### `radius.none`
 
-Type: dimension. Bound by 4 component(s).
+Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| banner | `width.full.radius` | container | width: full (4 of 8) |
 | dialog | `placement.bottom.radius-bottom`, `placement.end.radius-bottom`, `placement.end.radius-top`, `placement.full.radius-bottom`, `placement.full.radius-top` | panel | placement: bottom, end, full · size: medium (12 of 24) |
 | flush-icon-button | `radius.flush` | container | shape: flush (30 of 60) |
 | flush-icon-button-destructive | `radius.flush` | container | shape: flush (30 of 60) |
@@ -2691,12 +2720,14 @@ Type: dimension. Bound by 3 component(s).
 
 ### `space.050`
 
-Type: dimension. Bound by 9 component(s).
+Type: dimension. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | _slider-thumb | `halo-step` | hoverHalo | every member (15 of 15) |
 |  |  | pressHalo | every member (15 of 15) |
+| banner | `content-gap`, `title-offset` | content | every member (8 of 8) |
+|  |  | titleBox | every member (8 of 8) |
 | breadcrumb-item | `size.small.gap` | container | size: small (5 of 10) |
 | breadcrumbs | `back-gap`, `size.small.gap` | container | every member (6 of 6) |
 |  |  | items | path: full · size: small (2 of 6) |
@@ -2790,7 +2821,7 @@ Type: dimension. Bound by 29 component(s).
 
 ### `space.150`
 
-Type: dimension. Bound by 15 component(s).
+Type: dimension. Bound by 16 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2798,6 +2829,8 @@ Type: dimension. Bound by 15 component(s).
 |  |  | header | size: medium, small (16 of 24) |
 |  |  | titleRow | size: medium (8 of 24) |
 | badge | `status.pad-x` | surface | type: status (10 of 20) |
+| banner | `actions-gap`, `gap` | actions | every member (8 of 8) |
+|  |  | container | every member (8 of 8) |
 | button | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
 | button-destructive | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
 | button-group | `layout.fill.gap`, `layout.inline.gap` | items | layout: fill, inline (2 of 3) |
@@ -2817,13 +2850,14 @@ Type: dimension. Bound by 15 component(s).
 
 ### `space.200`
 
-Type: dimension. Bound by 17 component(s).
+Type: dimension. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.gap`, `size.large.pad-y`, `size.medium.pad-x`, `size.medium.panel-pad-end` | content | expansion: expanded · size: medium (4 of 24) |
 |  |  | header | size: large, medium (16 of 24) |
 |  |  | titleRow | size: large (8 of 24) |
+| banner | `pad` | container | every member (8 of 8) |
 | button | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
 | button-destructive | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
 | button-neutral | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
@@ -2944,11 +2978,12 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 16 component(s).
+Type: typography. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (4 of 24) |
+| banner | `body-type` | placeholder | every member (8 of 8) |
 | breadcrumb-item | `size.medium.type` | current | kind: current · separator: chevron · size: medium (1 of 10) |
 | checkbox-row | `size.medium.text` | label | size: medium (2 of 6) |
 | counter | `size.medium.type` | value | size: medium (6 of 18) |
@@ -3132,11 +3167,12 @@ Type: typography. Bound by 2 component(s).
 
 ### `type.label.md.emphasis`
 
-Type: typography. Bound by 7 component(s).
+Type: typography. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.medium.type` | label | size: medium (8 of 24) |
+| banner | `title-type` | title | every member (8 of 8) |
 | button | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
 | button-destructive | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
 | button-neutral | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
@@ -3228,6 +3264,12 @@ Declared, not drawn: `color.border.focus`
 35 token(s); 20 design-file member(s).
 
 `border-width.hairline`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.tertiary`, `color.border.warning`, `color.foreground.danger`, `color.foreground.danger-subtle`, `color.foreground.info`, `color.foreground.info-subtle`, `color.foreground.secondary`, `color.foreground.success`, `color.foreground.success-subtle`, `color.foreground.warning`, `color.foreground.warning-subtle`, `color.inverse.foreground.tertiary`, `color.inverse.text.primary`, `color.text.danger`, `color.text.info`, `color.text.on-danger`, `color.text.on-info`, `color.text.on-success`, `color.text.on-warning`, `color.text.primary`, `color.text.success`, `color.text.warning`, `control.size.sm.dot`, `radius.round`, `radius.sm`, `space.0`, `space.025`, `space.075`, `space.100`, `space.150`, `type.label.sm.emphasis`
+
+### banner
+
+23 token(s); 8 design-file member(s).
+
+`border-width.hairline`, `border-width.none`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.warning`, `color.foreground.danger-subtle`, `color.foreground.info-subtle`, `color.foreground.success-subtle`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.success`, `color.icon.warning`, `color.text.primary`, `icon.size.md`, `radius.md`, `radius.none`, `space.050`, `space.150`, `space.200`, `type.body.md.default`, `type.label.md.emphasis`
 
 ### breadcrumb-item
 
@@ -3561,11 +3603,10 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-253 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+252 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
-- **border-width** — `border-width.none`
 - **breakpoint** — `breakpoint.2xl`, `breakpoint.lg`, `breakpoint.md`, `breakpoint.sm`, `breakpoint.xl`
 - **color.border** — `color.border.brand`
 - **color.field** — `color.field.placeholder`

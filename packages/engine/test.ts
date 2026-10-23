@@ -3794,6 +3794,8 @@ for (const b of brands) {
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      // Banner (#2579): no size axis, so its keys are bare.
+      banner: { keys: [], sizes: [], bare: ['pad', 'gap', 'actions-gap'] },
       // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
       // glyph-to-message gap. The action-to-close 4px is not listed: it stays at the floor.
       toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
@@ -3827,6 +3829,9 @@ for (const b of brands) {
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
       // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
       link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
+      // Banner (#2579, DRAFT): padding / glyph→content gap / body→actions offset / action→action gap. Comfortable is the
+      // proposal's 16 / 12 / 12, and 8 between the two buttons.
+      banner: { compact: 'bare 12/8/8', comfortable: 'bare 16/12/12', spacious: 'bare 20/16/16' },
       // Toast (#2668, the proposal's §8 approved by call 13 A): comfortable is 8/16/8 padding, 8 to the controls, 12 glyph to message.
       toast: { compact: 'bare 6/12/6/6/8', comfortable: 'bare 8/16/8/8/12', spacious: 'bare 12/20/12/12/16' },
       // Breadcrumbs (#2666, DRAFT): the label-to-separator gap, repeated between items, and the parent path's
@@ -3874,6 +3879,8 @@ for (const b of brands) {
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
       list: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      // Banner (#2579): the glyph→content gap and the fixed title→body gap (one action since Q533.1, so no action gap).
+      banner: ['gap', 'content-gap'],
       toast: ['gap', 'glyph-gap', 'controls-gap'],
       // #2709: the three defs with a density-following gap that joined after this list was written.
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
@@ -3933,11 +3940,14 @@ for (const b of brands) {
       'tab-item': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       'segmented-control-segment': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      // Banner (#2579): the gap sits inside the padding.
+      banner: { prefix: 'bare', lt: [['gap', 'pad']] },
       // Toast (#2668): no size axis, so the keys are bare. Both content gaps sit under the inline-start padding.
       toast: { prefix: 'bare', lt: [['gap', 'pad-x'], ['glyph-gap', 'pad-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
-    const PAD_TAILS = ['padding-x', 'pad-x'];
+    // `pad` (#2579): Banner's one padding, block and inline alike.
+    const PAD_TAILS = ['padding-x', 'pad-x', 'pad'];
     const stating = componentDefs.filter((d) => {
       const groups = new Map<string, Set<string>>();
       for (const [k, ref] of Object.entries(d.tokens)) {
@@ -6364,6 +6374,127 @@ arm: {
     const { measured, low } = measure(fill, 'background.primary', 3);
     ok(measured === CELLS && low.length === 0,
       `badge bold fill separates from the page (${m}): ${fill} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+  }
+}
+
+// ---- BANNER — the owner's decisions on #2579 (Q327, 2026-10-16), held here with literal expectations ---------------
+// Written from the decisions, not read back from the def: 8 members (tone info | success | warning | danger × width
+// contained | full), subtle only, a full 1px edge in the tone's BORDER role (Q346: never an icon or text role), the
+// title and body in text.primary, FieldMessage's glyph per status, ONE text action (owner QA Q533.1: no second action, no
+// outline, no Button group) and a dismiss, both off by default, lowercase Figma property names (Q345), and the first member
+// the code default (Q347). The full member is a page-top bar (Q533.4, built on its recommended answer): built at 960 where
+// contained is 480, square, and edged top and bottom only.
+// Every expectation is a literal; the projected members are read off `figmaAnatomySet`, never off the def's tokens.
+// Contrast: the text at 4.5:1 and the edge and glyph at 3:1, in 5 brands × 4 modes.
+{
+  const bannerDef = componentDefs.find((d) => d.id === 'banner');
+  ok(!!bannerDef, 'banner: the def is registered');
+  if (bannerDef) {
+    const TONES = ['info', 'success', 'warning', 'danger'];
+    const GLYPH: Record<string, string> = { info: 'icon/info-circle', success: 'icon/check-circle', warning: 'icon/error-circle', danger: 'icon/warning-triangle' };
+    const CORNER: Record<string, string> = { contained: 'radius/md', full: 'radius/none' };
+    const set = figmaAnatomySet(bannerDef) as any[];
+    const names = set.map(planComponentName);
+    const EXPECT_NAMES = TONES.flatMap((t) => ['contained', 'full'].map((w) => `tone=${t}, width=${w}`));
+    ok(JSON.stringify(names) === JSON.stringify(EXPECT_NAMES),
+      `banner set: exactly the 8 members tone × width, info and contained first (Q327, Q347) (got ${names.join(' | ')})`);
+    const find = (n: any, name: string): any => n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean);
+    const glyphs = (n: any): any[] => [...(/^icon\//.test(n.nestTarget ?? '') ? [n] : []), ...(n.children ?? []).flatMap(glyphs)];
+    const wrong: string[] = [];
+    for (const m of set) {
+      const name = planComponentName(m);
+      const tone = /tone=(\w+)/.exec(name)?.[1] ?? '';
+      const width = /width=(\w+)/.exec(name)?.[1] ?? '';
+      const r = m.root;
+      if (r.paints?.fills !== `color/foreground/${tone}-subtle`) wrong.push(`${name} fill ${r.paints?.fills}`);
+      if (r.paints?.strokes !== `color/border/${tone}`) wrong.push(`${name} edge ${r.paints?.strokes}`);
+      // The edge per side (Q533.4): hairline top and bottom on both widths; the sides hairline contained, none full.
+      const SIDE: Record<string, string> = { contained: 'border-width/hairline', full: 'border-width/none' };
+      const edges = [r.bound?.strokeTopWeight, r.bound?.strokeRightWeight, r.bound?.strokeBottomWeight, r.bound?.strokeLeftWeight];
+      if (r.bound?.strokeWeight !== undefined || JSON.stringify(edges) !== JSON.stringify(['border-width/hairline', SIDE[width], 'border-width/hairline', SIDE[width]]))
+        wrong.push(`${name} edge weights ${r.bound?.strokeWeight ?? '-'} / ${edges.join(' ')}`);
+      // The built width (Q533.4): 480 contained, 960 full, so the two read apart on the canvas.
+      const BUILT: Record<string, number> = { contained: 480, full: 960 };
+      if (r.placementWidth !== BUILT[width]) wrong.push(`${name} built at ${r.placementWidth}`);
+      for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'])
+        if (r.bound?.[c] !== CORNER[width]) wrong.push(`${name} ${c} ${r.bound?.[c]}`);
+      const g = glyphs(r).filter((n) => n.name !== 'dismiss');
+      if (g.length !== 1 || g[0].nestTarget !== GLYPH[tone] || g[0].descendantFills !== `color/icon/${tone}` || g[0].bound?.width !== 'icon/size/md')
+        wrong.push(`${name} glyph ${g.map((n) => `${n.nestTarget} in ${n.descendantFills}`).join(', ') || 'none'}`);
+      for (const t of ['title', 'placeholder'])
+        if (find(r, t)?.paints?.fills !== 'color/text/primary') wrong.push(`${name} ${t} ink ${find(r, t)?.paints?.fills}`);
+      const row = find(r, 'actions'), a = find(r, 'action'), d = find(r, 'dismiss');
+      // Q533.1: ONE action, a text Button, small, the row's only child.
+      if (a?.nestTarget !== 'button' || a?.nestPrefer !== 'button-neutral' || a?.nestVariant?.appearance !== 'text' || a?.nestVariant?.size !== 'small') wrong.push(`${name} action ${a?.nestTarget}/${a?.nestVariant?.appearance}/${a?.nestVariant?.size}`);
+      if ((row?.children ?? []).length !== 1) wrong.push(`${name} actions row holds ${(row?.children ?? []).map((c: any) => c.name).join('+') || 'nothing'}`);
+      // Q386 (#2808): the dismiss is FlushIconButton.Neutral, flush, small (owner QA 2026-10-19, as Dialog's close), the close glyph fixed.
+      if (d?.nestTarget !== 'flush-icon-button-neutral' || d?.nestVariant?.shape !== 'flush' || d?.nestVariant?.size !== 'small' || d?.nestOverrides?.length !== 1 || d?.nestOverrides?.[0]?.value !== 'icon/close') wrong.push(`${name} dismiss ${d?.nestTarget}/${d?.nestVariant?.shape}/${d?.nestVariant?.size}/${d?.nestOverrides?.map((o: any) => o.value).join('+')}`);
+      // Off by default (Q327.6 A, the proposal's §4): the action's row and the dismiss are hidden.
+      if (row?.visible !== false || d?.visible !== false) wrong.push(`${name} action/dismiss shown by default`);
+      if (find(r, 'titleBox')?.visible === false) wrong.push(`${name} title hidden by default`);
+    }
+    ok(wrong.length === 0,
+      `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, built 480 contained and 960 full with no side edges at full, and nests ONE primary text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, both off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+    // Q346: an edge never binds an icon or text role. Read off the TOKENS too, so a border key on any coordinate counts.
+    const badEdge = Object.entries(bannerDef.tokens).filter(([k, ref]) => /(^|\.)border$/.test(k) && !String(ref).startsWith('color.border.'));
+    ok(badEdge.length === 0, `banner edge: every border key binds a color.border.* role (Q346)${badEdge.length ? ` — ${badEdge.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
+    // Q345: the Figma property names are lowercase, and the set is the proposal's.
+    const fp = bannerDef.figmaProperties!;
+    const propNames = [
+      ...Object.entries(fp.texts ?? {}).map(([k, t]: [string, any]) => t.figmaName ?? k),
+      ...Object.entries(fp.booleans ?? {}).map(([k, b]: [string, any]) => (typeof b === 'object' && b.figmaName) || k),
+    ];
+    ok(JSON.stringify(propNames) === JSON.stringify(['title text', 'title', 'icon', 'actions', 'dismiss']),
+      `banner Figma properties: title text, title, icon, actions, dismiss, all lowercase (Q345), and no second action (Q533.1) (got ${propNames.join(', ')})`);
+    // Q533.1 from the other side: the banner's one action is not grouped, so Button group neither pairs with Banner nor
+    // says in its prose that it holds a banner's actions (review on #2786).
+    const bg = componentDefs.find((d) => d.id === 'button-group')!;
+    const bgProse = [bg.description, bg.docs?.usage, bg.ai?.whenToUse].map((s) => String(s ?? ''));
+    ok(!(bg.ai?.commonPartners ?? []).includes('banner') && !bgProse.some((s) => /\bbanner\b/i.test(s)),
+      `banner Q533.1: Button group does not name Banner as a partner or claim a banner's actions (partners ${(bg.ai?.commonPartners ?? []).join(', ')}; prose naming banner: ${bgProse.filter((s) => /\bbanner\b/i.test(s)).length})`);
+
+    // CONTRAST, as literals over every example brand × mode (20 cells).
+    const themes: [string, any][] = loadedRows([
+      ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+      ['nb', nbTheme()],
+      ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
+      ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+      ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+    ]);
+    const CELLS = 20;
+    const measure = (a: string, b: string, floor: number): { measured: number; low: string[]; min: number } => {
+      const low: string[] = [];
+      let measured = 0, min = Infinity;
+      for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
+        const x = m.roles[a], y = m.roles[b];
+        if (!x?.hex || !y?.hex) { low.push(`${brand}/${m.mode}: missing ${!x?.hex ? a : b}`); continue; }
+        const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
+        measured++; min = Math.min(min, r);
+        if (r < floor) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
+      }
+      return { measured, low, min };
+    };
+    const PAIRS: [string, string, number, string][] = TONES.flatMap((t) => [
+      ['text.primary', `foreground.${t}-subtle`, 4.5, `title and body on the ${t} fill`],
+      [`border.${t}`, 'background.primary', 3, `the ${t} edge against the page`],
+      [`icon.${t}`, `foreground.${t}-subtle`, 3, `the ${t} glyph on its fill`],
+      // The nested neutral text action and dismiss paint their rest ink on the banner's fill.
+      ['interactive.neutral.text.rest', `foreground.${t}-subtle`, 4.5, `the action label on the ${t} fill`],
+      // The fallback when the file has no Button.Neutral: the primary Button's text label, held to 4.5:1 by #2820's surface contract (Q419 A).
+      ['interactive.primary.text.rest', `foreground.${t}-subtle`, 4.5, `the primary-Button action label on the ${t} fill`],
+      ['interactive.neutral.icon.rest', `foreground.${t}-subtle`, 3, `the dismiss glyph on the ${t} fill`],
+      // Q533.5: the flush dismiss has no wash, so its hover and pressed states are the glyph ink alone, and its focus is
+      // the shared ring, drawn on the banner's fill. Each is held to the non-text 3:1 on every tint.
+      ['interactive.neutral.icon.hover', `foreground.${t}-subtle`, 3, `the dismiss glyph at hover on the ${t} fill`],
+      ['interactive.neutral.icon.pressed', `foreground.${t}-subtle`, 3, `the dismiss glyph at press on the ${t} fill`],
+      ['border.focus', `foreground.${t}-subtle`, 3, `the dismiss focus ring on the ${t} fill`],
+    ] as [string, string, number, string][]);
+    ok(PAIRS.length === 36, `banner contrast covers 36 pairs, 9 per tone (got ${PAIRS.length})`);
+    for (const [a, b, floor, what] of PAIRS) {
+      const { measured, low, min } = measure(a, b, floor);
+      ok(measured === CELLS && low.length === 0,
+        `banner contrast (${what}): ${a} on ${b} clears ${floor}:1 in all ${measured} of ${CELLS} brand × mode cells, lowest ${min.toFixed(2)}${low.length ? ` — ${low.join('; ')}` : ''}`);
+    }
   }
 }
 
@@ -11195,8 +11326,8 @@ arm: {
     'background.primary', 'foreground.primary',
     'foreground.brand-subtle', 'foreground.success-subtle', 'foreground.warning-subtle', 'foreground.danger-subtle', 'foreground.info-subtle',
   ];
-  // Banner (#2786) has not merged: its tints are in the contract by Q419 A ahead of the def that places the inks there.
-  const PENDING_2817 = ['foreground.brand-subtle', 'foreground.success-subtle', 'foreground.warning-subtle', 'foreground.danger-subtle', 'foreground.info-subtle'];
+  // Banner (#2786) places the inks on the four status tints; the brand tint stays in the contract by Q419 A ahead of a def that places them there.
+  const PENDING_2817 = ['foreground.brand-subtle'];
 
   // 0. Coverage from the defs: a def's own fill on a ground, over the transitive closure of the defs it nests (fixed
   //    nests, slot offers and a host's `nestItemPrefers`), where one of those paints a primary or link ink.
@@ -11235,12 +11366,12 @@ arm: {
     ok(missing.length === 0 && inkedDefs >= 5 && derived.has('foreground.primary'),
       `#2817 every ground a component places the primary or link ink on is in the contract's literal list (derived from ${componentDefs.length} defs, ${inkedDefs} that paint the inks: ${[...derived].map(([g, h]) => `${g} ← ${h.join('; ')}`).join(' | ') || 'none'})${missing.length ? ` — NOT IN THE LIST: ${missing.join('; ')}` : ''}`);
     ok(unplaced.length === 0,
-      `#2817 every ground in the contract is one a component places the inks on, the page, or a pending Banner tint (Q419 A: no wider)${unplaced.length ? ` — NO COMPONENT PLACES THEM ON: ${unplaced.join(', ')}` : ''}`);
+      `#2817 every ground in the contract is one a component places the inks on, the page, or a pending tint (Q419 A: no wider)${unplaced.length ? ` — NO COMPONENT PLACES THEM ON: ${unplaced.join(', ')}` : ''}`);
     const unlisted = PENDING_2817.filter((g) => !GROUNDS_2817.includes(g));
     ok(unlisted.length === 0,
-      `#2817 every pending Banner tint is in the contract's literal list (Q419 A: the seven grounds, no narrower)${unlisted.length ? ` — PENDING BUT NOT MEASURED: ${unlisted.join(', ')}` : ''}`);
+      `#2817 every pending tint is in the contract's literal list (Q419 A: the seven grounds, no narrower)${unlisted.length ? ` — PENDING BUT NOT MEASURED: ${unlisted.join(', ')}` : ''}`);
     ok(landed.length === 0,
-      `#2817 the pending tints are still pending (when Banner lands and places the inks on them, drop them from PENDING_2817)${landed.length ? ` — NOW PLACED: ${landed.join(', ')}` : ''}`);
+      `#2817 the pending tints are still pending (when a def lands and places the inks on them, drop them from PENDING_2817)${landed.length ? ` — NOW PLACED: ${landed.join(', ')}` : ''}`);
   }
 
   const rows2817: { id: string; theme: any }[] = [
@@ -17532,7 +17663,7 @@ arm: {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'search-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
-      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, toast: 2, slider: 2,
+      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
@@ -28726,7 +28857,7 @@ arm: {
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'search-field', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'slider'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'slider'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -34073,6 +34204,10 @@ arm: {
   ok(errs(dg).length === 0, `#2609 dialog validates clean (${errs(dg).slice(0, 2).join('; ')})`);
   ok(errs(withPart('header', { builtSize: dg.anatomy!.parts.panel.builtSize })).some((m) => /builtSize' but is not the anatomy ROOT/.test(m)), '#2609 builtSize off the root is refused');
   ok(errs(withPart('panel', { builtSize: { ...dg.anatomy!.parts.panel.builtSize!, widths: { center: 560, bottom: 360 } } })).some((m) => /names no width for 'placement=full'/.test(m)), '#2609 builtSize missing a placement\'s width is refused');
+  // #2786: a WIDTH alone fits a row root (Banner's full member); HEIGHTS still need the column they grow down.
+  const rowPanel = { ...dg.anatomy!.parts.panel.layout!, direction: 'row' as const };
+  ok(errs(withPart('panel', { layout: rowPanel, builtSize: { axis: 'placement', widths: { center: 560, bottom: 360, full: 360, end: 480 } } })).every((m) => !/declares 'builtSize' but is not a 'box'/.test(m)), '#2786 builtSize widths on a row root are admitted');
+  ok(errs(withPart('panel', { layout: rowPanel })).some((m) => /declares 'builtSize' but is not a 'box' with a layout, and a 'column' one for its heights/.test(m)), '#2786 builtSize heights on a row root are refused by name');
   ok(errs(withPart('panel', { radius: 'placement.{placement}.radius-top' })).some((m) => /both 'radius' and 'radiusEdges'/.test(m)), '#2609 radius beside radiusEdges is refused');
   ok(errs(withPart('title', { elevation: 'shadow' })).some((m) => /declares 'elevation'/.test(m)), '#2609 elevation on a text part is refused');
   const oneTogether = { ...dg, figmaProperties: { ...dg.figmaProperties!, booleans: { ...dg.figmaProperties!.booleans, dividers: { part: ['headerDivider'], default: false, figmaName: 'dividers', figmaOnly: true, together: true as const } } } };

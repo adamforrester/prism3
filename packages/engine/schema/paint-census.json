@@ -577,6 +577,18 @@
         "sha256": "04316a98af67d09ef160dfeeb8ada50b0555b00f9ea7091cc5785820f2a59359"
       }
     },
+    "banner": {
+      "set": {
+        "members": 8,
+        "assignments": 40,
+        "sha256": "3537d614c7f70e0d5ada4bac9f24b2f0d1749ec2939826ef0f2c64f3f8568017"
+      },
+      "grid": {
+        "members": 8,
+        "assignments": 40,
+        "sha256": "de9baa297f7ba1e25d891f6f59a6964bebb209a26b4fbf98828cc0d3303c7641"
+      }
+    },
     "_slider-thumb": {
       "set": {
         "members": 15,

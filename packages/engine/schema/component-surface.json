@@ -782,6 +782,18 @@
         "↳ swap trailing icon:INSTANCE_SWAP"
       ]
     },
+    "banner": {
+      "members": 8,
+      "sha256": "63bccef6daac23bf4caaf9500d0c618961accaf7d7d5d09521acf6ee13a43e97",
+      "properties": [
+        "actions:BOOLEAN",
+        "body:SLOT",
+        "dismiss:BOOLEAN",
+        "icon:BOOLEAN",
+        "title text:TEXT",
+        "title:BOOLEAN"
+      ]
+    },
     "_slider-thumb": {
       "members": 15,
       "sha256": "1182808f96e60938100262e24d6a68a81a2eca6ee5267a6425850550017c1959",

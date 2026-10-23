@@ -78,6 +78,35 @@
       ]
     },
     {
+      "from": "banner",
+      "to": "button",
+      "part": "action",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "text",
+        "size": "small",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "banner",
+      "to": "flush-icon-button-neutral",
+      "part": "dismiss",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "shape": "flush",
+        "size": "small",
+        "surface": "default",
+        "state": "rest"
+      }
+    },
+    {
       "from": "breadcrumb-item",
       "to": "link",
       "part": "crumb",
@@ -1474,6 +1503,21 @@
       ],
       "inheritedBy": []
     },
+    "banner": {
+      "nests": [
+        "button",
+        "flush-icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "breadcrumb-item": {
       "nests": [
         "_breadcrumb-separator",
@@ -1520,11 +1564,13 @@
         "spinner"
       ],
       "nestedBy": [
+        "banner",
         "button-group",
         "password-field",
         "toast"
       ],
       "affectedByChange": [
+        "banner",
         "button-group",
         "dialog",
         "password-field",
@@ -1770,12 +1816,14 @@
         "focus-ring"
       ],
       "nestedBy": [
+        "banner",
         "breadcrumb-item",
         "counter",
         "dialog",
         "toast"
       ],
       "affectedByChange": [
+        "banner",
         "breadcrumb-item",
         "breadcrumbs",
         "counter",
@@ -1817,6 +1865,7 @@
       "affectedByChange": [
         "_slider-thumb",
         "accordion",
+        "banner",
         "breadcrumb-item",
         "breadcrumbs",
         "button",
@@ -2113,6 +2162,7 @@
         "icon-button-neutral"
       ],
       "affectedByChange": [
+        "banner",
         "button",
         "button-destructive",
         "button-group",
@@ -2262,6 +2312,7 @@
     "_slider-thumb": 1,
     "accordion": 1,
     "badge": 0,
+    "banner": 2,
     "breadcrumb-item": 2,
     "breadcrumbs": 3,
     "button": 1,

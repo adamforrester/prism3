@@ -40,6 +40,12 @@ Component API, variant sets, brand-facing names and copy are the owner's decisio
 (`CLAUDE.md` principle 6). Where the brief leaves one open, or where you would depart from
 it, record the question in the PR and hold it rather than settling it inside the def.
 
+**Wireframe before you build** (owner rule, #2382). Before any component build starts, the owner sees a
+rough wireframe of the component as it will be built: the parts, the axes and the members, reflecting the
+decisions as made, not only the proposal's options. The build starts after the owner has seen it. This holds
+for a reshape too, when a decision changes a component's structure. A component already wireframed and
+decided keeps its approval unless a later decision changed its structure.
+
 ## 0. Start from the KB brief
 
 **The brief is the primary source.** The knowledge base (a separate repo, `knowledge-base`)
@@ -111,6 +117,16 @@ from what the component is:
 list, and a number off the scale or a 6 or 9 with no host fails by name. Flag a new def's tier in
 the PR.
 
+### Field order
+
+Write the fields in the order the corpus uses, so a reader finds each one where the other defs keep it:
+identity (`id`, `name`, `aliases`, `category`, `status`), `inherits` where the def has one, `summary`,
+`description`, then `props`, `states`, `variants`, `axisKinds`, `weightIntent`, the paint declarations
+(`paintKeys`, `densitySpacing`, `visibleGaps`), `tokens`, `anatomy`, `figmaProperties`, `accessibility`, `content`, `docs`, `ai`,
+`composition`, `motion` and `notes`. `summary` comes before `description`. Button's factory and the Icon
+button factory write them the other way round; do not copy that (#2712). Which keys to write empty is still open there; the one empty
+value that is already a statement is `figmaProperties.booleans` (§6).
+
 ### What ships, and who reads it
 
 Two channels are maintainer-only: `notes` and `anatomy.codeOnly`. The docs projection writes them
@@ -179,9 +195,11 @@ Motion and a part's `note` ship too but are not gated yet (#2773), so hold them 
 - `composition.alternativeTo`, `supersedes`, `supersededBy` and `ai.commonPartners` hold registered
   ids only. An unbuilt component goes in the `planned` list; a described pattern ("a bare <select> with
   no label wiring") in `composition.replacesPatterns`.
-- `notes` — `contested` holds only open or argued items; a sentence opening "Settled", "Resolved" or
-  "CLOSED" is refused, and the settled item moves to `evolution`. `unverified` holds claims not yet
-  gated or sourced.
+- `notes` — four buckets, all maintainer-only. `contested` holds only open or argued items; a sentence
+  opening "Settled", "Resolved" or "CLOSED" is refused, and the settled item moves to `evolution`.
+  `unverified` holds claims not yet gated or sourced. `evolution` holds the history: what changed and why.
+  `projection` holds how a consumer-facing fact is carried into the design file, a Figma-only mechanic
+  that would otherwise name a tool in shipped prose (a prop description, or the `usage` field of `docs`).
 
 ## 1. The structure / paint split (the load-bearing decision)
 
@@ -211,6 +229,10 @@ per-component spacing token. Two orderings hold at every density, and `packages/
 def as literal rules, so add yours there: a gap is tighter than the padding beside it (#325),
 and an icon-side inset sits between them (#326: gap < icon-side padding < label-side padding).
 
+Spell a binding key the way the nearest sibling spells the same job (`size.{size}.padding-x`, not a
+new abbreviation). The corpus has a few jobs under two spellings (`pad-x` and `padding-x`, `height` and
+`min-height`), and #2710 is folding them into one; do not add a third.
+
 ## 2. Materialized anatomy — the part tree
 
 Every part declares a `kind` from a closed vocabulary (`packages/engine/component-schema.ts`,
@@ -228,7 +250,8 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 
 **The root part is named for its role, never `root` and never the component's own id.** Pick it
 from the role list in §6's naming table (`container` for most controls, `row` for the Rows, `track`
-for switch-control, `panel` for dialog, and so on) rather than inventing one.
+for switch-control, `panel` for dialog, and so on) rather than inventing one. The list is closed: a new
+role needs an owner decision (Q365).
 
 **`anatomy.codeOnly` is required and non-empty** — what will not survive the Figma leg, stated per
 def rather than discovered. It carries two kinds of entry: structure Figma cannot hold, and the
@@ -267,7 +290,18 @@ fact about the design (the def declares it). Three kinds:
   than the parent re-enumerating them into its own variant matrix. The two lists are disjoint — the
   validator refuses an axis in both. `checkbox-row` nests `checkbox-control` `nest-exposed`, exposing
   `selection` + `state` and `follow`ing its own `size`, which collapses the Row's Figma set to 3
-  members.
+  members. A host's label is the other common case: every host that nests FieldLabel nests it
+  `nest-exposed`, exposing `emphasis` and `weight`, so a designer adjusts it from the host's panel.
+  Only the default differs: a field's label is regular, a group's heading bold (owner decision Q348).
+- **`variantWhen`** (on either nested kind) maps a host axis value to a nested coordinate, for when
+  the two axes use different words and `follow` cannot pass the value by name:
+  `{ appearance: { ghost: { shape: 'round' } } }` (the schema's own illustration). A host value with
+  no entry keeps `variant`'s coordinate. A host *state* uses the same field: the Password field's
+  `{ state: { disabled: { state: 'disabled' } } }` shows the nested Button's disabled member at the
+  field's disabled member, and its `variant` everywhere else. That mapping first shipped as a
+  separate `atState` field (#2317); one field now does both jobs, so never write `atState`. The rules,
+  including what it may map on a `nest-exposed` part, are on `NestingRelation` in
+  `packages/engine/component-schema.ts`.
 
 `absolute`, `nest` and `overlay` name their component in `nests`. An `absolute` sits beside the flow and
 a `nest` takes a cell; both materialize as an instance, so both are `nest-fixed` or `nest-exposed` and
@@ -344,7 +378,9 @@ whose actual value comes from the host, not from the plan.
   - **A set's group sets it, and passes it down.** Checkbox.Group and Radio.Group carry
     `status`, `follow` it into every row (each row into its control), and nest a FieldMessage
     under the options, present only at `error`. A radio is never invalid alone, so Radio.Row and
-    Radio.Control carry the axis only to receive the group's value; their docs say so.
+    Radio.Control carry the axis only to receive the group's value; their docs say so. That is the
+    one stated reason a family differs, and a new def that departs from this rule states its own
+    reason in the PR.
   A row or group paints nothing by `status` itself: it follows the axis to the part that draws it.
   Moving an existing `error` state onto the axis is a `move` entry in `COMPONENT_RENAMES`, so an
   update renames the error member in place and a placed error instance keeps showing it.
@@ -375,8 +411,8 @@ whose actual value comes from the host, not from the plan.
   So in shipped prose, SC 2.5.5 is stated as intent, not as a guarantee for every size. See `packages/engine/components/select.ts` and
   `packages/engine/components/text-field.ts`.
 - **Selection → a tint and a 2px outline, at a constant label weight (the system pattern, owner decision
-  2026-09-28).** A control the user selects and deselects in place — Tag's select type today; a segmented
-  control, a selectable card or a list option next — shows its selected state as a subtle tint plus a bold
+  2026-09-28).** A control the user selects and deselects in place — Tag's select type today; a selectable
+  card or a list option next — shows its selected state as a subtle tint plus a bold
   outline, and neither of the two moves its box. Bind the tint to `color.interactive.primary.subtle-fill.selected`
   in the `overlay` paint slot: the primary fill at an opacity step, emitted by every brand whose
   `outlineInteraction` is not `none` (owner, 2026-09-29). It is brand-dependent in the token contract. On a
@@ -392,6 +428,12 @@ whose actual value comes from the host, not from the plan.
   unselected one, and a row of them reflows on toggle unless the component reserves that width (Tag does not:
   the owner let it widen, 2026-09-29). At hover and pressed the tint holds and the outline steps to
   `interactive.primary.border.hover` / `.pressed`. See `packages/engine/components/tag.ts`.
+
+  **The one exception to the constant weight: a choice between peers in a row** (Tab, and the Segmented
+  control's segment; owner decision). There the selected label takes the emphasis weight, and an invisible
+  copy of the label in that weight holds the label box at its bold width in both states, so selecting one
+  never moves its neighbors. The copy is a second text part the label's text property drives through
+  `also`, so it always spells the label. Tag and other in-place toggles keep the constant weight.
 - **Glyph ink binds an icon role, never a text role (#1471).** A `vector` or an icon `slot` paints from an
   `icon.*` role (`color.icon.primary`, or the interactive `icon.*` twin the engine mints beside `text.*`),
   never a `text.*` role — even where the two resolve to the same value. The label beside the glyph keeps
@@ -418,11 +460,14 @@ library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of 
 (Q394): a designer inserts it from the assets panel, which works only for a published set, so it stays
 unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab-item`,
 `list-item` and `segmented-control-segment`. The checkbox and radio controls (`checkbox-control`,
-`radio-control`) stay unprefixed because they may be used on their own.
+`radio-control`) stay unprefixed because they may be used on their own, and so does Radio row: it is a
+whole option, not a part.
 
 **Figma property names are lowercase (owner decision Q345).** Every name a designer reads in the
 properties panel is lowercase: each `figmaName` (or the key, when there is none), and each variant axis
 under its display name. So `check icon`, `state icon`, `marker`, `label`, never `Check icon`.
+Renaming a property a placed instance already uses is a rename for that instance, so it rides
+`COMPONENT_RENAMES` in `packages/engine/component-renames.ts` and an update carries the instance across in place.
 
 `packages/engine/lint-naming.ts` checks all of this except the main-text row, which is a judgment
 (a dialog has a title and a description). Its rules are literals in the gate, never read off a def,
@@ -435,9 +480,14 @@ Until the sweep in #2759 finishes, breaches the gate already knows about are lis
 are `is`-prefixed. So switch-row carries `readOnly` and `checked` (DOM-backed) beside `isPending`
 (synthetic); button and icon-button carry `disabled` (DOM-backed) beside `isPending`/`isInactive`
 (synthetic). The older `isReadOnly`/`isDisabled`/`pending` prop names no longer exist — do not
-reintroduce them. And disabled is not always a prop: field-label dims through its `disabled`
-state alone (#1339), so a component whose disabled look comes from its host takes the state and
-no duplicating prop.
+reintroduce them.
+
+**A state a consumer sets (disabled, read-only, pending) has a prop that drives it, on the component the
+consumer places** (owner decision Q351); hover, pressed and focus come from the user and need none. A Row that nests a control restates `disabled` and `readOnly` itself rather than
+leaving them to the control inside it: a consumer disables a labeled checkbox, not its box. The same holds
+for any declared state with no prop behind it (Textarea's `disabled` and `readOnly`, #2708). The one
+exception is a part that is never placed on its own: field-label dims through its `disabled` state alone
+(#1339), because its host sets that state, so it takes the state and no duplicating prop.
 
 **Axis and state names are closed vocabularies.** `VARIANT_AXES` in
 `packages/engine/component-schema.ts` closes the axis names (the validator refuses any other, and
@@ -456,7 +506,8 @@ switch spelling is a decision taken, not a default inherited — a def whose axi
 optional `figmaName` — the label a designer reads in the Figma properties panel, decoupled from the
 code prop. The key stays the idiomatic code prop (`leadingVisual`, `label`) and is still validated
 against `props[].name`; `figmaName`, when present, is the panel name and need not be a declared prop.
-Absent, the key is the panel name.
+Absent, the key is the panel name. A variant axis whose code name is not the panel name takes its display
+name in `figmaProperties.variantAxisNames` (Accordion's `iconPosition` reads `icon position`).
 
 **The icon-property canon (#1380, split at #1331/#1379).** A leading/trailing icon has two Figma
 properties — its presence (is the glyph there?) and its content (which glyph) — and the canon governs how
@@ -513,6 +564,43 @@ value. The validator refuses an entry naming an axis or value the set does not h
 empties the set or leaves a declared value on no member, and one that removes the first member or the code
 default. `packages/engine/components/badge.ts` is the worked example.
 
+### Repeating content: an `items` slot, never a boolean per child (#2660, owner decision Q307)
+
+A component that holds a variable run of like children (the rows of a group, the tabs of Tabs, the
+items of a List, the segments of a Segmented control) holds them in a native Figma slot named `items`:
+a `box` part with `contentSlot: true`, its children the default content. Give it `preferred` naming the
+child def, and `slotSettings` with `minChildren`, `maxChildren` where the component has a limit, and
+`allowPreferredValuesOnly`, so the slot offers that child only.
+The default content is three items. In code it is a prop named `items` of type `slot`, with `anyOf`
+naming the child def and `minItems`/`maxItems` matching the slot. `children` stays the name for open
+content of any kind (Accordion's body).
+
+A boolean is for one optional piece of content: an icon, a message, a label. Never declare a toggle
+per child (`Option 3`, `Tab 4`). Those are Figma-only booleans with no code prop behind them, and the
+slot replaced them. A Figma-only toggle that does not stand for a child is still fine where the
+component needs one (the Segmented control's label toggle): mark it `figmaOnly: true` and give it a
+`figmaName`, since it has no prop to take its panel name from.
+
+### The `figmaProperties` fields beyond the basics
+
+Most defs need only `variantAxes`, `swaps`, `texts` and `booleans`. Reach for the others when the case
+below is yours, and read the field's comment in `packages/engine/component-schema.ts` first:
+
+| Field | When |
+|---|---|
+| `stateAxis` | the def's `states` project as a variant axis; name it and list the projected values (a code-only state stays out) |
+| `slotAxes` | slot presence moves the box's padding (Button only, above) |
+| `gridAxis` | which axis runs across the set's columns; absent, the axis with the most values does |
+| `variantAxisNames` | a variant axis whose panel name differs from its code name |
+| `excludeCoordinates` | a sparse grid (above) |
+| `footprintVaries` | an axis along which the box legitimately changes size, because a `presentWhen` part sits in the flow or an `aspectRatio` lock reads it; it exempts that axis from the build's footprint check |
+| `emitAsComponents` | standalone parts rather than one set (§3) |
+| a `booleans` entry's `together` | one toggle over several parts that build in the same member and show and hide as one (Dialog's `dividers`) |
+| a `texts` entry's `also` | further text parts that must spell the same string (the selected-weight reserve, §5) |
+| a `texts` entry's `byVariant` | the placeholder copy changes with an axis (FieldMessage's error copy) |
+
+`variantWhen` is not a `figmaProperties` field: it sits on a nesting relation (§3).
+
 ## 7. Verification — the gate lists, the whole run, and the mutation that names your gate
 
 **A new def joins these lists by hand.** Each is authored in its gate, never derived from the registry,
@@ -568,13 +656,24 @@ the failures, by name.** Two surface gates guard every component:
   but paints the wrong ink.
 
 For each decision the def takes from its brief, add an arm to `packages/engine/test.ts` that holds it
-against a literal from the brief, and mutate the def to watch that arm fail by name. Commit a `wip:`
+against a literal from the brief, and mutate the def to watch that arm fail by name. Give a new def at
+least the kinds of test its nearest sibling has (paint, contrast, nesting, plugin build): siblings with
+different kinds of test are an open finding (#2764), not a pattern to copy. Commit a `wip:`
 checkpoint before each mutation so the `git checkout --` restore reaches your work and not a stale
 HEAD (the pathspec trap in `CLAUDE.md`), mutate, confirm the named failure, restore, and confirm clean.
 
 **Automatic in Figma — nothing to author.** The plugin writes Figma's purple dashed variant-set
 border on every freshly combined set (#1714), and places a section header at the top of each
 component page, titled from the page's primary def's name and described by its `summary` (#1711).
+
+The plugin also writes each set's prototype reactions, derived from the projected `state` axis: a set whose
+states include rest, hover and pressed gets them, and nothing in the def names them
+(`apps/plugin/src/reactions.ts`). Rest carries *While hovering → Hover* and *While pressing → Pressed*;
+Hover carries *While pressing → Pressed*; no other state is a source (owner decision Q344). Rest's press
+reaction looks redundant and is not: on a desktop the pointer hovers first, so Hover's press fires, but a
+touch prototype has no hover, and Rest's press is the only way to reach Pressed there. Do not chain the
+states (Rest to Hover only) without a new owner decision that weighs touch prototypes. What this asks of
+a def: if a component has a hover or pressed look, project rest, hover and pressed under those names.
 
 ## 8. Versioning — which number moves
 
@@ -616,17 +715,21 @@ one until that arc builds it.
 
 ## Before you finish
 
-1. The def is authored from its KB brief: the header cites it exactly once, `category` is the brief's,
+1. The owner has seen a wireframe of the component as it will be built, before the build started.
+2. The def is authored from its KB brief: the header cites it exactly once, `category` is the brief's,
    and every brief section has landed in its field (§0) or is recorded as an omission in `notes`.
-2. Shipped fields are written for people — no brief sections, issue numbers, "def", all-caps, code spans or Prism 2 —
+3. Shipped fields are written for people — no brief sections, issue numbers, "def", all-caps, code spans or Prism 2 —
    and `summary` is one line under 100 characters. Provenance lives in `notes`, `codeOnly` and comments.
-3. `composesWith` equals what the anatomy nests; hosts and slot content are in `ai.commonPartners`;
+4. `composesWith` equals what the anatomy nests; hosts and slot content are in `ai.commonPartners`;
    siblings differ in keywords, `ai.avoidWhen` and priority; `status` is `draft`.
-4. The root part is named for its role; `codeOnly` is non-empty, carries the brief's code-tier rules, and
+5. The root part is named for its role; `codeOnly` is non-empty, carries the brief's code-tier rules, and
    no entry leads with the name of an axis or state the def projects.
-5. Every naming choice matches the settled canon in §6.
-6. The def is in every gate list in §7, its docs page and JSON entry are regenerated, both baselines
+6. Every naming choice matches the settled canon in §6: the naming table, the `_` prefix, lowercase Figma
+   property names, and a first member that carries the code default on every axis.
+7. No border binds an icon or text role; an invalid state is the `status` axis, not an `error` state; a
+   state a consumer sets has its own prop; repeated children sit in an `items` slot.
+8. The def is in every gate list in §7, its docs page and JSON entry are regenerated, both baselines
    are accepted after the change note is added, and `npm run verify` is all-PASS with no SKIP.
-7. A mutation of the def fails a surface gate by name, and each brief decision's own arm fails by name.
-8. A progress entry, `docs/progress/pending/<slug>.md`, carries the diagnosis, the decisions held for
+9. A mutation of the def fails a surface gate by name, and each brief decision's own arm fails by name.
+10. A progress entry, `docs/progress/pending/<slug>.md`, carries the diagnosis, the decisions held for
    the owner, and any trap, written as part of the work. The fold moves it into `docs/00-progress.md`.
