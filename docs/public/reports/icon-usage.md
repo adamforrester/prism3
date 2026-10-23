@@ -14,6 +14,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | plusGlyph | `plus` | icon set | drawn | indicator: plus-minus; expansion: collapsed |
 | _breadcrumb-separator | chevronGlyph | `chevron-right` | icon set | drawn | type: chevron |
 |  | slashGlyph | `slash` | icon set | drawn | type: slash |
+| banner | dangerGlyph | `warning-triangle` | icon set | drawn | tone: danger |
+|  | infoGlyph | `info-circle` | icon set | drawn | tone: info |
+|  | successGlyph | `check-circle` | icon set | drawn | tone: success |
+|  | warningGlyph | `error-circle` | icon set | drawn | tone: warning |
 | breadcrumbs | backGlyph | `chevron-left` | icon set | drawn | path: parent |
 | checkbox-control | checkGlyph | `check` | icon set | drawn | selection: checked |
 |  | dashGlyph | `minus` | icon set | drawn | selection: indeterminate |
@@ -67,15 +71,16 @@ Parts that take any icon from the set. The file nominates the default unless the
 | Glyph | Drawn by |
 |---|---|
 | `check` | checkbox-control, list-item, switch-control, tag |
-| `check-circle` | field-message, toast |
+| `check-circle` | banner, field-message, toast |
 | `chevron-down` | _accordion-indicator, select |
 | `chevron-left` | breadcrumbs, pagination-item |
 | `chevron-right` | _breadcrumb-separator, pagination-item |
 | `chevron-up` | _accordion-indicator |
 | `close` | switch-control, tag |
 | `close-filled` | search-field |
-| `error-circle` | field-message |
+| `error-circle` | banner, field-message |
 | `image` | image-placeholder |
+| `info-circle` | banner |
 | `minus` | _accordion-indicator, checkbox-control |
 | `more-horizontal-filled` | pagination-item |
 | `plus` | _accordion-indicator |
@@ -83,10 +88,10 @@ Parts that take any icon from the set. The file nominates the default unless the
 | `search` | search-field |
 | `slash` | _breadcrumb-separator |
 | `spinner` | spinner |
-| `warning-triangle` | field-message |
+| `warning-triangle` | banner, field-message |
 
-## Glyphs no component names (29)
+## Glyphs no component names (28)
 
 Each is still reachable through Icon and through every icon slot.
 
-`FPO-default-icon`, `arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check-circle-filled`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `home`, `info-circle`, `info-circle-filled`, `link`, `menu`, `minus-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `warning-triangle-filled`
+`FPO-default-icon`, `arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check-circle-filled`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `home`, `info-circle-filled`, `link`, `menu`, `minus-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `warning-triangle-filled`

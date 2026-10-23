@@ -753,7 +753,7 @@ const DEPTH_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="shadow-softn
 /** Components in the two panes (#2700): the levers pane is the list, so it renders a row's name (which focuses its family)
  *  and a family's fold on both hosts. The Button options moved to the preview pane with the Buttons family; the plugin's
  *  boxes and Build are section 26's and the focus sweep's. */
-const COMPONENTS_LEVERS_CONTROLS = ['[data-p3="cp-name"]', '[data-p3="cp-fold"]'];
+const COMPONENTS_LEVERS_CONTROLS = ['[data-p3="cp-name"]', '[data-p3="cp-fold"]', '[data-p3="cp-opts-toggle"]'];
 /** Each moved place's levers, by place. */
 const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRAND_LEVERS_CONTROLS, 'color-fills': FILLS_LEVERS_CONTROLS,
   'color-interactive': INTERACTIVE_LEVERS_CONTROLS, type: TYPE_LEVERS_CONTROLS, shape: SHAPE_LEVERS_CONTROLS, depth: DEPTH_LEVERS_CONTROLS,
@@ -915,6 +915,14 @@ const goPlace = async (page, place) => {
   if (subSel) await hooks.click(page.locator(subSel));
   await page.waitForFunction((p) => document.querySelector('[data-p3="frame"]')?.dataset.place === p, place);
   await page.evaluate(() => document.fonts.ready);
+};
+
+/** #2844: a family's settings are closed when the Components page opens, behind a disclosure line under its sets: open the
+ *  Buttons line, as a designer would, and wait for the Button options to render. */
+const openButtonOptions = async (page) => {
+  const t = page.locator('[data-p3="cp-opts-toggle"]');
+  if ((await t.getAttribute('aria-expanded')) !== 'true') await hooks.click(t);
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="button-options-section"]')?.getClientRects().length, null, { timeout: 5000 });
 };
 
 // ── the in-page probe ────────────────────────────────────────────────────────────────────────────
@@ -8048,8 +8056,9 @@ for (const host of ['web', 'figma']) {
     await goPlace(page, 'shape');
     await hooks.click(page.locator('[data-p3="shape-see-components"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="components-levers"]'), null, { timeout: 5000 }).catch(() => {});
+    await openButtonOptions(page);
     const s = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place,
-      // #2815 step 1: the Button options sit under the Buttons row, in the list (the levers pane).
+      // #2815 step 1, #2844: the Button options sit under the Buttons row, in the list (the levers pane), behind its line.
       buttons: !!document.querySelector('[data-p3="levers-pane"] [data-p3="lever-button-icons"]') }));
     ok(s.place === 'components' && s.buttons, `${host}: See Components opens the Components tab, where the Button options are (${JSON.stringify(s)})`);
     ok(errors.length === 0, `${host} Shape routes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
@@ -8202,6 +8211,7 @@ for (const host of ['web', 'figma']) {
     await goPlace(page, 'components');
     await hooks.need(page, '[data-p3="components-levers"]');
     await openAllFamilies(page);
+    await openButtonOptions(page);
     const r = await page.evaluate(() => {
       const pane = document.querySelector('[data-p3="levers-pane"]');
       const pv = document.querySelector('[data-p3="components-style-guide"]');
@@ -8294,6 +8304,7 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
     await goPlace(page, 'components');
+    await openButtonOptions(page);
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
       await chooseAnyMode(page, mode);
       await page.waitForFunction((l) => document.querySelector('[data-p3="button-options-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
@@ -8347,6 +8358,7 @@ for (const host of ['web', 'figma']) {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
     await goPlace(page, 'components');
+    await openButtonOptions(page);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await hooks.click(page.locator('[data-p3="button-icons-choice-edges"]'));
     await page.waitForTimeout(120);
@@ -8362,21 +8374,28 @@ for (const host of ['web', 'figma']) {
     ok(false, `S8.2 Q54: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
-// #2815 step 1 (the phase-2 wireframe, call 3 A): settings left, preview right. On both hosts, at 1280 and at 380, the
-// Button options are drawn once, in the list (the levers pane), inside the Buttons row's own list item and after its row,
-// and nowhere in the preview pane; the preview pane keeps the family's head, its Preview and its sets. Focusing another
-// family (Badge, which has no settings) takes the options away with the preview's Buttons; focusing Buttons again
-// brings them back under its row. At 380 the list is the Settings pane and the preview the Preview pane, as on every page.
+// #2844 (Q439 A, over #2815 step 1's call 3 A): a family's settings sit OUTSIDE its drawer, under its set checkboxes,
+// COLLAPSED behind one disclosure line. On both hosts, at 1280 and at 380: the Button options are in the list (the levers
+// pane) and nowhere in the preview; they are closed when the page opens (the line says aria-expanded=false, the block is
+// not rendered); the line sits AFTER the family's set checkboxes and the block after the line, never above them,
+// measured off the render with the family open; the line is a standard disclosure (aria-controls names the block); a
+// click opens it, keeps the focus on the line, and focuses the family (the preview shows Buttons); Enter and Space work
+// and Tab goes from the line to the first option; the line shows with another family in focus, and the open state
+// outlasts a visit to another page (the session). A Button option keeps its focus after its write and across the list's
+// redraw at the tier flip.
 //
-// Oracle: the hooks and the family names are literals typed here; "under its row" is read off the DOM's own nesting and
-// order, never from the page's `focusedRow`.
+// Oracle: the hooks and the family names are literals typed here; "above" and "below" are read off bounding boxes, and
+// "open" off what the render shows (a box with height), never off the page's own state.
 //
-// Mutation this fails by name (focus): the `inSettings` restore dropped from `paintList` → `#2815 step 1: <host> <w>: a
-// focused Button option keeps its focus across the list's redraw at the tier flip (on BODY)`, at both hosts and widths.
-//
-// Mutation this fails by name: the block drawn under the Buttons row whatever the preview shows (`shownKey === row.key`
-// turned into `row.page === PREVIEW_DEFAULT_PAGE` in `domains/components.ts`) → `#2815 step 1: <host> <w>: focusing Badge
-// takes the Button options away …`, at both hosts and both widths.
+// Mutations this fails by name:
+//   · the line drawn before the family's sets (`li.append(optsToggle…)` moved above `sub` in `sectionEl`) → `#2844: <host> <w>:
+//     the settings line sits below the family's set checkboxes …`, at both hosts and widths.
+//   · the block open on arrival (`optsOpen: new Set(['pages…'])`, or `set.hidden = false`) → `#2844: <host> <w>: the settings
+//     are closed when the page opens …`.
+//   · `aria-controls` dropped → `… is a disclosure: aria-expanded flips and aria-controls names the block …`.
+//   · `focus: row.key` dropped from the line's onclick → `… opening the line with Badge in the preview focuses Buttons …`.
+//   · the `inSettings` restore dropped from `paintList` → `… a focused Button option keeps its focus across the list's redraw
+//     at the tier flip (on BODY)`.
 for (const host of ['web', 'figma']) {
   for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
     const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
@@ -8385,49 +8404,94 @@ for (const host of ['web', 'figma']) {
       await hooks.need(page, '[data-p3="components-levers"]');
       const read = () => page.evaluate(() => {
         const pane = document.querySelector('[data-p3="levers-pane"]');
-        const opts = [...document.querySelectorAll('[data-p3="button-options-section"]')];
-        const o = opts[0] ?? null;
-        const li = o?.closest('[data-p3="cp-item"]') ?? null;
-        const row = li?.querySelector(':scope > [data-p3="cp-row"]') ?? null;
+        const o = document.querySelector('[data-p3="button-options-section"]');
+        const li = document.querySelector('[data-p3="cp-opts-toggle"]')?.closest('[data-p3="cp-item"]') ?? null;
+        const toggle = li?.querySelector('[data-p3="cp-opts-toggle"]') ?? null;
+        const members = [...(li?.querySelectorAll('[data-p3="cp-member"]') ?? [])];
+        const bottom = (n) => n.getBoundingClientRect().bottom;
+        const shown = (n) => !!n && n.getClientRects().length > 0 && n.getBoundingClientRect().height > 0;
         return {
-          n: opts.length, inPane: !!o && pane.contains(o),
+          n: document.querySelectorAll('[data-p3="button-options-section"]').length, inPane: !!o && pane.contains(o), shown: shown(o),
           inPreview: !!document.querySelector('[data-p3="preview-body"] [data-p3="button-options-section"], [data-p3="preview-body"] [data-p3^="lever-button-"]'),
-          rowName: row?.querySelector('[data-p3="cp-name"]')?.textContent ?? null,
-          after: !!row && !!o && !!(row.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING),
+          toggles: document.querySelectorAll('[data-p3="cp-opts-toggle"]').length,
+          rowName: li?.querySelector('[data-p3="cp-name"]')?.textContent ?? null, label: toggle?.textContent?.trim() ?? null,
+          expanded: toggle?.getAttribute('aria-expanded') ?? null,
+          controls: !!toggle && !!toggle.getAttribute('aria-controls') && toggle.getAttribute('aria-controls') === o?.id,
+          members: members.length,
+          // The sets first, then the line, then the block: read off the rendered edges.
+          lineBelowSets: !!toggle && members.length > 0 && members.every((m) => bottom(m) <= toggle.getBoundingClientRect().top + 1),
+          blockBelowLine: !!toggle && !!o && shown(o) && o.getBoundingClientRect().top >= bottom(toggle) - 1,
           levers: o ? o.querySelectorAll('[data-p3^="lever-button-"]').length : 0,
-          family: document.querySelector('[data-p3="components-style-guide"]')?.dataset.family ?? null,
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
+          active: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
         };
       });
       const r0 = await read();
-      ok(r0.n === 1 && r0.inPane && !r0.inPreview && r0.rowName === 'Buttons' && r0.after && r0.levers === 5,
-        `#2815 step 1: ${host} ${w}: the Button options sit in the list, under the Buttons row, once, and not in the preview (${JSON.stringify(r0)})`);
-      ok(r0.title === 'Buttons', `#2815 step 1: ${host} ${w}: with nothing focused the preview shows Buttons, the family whose settings are open (${r0.title})`);
-      await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
-      await page.waitForFunction(() => document.querySelector('[data-p3="components-style-guide"]')?.dataset.family !== undefined
-        && document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
+      ok(r0.toggles === 1 && r0.rowName === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line under the Buttons row, in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(r0.expanded === 'false' && !r0.shown,
+        `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
+      // The family's sets open by hand (the chevron), independent of the settings line.
+      await hooks.click(page.locator('[data-p3="cp-fold"][data-key="fold=components|Buttons"]'));
+      await page.waitForFunction(() => document.querySelectorAll('[data-p3="cp-opts-toggle"]')[0]?.closest('[data-p3="cp-item"]')?.querySelectorAll('[data-p3="cp-member"]').length > 0, null, { timeout: 5000 }).catch(() => {});
       const r1 = await read();
-      ok(r1.n === 0 && r1.title === 'Badge', `#2815 step 1: ${host} ${w}: focusing Badge takes the Button options away with the preview's Buttons (${JSON.stringify(r1)})`);
-      await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Buttons$/ }).first());
-      await page.waitForFunction(() => !!document.querySelector('[data-p3="button-options-section"]'), null, { timeout: 5000 }).catch(() => {});
+      ok(r1.members > 0 && r1.expanded === 'false' && !r1.shown && r1.lineBelowSets,
+        `#2844: ${host} ${w}: the settings line sits below the family's set checkboxes, and opening the sets leaves the settings closed (${JSON.stringify(r1)})`);
+      await hooks.click(page.locator('[data-p3="cp-opts-toggle"]'));
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="button-options-section"]')?.getClientRects().length, null, { timeout: 5000 }).catch(() => {});
       const r2 = await read();
-      ok(r2.n === 1 && r2.inPane && r2.rowName === 'Buttons' && r2.after && r2.title === 'Buttons',
-        `#2815 step 1: ${host} ${w}: focusing Buttons opens its options under its row again (${JSON.stringify(r2)})`);
+      ok(r2.expanded === 'true' && r2.controls && r2.n === 1 && r2.shown,
+        `#2844: ${host} ${w}: the line is a disclosure: aria-expanded flips and aria-controls names the block (${JSON.stringify(r2)})`);
+      ok(r2.lineBelowSets && r2.blockBelowLine && r2.levers === 5,
+        `#2844: ${host} ${w}: open, the settings sit below the line and the line below the sets, five Button options (${JSON.stringify(r2)})`);
+      ok(r2.active === 'cp-opts-toggle' && r2.title === 'Buttons', `#2844: ${host} ${w}: opening keeps the focus on the line and the preview shows Buttons (${r2.active}, ${r2.title})`);
+      // Keyboard: Tab goes from the line to the first option, Shift+Tab back; Enter and Space close and open.
+      await page.keyboard.press('Tab');
+      const t1 = await page.evaluate(() => document.activeElement?.closest('[data-p3="button-options-section"]') ? 'in' : (document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName));
+      ok(t1 === 'in', `#2844: ${host} ${w}: Tab from the line reaches the first Button option (${t1})`);
+      await page.keyboard.press('Shift+Tab');
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(80);
+      const k1 = await read();
+      await page.keyboard.press('Space');
+      await page.waitForTimeout(80);
+      const k2 = await read();
+      ok(k1.expanded === 'false' && !k1.shown && k1.active === 'cp-opts-toggle' && k2.expanded === 'true' && k2.shown && k2.active === 'cp-opts-toggle',
+        `#2844: ${host} ${w}: Enter closes and Space opens the line, the focus staying on it (${JSON.stringify([k1.expanded, k1.active, k2.expanded, k2.active])})`);
+      // The line shows whichever family is in focus; the state outlasts the page and the focus.
+      await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
+      await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
+      const r3 = await read();
+      ok(r3.toggles === 1 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
+        `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
+      // Opening the line focuses its family: with Badge in the preview, close and reopen it, and the preview shows Buttons.
+      // (Buttons is the preview's default, so the check above, from a fresh page, cannot tell a focus from the default.)
+      await hooks.click(page.locator('[data-p3="cp-opts-toggle"]'));
+      await page.waitForTimeout(80);
+      await hooks.click(page.locator('[data-p3="cp-opts-toggle"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Buttons', null, { timeout: 5000 }).catch(() => {});
+      const r3b = await read();
+      ok(r3b.expanded === 'true' && r3b.shown && r3b.title === 'Buttons',
+        `#2844: ${host} ${w}: opening the line with Badge in the preview focuses Buttons (${JSON.stringify([r3b.expanded, r3b.title])})`);
+      await goPlace(page, 'brand');
+      await goPlace(page, 'components');
+      const r4 = await read();
+      ok(r4.expanded === 'true' && r4.shown, `#2844: ${host} ${w}: the open state lasts the session, across a visit to another page (${JSON.stringify([r4.expanded, r4.shown])})`);
       // A choice inside the block keeps its focus after its write.
       await hooks.click(page.locator('[data-p3="button-icons-choice-edges"]'));
       await page.waitForTimeout(120);
       const f = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
-      ok(f === 'button-icons-choice-edges', `#2815 step 1: ${host} ${w}: a Button option keeps its focus after its write (on ${f})`);
+      ok(f === 'button-icons-choice-edges', `#2844: ${host} ${w}: a Button option keeps its focus after its write (on ${f})`);
       // A chip's write does not redraw the list, so the check above cannot tell a restored focus from one never lost. A
       // tier flip does redraw it (the tier observer calls paintList): the chip, focused, keeps its focus across that.
       await page.evaluate(() => document.querySelector('[data-p3="button-icons-choice-edges"]')?.focus());
       await page.setViewportSize({ width: w === 1280 ? 380 : 1280, height: h });
       await page.waitForTimeout(400);
       const f2 = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null);
-      ok(f2 === 'button-icons-choice-edges', `#2815 step 1: ${host} ${w}: a focused Button option keeps its focus across the list's redraw at the tier flip (on ${f2})`);
-      ok(errors.length === 0, `#2815 step 1 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      ok(f2 === 'button-icons-choice-edges', `#2844: ${host} ${w}: a focused Button option keeps its focus across the list's redraw at the tier flip (on ${f2})`);
+      ok(errors.length === 0, `#2844 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `#2815 step 1 ${host} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
+      ok(false, `#2844 ${host} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -10522,6 +10586,8 @@ const EXPECT_HEADINGS = {
 const HEADING_ADVANCED = {
   'color-palettes': ['[data-p3="palettes-advanced"]'], type: ['[data-p3="scale-advanced"]', '[data-p3="type-sections-advanced"]'],
   shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
+  // #2844: a family's settings are closed behind their line; the audit reads them open.
+  components: ['[data-p3="cp-opts-toggle"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */

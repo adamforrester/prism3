@@ -134,6 +134,7 @@ const MUST_COVER = [
   'field-message.errorGlyph', 'field-message.warningGlyph', 'field-message.successGlyph',
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevronGlyph', 'image-placeholder.markerGlyph',
   '_accordion-indicator.chevronDownGlyph', '_accordion-indicator.chevronUpGlyph', '_accordion-indicator.plusGlyph', '_accordion-indicator.minusGlyph',
+  'banner.infoGlyph', 'banner.successGlyph', 'banner.warningGlyph', 'banner.dangerGlyph',
   'toast.checkCircleGlyph',
   '_breadcrumb-separator.chevronGlyph', '_breadcrumb-separator.slashGlyph', 'breadcrumbs.backGlyph',
 ];
@@ -349,6 +350,28 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     glyph: 'check-circle',
     at: { status: ['success'] },
     why: 'the success mark: a circled check, on the same 20px ring `error-circle` draws. Deliberately the outline form and not `check-circle-filled` — the reference asks for "a stroked outline glyph at the same optical weight as the text", and every glyph in this set is a filled path, so outline here means a ring with a hole rather than a stroke',
+  },
+  // Banner (#2579): FieldMessage's mark per status, so a danger banner and an errored field show one shape. Held for
+  // the owner on the PR, since the proposal listed the glyph names in tone order.
+  'banner.infoGlyph': {
+    glyph: 'info-circle',
+    at: { tone: ['info'] },
+    why: 'the info mark: an i in a circle, the ring `error-circle` and `check-circle` share with the bar and dot swapped. `glyph: \'{tone}\'` would ask the vocabulary for a glyph named `info`, which it does not hold',
+  },
+  'banner.successGlyph': {
+    glyph: 'check-circle',
+    at: { tone: ['success'] },
+    why: 'the success mark: a circled check, outline, as FieldMessage\'s success status draws it',
+  },
+  'banner.warningGlyph': {
+    glyph: 'error-circle',
+    at: { tone: ['warning'] },
+    why: 'the warning mark: an exclamation in a CIRCLE, FieldMessage\'s warning glyph. The name is the enclosure, not the tone; do not "correct" it to `warning-triangle`, which would give warning and danger one shape',
+  },
+  'banner.dangerGlyph': {
+    glyph: 'warning-triangle',
+    at: { tone: ['danger'] },
+    why: 'the danger mark: an exclamation in a TRIANGLE, FieldMessage\'s error glyph, the one enclosure that is not a circle, so the most serious tone is told apart by shape',
   },
   // #2668 (owner call 3 A): the Toast's success glyph, the same circled check FieldMessage draws; neutral draws none.
   'toast.checkCircleGlyph': {

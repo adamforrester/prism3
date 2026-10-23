@@ -3207,6 +3207,67 @@ section('icons — a set built with inline glyphs updates to icon instances, as 
   }
 }
 
+/* ── option rows' content box (#2894, #2933) ─────────────────────────────────────────────────────────── */
+section('option rows — a set built before the content box (#2894, owner Q539) takes the box in place, every member and node kept');
+// THE FILE AS A BUILD AT MAIN BEFORE #2894 LEFT IT: the row top-aligned with no floor, holding the control cell and the
+// label directly with the gap on itself, a constant 12px block pad (`space.150`) on Radio.Row and Checkbox.Row and none
+// on Switch.Row, and no `content`. Reconstructed from today's def by putting those facts back, so the subject is the
+// real def's projection on both sides (Accordion's #2594 section above). EXPECTED is typed here: each row's member count
+// and its two flow children, which the dry run lists as moving into `content`, kept. Mutations: the executor offering the
+// new frame no children → `rows/moved children`, `rows/agree`; the dry run listing no moves → `rows/dry run moves`.
+for (const [ROW, MEMBERS, FLOW] of [['radio-row', 6, ['controlCell', 'label']], ['checkbox-row', 6, ['controlCell', 'label']], ['switch-row', 4, ['label', 'controlCell']]] as const) {
+  const now = componentDefs.find((x) => x.id === ROW)!;
+  const { content, ...restParts } = now.anatomy.parts;
+  const padded = ROW !== 'switch-row';
+  const { padding: _p, minHeight: _m, ...rowRest } = now.anatomy.parts.row;
+  const before2894 = {
+    ...now,
+    tokens: padded ? { ...now.tokens, 'pad-y': 'space.150' } : now.tokens,
+    anatomy: { ...now.anatomy, parts: { ...restParts, row: { ...rowRest, layout: { ...now.anatomy.parts.row.layout!, align: 'start' }, gap: content.gap, children: [...content.children!], ...(padded ? { padding: { block: 'pad-y', inlineLabel: 'pad-x' } } : {}) } } },
+  } as typeof now;
+  const kids = (n: Node | undefined): string[] => ((n?.children as Node[] | undefined) ?? []).map((c) => String(c.name));
+  // The file's variables are today's (an Update follows a token sync), so it holds the ones the new plans bind.
+  const newPlans = plansOf(ROW);
+  const w = await world(ROW, figmaAnatomySet(before2894, { swapTarget: SWAP_TARGET }), { extraVars: newPlans.flatMap((q) => [...planBoundVars(q.root), ...planPaintVars(q.root)]) });
+  ok(membersOf(w.set()).length === MEMBERS && membersOf(w.set()).every((m) => JSON.stringify(kids(m)) === JSON.stringify(FLOW) && m.counterAxisAlignItems === 'MIN'),
+    `${ROW} premise: the file holds ${MEMBERS} members built before #2894, each top-aligned and holding [${FLOW.join(', ')}] directly (${kids(membersOf(w.set())[0]).join(', ')}; ${String(membersOf(w.set())[0].counterAxisAlignItems)})`);
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: ROW, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === MEMBERS && p.counts.add === 0 && p.counts.drop === 0 && p.renames.length === 0 && !p.blockers.length && !p.replacements.length,
+    `${ROW} rows/dry run: all ${MEMBERS} members read update, none added, dropped, renamed or replaced, and nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'}, ${p.replacements.length} replacements)`);
+  const lines = previewVerdict(pre).lines;
+  const moves = FLOW.map((part) => p.changes.find((c) => c.part === part && c.field === 'moves into'));
+  ok(moves.every((c) => c?.to === 'content' && c.members === MEMBERS)
+    && FLOW.every((part) => lines.includes(`${ROW} · ${part} · moves into content, kept (${MEMBERS} members).`))
+    && !p.changes.some((c) => /removed/.test(c.to)),
+    `${ROW} rows/dry run moves: [${FLOW.join(', ')}] are listed as moving into content, kept, and nothing as removed (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.to, c.members])).slice(0, 300)})`);
+  ok(applyVerdict(res).ok, `${ROW} rows/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const after = identityOf(w.set());
+  const movedMembers = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && movedMembers.length === 0 && after.members.size === MEMBERS,
+    `${ROW} rows/members kept: the set and all ${MEMBERS} members keep their keys and ids (${movedMembers.join('; ') || 'none moved'})`);
+  // MOVED, NOT REBUILT (#2595): every node that sat under the control cell or the label, the nested control instance
+  // included, keeps its id, now under `content`. Read off the shim's nodes by id.
+  const was = new RegExp(`^(${FLOW.join('|')})#`);
+  const lost: string[] = [];
+  for (const [name, b] of before.members) {
+    const old = [...b.kids].filter(([path]) => was.test(path));
+    const under = new Set([...(after.members.get(name)?.kids ?? [])].filter(([path]) => /^content#\d+\//.test(path)).map(([, id]) => id));
+    if (!old.length || !old.every(([, id]) => under.has(id))) lost.push(`${name}: ${old.filter(([, id]) => !under.has(id)).map(([path]) => path).slice(0, 2).join(', ') || 'nothing to move'}`);
+  }
+  ok(lost.length === 0, `${ROW} rows/moved children: the control cell, the nested control and the label keep their ids under content (${lost.slice(0, 2).join('; ') || `all ${MEMBERS}`})`);
+  const movedIds = new Set([...before.members.values()].flatMap((b) => [...b.kids].filter(([path]) => was.test(path)).map(([, id]) => id)));
+  const gone = (w.api._removed as Node[]).filter((x) => movedIds.has(String(x.id)));
+  ok(movedIds.size > 0 && gone.length === 0, `${ROW} rows/agree: the apply removed none of the ${movedIds.size} nodes the dry run listed as moving (${gone.slice(0, 3).map((x) => `${String(x.name)} ${String(x.id)}`).join(', ') || 'none removed'})`);
+  // The new structure, read off the shim's nodes: the row centers one `content` box, which holds the flow children
+  // top-aligned (Q539, Q?3 A).
+  const shape = membersOf(w.set()).filter((m) => !(m.counterAxisAlignItems === 'CENTER' && JSON.stringify(kids(m)) === '["content"]' && childNamed(m, 'content').counterAxisAlignItems === 'MIN' && JSON.stringify(kids(childNamed(m, 'content'))) === JSON.stringify(FLOW)));
+  ok(shape.length === 0, `${ROW} rows/structure: every member centers content, which holds [${FLOW.join(', ')}] top-aligned (${shape.slice(0, 2).map((m) => `${String(m.name)}: ${String(m.counterAxisAlignItems)} [${kids(m).join(', ')}]`).join('; ') || `all ${MEMBERS}`})`);
+  const post = (await previewUpdate(w.host, [{ def: ROW, plans: newPlans }])).sets[0];
+  ok(post.counts.current === MEMBERS && post.handEdits.length === 0, `${ROW} rows/current: the next dry run reads all ${MEMBERS} current (${JSON.stringify(post.counts)})`);
+}
+
 /* ── accordion header row (#2594) ────────────────────────────────────────────────────────────────────── */
 section('accordion — a set built before the header row (#2594, owner Q276 A) takes the row in place, every member kept');
 {
