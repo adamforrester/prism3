@@ -923,7 +923,7 @@ export type UpdateTarget = {
   /** #2296 — built as single top-level components (`emitAsComponents`: the icons, the spinner), not as a set. */
   single?: boolean;
   /** #846 — the def itself, for its usage panel (`docPanelDue`), and each component's display name for its chips.
-   *  Absent, the dry run reads no panel. */
+   *  Absent, the dry run reads no panel: given only for a family's lead (#2927), whose set carries the family's. */
   doc?: { def: ComponentDef; names?: (id: string) => string };
 };
 
@@ -1082,13 +1082,15 @@ const setBuiltByPrism3 = (n: { children?: readonly unknown[] }): boolean => {
   return reads.some(owned);
 };
 
+/** A set the update reads, on its page. `lead` is false for a set that carries no usage panel (#2927); absent, it may. */
+export type PageSet = { name: string; set: LiveSet; blocked: boolean; lead?: boolean };
 /**
  * THE SET MOVES ON EACH PAGE (#2542, owner decision Q245.2 A), by set name. A page takes part only when EVERY set
  * Prism3 built on it is one this update reads and none is blocked: an update scoped to one def never moves a set it
  * wasn't asked about. Read from the page's top-level nodes as they sit (`respaceSets`), so the dry run lists the moves
  * the file shows now, and the apply, called again after its sets land, moves them by their new sizes.
  */
-export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], snug: ReadonlySet<string> = new Set(), reach = 0): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
+export const pageSetMoves = (found: readonly PageSet[], snug: ReadonlySet<string> = new Set(), reach = 0): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
   const out = new Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }>();
   for (const { here, kids, boxes } of pageViews(found, reach)) {
     const ids = new Set(here.filter((f) => snug.has(f.name)).map((f) => String(kids.indexOf(f.set as never))));
@@ -1102,7 +1104,7 @@ export const pageSetMoves = (found: readonly { name: string; set: LiveSet; block
 
 /** The sets, by name, that sit at exactly `SET_GAP` from their left neighbor on their pages (`snugSets`, #2734), on the
  *  pages `pageSetMoves` would re-space. Read by the apply just before it redraws the furniture. */
-export const pageSnugSets = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], reach = 0): Set<string> => {
+export const pageSnugSets = (found: readonly PageSet[], reach = 0): Set<string> => {
   const out = new Set<string>();
   for (const { here, kids, boxes } of pageViews(found, reach)) {
     const ids = snugSets(boxes);
@@ -1113,8 +1115,9 @@ export const pageSnugSets = (found: readonly { name: string; set: LiveSet; block
 
 /** Each page that takes part in the re-spacing, with its top-level nodes read as `respaceSets` reads them. A page takes
  *  part only when every set Prism3 built on it is one this update reads and none is blocked. `reach` is how far a
- *  set's usage panel reaches right of it (`docPanelReach`, #846): 0 when the file cannot draw one. */
-const pageViews = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], reach = 0) => {
+ *  set's usage panel reaches right of it (`docPanelReach`, #846): 0 when the file cannot draw one. Only a set whose
+ *  `lead` is not false reaches it: one panel per family, beside its lead's set (#2927). */
+const pageViews = (found: readonly PageSet[], reach = 0) => {
   const pages = new Map<unknown, typeof found[number][]>();
   for (const f of found) {
     const page = f.set.parent as { children?: readonly unknown[] } | null | undefined;
@@ -1143,7 +1146,8 @@ const pageViews = (found: readonly { name: string; set: LiveSet; blocked: boolea
     // update makes for it. A panel kept aside after a hand edit is the designer's, and stays put like any other node.
     if (reach > 0) {
       const drawn = new Set(boxes.filter((b) => b.of !== undefined && isLivePanel(kids[Number(b.id)] as PNode)).map((b) => b.of));
-      for (const b of boxes.filter((x) => x.prism3 && !drawn.has(x.id)))
+      const leads = new Set(here.filter((f) => f.lead !== false).map((f) => String(kids.indexOf(f.set as never))));
+      for (const b of boxes.filter((x) => x.prism3 && !drawn.has(x.id) && leads.has(x.id)))
         boxes.push({ id: `panel:${b.id}`, type: 'FRAME', x: b.x + b.width + reach - PANEL_WIDTH, y: b.y, width: PANEL_WIDTH, height: b.height, furniture: true, of: b.id });
     }
     views.push({ here, kids, boxes });
@@ -1157,7 +1161,7 @@ const pageViews = (found: readonly { name: string; set: LiveSet; blocked: boolea
 export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<UpdatePreview> => {
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
-  const found: { preview: SetPreview; set: LiveSet }[] = [];
+  const found: { preview: SetPreview; set: LiveSet; lead: boolean }[] = [];
   // The file's modes for the panels' Theming, read once, and only when a target has a panel to check.
   let modesRead: ReturnType<typeof panelModes> | undefined;
   const modes = () => (modesRead ??= panelModes(host as unknown as Pick<PanelApi, 'variables'>));
@@ -1205,12 +1209,12 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
       if (mig) { preview.slotMigration = mig.migration; preview.previewHash = fnv(JSON.stringify([preview.previewHash, mig.migration])); }
     }
     out.sets.push(preview);
-    if (!t.single) found.push({ preview, set: v.set });
+    if (!t.single) found.push({ preview, set: v.set, lead: !!t.doc });
   }
   // #2831: what each published set's update breaks for library consumers, once everything above has named its changes.
   for (const p of out.sets) { const b = breakingOf(p); if (b.length) p.breaking = b; }
   // #2542: the sets that move on their pages, read once every set has been.
-  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 })), undefined, docPanelReach(host as unknown as Pick<PanelApi, 'root'>));
+  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0, lead: f.lead })), undefined, docPanelReach(host as unknown as Pick<PanelApi, 'root'>));
   for (const f of found) { const m = moves.get(f.preview.set); if (m) f.preview.setMove = m; }
   // A BLOCKED PANEL THIS UPDATE CLEARS (#846): every node in its way is, or belongs to, a set this update moves, and the
   // move spaces that set past the panel. Then it is due, and the apply draws it once the sets have moved.
