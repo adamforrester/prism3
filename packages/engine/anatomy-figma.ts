@@ -2551,20 +2551,25 @@ export const TAG_UNDERLINE_INSET = 'size.{size}.underline.inset';
  *   · THE LINE (Q513.2, Q513.3, Q513.4): the four sides bind apart (`strokeEdges`). Top, end and start take
  *     `border-width.none`. The bottom takes `border-width.hairline` (1px) on an unselected tag at rest, focus-visible,
  *     disabled and read-only, and `border-width.thick` (2px) on an unselected tag's hover and pressed and on every
- *     selected state. Focus adds only the ring: the line keeps its weight. The color is the def's own border paint,
- *     unchanged (Q513.7: `interactive.neutral.border` unselected, `interactive.primary.border` selected).
+ *     selected state (Q590 A). Focus adds only the ring: the line keeps its weight.
+ *   · THE LINE'S COLOR (#2945, owner Q589 and Q589.1 A): `interactive.primary.border.{rest,hover,pressed}` on BOTH
+ *     selections, the selected keys copied onto the unselected ones, so selection is the 1px → 2px step and the check
+ *     (Q589.2 A). It replaces Q513.7's `interactive.neutral.border` under Underline only; the pill keeps neutral.
  *   · NO FILL IN ANY STATE (Q513.2, Q513.3): every `overlay` key goes, the neutral hover and pressed wash and the
  *     selected tint alike.
  *   · THE CORNER: `radius.none`, whatever the pill's round rung.
  *   · THE GAP TO THE LINE (owner ask on Q513; #2945, owner Q585 A): the frame HUGS its content on both axes, with no
  *     height floor, so it is the label row plus the inset: 20 / 26 / 32px at small / medium / large. The 24px target
- *     moves to code, as Link's does. The rung height survives only as the base of the 1.5 × width floor
- *     (`minWidthBase`, Q585.2 A). The frame aligns its children to the END (the bottom), the content row takes a
+ *     moves to code, as Link's does. The frame aligns its children to the END (the bottom), the content row takes a
  *     block-end inset (`TAG_UNDERLINE_INSET`), and the label row a `minHeight` at the glyph size, so the label sits
- *     centered in an icon-tall row and does not move when the check appears. The × slot keeps the rung height as its
- *     WIDTH (Q585.1 A) and hugs its height, its glyph on the same inset; it drops `innerTarget`, since its target is
- *     code's now. The side padding is the pill's (Q513.5), and
- *     the line runs under the × slot (Q513.6), since the slot is inside the frame.
+ *     centered in an icon-tall row and does not move when the check appears.
+ *   · THE LINE SPANS THE CONTENT (#2945, owner Q592 A, Q592.1 A, Q592.2 A): no side padding on the content row, no
+ *     width floor (the 1.5 × ratio goes), and the × slot only as wide as its glyph, hugging its height on the same
+ *     inset; it drops `innerTarget`, since its target is code's. The line then runs from the first glyph to the last:
+ *     icon + label + ×. The dismissible label row drops its 4px leading inset, and the icon → label and label → ×
+ *     distances are both the dismissible visible gap (6 / 8 / 8px, density-following): the content row's layer gap
+ *     takes it whole (`visibleGaps` with a 0 inset), and the frame's gap holds it before the slot. This reverses Q513.5
+ *     (the pill's side padding) and Q585.1 A / Q585.2 A (the rung-wide slot and the width floor) under Underline only.
  */
 export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef => {
   if (style === 'pill') return def;
@@ -2580,29 +2585,41 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
   for (const sel of def.variants?.selection ?? [])
     for (const st of statesOf(def))
       tokens[`underline.${sel}.line.${st}`] = sel === 'selected' || st === 'hover' || st === 'pressed' ? 'border-width.thick' : 'border-width.hairline';
+  // Q589, Q589.1 A: the unselected line is the selected line's primary family, stepping with it.
+  for (const k of Object.keys(def.tokens)) if (k.startsWith('selected.border') && k !== 'selected.border-width') tokens[`un${k}`] = def.tokens[k];
+  // Q592.2 A: no 4px leading inset on the dismissible label row, so its layer gap is the whole visible distance. At
+  // comfortable it is written here; `applySpacingDensity` recomputes it from `visibleGaps` (visible − 0) elsewhere.
+  for (const v of def.variants?.size ?? []) {
+    const visible = def.tokens[`size.${v}.dismissible.visible-gap`];
+    if (!visible || def.tokens[`size.${v}.dismissible.label-inset`] === undefined) continue;
+    tokens[`size.${v}.dismissible.label-inset`] = 'space.0';
+    tokens[`size.${v}.dismissible.gap`] = visible;
+  }
   const parts: Record<string, PartDef> = { ...a.parts };
-  const { strokeWidth: _pill, height, ...rest } = frame;
+  const { strokeWidth: _pill, height: _rung, minWidthRatio: _floor, ...rest } = frame;
+  const slot = a.parts[names.slot];
   parts[names.frame] = {
     ...rest,
-    ...(height && rest.minWidthRatio !== undefined ? { minWidthBase: height } : {}),
     ...(rest.layout ? { layout: { ...rest.layout, align: 'end', sizing: { ...rest.layout.sizing, y: 'hug' } } } : {}),
+    // The label → × distance (Q592.2 A): the frame's only other flow child is the slot, so a select tag is unmoved.
+    ...(slot ? { gap: 'size.{size}.dismissible.visible-gap' } : {}),
     strokeEdges: { top: 'underline.side', right: 'underline.side', bottom: 'underline.{selection}.line.{state}', left: 'underline.side' },
   };
   const row = a.parts[names.row];
-  if (row?.padding) parts[names.row] = { ...row, padding: { ...row.padding, blockEnd: TAG_UNDERLINE_INSET } };
+  if (row?.padding) parts[names.row] = { ...row, padding: { ...row.padding, inlineLabel: 'underline.pad-0', inlineEnd: 'underline.pad-0', blockEnd: TAG_UNDERLINE_INSET } };
   const labelRow = a.parts[names.labelRow];
   if (labelRow) {
     const glyph = Object.values(a.parts).find((p) => p.kind === 'vector' && labelRow.children?.some((c) => a.parts[c] === p))?.size;
     if (glyph) parts[names.labelRow] = { ...labelRow, minHeight: glyph };
   }
-  const slot = a.parts[names.slot];
   if (slot?.layout) {
     // The slot's height hugs, so its Figma box is no longer a measurable target (`innerTarget` needs both sides bound):
-    // under the underline the target is code's, Link's way (Q585 A), and `codeOnly` states it.
-    const { size: side, innerTarget: _target, ...slotRest } = slot;
+    // under the underline the target is code's, Link's way (Q585 A), and `codeOnly` states it. Its width is its glyph's.
+    const glyph = slot.children?.map((c) => a.parts[c]).find((p) => p?.kind === 'vector')?.size;
+    const { size: _side, innerTarget: _target, ...slotRest } = slot;
     parts[names.slot] = {
       ...slotRest,
-      ...(side ? { width: side } : {}),
+      ...(glyph ? { width: glyph } : {}),
       layout: { ...slot.layout, align: 'end', sizing: { ...slot.layout.sizing, y: 'hug' } },
       padding: { block: 'underline.pad-0', blockEnd: TAG_UNDERLINE_INSET, inlineLabel: 'underline.pad-0' },
     };
