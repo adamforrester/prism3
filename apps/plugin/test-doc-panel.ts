@@ -10,6 +10,12 @@
  *   no data/…       a def with its Content guidelines and its Accessibility rows emptied draws neither section.
  *   anatomy/…       no held-back part note (maintainer register or a tool's name) is anywhere in a drawn panel's text,
  *                   on every def; each reader-ready caption is. Mutation: the raw note as the caption → `anatomy/held back`.
+ *   legacy/…        a panel printed the old way, before `printView`, its set rebuilt since (#2968): Tag's panel and the
+ *                   Buttons page (the lead's panel and the three members' own) are replaced, one panel per page and no
+ *                   "(edited)" one; a line rewritten on an old-print panel (Tag's, or Button.Neutral's) still keeps that
+ *                   panel aside. Mutations: an old print compared whole again → `legacy/rebuilt`, `legacy/family lead`,
+ *                   `legacy/family members`, `legacy/family edited`; the text check dropped → `legacy/edited`,
+ *                   `legacy/family edited`, `family/kept`.
  *   replace/…       a second draw of an unedited panel replaces it: one panel, the earlier removed.
  *   hand edit/…     a panel whose text a designer changed is kept: renamed "(edited)", tagged kept, its edit intact, below
  *                   the fresh panel and clear of it, and named in the run's clauses; a third draw keeps it once and draws
