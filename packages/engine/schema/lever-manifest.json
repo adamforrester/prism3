@@ -307,6 +307,7 @@
     {
       "key": "dialogTitleSize",
       "group": "form",
+      "kind": "value",
       "label": "Dialog title size",
       "control": "enum",
       "default": "large",
