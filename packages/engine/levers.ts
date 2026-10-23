@@ -122,6 +122,11 @@ export const leverManifest: Lever[] = [
   { key: 'tagStyle', group: 'form', label: 'Tag style', control: 'enum', default: 'pill',
     options: enumOpts(['pill', 'Pill'], ['underline', 'Underline']),
     description: 'The shape of every tag. Pill draws a rounded outline; Underline draws one line under the tag, 2px when selected or under the pointer. Either way the line clears 3:1.' },
+  // #2958 (owner Q588, Q588b A) — label, option labels and description are a DRAFT for the owner (Q1 on #2958). Its home in
+  // the Studio is Components › Dialog (Q578: component settings live with their components).
+  { key: 'dialogTitleSize', group: 'form', label: 'Dialog title size', control: 'enum', default: 'large',
+    options: enumOpts(['large', 'Large'], ['medium', 'Medium'], ['small', 'Small']),
+    description: 'The title of every dialog and sheet: the large, medium or small label style, at Emphasis weight. One dialog can still be changed by hand in Figma.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),

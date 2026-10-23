@@ -24,7 +24,7 @@
  */
 import type { AxisKind, ComponentDef, NestVariantWhen, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
+import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -2595,6 +2595,36 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
     padding: { block: 'underline.pad-0', blockEnd: TAG_UNDERLINE_INSET, inlineLabel: 'underline.pad-0' },
   };
   return { ...def, tokens, anatomy: { ...a, parts } };
+};
+
+// ── DIALOG TITLE SIZE (#2958) ───────────────────────────────────────────────────────────────────
+//
+// One brand-wide title size for every dialog (owner Q588, Q588b A), mapped onto the label ladder: Large, Medium or Small
+// is `type.label.{lg|md|sm}`, the role the def authored (Emphasis) kept. A VALUE setting (#2959's rule): it moves one
+// text-style binding, so every member, axis, property and layer name holds, and a brand switch reaches an existing file
+// through Update. No token is added: every label rung and its Emphasis role is emitted for every brand. A one-off dialog
+// is still a designer's hand override in Figma (Q588b A); Q588c keeps every other dialog choice a component property.
+
+/** The defs the setting reaches, each with the def key that holds its title's text style. Dialog only: whether Accordion,
+ *  which binds the same `type.label.lg.emphasis` title, follows this or gets its own setting is the owner's (#2958 Q2). */
+export const DIALOG_TITLE_TYPE_KEYS: Readonly<Record<string, string>> = { dialog: 'title-type' };
+/** The label rung each setting binds. */
+export const DIALOG_TITLE_RUNG: Readonly<Record<DialogTitleSize, string>> = { large: 'lg', medium: 'md', small: 'sm' };
+
+/**
+ * Materialize a def for the brand's `dialogTitleSize` lever (#2958). The IDENTITY under `large` and for any def not in
+ * `DIALOG_TITLE_TYPE_KEYS`: it returns the same object, so every Large plan is byte-identical to before. Under `medium`
+ * or `small` the title key binds that label rung, its role kept (`type.label.lg.emphasis` → `type.label.sm.emphasis`).
+ * THROWS when the key does not hold a `type.label.<rung>.<role>` ref: rebinding anything else is the silent-loss shape.
+ */
+export const applyDialogTitleSize = (def: ComponentDef, size: DialogTitleSize): ComponentDef => {
+  if (size === 'large') return def;
+  const key = DIALOG_TITLE_TYPE_KEYS[def.id];
+  if (!key) return def;
+  const segs = def.tokens[key]?.split('.') ?? [];
+  if (segs.length !== 4 || segs[0] !== 'type' || segs[1] !== 'label')
+    throw new Error(`${def.id}: "Dialog title size" rebinds ${key} to type.label.<rung>.<role>, and the def binds ${def.tokens[key] ?? 'nothing'} there`);
+  return { ...def, tokens: { ...def.tokens, [key]: `type.label.${DIALOG_TITLE_RUNG[size]}.${segs[3]}` } };
 };
 
 // ── BUTTON LAYOUT (#1667) ───────────────────────────────────────────────────────────────────────
