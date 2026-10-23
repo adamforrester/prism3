@@ -38,7 +38,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ComponentDef, PartDef } from './component-schema';
+import { expandKey, type ComponentDef, type PartDef } from './component-schema';
 import { figmaAnatomySet, type FigmaNodePlan } from './anatomy-figma';
 import { componentDefs } from './components/index';
 import { ICON_NAMES } from './icon-glyphs';
@@ -393,7 +393,9 @@ const iconUsage = () => {
       const when = p.presentWhen ? { when: p.presentWhen } : {};
       if (p.glyph) {
         const templated = /^\{.+\}$/.test(p.glyph);
-        const source = templated ? 'any (prop)' : iconSet.has(p.glyph) ? 'icon set' : ownGlyphs.has(p.glyph) ? 'component-owned' : undefined;
+        // A name PART-templated on an axis (Progress's `progress-arc-{size}`, #2670) is one glyph per axis value.
+        const named = templated ? [] : expandKey(p.glyph, def.variants as Record<string, readonly string[]>);
+        const source = templated ? 'any (prop)' : named.every((g) => iconSet.has(g)) ? 'icon set' : named.every((g) => ownGlyphs.has(g)) ? 'component-owned' : undefined;
         if (!source) throw new Error(`analysis reports: ${def.id}.${part} draws "${p.glyph}", which is neither in the icon set nor a component-owned glyph`);
         glyphs.push({ part, glyph: p.glyph, source, how: 'drawn', ...when });
       }
