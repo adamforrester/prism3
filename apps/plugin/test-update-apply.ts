@@ -900,6 +900,8 @@ section('min/max — a member built under one Tag style and updated under the ot
     const off = membersOf(w.set()).flatMap((m) => { const f = freshOf(m); return f ? differs(m, f) : [`${m.name}: not in a fresh build`]; });
     ok(applyVerdict(res).ok && membersOf(w.set()).length === membersOf(fresh.set()).length && off.length === 0,
       `#2976 min/max ${from} → ${to}: every node of every member updated in place has a fresh ${to} build's minWidth, maxWidth, minHeight and maxHeight (${applyVerdict(res).headline}; ${off.length} off — ${off.slice(0, 3).join('; ') || 'none'})`);
+    const post = (await previewUpdate(w.host, [{ def: TAG, plans: toPlans }])).sets[0];
+    ok(post?.counts.current === membersOf(w.set()).length, `#2976 min/max ${from} → ${to}/current: a second dry run reads every member current (${JSON.stringify(post?.counts)})`);
   }
 }
 
