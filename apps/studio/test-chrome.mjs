@@ -2472,6 +2472,22 @@ for (const host of ['web', 'figma']) {
         ok(isWire(sw, AGENT_WIRE), `T7 ${where}: a click on the Agent tile asks the main thread to turn the link on, ${JSON.stringify(AGENT_WIRE)} (posted ${JSON.stringify(sw)})`);
         await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
         await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 5000 }).catch(() => {});
+        // #2949: the link on draws Minimize beside the tile, which widens the bar and can re-fit it a frame or more later,
+        // moving tiles under the pointer and with them which tooltip shows. Measure once the bar holds still: Minimize
+        // drawn and every bar control in the same box over four frames running.
+        await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-p3="agent-minimize"]') ?? document.body).display !== 'none'
+          && !!document.querySelector('[data-p3="agent-minimize"]'), null, { timeout: 5000 }).catch(() => {});
+        await page.evaluate(() => new Promise((done) => {
+          const boxes = () => [...document.querySelectorAll('[data-p3="top-bar"] button, [data-p3="top-bar"] a')].map((n) => { const r = n.getBoundingClientRect(); return `${r.left},${r.top},${r.width}`; }).join('|');
+          let last = boxes(), still = 0, frames = 0;
+          const step = () => { const now = boxes(); still = now === last ? still + 1 : 0; last = now; if (still >= 4 || ++frames > 120) done(); else requestAnimationFrame(step); };
+          requestAnimationFrame(step);
+        }));
+        // Then put the pointer back on the Agent tile, where the click left it: hover is taken from a real move, not from
+        // whenever the browser next re-reads it after the layout moved, so its tooltip is drawn, and stays drawn, when measured.
+        const at = await page.locator('[data-p3="agent-toggle"]').boundingBox();
+        if (at) await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+        await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
         const a1 = await agentState();
         ok(a1.name === 'Agent' && a1.pressed === 'true' && a1.dot && a1.tip === 'Agent', `T7 ${where}: the main thread's state turns the tile on: named "Agent", aria-pressed true, the dot drawn (${JSON.stringify(a1)})`);
         const mc = await measure(page, `${where} / Agent on`, host, w);
