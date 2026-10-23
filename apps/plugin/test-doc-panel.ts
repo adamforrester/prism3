@@ -41,6 +41,11 @@
  *                   set and members, and a set already right is left alone. Mutations: `fill(chips)` dropped →
  *                   `template/fill`; `chips` dropped from the repair's list → `template/repair`; the label's `HEIGHT`
  *                   dropped → `template/fill`.
+ *   qa/…            owner QA round 1 (#2970), on Tag with Badge's and Button's sets in the file: the title 18px at −4% and
+ *                   every section title 16px at −3%; the Do and Don't block's Top padding on; Related as one bulleted line
+ *                   per name, the names whose set is in the file linked to it by node and underlined, every other plain;
+ *                   a set built after the draw makes the panel due, and the redraw links it. Mutations: the links key
+ *                   dropped from `docPanelDue` → `qa/links due`; the hyperlink call dropped → `qa/related links`.
  *   line/…          a file without `_Doc-block`: one Set up file line for the run, naming usage panels.
  *
  * INDEPENDENCE (docs/34): the expected sections come from the engine's model (`docSections`), which the panel reads but
@@ -156,7 +161,15 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
     ...extra,
   } as unknown as N;
   for (const c of children) n.appendChild!(c);
-  if (type === 'TEXT') { n.fontName = { family: 'Inter', style: 'Regular' }; n.characters = n.characters ?? name; }
+  if (type === 'TEXT') {
+    n.fontName = { family: 'Inter', style: 'Regular' }; n.characters = n.characters ?? name;
+    // The range calls Related's lists make (#2970), recorded as the host would hold them; a range past the text throws.
+    const range = (s0: number, e0: number, what: string) => { if (s0 < 0 || e0 > String(n.characters).length || s0 >= e0) throw new Error(`in ${what}: range ${s0}–${e0} outside the text`); };
+    n._links = []; n._lists = []; n._decos = [];
+    n.setRangeHyperlink = (s0: number, e0: number, l: unknown) => { range(s0, e0, 'setRangeHyperlink'); (n._links as unknown[]).push({ text: String(n.characters).slice(s0, e0), link: l }); };
+    n.setRangeListOptions = (s0: number, e0: number, o: unknown) => { range(s0, e0, 'setRangeListOptions'); (n._lists as unknown[]).push({ s: s0, e: e0, o }); };
+    n.setRangeTextDecoration = (s0: number, e0: number, d: unknown) => { range(s0, e0, 'setRangeTextDecoration'); (n._decos as unknown[]).push({ text: String(n.characters).slice(s0, e0), d }); };
+  }
   return n;
 };
 /** The children an auto-layout frame lays out: shown and not absolute. */
@@ -939,6 +952,56 @@ section('template/… — `_Doc-block`');
 }
 
 /* ── line: the missing template, once ──────────────────────────────────────────────────────────────────── */
+section('qa/… — usage panels QA round 1 (#2970): titles, the space above Do and Don\'t, Related as linked lists');
+{
+  const p = page('↳ QA r1');
+  const set = fakeSet(p, 'tag');
+  // Two of Tag's related components have a set in the file; the rest do not.
+  const badge = fakeSet(p, 'badge', 0, 3000), button = fakeSet(p, 'button', 0, 4000);
+  const api = host([p]);
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const r = await drawDocPanel(api, set, def, { names });
+  const panel = panelsOn(p)[0];
+  const all = panel ? walk(panel) : [];
+  // Item 5: the title 18px at −4%, each section title 16px at −3% (the studio's `ls-tightest` and `ls-tighter`).
+  const title = all.find((n) => n.type === 'TEXT' && n.characters === 'Tag');
+  ok(r.drawn && title?.fontSize === 18 && JSON.stringify(title?.letterSpacing) === '{"value":-4,"unit":"PERCENT"}',
+    'qa/title: "Tag" at 18px, letter-spacing −4%', `got ${String(title?.fontSize)} ${JSON.stringify(title?.letterSpacing)}`);
+  const heads = all.filter((n) => n.getSharedPluginData!('prism3', 'docSection')).map((sec) => sec.children.flatMap(walk).find((t) => t.type === 'TEXT'));
+  const wantHeads = ['Overview', 'Anatomy', 'Styles', 'Usage guidelines', 'Accessibility', 'Content guidelines', 'Theming', 'Related components'];
+  ok(heads.map((h) => h?.characters).join('|') === wantHeads.join('|') && heads.every((h) => h?.fontSize === 16 && JSON.stringify(h?.letterSpacing) === '{"value":-3,"unit":"PERCENT"}'),
+    'qa/section titles: all 8 at 16px, letter-spacing −3%', heads.map((h) => `${String(h?.characters)} ${String(h?.fontSize)} ${JSON.stringify(h?.letterSpacing)}`).join('; '));
+  // Item 2: the Do and Don't block turns on its own Top padding.
+  const dd = all.find((n) => n.name === '_Doc-block' && n.children.some((c) => c.name === 'columns'));
+  ok((dd?.componentProperties as Record<string, { value: unknown }> | undefined)?.['Top padding#1:0']?.value === true, 'qa/do-dont padding: Top padding on above the Do and Don\'t columns');
+  // Item 3: each list one bulleted line per name; the names whose set is in the file link to it by node, underlined.
+  const related = all.find((n) => n.getSharedPluginData!('prism3', 'docSection') === 'related')!;
+  const rows = related.children.filter((c) => c.name === '_Doc-block' && c.children.some((k) => k.name === 'row')).map((b) => ({ label: walk(b).find((t) => t.name === 'label')!, text: walk(b).find((t) => t.name === 'text')! }));
+  const lists = rows.map((x) => `${String(x.label.characters)}: ${String(x.text.characters).split('\n').join(' / ')}`);
+  ok(lists.join('\n') === [
+    'Built from: FocusRing',
+    'Instead, consider: Badge / Button / Checkbox.Group / Radio.Group',
+    'Often used with: Badge / Icon / Checkbox.Group / Radio.Group',
+    'Replaces: a removable token list built as a listbox / a clickable div styled as a pill / a bare × glyph with no accessible name',
+  ].join('\n'), 'qa/related lists: 4 lists, one line per name, no chips', lists.join(' | '));
+  ok(!related.children.some((b) => walk(b).some((c) => /^chip\d/.test(String(c.name)))) && rows.every((x) => JSON.stringify(x.text._lists) === `[{"s":0,"e":${String(x.text.characters).length},"o":{"type":"UNORDERED"}}]`),
+    'qa/related bullets: every list is one UNORDERED list over its whole text');
+  const links = rows.flatMap((x) => x.text._links as { text: string; link: { type: string; value: string } }[]);
+  ok(JSON.stringify(links) === JSON.stringify([
+    { text: 'Badge', link: { type: 'NODE', value: badge.id } }, { text: 'Button', link: { type: 'NODE', value: button.id } },
+    { text: 'Badge', link: { type: 'NODE', value: badge.id } },
+  ]), 'qa/related links: Badge ×2 and Button link to their sets by node; FocusRing, Icon, the groups and Replaces stay plain', JSON.stringify(links));
+  ok(JSON.stringify(rows.flatMap((x) => (x.text._decos as { text: string }[]).map((d) => d.text))) === '["Badge","Button","Badge"]', 'qa/related underline: exactly the 3 linked names are underlined');
+  // A set built after the draw: the panel is due, so its name is linked on the next update; drawn again, it is not.
+  ok(docPanelDue(api, set, planDocPanel(def, { modes: ['light', 'dark'], names })) === 0, 'qa/links current: not due right after the draw');
+  const icon = mk('COMPONENT_SET', 'icon', [], { x: 0, y: 5000 }); p.appendChild!(icon);
+  ok(docPanelDue(api, set, planDocPanel(def, { modes: ['light', 'dark'], names })) === 1, 'qa/links due: Icon\'s set built since the draw makes the panel due');
+  await drawDocPanel(api, set, def, { names });
+  const again = walk(panelsOn(p)[0]).filter((n) => n.type === 'TEXT').flatMap((t) => (t._links as { text: string; link: { value: string } }[] | undefined) ?? []);
+  ok(again.some((l) => l.text === 'Icon' && l.link.value === icon.id) && docPanelDue(api, set, planDocPanel(def, { modes: ['light', 'dark'], names })) === 0,
+    'qa/links redrawn: Icon now links to its set, and the panel is current again');
+}
+
 section('line/… — a file without `_Doc-block`');
 {
   const p = page('↳ No template');
