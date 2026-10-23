@@ -19,7 +19,7 @@ A compact, interactive token of one of two types. A select tag toggles on and of
 
 Shown on the default member: type `select`, selection `unselected`, size `medium`.
 
-1. **Container** — The tag body, a pill of fixed height that hugs its content and is never narrower than 1.5 times its height, rounded to the nearest 8px; when that minimum applies, the content is centered. Unselected, it is a 1px outline with no fill; selected, it takes a tint and a 2px outline, drawn inside the pill so the box does not grow.
+1. **Container** — The tag body. Under Tag style Pill it is a pill of fixed height that hugs its content and is never narrower than 1.5 times its height, rounded to the nearest 8px; when that minimum applies, the content is centered. Unselected, it is a 1px outline with no fill; selected, it takes a tint and a 2px outline, drawn inside the pill so the box does not grow.
 2. **Content** — The row inside the pill: the optional leading icon, then the label and its check mark. It is inset by the tag's padding on both sides, except before the × slot of a dismissible tag, where the label runs straight to the slot. On a dismissible tag its gap is 4px less than the icon-to-label distance, since the label row adds a 4px inset of its own.
 3. **Label check** — The label and, on a selected select tag, the check mark after it, with a gap tighter than the one between the leading icon and the label. On a dismissible tag it is inset 4px at its leading edge, at every density, so the label sits 4px further in from the icon or the tag's edge.
 4. **Leading visual** (optional) — An optional icon or avatar before the label. Decorative: the label carries the name.
@@ -35,7 +35,7 @@ Shown on the default member: type `select`, selection `unselected`, size `medium
 | --- | --- | --- | --- |
 | `type` | `select`, `dismissible` | once, when authored | Which interaction the tag carries. select = toggles on and off, and shows its selected state. dismissible = carries a remove control and has no selected state. This is the component's own prop, not the HTML type attribute, and it is never passed to the element. |
 | `selection` | `unselected`, `selected` | at runtime | — |
-| `size` | `medium`, `small`, `large` | once, when authored | Tag height, padding and label type. Under Tag style Pill the height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. Under Underline the tag hugs its content: 20px, 26px and 32px tall. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density). |
+| `size` | `medium`, `small`, `large` | once, when authored | Tag height, padding and label type. Under Tag style Pill the height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. Under Underline the tag hugs its content: 20px, 26px and 32px tall. A tag is never narrower than 1.5 times the Pill height, rounded to the nearest 8px (64px for a medium tag on comfortable density), under either style. |
 
 ### States
 
@@ -118,7 +118,7 @@ Keep the label to one word where possible. Use the words the data or the user su
 | `onClick` | function | — | no | The toggle a select tag fires. Suppressed while disabled or read-only. |
 | `onRemove` | function | — | no | Called when a dismissible tag's remove control is pressed, or when Delete or Backspace is pressed on the focused tag. |
 | `leadingIcon` | slot | — | no | An icon or avatar before the label, for recognition at a glance. Decorative: the label carries the name. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Tag height, padding and label type. Under Tag style Pill the height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. Under Underline the tag hugs its content: 20px, 26px and 32px tall. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density). |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Tag height, padding and label type. Under Tag style Pill the height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. Under Underline the tag hugs its content: 20px, 26px and 32px tall. A tag is never narrower than 1.5 times the Pill height, rounded to the nearest 8px (64px for a medium tag on comfortable density), under either style. |
 | `disabled` | boolean | `false` | no | Removes the tag from interaction and dims it. Don't disable every tag in a group; hide the group instead. |
 | `readOnly` | boolean | `false` | no | Keeps full visual weight but accepts no interaction, such as a filter the user cannot change. Distinct from disabled, which dims. |
 

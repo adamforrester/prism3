@@ -15183,6 +15183,18 @@ arm: {
       const pillHash = createHash('sha256').update(JSON.stringify(figmaAnatomySet(specMaterialize(tag), { swapTarget: 'FPO-default-icon' }).map(({ codeOnly: _prose, ...p }) => p))).digest('hex');
       ok(pillHash === '85641a65e850c037a5607e96ad12f41bbf26690d9de84b7e135036fbc1bebdc4',
         `tag pill unchanged (#2945): the 45 pill members, materialized at the null brand, are byte-identical to main before the underline hug, its code-tier prose aside (sha256 ${pillHash.slice(0, 12)}…)`);
+      // #2946 review: after the hug the rung heights (28 / 36 / 44 / 56px) and "1.5 times its height" hold under Pill only, so
+      // every shipped Tag string (everything but the maintainer-only `notes`) that states one names the style it is true of.
+      {
+        const { notes: _maint, ...shipped } = tag;
+        const unscoped: string[] = [];
+        const walk = (v: unknown): void => {
+          if (typeof v === 'string') { if (/\b(28|36|44|56)px\b|times (its|the tag's) height/.test(v) && !/Pill|Underline/.test(v)) unscoped.push(v.slice(0, 80)); }
+          else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+        };
+        walk(shipped);
+        ok(unscoped.length === 0, `tag prose scoped by style (#2945): every shipped line stating a rung height names Pill or Underline (${unscoped.slice(0, 2).join(' | ') || 'ok'})`);
+      }
       ok(validateBrandInput({ ...MINIMAL_BRAND, tagStyle: 'underline' } as any).length === 0 && validateBrandInput({ ...MINIMAL_BRAND, tagStyle: 'outline' } as any).length > 0,
         '#2887 input: tagStyle accepts underline and rejects a value the lever does not offer (outline is a field style)');
       const lever = leverManifest.find((l) => l.key === 'tagStyle');

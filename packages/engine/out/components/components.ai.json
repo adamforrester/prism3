@@ -5826,7 +5826,7 @@
             "medium",
             "large"
           ],
-          "description": "Tag height, padding and label type. Under Tag style Pill the height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. Under Underline the tag hugs its content: 20px, 26px and 32px tall. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density)."
+          "description": "Tag height, padding and label type. Under Tag style Pill the height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. Under Underline the tag hugs its content: 20px, 26px and 32px tall. A tag is never narrower than 1.5 times the Pill height, rounded to the nearest 8px (64px for a medium tag on comfortable density), under either style."
         },
         {
           "name": "disabled",
