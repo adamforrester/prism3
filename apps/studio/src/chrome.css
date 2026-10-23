@@ -697,7 +697,7 @@
    ellipsis if it must; the strip's tooltip carries the link's full status line. */
 html[data-strip="true"] body > :not(.p3-strip, .p3-sr) { display: none; }
 .p3-strip {
-  box-sizing: border-box; display: flex; align-items: center; gap: var(--p3-space-100); height: 100vh;
+  position: fixed; inset: 0; box-sizing: border-box; display: flex; align-items: center; gap: var(--p3-space-100);
   padding: 0 var(--p3-space-100) 0 var(--p3-space-150); background: var(--p3-bar-bg); color: var(--p3-text);
   font-family: var(--p3-font-ui); font-size: var(--p3-fs-12);
 }
