@@ -1965,7 +1965,8 @@ export const figmaAnatomyPlan = (
       // painted square BEHIND the glyph — the exact failure `descendantFills` was invented to avoid, met
       // from the other side. So the ink goes where the ink has always gone: on the VECTOR, found by
       // descendant search. One field, one meaning, whoever is pushing.
-      const ink = paintOf('icon');
+      // A vector may name its slot (#2670, Progress's ring track in `fill`); every other glyph takes `icon`.
+      const ink = paintOf(p.paintSlot ?? 'icon');
       if (ink) descendantFills = ink;
     } else if (p.kind === 'slot' || p.kind === 'overlay') {
       // There is no `color/interactive/{intent}/icon` variable — icon ink routes through `on-fill` /
@@ -2197,6 +2198,9 @@ export const figmaAnatomyPlan = (
       // centered by the overlay's own path, then constrained SCALE/SCALE. Only on such a vector, so every
       // other plan is byte-identical.
       ...(p.kind === 'vector' && p.scaleWithParent ? { absoluteCenter: true, absoluteScale: true } : {}),
+      // A GLYPH DRAWN OVER ITS PARENT'S IN-FLOW CHILD (#2670, `PartDef.stackCentered`): lifted and centered by the same
+      // path, its constraints CENTER/CENTER. Only on such a vector, so every other plan is byte-identical.
+      ...(p.kind === 'vector' && p.stackCentered ? { absoluteCenter: true } : {}),
       // The out-of-flow half of the #612 fix, on the two nodes it concerns: the overlay is centered
       // absolutely, and the part it covers holds its cell at zero opacity. Both are keyed off
       // `overlaidPart`, so when the overlay lands on a real cell (`replaces` present) neither appears
@@ -2552,12 +2556,15 @@ export const TAG_UNDERLINE_INSET = 'size.{size}.underline.inset';
  *   · NO FILL IN ANY STATE (Q513.2, Q513.3): every `overlay` key goes, the neutral hover and pressed wash and the
  *     selected tint alike.
  *   · THE CORNER: `radius.none`, whatever the pill's round rung.
- *   · THE GAP TO THE LINE (owner ask on Q513, #2894's route): the frame's fixed `height` becomes a `minHeight` at the
- *     same rung, so the hit target holds, and the frame aligns its children to the END (the bottom). The content row
- *     takes a block-end inset (`TAG_UNDERLINE_INSET`), and the label row a `minHeight` at the glyph size, so the label
- *     sits centered in an icon-tall row and does not move when the check appears. The × slot stays an H × H square
- *     and puts its glyph on the same inset. The side padding is the pill's (Q513.5), and the line runs under the
- *     × slot (Q513.6), since the slot is inside the frame.
+ *   · THE GAP TO THE LINE (owner ask on Q513; #2945, owner Q585 A): the frame HUGS its content on both axes, with no
+ *     height floor, so it is the label row plus the inset: 20 / 26 / 32px at small / medium / large. The 24px target
+ *     moves to code, as Link's does. The rung height survives only as the base of the 1.5 × width floor
+ *     (`minWidthBase`, Q585.2 A). The frame aligns its children to the END (the bottom), the content row takes a
+ *     block-end inset (`TAG_UNDERLINE_INSET`), and the label row a `minHeight` at the glyph size, so the label sits
+ *     centered in an icon-tall row and does not move when the check appears. The × slot keeps the rung height as its
+ *     WIDTH (Q585.1 A) and hugs its height, its glyph on the same inset; it drops `innerTarget`, since its target is
+ *     code's now. The side padding is the pill's (Q513.5), and
+ *     the line runs under the × slot (Q513.6), since the slot is inside the frame.
  */
 export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef => {
   if (style === 'pill') return def;
@@ -2577,7 +2584,7 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
   const { strokeWidth: _pill, height, ...rest } = frame;
   parts[names.frame] = {
     ...rest,
-    ...(height ? { minHeight: height } : {}),
+    ...(height && rest.minWidthRatio !== undefined ? { minWidthBase: height } : {}),
     ...(rest.layout ? { layout: { ...rest.layout, align: 'end', sizing: { ...rest.layout.sizing, y: 'hug' } } } : {}),
     strokeEdges: { top: 'underline.side', right: 'underline.side', bottom: 'underline.{selection}.line.{state}', left: 'underline.side' },
   };
@@ -2589,11 +2596,17 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
     if (glyph) parts[names.labelRow] = { ...labelRow, minHeight: glyph };
   }
   const slot = a.parts[names.slot];
-  if (slot?.layout) parts[names.slot] = {
-    ...slot,
-    layout: { ...slot.layout, align: 'end' },
-    padding: { block: 'underline.pad-0', blockEnd: TAG_UNDERLINE_INSET, inlineLabel: 'underline.pad-0' },
-  };
+  if (slot?.layout) {
+    // The slot's height hugs, so its Figma box is no longer a measurable target (`innerTarget` needs both sides bound):
+    // under the underline the target is code's, Link's way (Q585 A), and `codeOnly` states it.
+    const { size: side, innerTarget: _target, ...slotRest } = slot;
+    parts[names.slot] = {
+      ...slotRest,
+      ...(side ? { width: side } : {}),
+      layout: { ...slot.layout, align: 'end', sizing: { ...slot.layout.sizing, y: 'hug' } },
+      padding: { block: 'underline.pad-0', blockEnd: TAG_UNDERLINE_INSET, inlineLabel: 'underline.pad-0' },
+    };
+  }
   return { ...def, tokens, anatomy: { ...a, parts } };
 };
 
@@ -2821,12 +2834,12 @@ export const applyMinWidthRatio = (def: ComponentDef, px: (ref: string) => numbe
   for (const [name, p] of Object.entries(a.parts)) {
     if (p.minWidthRatio === undefined) { parts[name] = p; continue; }
     const minWidth = Object.fromEntries(sizes.map((v) => {
-      const ref = def.tokens[(p.height ?? p.minHeight)!.replace('{size}', v)];
+      const ref = def.tokens[(p.height ?? p.minHeight ?? p.minWidthBase)!.replace('{size}', v)];
       const h = ref === undefined ? undefined : px(ref);
       if (h === undefined) throw new Error(`${def.id}: part '${name}' at size '${v}' floors at ${p.minWidthRatio} × its height, and the height ${ref ?? '(unbound)'} does not resolve`);
       return [v, ratioMinWidth(h, p.minWidthRatio!)];
     }));
-    const { minWidthRatio: _r, ...rest } = p;
+    const { minWidthRatio: _r, minWidthBase: _b, ...rest } = p;
     parts[name] = { ...rest, minWidth };
   }
   return { ...def, anatomy: { ...a, parts } };
@@ -5140,7 +5153,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab-item', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
-  'button-group', 'dialog', 'password-field', 'counter', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
+  'button-group', 'dialog', 'password-field', 'counter', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

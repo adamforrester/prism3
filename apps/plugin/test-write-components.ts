@@ -5318,9 +5318,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // =============================================================================================
 // A brand on "Tag style: Underline" builds the Tag set with its four stroke sides bound apart (top, end and start to
 // `border-width/none`; the bottom to `border-width/hairline` at an unselected rest, focus-visible or disabled member and
-// `border-width/thick` on hover, pressed and every selected member), a bound `minHeight` in place of the height, the
-// frame aligned to the end, and the content row on its block-end inset. Read back off the host's own nodes. Expected
-// names typed from the decisions (Q513, Q540). The first host-side read-back of `minHeight` plus end alignment on Tag.
+// `border-width/thick` on hover, pressed and every selected member), no bound height and no `minHeight` (#2945, owner
+// Q585 A: the tag hugs its content), the frame aligned to the end, and the content row on its block-end inset. The × slot
+// binds its width to the rung height and hugs its height (Q585.1 A). Read back off the host's own nodes. Expected names
+// typed from the decisions (Q513, Q540, Q585).
 {
   const input = { ...parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input, tagStyle: 'underline' } as BrandInput;
   const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input), { swapTarget: SWAP });
@@ -5346,13 +5347,16 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const bv = (m.boundVariables ?? {}) as Record<string, unknown>;
     const content = ((m.children as Node[]) ?? []).find((n) => n.name === 'content');
     read++;
-    const got = [id(bv.strokeTopWeight), id(bv.strokeRightWeight), id(bv.strokeBottomWeight), id(bv.strokeLeftWeight), id(bv.minHeight), id(bv.height), m.counterAxisAlignItems,
-      id(((content?.boundVariables ?? {}) as Record<string, unknown>).paddingBottom)];
-    const want = ['border-width/none', 'border-width/none', thick ? 'border-width/thick' : 'border-width/hairline', 'border-width/none', `size/${RUNG[size]}/height`, null, 'MAX', INSET[size]];
+    const slot = ((m.children as Node[]) ?? []).find((n) => n.name === 'dismiss');
+    const sv = (slot?.boundVariables ?? {}) as Record<string, unknown>;
+    const got = [id(bv.strokeTopWeight), id(bv.strokeRightWeight), id(bv.strokeBottomWeight), id(bv.strokeLeftWeight), id(bv.minHeight), id(bv.height), m.counterAxisSizingMode, m.counterAxisAlignItems,
+      id(((content?.boundVariables ?? {}) as Record<string, unknown>).paddingBottom), ...(/type=dismissible/.test(name) ? [id(sv.width), id(sv.height), slot?.counterAxisSizingMode] : [])];
+    const want = ['border-width/none', 'border-width/none', thick ? 'border-width/thick' : 'border-width/hairline', 'border-width/none', null, null, 'AUTO', 'MAX', INSET[size],
+      ...(/type=dismissible/.test(name) ? [`size/${RUNG[size]}/height`, null, 'AUTO'] : [])];
     if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${name}: ${got.join(' / ')}`);
   }
   ok(read === 45 && wrong.length === 0,
-    `#2887 underline tag reads back: per-side weights none / none / hairline (thick on hover, pressed and selected) / none, minHeight at the height rung and no bound height, the frame at the end and the content on its inset, on all ${read} of 45 members (${wrong.slice(0, 2).join('; ') || 'ok'})`);
+    `#2887 underline tag reads back: per-side weights none / none / hairline (thick on hover, pressed and selected) / none, no minHeight and no bound height (the tag hugs, #2945), the × slot as wide as the rung and hugging its height, the frame at the end and the content on its inset, on all ${read} of 45 members (${wrong.slice(0, 2).join('; ') || 'ok'})`);
   ok(misses.length === 0, `#2887 underline tag: no stroke, minHeight or padding binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
 }
 
