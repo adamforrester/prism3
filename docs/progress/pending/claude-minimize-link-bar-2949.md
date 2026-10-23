@@ -13,5 +13,9 @@ At 360 the approved line "Agent listening · last: update-components 2m ago" los
 ### Poll independence
 The poll runs on the main thread's own `setTimeout` (`agent-link.ts`), and `setMinimized` touches only `figma.ui.resize` and `beforeStrip`. `test-agent-link.ts` `strip/*` drives the real `main.ts`: the link and its record stay on, the poll stays armed, and a command sent while minimized is claimed and run. Mutation, from a commit: `setMinimized` calling `agentLink.setOn(false)` → `strip/link`, `strip/poll`, `strip/claims` and `strip/restore-link` fail by name.
 
+### Two test:chrome checks that had to learn about the strip
+- **D6** ("nothing outside the frame names an agent or holds a button") caught the strip, which lives on `<body>` by design. It now exempts the strip by its hook, and only the strip; the strip has its own block of checks.
+- **29d's `FIT_SEEN`** counted every `.p3-tile-label`, so the hidden Minimize tile read as an unlabelled tile and the bar classified as `other` at every wide width. It now counts the labels of drawn tiles. The frame's own fit was never wrong: it measures widths, and a hidden tile measures 0.
+
 ### Not measured
 The issue's 10-minute claiming measurement on a real host (window minimized, desktop app in front) hasn't been run. That's the owner's to run. Release builds behave the same: nothing here is behind `PRISM3_DEV`.
