@@ -91,9 +91,10 @@ export type TagStyle = 'pill' | 'underline';
  *  default); `smaller` gives the MEDIUM size the small size's label and icon, height and padding unchanged. */
 export type ButtonIcons = 'attached' | 'edges';
 export type ButtonContentSize = 'match' | 'smaller';
-/** #1752 (owner-decided 2026-09-28) — the weight role a button LABEL binds. `emphasis` (the default) is the
- *  label tier's own weight, `type.label.*.emphasis`, and today's binding; `default` binds `type.label.*.default`.
- *  Button family only: every other def binding a label style keeps its own. See `applyButtonLayout`. */
+/** #1752 (owner-decided 2026-09-28) — the weight role a button LABEL binds, and since #2945 (owner Q591 A) a tag
+ *  label too ("Control label weight"; the type keeps its #1752 name). `emphasis` (the default) is the label tier's
+ *  own weight, `type.label.*.emphasis`, and today's binding; `default` binds `type.label.*.default`. The button and
+ *  tag families only: every other def binding a label style, Badge among them, keeps its own. See `applyButtonLayout`. */
 export type ButtonLabelWeight = 'default' | 'emphasis';
 /** #2324 (owner Q110) — what a TEXT button does on hover and when pressed. `text` (the default, "Text & icon only"):
  *  its label and icon change color and nothing fills. `fill`: the container also takes the overlay wash, on hover
