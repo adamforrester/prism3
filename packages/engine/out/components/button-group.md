@@ -9,10 +9,10 @@
 
 ## Overview
 
-A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the actions of a banner, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.
+A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.
 
 - **Purpose:** Lay out the one to three buttons that close a task, as a row at the end edge, a full-width stack or a row that shares the width.
-- **Use when:** The actions at the foot of a dialog, banner, card or form: a main action with a Cancel beside it, or up to three related actions.
+- **Use when:** The actions at the foot of a dialog, card or form: a main action with a Cancel beside it, or up to three related actions.
 - **Avoid when:** One choice among joined options (segmented-control), a toolbar of tools, navigation (links), or a single action on its own (a Button by itself).
 
 ## Anatomy
@@ -36,7 +36,7 @@ Shown on the default member: layout `inline`.
 
 ## Usage guidelines
 
-Use a Button.Group for the actions that close a task: the foot of a dialog, the actions of a banner or a card, the buttons under a form. Inline for a row at the end edge on a wide surface; stacked for full-width buttons on a phone or a bottom sheet; fill for a row whose buttons share the width. Put the main action last inline and at fill, and first when stacked.
+Use a Button.Group for the actions that close a task: the foot of a dialog, the actions of a card, the buttons under a form. Inline for a row at the end edge on a wide surface; stacked for full-width buttons on a phone or a bottom sheet; fill for a row whose buttons share the width. Put the main action last inline and at fill, and first when stacked.
 
 ### Do
 
