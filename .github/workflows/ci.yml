@@ -858,12 +858,21 @@ jobs:
       # Chromium, as in the `plugin` job, whose comment holds the reasons (#2323, #2348).
       - name: Resolve the Playwright version (#2323)
         id: playwright
-        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "image=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "image-version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
       - name: Cache the Playwright browser (#2323)
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Cache Chromium's system packages (#2951)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/prism3-apt/*.deb
+          key: chromium-debs-${{ steps.playwright.outputs.image }}-${{ steps.playwright.outputs.version }}-${{ steps.playwright.outputs.image-version }}
+          restore-keys: chromium-debs-${{ steps.playwright.outputs.image }}-${{ steps.playwright.outputs.version }}-
       - name: "Install Chromium for the browser gates (#2323)"
         timeout-minutes: 15
         run: bash .github/scripts/install-chromium.sh
@@ -991,6 +1000,14 @@ jobs:
       # does not run is the failure this whole file exists to prevent. Never `continue-on-error`.
       # `--with-deps` stays: a cache restores the browser, not the system libraries it loads.
       #
+      # #2951: the system libraries were still DOWNLOADED fresh each run, and a mirror that was slow but not
+      # stalled ran all three attempts past their bound. So a second cache holds the `.deb` files apt fetched
+      # (the script points apt's archive directory at it): on a hit apt installs from disk and the mirror
+      # serves only its index. Keyed on the runner image and the Playwright version, the two things that
+      # decide which packages `--with-deps` needs; a new image restores the last image's packages through
+      # `restore-keys`, fetches only what changed, and saves under its own key. A miss is never a skip: the
+      # install runs exactly as before, with the same bound and the same named failure.
+      #
       # #2348: a stalled attempt's root `apt-get` survived `timeout` and kept the dpkg lock, so every retry
       # died on "Could not get lock". The loop now lives in `.github/scripts/install-chromium.sh`, which
       # bounds apt itself (fetch timeouts and retries, a lock wait) and clears a leftover `apt-get` and runs
@@ -999,12 +1016,21 @@ jobs:
       # of clearing before each retry, so the step's own limit never cuts off the named error.
       - name: Resolve the Playwright version (#2323)
         id: playwright
-        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "image=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "image-version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
       - name: Cache the Playwright browser (#2323)
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Cache Chromium's system packages (#2951)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/prism3-apt/*.deb
+          key: chromium-debs-${{ steps.playwright.outputs.image }}-${{ steps.playwright.outputs.version }}-${{ steps.playwright.outputs.image-version }}
+          restore-keys: chromium-debs-${{ steps.playwright.outputs.image }}-${{ steps.playwright.outputs.version }}-
       - name: "Install Chromium for the browser gates (#2323)"
         timeout-minutes: 15
         run: bash .github/scripts/install-chromium.sh
@@ -1140,12 +1166,21 @@ jobs:
       # Chromium, as in the `plugin` job, whose comment holds the reasons (#2323, #2348).
       - name: Resolve the Playwright version (#2323)
         id: playwright
-        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "image=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "image-version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
       - name: Cache the Playwright browser (#2323)
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Cache Chromium's system packages (#2951)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/prism3-apt/*.deb
+          key: chromium-debs-${{ steps.playwright.outputs.image }}-${{ steps.playwright.outputs.version }}-${{ steps.playwright.outputs.image-version }}
+          restore-keys: chromium-debs-${{ steps.playwright.outputs.image }}-${{ steps.playwright.outputs.version }}-
       - name: "Install Chromium for the browser gates (#2323)"
         timeout-minutes: 15
         run: bash .github/scripts/install-chromium.sh
@@ -1185,12 +1220,21 @@ jobs:
       # Chromium, as in the `plugin` job, whose comment holds the reasons (#2323, #2348).
       - name: Resolve the Playwright version (#2323)
         id: playwright
-        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "image=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "image-version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
       - name: Cache the Playwright browser (#2323)
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Cache Chromium's system packages (#2951)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/prism3-apt/*.deb
+          key: chromium-debs-${{ steps.playwright.outputs.image }}-${{ steps.playwright.outputs.version }}-${{ steps.playwright.outputs.image-version }}
+          restore-keys: chromium-debs-${{ steps.playwright.outputs.image }}-${{ steps.playwright.outputs.version }}-
       - name: "Install Chromium for the browser gates (#2323)"
         timeout-minutes: 15
         run: bash .github/scripts/install-chromium.sh

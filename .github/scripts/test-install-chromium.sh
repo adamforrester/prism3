@@ -18,7 +18,8 @@
 #   stall/…    attempt 1 stalls and leaves the lock held; attempt 2 starts clean and succeeds.
 #   fail/…     an install that always fails fails the run, named, after three attempts.
 #   first/…    an install that succeeds at once runs no clear and no repair.
-#   config/…   the apt config holds the four bounds; one that cannot be written fails the run, named.
+#   config/…   the apt config holds the four bounds and the cached archive directory (#2951); a config
+#              that cannot be written, or an archive directory that cannot be made, fails the run, named.
 #   old/…      the #2348 behavior (no clear before a retry) fails attempts 2 and 3 on the lock: the
 #              premise, shown, so `stall/…` is known to be able to fail.
 # Mutations, each failing here by name (measured): the clear before a retry removed → `stall/ok`,
@@ -91,7 +92,7 @@ run() {
   local clear=${3:-"kill \$(cat '$D/lock' 2> /dev/null) 2> /dev/null; echo cleared >> '$D/clears'"}
   PATH="$WORK/bin:$PATH" \
   PRISM3_INSTALL="stand-in-install $D $2" PRISM3_INSTALL_BOUND=2 PRISM3_SUDO="" \
-  PRISM3_APT_CONF="${APT_CONF_OVERRIDE:-$D/apt.conf}" \
+  PRISM3_APT_CONF="${APT_CONF_OVERRIDE:-$D/apt.conf}" PRISM3_APT_ARCHIVES="${ARCHIVES_OVERRIDE:-$D/archives}" \
   PRISM3_APT_CLEAR="$clear" PRISM3_DPKG_REPAIR="echo repaired >> '$D/repairs'" \
     bash "$SUBJECT" > "$D/out" 2>&1
   echo $? > "$D/exit"
@@ -121,6 +122,12 @@ check "[ \"\$(cat $O/exit)\" = 0 ] && [ ! -e $O/clears ] && [ ! -e $O/repairs ]"
 
 check "grep -qx 'Acquire::http::Timeout \"30\";' $S/apt.conf && grep -qx 'Acquire::https::Timeout \"30\";' $S/apt.conf && grep -qx 'Acquire::Retries \"3\";' $S/apt.conf && grep -qx 'DPkg::Lock::Timeout \"120\";' $S/apt.conf" \
   "config/bounds: the apt config bounds each fetch, retries it, and waits for a held lock"
+check "grep -qx \"Dir::Cache::Archives \\\"$S/archives/\\\";\" $S/apt.conf && [ -d $S/archives/partial ]" \
+  "config/archives: apt keeps its packages in the directory ci.yml caches, created before attempt 1 (#2951)"
+touch "$WORK/a-file"
+ARCHIVES_OVERRIDE="$WORK/a-file/archives" run noarchive ok
+N="$WORK/noarchive"
+check "[ \"\$(cat $N/exit)\" = 1 ] && grep -q '::error::could not create the apt archive directory' $N/out && [ ! -e $N/count ]" "config/no archive: an archive directory that cannot be created fails the run, named, before any install"
 APT_CONF_OVERRIDE="$WORK/no-such-dir/apt.conf" run unwritable ok
 U="$WORK/unwritable"
 check "[ \"\$(cat $U/exit)\" = 1 ] && grep -q '::error::could not write the apt config' $U/out && [ ! -e $U/count ]" "config/unwritable: a config that cannot be written fails the run, named, before any install"
