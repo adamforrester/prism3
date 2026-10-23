@@ -8576,9 +8576,9 @@ for (const host of ['web', 'figma']) {
         `#2931 Q579 A, #2905 Q10 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
       const B = r.buttons, F = r.fields;
       ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
-        && JSON.stringify(F.ids) === JSON.stringify(['password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
-        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its five fields, each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
-      ok(!r.other.some((t) => /^(Buttons|Button|Text field|Password field|Search field|Select|Textarea|Tag)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
+        && JSON.stringify(F.ids) === JSON.stringify(['code-input', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
+        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its six fields (Code input since Q-2789.3 A), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
+      ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
         `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
       for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T]]) {
         const xs = e ? [e.head, ...e.rows, e.line, e.block] : [];
@@ -8588,7 +8588,7 @@ for (const host of ['web', 'figma']) {
       ok(!!r.fo && r.fo.title === 'Field options' && r.fo.desc === 'How Text field, Password field, Select and Textarea draw their edge.'
         && r.fo.shape === 'Rounded' && r.fo.link === 'Set it in Shape › Control shape' && !r.fo.density && JSON.stringify(r.fo.chips) === JSON.stringify(['Outline', 'Underline']),
         `#2905 Q3 B, Q10 A: ${host} ${w}: Field options: its drafted title and description, the way to Control shape reading Rounded, Field style's chips, and no way to Density (${JSON.stringify(r.fo)})`);
-      ok(r.title === 'Password field', `#2905: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Password field (${r.title})`);
+      ok(r.title === 'Code input', `#2905, Q-2789.3 A: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Code input (${r.title})`);
       await hooks.click(page.locator('[data-p3="field-style-choice-underline"]'));
       await page.waitForFunction(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent !== 'Rounded', null, { timeout: 5000 }).catch(() => {});
       const u = await page.evaluate(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent ?? null);
