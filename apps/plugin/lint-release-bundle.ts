@@ -127,6 +127,11 @@ const relText = read(RELEASE, 'manifest.json');
 const relManifest = relText ? JSON.parse(relText) : null;
 ok(!!relManifest, 'release/manifest.json exists');
 ok(!!relManifest && !relText.includes('devAllowedDomains'), 'release/manifest.json carries no devAllowedDomains');
+// #2879 (Q613 1 A): the release asks Figma for the team-library list, the library home's one source for a library's name.
+// A literal, not read off `manifest.json`: the equality below is derived from the dev manifest, so it alone cannot see a
+// permission dropped from both.
+ok(!!relManifest && isDeepStrictEqual(relManifest.permissions, ['teamlibrary']),
+  `release/manifest.json asks for the teamlibrary permission and no other (got ${JSON.stringify(relManifest?.permissions)})`);
 ok(!!relManifest && isDeepStrictEqual(relManifest.networkAccess?.allowedDomains, ['none']),
   `release/manifest.json allows no network (allowedDomains ["none"]; got ${JSON.stringify(relManifest?.networkAccess?.allowedDomains)})`);
 if (relManifest) {

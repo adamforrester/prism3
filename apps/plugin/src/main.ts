@@ -27,6 +27,7 @@ import type { MainToUi, UiToMain, StyleGuideOptions } from './messages';
 import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
+import { classifyFile, libraryFileOf, probeFile, type FileKindApi } from './file-kind';
 import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary } from './prune-figma';
 import type { PruneInput, PruneApi } from './prune-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
@@ -1268,12 +1269,40 @@ const restoreToUi = (): void => {
     const input = restoreInput(figma.root);
     // #1197: absence is now REPORTED rather than left as silence. The UI's start moment has to tell
     // "this file has no brand" from "the restore has not landed yet", and those are indistinguishable
-    // when absence posts nothing. The three outcomes below are total over this read.
+    // when absence posts nothing. The outcomes below are total over this read: a brand, a refusal, and, for a file
+    // with neither, a library file or nothing (#2879, `fileKindToUi`).
     if (input) postToUi({ type: 'restore-input', input });
-    else postToUi({ type: 'restore-input-empty' });
+    else void fileKindToUi();
   } catch (e) {
     postToUi({ type: 'restore-input-error', message: (e as Error).message });
   }
+};
+
+/** The plugin API slice `file-kind.ts` reads: the local collections, the current page (Q613 2 A: that page only), the
+ *  variable and collection lookups, and the enabled-library list, which needs the `teamlibrary` permission (Q613 1 A). */
+const fileKindApi = (): FileKindApi => ({
+  getLocalVariableCollectionsAsync: () => figma.variables.getLocalVariableCollectionsAsync(),
+  page: figma.currentPage as unknown as FileKindApi['page'],
+  getVariableByIdAsync: (id) => figma.variables.getVariableByIdAsync(id),
+  getVariableCollectionByIdAsync: (id) => figma.variables.getVariableCollectionByIdAsync(id),
+  // Read inside the call: without the permission, reaching `figma.teamLibrary` throws, and the probe's own catch turns
+  // that into "no name" rather than "no decision".
+  libraryCollections: () => figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync(),
+  now: () => Date.now(),
+  after: (ms) => new Promise((done) => setTimeout(done, ms)),
+});
+
+/**
+ * #2879 (Q485 C): a file with no saved brand. Is it a library file, which opens to the library home, or a new one, which
+ * opens to the start window? "Reading this file" first, then the answer (`file-kind.ts`). Only `library` posts the
+ * fourth outcome; brand (local Prism3 collections), new and undecided (unconfirmed, failed, or past 1.5 s) all post
+ * `restore-input-empty`, exactly what this branch posted before. Never throws: a failed probe reads as undecided.
+ */
+const fileKindToUi = async (): Promise<void> => {
+  postToUi({ type: 'restore-input-reading' });
+  const signals = await probeFile(fileKindApi());
+  if (classifyFile(signals) === 'library') postToUi({ type: 'restore-input-library', library: libraryFileOf(signals) });
+  else postToUi({ type: 'restore-input-empty' });
 };
 
 /**

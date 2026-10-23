@@ -72,7 +72,20 @@ export type HostMessage =
   // arriving, which is what absence used to look like, and distinct from `seed-info`'s
   // `present: false`, which is about VARIABLES in the canvas rather than a stored brand.
   | { kind: 'restore-input-empty' }
+  // #2879: the host is reading the current page (at most 1.5 s) to tell a library file from a new one, and its answer: the
+  // file uses a Prism3 library and holds no Prism3 tokens of its own. `name` is null without the team-library list.
+  | { kind: 'restore-input-reading' }
+  | { kind: 'restore-input-library'; library: LibraryFileView }
   | { kind: 'font-list'; families: string[]; styles: number[] };
+
+/** What the library home states about the library a file uses (#2879), as the host found it on the current page. */
+export type LibraryFileView = {
+  readonly name: string | null;
+  /** The engine versions its components were built by, ascending; empty when none carries a build stamp. */
+  readonly versions: readonly string[];
+  readonly instances: number;
+  readonly bindings: number;
+};
 
 /** The commit seam: the per-host "apply this theme" action, distinct from the preview.
  *  `web` implementations are the UI's own exporters; `figma` posts to the main thread. */
@@ -317,6 +330,19 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'seed-info': (m) => ({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? ''), present: !!m.present, failed: Number.isInteger(m.failed) && (m.failed as number) > 0 ? m.failed as number : 0 }),
   'restore-input': (m) => (m.input ? { kind: 'restore-input', input: m.input } : null),
   'restore-input-empty': () => ({ kind: 'restore-input-empty' }),
+  'restore-input-reading': () => ({ kind: 'restore-input-reading' }),
+  // #2879. Validated at the boundary like every count here: a library message with nothing confirmed is dropped, and the
+  // UI keeps waiting for an answer it can act on rather than opening a home that states no evidence.
+  'restore-input-library': (m) => {
+    const l = (m.library ?? null) as Record<string, unknown> | null;
+    if (!l || typeof l !== 'object') return null;
+    const count = (v: unknown): number => (typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : 0);
+    const instances = count(l.instances), bindings = count(l.bindings);
+    if (instances + bindings === 0) return null;
+    const versions = Array.isArray(l.versions) ? l.versions.filter((v): v is string => typeof v === 'string' && /^\d+\.\d+\.\d+$/.test(v)) : [];
+    const name = typeof l.name === 'string' && l.name.trim() ? l.name.trim() : null;
+    return { kind: 'restore-input-library', library: { name, versions, instances, bindings } };
+  },
   'restore-input-error': (m) => ({ kind: 'restore-input-error', message: String(m.message ?? 'saved brand data could not be restored') }),
   'font-list': (m) => {
     if (!Array.isArray(m.families)) return null;

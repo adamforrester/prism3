@@ -273,6 +273,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       return { ...s, inputRecovered: true, seedOutcome: s.seedOutcome ? withRecovered(s.seedOutcome, true) : s.seedOutcome };
     }
     case 'restore-input-empty':
+    case 'restore-input-reading':
+    case 'restore-input-library':
       return s;
     case 'agent-started': {
       const op = AGENT_OP[m.cmd];
@@ -372,13 +374,19 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
  *   - `loadBrand`: load the restored input as the file's brand (origin `file`).
  *   - `startFresh`: the fresh-file start moment (#1197), which `main.ts` runs only while nothing has been
  *     chosen yet — a guard on the brand session's provenance, so it stays there.
+ *   - `readFile`: the host is deciding what kind of file this is (#2879); `main.ts` shows "Reading this file", under
+ *     the same guard.
+ *   - `libraryHome`: the file uses a Prism3 library and holds no tokens of its own (#2879): the start moment, but the
+ *     library home opens in place of the start window. Same guard.
  * An EFFECT, not a repaint: it writes the brand session, whose own setters then invalidate `origin`,
  * `brand`, `page` and `mode`. No message both loads a brand and invalidates a host topic. Pure.
  */
-export type BrandEffect = 'loadBrand' | 'startFresh';
+export type BrandEffect = 'loadBrand' | 'startFresh' | 'readFile' | 'libraryHome';
 export const brandEffectFor = (m: HostMessage, prev: HostSession, next: HostSession): BrandEffect | null => {
   if (m.kind === 'restore-input') return next === prev ? null : 'loadBrand';
   if (m.kind === 'restore-input-empty') return 'startFresh';
+  if (m.kind === 'restore-input-reading') return 'readFile';
+  if (m.kind === 'restore-input-library') return 'libraryHome';
   return null;
 };
 
@@ -401,6 +409,8 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
   switch (m.kind) {
     case 'restore-input': return [];
     case 'restore-input-empty': return [];
+    case 'restore-input-reading': return [];
+    case 'restore-input-library': return [];
     case 'restore-input-error': return ['host'];
     case 'font-list': return ['fonts'];
     case 'apply-result': return ['host', 'host:detail'];
