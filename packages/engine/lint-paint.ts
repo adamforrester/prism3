@@ -468,7 +468,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the on pressed coordinate, so the error edge persists through the interaction states',
   'switch-control|error.on.border.focus-visible':
     'status `error` maps to the `danger` border role — the on focus-visible coordinate, so the error edge persists through the interaction states',
-  // `badge` keys its paint `{tone}.{type}.{emphasis}.{slot}`, so the TONE leads and arm 1 reads it. Three
+  // `badge` keys its paint `{tone}.{surface}.{type}.{emphasis}.{slot}` on the page and `{tone}.{surface}.{slot}` on
+  // media (#2983), so the TONE leads in both and arm 1 reads it. Three
   // shapes need an exception, and every other badge key satisfies the rule on its own: the bold fills
   // (`foreground.<tone>`), the subtle labels (`text.<tone>`) and the subtle edges (`border.<tone>`) carry the
   // tone as a whole segment.
@@ -479,29 +480,43 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
   //     surface, the primary text and the secondary border (owner decision, 2026-09-28), and the bold one is
   //     the inverse surface and its ink, where `inverse` sits in the family position.
   // The fills, labels and edges are each measured against their floors in `test.ts`.
-  'badge|neutral.status.subtle.fill':
+  'badge|neutral.default.status.subtle.fill':
     'tone `neutral` maps to the second surface `foreground.secondary` — the token tier has no `foreground.neutral`, and the 1px edge gives the pill its shape',
-  'badge|neutral.status.subtle.label':
+  'badge|neutral.default.status.subtle.label':
     'tone `neutral` maps to the primary text role `text.primary` on the second surface — the token tier has no `text.neutral`',
-  'badge|neutral.status.subtle.border':
+  'badge|neutral.default.status.subtle.border':
     'tone `neutral` maps to the secondary border role `border.secondary`, at least 3.20:1 against the page — the token tier has no `border.neutral`',
-  'badge|neutral.status.bold.fill':
+  'badge|neutral.default.status.bold.fill':
     'tone `neutral` maps to the inverse surface `inverse.foreground.tertiary`, the engine\'s bold neutral — no page surface separates from the page in the high-contrast modes',
-  'badge|neutral.status.bold.label':
+  'badge|neutral.default.status.bold.label':
     'tone `neutral` maps to the inverse ink `inverse.text.primary`, the ink contracted on the inverse surface — the token tier has no `text.on-neutral`',
-  'badge|neutral.count.bold.fill':
+  'badge|neutral.default.count.bold.fill':
     'tone `neutral` maps to the inverse surface `inverse.foreground.tertiary`, the status label\'s bold neutral — the token tier has no `foreground.neutral`',
-  'badge|neutral.count.bold.label':
+  'badge|neutral.default.count.bold.label':
     'tone `neutral` maps to the inverse ink `inverse.text.primary` on the inverse surface — the token tier has no `text.on-neutral`',
-  'badge|neutral.dot.bold.fill':
+  'badge|neutral.default.dot.bold.fill':
     'tone `neutral` maps to the inverse surface `inverse.foreground.tertiary`, the count\'s fill — the token tier has no `foreground.neutral`',
-  'badge|info.status.subtle.fill':
+  // THE ON-MEDIA LABEL (#2983): every tone's fill is the page surface, so no media fill carries its tone. The label
+  // carries it (`text.<tone>`), except neutral's, which is the primary text. Both measured at 4.5:1 in `test.ts`.
+  'badge|neutral.media.fill':
+    'tone `neutral` on media paints the page surface `background.primary`, the solid ground that keeps the label off the photo — no media fill names a tone',
+  'badge|neutral.media.label':
+    'tone `neutral` on media inks with the primary text role `text.primary` on the page surface — the token tier has no `text.neutral`',
+  'badge|info.media.fill':
+    'tone `info` on media paints the page surface `background.primary`, the solid ground that keeps the label off the photo; `text.info` carries the tone',
+  'badge|success.media.fill':
+    'tone `success` on media paints the page surface `background.primary`, the solid ground that keeps the label off the photo; `text.success` carries the tone',
+  'badge|warning.media.fill':
+    'tone `warning` on media paints the page surface `background.primary`, the solid ground that keeps the label off the photo; `text.warning` carries the tone',
+  'badge|danger.media.fill':
+    'tone `danger` on media paints the page surface `background.primary`, the solid ground that keeps the label off the photo; `text.danger` carries the tone',
+  'badge|info.default.status.subtle.fill':
     'tone `info` paints its subtle tint `foreground.info-subtle`, the surface `text.info` is contracted against',
-  'badge|success.status.subtle.fill':
+  'badge|success.default.status.subtle.fill':
     'tone `success` paints its subtle tint `foreground.success-subtle`, the surface `text.success` is contracted against',
-  'badge|warning.status.subtle.fill':
+  'badge|warning.default.status.subtle.fill':
     'tone `warning` paints its subtle tint `foreground.warning-subtle`, the surface `text.warning` is contracted against',
-  'badge|danger.status.subtle.fill':
+  'badge|danger.default.status.subtle.fill':
     'tone `danger` paints its subtle tint `foreground.danger-subtle`, the surface `text.danger` is contracted against',
   'banner|info.fill':
     'tone `info` paints its subtle tint `foreground.info-subtle`, the banner surface the token tier names (#2579, Q327.2 A: subtle only)',
@@ -511,21 +526,21 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'tone `warning` paints its subtle tint `foreground.warning-subtle`, the banner surface the token tier names (#2579, Q327.2 A: subtle only)',
   'banner|danger.fill':
     'tone `danger` paints its subtle tint `foreground.danger-subtle`, the banner surface the token tier names (#2579, Q327.2 A: subtle only)',
-  'badge|info.status.bold.label':
+  'badge|info.default.status.bold.label':
     'tone `info` inks its bold status label with `text.on-info`, the ink contracted on the bold `foreground.info` fill',
-  'badge|success.status.bold.label':
+  'badge|success.default.status.bold.label':
     'tone `success` inks its bold status label with `text.on-success`, the ink contracted on the bold `foreground.success` fill',
-  'badge|warning.status.bold.label':
+  'badge|warning.default.status.bold.label':
     'tone `warning` inks its bold status label with `text.on-warning`, the ink contracted on the bold `foreground.warning` fill',
-  'badge|danger.status.bold.label':
+  'badge|danger.default.status.bold.label':
     'tone `danger` inks its bold status label with `text.on-danger`, the ink contracted on the bold `foreground.danger` fill',
-  'badge|info.count.bold.label':
+  'badge|info.default.count.bold.label':
     'tone `info` inks its count with `text.on-info`, the ink contracted on the bold `foreground.info` fill',
-  'badge|success.count.bold.label':
+  'badge|success.default.count.bold.label':
     'tone `success` inks its count with `text.on-success`, the ink contracted on the bold `foreground.success` fill',
-  'badge|warning.count.bold.label':
+  'badge|warning.default.count.bold.label':
     'tone `warning` inks its count with `text.on-warning`, the ink contracted on the bold `foreground.warning` fill',
-  'badge|danger.count.bold.label':
+  'badge|danger.default.count.bold.label':
     'tone `danger` inks its count with `text.on-danger`, the ink contracted on the bold `foreground.danger` fill',
 };
 

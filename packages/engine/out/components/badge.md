@@ -17,7 +17,7 @@ A small, static marker of one of three types. A status label is short text in th
 
 ## Anatomy
 
-Shown on the default member: type `status`, emphasis `subtle`, tone `neutral`.
+Shown on the default member: type `status`, emphasis `subtle`, tone `neutral`, surface `default`.
 
 1. **Surface** — The badge body, sized by what it holds: a small-radius label around a status text, a circle around one digit that grows into a pill, or the round dot itself. A subtle status label is the tone's tint with a 1px edge in the tone's border color, drawn inside the edge so it adds no size. A bold badge is the solid tone fill with no edge. Neither paints an interactive color.
 2. **Label** — The status text in the tone's text role. It carries the meaning, so the tone is never the only signal.
@@ -31,10 +31,11 @@ Shown on the default member: type `status`, emphasis `subtle`, tone `neutral`.
 | `type` | `status`, `count`, `dot` | once, when authored | Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name. |
 | `emphasis` | `subtle`, `bold` | at runtime | How strongly a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. A count and a dot are always bold. |
 | `tone` | `neutral`, `info`, `success`, `warning`, `danger` | at runtime | Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it. |
+| `surface` | `default`, `media` | once, when authored | What the badge sits on, for type status. default = the page or a card. media = a photo or video, where the label sits on a solid page-surface fill with no edge, in the tone's text color, so its contrast does not depend on the image. A media label is smaller, and emphasis does not apply to it. |
 
 ## Usage guidelines
 
-Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.
+Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. On a photo or video, such as a product image, set surface to media: the label sits on a solid page-surface fill, so the image never decides its contrast. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.
 
 ### Do
 
@@ -94,6 +95,7 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 | --- | --- | --- | --- | --- |
 | `type` | enum: 'status' \| 'count' \| 'dot' | `status` | no | Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name. |
 | `emphasis` | enum: 'subtle' \| 'bold' | `subtle` | no | How strongly a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. A count and a dot are always bold. |
+| `surface` | enum: 'default' \| 'media' | `default` | no | What the badge sits on, for type status. default = the page or a card. media = a photo or video, where the label sits on a solid page-surface fill with no edge, in the tone's text color, so its contrast does not depend on the image. A media label is smaller, and emphasis does not apply to it. |
 | `tone` | enum: 'neutral' \| 'info' \| 'success' \| 'warning' \| 'danger' | `neutral` | no | Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it. |
 | `label` | string | — | no | The status text, for type status. One or two words, in consistent casing across the product. |
 | `value` | number | — | no | The count, for type count. Above max it shows as max followed by a plus sign, formatted for the locale. |
@@ -103,7 +105,7 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 20 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 25 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -118,21 +120,27 @@ Generated from the plan that builds the design-file component: 20 members. Value
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `type`.
+Keyed by `type`, `surface`.
 
-**type=status**
+**type=status, surface=default**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `surface` | `space.100` / `space.150` / `space.100` / `space.150` | — | — | — | — | — |
 
-**type=count**
+**type=status, surface=media**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `surface` | `space.025` / `space.100` / `space.025` / `space.100` | — | — | — | — | — |
+
+**type=count, surface=default**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `surface` | `space.025` / `space.075` / `space.025` / `space.075` | — | — | — | — | — |
 
-**type=dot**
+**type=dot, surface=default**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -150,138 +158,173 @@ Keyed by nothing: one row covers every member.
 
 ### Color
 
-Keyed by `type`, `emphasis`, `tone`.
+Keyed by `type`, `emphasis`, `tone`, `surface`.
 
-**type=status, emphasis=subtle, tone=neutral**
+**type=status, emphasis=subtle, tone=neutral, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.secondary` | `color.border.tertiary` | — | — |
 | `surface/label` | — | — | `color.text.primary` | — |
 
-**type=status, emphasis=subtle, tone=info**
+**type=status, emphasis=subtle, tone=neutral, surface=media**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.background.primary` | — | — | — |
+| `surface/label` | — | — | `color.text.primary` | — |
+
+**type=status, emphasis=subtle, tone=info, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.info-subtle` | `color.border.info` | — | — |
 | `surface/label` | — | — | `color.text.info` | — |
 
-**type=status, emphasis=subtle, tone=success**
+**type=status, emphasis=subtle, tone=info, surface=media**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.background.primary` | — | — | — |
+| `surface/label` | — | — | `color.text.info` | — |
+
+**type=status, emphasis=subtle, tone=success, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.success-subtle` | `color.border.success` | — | — |
 | `surface/label` | — | — | `color.text.success` | — |
 
-**type=status, emphasis=subtle, tone=warning**
+**type=status, emphasis=subtle, tone=success, surface=media**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.background.primary` | — | — | — |
+| `surface/label` | — | — | `color.text.success` | — |
+
+**type=status, emphasis=subtle, tone=warning, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.warning-subtle` | `color.border.warning` | — | — |
 | `surface/label` | — | — | `color.text.warning` | — |
 
-**type=status, emphasis=subtle, tone=danger**
+**type=status, emphasis=subtle, tone=warning, surface=media**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.background.primary` | — | — | — |
+| `surface/label` | — | — | `color.text.warning` | — |
+
+**type=status, emphasis=subtle, tone=danger, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.danger-subtle` | `color.border.danger` | — | — |
 | `surface/label` | — | — | `color.text.danger` | — |
 
-**type=status, emphasis=bold, tone=neutral**
+**type=status, emphasis=subtle, tone=danger, surface=media**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.background.primary` | — | — | — |
+| `surface/label` | — | — | `color.text.danger` | — |
+
+**type=status, emphasis=bold, tone=neutral, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.inverse.foreground.tertiary` | — | — | — |
 | `surface/label` | — | — | `color.inverse.text.primary` | — |
 
-**type=status, emphasis=bold, tone=info**
+**type=status, emphasis=bold, tone=info, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.info` | — | — | — |
 | `surface/label` | — | — | `color.text.on-info` | — |
 
-**type=status, emphasis=bold, tone=success**
+**type=status, emphasis=bold, tone=success, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.success` | — | — | — |
 | `surface/label` | — | — | `color.text.on-success` | — |
 
-**type=status, emphasis=bold, tone=warning**
+**type=status, emphasis=bold, tone=warning, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.warning` | — | — | — |
 | `surface/label` | — | — | `color.text.on-warning` | — |
 
-**type=status, emphasis=bold, tone=danger**
+**type=status, emphasis=bold, tone=danger, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.danger` | — | — | — |
 | `surface/label` | — | — | `color.text.on-danger` | — |
 
-**type=count, emphasis=bold, tone=neutral**
+**type=count, emphasis=bold, tone=neutral, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.inverse.foreground.tertiary` | — | — | — |
 | `surface/count` | — | — | `color.inverse.text.primary` | — |
 
-**type=count, emphasis=bold, tone=info**
+**type=count, emphasis=bold, tone=info, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.info` | — | — | — |
 | `surface/count` | — | — | `color.text.on-info` | — |
 
-**type=count, emphasis=bold, tone=success**
+**type=count, emphasis=bold, tone=success, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.success` | — | — | — |
 | `surface/count` | — | — | `color.text.on-success` | — |
 
-**type=count, emphasis=bold, tone=warning**
+**type=count, emphasis=bold, tone=warning, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.warning` | — | — | — |
 | `surface/count` | — | — | `color.text.on-warning` | — |
 
-**type=count, emphasis=bold, tone=danger**
+**type=count, emphasis=bold, tone=danger, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.danger` | — | — | — |
 | `surface/count` | — | — | `color.text.on-danger` | — |
 
-**type=dot, emphasis=bold, tone=neutral**
+**type=dot, emphasis=bold, tone=neutral, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.inverse.foreground.tertiary` | — | — | — |
 
-**type=dot, emphasis=bold, tone=info**
+**type=dot, emphasis=bold, tone=info, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.info` | — | — | — |
 
-**type=dot, emphasis=bold, tone=success**
+**type=dot, emphasis=bold, tone=success, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.success` | — | — | — |
 
-**type=dot, emphasis=bold, tone=warning**
+**type=dot, emphasis=bold, tone=warning, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.warning` | — | — | — |
 
-**type=dot, emphasis=bold, tone=danger**
+**type=dot, emphasis=bold, tone=danger, surface=default**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |

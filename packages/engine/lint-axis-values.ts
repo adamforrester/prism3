@@ -620,7 +620,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'surface',
     values: ['default', 'inverse'],
     defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'link'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'The ground a control sits on (#1134): `default` the page, `inverse` a dark or brand-filled band. THE '
       + 'ONE name the bounded inverse set uses (docs/20 §9.11), so a host and a component it nests share it '
@@ -635,6 +635,22 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'are one distinction. ORDER matters as everywhere here: `default` is the rest coordinate the '
       + 'projector\'s inverse rewrite falls through to (an `inverse` coordinate binds `color.inverse.*`, a '
       + '`default` one the bare role).',
+  },
+  {
+    axis: 'surface',
+    values: ['default', 'media'],
+    defs: ['badge'],
+    relation: 'overlapping',
+    reason:
+      'The ground a status badge sits on (#2983, owner decision Q644 A; built on the Q2983.1 recommendation, pending '
+      + 'the owner\'s answer): `default` the page or a card, `media` a photo or video, where the label sits on a solid '
+      + 'page-surface fill so its contrast never depends on the image. It takes this axis NAME because it answers the '
+      + 'canonical set\'s question, what is under the component, and a second name for one question is the #756 '
+      + 'failure. It SHARES `default`, which means the same thing on both (the page, and the first value, so the '
+      + 'Figma default member). It DISAGREES on the other value, and has to: `inverse` binds `color.inverse.*` through '
+      + 'the projector\'s rewrite, which is right for a dark band and wrong for a photo, where the ground is unknown and '
+      + 'the badge brings its own. Badge has no `inverse` today; a badge on a dark band would add it here and make this '
+      + 'set a superset.',
   },
   {
     axis: 'tone',
