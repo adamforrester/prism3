@@ -236,19 +236,23 @@ console.log('\n4. "+ New brand" surfaces the start screen (it used to load a neu
 
 // ── §4b — "+ New brand" before the host answers (UI redesign S12, the #1197 / #1200 trap) ──────────────
 // Reopening the start changes no origin, so the identity guard still reads "nothing chosen" until the designer picks a
-// path. Both orders the host can answer in are held: an empty file turns the reopened start into the first run (no
-// Close, nothing to go back to), and a file with a brand loads it and closes the start.
+// path. Both orders the host can answer in are held: an empty file turns the reopened start into the first run (its X
+// no longer goes back to a brand but opens the file without one, #2879), and a file with a brand loads it and closes the
+// start.
 console.log('\n4b. "+ New brand" before the host answers, then either answer');
 {
   const { page, errors } = await openPanel();
   await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
   await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
   ok(await waitStart(page, true), 'the start reopens before the host has answered');
-  ok(await page.locator('[data-p3="start-close"]').count() === 1, 'and, reopened, it offers Close');
+  const hint = () => page.evaluate(() => document.querySelector('[data-p3="start-close"]')?.getAttribute('title') ?? null);
+  const reopened = await hint();
+  ok(await page.locator('[data-p3="start-close"]').count() === 1 && /^Close — back to .+, unchanged$/.test(reopened ?? ''), `and, reopened, its X goes back to the brand ("${reopened}")`);
   await post(page, { type: 'restore-input-empty' });
-  await page.waitForFunction(() => !document.querySelector('[data-p3="start-close"]'), null, { timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="start-close"]')?.getAttribute('title') === 'Close — opens the file without a brand', null, { timeout: 4000 }).catch(() => {});
   const s = await readStart(page);
-  ok(s.start && await page.locator('[data-p3="start-close"]').count() === 0, 'an empty file then makes it the first run: the start stays, with no Close');
+  const first = await hint();
+  ok(s.start && first === 'Close — opens the file without a brand', `an empty file then makes it the first run: the start stays, its X now opening the file without a brand (#2879) — "${first}"`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
   await page.close();
 }
@@ -594,10 +598,14 @@ for (const vp of [{ width: 1280, height: 900 }, { width: 500, height: 560 }, { w
 console.log('\n7. the host reports absence rather than staying silent');
 {
   const hostSrc = readFileSync(resolve(REPO, 'apps/plugin/src/main.ts'), 'utf8');
-  const body = hostSrc.slice(hostSrc.indexOf('const restoreToUi'), hostSrc.indexOf('const restoreToUi') + 900);
-  ok(/restore-input-empty/.test(body), 'restoreToUi posts restore-input-empty on absence');
-  ok(/else postToUi/.test(body), 'and it is the ELSE of the found-a-brand branch, so the two are exclusive');
-  ok(/restore-input-error/.test(body), 'with the refusal arm still present — three outcomes, total over the read');
+  const fn = (name) => { const at = hostSrc.indexOf(`const ${name}`); return at < 0 ? '' : hostSrc.slice(at, hostSrc.indexOf('\n};\n', at)); };
+  const body = fn('restoreToUi');
+  // #2879: absence runs the file check, whose answer is the library outcome or restore-input-empty.
+  ok(/else void fileKindToUi\(\)/.test(body), 'restoreToUi runs the file check on absence, as the ELSE of the found-a-brand branch, so the two are exclusive');
+  ok(/restore-input-error/.test(body), 'with the refusal arm still present');
+  const kind = fn('fileKindToUi');
+  ok(/restore-input-library/.test(kind) && /else postToUi\(\{ type: 'restore-input-empty' \}\)/.test(kind),
+    'and the file check posts restore-input-library or, as its ELSE, restore-input-empty — four outcomes, total over the read (#2879)');
 }
 
 // ── §8 — the built panel is LEGIBLE, in both schemes and both Figma themes (#1041) ─────────────
@@ -1175,6 +1183,144 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   console.log(`  ${pagesSeen.size} menu page(s) and ${tabsSeen.size} tabs × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
   console.log(`  Lowest chrome text: ${worst.ratio}:1 — ${worst.where}`);
   console.log(`  Unparsed colors: ${unparsedTotal} (every one fails by name).`);
+}
+
+// ── §9 — a library file opens to the library home; one X on the start window (#2879) ─────────────────
+// The owner's Q485 C and Q613 A. EXPECTED is what a designer sees, typed here: a home or the start window, the editor or
+// none of it. Outgoing messages are read off the bus (the UI's `parent.postMessage` lands on this top-level window), so
+// "the X loads no brand" is asserted twice: nothing a brand drives is drawn, and nothing a brand drives is posted.
+console.log('\n9. a library file opens to the library home; the X opens the file without a brand (#2879)');
+const LIB = { name: 'Product Library', versions: ['0.237.0'], instances: 12, bindings: 0 };
+const readHome = (page) => page.evaluate(() => {
+  const q = (s) => document.querySelector(s);
+  return {
+    layout: q('[data-p3="frame"]')?.dataset.layout ?? null,
+    kind: q('[data-p3="home"]')?.dataset.kind ?? null,
+    start: !!q('[data-p3="start-screen"]'),
+    editorTabs: [...document.querySelectorAll('[data-p3="tab-row"] [role="tab"]')].filter((t) => t.getClientRects().length > 0).length,
+    brandSel: q('[data-p3="brand-switcher"]')?.isConnected ? q('[data-p3="brand-switcher"]').textContent : null,
+    apply: !!q('[data-p3="apply-to-figma"]')?.isConnected,
+    title: q('[data-p3="home-title"]')?.textContent ?? null,
+  };
+});
+/** Every message type the UI posts from now on. */
+const spy = (page) => page.evaluate(() => {
+  window.__sent = [];
+  window.addEventListener('message', (e) => { const t = e.data?.pluginMessage?.type; if (typeof t === 'string') window.__sent.push(t); });
+});
+const sent = (page) => page.evaluate(() => window.__sent ?? []);
+/** What a brand drives: a write to the file, or the start of one. */
+const BRAND_WRITES = ['apply-theme', 'build-components', 'prune', 'file-setup', 'style-guide'];
+{
+  const { page, errors } = await openPanel();
+  await post(page, { type: 'restore-input-reading' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="home"]')?.dataset.kind === 'reading', null, { timeout: 4000 }).catch(() => {});
+  let r = await readHome(page);
+  ok(r.layout === 'home' && r.kind === 'reading' && !r.start && r.editorTabs === 0, `while the host reads the file: "Reading this file", no start window, no editor — ${JSON.stringify(r)}`);
+  await post(page, { type: 'restore-input-library', library: LIB });
+  await page.waitForFunction(() => document.querySelector('[data-p3="home"]')?.dataset.kind === 'library', null, { timeout: 4000 }).catch(() => {});
+  r = await readHome(page);
+  ok(r.layout === 'home' && r.kind === 'library' && !r.start, `library file opens to the library home, no start window — ${JSON.stringify(r)}`);
+  ok(r.editorTabs === 0 && r.brandSel === null && !r.apply && r.title === 'Product Library',
+    `the library home shows no editor, no brand switcher and no Apply Theme, and names the library — ${JSON.stringify(r)}`);
+  ok(!(await waitStart(page, true)), 'and the start window does not open behind it');
+  ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+  await page.close();
+}
+{
+  // A new file: reading, then the start window, with the X.
+  const { page } = await openPanel();
+  await post(page, { type: 'restore-input-reading' });
+  await post(page, { type: 'restore-input-empty' });
+  ok(await waitStart(page, true), 'reading, then restore-input-empty, opens the start window');
+  const x = await page.evaluate(() => document.querySelector('[data-p3="start-close"]')?.getAttribute('aria-label') ?? null);
+  ok(x === 'Close', `the plugin's first run offers the X, named "Close" (Q613 6 A) — "${x}"`);
+  await spy(page);
+  await hooks.click(page.locator('[data-p3="start-close"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="home"]')?.dataset.kind === 'none', null, { timeout: 4000 }).catch(() => {});
+  const r = await readHome(page);
+  const writes = (await sent(page)).filter((t) => BRAND_WRITES.includes(t));
+  ok(!r.start && r.kind === 'none' && r.editorTabs === 0 && r.brandSel === null && writes.length === 0,
+    `X loads no brand: the minimal home, no editor, no brand switcher, and no write posted — ${JSON.stringify({ ...r, writes })}`);
+  // Its button opens the window again, and the X comes back to the same home.
+  await hooks.click(page.locator('[data-p3="home-start"]'));
+  ok(await waitStart(page, true), '"Start a brand…" opens the start window again');
+  await page.keyboard.press('Escape');
+  ok(await waitStart(page, false), 'Escape does what the X does');
+  ok((await readHome(page)).kind === 'none', 'and returns to the minimal home');
+  await page.close();
+}
+{
+  // Escape on the first run, the X's twin (Q613 6 A).
+  const { page } = await openPanel();
+  await post(page, { type: 'restore-input-empty' });
+  await waitStart(page, true);
+  await page.keyboard.press('Escape');
+  ok(await waitStart(page, false), 'Escape closes the first run too');
+  const r = await readHome(page);
+  ok(r.kind === 'none' && r.editorTabs === 0, `Escape on the first run opens the minimal home and loads no brand — ${JSON.stringify(r)}`);
+  await page.close();
+}
+{
+  // The #1197 guard: a library answer after the designer chose a brand changes nothing.
+  const { page } = await openPanel();
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+  await hooks.click(page.locator('[data-p3="brand-menu-example"]').filter({ hasText: 'aurora' }));
+  await post(page, { type: 'restore-input-reading' });
+  await post(page, { type: 'restore-input-library', library: LIB });
+  await page.waitForTimeout(200);
+  const r = await readHome(page);
+  ok(r.layout !== 'home' && r.editorTabs > 0 && (r.brandSel ?? '').includes('aurora'),
+    `a library answer after a choice keeps the chosen brand, no home — ${JSON.stringify(r)}`);
+  await page.close();
+}
+{
+  // A brand file never sees a home: the §2 guard, once more with the library message in play.
+  const { page } = await openPanel();
+  await post(page, { type: 'restore-input', input: NB_BRAND });
+  await page.waitForTimeout(200);
+  const r = await readHome(page);
+  ok(r.layout !== 'home' && r.editorTabs > 0 && (r.brandSel ?? '').includes('restored-brand'), `a file with a saved brand opens to the editor, no home — ${JSON.stringify(r)}`);
+  await page.close();
+}
+{
+  // The home's agent-link switch: the same request as the tile, the same published state, and the #2961 strip still works.
+  const { page } = await openPanel();
+  const link = (on) => ({ type: 'agent-link-state', state: { on, pollMs: 2000, transports: { mailbox: on, bridge: false }, lastCommand: null, inboxError: null } });
+  await post(page, link(false));
+  await post(page, { type: 'restore-input-library', library: LIB });
+  await page.waitForFunction(() => document.querySelector('[data-p3="home"]')?.dataset.kind === 'library', null, { timeout: 4000 }).catch(() => {});
+  await page.evaluate(() => {
+    window.__links = [];
+    window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && (m.type === 'agent-link' || m.type === 'minimize-ui')) window.__links.push(m); });
+  });
+  await hooks.click(page.locator('[data-p3="home-agent-switch"]'));
+  // A message on the bus arrives as a task, after the click returns.
+  const settle = (n) => page.waitForFunction((k) => window.__links.length >= k, n, { timeout: 2000 }).catch(() => {});
+  await settle(1);
+  let links = await page.evaluate(() => window.__links);
+  ok(links.length === 1 && links[0].type === 'agent-link' && links[0].on === true, `the home's switch asks the main thread to turn the link on, as the tile does — ${JSON.stringify(links)}`);
+  const read = () => page.evaluate(() => ({ sw: document.querySelector('[data-p3="home-agent-switch"]')?.getAttribute('aria-checked'), tile: document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed'),
+    min: !!document.querySelector('[data-p3="agent-minimize"]') && !document.querySelector('[data-p3="agent-minimize"]').hidden, strip: !document.querySelector('[data-p3="agent-strip"]')?.hidden }));
+  let s = await read();
+  ok(s.sw === 'false' && s.tile === 'false', `until the main thread answers, both still read off — ${JSON.stringify(s)}`);
+  await post(page, link(true));
+  s = await read();
+  ok(s.sw === 'true' && s.tile === 'true' && s.min, `the published state turns both on, and Minimize shows beside the tile (#2961) — ${JSON.stringify(s)}`);
+  await hooks.click(page.locator('[data-p3="agent-minimize"]'));
+  await settle(2);
+  await post(page, { type: 'ui-minimized', minimized: true });
+  await page.waitForFunction(() => !document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 2000 }).catch(() => {});
+  s = await read();
+  links = await page.evaluate(() => window.__links);
+  ok(links.some((m) => m.type === 'minimize-ui' && m.minimized === true) && s.strip, `Minimize still asks for the strip from the library home, and the strip draws (#2961) — ${JSON.stringify(s)}`);
+  await post(page, { type: 'ui-minimized', minimized: false });
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 2000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="agent-toggle"]'));
+  await settle(3);
+  links = await page.evaluate(() => window.__links);
+  ok(links.at(-1)?.type === 'agent-link' && links.at(-1)?.on === false, `the tile turns it off through the same request — ${JSON.stringify(links.at(-1))}`);
+  await page.close();
 }
 
 await browser.close();
