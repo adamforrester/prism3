@@ -22,7 +22,7 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   the caret, `radius`) and `2xl` on its rung order.
 - **Reactions on a set with no pressed look.** `reactions.ts` planned While pressing only to `pressed`. The cell's def
   names `pressState: 'focus-visible'` (pressing a cell focuses the code input), carried on the plan only where declared,
-  so every other plan's `planStamp` is unchanged. `EXECUTOR_REVISION` is 36, one above main's 35 (#2938 raised main to 35; this PR moves `reactions.ts` and `write-components.ts` for `pressState`).
+  so every other plan's `planStamp` is unchanged. `EXECUTOR_REVISION` is 37, one above main's 36 (#2957 raised main to 36; this PR moves `reactions.ts` and `write-components.ts` for `pressState`).
 - **Default cells per member.** Each member's six cells show its state (`variantWhen` on `state`, which replaced
   `atState` on main in #2693): a fresh insert's picture of that
   state. A placed field's cells stay the designer's (Q329's accepted trade-off). Status has no nested mechanism, so an
@@ -103,3 +103,5 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
 - Main's Progress (#2791): the registry lists take the union, `lint-rung-names` keeps both the pinned ladder and the
   ring offset, and the artifact count is 212. The studio's Fields section opens Field options on Code input, now its
   first set.
+- Main's #2957 (Update with keep) and #2946 (Tag underline) merged without a conflict. #2957 raised main's
+  `EXECUTOR_REVISION` to 36, so this PR's is 37.
