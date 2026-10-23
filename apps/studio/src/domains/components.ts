@@ -62,6 +62,7 @@ import { modeLabel } from '../shell/preview';
 import { mountButtonOptions, BUTTON_OPTIONS_COPY } from './button-options';
 import { mountFieldOptions, FIELD_OPTIONS_COPY } from './field-options';
 import { mountTagOptions, TAG_OPTIONS_COPY } from './tag-options';
+import { mountDialogOptions, DIALOG_OPTIONS_COPY } from './dialog-options';
 
 /** Each section's settings block (#2905): its hook prefix, its title and description (Q10 A: wireframe v2's words), and
  *  its builder. A section with none has no entry. */
@@ -72,6 +73,7 @@ const SECTION_SETTINGS: Partial<Record<SectionKind, {
   buttons: { hook: 'button-options', title: BUTTON_OPTIONS_COPY.title, desc: BUTTON_DESC, mount: mountButtonOptions },
   fields: { hook: 'field-options', title: FIELD_OPTIONS_COPY.title, desc: FIELD_OPTIONS_COPY.desc, mount: mountFieldOptions },
   tags: { hook: 'tag-options', title: TAG_OPTIONS_COPY.title, desc: TAG_OPTIONS_COPY.desc, mount: mountTagOptions },
+  dialogs: { hook: 'dialog-options', title: DIALOG_OPTIONS_COPY.title, desc: DIALOG_OPTIONS_COPY.desc, mount: mountDialogOptions },
 };
 
 /** Mount the Components list into `hostEl`. Subscriptions are released through `cleanups`. */

@@ -47,7 +47,7 @@ export type GroupRow = {
 };
 
 /** A section: one with settings (`SETTING_SECTIONS`), or Other components, or Subcomponents. */
-export type SectionKind = 'buttons' | 'fields' | 'tags' | GroupKind;
+export type SectionKind = 'buttons' | 'fields' | 'tags' | 'dialogs' | GroupKind;
 
 export type GroupSection = {
   readonly kind: SectionKind;
@@ -61,19 +61,22 @@ export type GroupSection = {
  *  whose `ids` hold every one of its sets. Fields holds the sets Field style draws (`FIELD_FRAME_PARTS` in the engine's
  *  `anatomy-figma.ts`, typed here so no definition reaches the web bundle; `test-component-groups.ts` holds the two
  *  together). Search field (#2888) is in Fields (Q5 A); its own block is still to come. Tag holds the sets Tag style
- *  draws (`TAG_STYLE_PARTS`, held the same way). */
-export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 'tags'; readonly pages: readonly string[]; readonly ids: readonly string[] }[] = [
+ *  draws (`TAG_STYLE_PARTS`, held the same way). Dialog holds the sets Dialog title size reaches
+ *  (`DIALOG_TITLE_TYPE_KEYS`, #2958, held the same way). */
+export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 'tags' | 'dialogs'; readonly pages: readonly string[]; readonly ids: readonly string[] }[] = [
   { kind: 'buttons', pages: ['Buttons'], ids: [] },
   // #2888 shipped Search field; Q5 A on #2905 puts it inside Fields. Its own Search options block is still to come.
   { kind: 'fields', pages: [], ids: ['password-field', 'search-field', 'select', 'text-field', 'textarea'] },
   { kind: 'tags', pages: [], ids: ['tag'] },
+  // #2958: Dialog title size's home (Q578: component settings live with their components), built as Tag's is (Q579 A).
+  { kind: 'dialogs', pages: [], ids: ['dialog'] },
 ];
 
 /** The page's copy. DRAFT: the approved wireframe's own words (#2700), pending the owner's copy sign-off. */
 export const GROUPS_COPY = {
   intro: (n: number): string => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
   /** Q10 A on #2905: the section titles as drafted in wireframe v2, Tag's included (placed by #2931 Q579 A). */
-  sections: { buttons: 'Buttons', fields: 'Fields', tags: 'Tag', components: 'Other components', subcomponents: 'Subcomponents' } as Record<SectionKind, string>,
+  sections: { buttons: 'Buttons', fields: 'Fields', tags: 'Tag', dialogs: 'Dialog', components: 'Other components', subcomponents: 'Subcomponents' } as Record<SectionKind, string>,
   sectionCount: (kind: SectionKind, rows: number, sets: number): string =>
     kind !== 'components' && kind !== 'subcomponents' ? plural(sets, 'set')
       : `${rows} ${kind === 'components' ? 'families and sets' : rows === 1 ? 'entry' : 'entries'} · ${plural(sets, 'set')}`,
