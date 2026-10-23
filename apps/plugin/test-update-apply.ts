@@ -192,6 +192,7 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
+import { ENGINE_VERSION } from '@prism3/engine/version';
 import { adoptions, applyComponentPlan, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
@@ -300,7 +301,15 @@ section('keys — a plan change is written in place: every key and id stays');
   const before = identityOf(w.set());
   ok(before.members.size === 45 && [...before.members.values()].every((m) => m.key.startsWith('K:') && m.id.startsWith('N:')), `premise: 45 members, each with a host key and id (${before.members.size})`);
   const next = moveGap(w.plans);
+  // What the file holds the moment the version is saved: members bound to the new gap. The host's own list is read at
+  // the call, so a write before the save would show here, never in the final state.
+  const gapNow = await varIdOf(w, 'space/999');
+  const boundNow = (): number => membersOf(w.set()).filter((m) => (childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === gapNow).length;
+  const atSave: number[] = [];
+  (w.host as any).saveVersionHistoryAsync = (t: string, d?: string) => { atSave.push(boundNow()); return w.api.saveVersionHistoryAsync(t, d); };
   const { pre, res } = await confirm(w, [{ def: TAG, plans: next }]);
+  ok(JSON.stringify(atSave) === '[0]' && JSON.stringify(w.api._versionNotes) === JSON.stringify([`Engine ${ENGINE_VERSION}.`]),
+    `version/before first write: one save, nothing written yet (${JSON.stringify(atSave)}), description ${JSON.stringify(w.api._versionNotes)}`);
   ok(pre.sets[0].counts.update === 45, `premise: the dry run reads all 45 out of date (${pre.sets[0].counts.update})`);
   const v = applyVerdict(res);
   ok(v.ok && v.headline === '✓ updated 45 in place', `apply/verdict: ${v.headline} (${JSON.stringify(v.lines).slice(0, 300)})`);
@@ -316,7 +325,7 @@ section('keys — a plan change is written in place: every key and id stays');
   const post = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
   ok(post.counts.current === 45 && post.handEdits.length === 0, `apply/current: the next dry run reads all 45 current, no hand edits (${JSON.stringify(post.counts)})`);
   ok(res.outcomes[0].identity.length === 0 && res.outcomes[0].content.length === 0, `apply/verified: the update's own verify found nothing (${JSON.stringify([res.outcomes[0].identity.slice(0, 2), res.outcomes[0].content.slice(0, 2)])})`);
-  ok(JSON.stringify(w.api._versions) === JSON.stringify(['Before Prism3 updated tag']), `version/once: one named version saved (${JSON.stringify(w.api._versions)})`);
+  ok(JSON.stringify(w.api._versions) === JSON.stringify(['Saved before Prism3 updated tag']), `version/once: one named version saved (${JSON.stringify(w.api._versions)})`);
   ok((w.api._removed as Node[]).every((n) => n.type !== 'COMPONENT'), 'keys/none removed: no member was removed from the file');
   // #2300: an updated member's record names the node it was written on, as a build's does, or the next dry run could
   // not tell it from a copy.
@@ -365,7 +374,7 @@ section('pages — component pages out of alphabetical order: listed by the dry 
     `pages/apply: Badge, Divider, Tabs, Tag in order; Field Label, Spinner in order, each within its own section (${JSON.stringify(names())}; ${applyVerdict(res).headline})`);
   ok(JSON.stringify(handed) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && names().indexOf('↳ Tag') - names().indexOf('Notes') === 1,
     `pages/designer: only the listed pages moved, Notes never, and it still precedes Tag (moved ${JSON.stringify(handed)})`);
-  ok(JSON.stringify(w.api._versions) === JSON.stringify(['Before Prism3 updated the page order']), `pages/version: one named version before the move (${JSON.stringify(w.api._versions)})`);
+  ok(JSON.stringify(w.api._versions) === JSON.stringify(['Saved before Prism3 updated the page order']), `pages/version: one named version before the move (${JSON.stringify(w.api._versions)})`);
   const again = await previewUpdate(host, targets);
   ok(!again.pages && previewVerdict(again).headline === '✓ All sets up to date', `pages/converges: the next dry run lists no page (${previewVerdict(again).headline})`);
   // A page moved by hand after the check is a different file: the confirm writes nothing.
@@ -1952,8 +1961,10 @@ section('both — set moves and page reorders in one run: one version, both done
     `both/dry run: the 2 later sets move and Tabs is listed to reorder (${JSON.stringify(pre.pages)}; ${v.lines.join(' | ')})`);
   const res = await applyUpdate(host, api, targets, previewHashOf(pre));
   const av = applyVerdict(res);
-  ok(JSON.stringify(api._versions) === JSON.stringify(['Before Prism3 updated button-destructive, button-neutral, the page order']),
+  ok(JSON.stringify(api._versions) === JSON.stringify(['Saved before Prism3 updated 2 sets']),
     `both/version: one named version, naming the moving sets and the page order (${JSON.stringify(api._versions)})`);
+  ok(JSON.stringify(api._versionNotes) === JSON.stringify([`Engine ${ENGINE_VERSION}. Sets: button-destructive, button-neutral (2). Page order.`]),
+    `both/version description: the engine, the set list and the page order (${JSON.stringify(api._versionNotes)})`);
   ok(JSON.stringify(sets.map((n) => [Number(n.x), Number(n.y)])) === JSON.stringify(fresh)
     && JSON.stringify(names()) === JSON.stringify(['Cover', '---', 'Components', '↳ Badge', '↳ Divider', '↳ Tabs']),
     `both/done: each set where a fresh build put it, and the pages in order (${JSON.stringify(sets.map((n) => Number(n.x)))}; ${JSON.stringify(names())})`);

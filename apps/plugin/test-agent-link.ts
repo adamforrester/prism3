@@ -464,6 +464,8 @@ section('one-run — a style guide asked for from one entry point while the othe
   const r0 = root as Record<string, unknown>;
   const saved = { load: host.loadAllPagesAsync, vars: host.variables, find: r0.findAllWithCriteria };
   host.loadAllPagesAsync = async () => undefined;
+  // The style guide saves a named version before its first table (#2828); this fake host takes it and records nothing.
+  host.saveVersionHistoryAsync = async () => ({ id: "v" });
   host.variables = {
     getLocalVariableCollectionsAsync: async () => [{ id: 'C:1', name: 'ramp', modes: [{ modeId: 'm:0', name: 'Value' }], defaultModeId: 'm:0' }],
     getLocalVariablesAsync: async () => [{ id: 'V:1', name: 'ramp/100', variableCollectionId: 'C:1', resolvedType: 'COLOR', description: '', valuesByMode: { 'm:0': { r: 1, g: 0, b: 0, a: 1 } } }],
@@ -516,6 +518,7 @@ section('one-run — a style guide asked for from one entry point while the othe
   await release();
   ok(results_().length === 1 && !posted.some((m) => m.type === 'refused'), 'one-run: once both have reported, the next click runs');
 
+  delete host.saveVersionHistoryAsync;
   host.loadAllPagesAsync = saved.load; host.variables = saved.vars; r0.findAllWithCriteria = saved.find;
   g.setTimeout = pollTimeout as unknown as typeof setTimeout;
 }
