@@ -42,7 +42,8 @@ No executor change, so `EXECUTOR_REVISION` stays. Audit (Q613 5) and Rebind (Q61
 
 - `test-file-kind.ts` (new, in the plugin's `test`): one case per table row, each built as a file (local collections
   from `file-shim.ts`, stamped by `stampOwnedModes`; the page and the library side built by hand, since the shim models
-  neither), plus the budget, the hard stop, the counts, the name and a forged stamp. Mutation: move the local row below
+  neither), plus the budget (before and after Prism3 evidence is read), the hard stop, the counts, the name, a forged
+  stamp, and which outcome each kind posts (`outcomeOf`). Mutation: move the local row below
   the library rows → `file-kind: local collections + library instances → brand (got library)` fails. The first try of
   that mutation passed, because the probe also returned early on local collections; the early return is gone, so the
   rule is decided in one place.
@@ -56,6 +57,8 @@ No executor change, so `EXECUTOR_REVISION` stays. Audit (Q613 5) and Rebind (Q61
   colors (the window's edge, title and the X's ring; the switch's track edge).
 
 ### Gaps
+
+Each is filed on #2979.
 
 - Not measured: whether shared plugin data travels with a published component or collection into a consuming file
   (step 0). Until it is, a real library file may read as undecided and open the start window with its X.
