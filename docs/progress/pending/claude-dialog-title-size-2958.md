@@ -16,6 +16,7 @@ Dialog options block and the three sizes on a center dialog and an end sheet, wi
   emits all three label rungs at Emphasis), so CONTRACT holds and `out/**` is byte-identical.
 - **Where it lives.** Components › Dialog, a section built like Tag's (#2931, Q579 A): Dialog as a flat row, then a
   "Dialog options" line, then the block with the chips (Q578: component settings live with their components).
-- **Code.** Dialog's code notes say the brand emits one title style from this setting, never a prop.
+- **Code.** Dialog's code notes say the brand emits one title style from this setting, never a prop. The projected
+  plans carry the code notes, so Dialog's projected surface moved by that one line, accepted with this PR's change note.
 - **Not here.** Accordion uses the same fixed title. Whether it follows this setting or gets its own is Q2 on #2958 (the
   recommendation is its own setting later), so `DIALOG_TITLE_TYPE_KEYS` names Dialog alone.

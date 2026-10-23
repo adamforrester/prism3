@@ -8,5 +8,5 @@ materializes it into the Dialog def before projection, after Tag style and befor
 `materializeForBrand`, the lever sweep and the spec chain; it is the identity at Large and for every def but Dialog. A
 value setting: it moves one text-style binding, so Dialog keeps its 24 members, axes, properties and layer names. No
 token is added and no token name moves, so CONTRACT is unchanged and every committed emission is byte-identical. Dialog's
-code notes gain the setting's line. The lever copy is a DRAFT for the owner (Q1 on #2958). Accordion is not reached
+code notes gain the setting's line, which the projected plans carry, so Dialog's projected surface moves (accepted). The lever copy is a DRAFT for the owner (Q1 on #2958). Accordion is not reached
 (Q2 on #2958).
