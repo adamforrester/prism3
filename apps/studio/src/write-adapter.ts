@@ -344,6 +344,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // a command's start, its build progress, and its end. The result envelope and the log lines stay the
   // relay's.
   'agent-link-state': null,
+  // The link strip's state (#2949): read by the agent-link control (`agent-link-ui.ts`), not here.
+  'ui-minimized': null,
   // The chrome theme's kept choice: read by the plugin's UI entry (`apps/plugin/src/ui/entry.ts`), not here.
   'theme-pref': null,
   // The Activity drawer's kept height (#2176): read by the plugin's UI entry, not here.

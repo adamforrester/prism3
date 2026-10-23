@@ -89,6 +89,13 @@ turn — the same knobs, described once.
 manifest adds the **presentation half** (human labels, groups, UI ranges/steps, the
 knob type — swatch / slider / enum / toggle) that a schema alone doesn't carry.
 
+Each lever also declares its **kind** (#2959, owner Q599 A; the test is owner Q610 A): `structural`
+when the coded component needs different markup, logic or states per option, so the shared coded
+component must implement and test every option; `value` when only token values differ (CSS changes,
+nothing else), so a coded component reads a token and costs no code. A structural lever needs the owner's explicit OK in its wireframe, and brand-wide
+settings are preferred over per-instance props. The rule and the per-lever table live in
+`skills/prism3-build-component`; `test.ts` fails a lever with no kind and pins the structural set.
+
 ## 5. Materialization has two routes over one output
 
 The engine emits the same tokens + `$extensions.prism3.figma` directives regardless of
