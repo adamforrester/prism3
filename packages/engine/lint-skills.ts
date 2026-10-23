@@ -268,7 +268,7 @@ type Finding = { file: string; kind: string; detail: string };
 
 /** How many times each scan actually RAN. See the wiring floor at the bottom of this file — the
  *  self-check can prove a scan works without proving anything still calls it. */
-const ran = { text: 0, coverage: 0, placed: 0, discovery: 0 };
+const ran = { text: 0, coverage: 0, placed: 0, discovery: 0, leverKind: 0 };
 
 /**
  * Scan one skill's TEXT. Split out from `scanSkill` so the self-check can drive **this** function
@@ -438,6 +438,42 @@ export const scanCoverage = (text: string, rel: string, findings: Finding[]): vo
   }
 };
 
+/**
+ * 8. LEVER KIND (#2959, owner Q599 A). Opt-in like check 4: a skill whose frontmatter says `classifies: levers`
+ * must state the rule (both kinds named, the owner's code test that tells them apart (Q610 A), the owner's OK in
+ * the wireframe for a structural one, and brand-wide over per-instance) and hold one table row per non-deprecated lever, `| \`key\` | value |`. The rows are a
+ * second, hand-written statement of what `kind` on each lever in `levers.ts` says, so the two are compared:
+ * a lever added without a row, a row for a lever that is gone or retired, and a row that disagrees all fail
+ * by name. What it cannot see: whether a classification is RIGHT. That is the owner's call, pinned in test.ts.
+ */
+type KindLever = { key: string; kind?: unknown; deprecated?: unknown };
+export const leverKindFindings = (text: string, rel: string, levers: readonly KindLever[]): Finding[] => {
+  ran.leverKind++;
+  const out: Finding[] = [];
+  const RULE: [RegExp, string][] = [
+    [/\*\*VALUE\*\*/, 'the VALUE kind, in bold'],
+    [/\*\*STRUCTURAL\*\*/, 'the STRUCTURAL kind, in bold'],
+    [/structural setting needs the\s+owner's explicit OK in its wireframe/i, "a structural setting needs the owner's explicit OK in its wireframe"],
+    [/brand-wide setting over a per-instance prop/i, 'prefer a brand-wide setting over a per-instance prop'],
+    [/\*\*STRUCTURAL\*\* = the coded component needs different markup, logic or states per option/, 'the STRUCTURAL test (different markup, logic or states per option)'],
+    [/\*\*VALUE\*\* = only token values differ/, 'the VALUE test (only token values differ)'],
+  ];
+  for (const [re, what] of RULE) if (!re.test(text)) out.push({ file: rel, kind: 'lever-kind rule missing', detail: `the skill declares \`classifies: levers\` but no longer states ${what}` });
+  const rows = new Map<string, string>();
+  for (const m of text.matchAll(/^\|\s*`([^`]+)`\s*\|\s*(value|structural)\s*\|/gm)) rows.set(m[1], m[2]);
+  const live = levers.filter((l) => !l.deprecated);
+  for (const l of live) {
+    const row = rows.get(l.key);
+    if (!row) out.push({ file: rel, kind: 'unclassified lever', detail: `\`${l.key}\` has no row in the lever-kind table (its manifest kind is ${String(l.kind)})` });
+    else if (row !== l.kind) out.push({ file: rel, kind: 'lever kind drift', detail: `\`${l.key}\` is ${row} in the table but ${String(l.kind)} in levers.ts` });
+  }
+  for (const k of rows.keys()) {
+    if (!live.some((l) => l.key === k)) out.push({ file: rel, kind: 'stale lever row', detail: `\`${k}\` has a lever-kind row but is not a live lever in levers.ts` });
+  }
+  return out;
+};
+const CLASSIFIES = /^classifies:\s*levers\s*$/m;
+
 /** Read one skill and run every check over it. Thin on purpose: both scans are exported functions so
  *  the self-check exercises exactly what CI does. */
 const scanSkill = (dir: string, findings: Finding[]): void => {
@@ -447,6 +483,7 @@ const scanSkill = (dir: string, findings: Finding[]): void => {
   const rel = relative(repo, path);
   scanText(text, rel, findings);
   scanCoverage(text, rel, findings);
+  if (CLASSIFIES.test(text.split(/^---\s*$/m)[1] ?? '')) findings.push(...leverKindFindings(text, rel, leverManifest));
 };
 
 // ---- SELF-CHECK: can the gate still see what it claims to? ---------------------------------------
@@ -684,6 +721,17 @@ const selfCheck = (): string[] => {
     if (!kinds(['a'], [link('a', `${R}/a`), link('alias', `${R}/a`)]).includes('wrong name')) bad.push('discovery accepts a second name for a skill');
     if (kinds(['a'], [link('a', `${R}/a`), link('ab', '/fx/skills-other/ab')]).length) bad.push('discovery reads a sibling directory sharing the `skills` prefix as inside `skills/`');
   }
+  // LEVER KIND (#2959). Each shape, both ways, through the shipping function with fixture levers.
+  {
+    const fx: KindLever[] = [{ key: 'a', kind: 'value' }, { key: 'b', kind: 'structural' }, { key: 'old', kind: 'value', deprecated: 'x' }];
+    const rule = "**STRUCTURAL** = the coded component needs different markup, logic or states per option. **VALUE** = only token values differ. A structural setting needs the owner's explicit OK in its wireframe; prefer a brand-wide setting over a per-instance prop.\n";
+    const lk = (body: string) => leverKindFindings(rule + body, 'fx', fx).map((f) => f.kind);
+    if (lk('| `a` | value | |\n| `b` | structural | |\n').length) bad.push('lever kind flags a complete, agreeing table');
+    if (!lk('| `a` | value | |\n').includes('unclassified lever')) bad.push('lever kind misses a live lever with no row');
+    if (!lk('| `a` | structural | |\n| `b` | structural | |\n').includes('lever kind drift')) bad.push('lever kind accepts a row that disagrees with the manifest');
+    if (!lk('| `a` | value | |\n| `b` | structural | |\n| `old` | value | |\n').includes('stale lever row')) bad.push('lever kind accepts a row for a retired lever');
+    if (!leverKindFindings('| `a` | value | |\n| `b` | structural | |\n', 'fx', fx).some((f) => f.kind === 'lever-kind rule missing')) bad.push('lever kind accepts a table with the rule removed');
+  }
   return bad;
 };
 
@@ -786,6 +834,10 @@ if (optedIn.length && enumRowsRead === 0) {
 }
 if (ran.discovery - before.discovery !== dirs.length) {
   wiring.push(`the discovery check ran ${ran.discovery - before.discovery}× over ${dirs.length} skill(s) — it is no longer called for every skill`);
+}
+const classifying = dirs.filter((d) => CLASSIFIES.test(readFileSync(join(skillsDir, d, 'SKILL.md'), 'utf8').split(/^---\s*$/m)[1] ?? ''));
+if (ran.leverKind - before.leverKind !== classifying.length || !classifying.includes('prism3-build-component')) {
+  wiring.push(`the lever-kind check ran ${ran.leverKind - before.leverKind}× for ${classifying.length} skill(s) declaring \`classifies: levers\` (${classifying.join(', ') || 'none'}); prism3-build-component must declare it (#2959)`);
 }
 if (ran.coverage - before.coverage !== optedIn.length) {
   wiring.push(`the coverage scan engaged ${ran.coverage - before.coverage}× but ${optedIn.length} skill(s) declare \`documents: brandInput\` (${optedIn.join(', ') || 'none'})`);
