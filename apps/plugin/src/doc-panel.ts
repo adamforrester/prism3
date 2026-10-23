@@ -434,12 +434,70 @@ const printView = (n: SgNode): SgNode => new Proxy({}, {
 /** A print in this form starts with this, so one recorded before it is still read the old way. */
 const PRINT_V2 = '2:';
 const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V2}${await fingerprintOf(printView(n as unknown as SgNode))}`;
+/**
+ * THE TEXT PRISM3 WRITES INTO `defId`'s PANEL (#2968), today or before one panel per family (#2927): every string of its
+ * plan; the wording #2927 changed (each part's own anatomy line, the def's own Do and Don't items and their count); a
+ * chip row's "+n more"; the family line; and every text the file's `_Doc-block` template holds. Null for a def the
+ * engine no longer has, whose panel then reads as edited: the safe direction.
+ */
+const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> | null => {
+  const def = componentDefs.find((d) => d.id === defId);
+  if (!def) return null;
+  const names = (id: string): string => componentDefs.find((d) => d.id === id)?.name ?? id;
+  const out = new Set<string>(['In this family']);
+  const strings = (v: unknown): void => {
+    if (typeof v === 'string') out.add(v);
+    else if (Array.isArray(v)) v.forEach(strings);
+    else if (v && typeof v === 'object') Object.values(v).forEach(strings);
+  };
+  const plan = planDocPanel(def, { modes: PANEL_MODES, names });
+  strings(plan);
+  if (plan.family) out.add(plan.family.join(', '));
+  for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Chips' && b.chips.length > CHIP_SLOTS) out.add(`+${b.chips.length - CHIP_SLOTS + 1} more`);
+  for (const s of docSections(def, { modes: PANEL_MODES }).sections as DocSection[]) {
+    if (s.id === 'anatomy') s.parts.forEach((p, i) => out.add(`${i + 1}  ${p.name}${p.optional ? ' (optional)' : ''}`));
+    if (s.id === 'usage') {
+      [...s.do, ...s.dont].forEach((t) => out.add(plain(t)));
+      out.add(`Showing ${Math.min(s.do.length, PANEL_DO_ITEMS)} of ${s.do.length} Do items and ${Math.min(s.dont.length, PANEL_DO_ITEMS)} of ${s.dont.length} Don't items.`);
+    }
+  }
+  const walkAll = (n: PNode | undefined): void => {
+    if (!n) return;
+    if (n.type === 'TEXT' && typeof n.characters === 'string') out.add(n.characters);
+    for (const c of n.children ?? []) walkAll(c);
+  };
+  walkAll(findDocBlock(api));
+  return out;
+};
+/**
+ * A PRINT FROM BEFORE `printView` (#2968). It was taken over the whole panel, its specimens' content and every size
+ * included, so once the documented set is rebuilt it can never match again, and a hash cannot say what moved: read
+ * whole, every such panel was kept aside as "(edited)" below a fresh one (42 panels on the owner's copy, 2026-10-23).
+ * When it still matches, nothing moved. When it does not, the panel is read by what a designer writes instead: it is
+ * unedited when every text it shows outside its specimens is one Prism3 writes there (`writtenTexts`) or a marker's
+ * number. A line a designer typed or rewrote reads as an edit, so that panel is still kept. A fill, a hidden or deleted
+ * layer is not read on these panels: the old print cannot separate it from the rebuild.
+ */
+const legacyUnedited = async (api: Pick<PanelApi, 'root'>, n: PNode, print: string): Promise<boolean> => {
+  if ((await fingerprintOf(n as unknown as SgNode)) === print) return true;
+  const def = readPanelTag(n)?.def;
+  const known = def ? writtenTexts(api, def) : null;
+  if (!known) return false;
+  const shown: string[] = [];
+  const walk = (q: PNode): void => {
+    if (q.visible === false || (q.type === 'INSTANCE' && q.name === 'specimen')) return;
+    if (q.type === 'TEXT') shown.push(String(q.characters ?? ''));
+    for (const c of q.children ?? []) walk(c);
+  };
+  walk(n);
+  return shown.every((t) => known.has(t) || /^\d+$/.test(t));
+};
 /** Whether a panel still holds what it was drawn with. A panel with no record reads as edited: the safe direction. A
- *  print recorded before `printView` is compared whole, as it was taken. */
-export const panelUnedited = async (n: PNode): Promise<boolean> => {
+ *  print recorded before `printView` is read as `legacyUnedited` reads it. */
+export const panelUnedited = async (api: Pick<PanelApi, 'root'>, n: PNode): Promise<boolean> => {
   const print = n.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PRINT) ?? '';
   if (!print) return false;
-  return print.startsWith(PRINT_V2) ? (await panelPrint(n)) === print : (await fingerprintOf(n as unknown as SgNode)) === print;
+  return print.startsWith(PRINT_V2) ? (await panelPrint(n)) === print : legacyUnedited(api, n, print);
 };
 
 /**
@@ -594,7 +652,7 @@ export const drawDocPanel = async (
   // fresh panel to land, and stay exactly as they are if it cannot.
   const edited: PNode[] = [];
   for (const p of earlierPanels(api, set, def.id)) {
-    if (await panelUnedited(p)) { p.remove?.(); out.replaced++; }
+    if (await panelUnedited(api, p)) { p.remove?.(); out.replaced++; }
     else edited.push(p);
   }
 
@@ -953,7 +1011,7 @@ export const clearOrphanPanels = async (api: Pick<PanelApi, 'root'>, page: unkno
   let n = 0;
   for (const { node, tag } of allPanels(api)) {
     if (tag.state !== 'live' || tag.def !== defId || node.parent !== page || setIds.has(tag.set)) continue;
-    if (await panelUnedited(node)) { node.remove?.(); n++; }
+    if (await panelUnedited(api, node)) { node.remove?.(); n++; }
   }
   return n;
 };
