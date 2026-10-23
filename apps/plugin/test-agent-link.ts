@@ -57,6 +57,12 @@
  *   · failures: unknown command, bad version, bad args → failed results; an id-less entry → inboxError
  *   · chunking: a result past the per-entry budget is split and the read snippet reassembles it
  *   · retention: only the last MAILBOX.keep results survive, chunks included
+ *   · strip/<arm> (#2949): minimizing to the link strip resizes the window and nothing else — the link stays on, the
+ *     poll stays armed and a command sent while minimized is run; the strip skips the 380×420 floor, is never kept as
+ *     the window size, ignores a late drag, and Restore returns to the size from before; Turn off (the link switched
+ *     off) restores too; and nothing minimizes while the link is off. EXPECTED sizes are literals here. (mutation:
+ *     `setMinimized` calling `agentLink.setOn(false)` → strip/link and strip/poll fail, by name)
+ *   · strip-text: the strip's line for each state, against literals (Q2 A, Q3 A)
  *   · switch-off: with the link off again, nothing new is run
  *   · state: the panel receives the link state and the last command's headline
  *   · snippets: every agent-side script is short
@@ -67,7 +73,7 @@ import { MAILBOX, AGENT_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes, 
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
-import { agentLinkShortStatus, agentLinkStatusText } from './src/agent-link-ui';
+import { agentLinkShortStatus, agentLinkStatusText, agentStripText, agentAge } from './src/agent-link-ui';
 import { createRunGuard, TITLE } from './src/run-guard';
 import { createDispatcher, ROUTES } from './src/agent-dispatch';
 import { OP_TITLE } from '../studio/src/shell/activity';
@@ -913,6 +919,81 @@ section('short status — the drawer row\'s high-level words (AS1 A)');
     const got = agentLinkShortStatus(st);
     ok(JSON.stringify(got) === JSON.stringify(want), `${name}: the short status is ${JSON.stringify(want)} (read ${JSON.stringify(got)})`);
   }
+}
+
+/* ── strip (#2949) ──────────────────────────────────────────────────────────────────────────────────── */
+section('strip — minimizing resizes the window and never touches the link or its poll');
+{
+  const sizes: [number, number][] = [];
+  const kept: [string, unknown][] = [];
+  const ui = host.ui as { resize: (w: number, h: number) => void };
+  const cs = host.clientStorage as { setAsync: (k: string, v: unknown) => Promise<void> };
+  const origResize = ui.resize, origSet = cs.setAsync;
+  ui.resize = (w, h) => { sizes.push([w, h]); };
+  cs.setAsync = async (k, v) => { kept.push([k, v]); };
+  const minimizedPosts = () => posted.filter((m) => m.type === 'ui-minimized').map((m) => m.minimized);
+  const isOn = () => (JSON.parse(root.getSharedPluginData(MAILBOX.ns, MAILBOX.link)) as AgentLinkState).on;
+  posted.length = 0;
+  ok(main.agentLink.state().on === true && timers.size === 1, 'strip/start: the link is on and its poll armed');
+  await toUi({ type: 'resize-ui', width: 900, height: 700, commit: true });
+  ok(JSON.stringify(sizes) === '[[900,700]]' && kept.length === 1 && kept[0][0] === 'prism3:ui-size', `strip/drag: a committed drag resizes to 900×700 and keeps it (${JSON.stringify({ sizes, kept })})`);
+
+  await toUi({ type: 'minimize-ui', minimized: true });
+  ok(JSON.stringify(sizes.at(-1)) === '[440,40]', `strip/size: Minimize resizes to the strip, 440×40, under the 380×420 floor (${JSON.stringify(sizes.at(-1))})`);
+  ok(JSON.stringify(minimizedPosts()) === '[true]', `strip/answer: the main thread answers ui-minimized true (${JSON.stringify(minimizedPosts())})`);
+  ok(main.agentLink.state().on === true && isOn() === true, 'strip/link: minimizing leaves the link on, in the state and in the link record');
+  ok(timers.size === 1, `strip/poll: the poll stays armed while minimized (${timers.size} timer)`);
+  calls.length = 0;
+  const { id } = await send('readback');
+  await tick();
+  const r = (await read(id)) as AgentResult;
+  ok(r.ok === true && calls.includes('seedFromFile') && timers.size === 1, `strip/claims: a command sent while minimized is claimed and run, and the poll re-arms (${r.ok}, ${timers.size} timer)`);
+
+  await toUi({ type: 'resize-ui', width: 600, height: 500, commit: true });
+  ok(JSON.stringify(sizes.at(-1)) === '[440,40]' && kept.length === 1, `strip/late-drag: a drag message while minimized neither resizes nor keeps a size (${JSON.stringify({ last: sizes.at(-1), kept: kept.length })})`);
+  ok(!kept.some(([, v]) => JSON.stringify(v) === '{"width":440,"height":40}'), 'strip/never-kept: the strip size is never kept as the window size');
+
+  await toUi({ type: 'minimize-ui', minimized: true });
+  ok(sizes.length === 2 && JSON.stringify(minimizedPosts()) === '[true]', `strip/repeat: a second Minimize does nothing (${sizes.length} resizes)`);
+
+  await toUi({ type: 'minimize-ui', minimized: false });
+  ok(JSON.stringify(sizes.at(-1)) === '[900,700]' && JSON.stringify(minimizedPosts()) === '[true,false]', `strip/restore: Restore returns to 900×700, the size from before, and answers ui-minimized false (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts() })})`);
+  ok(main.agentLink.state().on === true && timers.size === 1, 'strip/restore-link: after Restore the link is still on and its poll armed');
+
+  await toUi({ type: 'minimize-ui', minimized: true });
+  await toUi({ type: 'agent-link', on: false });
+  ok(JSON.stringify(sizes.at(-1)) === '[900,700]' && JSON.stringify(minimizedPosts()) === '[true,false,true,false]' && main.agentLink.state().on === false,
+    `strip/turn-off: Turn off switches the link off and restores the full window (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts(), on: main.agentLink.state().on })})`);
+  const n = sizes.length;
+  await toUi({ type: 'minimize-ui', minimized: true });
+  ok(sizes.length === n && JSON.stringify(minimizedPosts()) === '[true,false,true,false]', 'strip/off: nothing minimizes while the link is off');
+
+  ui.resize = origResize;
+  cs.setAsync = origSet;
+  await toUi({ type: 'agent-link', on: true });
+}
+
+section('strip-text — the strip\'s line for each state (#2949, Q2 A and Q3 A)');
+{
+  const base: AgentLinkState = { v: 1, on: true, since: '2026-10-06T09:00:00.000Z', engineVersion: 'x', build: 'x', pollMs: 1000,
+    transports: { mailbox: true, bridge: false }, lastCommand: null, inboxError: null };
+  const now = Date.parse('2026-10-06T10:00:00.000Z');
+  const last = (cmd: string, finishedAt: string) => ({ ...base, lastCommand: { id: 'x', cmd, ok: true, finishedAt, headline: 'h' } });
+  const cases: [string, AgentLinkState | null, { cmd: string; since: number } | null, { text: string; error: boolean } | null][] = [
+    ['off', { ...base, on: false }, null, null],
+    ['listening, no command yet', base, null, { text: 'Agent listening · no command yet', error: false }],
+    ['listening, last 2m ago', last('update-components', '2026-10-06T09:58:00.000Z'), null, { text: 'Agent listening · last: update-components 2m ago', error: false }],
+    ['listening, last 45s ago', last('apply-theme', '2026-10-06T09:59:15.000Z'), null, { text: 'Agent listening · last: apply-theme 45s ago', error: false }],
+    ['listening, last 3h ago', last('status', '2026-10-06T06:30:00.000Z'), null, { text: 'Agent listening · last: status 3h ago', error: false }],
+    ['running for 12s', last('status', '2026-10-06T06:30:00.000Z'), { cmd: 'update-components', since: now - 12000 }, { text: 'Agent running update-components… 12s', error: false }],
+    ['error, running', { ...base, inboxError: 'x' }, { cmd: 'apply-theme', since: now }, { text: 'Agent error', error: true }],
+    ['not listening', { ...base, transports: { mailbox: false, bridge: false } }, null, { text: 'Agent not listening', error: true }],
+  ];
+  for (const [name, st, running, want] of cases) {
+    const got = agentStripText(st, running, now);
+    ok(JSON.stringify(got) === JSON.stringify(want), `strip-text ${name}: ${JSON.stringify(want)} (read ${JSON.stringify(got)})`);
+  }
+  ok([0, 59999, 60000, 3599999, 3600000].map(agentAge).join(',') === '0s,59s,1m,59m,1h', `strip-text age: 0s, 59s, 1m, 59m, 1h at the edges (${[0, 59999, 60000, 3599999, 3600000].map(agentAge).join(',')})`);
 }
 
 /* ── switch-off ─────────────────────────────────────────────────────────────────────────────────────── */
