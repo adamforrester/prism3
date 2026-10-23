@@ -19,6 +19,6 @@ is unstyled there. This supersedes the transparent group of Q7 A.
   `furniture-templates.ts` each define locally, copied as a local helper again rather than shared, to keep this a
   one-concern change.
 
-Tests: `test-style-guide.ts` §41, with the role names typed as literals. Mutations: dropping the `paintGroup` call fails
-"41: a first run paints all 3 group frames" (and two more); dropping the bare check fails "41: a second run leaves a
+Tests: `test-style-guide.ts` §42, with the role names typed as literals. Mutations: dropping the `paintGroup` call fails
+"42: a first run paints all 3 group frames" (and two more); dropping the bare check fails "42: a second run leaves a
 designer's fill, a designer's stroke and its own paints byte-identical".

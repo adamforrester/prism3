@@ -1043,33 +1043,34 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const history = () => page.evaluate(() => document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-history-entry"]').length);
   const verdict = () => page.evaluate(() => document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? null);
   const result = (id) => post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${id}'`, lines: [] });
-  // Three sets: Badge, Divider, Tag (alphabetical in the list, so the run posts them in that order).
+  // Three sets: Tag, Badge, Divider, in the list's order, so the run posts them so (#2931 Q579 A: Tag is in the Tag
+  // section, above Other components).
   await selectOnly(page, 'badge');
   for (const id of ['divider', 'tag']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
   const bar = await readSurfaces(page);
-  ok(bar.button === 'Build 3 sets' && bar.picker === 'badge,divider,tag', `#2700 the bar offers the selection, "Build 3 sets" — read "${bar.button}", selected ${bar.picker}`);
+  ok(bar.button === 'Build 3 sets' && bar.picker === 'tag,badge,divider', `#2700 the bar offers the selection, "Build 3 sets" — read "${bar.button}", selected ${bar.picker}`);
   await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 });
   await waitPosts(1);
   const first = JSON.stringify(await posted());
   const busy1 = await readSurfaces(page);
-  await result('badge');
+  await result('tag');
   await waitPosts(2);
   const running2 = await opState();
-  await result('divider');
+  await result('badge');
   await waitPosts(3);
   const third = JSON.stringify(await posted());
   const hist2 = await history();
-  await result('tag');
+  await result('divider');
   await idleAgain(page);
-  ok(first === '["badge"]' && busy1.busy === true && busy1.button === 'Building 1 of 3…',
+  ok(first === '["tag"]' && busy1.busy === true && busy1.button === 'Building 1 of 3…',
     `#2700 a run of three posts its first set alone, and the bar reads "Building 1 of 3…" — posted ${first}, read "${busy1.button}" (busy ${busy1.busy})`);
-  ok(third === '["badge","divider","tag"]' && running2 === 'running',
+  ok(third === '["tag","badge","divider"]' && running2 === 'running',
     `#2700 a run of three posts each set after the last one's result, in the list's order, and Activity reads it as one running build between them — posted ${third}, Activity ${running2}`);
   const v = await verdict();
   const summary = await page.evaluate(() => [...document.querySelectorAll('[data-p3="components-run-summary"] li')].map((n) => n.textContent));
   ok(v === 'Built 3 sets' && hist2 === 0 && (await history()) === 0,
     `#2700 the run ends with one Activity result, "Built 3 sets", and no Earlier results from the sets in between — read ${JSON.stringify(v)}, ${await history()} earlier`);
-  ok(JSON.stringify(summary) === JSON.stringify(['Built Badge on ↳ Badge.', 'Built Divider on ↳ Divider.', 'Built Tag on ↳ Tag.'])
+  ok(JSON.stringify(summary) === JSON.stringify(['Built Tag on ↳ Tag.', 'Built Badge on ↳ Badge.', 'Built Divider on ↳ Divider.'])
     && !!(await page.locator('[data-p3="components-show-activity"]').count()),
     `#2700 idea 13: the bar summarizes the run, page by page, with the way to Activity — read ${JSON.stringify(summary)}`);
 
@@ -1078,11 +1079,11 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 });
   await waitPosts(before + 1);
   await hooks.click(page.locator('[data-p3="components-stop"]'));
-  await result('badge');
+  await result('tag');
   await idleAgain(page);
   await page.waitForTimeout(150);
   const afterStop = (await posted()).slice(before);
-  ok(JSON.stringify(afterStop) === '["badge"]' && (await verdict()) === 'Stopped after 1 of 3 sets',
+  ok(JSON.stringify(afterStop) === '["tag"]' && (await verdict()) === 'Stopped after 1 of 3 sets',
     `#2700 Stop lets the set being built finish and posts nothing after it — posted ${JSON.stringify(afterStop)}, Activity ${JSON.stringify(await verdict())}`);
 
   // Build all: the eleven subcomponents in the list's order, the selection left alone.
@@ -1093,7 +1094,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await idleAgain(page);
   const all = (await posted()).slice(pre);
   const still = await readSurfaces(page);
-  ok(JSON.stringify(all) === JSON.stringify(SUBS) && still.picker === 'badge,divider,tag',
+  ok(JSON.stringify(all) === JSON.stringify(SUBS) && still.picker === 'tag,badge,divider',
     `#2700 call 10: Build all posts the eleven subcomponents in the list's order and leaves the selection alone — posted ${JSON.stringify(all)}, selected ${still.picker}`);
 
   // An agent's build: the bar waits, and says so.
@@ -1116,7 +1117,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //
 // MUTATIONS, each failing here by name:
 //   · a mixed box drawn as unchecked (`aria-checked` "mixed" → "false") → `#2812 S1 one set cleared from a selected family…`.
-//   · the run in click order (`inListOrder` dropped from `paintBar`) → `#2812 N1 Tag ticked before Badge…`.
+//   · the run in click order (`inListOrder` dropped from `paintBar`) → `#2812 N1 Badge ticked before Tag…`.
 //   · the section box over every row again (`shown` → `ids`) → `#2812 Q391 under a search for "badge"…`.
 //   · the search not opening families (`onSearch` → `paintList`) → `#2812 call 7 a search for "neutral"…`.
 //   · the bar's row kept from wrapping (`flex-wrap: wrap` → `nowrap` on `.p3-cp-bar-row`), so the counts squeeze in
@@ -1124,13 +1125,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 {
   const { page, errors } = await openPanel();
   const aria = (key) => page.locator(`[data-p3="cp-box"][data-key="${key}"]`).getAttribute('aria-checked');
-  // S1: a family box, then one of its sets cleared.
-  await hooks.click(page.locator('[data-p3="cp-box"][data-key="row=components|Buttons"]'));
-  const allOn = [await aria('row=components|Buttons'), await aria('sec=components')];
+  // S1: a section box, then one of its sets cleared. #2905 (Q8 A): the Buttons section's title stands in for the family
+  // row, so its box is the family's; Other components ('sec=components') holds none of its sets and stays clear.
+  await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=buttons"]'));
+  const allOn = [await aria('sec=buttons'), await aria('sec=components')];
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=button-neutral"]'));
-  const mixed = [await aria('row=components|Buttons'), await aria('set=button-neutral'), await aria('sec=components')];
-  ok(allOn[0] === 'true' && allOn[1] === 'mixed' && JSON.stringify(mixed) === '["mixed","false","mixed"]',
-    `#2812 S1 one set cleared from a selected family draws the family's and the section's boxes as mixed — read family ${allOn[0]}, section ${allOn[1]}, then family/set/section ${JSON.stringify(mixed)}`);
+  const mixed = [await aria('sec=buttons'), await aria('set=button-neutral'), await aria('sec=components')];
+  ok(allOn[0] === 'true' && allOn[1] === 'false' && JSON.stringify(mixed) === '["mixed","false","false"]',
+    `#2812 S1 one set cleared from a selected section draws the section's box as mixed, and Other components' stays clear — read Buttons ${allOn[0]}, Other components ${allOn[1]}, then Buttons/set/Other components ${JSON.stringify(mixed)}`);
   // Q392 A, and the counts' line (5): Icon with the three Button family sets left (Button.Group joined it, #2661), at 380.
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=icon"]'));
   await page.setViewportSize({ width: 380, height: 640 });
@@ -1147,29 +1149,30 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#2812 Q392 "Also builds" names the sets as the list does — read ${JSON.stringify(line.also)}`);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'wide', null, { timeout: 5000 }).catch(() => {});
-  // N1: clear, then Tag ticked before Badge; the run posts Badge first.
-  for (const k of ['row=components|Buttons', 'set=icon']) while ((await aria(k)) !== 'false') await hooks.click(page.locator(`[data-p3="cp-box"][data-key="${k}"]`));
-  for (const id of ['tag', 'badge']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
+  // N1: clear, then Badge ticked before Tag; the run posts Tag first, as the list reads (the Tag section is above Other components).
+  for (const k of ['sec=buttons', 'set=icon']) while ((await aria(k)) !== 'false') await hooks.click(page.locator(`[data-p3="cp-box"][data-key="${k}"]`));
+  for (const id of ['badge', 'tag']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
   await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 });
   await page.waitForFunction(() => window.__builds.length >= 1, null, { timeout: 4000 }).catch(() => {});
   const firstPost = JSON.stringify(await builds(page));
-  for (const id of ['badge', 'tag']) {
+  for (const id of ['tag', 'badge']) {
     await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${id}'`, lines: [] });
     await page.waitForTimeout(50);
   }
   await idleAgain(page);
-  ok(firstPost === '["badge"]' && JSON.stringify(await builds(page)) === '["badge","tag"]',
-    `#2812 N1 Tag ticked before Badge still runs in the list's order, Badge first — posted ${firstPost}, then ${JSON.stringify(await builds(page))}`);
+  ok(firstPost === '["tag"]' && JSON.stringify(await builds(page)) === '["tag","badge"]',
+    `#2812 N1 Badge ticked before Tag still runs in the list's order, Tag first — posted ${firstPost}, then ${JSON.stringify(await builds(page))}`);
   for (const id of ['tag', 'badge']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
-  // Q391 A: under a search, the section's box acts on the rows shown. "badge" shows two: Badge, and Tag, whose summary
-  // says "A static label is a badge."; the section holds 33 sets.
+  // Q391 A: under a search, the section's box acts on the rows shown. "badge" matches Badge, and Tag, whose summary says
+  // "A static label is a badge."; Tag is in the Tag section now (#2931 Q579 A), so Other components shows Badge alone,
+  // and its box reaches neither its other 27 sets nor Tag.
   await hooks.click(page.locator('[data-p3="search-open"]'));
   await page.locator('[data-p3="search-input"]').fill('badge');
-  await page.waitForFunction(() => document.querySelectorAll('[data-p3="cp-section"][data-kind="components"] [data-p3="cp-row"]').length === 2, null, { timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelectorAll('[data-p3="cp-section"][data-kind="components"] [data-p3="cp-row"]').length === 1, null, { timeout: 4000 }).catch(() => {});
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
   const scoped = await readSurfaces(page);
-  ok(scoped.picker === 'badge,tag' && scoped.button === 'Build 2 sets' && (await aria('sec=components')) === 'true',
-    `#2812 Q391 under a search for "badge" the Components box selects the two rows shown, not the section's 33 sets, and reads checked over it — selected ${scoped.picker}, read "${scoped.button}", box ${await aria('sec=components')}`);
+  ok(scoped.picker === 'badge' && scoped.button === 'Build 1 set' && (await aria('sec=components')) === 'true',
+    `#2812 Q391 under a search for "badge" the Components box selects the one row shown, not the section's 28 sets nor Tag in its own section, and reads checked over it — selected ${scoped.picker}, read "${scoped.button}", box ${await aria('sec=components')}`);
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
   // Call 7: a search opens the families a match sits in. A fresh page, so every family starts closed.
   await page.close();
@@ -1181,8 +1184,9 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     folds: [...document.querySelectorAll('[data-p3="cp-fold"]')].map((f) => `${f.dataset.key.slice(5)}:${f.getAttribute('aria-expanded')}`),
     shown: ['button-neutral', 'icon-button-neutral', 'flush-icon-button-neutral'].filter((id) => !!document.querySelector(`[data-p3="cp-member"][data-set="${id}"]`)),
   }));
-  ok(JSON.stringify(opened.folds) === JSON.stringify(['components|Buttons:true', 'components|Icon button:true', 'subcomponents|Flush Icon Button:true']) && opened.shown.length === 3,
-    `#2812 call 7 a search for "neutral" opens the three families its matches sit in, and shows each match — read ${JSON.stringify(opened)}`);
+  // #2905 (Q8 A): Button.Neutral's family is the Buttons section, which has no fold, so its match is always shown.
+  ok(JSON.stringify(opened.folds) === JSON.stringify(['components|Icon button:true', 'subcomponents|Flush Icon Button:true']) && opened.shown.length === 3,
+    `#2812 call 7 a search for "neutral" opens the two folded families its matches sit in, and shows each of the three matches — read ${JSON.stringify(opened)}`);
   ok(errors.length === 0 && fresh.errors.length === 0, `#2812: no console errors (${[...errors, ...fresh.errors].slice(0, 2).join(' · ')})`);
   await fresh.page.close();
 }
