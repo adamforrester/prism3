@@ -430,6 +430,16 @@ section('marks/… — repeats merged, the root and the parts that hold others b
   const show = (ms: ReturnType<typeof anatomyMarks>) => ms.map((m) => `${m.n}:${m.part}${m.parts > 1 ? `x${m.parts}` : ''}${m.bracket ? '[' : ''}@${m.path.join('/')}`).join(' ');
   ok(show(of('list')) === '1:container[@ 2:items[@items 3:item1x3@items/item1', `marks/list: ${show(of('list'))}`, 'want 1:container[@ 2:items[@items 3:item1x3@items/item1');
   ok(show(of('tabs')) === '1:container[@ 2:items[@items 3:tab1@items/tab1 4:tab2x2@items/tab2 5:baseline@baseline', `marks/tabs: the selected tab apart from the two unselected (${show(of('tabs'))})`);
+  // Pagination (#2665), read by hand: the row's items are pages 1, 4, 6 and 10 (item1, 3, 5, 7: one setting), two gaps
+  // (item2, item6) and the current page (item4). A repeat merges by its settings, not by place, so the pages and the gaps
+  // each make one entry though they alternate.
+  const pg = '1:container[@ 2:row[@row 3:previous@row/previous 4:items[@row/items 5:item1x4@row/items/item1 6:item2x2@row/items/item2 7:item4@row/items/item4 8:status@row/status 9:next@row/next 10:simpleRow[@simpleRow 11:previousButton@simpleRow/previousButton 12:nextButton@simpleRow/nextButton';
+  ok(show(of('pagination')) === pg, `marks/pagination: the pages and the gaps merge apart from the current page (${show(of('pagination'))})`, `want ${pg}`);
+  // Code input (#2428), read by hand from its cell(n) settings: the first cell is the active one at focus-visible, cells 2
+  // and 3 are filled, cell 4 is active once three are in, cells 5 and 6 rest. Two runs of two, apart: the second run is
+  // cell5's, never cell3's.
+  const ci = '1:container[@ 2:label@label 3:items[@items 4:cell1@items/cell1 5:cell2x2@items/cell2 6:cell4@items/cell4 7:cell5x2@items/cell5 8:message@message';
+  ok(show(of('code-input')) === ci, `marks/code-input: two runs of two, apart (${show(of('code-input'))})`, `want ${ci}`);
   ok(show(of('counter')).includes('decrement') && show(of('counter')).includes('increment'), `marks/counter: two parts that nest one component with different jobs stay apart (${show(of('counter'))})`);
   ok(of('button').every((m) => !m.bracket && m.parts === 1), 'marks/button: nothing merged, nothing bracketed');
 }
@@ -454,32 +464,51 @@ section('markers/… — every listed number on a specimen, on its part, by a le
     const labelOf = (num: string): string => String(walk(sec).find((c) => c.name === 'label' && String(c.characters).startsWith(`${num}  `))!.characters).slice(`${num}  `.length).replace(/ \(optional\)$/, '');
     // The names listed as themselves: a merged repeat never stands for one of them.
     const ownNamed = new Set(nums.map(labelOf).filter((l) => !/ ×\d+$/.test(l)));
+    // How many parts each merged name's ×N entries claim between them, and the last part each name's entries reached.
+    const claimed = new Map<string, number>();
+    const lastAt = new Map<string, number>();
     for (const num of nums) {
       const label = labelOf(num);
+      const merged = / ×\d+$/.test(label);
       const runOf = Number(/ ×(\d+)$/.exec(label)?.[1] ?? 1);
       const nm = label.replace(/ ×\d+$/, '');
-      // By its name, else (a merged repeat, ×N) the next N parts of that name not listed by their own name: a ×N entry
-      // stands for every part in its run, so a later run is not read as an earlier run's second part (#2428).
-      const run = parts.find((pt) => pt.name === nm && runOf === 1) ? [parts.find((pt) => pt.name === nm)!]
-        : parts.filter((pt) => !taken.has(pt.id) && !ownNamed.has(pt.name) && pt.name.replace(/\s*\d+$/, '') === nm).slice(0, runOf);
-      const part = run[0]!;
-      for (const pt of run) taken.add(pt.id);
-      const isRoot = part.id === def.anatomy?.root;
-      const targets = specs.flatMap((sp) => (isRoot ? [sp] : walk(sp).filter((c) => run.some((pt) => c.name === pt.id) && shown(c, sp))));
+      // By its name, else (a merged repeat, ×N) any part of that name not listed by its own name and not reached yet. The
+      // panel merges repeats by their settings, not by place (Pagination's pages and gaps alternate, #2665; Code input's
+      // runs sit apart, #2428), so the oracle does not guess which parts a run holds. It holds what any grouping must
+      // keep instead: one name's entries reach its parts in part order, and their counts cover those parts exactly
+      // (after the loop). Which parts merge is pinned by hand in marks/ above.
+      const pool = merged
+        ? parts.filter((pt) => !taken.has(pt.id) && !ownNamed.has(pt.name) && pt.name.replace(/\s*\d+$/, '') === nm)
+        : [parts.find((pt) => pt.name === nm)!];
+      if (merged) claimed.set(nm, (claimed.get(nm) ?? 0) + runOf);
+      const first = pool[0]!;
+      const isRoot = !merged && first.id === def.anatomy?.root;
+      const targets = specs.flatMap((sp) => (isRoot ? [sp] : walk(sp).filter((c) => pool.some((pt) => c.name === pt.id) && shown(c, sp))));
       const group = panel.children.find((c) => c.name === `part ${num}`);
-      if (!group) { wrong.push(`${num} ${part.id}: no marker`); continue; }
+      if (!group) { wrong.push(`${num} ${first.id}: no marker`); continue; }
       const box = group.absoluteBoundingBox!;
       const lines = group.children.filter((c) => c.name === 'leader' || c.name === 'tick').map((c) => c.absoluteBoundingBox!);
       const badge = group.children.find((c) => c.name === '_Doc-block')!;
       const marker = walk(badge).find((c) => c.name === 'marker')!.absoluteBoundingBox!;
       const hit = targets.find((t) => { const b = t.absoluteBoundingBox!; return overlapsBox(box, b) && lines.some((l) => overlapsBox(l, b)); });
-      if (!hit) { wrong.push(`${num} ${part.id}: its marker and leader reach no ${part.id} (${targets.length} in the specimens)`); continue; }
+      if (!hit) { wrong.push(`${num} ${first.id}: its marker and leader reach no ${merged ? `untaken ${nm}` : first.id} (${targets.length} in the specimens)`); continue; }
+      const part = isRoot ? first : pool.find((pt) => pt.id === hit.name)!;
+      taken.add(part.id);
+      if (merged) {
+        const at = parts.indexOf(part);
+        if (at <= (lastAt.get(nm) ?? -1)) wrong.push(`${num} ${part.id}: reached before an earlier ${nm} entry's part`);
+        lastAt.set(nm, at);
+      }
       const spec = specs.find((sp) => walk(sp).includes(hit))!;
       if (overlapsBox(marker, spec.absoluteBoundingBox!)) wrong.push(`${num} ${part.id}: the marker sits on the specimen, not in its gutter`);
       const stage = (spec.parent as N).absoluteBoundingBox!;
       if (marker.x < stage.x || marker.y < stage.y || marker.x + marker.width > stage.x + stage.width || marker.y + marker.height > stage.y + stage.height)
         wrong.push(`${num} ${part.id}: the marker is outside its specimen's stage`);
       if (texts(badge)[0] !== num) wrong.push(`${num}: the marker reads ${texts(badge)[0]}`);
+    }
+    for (const [nm, n] of claimed) {
+      const of = parts.filter((pt) => !ownNamed.has(pt.name) && pt.name.replace(/\s*\d+$/, '') === nm).length;
+      if (n !== of) wrong.push(`the ${nm} entries count ${n} parts, the def has ${of}`);
     }
     const badges = panel.children.filter((c) => c.name.startsWith('part ')).map((g) => walk(g).find((c) => c.name === 'marker')!.absoluteBoundingBox!);
     const touching = badges.flatMap((b, i) => badges.slice(i + 1).filter((o) => overlapsBox(b, o)).map(() => i + 1));
