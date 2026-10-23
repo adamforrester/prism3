@@ -318,6 +318,7 @@
           "counter",
           "progress",
           "search-field",
+          "banner",
           "toast",
           "_breadcrumb-separator",
           "breadcrumb-item",

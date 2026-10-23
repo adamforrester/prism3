@@ -5732,13 +5732,13 @@
       "composition": {
         "composesWith": [],
         "alternativeTo": [
-          "tag"
+          "tag",
+          "banner"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "avatar",
-          "banner"
+          "avatar"
         ],
         "replacesPatterns": [
           "a hand-drawn colored pill",
@@ -7616,7 +7616,7 @@
       "category": "form",
       "status": "draft",
       "summary": "One to three buttons laid out together: in a row at the end, stacked, or sharing the width.",
-      "description": "A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the actions of a banner, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.",
+      "description": "A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.",
       "props": [
         {
           "name": "items",
@@ -7670,7 +7670,7 @@
         "labelPattern": "Name each button by what it does, in sentence case: \"Save address\", \"Delete\", \"Cancel\". The main action echoes the task; never \"OK\" or \"Yes\"."
       },
       "docs": {
-        "usage": "Use a Button.Group for the actions that close a task: the foot of a dialog, the actions of a banner or a card, the buttons under a form. Inline for a row at the end edge on a wide surface; stacked for full-width buttons on a phone or a bottom sheet; fill for a row whose buttons share the width. Put the main action last inline and at fill, and first when stacked.",
+        "usage": "Use a Button.Group for the actions that close a task: the foot of a dialog, the actions of a card, the buttons under a form. Inline for a row at the end edge on a wide surface; stacked for full-width buttons on a phone or a bottom sheet; fill for a row whose buttons share the width. Put the main action last inline and at fill, and first when stacked.",
         "do": [
           "Keep to one main action, the filled Button",
           "Put the main action last in a row and on top when stacked",
@@ -7687,7 +7687,7 @@
       },
       "ai": {
         "primaryPurpose": "Lay out the one to three buttons that close a task, as a row at the end edge, a full-width stack or a row that shares the width.",
-        "whenToUse": "The actions at the foot of a dialog, banner, card or form: a main action with a Cancel beside it, or up to three related actions.",
+        "whenToUse": "The actions at the foot of a dialog, card or form: a main action with a Cancel beside it, or up to three related actions.",
         "avoidWhen": "One choice among joined options (segmented-control), a toolbar of tools, navigation (links), or a single action on its own (a Button by itself).",
         "commonPartners": [
           "dialog",
@@ -7721,7 +7721,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "banner",
           "card",
           "toolbar"
         ],
@@ -8365,13 +8364,12 @@
         ],
         "alternativeTo": [
           "dialog",
-          "field-message"
+          "field-message",
+          "banner"
         ],
         "supersedes": [],
         "supersededBy": [],
-        "planned": [
-          "banner"
-        ],
+        "planned": [],
         "replacesPatterns": [
           "an alert() after a save",
           "a status message that moves focus",
@@ -9578,6 +9576,211 @@
           "search field with no label",
           "two clear buttons in a search field",
           "clear button on an empty search field"
+        ]
+      }
+    },
+    "banner": {
+      "id": "banner",
+      "name": "Banner",
+      "aliases": [
+        "alert",
+        "callout",
+        "inline-alert"
+      ],
+      "category": "feedback",
+      "status": "draft",
+      "summary": "A persistent message in the page flow about an important state, with an optional action.",
+      "description": "A message that sits in the page flow and stays until the user dismisses it or the condition clears: a page-level error, a service notice, or the result of a process that has to stay visible. Because it is part of the page and the tab order, it can carry an action. Four tones, each with its own glyph shape, so the tone is never carried by color alone. Contained inside a section, or full width at the top of a page. Not a toast (it does not go away by itself), not a field message (that belongs to one field), and not a dialog (it does not block the page).",
+      "props": [
+        {
+          "name": "tone",
+          "type": "enum: 'info' | 'success' | 'warning' | 'danger'",
+          "default": "info",
+          "required": false,
+          "values": [
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ],
+          "description": "How serious the message is. Sets the fill, the edge and the glyph. Match it to the message: danger for an error that blocks the user, warning for a risk, success for a finished process, info for everything else."
+        },
+        {
+          "name": "width",
+          "type": "enum: 'contained' | 'full'",
+          "default": "contained",
+          "required": false,
+          "values": [
+            "contained",
+            "full"
+          ],
+          "description": "contained is a rounded box with an edge on all four sides, inside a section or card. full is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge."
+        },
+        {
+          "name": "title",
+          "type": "node",
+          "required": false,
+          "description": "A short heading that names the issue (\"Payment failed\"), with no period at the end. When present, it labels the banner's region."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true,
+          "description": "The body: what happened and what to do next, in one or two sentences. It can hold a link or a short list. Never repeat the title."
+        },
+        {
+          "name": "headingLevel",
+          "type": "enum: 2 | 3 | 4 | 5 | 6",
+          "default": "2",
+          "required": false,
+          "values": [
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ],
+          "description": "The heading level of the title, matched to where the banner sits in the page outline, so the outline stays in order."
+        },
+        {
+          "name": "icon",
+          "type": "node | false",
+          "required": false,
+          "description": "Replaces the tone glyph, or false to hide it in a dense layout. The glyph is hidden from assistive technology either way."
+        },
+        {
+          "name": "actions",
+          "type": "node",
+          "required": false,
+          "description": "One text Button that resolves the message (Button.Neutral when the file has it). Name it by what it does (\"Retry\", \"Update billing\"). A banner carries one action at most."
+        },
+        {
+          "name": "dismissible",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the banner shows a dismiss button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible."
+        },
+        {
+          "name": "onDismiss",
+          "type": "function",
+          "required": false,
+          "description": "Called when the dismiss button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place."
+        },
+        {
+          "name": "announce",
+          "type": "enum: 'auto' | 'none'",
+          "default": "auto",
+          "required": false,
+          "values": [
+            "auto",
+            "none"
+          ],
+          "description": "Whether a banner inserted after the page loads is announced: auto announces it through the page's live region, assertively for danger and politely otherwise. A banner present when the page loads is never announced; it is read in order."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "tone": {
+          "values": [
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ],
+          "kind": "runtime"
+        },
+        "width": {
+          "values": [
+            "contained",
+            "full"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "A banner present when the page loads is a region (<section aria-labelledby> pointing at the title) and has no live role. A banner inserted after an action is announced through the page's live region: role=\"alert\" for danger, role=\"status\" for the other tones.",
+        "wcag": [
+          "4.1.3 Status Messages (a banner inserted after an action is announced without moving focus)",
+          "1.3.1 Info and Relationships (the title is a heading at the level the page outline needs, and it labels the region)",
+          "1.4.1 Use of Color (each tone has its own glyph shape, and the text says what happened)",
+          "1.4.3 Contrast (the title and body clear 4.5:1 on every tone's fill, measured in every mode of the example brands)",
+          "1.4.11 Non-text Contrast (the edge clears 3:1 against the page and the glyph 3:1 against the fill, measured in every mode of the example brands)",
+          "2.4.3 Focus Order (the action is in the tab order, and a dismiss moves focus to a surviving element)",
+          "2.5.8 Target Size (Minimum) (the dismiss button is a 20px glyph; it passes by spacing, its 24px circle clear of every other target, and targets 44×44px through a code-side hit area)",
+          "2.2.1 Timing Adjustable (the reason errors go in a banner, which stays, rather than a toast, which goes away)"
+        ],
+        "keyboard": "The action and the dismiss button are ordinary Tab stops in reading order. The banner itself takes no focus.",
+        "focus": "No focus of its own. After a dismiss, focus moves to the control that caused the banner or to the page heading, never to the page body.",
+        "aria": "The glyph is aria-hidden. A banner present at load: a section with aria-labelledby pointing at the title, and no role=\"alert\". An inserted banner: announced through a live region that already exists, role=\"alert\" for danger and role=\"status\" otherwise. The dismiss button's accessible name names what it dismisses (\"Dismiss error message\"), and is translated."
+      },
+      "content": {
+        "labelPattern": "Title: names the issue up front, in sentence case and with no period (\"Payment failed\", not \"Error\"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Action: a verb of one or two words (\"Retry\", \"Update billing\").",
+        "errorPattern": "Say what went wrong, whether anything was lost, and how to fix it. Use danger only for an error that blocks the user."
+      },
+      "docs": {
+        "usage": "Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one.",
+        "do": [
+          "Match the tone to how serious the message is",
+          "Name the issue in the title, and say what to do next in the body",
+          "Give the action a verb that says what it does",
+          "Move focus to a sensible place after a dismiss"
+        ],
+        "dont": [
+          "Use a banner for a short confirmation like \"Saved\". Use a toast.",
+          "Use a banner for one field's validation. Use the field's message.",
+          "Stack banners. Show the most serious one.",
+          "Give a banner a second action. Link to the details in the body instead.",
+          "Mark a banner present at page load as role=\"alert\"",
+          "Let a dismissed banner come back on reload"
+        ],
+        "contentGuidelines": "Titles are short, specific and in sentence case, with no period. The body states the consequence and the fix in one or two sentences; for more, link to the details. Action labels are verbs."
+      },
+      "ai": {
+        "primaryPurpose": "Show a persistent, in-flow message about an important state, with an optional action to resolve it.",
+        "whenToUse": "A page or section error, a service or maintenance notice, or a result that has to stay visible until the user acts on it or dismisses it.",
+        "avoidWhen": "The message is a brief confirmation that can go away by itself (a toast), it is about one field (a field message), the user must decide before going on (a dialog), or it is a short status label beside content (a badge).",
+        "commonPartners": [
+          "link",
+          "list",
+          "button",
+          "button-neutral"
+        ],
+        "triggerKeywords": [
+          "banner",
+          "alert banner",
+          "callout",
+          "inline alert",
+          "message bar",
+          "notice",
+          "page error",
+          "service notice",
+          "section message"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "Fades in. A banner inserted at the top of a page reserves its space, so the content below does not jump.",
+        "exit": "Collapses its height and fades (about 150 to 200ms, motion.transition.exit), so the content below moves up smoothly.",
+        "reduceMotion": "Under prefers-reduced-motion it appears and goes instantly."
+      },
+      "composition": {
+        "composesWith": [
+          "button",
+          "flush-icon-button-neutral"
+        ],
+        "alternativeTo": [
+          "dialog",
+          "field-message",
+          "badge",
+          "toast"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a colored div with an icon and role=\"alert\" on a message present at load",
+          "an error shown as a toast that disappears"
         ]
       }
     }

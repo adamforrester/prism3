@@ -18,11 +18,13 @@ export const USED_BY = {
       "radius.md": [
         "Button",
         "IconButton",
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -57,11 +59,13 @@ export const USED_BY = {
         "Progress"
       ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -94,7 +98,8 @@ export const USED_BY = {
         "Progress"
       ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner"
       ],
       "radius.none": [
         "Button",
@@ -105,7 +110,8 @@ export const USED_BY = {
         "Checkbox.Control",
         "Select",
         "Dialog",
-        "SearchField"
+        "SearchField",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -143,11 +149,13 @@ export const USED_BY = {
         "SearchField"
       ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",

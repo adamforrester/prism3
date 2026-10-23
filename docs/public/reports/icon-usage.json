@@ -98,6 +98,55 @@
       ],
       "iconSlots": []
     },
+    "banner": {
+      "glyphs": [
+        {
+          "part": "dangerGlyph",
+          "glyph": "warning-triangle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "danger"
+            ]
+          }
+        },
+        {
+          "part": "infoGlyph",
+          "glyph": "info-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "info"
+            ]
+          }
+        },
+        {
+          "part": "successGlyph",
+          "glyph": "check-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "success"
+            ]
+          }
+        },
+        {
+          "part": "warningGlyph",
+          "glyph": "error-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "warning"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
     "breadcrumbs": {
       "glyphs": [
         {
@@ -511,6 +560,7 @@
       "tag"
     ],
     "check-circle": [
+      "banner",
       "field-message",
       "toast"
     ],
@@ -536,6 +586,7 @@
       "search-field"
     ],
     "error-circle": [
+      "banner",
       "field-message"
     ],
     "error-circle-filled": [],
@@ -548,7 +599,9 @@
     "image": [
       "image-placeholder"
     ],
-    "info-circle": [],
+    "info-circle": [
+      "banner"
+    ],
     "info-circle-filled": [],
     "link": [],
     "menu": [],
@@ -589,6 +642,7 @@
       "spinner"
     ],
     "warning-triangle": [
+      "banner",
       "field-message"
     ],
     "warning-triangle-filled": []
@@ -611,7 +665,6 @@
     "eye-off",
     "eye-off-filled",
     "home",
-    "info-circle",
     "info-circle-filled",
     "link",
     "menu",
