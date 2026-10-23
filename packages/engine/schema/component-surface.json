@@ -776,6 +776,41 @@
         "value:TEXT"
       ]
     },
+    "pagination-item": {
+      "members": 87,
+      "sha256": "bc82027ec4cbc419f90c14efd1debf7b15f4d314d34d164f8891ba1e334970f7",
+      "properties": [
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
+      ]
+    },
+    "pagination-item@outline-solid-tint": {
+      "members": 87,
+      "sha256": "6f15a2c7aa5db7b183667bb17c008f0d6de608a87532c4e2b357936ed0df140b",
+      "properties": [
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
+      ]
+    },
+    "pagination-item@outline-none": {
+      "members": 87,
+      "sha256": "29f2c5f44cb5a91e4a637b41ef7450a6753206b8e22cfb7d53d9e47ae9ca5eaf",
+      "properties": [
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
+      ]
+    },
+    "pagination": {
+      "members": 12,
+      "sha256": "6730d0bd4b611e074b9aa2f911f9ec41cb26e918768c45d3eea4cf318a0989c2",
+      "properties": [
+        "items:SLOT",
+        "status text:TEXT"
+      ]
+    },
     "progress": {
       "members": 12,
       "sha256": "868c163ffa5e3799c951c79a9a33312f8345ecdfb844fde3dbf76897d6599745",

@@ -243,6 +243,7 @@ const MUST_COVER = [
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
+  'pagination-item.focusRing',
   'code-input-cell.focusRing',
 ];
 
@@ -262,6 +263,7 @@ const MUST_CLEAR_STROKE = [
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
+  'pagination-item.focusRing',
   'code-input-cell.focusRing',
 ];
 
