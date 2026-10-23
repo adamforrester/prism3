@@ -136,6 +136,12 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     // #2457: the flush icon button, 2 shapes × 3 sizes (Q287 A) × (rest → hover, rest → pressed, hover → pressed), in
     // each of its three families (Q295.2 B).
     'flush-icon-button': [60, 24, 36], 'flush-icon-button-destructive': [60, 24, 36], 'flush-icon-button-neutral': [60, 24, 36],
+    // #2665: a page cell at three sizes, rest → hover, rest → pressed, hover → pressed (Q344). The current page (rest and
+    // focus-visible only, owner call 7, in both of Q381's styles) and the ellipsis (rest only) have no sibling to change
+    // to, so they carry none: the style adds six members and no reaction. Q414 A adds previous and next, unlabeled and
+    // labeled, at three sizes: 12 more rows with the same three reactions each (24 sources, 36 reactions); their
+    // disabled member (the inactive end) carries none.
+    'pagination-item': [87, 30, 45],
     // #2428 (owner decision Q344): Code input's cell, 4 sizes × 7 states. No pressed look: While pressing goes to the
     // active cell (focus-visible). 4 sizes × (rest → hover, rest → active, hover → active).
     'code-input-cell': [28, 8, 12],
@@ -147,7 +153,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     const lists = [...map.values()];
     got[d.id] = [map.size, lists.filter((l) => l.length).length, lists.reduce((k, l) => k + l.length, 0)];
   }
-  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 16 defs with rest, hover and pressed, and the one naming its press state (${Object.keys(got).join(', ')})`);
+  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 17 defs with rest, hover and pressed, and the one naming its press state (${Object.keys(got).join(', ')})`);
   ok(Object.entries(want).every(([id, w]) => JSON.stringify(got[id]) === JSON.stringify(w)), `map/counts: members, sources and reactions per def (${JSON.stringify(got)})`);
   const btn = reactionMap(plansOf('button').map(planComponentName));
   const B = (state: string): string => `appearance=filled, surface=default, inset=default, size=medium, state=${state}, leading icon=false, trailing icon=false`;

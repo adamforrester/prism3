@@ -61,6 +61,8 @@ const WIRE_COMPONENTS: [string, string[]][] = [
   ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Banner', ['Banner']], ['Breadcrumbs', ['Breadcrumbs']],
   ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Counter', ['Counter']], ['Dialog', ['Dialog']], ['Divider', ['Divider']],
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['Link', ['Link']], ['List', ['List', 'List.Item']],
+  // Pagination (#2665) joins after the wireframe: its own page, the row and its item, a family.
+  ['Pagination', ['Pagination', 'Pagination.Item']],
   ['Progress', ['Progress']], ['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']],
   ['Segmented control', ['SegmentedControl', 'SegmentedControl.Segment']], ['Switch', ['Switch.Control', 'Switch.Row']],
   ['Tabs', ['Tab.Item', 'Tabs']], ['Toast', ['Toast']], ['Veil', ['Veil']],
@@ -98,15 +100,15 @@ const allBlocks = Object.values(SECTION_BLOCKS).flat();
 ok(new Set(allBlocks).size === allBlocks.length && groups.every((g) => !(SECTION_BLOCKS[g.kind] ?? []).length || g.flat),
   `#2952: a block sits in one section only, and only a flat section with settings draws blocks (${allBlocks.join(', ')})`);
 ok(JSON.stringify(drawn('components').map((r) => r[0])) === JSON.stringify(WIRE_COMPONENTS.map((r) => r[0])),
-  `notes 2, 3, #2905 Q6 A: Other components holds every other component row, Banner (#2579), Breadcrumbs (#2666) and Progress (#2670) among them, alphabetical, families grouped by page (${drawn('components').map((r) => r[0]).join(', ')})`);
+  `notes 2, 3, #2905 Q6 A: Other components holds every other component row, Banner (#2579), Breadcrumbs (#2666), Pagination (#2665) and Progress (#2670) among them, alphabetical, families grouped by page (${drawn('components').map((r) => r[0]).join(', ')})`);
 ok(JSON.stringify(drawn('subcomponents').map((r) => r[0])) === JSON.stringify(WIRE_SUBS.map((r) => r[0])),
   `note 4: the Subcomponents rows are the wireframe's 7, Breadcrumb item (#2666) and Code cell (#2428), alphabetical (${drawn('subcomponents').map((r) => r[0]).join(', ')})`);
 ok(JSON.stringify(drawn('components')) === JSON.stringify(WIRE_COMPONENTS) && JSON.stringify(drawn('subcomponents')) === JSON.stringify(WIRE_SUBS),
   `note 2: a family's sets are alphabetical by component name, and call 12: a part set stays in its family (${JSON.stringify(drawn('components').filter((r) => r[1].length > 1).map((r) => r[1].join('/')))})`);
 ok(groups.find((g) => g.kind === 'subcomponents')?.rows.some((r) => r.label === 'Icon' && r.page === 'Icons & assets') === true,
   'call 11: Icon lists under Subcomponents, and still lands on ↳ Icons & assets');
-ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 52,
-  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Progress since #2670, Search field since #2888, Toast since #2668, Banner since #2579, and the three Breadcrumbs sets since #2666)`);
+ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 54,
+  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Toast since #2668, Banner since #2579, and the three Breadcrumbs sets since #2666)`);
 ok(sentenceCase('Field Label') === 'Field label' && sentenceCase('Text field') === 'Text field' && sentenceCase('Icons & assets') === 'Icons & assets',
   'call 14: a page name reads in sentence case ("Field Label" → "Field label")');
 ok(GROUPS_COPY.sectionCount('components', 19, 32) === '19 families and sets · 32 sets' && GROUPS_COPY.sectionCount('subcomponents', 7, 9) === '7 entries · 9 sets'
