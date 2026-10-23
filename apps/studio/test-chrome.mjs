@@ -10734,10 +10734,11 @@ const EXPECT_HEADINGS = {
     // #2905: the list's sections are Buttons, Fields, Other components and Subcomponents, each with settings holding one
     // group (L2) after its sets; Field options' one lever, Field style, is L3 as the Button options are.
     // #2931 Q579 A: Tag, its Tag options (L2) and Tag style (L3), Field options' way.
+    // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
     // #2958: Dialog, its Dialog options (L2) and Dialog title size (L3), Tag options' way.
     L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents'],
     L2: ['Button options', 'Field options', 'Tag options', 'Dialog options'],
-    L3: ['Button icons', 'Medium button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Tag style', 'Dialog title size'],
+    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Tag style', 'Dialog title size'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).

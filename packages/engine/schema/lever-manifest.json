@@ -345,7 +345,7 @@
     {
       "key": "buttonLabelWeight",
       "group": "form",
-      "label": "Button label weight",
+      "label": "Control label weight",
       "control": "enum",
       "default": "emphasis",
       "options": [
@@ -358,7 +358,7 @@
           "label": "Emphasis"
         }
       ],
-      "description": "The weight of a button label: Emphasis (600 by default) or Default (400). Default adds that weight to the label styles. Tags and badges keep Emphasis."
+      "description": "The weight of button and tag labels: Emphasis (600 by default) or Default (400). Default adds that weight to the label styles. Badges keep Emphasis."
     },
     {
       "key": "buttonTextHover",

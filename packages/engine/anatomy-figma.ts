@@ -2564,20 +2564,25 @@ export const TAG_UNDERLINE_INSET = 'size.{size}.underline.inset';
  *   · THE LINE (Q513.2, Q513.3, Q513.4): the four sides bind apart (`strokeEdges`). Top, end and start take
  *     `border-width.none`. The bottom takes `border-width.hairline` (1px) on an unselected tag at rest, focus-visible,
  *     disabled and read-only, and `border-width.thick` (2px) on an unselected tag's hover and pressed and on every
- *     selected state. Focus adds only the ring: the line keeps its weight. The color is the def's own border paint,
- *     unchanged (Q513.7: `interactive.neutral.border` unselected, `interactive.primary.border` selected).
+ *     selected state (Q590 A). Focus adds only the ring: the line keeps its weight.
+ *   · THE LINE'S COLOR (#2945, owner Q589 and Q589.1 A): `interactive.primary.border.{rest,hover,pressed}` on BOTH
+ *     selections, the selected keys copied onto the unselected ones, so selection is the 1px → 2px step and the check
+ *     (Q589.2 A). It replaces Q513.7's `interactive.neutral.border` under Underline only; the pill keeps neutral.
  *   · NO FILL IN ANY STATE (Q513.2, Q513.3): every `overlay` key goes, the neutral hover and pressed wash and the
  *     selected tint alike.
  *   · THE CORNER: `radius.none`, whatever the pill's round rung.
  *   · THE GAP TO THE LINE (owner ask on Q513; #2945, owner Q585 A): the frame HUGS its content on both axes, with no
  *     height floor, so it is the label row plus the inset: 20 / 26 / 32px at small / medium / large. The 24px target
- *     moves to code, as Link's does. The rung height survives only as the base of the 1.5 × width floor
- *     (`minWidthBase`, Q585.2 A). The frame aligns its children to the END (the bottom), the content row takes a
+ *     moves to code, as Link's does. The frame aligns its children to the END (the bottom), the content row takes a
  *     block-end inset (`TAG_UNDERLINE_INSET`), and the label row a `minHeight` at the glyph size, so the label sits
- *     centered in an icon-tall row and does not move when the check appears. The × slot keeps the rung height as its
- *     WIDTH (Q585.1 A) and hugs its height, its glyph on the same inset; it drops `innerTarget`, since its target is
- *     code's now. The side padding is the pill's (Q513.5), and
- *     the line runs under the × slot (Q513.6), since the slot is inside the frame.
+ *     centered in an icon-tall row and does not move when the check appears.
+ *   · THE LINE SPANS THE CONTENT (#2945, owner Q592 A, Q592.1 A, Q592.2 A): no side padding on the content row, no
+ *     width floor (the 1.5 × ratio goes), and the × slot only as wide as its glyph, hugging its height on the same
+ *     inset; it drops `innerTarget`, since its target is code's. The line then runs from the first glyph to the last:
+ *     icon + label + ×. The dismissible label row drops its 4px leading inset, and the icon → label and label → ×
+ *     distances are both the dismissible visible gap (6 / 8 / 8px, density-following): the content row's layer gap
+ *     takes it whole (`visibleGaps` with a 0 inset), and the frame's gap holds it before the slot. This reverses Q513.5
+ *     (the pill's side padding) and Q585.1 A / Q585.2 A (the rung-wide slot and the width floor) under Underline only.
  */
 export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef => {
   if (style === 'pill') return def;
@@ -2593,29 +2598,41 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
   for (const sel of def.variants?.selection ?? [])
     for (const st of statesOf(def))
       tokens[`underline.${sel}.line.${st}`] = sel === 'selected' || st === 'hover' || st === 'pressed' ? 'border-width.thick' : 'border-width.hairline';
+  // Q589, Q589.1 A: the unselected line is the selected line's primary family, stepping with it.
+  for (const k of Object.keys(def.tokens)) if (k.startsWith('selected.border') && k !== 'selected.border-width') tokens[`un${k}`] = def.tokens[k];
+  // Q592.2 A: no 4px leading inset on the dismissible label row, so its layer gap is the whole visible distance. At
+  // comfortable it is written here; `applySpacingDensity` recomputes it from `visibleGaps` (visible − 0) elsewhere.
+  for (const v of def.variants?.size ?? []) {
+    const visible = def.tokens[`size.${v}.dismissible.visible-gap`];
+    if (!visible || def.tokens[`size.${v}.dismissible.label-inset`] === undefined) continue;
+    tokens[`size.${v}.dismissible.label-inset`] = 'space.0';
+    tokens[`size.${v}.dismissible.gap`] = visible;
+  }
   const parts: Record<string, PartDef> = { ...a.parts };
-  const { strokeWidth: _pill, height, ...rest } = frame;
+  const { strokeWidth: _pill, height: _rung, minWidthRatio: _floor, ...rest } = frame;
+  const slot = a.parts[names.slot];
   parts[names.frame] = {
     ...rest,
-    ...(height && rest.minWidthRatio !== undefined ? { minWidthBase: height } : {}),
     ...(rest.layout ? { layout: { ...rest.layout, align: 'end', sizing: { ...rest.layout.sizing, y: 'hug' } } } : {}),
+    // The label → × distance (Q592.2 A): the frame's only other flow child is the slot, so a select tag is unmoved.
+    ...(slot ? { gap: 'size.{size}.dismissible.visible-gap' } : {}),
     strokeEdges: { top: 'underline.side', right: 'underline.side', bottom: 'underline.{selection}.line.{state}', left: 'underline.side' },
   };
   const row = a.parts[names.row];
-  if (row?.padding) parts[names.row] = { ...row, padding: { ...row.padding, blockEnd: TAG_UNDERLINE_INSET } };
+  if (row?.padding) parts[names.row] = { ...row, padding: { ...row.padding, inlineLabel: 'underline.pad-0', inlineEnd: 'underline.pad-0', blockEnd: TAG_UNDERLINE_INSET } };
   const labelRow = a.parts[names.labelRow];
   if (labelRow) {
     const glyph = Object.values(a.parts).find((p) => p.kind === 'vector' && labelRow.children?.some((c) => a.parts[c] === p))?.size;
     if (glyph) parts[names.labelRow] = { ...labelRow, minHeight: glyph };
   }
-  const slot = a.parts[names.slot];
   if (slot?.layout) {
     // The slot's height hugs, so its Figma box is no longer a measurable target (`innerTarget` needs both sides bound):
-    // under the underline the target is code's, Link's way (Q585 A), and `codeOnly` states it.
-    const { size: side, innerTarget: _target, ...slotRest } = slot;
+    // under the underline the target is code's, Link's way (Q585 A), and `codeOnly` states it. Its width is its glyph's.
+    const glyph = slot.children?.map((c) => a.parts[c]).find((p) => p?.kind === 'vector')?.size;
+    const { size: _side, innerTarget: _target, ...slotRest } = slot;
     parts[names.slot] = {
       ...slotRest,
-      ...(side ? { width: side } : {}),
+      ...(glyph ? { width: glyph } : {}),
       layout: { ...slot.layout, align: 'end', sizing: { ...slot.layout.sizing, y: 'hug' } },
       padding: { block: 'underline.pad-0', blockEnd: TAG_UNDERLINE_INSET, inlineLabel: 'underline.pad-0' },
     };
@@ -2679,20 +2696,36 @@ export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content:
  *  (the spinner reads the icon key too, so it shrinks with the icon it stands in for). */
 export const CONTENT_OFFSET = { size: 'medium', from: 'small', keys: ['type', 'icon'] } as const;
 
-/** "Button label weight" (#1752): the per-size key whose ref names the label's text style, one per appearance since
- *  #2324 (`size.<size>.<appearance>.type`). Its ref is `type.label.<rung>.<role>`, the text appearance's with a
- *  `-link` tail (its underlined twin), and under `labelWeight: 'default'` the role becomes `default`, the tail kept. */
+/** "Control label weight" (#1752; widened to tags by #2945, owner Q591 A): the per-size key whose ref names the label's
+ *  text style. A button has one per appearance since #2324 (`size.<size>.<appearance>.type`), a tag one per size
+ *  (`size.<size>.type`). Its ref is `type.label.<rung>.<role>`, the text appearance's with a `-link` tail (its
+ *  underlined twin), and under `labelWeight: 'default'` the role becomes `default`, the tail kept. */
 export const LABEL_TYPE_KEY = 'type';
-/** The def's per-size, per-appearance label type keys (#2324): `size.<size>.<appearance>.type`. */
+/** The def's per-size label type keys: per appearance on a button (#2324), the one per-size key on a tag (#2945). */
 const labelTypeKeys = (def: ComponentDef, size: string): string[] =>
-  (def.variants?.appearance ?? []).map((ap) => `size.${size}.${ap}.${LABEL_TYPE_KEY}`);
+  isButtonFamily(def) ? (def.variants?.appearance ?? []).map((ap) => `size.${size}.${ap}.${LABEL_TYPE_KEY}`) : [`size.${size}.${LABEL_TYPE_KEY}`];
+/** Every size's label type key rebound to the `default` role of its label rung (#1752, #2945). THROWS on a key that
+ *  does not hold a `type.label.<rung>.<role>` ref, the silent-loss shape. */
+const withDefaultLabels = (def: ComponentDef, from: Record<string, string>): Record<string, string> => {
+  const tokens = { ...from };
+  for (const v of def.variants?.size ?? []) for (const key of labelTypeKeys(def, v)) {
+    const segs = tokens[key]?.split('.') ?? [];
+    if (segs.length !== 4 || segs[0] !== 'type' || segs[1] !== 'label')
+      throw new Error(`${def.id}: "Control label weight" rebinds ${key} to type.label.<rung>.${BUTTON_LABEL_DEFAULT_ROLE}, and the def binds ${tokens[key] ?? 'nothing'} there`);
+    // The role `brandTheme` unions into the label category for this setting, so the style is emitted; the text
+    // appearance's underline tail (#2324) is kept, and `brandTheme` mints that twin too (labels always link).
+    segs[3] = `${BUTTON_LABEL_DEFAULT_ROLE}${segs[3].endsWith('-link') ? '-link' : ''}`;
+    tokens[key] = segs.join('.');
+  }
+  return tokens;
+};
 /** "Text button hover: Fill" (#2324): the text appearance's hover and pressed wash, copied from the outline
  *  appearance's keys, which already carry the brand's outline method (`applyOutlineInteraction` runs first). */
 export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
 
 /**
  * Materialize a button-family def for a brand's button settings (#1667, #1752). Identity for any def outside
- * the family. For a button:
+ * the family, except a tag under "Control label weight: Default" (step 4). For a button:
  *
  *   1. MINIMUM WIDTH, in BOTH icon placements. The root's floor becomes a per-size map, each entry
  *      `buttonMinWidth(height, multiplier)` — the size's height in px (via `px`, which the caller resolves
@@ -2711,10 +2744,11 @@ export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
  *      (`CONTENT_OFFSET`). Height, padding, gap and the other two sizes are untouched, and no token moves —
  *      this is a button-only rebinding, never a change to the shared type or icon ladders. With "Locked to
  *      edges" the reserve reads the icon AFTER this rebinding, so it holds the smaller icon.
- *   4. "Button label weight" (`labelWeight: 'default'`, #1752). Every size's label type binds the
+ *   4. "Control label weight" (`labelWeight: 'default'`, #1752). Every size's label type binds the
  *      `default` role of its label rung (`type.label.md.emphasis` → `type.label.md.default`), after step 3,
- *      so a medium button at "One step smaller" binds `type.label.sm.default`. Button family only — `tag`
- *      and `badge` bind the same label styles and are outside the set. `brandTheme` makes the brand ship
+ *      so a medium button at "One step smaller" binds `type.label.sm.default`. The one setting that also reaches
+ *      the tag family (#2945, owner Q591 A): a tag's `size.<size>.type` moves the same way, in both tag styles, and
+ *      the other four settings leave it alone. `badge` binds the same label styles and is outside the set. `brandTheme` makes the brand ship
  *      the role (`BUTTON_LABEL_DEFAULT_ROLE`). `emphasis`, the default, is today's binding. Each appearance's key
  *      moves (#2324), and the text appearance keeps its underline: `emphasis-link` becomes `default-link`.
  *   5. "Text button hover" (`textHover: 'fill'`, #2324). The text appearance takes the outline appearance's hover
@@ -2724,7 +2758,10 @@ export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
  * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
  */
 export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (ref: string) => number | undefined): ComponentDef => {
-  if (!isButtonFamily(def)) return def;
+  // "Control label weight" reaches the tag family too (#2945, Q591 A); the other button settings do not. Badge and
+  // every other def that binds a label style keep their own.
+  if (!isButtonFamily(def))
+    return layout.labelWeight === 'default' && TAG_STYLE_PARTS[def.id] ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
   const a = def.anatomy!;
   const root = a.parts[a.root];
   if (!root.layout || !root.height)
@@ -2745,20 +2782,9 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
   }
 
   const sizes = def.variants?.size ?? [];
-  // 4. "Button label weight" (#1752). AFTER the medium offset, so the two compose: a medium button at "One
+  // 4. "Control label weight" (#1752). AFTER the medium offset, so the two compose: a medium button at "One
   //    step smaller" already holds small's label ref here, and its role tail moves with the others.
-  if (layout.labelWeight === 'default') {
-    tokens = { ...tokens };
-    for (const v of sizes) for (const key of labelTypeKeys(def, v)) {
-      const segs = tokens[key]?.split('.') ?? [];
-      if (segs.length !== 4 || segs[0] !== 'type' || segs[1] !== 'label')
-        throw new Error(`${def.id}: "Button label weight" rebinds ${key} to type.label.<rung>.${BUTTON_LABEL_DEFAULT_ROLE}, and the def binds ${tokens[key] ?? 'nothing'} there`);
-      // The role `brandTheme` unions into the label category for this setting, so the style is emitted; the text
-      // appearance's underline tail (#2324) is kept, and `brandTheme` mints that twin too (labels always link).
-      segs[3] = `${BUTTON_LABEL_DEFAULT_ROLE}${segs[3].endsWith('-link') ? '-link' : ''}`;
-      tokens[key] = segs.join('.');
-    }
-  }
+  if (layout.labelWeight === 'default') tokens = withDefaultLabels(def, tokens);
   // 5. "Text button hover" (#2324). The def's text appearance keys no wash (the default, "Text & icon only"); under
   //    "Fill" it takes the outline appearance's hover and pressed wash, never a rest one: a text button is never
   //    filled at rest. A brand whose outline method keys no wash (`outlineInteraction: 'none'`) has none to give.
@@ -2847,12 +2873,12 @@ export const applyMinWidthRatio = (def: ComponentDef, px: (ref: string) => numbe
   for (const [name, p] of Object.entries(a.parts)) {
     if (p.minWidthRatio === undefined) { parts[name] = p; continue; }
     const minWidth = Object.fromEntries(sizes.map((v) => {
-      const ref = def.tokens[(p.height ?? p.minHeight ?? p.minWidthBase)!.replace('{size}', v)];
+      const ref = def.tokens[(p.height ?? p.minHeight)!.replace('{size}', v)];
       const h = ref === undefined ? undefined : px(ref);
       if (h === undefined) throw new Error(`${def.id}: part '${name}' at size '${v}' floors at ${p.minWidthRatio} × its height, and the height ${ref ?? '(unbound)'} does not resolve`);
       return [v, ratioMinWidth(h, p.minWidthRatio!)];
     }));
-    const { minWidthRatio: _r, minWidthBase: _b, ...rest } = p;
+    const { minWidthRatio: _r, ...rest } = p;
     parts[name] = { ...rest, minWidth };
   }
   return { ...def, anatomy: { ...a, parts } };
