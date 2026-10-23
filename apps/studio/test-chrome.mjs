@@ -8653,14 +8653,13 @@ for (const host of ['web', 'figma']) {
         ok((await persisted(page))?.tagStyle === 'pill', `#2887: Tag options' Pill writes tagStyle: pill (${(await persisted(page))?.tagStyle})`);
         // #2888's writes, moved here with the control (#2952): Underline from Dark writes the brand value and leaves
         // fieldStyle, the readout gives way; Follow field style writes its own value back.
-        const sc = (v) => page.locator(`[data-p3="search-options"] [data-p3="search-field-style-choice-${v}"]`);
-        await hooks.click(sc('underline'));
+        await hooks.click(page.locator('[data-p3="search-options"] [data-p3="search-field-style-choice-underline"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="search-options"] [data-p3="search-field-style-choice-underline"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         const pS = await persisted(page);
         const roGone = await page.evaluate(() => !!document.querySelector('[data-p3="search-options"] [data-p3="lever-search-field-style"] .p3-readout')?.hidden);
         ok(pS?.searchFieldStyle === 'underline' && pS?.fieldStyle === 'outline' && JSON.stringify(pS?.modeLevers) === JSON.stringify(before?.modeLevers) && roGone,
           `#2888 Q54: previewing Dark, Search options' Underline writes searchFieldStyle: underline, leaves fieldStyle and writes no per-mode value; the Follow readout hides (${pS?.searchFieldStyle}, ${pS?.fieldStyle}, ${JSON.stringify(pS?.modeLevers)}, hidden ${roGone})`);
-        await hooks.click(sc('follow'));
+        await hooks.click(page.locator('[data-p3="search-options"] [data-p3="search-field-style-choice-follow"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="search-options"] [data-p3="search-field-style-choice-follow"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         ok((await persisted(page))?.searchFieldStyle === 'follow', `#2888: Search options' Follow field style writes searchFieldStyle: follow (${(await persisted(page))?.searchFieldStyle})`);
       }
