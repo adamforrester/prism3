@@ -4078,6 +4078,10 @@ const emittedPx = async (brand) => {
 const gotoComponents = async (page) => {
   await hooks.click(page.locator('[data-p3="tab-components"]'));
   await hooks.need(page, '[data-p3="components-levers"]');
+  // #2844: the Button options are closed when the page opens, behind a disclosure line under the Buttons row: open it, as a designer would.
+  // The open state lasts the session (#2844), so a second visit finds it open: click only when it is closed.
+  if (await page.locator('[data-p3="cp-opts-toggle"]').getAttribute('aria-expanded') !== 'true') await hooks.click(page.locator('[data-p3="cp-opts-toggle"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="button-options-section"]')?.getClientRects().length, null, { timeout: 5000 });
   await hooks.need(page, '[data-p3="components-style-guide"] [data-sg-section="button-layout"]');
   await page.evaluate(() => document.fonts.ready);
 };
