@@ -5,7 +5,7 @@
  *  Figma build: floor = height × multiplier rounded up to 8 (`buttonMinWidth`), padding split by side (#326), and under
  *  "Locked to edges" each icon absolutely positioned at the visual padding with its side padded by that padding + icon
  *  + gap, so the button still hugs a longer label. Under "One step smaller" the medium size takes small's label size and
- *  icon, and every label takes the weight "Button label weight" picks (#1752). Mode-aware: the heights are the mode's
+ *  icon, and every label takes the weight "Control label weight" picks (#1752). Mode-aware: the heights are the mode's
  *  own (`sizesByMode`). Read-only.
  *
  *  THE CORNER IS THE ENGINE'S (#2049, fixed in S8.2, owner decision G7 A). A button binds the radius size its brand's
@@ -57,7 +57,7 @@ export const buttonLayoutSection = (layout: ButtonLayoutView, theme: Theme, c: S
   const { edges, smaller, mult, labelRole } = layout;
   const mode = c.cur;
   const fill = c.paint(mode, BUTTON_FILL), ink = c.paint(mode, BUTTON_INK);
-  // #1752 — the label's weight is the brand's number for the role "Button label weight" picks, in the mode in view.
+  // #1752 — the label's weight is the brand's number for the role "Control label weight" picks, in the mode in view.
   // Both lists carry every weight role (the engine maps `WEIGHT_ROLE_ORDER`), so the role is always found.
   const labelWeight = (theme.typography.weightRolesByMode?.[mode] ?? theme.typography.weightRoles).find((w) => w.role === labelRole)!.value;
   const sizes = theme.dims.sizesByMode?.[mode] ?? theme.dims.sizes;

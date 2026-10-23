@@ -202,7 +202,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
 import { componentDefs } from './components/index';
-import { figmaAnatomySet, planComponentName, planSetProperties, planStamp, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from './anatomy-figma';
+import { figmaAnatomySet, planComponentName, planSetProperties, planStamp, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applyTagStyle, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from './anatomy-figma';
 import type { ButtonLayout } from './anatomy-figma';
 import { componentSizes, sizeRefPx, SPACE_BASE } from './scale';
 import type { AnatomyPlan, WeightAvailability } from './anatomy-figma';
@@ -332,6 +332,11 @@ const BUTTON_SURFACE_CONFIGS: { id: string; layout: ButtonLayout }[] = [
   { id: 'button-text-fill-label-default', layout: { ...DEFAULT_BUTTON_LAYOUT, textHover: 'fill', labelWeight: 'default' } },
 ];
 
+// AND FOR THE TAG STYLE (#2887). `underline` rewrites the Tag def (its line, padding, × slot and floor), and the plain
+// `<id>` row is the pill, so the underline had no row of its own until #2945 moved it again. Which defs get the row is
+// decided by the transform (a def it changes), as above.
+const TAG_STYLE_SURFACE_CONFIGS = [{ id: 'tag-underline', style: 'underline' }] as const;
+
 const liveDefs = (): Record<string, Surface> => {
   const out: Record<string, Surface> = {};
   for (const def of componentDefs) {
@@ -344,6 +349,10 @@ const liveDefs = (): Record<string, Surface> => {
     }
     for (const { id, layout } of BUTTON_SURFACE_CONFIGS) {
       const m = applyButtonLayout(def, layout, ladderPx);
+      if (m !== def) out[`${def.id}@${id}`] = surfaceOf(m);
+    }
+    for (const { id, style } of TAG_STYLE_SURFACE_CONFIGS) {
+      const m = applyTagStyle(def, style);
       if (m !== def) out[`${def.id}@${id}`] = surfaceOf(m);
     }
   }

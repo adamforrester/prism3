@@ -83,7 +83,7 @@ export const LAYOUT_LABELS = { columns: 'Columns', gutter: 'Gutter', margin: 'Ma
  *  (owner decision Q23). DRAFT, pending the owner's approval (the S8.2 PR's "Copy for owner approval" block). */
 // #2905 Q10 A: wireframe v2's words, now that the Buttons section lists which buttons the options change.
 export const BUTTON_DESC = 'How buttons place their icons, size and weight their label, and set their minimum width. Icon buttons are not affected.';
-// #2952: the second sentence is DRAFT (wireframe v2's Q5 A words, put to the owner again on #2952's PR).
+// #2952: the second sentence is wireframe v2's Q5 A words, approved as drafted (owner decision Q601 A).
 export const FIELD_DESC = 'How Text field, Password field, Select and Textarea draw their edge. Search field has its own setting below.';
 // #2905 Q10 A: wireframe v2's words for Search options (#2952).
 export const SEARCH_DESC = 'How Search field draws its edge, apart from the other fields.';

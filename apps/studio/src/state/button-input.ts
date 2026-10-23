@@ -27,7 +27,7 @@ import { brandState, getPath, setPath } from './store';
 export const setButtonIcons = (v: ButtonIcons): void => { setPath(brandState, 'buttonIcons', v); };
 /** Button label & icon: `match` (the default, written when chosen) or `smaller`. */
 export const setButtonContentSize = (v: ButtonContentSize): void => { setPath(brandState, 'buttonContentSize', v); };
-/** Button label weight: `emphasis` (the default, written when chosen) or `default`. */
+/** Control label weight (`buttonLabelWeight`; buttons and, since #2945, tags): `emphasis` (the default, written when chosen) or `default`. */
 export const setButtonLabelWeight = (v: ButtonLabelWeight): void => { setPath(brandState, 'buttonLabelWeight', v); };
 /** Text button hover (#2324): `text` (the default, "Text & icon only", written when chosen) or `fill`. */
 export const setButtonTextHover = (v: ButtonTextHover): void => { setPath(brandState, 'buttonTextHover', v); };

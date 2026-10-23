@@ -8606,7 +8606,7 @@ for (const host of ['web', 'figma']) {
         const one = xs.length > 2 && xs.every((v) => v !== null && Math.abs(v - xs[0]) <= 0.5);
         ok(one && e.inBlock && e.after, `#2905 Q1 A: ${host} ${w}: ${name}: rows, line and block start at one edge, the section head's, and the block follows the sets (${JSON.stringify(e)})`);
       }
-      // #2952: the second sentence is DRAFT, put to the owner on the PR.
+      // #2952: the second sentence is approved as drafted (owner decision Q601 A).
       ok(!!r.fo && r.fo.title === 'Field options' && r.fo.desc === 'How Text field, Password field, Select and Textarea draw their edge. Search field has its own setting below.'
         && r.fo.shape === 'Rounded' && r.fo.link === 'Set it in Shape › Control shape' && !r.fo.density && JSON.stringify(r.fo.chips) === JSON.stringify(['Outline', 'Underline']),
         `#2905 Q3 B, Q10 A: ${host} ${w}: Field options: its drafted title and description, the way to Control shape reading Rounded, Field style's chips, and no way to Density (${JSON.stringify(r.fo)})`);
@@ -10746,10 +10746,11 @@ const EXPECT_HEADINGS = {
     // #2905: the list's sections are Buttons, Fields, Other components and Subcomponents, each with settings holding one
     // group (L2) after its sets; Field options' one lever, Field style, is L3 as the Button options are.
     // #2931 Q579 A: Tag, its Tag options (L2) and Tag style (L3), Field options' way.
+    // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
     L1: ['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents'],
     // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
     L2: ['Button options', 'Field options', 'Search options', 'Tag options'],
-    L3: ['Button icons', 'Medium button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style'],
+    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
