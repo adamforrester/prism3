@@ -654,7 +654,8 @@ const FIT_ORACLE = () => {
 const FIT_SEEN = () => {
   const bm = document.querySelector('[data-p3="bar-main"]');
   const drawn = (n) => !!n && n.getClientRects().length > 0 && n.getBoundingClientRect().width > 0 && getComputedStyle(n).display !== 'none';
-  const labels = [...bm.querySelectorAll('.p3-tile-label')].map(drawn);
+  // The labels of the tiles drawn: a tile not drawn at all (Minimize while the link is off, #2949) has no label to show.
+  const labels = [...bm.querySelectorAll('.p3-tile-label')].filter((l) => drawn(l.closest('.p3-tile'))).map(drawn);
   const name = drawn(bm.querySelector('.p3-mark-name'));
   const bn = bm.querySelector('[data-p3="brand-switcher"] .p3-brand-name');
   const textW = (n) => {
@@ -745,7 +746,7 @@ const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-inpu
 /** Shape in the two panes (S7): the controls its levers must render, by hook (Density's chips and the way to
  *  Components, Radius' slider and Control shape chips, Show advanced, the way on to Depth & motion). */
 const SHAPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="density-choice-comfortable"]', '[data-p3="shape-see-components"]',
-  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="search-field-style-choice-follow"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
+  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
 /** Depth & motion in the two panes (S9.2), previewing Light: the softness slider, Elevation's Show advanced, the tempo
  *  chips, an easing picker button per role, the way on to Layout. The rest is section 23's. */
 const DEPTH_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="shadow-softness"]', '[data-p3="depth-tint-advanced"]',
@@ -2304,7 +2305,7 @@ const recordPosts = (page) => page.evaluate(() => {
   window.__writes = [];
   window.addEventListener('message', (e) => {
     const m = e.data?.pluginMessage;
-    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
+    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link', 'minimize-ui'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
   });
 });
 /** The messages posted since the last call. A post is delivered as a task, so one task is let through first. */
@@ -2439,8 +2440,10 @@ for (const host of ['web', 'figma']) {
         });
         const chip = await page.evaluate(() => {
           const frame = document.querySelector('[data-p3="frame"]');
-          // Anything outside the frame that names an agent or holds a control: where the old chip was mounted.
-          const outside = [...document.body.querySelectorAll('*')].filter((e) => !frame.contains(e) && !e.contains(frame) && !['SCRIPT', 'STYLE'].includes(e.tagName));
+          // Anything outside the frame that names an agent or holds a control: where the old chip was mounted. The link
+          // strip (#2949) is the one exception, by its hook: it lives on <body> by design and is checked in its own block.
+          const strip = document.querySelector('[data-p3="agent-strip"]');
+          const outside = [...document.body.querySelectorAll('*')].filter((e) => !frame.contains(e) && !e.contains(frame) && !strip?.contains(e) && !['SCRIPT', 'STYLE'].includes(e.tagName));
           return {
             inBar: !!document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-toggle"]'),
             old: !!document.querySelector('#p3-agent-link'), popover: !!document.querySelector('.p3-agent-chip, .p3-agent-pop'),
@@ -2469,11 +2472,94 @@ for (const host of ['web', 'figma']) {
         ok(isWire(sw, AGENT_WIRE), `T7 ${where}: a click on the Agent tile asks the main thread to turn the link on, ${JSON.stringify(AGENT_WIRE)} (posted ${JSON.stringify(sw)})`);
         await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
         await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 5000 }).catch(() => {});
+        // #2949: the link on draws Minimize beside the tile, which widens the bar and can re-fit it a frame or more later,
+        // moving tiles under the pointer and with them which tooltip shows. Measure once the bar holds still: Minimize
+        // drawn and every bar control in the same box over four frames running.
+        await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-p3="agent-minimize"]') ?? document.body).display !== 'none'
+          && !!document.querySelector('[data-p3="agent-minimize"]'), null, { timeout: 5000 }).catch(() => {});
+        await page.evaluate(() => new Promise((done) => {
+          const boxes = () => [...document.querySelectorAll('[data-p3="top-bar"] button, [data-p3="top-bar"] a')].map((n) => { const r = n.getBoundingClientRect(); return `${r.left},${r.top},${r.width}`; }).join('|');
+          let last = boxes(), still = 0, frames = 0;
+          const step = () => { const now = boxes(); still = now === last ? still + 1 : 0; last = now; if (still >= 4 || ++frames > 120) done(); else requestAnimationFrame(step); };
+          requestAnimationFrame(step);
+        }));
+        // Then put the pointer back on the Agent tile, where the click left it: hover is taken from a real move, not from
+        // whenever the browser next re-reads it after the layout moved, so its tooltip is drawn, and stays drawn, when measured.
+        const at = await page.locator('[data-p3="agent-toggle"]').boundingBox();
+        if (at) await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+        await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
         const a1 = await agentState();
         ok(a1.name === 'Agent' && a1.pressed === 'true' && a1.dot && a1.tip === 'Agent', `T7 ${where}: the main thread's state turns the tile on: named "Agent", aria-pressed true, the dot drawn (${JSON.stringify(a1)})`);
         const mc = await measure(page, `${where} / Agent on`, host, w);
         check(mc, `${where} / Agent on`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="agent-toggle"]'] });
         await shot('agent');
+
+        // ── the link strip (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A) ──────────────────────────
+        // EXPECTED is written here: Minimize beside the Agent tile only while the link is on; minimized, the document
+        // draws the strip alone, its line in the Activity drawer's words plus the command and its age, whole at the
+        // strip's size (480×40, the size `main.ts` resizes to), with Restore and Turn off; restored, the same frame node
+        // is drawn again. The window's size is the main thread's (`test-agent-link.ts` strip/*); here the viewport stands in.
+        const minTile = () => page.evaluate(() => {
+          const slot = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"]');
+          const b = slot?.querySelector('[data-p3="agent-minimize"]');
+          const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
+          const kids = slot ? [...slot.querySelectorAll('[data-p3="agent-toggle"], [data-p3="agent-minimize"]')].map((n) => n.getAttribute('data-p3')) : [];
+          return { shown: vis(b), name: b?.getAttribute('aria-label') ?? null, order: kids };
+        });
+        const m1 = await minTile();
+        ok(m1.shown && m1.name === 'Minimize' && JSON.stringify(m1.order) === '["agent-toggle","agent-minimize"]',
+          `#2949 ${where}: with the link on, Minimize shows beside the Agent tile, named "Minimize" (${JSON.stringify(m1)})`);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="agent-minimize"]'), WAIT);
+        const mw = await takeWrites(page);
+        ok(isWire(mw, { type: 'minimize-ui', minimized: true }), `#2949 ${where}: Minimize asks the main thread to minimize (posted ${JSON.stringify(mw)})`);
+        await page.evaluate(() => { document.querySelector('[data-p3="frame"]').__p3Mark = 'frame'; });
+        const LONGEST = 'Agent listening · last: update-components 59m ago';
+        await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, lastCommand: { id: 'x', cmd: 'update-components', ok: true, headline: '✓ done',
+          finishedAt: await page.evaluate(() => new Date(Date.now() - 59 * 60000 - 30000).toISOString()) } } });
+        await postMsg(page, { type: 'ui-minimized', minimized: true });
+        await page.setViewportSize({ width: 480, height: 40 });
+        await page.waitForFunction(() => !document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 5000 }).catch(() => {});
+        const stripState = () => page.evaluate(() => {
+          const st = document.querySelector('[data-p3="agent-strip"]');
+          const t = st?.querySelector('[data-p3="agent-strip-text"]');
+          const r = st?.getBoundingClientRect();
+          const app = document.getElementById('app');
+          const rs = st?.querySelector('[data-p3="agent-strip-restore"]');
+          const off = st?.querySelector('[data-p3="agent-strip-off"]');
+          const box = (n) => { const b = n?.getBoundingClientRect(); return b ? [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)] : null; };
+          return { drawn: !!st && !st.hidden && getComputedStyle(st).display !== 'none', rect: r ? [Math.round(r.width), Math.round(r.height)] : null,
+            appDrawn: !!app && getComputedStyle(app).display !== 'none', text: t?.textContent ?? null, whole: !!t && t.scrollWidth <= t.clientWidth,
+            restore: rs?.getAttribute('aria-label') ?? null, off: off?.textContent ?? null, focus: document.activeElement?.getAttribute('data-p3') ?? null,
+            inside: [box(t), box(rs), box(off)].every((b) => b && b[0] >= 0 && b[1] >= 0 && b[2] <= 480 && b[3] <= 40) };
+        });
+        const s1 = await stripState();
+        ok(s1.drawn && !s1.appDrawn && JSON.stringify(s1.rect) === '[480,40]',
+          `#2949 ${where}: minimized, the strip fills the 480×40 window and the panel is not drawn (${JSON.stringify({ drawn: s1.drawn, app: s1.appDrawn, rect: s1.rect })})`);
+        ok(s1.text === LONGEST && s1.whole && s1.inside,
+          `#2949 ${where}: the strip reads "${LONGEST}", whole, every part inside the strip (${JSON.stringify({ text: s1.text, whole: s1.whole, inside: s1.inside })})`);
+        ok(s1.restore === 'Restore' && s1.off === 'Turn off' && s1.focus === 'agent-strip-restore',
+          `#2949 ${where}: the strip carries Restore and Turn off, and focus moves to Restore (${JSON.stringify({ restore: s1.restore, off: s1.off, focus: s1.focus })})`);
+        await shot('strip');
+        await postMsg(page, { type: 'agent-started', id: 'm1', cmd: 'update-components' });
+        await page.waitForFunction(() => /^Agent running/.test(document.querySelector('[data-p3="agent-strip-text"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+        const s2 = await stripState();
+        ok(/^Agent running update-components… \d+s$/.test(s2.text ?? '') && s2.whole, `#2949 ${where}: while a command runs the strip reads "Agent running update-components… <age>" (${JSON.stringify(s2.text)})`);
+        await postMsg(page, { type: 'agent-finished', id: 'm1', cmd: 'update-components' });
+        await hooks.click(page.locator('[data-p3="agent-strip-restore"]'), WAIT);
+        const rw = await takeWrites(page);
+        ok(isWire(rw, { type: 'minimize-ui', minimized: false }), `#2949 ${where}: Restore asks the main thread to restore (posted ${JSON.stringify(rw)})`);
+        await hooks.click(page.locator('[data-p3="agent-strip-off"]'), WAIT);
+        const ow = await takeWrites(page);
+        ok(isWire(ow, { type: 'agent-link', on: false }), `#2949 ${where}: Turn off asks the main thread to turn the link off (posted ${JSON.stringify(ow)})`);
+        await postMsg(page, { type: 'ui-minimized', minimized: false });
+        await page.setViewportSize({ width: w, height: h });
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 5000 }).catch(() => {});
+        const back = await page.evaluate(() => ({ same: document.querySelector('[data-p3="frame"]')?.__p3Mark === 'frame', app: getComputedStyle(document.getElementById('app')).display !== 'none',
+          strip: !document.querySelector('[data-p3="agent-strip"]')?.hidden, focus: document.activeElement?.getAttribute('data-p3') ?? null }));
+        ok(back.same && back.app && !back.strip && back.focus === 'agent-minimize',
+          `#2949 ${where}: restored, the same frame is drawn again, the strip is gone and focus is back on Minimize (${JSON.stringify(back)})`);
+        await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
         await hooks.click(page.locator('[data-p3="agent-toggle"]'), WAIT);
         const sw2 = await takeWrites(page);
         ok(isWire(sw2, { type: 'agent-link', on: false }), `T7 ${where}: a click while on asks the main thread to turn the link off (posted ${JSON.stringify(sw2)})`);
@@ -2481,6 +2567,8 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'false', null, { timeout: 5000 }).catch(() => {});
         const a2 = await agentState();
         ok(a2.name === 'Agent' && a2.pressed === 'false' && !a2.dot, `T7 ${where}: the published off state clears the dot and the pressed state (${JSON.stringify(a2)})`);
+        const m2 = await minTile();
+        hooks.absent(ok, { seen: a2.pressed === 'false', state: 'the Agent tile off' }, !m2.shown, `#2949 ${where}: with the link off, Minimize is not drawn (${JSON.stringify(m2)})`);
 
         // ── the Figma menu: by keyboard, then each item's action ──────────────────────────────────
         await page.locator('[data-p3="figma-open"]').focus();
@@ -7716,8 +7804,9 @@ console.log(`\nShape (S7)\n${'='.repeat(78)}`);
 /** The lever keys the owner's D1 A places on Shape, by hook (represented, not counted). `radiusHairline` is retired. */
 // #2905 Q578 B: Field style (#2695) and Tag style (#2887) are no longer on Shape: their homes are Components › Field
 // options and › Tag options (#2931 Q579 A), so "every lever renders once" fails by name (`also drawn lever-field-style`,
-// `lever-tag-style`) if either is. #2888: Search field style, after Control shape, until its Search options ship (Q5 A).
-const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-search-field-style', 'lever-base-md'];
+// `lever-tag-style`) if either is. Search field style (#2888) left the same way, for Fields › Search options (#2952,
+// #2905 Q5 A): drawn on Shape again → `also drawn lever-search-field-style`.
+const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-base-md'];
 /** The preview's sections, in order (D1 A). Literal. */
 const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
 /** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
@@ -7924,13 +8013,7 @@ for (const host of ['web', 'figma']) {
     const pShape = await persisted(page);
     ok(pShape?.controlShape === 'pill', `shape: Pill writes controlShape: pill (${pShape?.controlShape})`);
     await chip('control-shape-choice-rounded');
-    // (Field style's and Tag style's writes are the #2905 arm's, on Components: Q578.)
-    // #2888: Search field style is brand-wide chips, and Follow field style writes its own value back.
-    await chip('search-field-style-choice-underline');
-    const pSearch = await persisted(page);
-    ok(pSearch?.searchFieldStyle === 'underline' && pSearch?.fieldStyle !== 'underline', `shape: search Underline writes searchFieldStyle: underline and leaves fieldStyle (${pSearch?.searchFieldStyle}, ${pSearch?.fieldStyle})`);
-    await chip('search-field-style-choice-follow');
-    ok((await persisted(page))?.searchFieldStyle === 'follow', `shape: Follow field style writes searchFieldStyle: follow (${(await persisted(page))?.searchFieldStyle})`);
+    // (Field style's, Tag style's and Search field style's writes are the #2905 arm's, on Components: Q578, #2952.)
     await hooks.click(page.locator('[data-p3="base-radius-pick"]'));
     await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="6"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="base-radius-pick"] .p3-btn-label')?.textContent === '6px', null, { timeout: 5000 }).catch(() => {});
@@ -8008,7 +8091,7 @@ for (const host of ['web', 'figma']) {
       });
       ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Shape ("${d.line}")`);
       ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'search-field-style-choice-outline', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
+      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
       // Every size is drawn at 0px, as the emission draws wireframe; the two pill sizes still read "Pill" (#2078: the
       // label is which size it is, not its px).
@@ -8130,8 +8213,9 @@ console.log(`\nComponents (S8.2)\n${'='.repeat(78)}`);
 /** The lever keys pages.ts places on Components (G6 A), by hook. Literal. */
 const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-text-hover', 'lever-button-min-width-multiplier',
   // #2905 (Q3 B, Q578 B): Field options draws Field style, its one control; its home is Components › Field. Tag options
-  // draws Tag style the same way (#2931 Q579 A), its home Components › Tag.
-  'lever-field-style', 'lever-tag-style'];
+  // draws Tag style the same way (#2931 Q579 A), its home Components › Tag, and Search options Search field style (#2952,
+  // #2905 Q5 A), its home Components › Search.
+  'lever-field-style', 'lever-search-field-style', 'lever-tag-style'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
  *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
  *  the move: the levers pane no longer has a section per preview section. */
@@ -8294,6 +8378,7 @@ for (const host of ['web', 'figma']) {
     await goPlace(page, 'components');
     // #2905: Fields first, since opening a block focuses its section's first set; Buttons last, so the preview shows Buttons.
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=tags"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=search"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
     await openButtonOptions(page);
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
@@ -8309,8 +8394,12 @@ for (const host of ['web', 'figma']) {
           frameLine: !!document.querySelector('[data-p3="levers-derived-note"]'),
           // #2815 step 1: the Button options sit in the list now, and hold themselves (above); #2905: so do the Field
           // options (below). The list is the rest.
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="tag-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
-          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="tag-options"]')).length,
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"]')).length,
+          search: {
+            line: document.querySelector('[data-p3="search-options-derived"]')?.textContent ?? null,
+            chips: [...document.querySelectorAll('[data-p3="search-options"] [data-p3^="search-field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
+          },
           tag: {
             line: document.querySelector('[data-p3="tag-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="tag-options"] [data-p3^="tag-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
@@ -8330,6 +8419,8 @@ for (const host of ['web', 'figma']) {
         `#2905 Q59: previewing ${label}, Field options carry the derived line and hold Field style's chips, the way to Control shape left live (${JSON.stringify(d.field)})`);
       ok(d.tag.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.tag.chips.length === 2 && d.tag.chips.every(Boolean),
         `#2931 Q59: previewing ${label}, Tag options carry the derived line and hold Tag style's chips (${JSON.stringify(d.tag)})`);
+      ok(d.search.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.search.chips.length === 3 && d.search.chips.every(Boolean),
+        `#2952 Q59: previewing ${label}, Search options carry the derived line and hold Search field style's chips (${JSON.stringify(d.search)})`);
       ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
       ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
       // #2096: the write itself is refused, not only the DOM's disabled flag. A scripted `input` on the disabled
@@ -8433,8 +8524,8 @@ for (const host of ['web', 'figma']) {
         };
       });
       const r0 = await read();
-      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Tag options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
-        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options" and one "Tag options" line, in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952) and one "Tag options" line, in the list, and not in the preview (${JSON.stringify(r0)})`);
       ok(r0.expanded === 'false' && !r0.shown,
         `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
       ok(r0.rows === 4 && r0.lineBelowSets,
@@ -8464,7 +8555,7 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
       await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
       const r3 = await read();
-      ok(r3.toggles.length === 3 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
+      ok(r3.toggles.length === 4 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
         `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
       // Opening the line focuses its section's first set (wireframe v2's rule, #2905): with Badge (Other components) in
       // the preview, close and reopen it, and the preview shows Buttons. (Buttons is the preview's default, so the check
@@ -8500,7 +8591,7 @@ for (const host of ['web', 'figma']) {
 }
 // #2905 phase 1 (owner decisions Q538 and Q548 on wireframe v2, every call A): the Components page in sections. On both
 // hosts, at 1280 and at 380:
-//   · the sections, in order: Buttons, Fields, Other components, Subcomponents (Q548, Q6 A, Q10 A);
+//   · the sections, in order: Buttons, Fields, Tag, Other components, Subcomponents (Q548, Q6 A, Q10 A, #2931 Q579 A);
 //   · Buttons lists the Buttons family's four sets and Fields the four fields, each set a row at the section's edge, with
 //     no family row and no fold inside either (Q8 A); every other component row is in Other components;
 //   · ONE EDGE (Q1 A, Q8 A): in each section with settings, every set row's first cell, the disclosure line and the open
@@ -8510,6 +8601,10 @@ for (const host of ['web', 'figma']) {
 //     no way to Density; Underline writes `fieldStyle: underline`;
 //   · opening Field options focuses the section's first set (the preview shows Password field), and with Select already
 //     in focus, keeps Select.
+//   · #2952 (#2905 Q5 A, Q7 A): Fields' SECOND block, Search options, below Field options behind its own line: the line
+//     and block at the same one edge, the line after Field options' block; its title and description (Q10 A), Search
+//     field style's chips, and under Follow field style the readout naming the Field style it follows (Q10 A), which
+//     moves when Field options' Field style does.
 //
 // Oracle: the section titles, the set ids, the copy and the expected values are literals typed here (the wireframe's);
 // the edges are read off bounding boxes; the write is read off the persisted brand input, never the page's state.
@@ -8521,6 +8616,8 @@ for (const host of ['web', 'figma']) {
 //     no family row …`.
 //   · the Control shape line keeping the shape under Underline (`readout` always `label` in `field-options.ts`) → `#2905 Q3
 //     B: <host> <w>: under Underline the Control shape line reads "No corners on an underline field." …`.
+//   · Fields' blocks reversed (`SECTION_BLOCKS.fields` = ['search', 'fields']) → `#2952 Q5 A: <host> <w>: Search options
+//     sits below Field options …`.
 for (const host of ['web', 'figma']) {
   for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
     const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
@@ -8528,8 +8625,8 @@ for (const host of ['web', 'figma']) {
       await goPlace(page, 'components');
       await hooks.need(page, '[data-p3="components-levers"]');
       // Tag first (#2931 Q579 A): opening a block focuses its section's first set, and the Fields case reads Password field.
-      for (const k of ['tags', 'buttons', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
-      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'tag-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
+      for (const k of ['tags', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
+      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
       const r = await page.evaluate(() => {
         const secs = [...document.querySelectorAll('[data-p3="cp-section"]')];
         const by = (name) => secs.find((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name === name);
@@ -8549,6 +8646,9 @@ for (const host of ['web', 'figma']) {
         };
         const fo = document.querySelector('[data-p3="field-options-section"]');
         const to = document.querySelector('[data-p3="tag-options-section"]');
+        const so = document.querySelector('[data-p3="search-options-section"]');
+        const soLine = document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=search"]');
+        const ro = so?.querySelector('[data-p3="lever-search-field-style"] .p3-readout');
         return {
           titles: secs.map((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name ?? null),
           buttons: edges('Buttons', 'button-options-section'), fields: edges('Fields', 'field-options-section'), tags: edges('Tag', 'tag-options-section'),
@@ -8563,6 +8663,15 @@ for (const host of ['web', 'figma']) {
           to: to ? {
             title: to.querySelector('[data-p3="tag-options-title"]')?.textContent ?? null, desc: to.querySelector('[data-p3="tag-options-desc"]')?.textContent ?? null,
             chips: [...to.querySelectorAll('[data-p3^="tag-style-choice-"]')].map((n) => n.textContent),
+          } : null,
+          so: so ? {
+            title: so.querySelector('[data-p3="search-options-title"]')?.textContent ?? null, desc: so.querySelector('[data-p3="search-options-desc"]')?.textContent ?? null,
+            chips: [...so.querySelectorAll('[data-p3^="search-field-style-choice-"]')].map((n) => n.textContent),
+            readout: ro && !ro.hidden ? ro.textContent : null,
+            inFields: !!by('Fields')?.contains(so) && !!soLine && by('Fields').contains(soLine),
+            line: x(soLine), block: x(so), head: x(by('Fields')?.querySelector('[data-p3="cp-section-head"]')),
+            below: !!fo && !!soLine && fo.getBoundingClientRect().bottom <= soLine.getBoundingClientRect().top + 1,
+            lineText: soLine?.textContent.trim() ?? null,
           } : null,
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
@@ -8585,9 +8694,16 @@ for (const host of ['web', 'figma']) {
         const one = xs.length > 2 && xs.every((v) => v !== null && Math.abs(v - xs[0]) <= 0.5);
         ok(one && e.inBlock && e.after, `#2905 Q1 A: ${host} ${w}: ${name}: rows, line and block start at one edge, the section head's, and the block follows the sets (${JSON.stringify(e)})`);
       }
-      ok(!!r.fo && r.fo.title === 'Field options' && r.fo.desc === 'How Text field, Password field, Select and Textarea draw their edge.'
+      // #2952: the second sentence is approved as drafted (owner decision Q601 A).
+      ok(!!r.fo && r.fo.title === 'Field options' && r.fo.desc === 'How Text field, Password field, Select and Textarea draw their edge. Search field has its own setting below.'
         && r.fo.shape === 'Rounded' && r.fo.link === 'Set it in Shape › Control shape' && !r.fo.density && JSON.stringify(r.fo.chips) === JSON.stringify(['Outline', 'Underline']),
         `#2905 Q3 B, Q10 A: ${host} ${w}: Field options: its drafted title and description, the way to Control shape reading Rounded, Field style's chips, and no way to Density (${JSON.stringify(r.fo)})`);
+      const S = r.so;
+      ok(!!S && S.inFields && S.below && S.lineText === 'Search options' && [S.line, S.block].every((v) => v !== null && Math.abs(v - S.head) <= 0.5),
+        `#2952 Q5 A: ${host} ${w}: Search options sits below Field options in Fields, behind its own line, at the section's one edge (${JSON.stringify(S)})`);
+      ok(!!S && S.title === 'Search options' && S.desc === 'How Search field draws its edge, apart from the other fields.'
+        && JSON.stringify(S.chips) === JSON.stringify(['Follow field style', 'Outline', 'Underline']) && S.readout === 'now Outline',
+        `#2952, #2905 Q10 A: ${host} ${w}: Search options: its drafted title and description, Search field style's chips, and under Follow the readout "now Outline" (${JSON.stringify(S)})`);
       ok(r.title === 'Code input', `#2905, Q-2789.3 A: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Code input (${r.title})`);
       await hooks.click(page.locator('[data-p3="field-style-choice-underline"]'));
       await page.waitForFunction(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent !== 'Rounded', null, { timeout: 5000 }).catch(() => {});
@@ -8595,6 +8711,9 @@ for (const host of ['web', 'figma']) {
       // The web persists the brand input; the plugin's store is the host's, so there the readout is the write's witness.
       ok((host !== 'web' || (await persisted(page))?.fieldStyle === 'underline') && u === 'No corners on an underline field.',
         `#2905 Q3 B: ${host} ${w}: Underline writes fieldStyle: underline, and under Underline the Control shape line reads "No corners on an underline field." (${(await persisted(page))?.fieldStyle}, ${JSON.stringify(u)})`);
+      // #2952 (Q10 A): Search options' readout follows Field style, one block up.
+      const su = await page.evaluate(() => { const n = document.querySelector('[data-p3="search-options"] [data-p3="lever-search-field-style"] .p3-readout'); return n && !n.hidden ? n.textContent : null; });
+      ok(su === 'now Underline', `#2952 Q10 A: ${host} ${w}: with Field style Underline, Search options' readout under Follow reads "now Underline" (${JSON.stringify(su)})`);
       // With a set of the section in focus, opening its block keeps that focus.
       await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Select$/ }).first());
@@ -8620,6 +8739,17 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="tag-options"] [data-p3="tag-style-choice-pill"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="tag-options"] [data-p3="tag-style-choice-pill"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         ok((await persisted(page))?.tagStyle === 'pill', `#2887: Tag options' Pill writes tagStyle: pill (${(await persisted(page))?.tagStyle})`);
+        // #2888's writes, moved here with the control (#2952): Underline from Dark writes the brand value and leaves
+        // fieldStyle, the readout gives way; Follow field style writes its own value back.
+        await hooks.click(page.locator('[data-p3="search-options"] [data-p3="search-field-style-choice-underline"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="search-options"] [data-p3="search-field-style-choice-underline"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const pS = await persisted(page);
+        const roGone = await page.evaluate(() => !!document.querySelector('[data-p3="search-options"] [data-p3="lever-search-field-style"] .p3-readout')?.hidden);
+        ok(pS?.searchFieldStyle === 'underline' && pS?.fieldStyle === 'outline' && JSON.stringify(pS?.modeLevers) === JSON.stringify(before?.modeLevers) && roGone,
+          `#2888 Q54: previewing Dark, Search options' Underline writes searchFieldStyle: underline, leaves fieldStyle and writes no per-mode value; the Follow readout hides (${pS?.searchFieldStyle}, ${pS?.fieldStyle}, ${JSON.stringify(pS?.modeLevers)}, hidden ${roGone})`);
+        await hooks.click(page.locator('[data-p3="search-options"] [data-p3="search-field-style-choice-follow"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="search-options"] [data-p3="search-field-style-choice-follow"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        ok((await persisted(page))?.searchFieldStyle === 'follow', `#2888: Search options' Follow field style writes searchFieldStyle: follow (${(await persisted(page))?.searchFieldStyle})`);
       }
       ok(errors.length === 0, `#2905 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
@@ -10706,8 +10836,9 @@ const EXPECT_HEADINGS = {
     // #2931 Q579 A: Tag, its Tag options (L2) and Tag style (L3), Field options' way.
     // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
     L1: ['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents'],
-    L2: ['Button options', 'Field options', 'Tag options'],
-    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Tag style'],
+    // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
+    L2: ['Button options', 'Field options', 'Search options', 'Tag options'],
+    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
@@ -10724,7 +10855,7 @@ const HEADING_ADVANCED = {
   'color-palettes': ['[data-p3="palettes-advanced"]'], type: ['[data-p3="scale-advanced"]', '[data-p3="type-sections-advanced"]'],
   shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
   // #2844: a family's settings are closed behind their line; the audit reads them open.
-  components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]'],
+  components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */

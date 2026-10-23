@@ -39,6 +39,8 @@
  *     Surfaces & fills — on another page: field.border.hover → Interactive, …`;
  *   · `fieldStyle`'s row put back on Shape › Radius (#2905 Q578) → `manifest keys with more than one home: fieldStyle →
  *     Shape › Radius + Components › Field` and `#2905 Q578: fieldStyle's one home is Components › Field, not Shape …`;
+ *   · `searchFieldStyle`'s row put back on Shape › Radius (#2952) → `manifest keys with more than one home: searchFieldStyle →
+ *     Shape › Radius + Components › Search` and `#2952: searchFieldStyle's one home is Components › Search, not Shape …`;
  *   · `strictInteractiveContrast` put behind Show advanced →
  *     `strictInteractiveContrast: … placed advanced in Color › Interactive › … (every lever on this page is shown)`.
  */
@@ -118,6 +120,9 @@ ok(JSON.stringify(fieldHome) === JSON.stringify(['Components › Field']), `#290
 // Q578 part 2 (A on #2931's wireframe): Tag style the same way, to Components › Tag.
 const tagHome = seen.get('tagStyle') ?? [];
 ok(JSON.stringify(tagHome) === JSON.stringify(['Components › Tag']), `#2931 Q579: tagStyle's one home is Components › Tag, not Shape (${tagHome.join(' + ') || 'none'})`);
+// #2952 (#2905 Q5 A, Q578): Search field style the same way, to Components › Search, its Search options block.
+const searchHome = seen.get('searchFieldStyle') ?? [];
+ok(JSON.stringify(searchHome) === JSON.stringify(['Components › Search']), `#2952: searchFieldStyle's one home is Components › Search, not Shape (${searchHome.join(' + ') || 'none'})`);
 ok(tierWrong.length === 0, `each lever's tier follows the manifest flag, outside ${FIRST_CLASS.join(', ')}${tierWrong.length ? ` — advanced tier disagrees with the manifest flag: ${tierWrong.join('; ')}` : ''}`);
 for (const k of FIRST_CLASS) ok(PAGES.some((p) => p.key === k), `FIRST_CLASS names a page the data has: ${k}`);
 

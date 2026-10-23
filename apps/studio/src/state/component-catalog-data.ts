@@ -1383,6 +1383,39 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "pagination-item",
+    "name": "Pagination.Item",
+    "category": "navigation",
+    "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is outlined.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Pagination",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 87,
+    "nests": [
+      "focus-ring",
+      "icon"
+    ]
+  },
+  {
+    "id": "pagination",
+    "name": "Pagination",
+    "category": "navigation",
+    "summary": "Moves between pages of a long list or set of results, and shows which page is open.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Pagination",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 12,
+    "nests": [
+      "pagination-item"
+    ]
+  },
+  {
     "id": "progress",
     "name": "Progress",
     "category": "feedback",

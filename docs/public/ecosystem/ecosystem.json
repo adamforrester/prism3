@@ -316,6 +316,8 @@
           "dialog",
           "password-field",
           "counter",
+          "pagination-item",
+          "pagination",
           "progress",
           "search-field",
           "banner",
@@ -1606,12 +1608,13 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Agent switch in the top bar; off each time the plugin opens",
+          "via": "Agent switch in the top bar; off each time the plugin opens. While it is on, Minimize shrinks the window to a strip that shows the link's status",
           "sources": [
             "apps/plugin/src/agent-link-ui.ts"
           ],
           "messages": [
-            "agent-link"
+            "agent-link",
+            "minimize-ui"
           ]
         }
       }

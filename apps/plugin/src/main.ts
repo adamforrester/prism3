@@ -125,6 +125,38 @@ const clampSize = (w: number, h: number): { width: number; height: number } => (
   width: Math.max(MIN_SIZE.width, Math.round(w)),
   height: Math.max(MIN_SIZE.height, Math.round(h)),
 });
+/** The window's size as this thread last set it. Figma has no getter, and the strip's Restore needs the size to go
+ *  back to. The strip itself is never this size, so it is never kept under `UI_SIZE_KEY` either. */
+let uiSize: { width: number; height: number } = { ...DEFAULT_SIZE };
+
+/**
+ * THE LINK STRIP (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A, 2026-10-23). While the agent link is on, the Minimize
+ * tile beside the Agent tile shrinks the window to a one-row strip that shows the link's status, with Restore and Turn
+ * off (`agent-link-ui.ts` draws it). Here, the window and nothing else:
+ *   · the strip's size is its own, under the 380×420 floor (`MIN_SIZE` is ours, not Figma's: `resize` takes 70×0 up),
+ *     and is never kept as the window size;
+ *   · `beforeStrip` holds the size from before minimizing, and Restore returns to it. The UI stays mounted the whole
+ *     time, hidden under the strip, so the page and its state come back as they were;
+ *   · it never touches the link or its poll: the poll runs on this thread's own timer (`agent-link.ts`), which the
+ *     window's size does not reach. `test-agent-link.ts` (`strip`) holds that;
+ *   · it minimizes only while the link is on, and turning the link off restores the full window.
+ * The strip's width fits the longest listening line the strip can show (`agentStripText`), measured by `test:chrome`.
+ */
+const STRIP_SIZE = { width: 480, height: 40 };
+let beforeStrip: { width: number; height: number } | null = null;
+const setMinimized = (minimized: boolean): void => {
+  if (minimized === (beforeStrip !== null)) return;
+  if (minimized) {
+    if (!agentLink.state().on) return;
+    beforeStrip = uiSize;
+    figma.ui.resize(STRIP_SIZE.width, STRIP_SIZE.height);
+  } else {
+    const back = beforeStrip as { width: number; height: number };
+    beforeStrip = null;
+    figma.ui.resize(back.width, back.height);
+  }
+  postToUi({ type: 'ui-minimized', minimized });
+};
 
 figma.showUI(__html__, { ...DEFAULT_SIZE, themeColors: true });
 
@@ -192,6 +224,9 @@ void (async (): Promise<void> => {
     if (typeof width !== 'number' || typeof height !== 'number') return;
     if (!Number.isFinite(width) || !Number.isFinite(height)) return;
     const size = clampSize(width, height);
+    // Minimized before storage answered (#2949): the kept size is what Restore returns to.
+    if (beforeStrip) { beforeStrip = size; return; }
+    uiSize = size;
     if (size.width === DEFAULT_SIZE.width && size.height === DEFAULT_SIZE.height) return;
     figma.ui.resize(size.width, size.height);
   } catch {
@@ -1433,6 +1468,8 @@ onUiMessage((msg: UiToMain) => {
     case 'agent-link':
       // The owner's switch — the only way the link turns on. See `agent-link.ts`.
       agentLink.setOn(msg.on);
+      // #2949: the strip's Turn off also restores the full window (and so does any switch-off while minimized).
+      if (!msg.on) setMinimized(false);
       return;
     case 'agent-command':
       // Transport B: a command the desktop bridge delivered through the panel's socket. The same
@@ -1454,11 +1491,19 @@ onUiMessage((msg: UiToMain) => {
     case 'resize-ui': {
       // Resize on every drag message so the window tracks the pointer; persist only on the
       // commit (pointer-up), so a drag is one storage write rather than hundreds.
+      // #2949: never while the window is the strip, which draws no grip; a late drag message neither leaves the strip
+      // nor keeps its size.
+      if (beforeStrip) return;
       const size = clampSize(msg.width, msg.height);
+      uiSize = size;
       figma.ui.resize(size.width, size.height);
       if (msg.commit) void figma.clientStorage.setAsync(UI_SIZE_KEY, size).catch(() => {/* best-effort */});
       return;
     }
+    case 'minimize-ui':
+      // #2949: the Minimize tile and the strip's Restore. The window only; the link and its poll are untouched.
+      setMinimized(msg.minimized === true);
+      return;
     default:
       assertNever(msg); // compile error if a UiToMain variant is added but not handled here
   }

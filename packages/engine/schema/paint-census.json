@@ -565,6 +565,30 @@
         "sha256": "6bc23dc4a29e15cda035cf17a5a1a035f7fd5c48bb1b69a6c0d5967f1092d28a"
       }
     },
+    "pagination-item": {
+      "set": {
+        "members": 87,
+        "assignments": 177,
+        "sha256": "8af2efe7cbd8f10492732cd3240464e7d9b597bc8acccf405cce4bc994c9a20f"
+      },
+      "grid": {
+        "members": 87,
+        "assignments": 171,
+        "sha256": "1260534067bf68fe479626521eef0298a995423070116782c5ced2f7a03368a5"
+      }
+    },
+    "pagination": {
+      "set": {
+        "members": 12,
+        "assignments": 3,
+        "sha256": "f72ad5d404082fadf33666373faaf9c3fa81a61db144677e01f14addec530532"
+      },
+      "grid": {
+        "members": 12,
+        "assignments": 3,
+        "sha256": "6eb313cad27faddd592a645b3a6500a1069f1e9b97dfce49e55a17f49694c3ab"
+      }
+    },
     "progress": {
       "set": {
         "members": 12,

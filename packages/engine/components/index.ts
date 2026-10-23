@@ -78,6 +78,7 @@ import { segmentedControlSegment, segmentedControl } from './segmented-control';
 import { link } from './link';
 import { buttonGroup } from './button-group';
 import { dialog } from './dialog';
+import { paginationItem, pagination } from './pagination';
 import { banner } from './banner';
 import { passwordField } from './password-field';
 import { searchField } from './search-field';
@@ -96,7 +97,7 @@ import { progress } from './progress';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, codeInputCell, codeInput, sliderThumb, slider };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -236,6 +237,10 @@ export const componentDefs: readonly ComponentDef[] = [
   // Counter (#2427) — a quantity between a minus and a plus button. Nests `flush-icon-button-neutral` twice,
   // `field-label`, `field-message` and `focus-ring`, all above.
   counter,
+  // `pagination-item` and `pagination` (#2665) — one page cell and the row. The row nests the cell in its items
+  // slot, the neutral icon button (previous and next) and the neutral button (simple), so it comes after all three.
+  paginationItem,
+  pagination,
   // `progress` (#2670) — the progress bar and ring. Nests `field-message` (its end-state message), above.
   progress,
   // `search-field` (#2888) — TextField's second specialization, from the shared field factory. Nests `field-label`,

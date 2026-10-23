@@ -331,6 +331,44 @@
         "icon"
       ]
     },
+    "pagination-item": {
+      "glyphs": [
+        {
+          "part": "gapGlyph",
+          "glyph": "more-horizontal-filled",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "ellipsis"
+            ]
+          }
+        },
+        {
+          "part": "nextGlyph",
+          "glyph": "chevron-right",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "next"
+            ]
+          }
+        },
+        {
+          "part": "previousGlyph",
+          "glyph": "chevron-left",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "previous"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
     "password-field": {
       "glyphs": [],
       "iconSlots": [
@@ -570,10 +608,12 @@
       "select"
     ],
     "chevron-left": [
-      "breadcrumbs"
+      "breadcrumbs",
+      "pagination-item"
     ],
     "chevron-right": [
-      "_breadcrumb-separator"
+      "_breadcrumb-separator",
+      "pagination-item"
     ],
     "chevron-up": [
       "_accordion-indicator"
@@ -610,7 +650,9 @@
       "checkbox-control"
     ],
     "minus-filled": [],
-    "more-horizontal-filled": [],
+    "more-horizontal-filled": [
+      "pagination-item"
+    ],
     "more-vertical-filled": [],
     "pause-circle": [],
     "play-circle": [],
@@ -669,7 +711,6 @@
     "link",
     "menu",
     "minus-filled",
-    "more-horizontal-filled",
     "more-vertical-filled",
     "pause-circle",
     "play-circle",

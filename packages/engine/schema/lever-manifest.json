@@ -35,6 +35,7 @@
     {
       "key": "primary",
       "group": "color",
+      "kind": "value",
       "label": "Primary brand color",
       "control": "color",
       "required": true,
@@ -43,6 +44,7 @@
     {
       "key": "neutral.hue",
       "group": "color",
+      "kind": "value",
       "label": "Neutral hue",
       "control": "slider",
       "required": true,
@@ -59,6 +61,7 @@
     {
       "key": "neutral.chroma",
       "group": "color",
+      "kind": "value",
       "label": "Neutral chroma",
       "control": "slider",
       "required": true,
@@ -76,6 +79,7 @@
     {
       "key": "neutral.anchor",
       "group": "color",
+      "kind": "value",
       "label": "Pin a neutral",
       "control": "color",
       "description": "Optional. A pre-defined brand gray, pinned verbatim at its lightness step; the ramp is built around it (hue/chroma from the anchor) instead of the cast. Set for a client that ships their own neutral; omit to derive from hue + chroma."
@@ -83,6 +87,7 @@
     {
       "key": "brandColors",
       "group": "color",
+      "kind": "value",
       "label": "Additional brand colors",
       "control": "list",
       "itemLabel": "brand color (name + OKLCH)",
@@ -91,6 +96,7 @@
     {
       "key": "actionPalette",
       "group": "color",
+      "kind": "value",
       "label": "Action palette",
       "control": "palette-ref",
       "default": "primary",
@@ -99,6 +105,7 @@
     {
       "key": "linkPalette",
       "group": "color",
+      "kind": "value",
       "label": "Link palette",
       "control": "palette-ref",
       "description": "Which palette drives link color. Defaults to following the action color, including a roleColors.action override; point at primary, neutral, or an accent to give links their own color. The contrast floor holds either way. A link palette that is not color-distinct from body text (e.g. neutral) prompts a warning to underline links for WCAG 1.4.1 — pair it with an underlined link role."
@@ -106,6 +113,7 @@
     {
       "key": "status.success",
       "group": "color",
+      "kind": "value",
       "label": "Success color",
       "control": "color",
       "advanced": true,
@@ -114,6 +122,7 @@
     {
       "key": "status.warning",
       "group": "color",
+      "kind": "value",
       "label": "Warning color",
       "control": "color",
       "advanced": true,
@@ -122,6 +131,7 @@
     {
       "key": "status.danger",
       "group": "color",
+      "kind": "value",
       "label": "Danger color",
       "control": "color",
       "advanced": true,
@@ -130,6 +140,7 @@
     {
       "key": "status.info",
       "group": "color",
+      "kind": "value",
       "label": "Info color",
       "control": "color",
       "advanced": true,
@@ -138,6 +149,7 @@
     {
       "key": "surfaces",
       "group": "color",
+      "kind": "value",
       "label": "Page surfaces",
       "control": "object",
       "advanced": true,
@@ -146,6 +158,7 @@
     {
       "key": "strictInteractiveContrast",
       "group": "color",
+      "kind": "value",
       "label": "Strict interactive contrast",
       "control": "toggle",
       "advanced": true,
@@ -155,6 +168,7 @@
     {
       "key": "linkStateRungs",
       "group": "color",
+      "kind": "value",
       "label": "Link states",
       "control": "object",
       "advanced": true,
@@ -163,6 +177,7 @@
     {
       "key": "radiusScale",
       "group": "form",
+      "kind": "value",
       "label": "Radius softness",
       "control": "slider",
       "default": 1,
@@ -181,6 +196,7 @@
     {
       "key": "density",
       "group": "form",
+      "kind": "value",
       "label": "Density",
       "control": "enum",
       "default": "comfortable",
@@ -203,6 +219,7 @@
     {
       "key": "controlShape",
       "group": "form",
+      "kind": "value",
       "label": "Control shape",
       "control": "enum",
       "default": "rounded",
@@ -229,6 +246,7 @@
     {
       "key": "fieldStyle",
       "group": "form",
+      "kind": "structural",
       "label": "Field style",
       "control": "enum",
       "default": "outline",
@@ -247,6 +265,7 @@
     {
       "key": "searchFieldStyle",
       "group": "form",
+      "kind": "structural",
       "label": "Search field style",
       "control": "enum",
       "default": "follow",
@@ -269,6 +288,7 @@
     {
       "key": "tagStyle",
       "group": "form",
+      "kind": "structural",
       "label": "Tag style",
       "control": "enum",
       "default": "pill",
@@ -287,6 +307,7 @@
     {
       "key": "buttonIcons",
       "group": "form",
+      "kind": "structural",
       "label": "Button icons",
       "control": "enum",
       "default": "attached",
@@ -305,6 +326,7 @@
     {
       "key": "buttonContentSize",
       "group": "form",
+      "kind": "value",
       "label": "Medium button label & icon",
       "control": "enum",
       "default": "match",
@@ -323,6 +345,7 @@
     {
       "key": "buttonLabelWeight",
       "group": "form",
+      "kind": "value",
       "label": "Control label weight",
       "control": "enum",
       "default": "emphasis",
@@ -341,6 +364,7 @@
     {
       "key": "buttonTextHover",
       "group": "form",
+      "kind": "value",
       "label": "Text button hover",
       "control": "enum",
       "default": "text",
@@ -359,6 +383,7 @@
     {
       "key": "buttonMinWidthMultiplier",
       "group": "form",
+      "kind": "value",
       "label": "Button minimum width",
       "control": "slider",
       "default": 2.25,
@@ -371,6 +396,7 @@
     {
       "key": "baseMd",
       "group": "form",
+      "kind": "value",
       "label": "Base radius",
       "control": "slider",
       "advanced": true,
@@ -384,6 +410,7 @@
     {
       "key": "radiusHairline",
       "group": "form",
+      "kind": "value",
       "label": "Hairline radius",
       "control": "toggle",
       "advanced": true,
@@ -394,6 +421,7 @@
     {
       "key": "typography.typeScale",
       "group": "type",
+      "kind": "value",
       "label": "Type scale",
       "control": "enum",
       "default": "default",
@@ -416,6 +444,7 @@
     {
       "key": "typography.families",
       "group": "type",
+      "kind": "value",
       "label": "Font families",
       "control": "object",
       "description": "The font family each text type uses, and whether it is a variable font. A single family name gets a system fallback stack added. Setting code to none ships no code styles."
@@ -423,6 +452,7 @@
     {
       "key": "typography.weightRoles",
       "group": "type",
+      "kind": "value",
       "label": "Weights",
       "control": "object",
       "advanced": true,
@@ -431,6 +461,7 @@
     {
       "key": "typography.displayCeiling",
       "group": "type",
+      "kind": "value",
       "label": "Largest display size",
       "control": "enum",
       "advanced": true,
@@ -466,6 +497,7 @@
     {
       "key": "typography.titleFloor",
       "group": "type",
+      "kind": "value",
       "label": "Smallest title size",
       "control": "enum",
       "advanced": true,
@@ -485,6 +517,7 @@
     {
       "key": "typography.captionFloor",
       "group": "type",
+      "kind": "value",
       "label": "Smallest caption size",
       "control": "enum",
       "advanced": true,
@@ -504,6 +537,7 @@
     {
       "key": "typography.sizeFloor",
       "group": "type",
+      "kind": "value",
       "label": "Smallest type size",
       "control": "enum",
       "advanced": true,
@@ -523,6 +557,7 @@
     {
       "key": "typography.responsive",
       "group": "type",
+      "kind": "value",
       "label": "Headings scale between mobile and desktop",
       "control": "object",
       "advanced": true,
@@ -531,6 +566,7 @@
     {
       "key": "typography.weights",
       "group": "type",
+      "kind": "value",
       "label": "Weights each text type ships",
       "control": "object",
       "advanced": true,
@@ -539,6 +575,7 @@
     {
       "key": "typography.links",
       "group": "type",
+      "kind": "value",
       "label": "Underlined link styles",
       "control": "list",
       "advanced": true,
@@ -548,6 +585,7 @@
     {
       "key": "typography.italics",
       "group": "type",
+      "kind": "value",
       "label": "Italic styles",
       "control": "list",
       "advanced": true,
@@ -557,6 +595,7 @@
     {
       "key": "typography.italicDefault",
       "group": "type",
+      "kind": "value",
       "label": "Italic-only text types",
       "control": "list",
       "advanced": true,
@@ -566,6 +605,7 @@
     {
       "key": "motionPersonality.tempo",
       "group": "motion",
+      "kind": "value",
       "label": "Motion tempo",
       "control": "enum",
       "default": "standard",
@@ -588,6 +628,7 @@
     {
       "key": "shadow.softness",
       "group": "elevation",
+      "kind": "value",
       "label": "Shadow softness",
       "control": "slider",
       "default": 1,
@@ -605,6 +646,7 @@
     {
       "key": "shadow.tint",
       "group": "elevation",
+      "kind": "value",
       "label": "Shadow tint",
       "control": "object",
       "advanced": true,
@@ -613,6 +655,7 @@
     {
       "key": "layout.breakpoints",
       "group": "layout",
+      "kind": "value",
       "label": "Breakpoints",
       "control": "list",
       "advanced": true,
@@ -622,6 +665,7 @@
     {
       "key": "layout.columns",
       "group": "layout",
+      "kind": "value",
       "label": "Grid columns",
       "control": "slider",
       "advanced": true,
@@ -634,6 +678,7 @@
     {
       "key": "layout.containerMax",
       "group": "layout",
+      "kind": "value",
       "label": "Maximum width",
       "control": "slider",
       "advanced": true,
@@ -653,6 +698,7 @@
     {
       "key": "layout.containerNarrow",
       "group": "layout",
+      "kind": "value",
       "label": "Content container",
       "control": "slider",
       "advanced": true,
@@ -672,6 +718,7 @@
     {
       "key": "iconContrast",
       "group": "advanced",
+      "kind": "value",
       "label": "Icon contrast floor",
       "control": "enum",
       "default": "text",
@@ -690,6 +737,7 @@
     {
       "key": "disabledStrategy",
       "group": "advanced",
+      "kind": "value",
       "label": "Disabled contrast",
       "control": "enum",
       "default": "reduced",
@@ -708,6 +756,7 @@
     {
       "key": "disabledMin",
       "group": "advanced",
+      "kind": "value",
       "label": "Reduced contrast floor",
       "control": "slider",
       "default": 3,
@@ -719,6 +768,7 @@
     {
       "key": "outlineInteraction",
       "group": "advanced",
+      "kind": "value",
       "label": "Outline hover",
       "control": "enum",
       "default": "overlay-neutral",
@@ -741,6 +791,7 @@
     {
       "key": "neutralEmphasis",
       "group": "advanced",
+      "kind": "value",
       "label": "Neutral emphasis",
       "control": "enum",
       "default": "subtle",
@@ -759,6 +810,7 @@
     {
       "key": "interactivePalettes",
       "group": "color",
+      "kind": "value",
       "label": "Interactive palettes",
       "control": "list",
       "advanced": true,
@@ -768,6 +820,7 @@
     {
       "key": "gradients",
       "group": "advanced",
+      "kind": "value",
       "label": "Gradients",
       "control": "toggle",
       "default": false,
