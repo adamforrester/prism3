@@ -331,14 +331,15 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'restore-input': (m) => (m.input ? { kind: 'restore-input', input: m.input } : null),
   'restore-input-empty': () => ({ kind: 'restore-input-empty' }),
   'restore-input-reading': () => ({ kind: 'restore-input-reading' }),
-  // #2879. Validated at the boundary like every count here: a library message with nothing confirmed is dropped, and the
-  // UI keeps waiting for an answer it can act on rather than opening a home that states no evidence.
+  // #2879. Validated at the boundary like every count here. A library message with nothing confirmed reads as
+  // `restore-input-empty`, never as nothing: it follows `restore-input-reading`, so dropping it would leave "Reading this
+  // file" up with no answer to come. The start window with its X is the agreed fallback (Q485 C).
   'restore-input-library': (m) => {
     const l = (m.library ?? null) as Record<string, unknown> | null;
-    if (!l || typeof l !== 'object') return null;
+    if (!l || typeof l !== 'object') return { kind: 'restore-input-empty' };
     const count = (v: unknown): number => (typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : 0);
     const instances = count(l.instances), bindings = count(l.bindings);
-    if (instances + bindings === 0) return null;
+    if (instances + bindings === 0) return { kind: 'restore-input-empty' };
     const versions = Array.isArray(l.versions) ? l.versions.filter((v): v is string => typeof v === 'string' && /^\d+\.\d+\.\d+$/.test(v)) : [];
     const name = typeof l.name === 'string' && l.name.trim() ? l.name.trim() : null;
     return { kind: 'restore-input-library', library: { name, versions, instances, bindings } };

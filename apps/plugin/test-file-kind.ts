@@ -22,7 +22,7 @@
  */
 import { FileShim } from './file-shim';
 import { stampOwnedModes } from './src/write-figma';
-import { classifyFile, probeFile, type FileKind, type FileKindApi, type PageNode, type LibraryCollection } from './src/file-kind';
+import { classifyFile, outcomeOf, probeFile, type FileKind, type FileKindApi, type PageNode, type LibraryCollection } from './src/file-kind';
 
 let failures = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -107,6 +107,15 @@ for (const [name, api, want] of cases) {
   const s = await probeFile(api);
   ok(s.stopped === 'timeout' && classifyFile(s) === 'undecided', `file-kind: a check past 1.5 s → undecided (stopped ${s.stopped}, kind ${classifyFile(s)})`);
 }
+// Row 10 above the library row (the review of #2974): a check that runs out of budget AFTER Prism3 evidence was read is
+// still undecided. A clock moving 600 ms per read counts stamped instances before the third read passes 1.5 s.
+{
+  let t = 0;
+  const api = file({ page: [instance(prism3Main('0.237.0')), instance(prism3Main('0.237.0')), instance(prism3Main('0.237.0')), instance(prism3Main('0.237.0'))], clock: () => (t += 600) });
+  const s = await probeFile(api);
+  ok(s.stopped === 'timeout' && s.prism3Instances > 0 && classifyFile(s) === 'undecided',
+    `file-kind: a check past 1.5 s after Prism3 instances were counted → undecided (stopped ${s.stopped}, ${s.prism3Instances} counted, kind ${classifyFile(s)})`);
+}
 // The hard stop: a read that never returns cannot hold the start moment past the budget.
 {
   const api = file({ page: [{ type: 'INSTANCE', getMainComponentAsync: () => new Promise(() => {}) }] });
@@ -142,6 +151,11 @@ for (const [name, api, want] of cases) {
   const forged = { remote: true, ...shared({ memberStamp: 'hello' }) };
   const s = await probeFile(file({ page: [instance(forged)] }));
   ok(classifyFile(s) === 'undecided', `file-kind: a memberStamp that is not ENGINE_VERSION|plan|revision confirms nothing → undecided (got ${classifyFile(s)})`);
+}
+
+// The outcome each kind posts: only a library file opens the library home; every other kind opens the start window.
+for (const [k, want] of [['library', 'restore-input-library'], ['brand', 'restore-input-empty'], ['new', 'restore-input-empty'], ['undecided', 'restore-input-empty']] as const) {
+  ok(outcomeOf(k) === want, `file-kind: ${k === 'undecided' ? 'an' : 'a'} ${k} file posts ${want} (got ${outcomeOf(k)})`);
 }
 
 console.log(failures ? `\n${failures} failure(s)` : '\nfile-kind: all checks pass');

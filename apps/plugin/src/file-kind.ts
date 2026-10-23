@@ -192,7 +192,8 @@ const walk = async (api: FileKindApi, budgetMs: number): Promise<FileSignals> =>
         const k = await kindOf(id);
         if (k === true) prism3Bindings++; else if (k === false) otherRemote++;
       }
-      if (n.children) stack.push(...n.children);
+      // A loop, not a spread: a node with a very large number of direct children would exceed the argument limit.
+      if (n.children) for (const c of n.children) stack.push(c);
     }
     // The name (Q613 1 A): from the enabled-library list, by a stamped collection's key. Absent, the home says
     // "Prism3 library". Its own try: a refused or missing permission costs the name, never the decision.
@@ -216,6 +217,11 @@ export type LibraryFile = {
   readonly instances: number;
   readonly bindings: number;
 };
+/** The restore outcome each kind posts (#2879): only `library` posts the fourth outcome; brand, new and undecided all
+ *  post `restore-input-empty`, which opens the start window with its X. Pure, so the mapping is tested, not scanned. */
+export const outcomeOf = (k: FileKind): 'restore-input-library' | 'restore-input-empty' =>
+  k === 'library' ? 'restore-input-library' : 'restore-input-empty';
+
 export const libraryFileOf = (s: FileSignals): LibraryFile => ({
   name: s.libraryName, versions: s.versions, instances: s.prism3Instances, bindings: s.prism3Bindings,
 });

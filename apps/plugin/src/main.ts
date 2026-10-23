@@ -27,7 +27,7 @@ import type { MainToUi, UiToMain, StyleGuideOptions } from './messages';
 import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
-import { classifyFile, libraryFileOf, probeFile, type FileKindApi } from './file-kind';
+import { classifyFile, libraryFileOf, outcomeOf, probeFile, type FileKindApi } from './file-kind';
 import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary } from './prune-figma';
 import type { PruneInput, PruneApi } from './prune-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
@@ -1301,7 +1301,7 @@ const fileKindApi = (): FileKindApi => ({
 const fileKindToUi = async (): Promise<void> => {
   postToUi({ type: 'restore-input-reading' });
   const signals = await probeFile(fileKindApi());
-  if (classifyFile(signals) === 'library') postToUi({ type: 'restore-input-library', library: libraryFileOf(signals) });
+  if (outcomeOf(classifyFile(signals)) === 'restore-input-library') postToUi({ type: 'restore-input-library', library: libraryFileOf(signals) });
   else postToUi({ type: 'restore-input-empty' });
 };
 

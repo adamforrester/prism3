@@ -604,7 +604,7 @@ console.log('\n7. the host reports absence rather than staying silent');
   ok(/else void fileKindToUi\(\)/.test(body), 'restoreToUi runs the file check on absence, as the ELSE of the found-a-brand branch, so the two are exclusive');
   ok(/restore-input-error/.test(body), 'with the refusal arm still present');
   const kind = fn('fileKindToUi');
-  ok(/restore-input-library/.test(kind) && /else postToUi\(\{ type: 'restore-input-empty' \}\)/.test(kind),
+  ok(/outcomeOf\(classifyFile\(signals\)\) === 'restore-input-library'\) postToUi\(\{ type: 'restore-input-library'/.test(kind) && /else postToUi\(\{ type: 'restore-input-empty' \}\)/.test(kind),
     'and the file check posts restore-input-library or, as its ELSE, restore-input-empty — four outcomes, total over the read (#2879)');
 }
 
