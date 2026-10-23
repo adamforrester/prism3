@@ -25,6 +25,7 @@
 import type { BrandInput } from '@prism3/engine/theme';
 import type { AgentLinkState, AgentResult, AgentProgress, AgentCmd } from './agent-protocol';
 import type { WriteCmd } from './run-guard';
+import type { LibraryFile } from './file-kind';
 
 /** Messages the UI iframe sends TO the main thread. Wrapped in `{ pluginMessage }` on the wire. */
 export type UiToMain =
@@ -395,6 +396,14 @@ export type MainToUi =
    *  the read: a brand, a refusal, or nothing. The UI can then decide once, on arrival, with no race
    *  against the independent `seed-info` read. */
   | { type: 'restore-input-empty' }
+  /** #2879: the file holds no brand, and the main thread is reading the current page to decide between the start window
+   *  and the library home (`file-kind.ts`, at most 1.5 s). Sent only in `restore-input-empty`'s case, before it or
+   *  `restore-input-library`, so the UI shows "Reading this file" rather than the studio's placeholder brand. */
+  | { type: 'restore-input-reading' }
+  /** #2879 (Q485 C): the fourth outcome. The file holds no brand and no Prism3 collection of its own, and the current page
+   *  uses a Prism3 library, confirmed by a stamp Prism3 wrote (`file-kind.ts`). Sent INSTEAD of `restore-input-empty`, so
+   *  the four are total over the read: a brand, a refusal, a library file, or nothing. */
+  | { type: 'restore-input-library'; library: LibraryFile }
   /** Boot knob-rehydration REFUSED (#480): a `BrandInput` blob IS stored in this file's shared-data
    *  but can't be trusted — an old/foreign shape, or a schema version this build doesn't recognize
    *  (e.g. a pre-#341/#415 blob: the old `families.display/text/mono` role names, and a numeric

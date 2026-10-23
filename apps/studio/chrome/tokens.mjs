@@ -107,7 +107,6 @@ export const TILE_VARS = [
   ['field-edge-hover', 'color.field.border.hover', C],
   ['ctl-edge', 'color.interactive.neutral.border.rest', C],
   ['overlay-hover', 'color.interactive.neutral.overlay.hover', C],
-  ['overlay-pressed', 'color.interactive.neutral.overlay.pressed', C],
   // inverse: the one primary action and the switch's on track
   ['inv-bg', 'color.inverse.background.primary', C],
   ['inv-bg-2', 'color.inverse.background.secondary', C],

@@ -54,7 +54,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, fieldStyleFor, SEARCH_FIELD_STYLE_DEFS, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, DIALOG_TITLE_TYPE_KEYS, fieldStyleFor, SEARCH_FIELD_STYLE_DEFS, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -9965,6 +9965,8 @@ arm: {
       ['searchFieldStyle', 'outline'], ['searchFieldStyle', 'underline'],
       // #2887 (Q513.1 A): "Tag style: Underline" adds no token; it moves only the materialized Tag def.
       ['tagStyle', 'underline'],
+      // #2958 (Q588b A): "Dialog title size" adds no token; Medium and Small move only the materialized Dialog def.
+      ['dialogTitleSize', 'medium'], ['dialogTitleSize', 'small'],
     ];
     const pairName = ([k, v]: [string, unknown]): string => `${k}=${JSON.stringify(v)}`;
     const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
@@ -15230,6 +15232,45 @@ arm: {
       }
       ok(brands === 5 && pairs > 0 && pairs % (LINE_ROLES.length * GROUNDS.length) === 0 && under3.length === 0,
         `#2695 contrast: the underline's rest, hover, focus and status lines clear 3:1 on both field grounds, every mode, every example brand (${brands} brands, ${pairs} pairs; ${under3.slice(0, 4).join('; ') || 'none under'})`);
+    }
+
+    // (#2958) DIALOG TITLE SIZE — one brand-wide title size for every dialog (owner Q588, Q588b A). SUBJECT =
+    // `applyDialogTitleSize`; ORACLE = refs, text-style names and copy typed here from the decision (Large / Medium / Small
+    // → `type.label.{lg|md|sm}.emphasis`), never read off the materializer's own `DIALOG_TITLE_RUNG` table (docs/34).
+    {
+      const dialog = componentDefs.find((x) => x.id === 'dialog')!;
+      const moved = componentDefs.filter((d) => applyDialogTitleSize(d, 'large') !== d
+        || (d.id !== 'dialog' && (applyDialogTitleSize(d, 'medium') !== d || applyDialogTitleSize(d, 'small') !== d))).map((d) => d.id);
+      ok(moved.length === 0, `#2958 identity: Large returns every def unchanged, and Medium and Small every def but Dialog (moved: ${moved.join(', ') || 'none'})`);
+      ok(JSON.stringify(DIALOG_TITLE_TYPE_KEYS) === JSON.stringify({ dialog: 'title-type' }) && dialog.tokens['title-type'] === 'type.label.lg.emphasis',
+        `#2958 reach (Q2 open, Dialog only): the setting reaches Dialog's title-type alone, authored at type.label.lg.emphasis (${JSON.stringify(DIALOG_TITLE_TYPE_KEYS)}, ${dialog.tokens['title-type']})`);
+      const md = applyDialogTitleSize(dialog, 'medium'), sm = applyDialogTitleSize(dialog, 'small');
+      ok(md.tokens['title-type'] === 'type.label.md.emphasis' && sm.tokens['title-type'] === 'type.label.sm.emphasis',
+        `#2958 binding: Medium binds type.label.md.emphasis and Small type.label.sm.emphasis (${md.tokens['title-type']}, ${sm.tokens['title-type']})`);
+      const others = (d: typeof dialog) => JSON.stringify({ ...d, tokens: { ...d.tokens, 'title-type': '' } });
+      ok(others(md) === others(dialog) && others(sm) === others(dialog),
+        '#2958 a value setting (#2959): Medium and Small change the title-type ref and nothing else on the def');
+      let threw = '';
+      try { applyDialogTitleSize({ ...dialog, tokens: { ...dialog.tokens, 'title-type': 'type.body.md.default' } }, 'small'); } catch (e) { threw = (e as Error).message; }
+      ok(threw.includes('"Dialog title size" rebinds title-type') && threw.includes('type.body.md.default'),
+        `#2958 refusal: a title-type that is not a label style throws by name rather than rebinding it (${threw || 'no throw'})`);
+      ok(validateBrandInput({ ...MINIMAL_BRAND, dialogTitleSize: 'small' } as any).length === 0 && validateBrandInput({ ...MINIMAL_BRAND, dialogTitleSize: 'xl' } as any).length > 0,
+        '#2958 input: dialogTitleSize accepts small and rejects a value the lever does not offer');
+      const lever = leverManifest.find((l) => l.key === 'dialogTitleSize');
+      const order = leverManifest.filter((l) => l.group === 'form').map((l) => l.key);
+      ok(lever?.label === 'Dialog title size' && lever.group === 'form' && lever.control === 'enum' && lever.default === 'large' && !lever.advanced
+        && JSON.stringify(lever.options?.map((o) => [o.value, o.label])) === JSON.stringify([['large', 'Large'], ['medium', 'Medium'], ['small', 'Small']])
+        && lever.description === 'The title of every dialog and sheet: the large, medium or small label style, at Emphasis weight. One dialog can still be changed by hand in Figma.'
+        && order.indexOf('dialogTitleSize') === order.indexOf('tagStyle') + 1,
+        `#2958 lever (DRAFT copy, Q1 on #2958): "Dialog title size", Large / Medium / Small, default Large, not advanced, in Form after Tag style (form order: ${order.join(', ')})`);
+      // THE PROJECTION: every one of the 24 members' title, read off the plan as Figma will bind it.
+      for (const [size, style] of [['large', 'label/lg/emphasis'], ['medium', 'label/md/emphasis'], ['small', 'label/sm/emphasis']] as const) {
+        const plans = figmaAnatomySet(applyDialogTitleSize(dialog, size));
+        const find = (n: any): any => (n.name === 'title' ? n : (n.children ?? []).map(find).find(Boolean));
+        const styles = [...new Set(plans.map((p) => find(p.root)?.textStyle))];
+        ok(plans.length === 24 && JSON.stringify(styles) === JSON.stringify([style]),
+          `#2958 projection: at ${size}, every one of Dialog's 24 members binds its title to ${style} (${plans.length} members, ${styles.join(', ')})`);
+      }
     }
 
     // (#2887) TAG STYLE — the underline tag, built as the owner decided it (Q513 1–7, Q540: Q9 A, Q10 A). SUBJECT =

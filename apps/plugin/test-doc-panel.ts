@@ -10,6 +10,12 @@
  *   no data/…       a def with its Content guidelines and its Accessibility rows emptied draws neither section.
  *   anatomy/…       no held-back part note (maintainer register or a tool's name) is anywhere in a drawn panel's text,
  *                   on every def; each reader-ready caption is. Mutation: the raw note as the caption → `anatomy/held back`.
+ *   legacy/…        a panel printed the old way, before `printView`, its set rebuilt since (#2968): Tag's panel and the
+ *                   Buttons page (the lead's panel and the three members' own) are replaced, one panel per page and no
+ *                   "(edited)" one; a line rewritten on an old-print panel (Tag's, or Button.Neutral's) still keeps that
+ *                   panel aside. Mutations: an old print compared whole again → `legacy/rebuilt`, `legacy/family lead`,
+ *                   `legacy/family members`, `legacy/family edited`; the text check dropped → `legacy/edited`,
+ *                   `legacy/family edited`, `family/kept`.
  *   replace/…       a second draw of an unedited panel replaces it: one panel, the earlier removed.
  *   hand edit/…     a panel whose text a designer changed is kept: renamed "(edited)", tagged kept, its edit intact, below
  *                   the fresh panel and clear of it, and named in the run's clauses; a third draw keeps it once and draws
@@ -41,6 +47,11 @@
  *                   set and members, and a set already right is left alone. Mutations: `fill(chips)` dropped →
  *                   `template/fill`; `chips` dropped from the repair's list → `template/repair`; the label's `HEIGHT`
  *                   dropped → `template/fill`.
+ *   qa/…            owner QA round 1 (#2970), on Tag with Badge's and Button's sets in the file: the title 18px at −4% and
+ *                   every section title 16px at −3%; the Do and Don't block's Top padding on; Related as one bulleted line
+ *                   per name, the names whose set is in the file linked to it by node and underlined, every other plain;
+ *                   a set built after the draw makes the panel due, and the redraw links it. Mutations: the links key
+ *                   dropped from `docPanelDue` → `qa/links due`; the hyperlink call dropped → `qa/related links`.
  *   line/…          a file without `_Doc-block`: one Set up file line for the run, naming usage panels.
  *
  * INDEPENDENCE (docs/34): the expected sections come from the engine's model (`docSections`), which the panel reads but
@@ -156,7 +167,15 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
     ...extra,
   } as unknown as N;
   for (const c of children) n.appendChild!(c);
-  if (type === 'TEXT') { n.fontName = { family: 'Inter', style: 'Regular' }; n.characters = n.characters ?? name; }
+  if (type === 'TEXT') {
+    n.fontName = { family: 'Inter', style: 'Regular' }; n.characters = n.characters ?? name;
+    // The range calls Related's lists make (#2970), recorded as the host would hold them; a range past the text throws.
+    const range = (s0: number, e0: number, what: string) => { if (s0 < 0 || e0 > String(n.characters).length || s0 >= e0) throw new Error(`in ${what}: range ${s0}–${e0} outside the text`); };
+    n._links = []; n._lists = []; n._decos = [];
+    n.setRangeHyperlink = (s0: number, e0: number, l: unknown) => { range(s0, e0, 'setRangeHyperlink'); (n._links as unknown[]).push({ text: String(n.characters).slice(s0, e0), link: l }); };
+    n.setRangeListOptions = (s0: number, e0: number, o: unknown) => { range(s0, e0, 'setRangeListOptions'); (n._lists as unknown[]).push({ s: s0, e: e0, o }); };
+    n.setRangeTextDecoration = (s0: number, e0: number, d: unknown) => { range(s0, e0, 'setRangeTextDecoration'); (n._decos as unknown[]).push({ text: String(n.characters).slice(s0, e0), d }); };
+  }
   return n;
 };
 /** The children an auto-layout frame lays out: shown and not absolute. */
@@ -253,7 +272,8 @@ const planMember = (plan: { coord: Record<string, string>; root: Record<string, 
   members.set(String(m.id), m);
   return m;
 };
-const docBlockSet = (): N => mk('COMPONENT_SET', '_Doc-block', TYPES.flatMap((t) => SIZES.map((s) => mk('COMPONENT', `Type=${t}, Size=${s}`, [], { createInstance: () => blockInstance(t) }))));
+// Each variant holds its layers, as a file's template does: the texts a panel shows where the draw writes nothing.
+const docBlockSet = (): N => mk('COMPONENT_SET', '_Doc-block', TYPES.flatMap((t) => SIZES.map((s) => mk('COMPONENT', `Type=${t}, Size=${s}`, [...blockInstance(t).children], { createInstance: () => blockInstance(t) }))));
 
 const VARS = ['color/background/primary', 'color/border/secondary', 'color/text/primary', 'color/text/secondary', 'color/background/secondary', 'color/border/success', 'color/border/danger'].map((name, i) => ({ id: `V:${i}`, name: `zz/${name}`, variableCollectionId: 'VC:color' }));
 const COLLECTION = { id: 'VC:color', name: 'color', modes: [{ modeId: 'M:light', name: 'light' }, { modeId: 'M:dark', name: 'dark' }, { modeId: 'M:hc-light', name: 'hc-light' }] };
@@ -548,7 +568,9 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   const oldControl = legacy(control, 'checkbox-control', 340, false);
   const oldGroup = legacy(group, 'checkbox-group', 4340, true);
   oldControl.setSharedPluginData!('prism3', 'docPanelPrint', await fingerprintOf(oldControl as never));
-  oldGroup.setSharedPluginData!('prism3', 'docPanelPrint', 'printed before a hand edit');
+  // Printed the old way, then a line rewritten by hand (#2968: an old print alone no longer reads as an edit).
+  oldGroup.setSharedPluginData!('prism3', 'docPanelPrint', await fingerprintOf(oldGroup as never));
+  oldGroup.children[0].characters = 'Our team groups checkboxes in threes.';
   const api = host([p]);
   const rowDef = componentDefs.find((d) => d.id === 'checkbox-row')!;
   const plan = planDocPanel(rowDef, { modes: ['light', 'dark'], names });
@@ -608,6 +630,82 @@ section('print/… — a set rebuilt under its panel does not make the panel rea
   old.setSharedPluginData!('prism3', 'docPanelPrint', await fingerprintOf(old as never));
   const r3 = await drawDocPanel(qa, qs, def, { names });
   ok(r3.replaced === 1 && !r3.kept.length, 'print/legacy: a panel with a print in the old form, unchanged, is replaced');
+}
+
+/* ── legacy: a print from before `printView`, under a rebuilt set ──────────────────────────────────────── */
+section('legacy/… — a panel printed the old way, its set rebuilt since: replaced when unedited, kept when edited (#2968)');
+{
+  /** Rebuild `def`'s set under every specimen on `p`: a new member, laid out differently, as Build and Update leave it. */
+  const rebuild = (p: N, def: string): void => {
+    const rebuilt = planMember(planCache.get(def)![0] as never);
+    rebuilt.children[0].children.push(mk('FRAME', 'added in the rebuild', [], { _w: 40, _h: 40 }));
+    for (const sp of panelsOn(p).flatMap(walk).filter((c) => c.name === 'specimen')) { sp.children.splice(0); instanceOf(sp, rebuilt); sp.swapped = rebuilt.id; }
+  };
+  /** A panel's print as the draw recorded it before `printView`: the whole panel. */
+  const printOld = async (n: N): Promise<void> => n.setSharedPluginData!('prism3', 'docPanelPrint', await fingerprintOf(n as never));
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const p = page('↳ Tag legacy rebuilt');
+  const set = fakeSet(p, 'tag');
+  const api = host([p]);
+  await drawDocPanel(api, set, def, { names });
+  await printOld(panelsOn(p)[0]);
+  rebuild(p, 'tag');
+  const r = await drawDocPanel(api, set, def, { names });
+  ok(r.replaced === 1 && r.kept.length === 0 && panelsOn(p).length === 1 && !panelsOn(p).some((n) => String(n.name).endsWith(' (edited)')),
+    `legacy/rebuilt: one panel, the old-print one replaced, none kept (replaced ${r.replaced}, kept ${r.kept.length}, panels ${panelsOn(p).length})`);
+
+  const q = page('↳ Tag legacy edited');
+  const qs = fakeSet(q, 'tag');
+  const qa = host([q]);
+  await drawDocPanel(qa, qs, def, { names });
+  const old = panelsOn(q)[0];
+  await printOld(old);
+  rebuild(q, 'tag');
+  walk(old).find((c) => c.type === 'TEXT' && c.name === 'text' && String(c.characters).length > 20)!.characters = 'Our team uses tags for filters only.';
+  const r2 = await drawDocPanel(qa, qs, def, { names });
+  ok(r2.replaced === 0 && r2.kept.length === 1 && panelsOn(q).length === 2 && old.name === 'Tag usage (edited)' && texts(old).includes('Our team uses tags for filters only.'),
+    `legacy/edited: a rewritten line on an old-print panel still keeps it aside, as "${old.name}" (replaced ${r2.replaced}, kept ${r2.kept.length})`);
+
+  // THE BUTTONS PAGE (#2968): four sets, laid out before one panel per family, each with its own panel printed the
+  // old way, then the sets rebuilt. A member's panel is drawn as the earlier code drew one: its own heading and lede.
+  const buttons = ['button', 'button-destructive', 'button-neutral', 'button-group'];
+  const famPage = async (name: string, edit?: string) => {
+    const b = page(name);
+    const sets = buttons.map((id, i) => fakeSet(b, id, i * 1400, 0, 600, 400));
+    const ba = host([b]);
+    await drawDocPanel(ba, sets[0], componentDefs.find((d) => d.id === 'button')!, { names });
+    for (const [i, id] of buttons.entries()) {
+      if (!i) continue;
+      const d = componentDefs.find((x) => x.id === id)!;
+      const heading = mk('TEXT', 'text'); heading.characters = d.name;
+      const lede = mk('TEXT', 'text'); lede.characters = d.summary.replace(/`/g, '').replace(/\s+/g, ' ').trim();
+      const spec = mk('INSTANCE', 'specimen');
+      instanceOf(spec, sets[i].children[0]);
+      const f = mk('FRAME', `${d.name} usage`, [heading, lede, spec], { x: i * 1400 + 640, y: 0, _w: 560, _h: 300 });
+      b.appendChild!(f);
+      f.setSharedPluginData!('prism3', 'docPanel', JSON.stringify({ v: 1, def: id, set: sets[i].id, state: 'live' }));
+    }
+    for (const n of panelsOn(b)) await printOld(n);
+    // The edit lands after the print, as a designer's does; the rebuild moves every specimen.
+    if (edit) for (const n of panelsOn(b)) if (tagOf(n).def === edit) n.children[1].characters = 'Use it only on the checkout page.';
+    for (const id of buttons) rebuild(b, id);
+    const rb = await drawDocPanel(ba, sets[0], componentDefs.find((d) => d.id === 'button')!, { names });
+    return { b, sets, rb };
+  };
+  {
+    const { b, sets, rb } = await famPage('↳ Buttons legacy');
+    const live = panelsOn(b).filter((n) => tagOf(n).state === 'live');
+    ok(rb.drawn && live.length === 1 && live[0].name === 'Button usage' && tagOf(live[0]).set === sets[0].id && panelsOn(b).length === 1,
+      `legacy/family lead: one panel on the page, "Button usage", beside the lead's set (${panelsOn(b).map((n) => n.name).join(', ')})`);
+    ok(rb.replaced === 4 && rb.kept.length === 0 && !panelsOn(b).some((n) => String(n.name).endsWith(' (edited)')),
+      `legacy/family members: the lead's old panel and the three members' are removed, none kept (replaced ${rb.replaced}, kept ${rb.kept.length})`);
+  }
+  {
+    const { b, rb } = await famPage('↳ Buttons legacy edited', 'button-neutral');
+    const kept = panelsOn(b).filter((n) => tagOf(n).state === 'kept');
+    ok(rb.drawn && rb.replaced === 3 && rb.kept.length === 1 && panelsOn(b).length === 2 && kept.length === 1 && kept[0].name === 'Button.Neutral usage (edited)',
+      `legacy/family edited: the member a designer edited is kept aside as "${kept[0]?.name}", the other three go (replaced ${rb.replaced}, kept ${rb.kept.length})`);
+  }
 }
 
 /* ── replace and hand edit ─────────────────────────────────────────────────────────────────────────────── */
@@ -968,6 +1066,56 @@ section('template/… — `_Doc-block`');
 }
 
 /* ── line: the missing template, once ──────────────────────────────────────────────────────────────────── */
+section('qa/… — usage panels QA round 1 (#2970): titles, the space above Do and Don\'t, Related as linked lists');
+{
+  const p = page('↳ QA r1');
+  const set = fakeSet(p, 'tag');
+  // Two of Tag's related components have a set in the file; the rest do not.
+  const badge = fakeSet(p, 'badge', 0, 3000), button = fakeSet(p, 'button', 0, 4000);
+  const api = host([p]);
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const r = await drawDocPanel(api, set, def, { names });
+  const panel = panelsOn(p)[0];
+  const all = panel ? walk(panel) : [];
+  // Item 5: the title 18px at −4%, each section title 16px at −3% (the studio's `ls-tightest` and `ls-tighter`).
+  const title = all.find((n) => n.type === 'TEXT' && n.characters === 'Tag');
+  ok(r.drawn && title?.fontSize === 18 && JSON.stringify(title?.letterSpacing) === '{"value":-4,"unit":"PERCENT"}',
+    'qa/title: "Tag" at 18px, letter-spacing −4%', `got ${String(title?.fontSize)} ${JSON.stringify(title?.letterSpacing)}`);
+  const heads = all.filter((n) => n.getSharedPluginData!('prism3', 'docSection')).map((sec) => sec.children.flatMap(walk).find((t) => t.type === 'TEXT'));
+  const wantHeads = ['Overview', 'Anatomy', 'Styles', 'Usage guidelines', 'Accessibility', 'Content guidelines', 'Theming', 'Related components'];
+  ok(heads.map((h) => h?.characters).join('|') === wantHeads.join('|') && heads.every((h) => h?.fontSize === 16 && JSON.stringify(h?.letterSpacing) === '{"value":-3,"unit":"PERCENT"}'),
+    'qa/section titles: all 8 at 16px, letter-spacing −3%', heads.map((h) => `${String(h?.characters)} ${String(h?.fontSize)} ${JSON.stringify(h?.letterSpacing)}`).join('; '));
+  // Item 2: the Do and Don't block turns on its own Top padding.
+  const dd = all.find((n) => n.name === '_Doc-block' && n.children.some((c) => c.name === 'columns'));
+  ok((dd?.componentProperties as Record<string, { value: unknown }> | undefined)?.['Top padding#1:0']?.value === true, 'qa/do-dont padding: Top padding on above the Do and Don\'t columns');
+  // Item 3: each list one bulleted line per name; the names whose set is in the file link to it by node, underlined.
+  const related = all.find((n) => n.getSharedPluginData!('prism3', 'docSection') === 'related')!;
+  const rows = related.children.filter((c) => c.name === '_Doc-block' && c.children.some((k) => k.name === 'row')).map((b) => ({ label: walk(b).find((t) => t.name === 'label')!, text: walk(b).find((t) => t.name === 'text')! }));
+  const lists = rows.map((x) => `${String(x.label.characters)}: ${String(x.text.characters).split('\n').join(' / ')}`);
+  ok(lists.join('\n') === [
+    'Built from: FocusRing',
+    'Instead, consider: Badge / Button / Checkbox.Group / Radio.Group',
+    'Often used with: Badge / Icon / Checkbox.Group / Radio.Group',
+    'Replaces: a removable token list built as a listbox / a clickable div styled as a pill / a bare × glyph with no accessible name',
+  ].join('\n'), 'qa/related lists: 4 lists, one line per name, no chips', lists.join(' | '));
+  ok(!related.children.some((b) => walk(b).some((c) => /^chip\d/.test(String(c.name)))) && rows.every((x) => JSON.stringify(x.text._lists) === `[{"s":0,"e":${String(x.text.characters).length},"o":{"type":"UNORDERED"}}]`),
+    'qa/related bullets: every list is one UNORDERED list over its whole text');
+  const links = rows.flatMap((x) => x.text._links as { text: string; link: { type: string; value: string } }[]);
+  ok(JSON.stringify(links) === JSON.stringify([
+    { text: 'Badge', link: { type: 'NODE', value: badge.id } }, { text: 'Button', link: { type: 'NODE', value: button.id } },
+    { text: 'Badge', link: { type: 'NODE', value: badge.id } },
+  ]), 'qa/related links: Badge ×2 and Button link to their sets by node; FocusRing, Icon, the groups and Replaces stay plain', JSON.stringify(links));
+  ok(JSON.stringify(rows.flatMap((x) => (x.text._decos as { text: string }[]).map((d) => d.text))) === '["Badge","Button","Badge"]', 'qa/related underline: exactly the 3 linked names are underlined');
+  // A set built after the draw: the panel is due, so its name is linked on the next update; drawn again, it is not.
+  ok(docPanelDue(api, set, planDocPanel(def, { modes: ['light', 'dark'], names })) === 0, 'qa/links current: not due right after the draw');
+  const icon = mk('COMPONENT_SET', 'icon', [], { x: 0, y: 5000 }); p.appendChild!(icon);
+  ok(docPanelDue(api, set, planDocPanel(def, { modes: ['light', 'dark'], names })) === 1, 'qa/links due: Icon\'s set built since the draw makes the panel due');
+  await drawDocPanel(api, set, def, { names });
+  const again = walk(panelsOn(p)[0]).filter((n) => n.type === 'TEXT').flatMap((t) => (t._links as { text: string; link: { value: string } }[] | undefined) ?? []);
+  ok(again.some((l) => l.text === 'Icon' && l.link.value === icon.id) && docPanelDue(api, set, planDocPanel(def, { modes: ['light', 'dark'], names })) === 0,
+    'qa/links redrawn: Icon now links to its set, and the panel is current again');
+}
+
 section('line/… — a file without `_Doc-block`');
 {
   const p = page('↳ No template');

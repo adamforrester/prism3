@@ -84,6 +84,11 @@ export type SearchFieldStyle = 'follow' | FieldStyle;
  *  `underline` is one line under the tag, 2px when selected or under the pointer. Its own lever, not `fieldStyle`'s
  *  (Q513.1 A): a tag is not a field. Applied to a def before projection, like `fieldStyle` — see `applyTagStyle`. */
 export type TagStyle = 'pill' | 'underline';
+/** The `dialogTitleSize` FORM lever (#2958, owner Q588, Q588b A): the title size of every dialog, centered or a sheet.
+ *  `large` (the default) binds `type.label.lg.emphasis`, `medium` the md rung and `small` the sm rung. One brand-wide
+ *  value, never a per-instance variant: a value setting that moves one text-style binding and no structure. Applied to
+ *  a def before projection, like `tagStyle` — see `applyDialogTitleSize`. */
+export type DialogTitleSize = 'large' | 'medium' | 'small';
 /** The button-family FORM levers (#1667, owner-decided 2026-09-25). Brand-level choices applied to a def
  *  before projection — see `applyButtonLayout`. `buttonIcons`: `attached` keeps the icons next to the label
  *  (the default); `edges` pins them to the button's edges, and the label centers in the space between them

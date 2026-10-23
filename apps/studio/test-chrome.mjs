@@ -2571,6 +2571,9 @@ for (const host of ['web', 'figma']) {
         hooks.absent(ok, { seen: a2.pressed === 'false', state: 'the Agent tile off' }, !m2.shown, `#2949 ${where}: with the link off, Minimize is not drawn (${JSON.stringify(m2)})`);
 
         // ── the Figma menu: by keyboard, then each item's action ──────────────────────────────────
+        // The pointer leaves the Agent tile it just clicked: a tip drawn on hover can drop between the in-page probe
+        // and the CDP font read, which then reports it drew nothing (#2962's CI, figma light 380).
+        await page.mouse.move(0, h - 1);
         await page.locator('[data-p3="figma-open"]').focus();
         await page.keyboard.press('ArrowDown');
         const k0 = await menuState(page);
@@ -8215,12 +8218,14 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
   // #2905 (Q3 B, Q578 B): Field options draws Field style, its one control; its home is Components › Field. Tag options
   // draws Tag style the same way (#2931 Q579 A), its home Components › Tag, and Search options Search field style (#2952,
   // #2905 Q5 A), its home Components › Search.
-  'lever-field-style', 'lever-search-field-style', 'lever-tag-style'];
+  'lever-field-style', 'lever-search-field-style', 'lever-tag-style',
+  // #2958: Dialog options draws Dialog title size the same way, its home Components › Dialog.
+  'lever-dialog-title-size'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
  *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
  *  the move: the levers pane no longer has a section per preview section. */
 // #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
-const COMPONENTS_LIST_SECTIONS = ['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents'];
+const COMPONENTS_LIST_SECTIONS = ['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
@@ -8379,6 +8384,7 @@ for (const host of ['web', 'figma']) {
     // #2905: Fields first, since opening a block focuses its section's first set; Buttons last, so the preview shows Buttons.
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=tags"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=search"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
     await openButtonOptions(page);
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
@@ -8394,8 +8400,8 @@ for (const host of ['web', 'figma']) {
           frameLine: !!document.querySelector('[data-p3="levers-derived-note"]'),
           // #2815 step 1: the Button options sit in the list now, and hold themselves (above); #2905: so do the Field
           // options (below). The list is the rest.
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
-          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"]')).length,
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"]')).length,
           search: {
             line: document.querySelector('[data-p3="search-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="search-options"] [data-p3^="search-field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
@@ -8403,6 +8409,10 @@ for (const host of ['web', 'figma']) {
           tag: {
             line: document.querySelector('[data-p3="tag-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="tag-options"] [data-p3^="tag-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
+          },
+          dialog: {
+            line: document.querySelector('[data-p3="dialog-options-derived"]')?.textContent ?? null,
+            chips: [...document.querySelectorAll('[data-p3="dialog-options"] [data-p3^="dialog-title-size-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           field: {
             line: document.querySelector('[data-p3="field-options-derived"]')?.textContent ?? null,
@@ -8421,6 +8431,8 @@ for (const host of ['web', 'figma']) {
         `#2931 Q59: previewing ${label}, Tag options carry the derived line and hold Tag style's chips (${JSON.stringify(d.tag)})`);
       ok(d.search.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.search.chips.length === 3 && d.search.chips.every(Boolean),
         `#2952 Q59: previewing ${label}, Search options carry the derived line and hold Search field style's chips (${JSON.stringify(d.search)})`);
+      ok(d.dialog.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.dialog.chips.length === 3 && d.dialog.chips.every(Boolean),
+        `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's chips (${JSON.stringify(d.dialog)})`);
       ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
       ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
       // #2096: the write itself is refused, not only the DOM's disabled flag. A scripted `input` on the disabled
@@ -8524,8 +8536,8 @@ for (const host of ['web', 'figma']) {
         };
       });
       const r0 = await read();
-      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
-        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952) and one "Tag options" line, in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options" and one "Dialog options" line (#2958), in the list, and not in the preview (${JSON.stringify(r0)})`);
       ok(r0.expanded === 'false' && !r0.shown,
         `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
       ok(r0.rows === 4 && r0.lineBelowSets,
@@ -8555,7 +8567,7 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
       await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
       const r3 = await read();
-      ok(r3.toggles.length === 4 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
+      ok(r3.toggles.length === 5 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
         `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
       // Opening the line focuses its section's first set (wireframe v2's rule, #2905): with Badge (Other components) in
       // the preview, close and reopen it, and the preview shows Buttons. (Buttons is the preview's default, so the check
@@ -8625,8 +8637,8 @@ for (const host of ['web', 'figma']) {
       await goPlace(page, 'components');
       await hooks.need(page, '[data-p3="components-levers"]');
       // Tag first (#2931 Q579 A): opening a block focuses its section's first set, and the Fields case reads Password field.
-      for (const k of ['tags', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
-      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
+      for (const k of ['tags', 'dialogs', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
+      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section', 'dialog-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
       const r = await page.evaluate(() => {
         const secs = [...document.querySelectorAll('[data-p3="cp-section"]')];
         const by = (name) => secs.find((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name === name);
@@ -8646,12 +8658,14 @@ for (const host of ['web', 'figma']) {
         };
         const fo = document.querySelector('[data-p3="field-options-section"]');
         const to = document.querySelector('[data-p3="tag-options-section"]');
+        const dO = document.querySelector('[data-p3="dialog-options-section"]');
         const so = document.querySelector('[data-p3="search-options-section"]');
         const soLine = document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=search"]');
         const ro = so?.querySelector('[data-p3="lever-search-field-style"] .p3-readout');
         return {
           titles: secs.map((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name ?? null),
           buttons: edges('Buttons', 'button-options-section'), fields: edges('Fields', 'field-options-section'), tags: edges('Tag', 'tag-options-section'),
+          dialogs: edges('Dialog', 'dialog-options-section'),
           other: [...(by('Other components')?.querySelectorAll('[data-p3="cp-name"]') ?? [])].map((n) => n.textContent),
           fo: fo ? {
             title: fo.querySelector('[data-p3="field-options-title"]')?.textContent ?? null, desc: fo.querySelector('[data-p3="field-options-desc"]')?.textContent ?? null,
@@ -8663,6 +8677,10 @@ for (const host of ['web', 'figma']) {
           to: to ? {
             title: to.querySelector('[data-p3="tag-options-title"]')?.textContent ?? null, desc: to.querySelector('[data-p3="tag-options-desc"]')?.textContent ?? null,
             chips: [...to.querySelectorAll('[data-p3^="tag-style-choice-"]')].map((n) => n.textContent),
+          } : null,
+          dO: dO ? {
+            title: dO.querySelector('[data-p3="dialog-options-title"]')?.textContent ?? null, desc: dO.querySelector('[data-p3="dialog-options-desc"]')?.textContent ?? null,
+            chips: [...dO.querySelectorAll('[data-p3^="dialog-title-size-choice-"]')].map((n) => n.textContent),
           } : null,
           so: so ? {
             title: so.querySelector('[data-p3="search-options-title"]')?.textContent ?? null, desc: so.querySelector('[data-p3="search-options-desc"]')?.textContent ?? null,
@@ -8676,8 +8694,14 @@ for (const host of ['web', 'figma']) {
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
       });
-      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents']),
-        `#2905 Q548, #2931 Q579 A: ${host} ${w}: the sections are Buttons, Fields, Tag, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents']),
+        `#2905 Q548, #2931 Q579 A, #2958: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      const D = r.dialogs;
+      ok(!!D && JSON.stringify(D.ids) === JSON.stringify(['dialog']) && D.folds + D.families === 0,
+        `#2958: ${host} ${w}: the Dialog section lists Dialog as a row, with no family row and no fold (${JSON.stringify({ ids: D?.ids, folds: D?.folds, families: D?.families })})`);
+      // The copy is the DRAFT posted on #2958 (Q1), held here as literals so a change to it is a decision, not drift.
+      ok(!!r.dO && r.dO.title === 'Dialog options' && r.dO.desc === 'How dialogs size their title.' && JSON.stringify(r.dO.chips) === JSON.stringify(['Large', 'Medium', 'Small']),
+        `#2958: ${host} ${w}: Dialog options: its drafted title and description, and Dialog title size's chips (${JSON.stringify(r.dO)})`);
       const T = r.tags;
       ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag']) && T.folds + T.families === 0,
         `#2931 Q579 A: ${host} ${w}: the Tag section lists Tag as a row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
@@ -8687,9 +8711,9 @@ for (const host of ['web', 'figma']) {
       ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
         && JSON.stringify(F.ids) === JSON.stringify(['code-input', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
         `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its six fields (Code input since Q-2789.3 A), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
-      ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
+      ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
         `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
-      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T]]) {
+      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T], ['Dialog', D]]) {
         const xs = e ? [e.head, ...e.rows, e.line, e.block] : [];
         const one = xs.length > 2 && xs.every((v) => v !== null && Math.abs(v - xs[0]) <= 0.5);
         ok(one && e.inBlock && e.after, `#2905 Q1 A: ${host} ${w}: ${name}: rows, line and block start at one edge, the section head's, and the block follows the sets (${JSON.stringify(e)})`);
@@ -8750,6 +8774,15 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="search-options"] [data-p3="search-field-style-choice-follow"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="search-options"] [data-p3="search-field-style-choice-follow"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         ok((await persisted(page))?.searchFieldStyle === 'follow', `#2888: Search options' Follow field style writes searchFieldStyle: follow (${(await persisted(page))?.searchFieldStyle})`);
+        // #2958: Dialog title size is brand-wide too: Small from Dark writes the brand value, Large restores it.
+        await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-small"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-small"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const dlgS = await persisted(page);
+        ok(dlgS?.dialogTitleSize === 'small' && JSON.stringify(dlgS?.modeLevers) === JSON.stringify(before?.modeLevers),
+          `#2958 Q54: previewing Dark, Dialog options' Small writes dialogTitleSize: small and no per-mode value (${dlgS?.dialogTitleSize}, ${JSON.stringify(dlgS?.modeLevers)})`);
+        await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-large"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-large"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        ok((await persisted(page))?.dialogTitleSize === 'large', `#2958: Dialog options' Large writes dialogTitleSize: large (${(await persisted(page))?.dialogTitleSize})`);
       }
       ok(errors.length === 0, `#2905 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
@@ -8788,8 +8821,8 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
       ok(Math.abs(hd.off - m.rowOff) <= 1, `#2825: figma ${w}: the ${hd.name} head's box is centered on its title's first line, as a row's is on its name (${hd.off.toFixed(2)}px off the line, the row's ${m.rowOff.toFixed(2)}px; the title is ${hd.lines} line${hd.lines === 1 ? '' : 's'})`);
       if (hd.allOff !== null) ok(Math.abs(hd.allOff) <= 1, `#2825: figma ${w}: ${hd.name}' Build all is centered on the title's first line (${hd.allOff.toFixed(2)}px)`);
     }
-    // #2905: five sections now (Buttons, Fields, Tag, Other components, Subcomponents; #2931 Q579 A), each head measured.
-    ok(m.heads.length === 5 && m.heads.some((x) => x.allOff !== null), `#2825: figma ${w}: every section head measured, Build all among them (${m.heads.length})`);
+    // #2905: six sections now (Buttons, Fields, Tag, Dialog, Other components, Subcomponents; #2931 Q579 A, #2958), each head measured.
+    ok(m.heads.length === 6 && m.heads.some((x) => x.allOff !== null), `#2825: figma ${w}: every section head measured, Build all among them (${m.heads.length})`);
     if (w === 380) ok(m.heads.some((x) => x.lines >= 2), `#2825: figma 380: a head's title wraps, so the first-line rule is tested where it differs from centering on the head (${JSON.stringify(m.heads.map((x) => x.lines))})`);
     ok(errors.length === 0, `#2825 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -9706,7 +9739,10 @@ const START = {
   badHex: 'Enter a hex color as #rrggbb.',                                                      // S3
   emptyPaste: 'Paste a design.md brief or choose a file first.',                                // S2
   fileType: 'Choose a .md, .markdown or .txt file.',                                            // S6
-  close: 'Close',                                                                                // S10
+  close: 'Close',                                                                                // S10; the X's name since #2879
+  // #2879 (Q613 6 A, 7 A): one X, on every open but the web's first run; its tooltip says what it returns to.
+  firstHint: 'Close — opens the file without a brand',
+  reopenHint: (brand) => `Close — back to ${brand}, unchanged`,
   importDesc: 'Already have a design.md? Paste it or upload it to load the full brand.',       // X1 (the owner's review of #2142)
 };
 /** A brief with a repeated key on line 3 (the opening --- is line 1), and one with no primary, which names no line. */
@@ -9731,6 +9767,31 @@ const DESTRUCTIVE = (() => {
 })();
 ok(Object.values(DESTRUCTIVE).every((d) => /^#[0-9a-f]{6}$/.test(d.fill ?? '') && /^#[0-9a-f]{6}$/.test(d.on ?? '')),
   `S5: the oracle resolved Prism3's destructive fill and on-fill from the emission (${JSON.stringify(DESTRUCTIVE)})`);
+/** #2560 (the owner's Q486 A, Q613 8 A): the start window's scrim is Stance's modal scrim, `color.scrim.default`, per theme,
+ *  walked from the committed emission and its dark overlay to the palette step it aliases, as computed style writes it.
+ *  Never from the chrome's variable map, which is what the CSS reads. */
+const START_SCRIM = (() => {
+  const out = join(REPO, 'packages/engine/out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = Object.keys(base).find((k) => !k.startsWith('$'));
+  const ov = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+  const at = (tree, path) => path.split('.').reduce((n, k) => n?.[k], tree);
+  const res = (theme, path, depth = 0) => {
+    const v = (theme === 'dark' ? at(ov, path)?.$value : undefined) ?? at(base, path)?.$value;
+    if (typeof v !== 'string' || depth > 20) return null;
+    const m = /^\{(.+)\}$/.exec(v);
+    return m ? res(theme, m[1], depth + 1) : v.toLowerCase();
+  };
+  const rgba = (hx) => {
+    const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/.exec(hx ?? '');
+    if (!m) return null;
+    const [r, g, b] = [m[1], m[2], m[3]].map((x) => parseInt(x, 16));
+    return `rgba(${r}, ${g}, ${b}, ${Math.round((parseInt(m[4], 16) / 255) * 100) / 100})`;
+  };
+  return Object.fromEntries(['light', 'dark'].map((t) => [t, rgba(res(t, `${root}.color.scrim.default`))]));
+})();
+ok(START_SCRIM.light === 'rgba(0, 0, 0, 0.4)' && START_SCRIM.dark === 'rgba(0, 0, 0, 0.6)',
+  `#2560: the oracle resolved scrim.default from the emission as black 40% light and black 60% dark, the wireframe's scrim A (${JSON.stringify(START_SCRIM)})`);
 const startRgb = (hx) => `rgb(${parseInt(hx.slice(1, 3), 16)}, ${parseInt(hx.slice(3, 5), 16)}, ${parseInt(hx.slice(5, 7), 16)})`;
 const START_SIZES = [{ w: 1280, h: 900 }, { w: 380, h: 420 }];
 /** A first run on `host`: the web with nothing saved, the plugin in a file with no brand. Waits for the frame's width
@@ -9762,7 +9823,9 @@ const readStartWindow = (page) => page.evaluate(() => {
     open: !!dlg, role: dlg?.getAttribute('role'), modal: dlg?.getAttribute('aria-modal'),
     labelled: !!dlg && document.getElementById(dlg.getAttribute('aria-labelledby') ?? '')?.textContent === q('[data-p3="start-heading"]')?.textContent,
     heading: q('[data-p3="start-heading"]')?.textContent ?? null,
-    close: q('[data-p3="start-close"]')?.textContent ?? null,
+    // #2879: the X, read by its accessible name and its tooltip.
+    close: q('[data-p3="start-close"]')?.getAttribute('aria-label') ?? null,
+    closeHint: q('[data-p3="start-close"]')?.getAttribute('title') ?? null,
     order: [...document.querySelectorAll('[data-p3="start-path"]')].map((c) => c.querySelector('h3')?.textContent ?? ''),
     go: q('[data-p3="start-go"]')?.textContent ?? null,
     hex: q('[data-p3="start-hex"]')?.value ?? null,
@@ -9772,6 +9835,8 @@ const readStartWindow = (page) => page.evaluate(() => {
     startInert: !!dlg?.closest('[inert]'),
     frameInert: !!q('[data-p3="frame-head"]')?.closest('[inert]'),
     guard: !!guard,
+    scrim: (() => { const sc = q('[data-p3="start-screen-scrim"]'); return sc ? getComputedStyle(sc).backgroundColor : null; })(),
+    guardScrim: (() => { const sc = q('[data-p3="start-guard-scrim"]'); return sc ? getComputedStyle(sc).backgroundColor : null; })(),
     guardTitle: q('[data-p3="start-guard-title"]')?.textContent ?? null,
     guardBody: q('[data-p3="start-guard-body"]')?.textContent ?? null,
     discard: q('[data-p3="start-guard-discard"]')?.textContent ?? null,
@@ -9814,7 +9879,13 @@ for (const { w, h } of START_SIZES) {
         let s = await readStartWindow(page);
         ok(s.open && s.role === 'dialog' && s.modal === 'true' && s.labelled, `${where}: the start is a modal window over the studio, named by its heading (G10 A)`);
         ok(s.heading === START.heading[host], `${where}: the heading reads "${START.heading[host]}" (G17) — reads "${s.heading}"`);
-        ok(s.close === null, `${where}: the first run offers no Close (G15 A, S9) — found "${s.close}"`);
+        // #2879 (Q613 6 A, 7 A): the plugin's first run has the X, named "Close", its tooltip saying where it goes; the web's has none.
+        if (host === 'web') ok(s.close === null, `${where}: the web's first run offers no X (Q613 7 A) — found "${s.close}"`);
+        else ok(s.close === START.close && s.closeHint === START.firstHint,
+          `${where}: the plugin's first run offers the X, named "${START.close}", its tooltip "${START.firstHint}" (Q613 6 A) — "${s.close}", "${s.closeHint}"`);
+        // #2560 (Q486 A): the scrim behind the window is scrim.default. Its name says which theme failed, so putting the
+        // hover wash back (white 20% in dark) fails "start scrim is scrim.default (dark)".
+        ok(s.scrim === START_SCRIM[theme], `${where}: start scrim is scrim.default (${theme}) — ${START_SCRIM[theme]}, painted ${s.scrim}`);
         ok(JSON.stringify(s.order) === JSON.stringify(START.order), `${where}: the cards run color (with Blank), examples, import (S8, N1 A) — ${JSON.stringify(s.order)}`);
         // The owner's review of #2142: one edge for all four cards; Upload on the import card's heading row; X1's words.
         ok(s.cardEdges.length === 3 && new Set(s.cardEdges).size === 1, `${where}: every card draws the same border — ${JSON.stringify(s.cardEdges)}`);
@@ -9832,7 +9903,7 @@ for (const { w, h } of START_SIZES) {
         // The chrome probe, in this state: the window's text, edges, targets, fonts and inline values.
         const m = await measure(page, `${where} / start`, host, w);
         check(m, `${where} / start`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR,
-          { only: ['[data-p3="start-go"]', '[data-p3="start-hex"]', '[data-p3="start-example"]', '[data-p3="start-blank"]', '[data-p3="start-upload"]', '[data-p3="start-import"]'] });
+          { only: [...(host === 'figma' ? ['[data-p3="start-close"]'] : []), '[data-p3="start-go"]', '[data-p3="start-hex"]', '[data-p3="start-example"]', '[data-p3="start-blank"]', '[data-p3="start-upload"]', '[data-p3="start-import"]'] });
         // X4 A: Import is disabled while the paste box is empty, in Prism3's disabled outline button, under the text
         // floor on purpose; this probe must exempt it. Then the button canary: a live copy of Import carrying every
         // computed style of the disabled one, which must fail its floor unexempted (#2174).
@@ -9845,7 +9916,7 @@ for (const { w, h } of START_SIZES) {
         const rings = await focusRings(page);
         const ringHooks = new Set(rings.map((r) => r.hook));
         // Import is disabled while the box is empty, so Tab passes it here.
-        for (const want of ['start-hex', 'start-go', 'start-example', 'start-blank', 'start-upload', 'start-paste']) ok(ringHooks.has(want), `${where}: Tab reaches ${want} inside the window`);
+        for (const want of [...(host === 'figma' ? ['start-close'] : []), 'start-hex', 'start-go', 'start-example', 'start-blank', 'start-upload', 'start-paste']) ok(ringHooks.has(want), `${where}: Tab reaches ${want} inside the window`);
         // #2144 / FR1 A: every ring in the window, the paste box's included, is section 27's ring: Prism3's focus color,
         // 2px wide, outside the control, at 3:1 (`ringMisses`, against the emission's `FOCUS_HEX`).
         const offRings = rings.map((r) => ({ r, miss: ringMisses(r, theme) })).filter((x) => x.miss.length);
@@ -9853,7 +9924,17 @@ for (const { w, h } of START_SIZES) {
         s = await readStartWindow(page);
         ok(s.focusInStart, `${where}: thirty Tabs later focus is still in the window (${s.focus})`);
         await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
-        ok((await readStartWindow(page)).open, `${where}: Escape does not close the first run`);
+        if (host === 'web') ok((await readStartWindow(page)).open, `${where}: Escape does not close the web's first run (Q613 7 A)`);
+        else {
+          // #2879 (Q613 6 A): Escape does what the X does on the plugin's first run, to the minimal home; its button
+          // opens the window again, and the rest of this case runs in that window.
+          const home = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="start-screen"]'), layout: document.querySelector('[data-p3="frame"]')?.dataset.layout,
+            kind: document.querySelector('[data-p3="home"]')?.dataset.kind, focus: document.activeElement?.getAttribute('data-p3') }));
+          ok(!home.open && home.layout === 'home' && home.kind === 'none' && home.focus === 'home-start',
+            `${where}: Escape closes the plugin's first run to the minimal home, focus on its button (Q613 6 A) — ${JSON.stringify(home)}`);
+          await hooks.click(page.locator('[data-p3="home-start"]'));
+          await hooks.need(page, '[data-p3="start-screen"]');
+        }
 
         // ── S3: a bad hex is refused, in words ─────────────────────────────────────────────────────
         const before = await savedBrand(page);
@@ -9913,7 +9994,8 @@ for (const { w, h } of START_SIZES) {
         };
         await reopen();
         s = await readStartWindow(page);
-        ok(s.close === START.close, `${where}: reopened, the start offers "${START.close}" (S9, S10) — "${s.close}"`);
+        ok(s.close === START.close && s.closeHint === START.reopenHint('harbor-edited'),
+          `${where}: reopened, the start offers the X, "${START.close}", its tooltip "${START.reopenHint('harbor-edited')}" (S9, S10, #2879) — "${s.close}", "${s.closeHint}"`);
         ok((s.hex ?? '').toLowerCase() === '#336699', `${where}: reopened, the color starts at the edited primary #336699 (G14) — ${s.hex}`);
         ok(s.heading === START.heading[host], `${where}: reopened, the heading is the same (G17)`);
         const mr = await measure(page, `${where} / reopened`, host, w);
@@ -9929,6 +10011,7 @@ for (const { w, h } of START_SIZES) {
         if (!s.guard) throw new Error('no guard to measure');
         ok(s.guard && s.open && s.startInert && s.guardOnTop, `${where}: the guard opens on top of the start window, which stays open behind it (S4) — start ${s.open ? 'open' : 'closed'}, inert ${s.startInert}, on top ${s.guardOnTop}`);
         ok(s.focus === 'start-guard-cancel', `${where}: focus starts on Cancel (S5) — on ${s.focus}`);
+        ok(s.guardScrim === START_SCRIM[theme], `${where}: the guard's scrim is scrim.default (${theme}) too — ${START_SCRIM[theme]}, painted ${s.guardScrim}`);
         ok(s.guardTitle === 'Replace harbor-edited with the aurora example?', `${where}: the guard's title is "Replace ‹brand› with ‹choice›?" (S10) — "${s.guardTitle}"`);
         ok(s.guardBody === '3 edits to harbor-edited are not saved to a file. Export or apply first to keep them.', `${where}: the guard's body names the 3 edits (S10) — "${s.guardBody}"`);
         const want = DESTRUCTIVE[theme];
@@ -10073,6 +10156,180 @@ for (const host of ['web', 'figma']) {
       ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
+}
+
+// =============================================================================================
+// 28b. The homes and the start window's X (#2879; the owner's Q485 C, and Q613 A on all ten wireframe questions), plus
+//      the scrim behind a window opened over a home (#2560, Q486 A). The plugin, both themes, at 1280 and 380.
+// =============================================================================================
+// What a designer sees, against literals typed here (the wireframe's words; Q613): the library home opens with no
+// dialog, its bar names the library with its "Library file" badge and carries no brand control (no brand switcher,
+// Contrast, Export, Figma menu or Apply Theme); its agent-link switch and its start button meet the chrome's floors (text,
+// edges, targets, fonts) and draw Prism3's focus ring; "Set up a brand in this file…" opens the start window with the X
+// over the home, on scrim.default; the X returns to the home, focus on the button that opened it; and the minimal home,
+// where the X lands on a first run, meets the same floors. Then forced colors (1280): the window's edge, its title and
+// the X's ring are drawn apart from the window's ground, and the home's switch keeps its track's edge.
+console.log(`\nThe homes and the X (#2879)\n${'='.repeat(78)}`);
+const HOME_LIT = {
+  library: { name: 'Product Library', versions: ['0.237.0'], instances: 142, bindings: 318 },
+  title: 'Product Library', badge: 'Library file',
+  meta: 'Prism3 library · built by Prism3 0.237.0',
+  evidence: 'This page uses 142 instances and 318 variable bindings from it. The file has no Prism3 variables of its own.',
+  setUp: 'Set up a brand in this file…',
+  noneTitle: 'No brand in this file', noneBar: 'No brand', noneStart: 'Start a brand…',
+  reading: 'Reading this file',
+};
+/** The bar's brand controls, none of which a home draws (there is no brand in the file). */
+const HOME_ABSENT = ['brand-switcher', 'verdict', 'export-open', 'figma-open', 'apply-to-figma', 'tab-row'];
+/** The home's floors (literals): the library home draws its heading, two lines, the switch's title and status, the
+ *  button and the bar's tiles; the minimal home fewer. */
+const HOME_FLOOR = { library: { text: 7, edges: 2, glyphs: 3, controls: 5, fonts: 6 }, none: { text: 4, edges: 1, glyphs: 3, controls: 4, fonts: 4 } };
+const readHome = (page) => page.evaluate((absent) => {
+  const q = (s) => document.querySelector(s);
+  const shown = (n) => !!n && n.getClientRects().length > 0;
+  return {
+    layout: q('[data-p3="frame"]')?.dataset.layout ?? null,
+    kind: q('[data-p3="home"]')?.dataset.kind ?? null,
+    start: !!q('[data-p3="start-screen"]'),
+    title: shown(q('[data-p3="home-title"]')) ? q('[data-p3="home-title"]').textContent : null,
+    meta: shown(q('[data-p3="home-meta"]')) ? q('[data-p3="home-meta"]').textContent : null,
+    line: shown(q('[data-p3="home-line"]')) ? q('[data-p3="home-line"]').textContent : null,
+    reading: shown(q('[data-p3="home-reading"]')) ? q('[data-p3="home-reading"]').textContent : null,
+    button: shown(q('[data-p3="home-start"]')) ? q('[data-p3="home-start"]').textContent : null,
+    barName: shown(q('[data-p3="home-name"]')) ? q('[data-p3="home-name"] .p3-homename-text')?.textContent ?? null : null,
+    badge: shown(q('[data-p3="home-badge"]')) ? q('[data-p3="home-badge"]').textContent : null,
+    switchShown: shown(q('[data-p3="home-agent-switch"]')),
+    switchOn: q('[data-p3="home-agent-switch"]')?.getAttribute('aria-checked') ?? null,
+    tileOn: q('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') ?? null,
+    drawn: absent.filter((h) => shown(q(`[data-p3="${h}"]`))),
+    focus: document.activeElement?.getAttribute('data-p3') ?? null,
+    scrim: (() => { const sc = q('[data-p3="start-screen-scrim"]'); return sc ? getComputedStyle(sc).backgroundColor : null; })(),
+  };
+}, HOME_ABSENT);
+/** The link's state as the main thread publishes it (`agent-protocol.ts`'s `AgentLinkState`), on or off. */
+const LINK_STATE = (on) => ({ type: 'agent-link-state', state: { on, pollMs: 2000, transports: { mailbox: on, bridge: false }, lastCommand: null, inboxError: null } });
+const postMain = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), msg);
+const openPlugin = async ({ theme, w, h }) => {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme });
+  const page = await ctx.newPage();
+  await hooks.watch(page);
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(`uncaught: ${e.message}`));
+  // The dev build's desktop-bridge relay tries its local socket while the link is on; nothing listens here.
+  page.on('console', (m) => { if (m.type() === 'error' && !/ws:\/\/localhost:17331/.test(m.text())) errors.push(`console.error: ${m.text()}`); });
+  await page.goto(`${ORIGIN}/plugin?figma=${theme}`, { waitUntil: 'load' });
+  await hooks.need(page, '[data-p3="frame"]');
+  await page.waitForFunction((tier) => document.querySelector('[data-p3="frame"]')?.dataset.w === tier, w <= 560 ? 'narrow' : 'wide');
+  await page.evaluate(() => document.fonts.ready);
+  return { ctx, page, errors };
+};
+for (const { w, h } of START_SIZES) {
+  for (const theme of ['light', 'dark']) {
+    const where = `#2879 figma ${theme} ${w}`;
+    const { ctx, page, errors } = await openPlugin({ theme, w, h });
+    try {
+      await postMain(page, LINK_STATE(false));
+      // Reading: no start window, no editor, the status line alone.
+      await postMain(page, { type: 'restore-input-reading' });
+      await page.waitForFunction(() => document.querySelector('[data-p3="home"]')?.dataset.kind === 'reading');
+      let r = await readHome(page);
+      ok(r.layout === 'home' && r.reading === HOME_LIT.reading && !r.start && r.drawn.length === 0,
+        `${where}: while the host reads the file, "${HOME_LIT.reading}" shows, with no start window and no brand control — ${JSON.stringify(r)}`);
+      // The library home.
+      await postMain(page, { type: 'restore-input-library', library: HOME_LIT.library });
+      await page.waitForFunction(() => document.querySelector('[data-p3="home"]')?.dataset.kind === 'library');
+      r = await readHome(page);
+      ok(r.layout === 'home' && !r.start && r.reading === null, `${where}: a library file opens to the library home, no start window (Q485 C) — ${JSON.stringify({ layout: r.layout, start: r.start, reading: r.reading })}`);
+      ok(r.title === HOME_LIT.title && r.meta === HOME_LIT.meta && r.line === HOME_LIT.evidence && r.button === HOME_LIT.setUp,
+        `${where}: the library home reads the wireframe's words — ${JSON.stringify([r.title, r.meta, r.line, r.button])}`);
+      ok(r.barName === HOME_LIT.title && r.badge === HOME_LIT.badge, `${where}: the bar names the library, badge "${HOME_LIT.badge}" — "${r.barName}", "${r.badge}"`);
+      ok(r.drawn.length === 0, `${where}: the library home's bar draws no brand control — drew ${JSON.stringify(r.drawn)}`);
+      ok(r.switchShown && r.switchOn === 'false' && r.tileOn === 'false', `${where}: the agent link's switch shows, off, as the tile is — switch ${r.switchOn}, tile ${r.tileOn}`);
+      await postMain(page, LINK_STATE(true));
+      r = await readHome(page);
+      ok(r.switchOn === 'true' && r.tileOn === 'true', `${where}: the switch and the tile both read the one published state (Q613 3 A) — switch ${r.switchOn}, tile ${r.tileOn}`);
+      const m = await measure(page, `${where} / library home`, 'figma', w);
+      check(m, `${where} / library home`, columnOf('figma', w), HOME_FLOOR.library, { state: 'home', only: ['[data-p3="home-agent-switch"]', '[data-p3="home-start"]'] });
+      const rings = await focusRings(page);
+      const want = ['home-agent-switch', 'home-start'];
+      const got = rings.filter((x) => want.includes(x.hook));
+      const off = got.map((x) => ({ x, miss: ringMisses(x, theme) })).filter((x) => x.miss.length);
+      ok(want.every((k) => got.some((x) => x.hook === k)) && off.length === 0,
+        `${where}: Tab reaches the switch and the button, and each draws its ring in ${FOCUS_RING_TOKEN} (FR1 A)${off.length ? ` — ${off.map(({ x, miss }) => `${x.hook}: ${miss.join(', ')}`).join(' | ')}` : ` — reached ${JSON.stringify(got.map((x) => x.hook))}`}`);
+      // "Set up a brand in this file…" opens the window over the home, on scrim.default, with the X; the X comes back.
+      await hooks.click(page.locator('[data-p3="home-start"]'));
+      await hooks.need(page, '[data-p3="start-screen"]');
+      r = await readHome(page);
+      const x = await page.evaluate(() => { const b = document.querySelector('[data-p3="start-close"]'); return b ? { name: b.getAttribute('aria-label'), hint: b.getAttribute('title') } : null; });
+      ok(r.start && r.layout === 'home' && x?.name === START.close && x?.hint === START.firstHint,
+        `${where}: "${HOME_LIT.setUp}" opens the start window over the home, with the X "${START.close}" ("${START.firstHint}") — ${JSON.stringify({ start: r.start, layout: r.layout, x })}`);
+      ok(r.scrim === START_SCRIM[theme], `${where}: the scrim over the home is scrim.default (${theme}) — ${START_SCRIM[theme]}, painted ${r.scrim}`);
+      await hooks.click(page.locator('[data-p3="start-close"]'));
+      r = await readHome(page);
+      ok(!r.start && r.kind === 'library' && r.focus === 'home-start', `${where}: the X returns to the library home, focus on its button — ${JSON.stringify({ start: r.start, kind: r.kind, focus: r.focus })}`);
+      // The X loads nothing: no theme was applied, persisted or built from the home and back.
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+
+    // The minimal home, where the X lands on a first run.
+    const where2 = `#2879 figma ${theme} ${w} / minimal home`;
+    const o = await openPlugin({ theme, w, h });
+    try {
+      await postMain(o.page, { type: 'restore-input-empty' });
+      await hooks.need(o.page, '[data-p3="start-screen"]');
+      await hooks.click(o.page.locator('[data-p3="start-close"]'));
+      await o.page.waitForFunction(() => document.querySelector('[data-p3="home"]')?.dataset.kind === 'none');
+      const r = await readHome(o.page);
+      ok(!r.start && r.title === HOME_LIT.noneTitle && r.button === HOME_LIT.noneStart && r.barName === HOME_LIT.noneBar && r.badge === null && !r.switchShown && r.drawn.length === 0,
+        `${where2}: the X opens the minimal home: "${HOME_LIT.noneTitle}", "${HOME_LIT.noneStart}", the bar "${HOME_LIT.noneBar}", no brand control — ${JSON.stringify(r)}`);
+      const m = await measure(o.page, where2, 'figma', w);
+      check(m, where2, columnOf('figma', w), HOME_FLOOR.none, { state: 'home', only: ['[data-p3="home-start"]'] });
+      ok(o.errors.length === 0, `${where2}: 0 console errors${o.errors.length ? ` — ${o.errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where2}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await o.ctx.close(); }
+  }
+}
+// Forced colors (#1855's emulation): over a library home, the window keeps its edge, its title and the X's ring apart
+// from its ground, and the home's switch keeps its track's edge. Expected colors are the system keywords' own, read off a
+// probe node that sets each inline, never chrome.css.
+for (const theme of ['light', 'dark']) {
+  const where = `#2879 forced colors figma ${theme} 1280`;
+  const { ctx, page, errors } = await openPlugin({ theme, w: 1280, h: 900 });
+  try {
+    await postMain(page, LINK_STATE(false));
+    await postMain(page, { type: 'restore-input-library', library: HOME_LIT.library });
+    await page.waitForFunction(() => document.querySelector('[data-p3="home"]')?.dataset.kind === 'library');
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
+    const sys = await page.evaluate(() => {
+      const t = document.createElement('div'); document.body.append(t);
+      const out = {};
+      for (const k of ['Canvas', 'CanvasText']) { t.style.backgroundColor = k; out[k] = getComputedStyle(t).backgroundColor; }
+      t.remove();
+      return { ...out, active: matchMedia('(forced-colors: active)').matches };
+    });
+    ok(sys.active && sys.Canvas !== sys.CanvasText, `${where}: the oracle: forced colors are active, Canvas and CanvasText apart (${JSON.stringify(sys)})`);
+    const track = await page.evaluate(() => { const t = document.querySelector('[data-p3="home-agent-switch"] .p3-switch-track'); const c = t && getComputedStyle(t); return c ? { edge: c.borderTopColor, width: parseFloat(c.borderTopWidth), bg: c.backgroundColor } : null; });
+    ok(!!track && track.width > 0 && track.edge !== track.bg, `${where}: the home's switch keeps its track's edge apart from its fill — ${JSON.stringify(track)}`);
+    await hooks.click(page.locator('[data-p3="home-start"]'));
+    await hooks.need(page, '[data-p3="start-screen"]');
+    await page.locator('[data-p3="start-close"]').focus();
+    await page.keyboard.press('Tab'); await page.keyboard.press('Shift+Tab');
+    const d = await page.evaluate(() => {
+      const dlg = document.querySelector('[data-p3="start-screen"]'), x = document.querySelector('[data-p3="start-close"]'), t = document.querySelector('[data-p3="start-heading"]');
+      const c = getComputedStyle(dlg), xc = getComputedStyle(x);
+      return { bg: c.backgroundColor, edge: c.borderTopColor, edgeW: parseFloat(c.borderTopWidth), title: getComputedStyle(t).color,
+        ring: xc.outlineColor, ringW: parseFloat(xc.outlineWidth), ringStyle: xc.outlineStyle, focused: document.activeElement === x && x.matches(':focus-visible') };
+    });
+    ok(d.edgeW > 0 && d.edge !== d.bg && d.title !== d.bg, `${where}: the start window draws its edge and its title apart from its ground — ${JSON.stringify(d)}`);
+    ok(d.focused && d.ringStyle === 'solid' && d.ringW >= 2 && d.ring !== d.bg, `${where}: the X's focus ring is solid, at least 2px, apart from the window's ground — ${JSON.stringify(d)}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
 }
 
 // =============================================================================================
@@ -10835,10 +11092,11 @@ const EXPECT_HEADINGS = {
     // group (L2) after its sets; Field options' one lever, Field style, is L3 as the Button options are.
     // #2931 Q579 A: Tag, its Tag options (L2) and Tag style (L3), Field options' way.
     // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
-    L1: ['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents'],
+    // #2958: Dialog, its Dialog options (L2) and Dialog title size (L3), Tag options' way.
+    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents'],
     // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
-    L2: ['Button options', 'Field options', 'Search options', 'Tag options'],
-    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style'],
+    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options'],
+    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
@@ -10855,7 +11113,8 @@ const HEADING_ADVANCED = {
   'color-palettes': ['[data-p3="palettes-advanced"]'], type: ['[data-p3="scale-advanced"]', '[data-p3="type-sections-advanced"]'],
   shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
   // #2844: a family's settings are closed behind their line; the audit reads them open.
-  components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]'],
+  components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]',
+    '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
