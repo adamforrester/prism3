@@ -158,7 +158,7 @@ const gridPlans = (def: ComponentDef): FigmaNodePlan[] => {
   const roots: FigmaNodePlan[] = [];
   // A sparse grid's missing members (`excludeCoordinates`) are skipped: the projector refuses to plan them.
   for (const size of sizes) for (const c of combos) for (const st of states)
-    if (!isExcludedCoordinate(def, { ...c, ...(size === undefined ? {} : { size }) })) for (const leading of [false, true]) for (const trailing of [false, true])
+    if (!isExcludedCoordinate(def, { ...c, ...(size === undefined ? {} : { size }), ...(st ? { state: st } : {}) })) for (const leading of [false, true]) for (const trailing of [false, true])
       roots.push(figmaAnatomyPlan(def, size as never, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root);
   return roots;
 };

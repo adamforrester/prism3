@@ -295,6 +295,12 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   '_accordion-indicator.chevronUpGlyph': { glyph: 'chevron-up', at: { indicator: ['chevron'], expansion: ['expanded'] }, why: 'the open chevron, pointing up' },
   '_accordion-indicator.plusGlyph': { glyph: 'plus', at: { indicator: ['plus-minus'], expansion: ['collapsed'] }, why: 'the closed mark of the plus and minus pair' },
   '_accordion-indicator.minusGlyph': { glyph: 'minus', at: { indicator: ['plus-minus'], expansion: ['expanded'] }, why: 'the open mark of the plus and minus pair' },
+  // #2665 (owner Q404 A) — Pagination's gap marker: the more-horizontal icon on the ellipsis members only. `type` changes
+  // what the cell IS (a page number or the gap), not which glyph a gap draws, so it is fixed rather than '{type}'.
+  'pagination-item.gapGlyph': { glyph: 'more-horizontal-filled', at: { type: ['ellipsis'] }, why: 'the decorative gap marker, three dots for two or more hidden pages' },
+  // #2665 (owner Q414 A) — Pagination draws its own previous and next: each cell's chevron, on its own type only.
+  'pagination-item.previousGlyph': { glyph: 'chevron-left', at: { type: ['previous'] }, why: 'the previous cell\'s chevron, pointing back' },
+  'pagination-item.nextGlyph': { glyph: 'chevron-right', at: { type: ['next'] }, why: 'the next cell\'s chevron, pointing forward' },
   'image-placeholder.markerGlyph': {
     glyph: 'image',
     // `at: {}` — present at EVERY coordinate, not gated by a variant. The marker is the "no image"

@@ -144,6 +144,18 @@ export type ShimOpts = {
   /** The LINE BOX, in px, a TEXT node measures under the named applied style when `layoutModel` is on —
    *  the caption's line height, keyed by style NAME as `textAdvance` is. Unlisted styles measure 0. */
   textLineBox?: Record<string, number>;
+  /** A FILL UNDER A HUG FREEZES THE HUG (Q537, Pagination's underline), opt-in and under `layoutModel` only. The host
+   *  does not let a frame hug a child that fills it: writing `layoutAlign: 'STRETCH'` on a child of a COLUMN whose width
+   *  hugs turns that column's width FIXED, at the width it had at that moment. And an auto-layout frame with no flow
+   *  children has nothing to hug, so it keeps `createFrame`'s 100px default. Together they built a 100px label box
+   *  around a one-digit page number, with the underline stretched across it, past the cells beside it (owner QA on a
+   *  real file, 2026-10-22). Without this, the shim measured a stretched underline exactly as wide as the number and
+   *  passed the defect.
+   *
+   *  MODELED, NOT MEASURED, and scoped to what the defect needed: a column's cross axis only (the row twin,
+   *  `layoutGrow` under a hugging row, is not modeled), and only for a frame the run creates. Off by default because
+   *  the other suites' expected widths were written against the permissive model. */
+  fillFreezesHug?: boolean;
   /** The FONT SIZE and LINE HEIGHT an applied text style gives a TEXT node, keyed by style NAME — what the
    *  host reports as `node.fontSize` / `node.lineHeight` once `setTextStyleIdAsync` resolves. The reserved-
    *  lines floor (textarea's `rows`) multiplies them, so a node with no metrics would be a floor nothing can
@@ -785,6 +797,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // A HIDDEN child takes no cell either, under `layoutModel` — the host lays out visible children only,
     // which is what lets a boolean-driven part be measured on and off (textarea's grip and counter).
     const kids = flowOf(node);
+    // NOTHING TO HUG (`fillFreezesHug`): a childless auto-layout frame keeps the width it was created or last set at.
+    if (opts.layoutModel && opts.fillFreezesHug && node.type === 'FRAME' && node.layoutMode && node.layoutMode !== 'NONE' && !kids.length)
+      return typeof node._setW === 'number' ? node._setW : 100;
     const column = opts.layoutModel && node.layoutMode === 'VERTICAL';
     // A child its parent fills: out of a column's hug, at its natural width in a row's (see `fillsX`).
     const w = (c: Node): number => (fillsX(c) ? (column ? 0 : naturalWidth(c)) : (c.width as number) || 0);
@@ -1372,6 +1387,23 @@ export const makeShim = (opts: ShimOpts = {}) => {
               throw new Error('in setReactionsAsync: Validation failed: a NODE action needs a destinationId');
           }
           reactions = JSON.parse(JSON.stringify(rs));
+        },
+      });
+    }
+    // A FILL UNDER A HUG FREEZES THE HUG (`fillFreezesHug`, see `ShimOpts`): the column the child stretches across
+    // stops hugging, at the width it measures when the stretch is written.
+    if (opts.layoutModel && opts.fillFreezesHug) {
+      let align: unknown = 'INHERIT';
+      Object.defineProperty(node, 'layoutAlign', {
+        configurable: true, enumerable: true,
+        get: () => align,
+        set: (v: unknown) => {
+          align = v;
+          const p = node.parent as Node | null;
+          if (v !== 'STRETCH' || !p || p.layoutMode !== 'VERTICAL' || p.counterAxisSizingMode !== 'AUTO') return;
+          const w = p.width as number;
+          p.counterAxisSizingMode = 'FIXED';
+          p._setW = w;
         },
       });
     }
