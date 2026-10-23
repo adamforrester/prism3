@@ -523,7 +523,7 @@
     },
     "tag": {
       "members": 45,
-      "sha256": "d3268451358dda7b782c3085fb3e4a7980c25668b87451fb39057fdf2556c6e2",
+      "sha256": "b94f86bc7c737d7944c1156397bf80f2607521a30dff86760b27d4ed099fc537",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -532,7 +532,7 @@
     },
     "tag@outline-solid-tint": {
       "members": 45,
-      "sha256": "a26ea7040f80de4563750a2de9be3cbed7a8a2e56a77daa829ae8a8539ebc14d",
+      "sha256": "6cdfee1bc88ec1877fb0b2d167f9145fd0d4ddddeb9a9ddd09e1ff923f340725",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -541,7 +541,7 @@
     },
     "tag@outline-none": {
       "members": 45,
-      "sha256": "300ecad1c9fc432bfd5a430aa85b3caa8367e7c4f4cf07677a4e4205d5e2046e",
+      "sha256": "5c2c541960725d4ebd6f2f2587a0bb875c7bbb111eb6a3dae187509f02c98047",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
