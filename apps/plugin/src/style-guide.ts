@@ -1440,6 +1440,13 @@ const GROUP_HEAD_GAP = 80;
 const GUIDE_GAP = 160;
 const GROUP_GAP = 320;
 const GROUP_HEADER_VARIANT = 'Size=Large';
+/** A group frame's paints and corner (#2953, the owner's reference file): roles found by name below the file's root. */
+const GROUP_FILL_ROLE = 'color/foreground/primary';
+const GROUP_STROKE_ROLE = 'color/border/secondary';
+const GROUP_RADIUS = 2;
+/** The variable a role name names below the file's root, as the usage panel and the furniture find theirs. */
+const byTail = <T extends { name: string }>(all: readonly T[], tail: string): T | undefined =>
+  all.find((v) => v.name === tail || v.name.endsWith(`/${tail}`));
 /** On a group frame Prism3 drew: the engine table's group id. */
 const GROUP_KEY = 'prism3-style-guide-group';
 /** On a group frame Prism3 drew: the title it wrote, so a designer's retitle is never overwritten. */
@@ -2140,7 +2147,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     f.counterAxisSizingMode = 'AUTO';
     f.paddingTop = GROUP_PAD_TOP; f.paddingBottom = GROUP_PAD; f.paddingLeft = GROUP_PAD; f.paddingRight = GROUP_PAD;
     f.itemSpacing = GROUP_HEAD_GAP;
-    // Transparent (Q7 A): the group sits on the canvas; the guides inside it carry their own white.
+    // No paint of the host's default: the group's own paints are put on below, with every group Prism3 drew (#2953).
     f.fills = [];
     f.setPluginData?.(GROUP_KEY, id);
     p.appendChild(f);
@@ -2883,6 +2890,28 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   //   • THE GROUPS RE-STACK (Q2 A, Q1 A): Prism3's groups still where it left them, in the engine table's order, down
   //     one column from where the page's groups started, GROUP_GAP apart. A group a designer moved, and a hand-made
   //     one, stay where they are.
+  // A GROUP PRISM3 DREW IS PAINTED WHILE IT HAS NO PAINT (#2953, the owner's reference file): a fill bound to the file's
+  // GROUP_FILL_ROLE and a 1px inside stroke bound to GROUP_STROKE_ROLE, each found by role name below the file's root,
+  // as the usage panel finds its own; a corner of GROUP_RADIUS. Every run, partial or not, so a group an earlier build
+  // drew bare is painted too. A group with any fill or stroke a designer set is never repainted, and a hand-made group
+  // Prism3 adopted is not its own (`isOurGroup`). Both roles or neither: a stroke alone would read as a designer's paint
+  // to the next run, which then never adds the fill.
+  const roleVariable = (role: string): unknown => { const v = byTail(catalog.variables, role); return v ? variableById.get(v.id) : undefined; };
+  const groupFill = roleVariable(GROUP_FILL_ROLE), groupStroke = roleVariable(GROUP_STROKE_ROLE);
+  const bare = (n: SgNode): boolean => !(Array.isArray(n.fills) && n.fills.length) && !(Array.isArray(n.strokes) && n.strokes.length);
+  const paintGroup = (g: SgNode): void => {
+    if (!bare(g)) return;
+    if (!groupFill || !groupStroke) {
+      const note = `Style guide groups are drawn without a fill or stroke: the file has no ${[groupFill ? '' : GROUP_FILL_ROLE, groupStroke ? '' : GROUP_STROKE_ROLE].filter(Boolean).join(' or ')} variable`;
+      if (!misses.includes(note)) misses.push(note);
+      return;
+    }
+    g.fills = [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', groupFill)];
+    g.strokes = [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', groupStroke)];
+    g.strokeWeight = 1;
+    g.strokeAlign = 'INSIDE';
+    if (g.cornerRadius === undefined || g.cornerRadius === 0) g.cornerRadius = GROUP_RADIUS;
+  };
   const groupsRemoved: string[] = [];
   const looseFrom = new Map<SgPage, { x: number; y: number }>();
   const pagesWithGroups = new Set<SgPage>([...drawnOn, ...[...groupsBefore.keys()].map((g) => [...pages.values()].find((p) => onPage(g, p))).filter((p): p is SgPage => !!p)]);
@@ -2891,6 +2920,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   for (const p of pagesWithGroups) for (const g of (p.children as readonly SgNode[]).filter((n) => isOurGroup(n))) {
     const def = styleGuideGroup(g.getPluginData?.(GROUP_KEY) || '');
     if (!def) continue;
+    paintGroup(g);
     const wrote = g.getPluginData?.(GROUP_TITLE_KEY) || '';
     const head = ((g.children ?? []) as SgNode[]).find((c) => c.getPluginData?.(PART_KEY) === 'group-header');
     const title = head ? byName(head, 'Title') : null;
