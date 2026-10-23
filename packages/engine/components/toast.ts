@@ -235,10 +235,10 @@ export const toast: ComponentDef = {
 
   composition: {
     composesWith: ['button', 'flush-icon-button-neutral'],
-    alternativeTo: ['dialog', 'field-message'],
+    alternativeTo: ['dialog', 'field-message', 'banner'],
     replacesPatterns: ['an alert() after a save', 'a status message that moves focus', 'a timed message with no pause'],
     supersededBy: [],
-    planned: ['banner'],
+    planned: [],
   },
 
   motion: {

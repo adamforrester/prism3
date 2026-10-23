@@ -88,7 +88,7 @@ Short and factual: the outcome, not a conversation. The glyph carries the tone, 
 ## Related components
 
 - **Built from:** `button`, `flush-icon-button-neutral`
-- **Instead, consider:** `dialog`, `field-message`
+- **Instead, consider:** `dialog`, `field-message`, `banner`
 - **Often used with:** `field-message`, `dialog`
 - **Replaces:**
   - an alert() after a save
