@@ -657,7 +657,7 @@ export const ENGINE_VERSION = '0.237.0';
  * path cannot break a reference. Nothing is removed or retyped.
  */
 /**
- * 14.9.0 (#2971, owner QA 2026-10-23, built on the recommended answers): MINOR. `container.min` joins the guaranteed
+ * 14.9.0 (#2971, owner decision 2026-10-23, Q2971.1–3 A): MINOR. `container.min` joins the guaranteed
  * surface: 320px, the narrowest column (the WCAG 1.4.10 reflow width), beside `container.max` and `container.narrow`.
  * Fixed for every brand, not a lever. Banner binds it as its width floor. One added path; an added path cannot break a
  * reference. Nothing is removed or retyped.

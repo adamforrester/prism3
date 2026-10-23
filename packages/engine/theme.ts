@@ -2130,7 +2130,7 @@ export type LayoutAxis = {
 };
 /** `container.min` (#2971): the narrowest column a component that lays out across its container holds, 320px, the
  *  WCAG 1.4.10 reflow width and the smallest phone viewport. FIXED, not a lever: the reflow width is the same for
- *  every brand. Banner binds it as its width floor, and code clamps it to the host (`min-inline-size: min(container.min, 100%)`),
+ *  every brand. Banner binds it as its width floor, and code clamps it to the host (`min-inline-size: min(var(--container-min), 100%)`),
  *  so a host narrower than the floor (a 320 phone's 288 column) never scrolls the page sideways. */
 export const CONTAINER_MIN_PX = 320;
 // Count-aware names: ≤5 tiers anchor at sm (sm/md/lg/xl/2xl — Tailwind); 6+ prepend
