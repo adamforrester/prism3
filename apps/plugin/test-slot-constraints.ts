@@ -51,6 +51,8 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   'tabs.items': { slotSettings: { minChildren: 1, maxChildren: 6, allowPreferredValuesOnly: true }, preferred: ['tab-item'] },
   'list.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['list-item'] },
   'segmented-control.items': { slotSettings: { minChildren: 1, maxChildren: 5, allowPreferredValuesOnly: true }, preferred: ['segmented-control-segment'] },
+  // #2428 (owner decision Q329 A): six cells by default, four to eight, only the cell.
+  'code-input.items': { slotSettings: { minChildren: 4, maxChildren: 8, allowPreferredValuesOnly: true }, preferred: ['code-input-cell'] },
   // Open (#2609, as built): the body holds whatever the dialog needs — text or any components — so no limit and no
   // preferred component. The footer's actions are the nested Button group's slot (#2661), its row below.
   'dialog.body': {},

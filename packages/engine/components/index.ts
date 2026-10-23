@@ -86,6 +86,7 @@ import { breadcrumbSeparator } from './breadcrumb-separator';
 import { breadcrumbItem } from './breadcrumb-item';
 import { breadcrumbs } from './breadcrumbs';
 import { counter } from './counter';
+import { codeInputCell, codeInput } from './code-input';
 import { progress } from './progress';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
@@ -94,7 +95,7 @@ import { progress } from './progress';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, codeInputCell, codeInput };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -242,4 +243,8 @@ export const componentDefs: readonly ComponentDef[] = [
   // `banner` (#2579, owner Q327) — a persistent message in the page flow. Nests the neutral Button (actions) and the
   // flush neutral icon button (dismiss), so it comes after both.
   banner,
+  // `code-input` (#2428, owner Q321 / Q329 / Q330) — a one-time code drawn as cells over one input. Its cell builds
+  // first: the field's `items` slot nests it.
+  codeInputCell,
+  codeInput,
 ];
