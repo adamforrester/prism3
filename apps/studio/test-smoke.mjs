@@ -4079,8 +4079,9 @@ const gotoComponents = async (page) => {
   await hooks.click(page.locator('[data-p3="tab-components"]'));
   await hooks.need(page, '[data-p3="components-levers"]');
   // #2844: the Button options are closed when the page opens, behind a disclosure line under the Buttons row: open it, as a designer would.
-  // The open state lasts the session (#2844), so a second visit finds it open: click only when it is closed.
-  if (await page.locator('[data-p3="cp-opts-toggle"]').getAttribute('aria-expanded') !== 'true') await hooks.click(page.locator('[data-p3="cp-opts-toggle"]'));
+  // The open state lasts the session, so a second visit finds it open: open it only when it is closed.
+  const line = page.locator('[data-p3="cp-opts-toggle"][data-key="opts=buttons"]');
+  if ((await line.getAttribute('aria-expanded')) !== 'true') await hooks.click(line);
   await page.waitForFunction(() => !!document.querySelector('[data-p3="button-options-section"]')?.getClientRects().length, null, { timeout: 5000 });
   await hooks.need(page, '[data-p3="components-style-guide"] [data-sg-section="button-layout"]');
   await page.evaluate(() => document.fonts.ready);
@@ -4218,11 +4219,12 @@ ok(componentChipGroups >= COMPONENT_CHIPS.length * 2 && buttonSpecimens === BRAN
   // `setViewportSize` resolves. Measured before it, the levers sit in the wide layout's 42% column at 380 (each group
   // about 90px wide) and all three groups overflow. Wait on the tier itself, a real condition, and name it below.
   await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 }).catch(() => {});
-  // #2815 step 1: the Button options sit under the Buttons row in the list, at every width; focus it, as a designer would.
-  await hooks.click(page.locator('[data-p3="cp-name"][data-key^="name=components|Buttons="]'));
+  // #2815 step 1: the Button options sit in the list, at every width; focus a Button set, as a designer would (#2905: the
+  // Buttons section has no family row, so its first set).
+  await hooks.click(page.locator('[data-p3="cp-name"][data-key="name=components|Buttons=Button"]'));
   await page.waitForFunction(() => !!document.querySelector('[data-p3="components-levers"] [data-p3="button-options-section"] [role="radiogroup"]'), null, { timeout: 5000 }).catch(() => {});
   const { tier, groups, over } = await page.evaluate(() => {
-    const gs = [...document.querySelectorAll('[data-p3="components-levers"] [role="radiogroup"]')];
+    const gs = [...document.querySelectorAll('[data-p3="components-levers"] [data-p3="button-options-section"] [role="radiogroup"]')];
     return { tier: document.querySelector('[data-p3="frame"]')?.dataset.w, groups: gs.length, over: gs.map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length };
   });
   ok(tier === 'narrow' && groups === 4 && over === 0, `at 380px every Button option chip group fits the levers panel (${groups} groups, ${over} overflow, frame tier ${tier})`);
@@ -4243,7 +4245,7 @@ ok(componentChipGroups >= COMPONENT_CHIPS.length * 2 && buttonSpecimens === BRAN
       await page.setViewportSize({ width: w, height: 900 });
       await page.waitForFunction((t) => document.querySelector('[data-p3="frame"]')?.dataset.w === t, w === 380 ? 'narrow' : 'wide', { timeout: 5000 }).catch(() => {});
       if (w === 1280) await chooseMode(page, mode);
-      else await hooks.click(page.locator('[data-p3="cp-name"][data-key="name=components|Buttons=Buttons"]'));
+      else await hooks.click(page.locator('[data-p3="cp-name"][data-key="name=components|Buttons=Button"]'));
       await page.waitForFunction((x) => !!document.querySelector(x), sel, { timeout: 5000 }).catch(() => {});
       const where = `${BRANDS[0]} / Components / ${mode} at ${w}`;
       await settle(page, where);

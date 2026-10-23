@@ -1370,6 +1370,9 @@ export interface StyleGuideRun {
   /** Read after each table (S11.2, owner decision P7): true stops the run there. The table being drawn is finished
    *  first, and nothing already drawn is removed. */
   stop?: () => boolean;
+  /** Called once with the table count, after the plan is laid and before anything is written (#2828): the plugin saves its
+   *  named version here. A rejection ends the run with nothing written. */
+  beforeWrite?: (tables: number) => Promise<void>;
 }
 
 /** Why a skipped table was not drawn, in the summary's words (`styleGuideSummary`), for the page's table list. The page is
@@ -1792,6 +1795,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // A swatch set Set up file built before its squares stretched is brought up to date (#2268), so a member a designer
   // places at any size grows its square with it. A table's fill swatch no longer shows the square (#2336: the instance
   // paints the color edge to edge), so this is the set's repair, not the table's. A set the owner made is never changed.
+  if (plan.tables.length) await run.beforeWrite?.(plan.tables.length);
   if (plan.tables.some((t) => t.kind === 'primitive')) stretchSwatches(swatches);
   const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly SgNode[];
   const headerSet = allSets.find((n) => n.name === SECTION_HEADER_SET) ?? allSets.find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));

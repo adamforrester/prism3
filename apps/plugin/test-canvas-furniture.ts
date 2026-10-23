@@ -804,7 +804,7 @@ section('columns — the Radio page, built before the fix: Update widens each se
   const settled = res.outcomes.filter((o) => o.setMoved).map((o) => o.set);
   const next = await previewUpdate(host, targets);
   // Every set read up to date, so nothing else wrote: the moves save the named version themselves (Q7).
-  ok(res.version === 'Before Prism3 updated radio-row, radio-group',
+  ok(res.version === 'Saved before Prism3 updated 2 sets',
     `columns/shared page version: the settling moves are the update's first write, so they save the named version first, naming the sets that move (${res.version})`);
   ok(Number(sets[0].width) > widthWas && between.length === 0 && JSON.stringify(settled) === JSON.stringify(['radio-row', 'radio-group']) && gaps().every((g) => g >= 160)
     && next.sets.every((p) => !p.setMove) && previewVerdict(next).headline === '✓ All sets up to date',
@@ -863,8 +863,23 @@ section('columns — the Radio page with a stale member: the update writes it, t
   const versions = api._versions as string[];
   ok(res.outcomes.find((o) => o.set === 'radio-control')?.updated.length === 1 && JSON.stringify(settled) === JSON.stringify(['radio-row', 'radio-group']) && hitsOf().length === 0,
     `columns/stale settle: the update rewrites radio-control's stale member, then moves ${JSON.stringify(settled)} clear of its widened labels (${hitsOf().length} overlaps)`);
-  ok(versions.length === 1 && JSON.stringify(atSave) === JSON.stringify(['unwritten unmoved']) && res.version === 'Before Prism3 updated radio-control' && versions[0] === res.version,
+  ok(versions.length === 1 && JSON.stringify(atSave) === JSON.stringify(['unwritten unmoved']) && res.version === 'Saved before Prism3 updated radio-control' && versions[0] === res.version,
     `columns/stale settle version: ONE named version, saved before the member's rewrite and before any move, the one the result names (${JSON.stringify(versions)}; at each save ${JSON.stringify(atSave)}; ${res.version})`);
+}
+
+section('columns — the Radio page, one set settles: the version names it by its display name (#2828, Q442 A)');
+{
+  // A ONE-SET RE-SPACE reads the set's display name, as the main Update's one-set title does, never its id: `settle`
+  // passes `nameOf` to the builder. radio-group starts far clear of radio-row, so only radio-row moves.
+  // Mutation: `settle` drops `nameOf` → "updated radio-row" here.
+  const { page, api, sets, host, targets, furnish } = await radioPage();
+  sets[2].x = Number(sets[2].x) + 4000;
+  for (const f of furnitureOn(page).filter((g) => tagOf(g).def === 'radio-group')) f.x = Number(f.x) + 4000;
+  const nameOf = (def: string) => ({ 'radio-control': 'Radio', 'radio-row': 'Radio row', 'radio-group': 'Radio group' } as Record<string, string>)[def];
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)), { furnish, nameOf });
+  const settled = res.outcomes.filter((o) => o.setMoved).map((o) => o.set);
+  ok(JSON.stringify(settled) === JSON.stringify(['radio-row']) && res.version === 'Saved before Prism3 updated Radio row' && JSON.stringify(api._versions) === JSON.stringify([res.version]),
+    `columns/one-set settle name: the re-space saves ONE version titled with the moved set's display name (${JSON.stringify(settled)}; ${JSON.stringify(api._versions)}; ${res.version})`);
 }
 
 section('columns — the Radio page, an update that stops: no set settles after the stop');
@@ -1329,7 +1344,7 @@ section('due — furniture the page lacks is listed by the dry run, drawn by the
   const av = applyVerdict(res);
   const bds = furnitureOn(page).filter((n) => tagOf(n).kind === 'backdrop');
   ok(!res.refusedAll && drawn[0]?.backdrops === 1 && bds.length === 1 && members() === membersWas
-    && av.headline === '✓ canvas furniture drawn for 1 set' && av.lines[0] === 'button: 1 backdrop drawn.' && (versions ?? []).at(-1) === 'Before Prism3 updated button',
+    && av.headline === '✓ canvas furniture drawn for 1 set' && av.lines[0] === 'button: 1 backdrop drawn.' && (versions ?? []).at(-1) === 'Saved before Prism3 updated button',
     `due/apply draws: the apply saves a version and draws the backdrop, and every member keeps its id, place and stamp (${res.refusedAll ?? 'applied'}; ${bds.length} backdrop(s); ${av.headline} / ${av.lines[0]}; ${JSON.stringify((versions ?? []).at(-1))})`);
   const next = await previewUpdate(host, targets);
   ok(!next.sets[0].furniture && previewVerdict(next).headline === '✓ All sets up to date',
