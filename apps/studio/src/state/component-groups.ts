@@ -60,14 +60,27 @@ export type GroupSection = {
 /** The sections with settings, in the page's order (#2905, Q548). A row joins the first whose `pages` holds its page or
  *  whose `ids` hold every one of its sets. Fields holds the sets Field style draws (`FIELD_FRAME_PARTS` in the engine's
  *  `anatomy-figma.ts`, typed here so no definition reaches the web bundle; `test-component-groups.ts` holds the two
- *  together). Search field (#2888) is in Fields (Q5 A); its own block is still to come. Tag holds the sets Tag style
- *  draws (`TAG_STYLE_PARTS`, held the same way). */
+ *  together). Search field (#2888) is in Fields (Q5 A), with its own Search options block (`SECTION_BLOCKS`). Tag
+ *  holds the sets Tag style draws (`TAG_STYLE_PARTS`, held the same way). */
 export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 'tags'; readonly pages: readonly string[]; readonly ids: readonly string[] }[] = [
   { kind: 'buttons', pages: ['Buttons'], ids: [] },
-  // #2888 shipped Search field; Q5 A on #2905 puts it inside Fields. Its own Search options block is still to come.
+  // #2888 shipped Search field; Q5 A on #2905 puts it inside Fields, with its own Search options block (#2952).
   { kind: 'fields', pages: [], ids: ['password-field', 'search-field', 'select', 'text-field', 'textarea'] },
   { kind: 'tags', pages: [], ids: ['tag'] },
 ];
+
+/** A settings block on the page: its key names its disclosure line (`opts=<key>`) and its open state. */
+export type BlockKey = 'buttons' | 'fields' | 'search' | 'tags';
+
+/** Each section's settings blocks, in the order they draw after its sets (#2952): a section holds a LIST, not one
+ *  block, because Fields holds two, Field options and then Search options below it (#2905 Q5 A). Each block has its own
+ *  disclosure line (Q7 A). A section with no settings has no entry. The blocks' copy and builders are
+ *  `domains/components.ts`'s; this is the order, which `test-component-groups.ts` holds. */
+export const SECTION_BLOCKS: Readonly<Partial<Record<SectionKind, readonly BlockKey[]>>> = {
+  buttons: ['buttons'],
+  fields: ['fields', 'search'],
+  tags: ['tags'],
+};
 
 /** The page's copy. DRAFT: the approved wireframe's own words (#2700), pending the owner's copy sign-off. */
 export const GROUPS_COPY = {
