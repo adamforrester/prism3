@@ -253,7 +253,8 @@ const planMember = (plan: { coord: Record<string, string>; root: Record<string, 
   members.set(String(m.id), m);
   return m;
 };
-const docBlockSet = (): N => mk('COMPONENT_SET', '_Doc-block', TYPES.flatMap((t) => SIZES.map((s) => mk('COMPONENT', `Type=${t}, Size=${s}`, [], { createInstance: () => blockInstance(t) }))));
+// Each variant holds its layers, as a file's template does: the texts a panel shows where the draw writes nothing.
+const docBlockSet = (): N => mk('COMPONENT_SET', '_Doc-block', TYPES.flatMap((t) => SIZES.map((s) => mk('COMPONENT', `Type=${t}, Size=${s}`, [...blockInstance(t).children], { createInstance: () => blockInstance(t) }))));
 
 const VARS = ['color/background/primary', 'color/border/secondary', 'color/text/primary', 'color/text/secondary', 'color/background/secondary', 'color/border/success', 'color/border/danger'].map((name, i) => ({ id: `V:${i}`, name: `zz/${name}`, variableCollectionId: 'VC:color' }));
 const COLLECTION = { id: 'VC:color', name: 'color', modes: [{ modeId: 'M:light', name: 'light' }, { modeId: 'M:dark', name: 'dark' }, { modeId: 'M:hc-light', name: 'hc-light' }] };
@@ -519,7 +520,9 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   const oldControl = legacy(control, 'checkbox-control', 340, false);
   const oldGroup = legacy(group, 'checkbox-group', 4340, true);
   oldControl.setSharedPluginData!('prism3', 'docPanelPrint', await fingerprintOf(oldControl as never));
-  oldGroup.setSharedPluginData!('prism3', 'docPanelPrint', 'printed before a hand edit');
+  // Printed the old way, then a line rewritten by hand (#2968: an old print alone no longer reads as an edit).
+  oldGroup.setSharedPluginData!('prism3', 'docPanelPrint', await fingerprintOf(oldGroup as never));
+  oldGroup.children[0].characters = 'Our team groups checkboxes in threes.';
   const api = host([p]);
   const rowDef = componentDefs.find((d) => d.id === 'checkbox-row')!;
   const plan = planDocPanel(rowDef, { modes: ['light', 'dark'], names });
@@ -579,6 +582,82 @@ section('print/… — a set rebuilt under its panel does not make the panel rea
   old.setSharedPluginData!('prism3', 'docPanelPrint', await fingerprintOf(old as never));
   const r3 = await drawDocPanel(qa, qs, def, { names });
   ok(r3.replaced === 1 && !r3.kept.length, 'print/legacy: a panel with a print in the old form, unchanged, is replaced');
+}
+
+/* ── legacy: a print from before `printView`, under a rebuilt set ──────────────────────────────────────── */
+section('legacy/… — a panel printed the old way, its set rebuilt since: replaced when unedited, kept when edited (#2968)');
+{
+  /** Rebuild `def`'s set under every specimen on `p`: a new member, laid out differently, as Build and Update leave it. */
+  const rebuild = (p: N, def: string): void => {
+    const rebuilt = planMember(planCache.get(def)![0] as never);
+    rebuilt.children[0].children.push(mk('FRAME', 'added in the rebuild', [], { _w: 40, _h: 40 }));
+    for (const sp of panelsOn(p).flatMap(walk).filter((c) => c.name === 'specimen')) { sp.children.splice(0); instanceOf(sp, rebuilt); sp.swapped = rebuilt.id; }
+  };
+  /** A panel's print as the draw recorded it before `printView`: the whole panel. */
+  const printOld = async (n: N): Promise<void> => n.setSharedPluginData!('prism3', 'docPanelPrint', await fingerprintOf(n as never));
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const p = page('↳ Tag legacy rebuilt');
+  const set = fakeSet(p, 'tag');
+  const api = host([p]);
+  await drawDocPanel(api, set, def, { names });
+  await printOld(panelsOn(p)[0]);
+  rebuild(p, 'tag');
+  const r = await drawDocPanel(api, set, def, { names });
+  ok(r.replaced === 1 && r.kept.length === 0 && panelsOn(p).length === 1 && !panelsOn(p).some((n) => String(n.name).endsWith(' (edited)')),
+    `legacy/rebuilt: one panel, the old-print one replaced, none kept (replaced ${r.replaced}, kept ${r.kept.length}, panels ${panelsOn(p).length})`);
+
+  const q = page('↳ Tag legacy edited');
+  const qs = fakeSet(q, 'tag');
+  const qa = host([q]);
+  await drawDocPanel(qa, qs, def, { names });
+  const old = panelsOn(q)[0];
+  await printOld(old);
+  rebuild(q, 'tag');
+  walk(old).find((c) => c.type === 'TEXT' && c.name === 'text' && String(c.characters).length > 20)!.characters = 'Our team uses tags for filters only.';
+  const r2 = await drawDocPanel(qa, qs, def, { names });
+  ok(r2.replaced === 0 && r2.kept.length === 1 && panelsOn(q).length === 2 && old.name === 'Tag usage (edited)' && texts(old).includes('Our team uses tags for filters only.'),
+    `legacy/edited: a rewritten line on an old-print panel still keeps it aside, as "${old.name}" (replaced ${r2.replaced}, kept ${r2.kept.length})`);
+
+  // THE BUTTONS PAGE (#2968): four sets, laid out before one panel per family, each with its own panel printed the
+  // old way, then the sets rebuilt. A member's panel is drawn as the earlier code drew one: its own heading and lede.
+  const buttons = ['button', 'button-destructive', 'button-neutral', 'button-group'];
+  const famPage = async (name: string, edit?: string) => {
+    const b = page(name);
+    const sets = buttons.map((id, i) => fakeSet(b, id, i * 1400, 0, 600, 400));
+    const ba = host([b]);
+    await drawDocPanel(ba, sets[0], componentDefs.find((d) => d.id === 'button')!, { names });
+    for (const [i, id] of buttons.entries()) {
+      if (!i) continue;
+      const d = componentDefs.find((x) => x.id === id)!;
+      const heading = mk('TEXT', 'text'); heading.characters = d.name;
+      const lede = mk('TEXT', 'text'); lede.characters = d.summary.replace(/`/g, '').replace(/\s+/g, ' ').trim();
+      const spec = mk('INSTANCE', 'specimen');
+      instanceOf(spec, sets[i].children[0]);
+      const f = mk('FRAME', `${d.name} usage`, [heading, lede, spec], { x: i * 1400 + 640, y: 0, _w: 560, _h: 300 });
+      b.appendChild!(f);
+      f.setSharedPluginData!('prism3', 'docPanel', JSON.stringify({ v: 1, def: id, set: sets[i].id, state: 'live' }));
+    }
+    for (const n of panelsOn(b)) await printOld(n);
+    // The edit lands after the print, as a designer's does; the rebuild moves every specimen.
+    if (edit) for (const n of panelsOn(b)) if (tagOf(n).def === edit) n.children[1].characters = 'Use it only on the checkout page.';
+    for (const id of buttons) rebuild(b, id);
+    const rb = await drawDocPanel(ba, sets[0], componentDefs.find((d) => d.id === 'button')!, { names });
+    return { b, sets, rb };
+  };
+  {
+    const { b, sets, rb } = await famPage('↳ Buttons legacy');
+    const live = panelsOn(b).filter((n) => tagOf(n).state === 'live');
+    ok(rb.drawn && live.length === 1 && live[0].name === 'Button usage' && tagOf(live[0]).set === sets[0].id && panelsOn(b).length === 1,
+      `legacy/family lead: one panel on the page, "Button usage", beside the lead's set (${panelsOn(b).map((n) => n.name).join(', ')})`);
+    ok(rb.replaced === 4 && rb.kept.length === 0 && !panelsOn(b).some((n) => String(n.name).endsWith(' (edited)')),
+      `legacy/family members: the lead's old panel and the three members' are removed, none kept (replaced ${rb.replaced}, kept ${rb.kept.length})`);
+  }
+  {
+    const { b, rb } = await famPage('↳ Buttons legacy edited', 'button-neutral');
+    const kept = panelsOn(b).filter((n) => tagOf(n).state === 'kept');
+    ok(rb.drawn && rb.replaced === 3 && rb.kept.length === 1 && panelsOn(b).length === 2 && kept.length === 1 && kept[0].name === 'Button.Neutral usage (edited)',
+      `legacy/family edited: the member a designer edited is kept aside as "${kept[0]?.name}", the other three go (replaced ${rb.replaced}, kept ${rb.kept.length})`);
+  }
 }
 
 /* ── replace and hand edit ─────────────────────────────────────────────────────────────────────────────── */

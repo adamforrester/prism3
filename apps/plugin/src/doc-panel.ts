@@ -440,6 +440,7 @@ const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V2}${await fing
  * chip row's "+n more"; the family line; and every text the file's `_Doc-block` template holds. Null for a def the
  * engine no longer has, whose panel then reads as edited: the safe direction.
  */
+const SHOWN_ON = 'Shown on ';
 const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> | null => {
   const def = componentDefs.find((d) => d.id === defId);
   if (!def) return null;
@@ -455,6 +456,8 @@ const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> |
   if (plan.family) out.add(plan.family.join(', '));
   for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Chips' && b.chips.length > CHIP_SLOTS) out.add(`+${b.chips.length - CHIP_SLOTS + 1} more`);
   for (const s of docSections(def, { modes: PANEL_MODES }).sections as DocSection[]) {
+    // A further specimen's caption names what its member changes (`markSpecimens`): each pair, joined by commas.
+    if (s.id === 'styles') for (const pair of [...s.axes.flatMap((a) => a.values.map((v) => `${a.axis} ${v}`)), ...s.states.map((v) => `state ${v}`)]) out.add(`${SHOWN_ON}${pair}`);
     if (s.id === 'anatomy') s.parts.forEach((p, i) => out.add(`${i + 1}  ${p.name}${p.optional ? ' (optional)' : ''}`));
     if (s.id === 'usage') {
       [...s.do, ...s.dont].forEach((t) => out.add(plain(t)));
@@ -490,7 +493,8 @@ const legacyUnedited = async (api: Pick<PanelApi, 'root'>, n: PNode, print: stri
     for (const c of q.children ?? []) walk(c);
   };
   walk(n);
-  return shown.every((t) => known.has(t) || /^\d+$/.test(t));
+  const caption = (t: string): boolean => t.startsWith(SHOWN_ON) && t.slice(SHOWN_ON.length).split(', ').every((pair) => known.has(`${SHOWN_ON}${pair}`));
+  return shown.every((t) => known.has(t) || /^\d+$/.test(t) || caption(t));
 };
 /** Whether a panel still holds what it was drawn with. A panel with no record reads as edited: the safe direction. A
  *  print recorded before `printView` is read as `legacyUnedited` reads it. */
@@ -743,7 +747,7 @@ export const drawDocPanel = async (
       fill(i);
       const now = variantValues(best.name);
       // DRAFT wording (Q10): the axes on which this member differs from the default.
-      await showSpecimen(i, best, undefined, `Shown on ${Object.keys(now).filter((k) => now[k] !== was[k]).map((k) => `${k} ${now[k]}`).join(', ') || best.name}`);
+      await showSpecimen(i, best, undefined, `${SHOWN_ON}${Object.keys(now).filter((k) => now[k] !== was[k]).map((k) => `${k} ${now[k]}`).join(', ') || best.name}`);
       // A member that held the parts but could not show them (a boolean the host refused): no specimen, and no more.
       if (!take(i)) { i.remove?.(); break; }
     }
