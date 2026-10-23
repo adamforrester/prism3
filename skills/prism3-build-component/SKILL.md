@@ -605,23 +605,28 @@ below is yours, and read the field's comment in `packages/engine/component-schem
 ## Brand settings — every setting is VALUE or STRUCTURAL
 
 A component build often wants a new brand setting (a lever in `packages/engine/levers.ts`), and every
-setting adds work to the coded components. So every lever declares its `kind` (owner decision on #2959):
+setting adds work to the coded components. So every lever declares its `kind` (owner decisions on #2959).
+The test is the code, nothing else:
 
-- **VALUE** — the setting resolves to token values at generation time: a size, color, radius, weight or
-  type step. The coded component has one shape and reads a token, so the setting costs no code.
-- **STRUCTURAL** — the setting changes a component's anatomy or behavior: pill vs underline, outline vs
-  underline, icons attached to the label vs locked to the edges. The shared coded component must implement
-  every option, and each option multiplies what that component must test. **A structural setting needs the
+> **STRUCTURAL** = the coded component needs different markup, logic or states per option.
+> **VALUE** = only token values differ (CSS changes, nothing else).
+
+- **VALUE** — every option resolves to token values at generation time: a size, color, radius, weight,
+  type step, or a fill that is transparent under one option. The coded component keeps one markup, one
+  logic and one set of states and reads a token, so the setting costs no code.
+- **STRUCTURAL** — some option needs different markup, logic or states in the coded component: outline vs
+  underline field or tag anatomies, icons attached to the label vs positioned at the edges. The shared coded
+  component must implement every option, and each option multiplies what that component must test. **A structural setting needs the
   owner's explicit OK in its wireframe** — show each option's anatomy there, not only the default.
 - **Prefer a brand-wide setting over a per-instance prop.** A per-instance prop becomes permanent API in
   every brand's code; a brand-wide value setting costs nothing at the component.
 
 When you add a lever, set `kind` on it. `packages/engine/test.ts` fails a lever with no `kind`, by name,
 and pins the structural set as `STRUCTURAL_LEVERS` in `packages/engine/test.ts`, so a new structural lever
-is a second edit there, made after the owner's OK. This table classifies every live lever; `lint-skills`
-fails if a row is missing or disagrees with the manifest. A retired lever is left out.
+is a second edit there, made after the owner's OK. This table classifies every live lever by the test
+above; `lint-skills` fails if a row is missing or disagrees with the manifest. A retired lever is left out.
 
-| Lever | Kind | Why (where not obvious) |
+| Lever | Kind (structural = different markup, logic or states per option; value = only token values differ) | Why (where not obvious) |
 |---|---|---|
 | `primary` | value |  |
 | `neutral.hue` | value |  |
@@ -646,7 +651,7 @@ fails if a row is missing or disagrees with the manifest. A retired lever is lef
 | `buttonIcons` | structural | icons beside the label, or pinned to the edges with the label centered between: two layouts |
 | `buttonContentSize` | value | a medium button reads the small label style and icon size |
 | `buttonLabelWeight` | value |  |
-| `buttonTextHover` | structural | a text button either stays unfilled or fills on hover and pressed: two behaviors |
+| `buttonTextHover` | value | Fill only keys the text button's overlay token on hover and pressed; the overlay slot and the states are the same under both options |
 | `buttonMinWidthMultiplier` | value |  |
 | `baseMd` | value |  |
 | `typography.typeScale` | value |  |
@@ -671,7 +676,7 @@ fails if a row is missing or disagrees with the manifest. A retired lever is lef
 | `iconContrast` | value |  |
 | `disabledStrategy` | value |  |
 | `disabledMin` | value |  |
-| `outlineInteraction` | structural | which fill family, if any, carries an outline or text hover: three hover behaviors |
+| `outlineInteraction` | value | rebinds the outline and text overlay tokens to another fill family, or drops them under none; no element or state is added |
 | `neutralEmphasis` | value |  |
 | `interactivePalettes` | value | adds token columns; a component offers them only through its own axis |
 | `gradients` | value |  |

@@ -364,7 +364,7 @@
     {
       "key": "buttonTextHover",
       "group": "form",
-      "kind": "structural",
+      "kind": "value",
       "label": "Text button hover",
       "control": "enum",
       "default": "text",
@@ -768,7 +768,7 @@
     {
       "key": "outlineInteraction",
       "group": "advanced",
-      "kind": "structural",
+      "kind": "value",
       "label": "Outline hover",
       "control": "enum",
       "default": "overlay-neutral",

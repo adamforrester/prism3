@@ -438,12 +438,10 @@ export const scanCoverage = (text: string, rel: string, findings: Finding[]): vo
   }
 };
 
-/** Read one skill and run every check over it. Thin on purpose: both scans are exported functions so
- *  the self-check exercises exactly what CI does. */
 /**
  * 8. LEVER KIND (#2959, owner Q599 A). Opt-in like check 4: a skill whose frontmatter says `classifies: levers`
- * must state the rule (both kinds named, the owner's OK in the wireframe for a structural one, and brand-wide
- * over per-instance) and hold one table row per non-deprecated lever, `| \`key\` | value |`. The rows are a
+ * must state the rule (both kinds named, the owner's code test that tells them apart (Q610 A), the owner's OK in
+ * the wireframe for a structural one, and brand-wide over per-instance) and hold one table row per non-deprecated lever, `| \`key\` | value |`. The rows are a
  * second, hand-written statement of what `kind` on each lever in `levers.ts` says, so the two are compared:
  * a lever added without a row, a row for a lever that is gone or retired, and a row that disagrees all fail
  * by name. What it cannot see: whether a classification is RIGHT. That is the owner's call, pinned in test.ts.
@@ -457,6 +455,8 @@ export const leverKindFindings = (text: string, rel: string, levers: readonly Ki
     [/\*\*STRUCTURAL\*\*/, 'the STRUCTURAL kind, in bold'],
     [/structural setting needs the\s+owner's explicit OK in its wireframe/i, "a structural setting needs the owner's explicit OK in its wireframe"],
     [/brand-wide setting over a per-instance prop/i, 'prefer a brand-wide setting over a per-instance prop'],
+    [/\*\*STRUCTURAL\*\* = the coded component needs different markup, logic or states per option/, 'the STRUCTURAL test (different markup, logic or states per option)'],
+    [/\*\*VALUE\*\* = only token values differ/, 'the VALUE test (only token values differ)'],
   ];
   for (const [re, what] of RULE) if (!re.test(text)) out.push({ file: rel, kind: 'lever-kind rule missing', detail: `the skill declares \`classifies: levers\` but no longer states ${what}` });
   const rows = new Map<string, string>();
@@ -474,6 +474,8 @@ export const leverKindFindings = (text: string, rel: string, levers: readonly Ki
 };
 const CLASSIFIES = /^classifies:\s*levers\s*$/m;
 
+/** Read one skill and run every check over it. Thin on purpose: both scans are exported functions so
+ *  the self-check exercises exactly what CI does. */
 const scanSkill = (dir: string, findings: Finding[]): void => {
   const path = join(skillsDir, dir, 'SKILL.md');
   if (!existsSync(path)) return;
@@ -722,7 +724,7 @@ const selfCheck = (): string[] => {
   // LEVER KIND (#2959). Each shape, both ways, through the shipping function with fixture levers.
   {
     const fx: KindLever[] = [{ key: 'a', kind: 'value' }, { key: 'b', kind: 'structural' }, { key: 'old', kind: 'value', deprecated: 'x' }];
-    const rule = "**VALUE** **STRUCTURAL** a structural setting needs the owner's explicit OK in its wireframe; prefer a brand-wide setting over a per-instance prop.\n";
+    const rule = "**STRUCTURAL** = the coded component needs different markup, logic or states per option. **VALUE** = only token values differ. A structural setting needs the owner's explicit OK in its wireframe; prefer a brand-wide setting over a per-instance prop.\n";
     const lk = (body: string) => leverKindFindings(rule + body, 'fx', fx).map((f) => f.kind);
     if (lk('| `a` | value | |\n| `b` | structural | |\n').length) bad.push('lever kind flags a complete, agreeing table');
     if (!lk('| `a` | value | |\n').includes('unclassified lever')) bad.push('lever kind misses a live lever with no row');

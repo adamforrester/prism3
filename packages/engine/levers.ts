@@ -32,10 +32,10 @@ export type LeverGroup = 'color' | 'form' | 'type' | 'motion' | 'elevation' | 'l
  *  structured sub-input (the surface renders a sub-form); the rest are atomic. */
 export type LeverControl = 'color' | 'slider' | 'enum' | 'toggle' | 'list' | 'palette-ref' | 'object' | 'text';
 
-/** What a lever costs the coded components (#2959, owner Q599 A). `value`: it resolves to token values at
- *  generation time (a size, color, radius, weight or type step), so a coded component has one shape and reads
- *  a token. `structural`: it changes a component's anatomy or behavior (pill vs underline, icons attached vs
- *  locked to edges), so the shared coded component must implement and test every option. A structural lever
+/** What a lever costs the coded components (#2959, owner Q599 A; the test is owner Q610 A). `structural`: the
+ *  coded component needs different markup, logic or states per option (pill vs underline, icons attached vs
+ *  locked to edges), so the shared coded component must implement and test every option. `value`: only token
+ *  values differ (CSS changes, nothing else), so a coded component has one shape and reads a token. A structural lever
  *  needs the owner's explicit OK in its wireframe. `test.ts` fails a lever with no kind, by name, and pins the
  *  structural set, so adding or reclassifying one is a second, deliberate edit. */
 export type LeverKind = 'value' | 'structural';
@@ -147,7 +147,7 @@ export const leverManifest: Lever[] = [
     options: enumOpts(['default', 'Default'], ['emphasis', 'Emphasis']),
     description: 'The weight of button and tag labels: Emphasis (600 by default) or Default (400). Default adds that weight to the label styles. Badges keep Emphasis.' },
   // #2324 — label and option labels are the owner's words (2026-10-08); the description is a DRAFT for the owner.
-  { key: 'buttonTextHover', group: 'form', kind: 'structural', label: 'Text button hover', control: 'enum', default: 'text',
+  { key: 'buttonTextHover', group: 'form', kind: 'value', label: 'Text button hover', control: 'enum', default: 'text',
     options: enumOpts(['text', 'Text & icon only'], ['fill', 'Fill']),
     description: 'What a text button does on hover and when pressed. Text & icon only changes the label and icon colors. Fill also fills the button. A text button is never filled at rest.' },
   { key: 'buttonMinWidthMultiplier', group: 'form', kind: 'value', label: 'Button minimum width', control: 'slider', default: 2.25, min: 1, max: 4, step: 0.25, unit: '× height',
@@ -219,7 +219,7 @@ export const leverManifest: Lever[] = [
     description: 'Full guarantees AA text on disabled controls — legibility is certain, but the disabled look then rests on fill / border / cursor rather than dimming. Reduced dims it to a floor you set, never below 3:1.' },
   { key: 'disabledMin', group: 'advanced', kind: 'value', label: 'Reduced contrast floor', control: 'slider', default: 3, min: 3, max: 4.5, step: 0.5,
     description: 'How dim Reduced goes. 3:1 is the WCAG non-text / large-text threshold and where Primer and USWDS sit — the lowest ratio still legible. Escalates to 4.5:1 in high-contrast modes. Ignored on Full.' },
-  { key: 'outlineInteraction', group: 'advanced', kind: 'structural', label: 'Outline hover', control: 'enum', default: 'overlay-neutral',
+  { key: 'outlineInteraction', group: 'advanced', kind: 'value', label: 'Outline hover', control: 'enum', default: 'overlay-neutral',
     options: enumOpts(['overlay-neutral', 'Neutral overlay wash'], ['solid-tint', 'Tinted wash'], ['none', 'No hover fill']),
     description: 'How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = the control\'s own fill at 20% opacity (30% pressed), stepped down the opacity scale where the label needs more contrast and up where the hover would not show, so a destructive outline hovers red-tinted rather than gray; none = omit.' },
   { key: 'neutralEmphasis', group: 'advanced', kind: 'value', label: 'Neutral emphasis', control: 'enum', default: 'subtle',
