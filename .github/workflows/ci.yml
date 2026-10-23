@@ -223,8 +223,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "209 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 209. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "210 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 210. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor

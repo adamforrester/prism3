@@ -734,12 +734,19 @@ export type PartDef = {
    *  Code reads it as `min-inline-size`, computed from the height. A def projected with no brand in hand has
    *  no floor, as Button has none.
    *
-   *  The base is the bound `height`, or the bound `minHeight` where the box hugs above a floor instead (the underline
-   *  Tag, #2887: its height is a minimum at the same rung, so the floor multiplies the same number).
+   *  The base is the bound `height`, or the bound `minHeight` where the box hugs above a floor instead, or
+   *  `minWidthBase` where it hugs with no floor at all (the underline Tag since #2945).
    *
-   *  Refused on a non-`box` kind, on a `box` with no `layout`, without a bound `height` or `minHeight`, beside
-   *  `minWidth` or `minWidthKey` (two floors on one axis), and when not a positive number. */
+   *  Refused on a non-`box` kind, on a `box` with no `layout`, without a bound `height`, `minHeight` or `minWidthBase`,
+   *  beside `minWidth` or `minWidthKey` (two floors on one axis), and when not a positive number. */
   minWidthRatio?: number;
+  /** For `box` parts: the binding key `minWidthRatio` multiplies when the box binds no height of its own, because it
+   *  hugs on both axes (the underline Tag since #2945, owner Q585 A: no floor on the height, and Q585.1/.2 A: the width
+   *  floor stays 1.5 × the rung height). It binds nothing: `applyMinWidthRatio` reads it and drops it with the ratio.
+   *
+   *  Refused without `minWidthRatio` (there is nothing to multiply it for) and beside a bound `height` or `minHeight`
+   *  (the base stated twice). */
+  minWidthBase?: string;
   /** For `box` parts: a FLUSH member, chosen by a variant axis (#2350, owner Q143 and Q145 A). At a coordinate
    *  where `axis` is `value`, BOTH of the box's inline paddings bind `key` (a zero step, `space.0`) instead of
    *  the label or visual inset, so the content sits on whichever edge it shares with the content above and
@@ -1210,6 +1217,21 @@ export type PartDef = {
    *  Refused off a non-root `vector`, without `glyphPx`, beside `corner`, and under a parent that is not an
    *  auto-layout `box` carrying `aspectRatio`. */
   scaleWithParent?: boolean;
+  /** For a non-root `vector`: take the glyph OUT of the auto-layout flow and CENTER it over its parent, so it draws on
+   *  top of the parent's in-flow child (#2670). Progress's ring is the case: the pale track is a filled annulus glyph in
+   *  the flow, and the value arc sits over it on the same square. Two glyphs in the flow would sit side by side, and
+   *  the track cannot be the parent's stroke, because a stroke binds a border role (Q346) and no border role clears 3:1
+   *  against the fill (measured, best 1.01:1). The arc cannot be a layer of the track's glyph, because a glyph takes
+   *  one ink and the two are different roles.
+   *
+   *  PROJECTED as `absoluteCenter`, the lift and the centering the overlay already uses, node-type independent in both
+   *  executors, with its `CENTER`/`CENTER` constraints. The glyph keeps its bound `size`, so it is the parent's size
+   *  only when the two bind the same key, which the schema requires.
+   *
+   *  Refused off a non-root `vector`, when not `true`, beside `corner` or `scaleWithParent` (two placements for one
+   *  node), under a parent that is not an auto-layout `box` binding `size`, when the glyph binds a different size from
+   *  its parent, and under a parent with no in-flow child to draw over. */
+  stackCentered?: true;
   note?: string;
 };
 
@@ -1495,8 +1517,14 @@ export type FigmaProperties = {
    *
    *  `also` (owner decisions Q225 A and Q226 A, 2026-10-10): further TEXT parts the same property drives, so one
    *  property writes the same characters to each. Tabs' selected-weight reserve is the case: an invisible copy of the
-   *  label in the selected weight that holds every tab at its bold width, which only works if it spells the label. */
-  texts?: Record<string, { part: string; default: string; figmaName?: string; byVariant?: Record<string, Record<string, string>>; also?: string[] }>;
+   *  label in the selected weight that holds every tab at its bold width, which only works if it spells the label.
+   *
+   *  `figmaOnly` (#2670): a TEXT property with no code prop, as a Figma-only boolean is (#2344, Q156 A). The case is a
+   *  per-member caption. A set-level TEXT property holds ONE default that every bound member shows (#1567), so a set
+   *  whose members must SAY different things (Progress reads "50%" while running and "100%" at complete) needs a
+   *  second text part and a second property, and code has no second prop for it: the one `valueText` prop renders
+   *  both. So a `figmaOnly` entry names no prop, is refused if its key IS one, and must state its `figmaName`. */
+  texts?: Record<string, { part: string; default: string; figmaName?: string; byVariant?: Record<string, Record<string, string>>; also?: string[]; figmaOnly?: boolean }>;
   /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT.
    *
    *  The bare-string form is `prop → part`, the byte-identical original. The object form
@@ -2466,10 +2494,17 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       claimed.set(part, byField);
     }
   };
-  checkMap('texts', Object.fromEntries(Object.entries(fp.texts ?? {}).map(([p, t]) => [p, t.part])), 'characters', 'text');
+  // One call per property, so a Figma-only text (#2670) can skip the prop check as a Figma-only boolean does.
+  for (const [prop, t] of Object.entries(fp.texts ?? {})) {
+    checkMap('texts', { [prop]: t.part }, 'characters', 'text', false, t.figmaOnly === true);
+    if (t.figmaOnly && propNames.has(prop))
+      e.push(`figmaProperties.texts.${prop} is figmaOnly but '${prop}' is also a declared prop — a Figma-only text has no code prop; drop 'figmaOnly' to drive the prop, or rename the key`);
+    if (t.figmaOnly && !t.figmaName)
+      e.push(`figmaProperties.texts.${prop} is figmaOnly but has no figmaName — with no prop there is no code name for the Figma panel to show, so the label must be stated`);
+  }
   // Each `also` part is claimed on the same field, so it is a text part no other property names (Q226 A).
   for (const [prop, t] of Object.entries(fp.texts ?? {}))
-    t.also?.forEach((part, i) => checkMap(`texts.${prop}.also[${i}]`, { [prop]: part }, 'characters', 'text'));
+    t.also?.forEach((part, i) => checkMap(`texts.${prop}.also[${i}]`, { [prop]: part }, 'characters', 'text', false, t.figmaOnly === true));
   // `swaps` may carry the #1380 object form `{ part, figmaName }`; normalized to `prop → part` here so
   // the relational checks (prop is a declared prop, part exists and is a slot, one property per field) are
   // identical for the string and object forms — the display name is a Figma label, checked below.
@@ -4093,7 +4128,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.minWidthBase, p.radius, p.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
       .filter((k): k is string => typeof k === 'string');
   // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
   // pressed and focus-visible and the plain one at rest, so its text style moves with the interaction state while
@@ -4949,12 +4984,14 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // `paintSlot` is the TEXT kind's field (#796) — the only branch that reads it. On any other kind it
     // would validate clean and be silently ignored, which is this whole pass's defect class: a field an
     // author reasonably believes took effect.
-    if (p.kind !== 'text' && p.paintSlot !== undefined)
-      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'paintSlot' — only a 'text' part chooses which ink slot it asks for; every other kind's paint follows from its kind`);
+    // A `vector` may choose too (#2670): Progress's ring track is a glyph in the track role, `fill`, beside an arc in
+    // `icon`. The vector branch reads it the way the text branch does.
+    if (p.kind !== 'text' && p.kind !== 'vector' && p.paintSlot !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'paintSlot' — only a 'text' or 'vector' part chooses which ink slot it asks for; every other kind's paint follows from its kind`);
     // And the word must be one the projector DISPATCHES, checked against the same oracle `paintKeyErrors`
     // uses. Without this, `paintSlot: 'indicatr'` resolves no paint and the part projects unpainted —
     // the #784 shape arriving through the field that exists to prevent it.
-    if (p.kind === 'text' && p.paintSlot !== undefined && !(PAINT_SLOTS as readonly string[]).includes(p.paintSlot))
+    if ((p.kind === 'text' || p.kind === 'vector') && p.paintSlot !== undefined && !(PAINT_SLOTS as readonly string[]).includes(p.paintSlot))
       e.push(`anatomy part '${n}': paintSlot '${p.paintSlot}' is not a slot the projector dispatches — it asks only for [${PAINT_SLOTS.join(', ')}]. A part naming a word outside that list resolves no paint and projects unpainted. Do NOT add it to PAINT_SLOTS to clear this: a new slot needs a distinct ink ROLE and a real dispatch behind it (see PAINT_SLOTS)`);
     // ---- `paintSlots`, the BOX kind's field (#933) ----
     // The same wrong-kind rule as `paintSlot` above, for the same reason: only the box branch reads it,
@@ -5080,14 +5117,18 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' declares both 'minWidthKey' and a literal 'minWidth' — two floors on one axis, so one of them is not the floor`);
     if (p.minWidthKey !== undefined && (p.width !== undefined || p.size !== undefined))
       e.push(`anatomy part '${n}' declares 'minWidthKey' alongside a bound '${p.width !== undefined ? 'width' : 'size'}' — a bound width already fixes the axis, so the floor states the width twice`);
+    if (p.minWidthBase !== undefined && p.minWidthRatio === undefined)
+      e.push(`anatomy part '${n}' declares 'minWidthBase' but no 'minWidthRatio' — the base is what the ratio multiplies, so alone it states nothing`);
+    if (p.minWidthBase !== undefined && (p.height !== undefined || p.minHeight !== undefined))
+      e.push(`anatomy part '${n}' declares 'minWidthBase' beside a bound '${p.height !== undefined ? 'height' : 'minHeight'}' — the ratio's base is stated twice`);
     // ---- `minWidthRatio`, a floor COMPUTED from the box's bound height (the spacing model, 2026-09-29) ----
     if (p.minWidthRatio !== undefined) {
       if (p.kind !== 'box')
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidthRatio' — only a 'box' becomes an auto-layout frame that can carry a minimum width`);
       else if (!p.layout)
         e.push(`anatomy part '${n}' declares 'minWidthRatio' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so the floor would be silently dropped`);
-      if (p.height === undefined && p.minHeight === undefined)
-        e.push(`anatomy part '${n}' declares 'minWidthRatio' but binds no 'height' or 'minHeight' — the floor is a multiple of the box's own height, so there is nothing to multiply`);
+      if (p.height === undefined && p.minHeight === undefined && p.minWidthBase === undefined)
+        e.push(`anatomy part '${n}' declares 'minWidthRatio' but binds no 'height', 'minHeight' or 'minWidthBase' — the floor is a multiple of the box's own height, so there is nothing to multiply`);
       if (p.minWidth !== undefined || p.minWidthKey !== undefined)
         e.push(`anatomy part '${n}' declares 'minWidthRatio' beside '${p.minWidth !== undefined ? 'minWidth' : 'minWidthKey'}' — two floors on one axis, so one of them is not the floor`);
       if (!(typeof p.minWidthRatio === 'number' && p.minWidthRatio > 0))
@@ -5259,6 +5300,28 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // `glyphPx`, so a bound size holds against the constraint; beside `corner`, a second placement for the
     // same node; and under a parent that is not an auto-layout box (Figma ignores `layoutPositioning` there,
     // silently) or not aspect-locked (a non-uniform resize stretches the square glyph).
+    // `stackCentered` (#2670): a glyph drawn over its parent's in-flow child. Each arm is a way to author it so it
+    // validates and draws somewhere else: on a kind the projector does not read it on, on the root, beside another
+    // placement, under a parent Figma ignores `layoutPositioning` in, at a size other than the parent's (it would sit
+    // off the drawing under it), or with nothing in the flow to draw over.
+    if (p.stackCentered !== undefined) {
+      const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+      const pp = parent ? parts[parent] : undefined;
+      if (p.kind !== 'vector')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'stackCentered' — only a 'vector' is a glyph the projector lifts and centers over its parent`);
+      else if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'stackCentered' — the root has no parent to draw over`);
+      else if ((p.stackCentered as unknown) !== true)
+        e.push(`anatomy part '${n}' declares stackCentered ${String(p.stackCentered)} — the field is a switch that is on or absent`);
+      else if (p.corner !== undefined || p.scaleWithParent !== undefined)
+        e.push(`anatomy part '${n}' declares 'stackCentered' beside '${p.corner !== undefined ? 'corner' : 'scaleWithParent'}' — two out-of-flow placements for one node, and the executor would keep whichever it wrote last`);
+      else if (!pp || pp.kind !== 'box' || !pp.layout || pp.size === undefined)
+        e.push(`anatomy part '${n}' declares 'stackCentered' under '${parent ?? '(none)'}', which is not an auto-layout 'box' binding 'size' — Figma ignores 'layoutPositioning' outside auto-layout, and a glyph is centered over a square`);
+      else if (p.size !== pp.size)
+        e.push(`anatomy part '${n}' declares 'stackCentered' and binds size '${p.size ?? '(none)'}' under '${parent}', which binds '${pp.size}' — the glyph must be its parent's square, or it sits off the drawing it covers`);
+      else if (!(pp.children ?? []).some((c) => c !== n && parts[c] && parts[c].stackCentered === undefined))
+        e.push(`anatomy part '${n}' declares 'stackCentered' under '${parent}', which has no in-flow child — there is nothing for the glyph to draw over`);
+    }
     if (p.scaleWithParent !== undefined) {
       if (p.kind !== 'vector')
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'scaleWithParent' — only a 'vector' is a glyph the projector lifts, centers and scales with its parent`);
