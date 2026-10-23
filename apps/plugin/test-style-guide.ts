@@ -4562,6 +4562,13 @@ const main = async (): Promise<void> => {
     await draw(pf.api, contract, { collections: ['color'] });
     ok(painted(old), `42: a run over a Prism3 group with no paints paints it (${paintsOf(old)})`);
 
+    // (4b) A BARE PRISM3 GROUP WITH A DESIGNER'S RADIUS is painted, and its corner is left as the designer set it.
+    const rounded = groupFrame(pf.sem, 'Inverse colors')!;
+    rounded.fills = []; rounded.strokes = []; rounded.cornerRadius = 8;
+    await draw(pf.api, contract);
+    ok(boundId(rounded.fills) === idOf(FILL_ROLE) && boundId(rounded.strokes) === idOf(STROKE_ROLE) && rounded.cornerRadius === 8,
+      `42: a bare group with a designer's radius of 8 is painted, its radius kept at 8 (${paintsOf(rounded)})`);
+
     // (5) A HAND-MADE GROUP ADOPTED AS A HOME is never painted: a Prism3 group whose mark no longer names it is a copy.
     const hand = groupFrame(pf.prim, 'Palettes')!;
     hand.pluginData['prism3-style-guide-group-mark'] = 'not-this-frame';
