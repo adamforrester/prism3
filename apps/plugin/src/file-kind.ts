@@ -159,8 +159,8 @@ const walk = async (api: FileKindApi, budgetMs: number): Promise<FileSignals> =>
   });
   try {
     localPrism3 = (await api.getLocalVariableCollectionsAsync()).some(ownsModes);
-    // Local beats remote (row 3), so a file with tokens of its own needs no page walk.
-    if (localPrism3) return signals(null);
+    // The page is read even when local collections are found: "local beats remote" (row 3) is `classifyFile`'s rule, in
+    // one place, rather than a shortcut here that would decide it twice.
     check();
     /** A variable id → whether it is a Prism3 library's (`true`), another remote one (`false`), or local (`null`). */
     const varKind = new Map<string, boolean | null>();
