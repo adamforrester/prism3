@@ -83,7 +83,10 @@ export const LAYOUT_LABELS = { columns: 'Columns', gutter: 'Gutter', margin: 'Ma
  *  (owner decision Q23). DRAFT, pending the owner's approval (the S8.2 PR's "Copy for owner approval" block). */
 // #2905 Q10 A: wireframe v2's words, now that the Buttons section lists which buttons the options change.
 export const BUTTON_DESC = 'How buttons place their icons, size and weight their label, and set their minimum width. Icon buttons are not affected.';
-export const FIELD_DESC = 'How Text field, Password field, Select and Textarea draw their edge.';
+// #2952: the second sentence is wireframe v2's Q5 A words, approved as drafted (owner decision Q601 A).
+export const FIELD_DESC = 'How Text field, Password field, Select and Textarea draw their edge. Search field has its own setting below.';
+// #2905 Q10 A: wireframe v2's words for Search options (#2952).
+export const SEARCH_DESC = 'How Search field draws its edge, apart from the other fields.';
 // #2905 Q10 A: wireframe v2's words, as Field options' and Button options' are.
 export const TAG_DESC = 'How tags draw their shape.';
 // #2958: DRAFT for the owner (Q1 on #2958), in Tag's pattern.
@@ -288,12 +291,12 @@ export const DOMAINS = [
     // engine retired it (#2053, `Lever.deprecated` in the manifest), and `test-pages.ts` holds that a deprecated
     // lever has no home rather than reading a hand list. Field style (#2695) is not here: it is a component setting, and
     // its home is Components › Field (owner decision Q578, #2905), with no line pointing to it. Tag style (#2887) left
-    // the same way, for Components › Tag (Q578 part 2, A on #2931's wireframe). Search field style (#2888) stays after
-    // Control shape until its Search options block ships (#2905 Q5 A).
+    // the same way, for Components › Tag (Q578 part 2, A on #2931's wireframe), and Search field style (#2888) for
+    // Components › Search, its Search options block (#2905 Q5 A, #2952).
     id: 'shape', label: 'Shape', home: 'shape', intro: 'Control heights and corners. Padding is set per component.',
     sections: [
       { title: 'Density', desc: DENSITY_DESC, rows: [{ ctl: 'chips', keys: ['density'], drive: 'size' }] },
-      { title: 'Radius', desc: RADIUS_DESC, rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'chips', keys: ['controlShape'], drive: 'shape' }, { ctl: 'chips', keys: ['searchFieldStyle'], drive: 'shape' }] },
+      { title: 'Radius', desc: RADIUS_DESC, rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'chips', keys: ['controlShape'], drive: 'shape' }] },
       { title: 'Base radius', desc: BASE_RADIUS_DESC, advanced: true, rows: [{ ctl: 'valuePicker', keys: ['baseMd'], drive: 'radius' }] },
     ],
     // S7: moved. Its levers are `domains/shape.ts`, its preview `preview/shape.ts`.
@@ -333,8 +336,8 @@ export const DOMAINS = [
     // (`domains/components.ts`, its intro `GROUPS_COPY.intro`); the preview pane draws the focused family, where the
     // Button options now sit with the Buttons family (`preview/components.ts`, `domains/button-options.ts`). The
     // sections stay in this data so every lever keeps one home (`test-pages.ts`): Button's keys are drawn in the preview
-    // pane's Buttons block, Field's in the Fields section's block and Tag's in the
-    // Tag section's (#2905), the sets by the list.
+    // pane's Buttons block, Field's and Search's in the Fields section's two blocks and
+    // Tag's in the Tag section's (#2905, #2952), the sets by the list.
     id: 'components', label: 'Components', home: 'comps', intro: 'The component sets the engine defines, in families. A build places each on its page in this file.',
     sections: [
       {
@@ -350,6 +353,9 @@ export const DOMAINS = [
       // #2905 Q578 B: Field style's one home. It is drawn in the Fields section's Field options block
       // (`domains/field-options.ts`), and nowhere else.
       { title: 'Field', desc: FIELD_DESC, rows: [{ ctl: 'chips', keys: ['fieldStyle'], drive: 'field' }] },
+      // #2905 Q5 A (#2952): Search field style's one home, drawn in the Fields section's Search options block, below
+      // Field options (`domains/search-options.ts`).
+      { title: 'Search', desc: SEARCH_DESC, rows: [{ ctl: 'chips', keys: ['searchFieldStyle'], drive: 'search' }] },
       // Q578 part 2 (A): Tag style's one home, drawn in the Tag section's Tag options block (`domains/tag-options.ts`).
       { title: 'Tag', desc: TAG_DESC, rows: [{ ctl: 'chips', keys: ['tagStyle'], drive: 'tag' }] },
       // #2958: Dialog title size's one home, drawn in the Dialog section's Dialog options block (`domains/dialog-options.ts`).

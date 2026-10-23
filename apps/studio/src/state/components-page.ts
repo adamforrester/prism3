@@ -16,8 +16,8 @@
 export type ComponentsPageState = {
   readonly sel: ReadonlySet<string>;
   readonly open: ReadonlySet<string>;
-  /** The sections whose settings disclosure is open (#2844, Q439 A; by section kind since #2905). Closed on open,
-   *  remembered for the session. */
+  /** The settings blocks whose disclosure is open (#2844, Q439 A; by section kind since #2905, by block since #2952,
+   *  `BlockKey`). Closed on open, remembered for the session. */
   readonly optsOpen: ReadonlySet<string>;
   /** The focused row's key (`GroupRow.key`), or null. */
   readonly focus: string | null;

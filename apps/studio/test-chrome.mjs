@@ -745,7 +745,7 @@ const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-inpu
 /** Shape in the two panes (S7): the controls its levers must render, by hook (Density's chips and the way to
  *  Components, Radius' slider and Control shape chips, Show advanced, the way on to Depth & motion). */
 const SHAPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="density-choice-comfortable"]', '[data-p3="shape-see-components"]',
-  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="search-field-style-choice-follow"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
+  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
 /** Depth & motion in the two panes (S9.2), previewing Light: the softness slider, Elevation's Show advanced, the tempo
  *  chips, an easing picker button per role, the way on to Layout. The rest is section 23's. */
 const DEPTH_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="shadow-softness"]', '[data-p3="depth-tint-advanced"]',
@@ -7716,8 +7716,9 @@ console.log(`\nShape (S7)\n${'='.repeat(78)}`);
 /** The lever keys the owner's D1 A places on Shape, by hook (represented, not counted). `radiusHairline` is retired. */
 // #2905 Q578 B: Field style (#2695) and Tag style (#2887) are no longer on Shape: their homes are Components › Field
 // options and › Tag options (#2931 Q579 A), so "every lever renders once" fails by name (`also drawn lever-field-style`,
-// `lever-tag-style`) if either is. #2888: Search field style, after Control shape, until its Search options ship (Q5 A).
-const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-search-field-style', 'lever-base-md'];
+// `lever-tag-style`) if either is. Search field style (#2888) left the same way, for Fields › Search options (#2952,
+// #2905 Q5 A): drawn on Shape again → `also drawn lever-search-field-style`.
+const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-base-md'];
 /** The preview's sections, in order (D1 A). Literal. */
 const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
 /** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
@@ -7924,13 +7925,7 @@ for (const host of ['web', 'figma']) {
     const pShape = await persisted(page);
     ok(pShape?.controlShape === 'pill', `shape: Pill writes controlShape: pill (${pShape?.controlShape})`);
     await chip('control-shape-choice-rounded');
-    // (Field style's and Tag style's writes are the #2905 arm's, on Components: Q578.)
-    // #2888: Search field style is brand-wide chips, and Follow field style writes its own value back.
-    await chip('search-field-style-choice-underline');
-    const pSearch = await persisted(page);
-    ok(pSearch?.searchFieldStyle === 'underline' && pSearch?.fieldStyle !== 'underline', `shape: search Underline writes searchFieldStyle: underline and leaves fieldStyle (${pSearch?.searchFieldStyle}, ${pSearch?.fieldStyle})`);
-    await chip('search-field-style-choice-follow');
-    ok((await persisted(page))?.searchFieldStyle === 'follow', `shape: Follow field style writes searchFieldStyle: follow (${(await persisted(page))?.searchFieldStyle})`);
+    // (Field style's, Tag style's and Search field style's writes are the #2905 arm's, on Components: Q578, #2952.)
     await hooks.click(page.locator('[data-p3="base-radius-pick"]'));
     await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="6"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="base-radius-pick"] .p3-btn-label')?.textContent === '6px', null, { timeout: 5000 }).catch(() => {});
@@ -8008,7 +8003,7 @@ for (const host of ['web', 'figma']) {
       });
       ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Shape ("${d.line}")`);
       ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'search-field-style-choice-outline', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
+      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
       // Every size is drawn at 0px, as the emission draws wireframe; the two pill sizes still read "Pill" (#2078: the
       // label is which size it is, not its px).
@@ -8130,8 +8125,9 @@ console.log(`\nComponents (S8.2)\n${'='.repeat(78)}`);
 /** The lever keys pages.ts places on Components (G6 A), by hook. Literal. */
 const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-text-hover', 'lever-button-min-width-multiplier',
   // #2905 (Q3 B, Q578 B): Field options draws Field style, its one control; its home is Components › Field. Tag options
-  // draws Tag style the same way (#2931 Q579 A), its home Components › Tag.
-  'lever-field-style', 'lever-tag-style',
+  // draws Tag style the same way (#2931 Q579 A), its home Components › Tag, and Search options Search field style (#2952,
+  // #2905 Q5 A), its home Components › Search.
+  'lever-field-style', 'lever-search-field-style', 'lever-tag-style',
   // #2958: Dialog options draws Dialog title size the same way, its home Components › Dialog.
   'lever-dialog-title-size'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
@@ -8296,6 +8292,7 @@ for (const host of ['web', 'figma']) {
     await goPlace(page, 'components');
     // #2905: Fields first, since opening a block focuses its section's first set; Buttons last, so the preview shows Buttons.
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=tags"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=search"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
     await openButtonOptions(page);
@@ -8312,8 +8309,12 @@ for (const host of ['web', 'figma']) {
           frameLine: !!document.querySelector('[data-p3="levers-derived-note"]'),
           // #2815 step 1: the Button options sit in the list now, and hold themselves (above); #2905: so do the Field
           // options (below). The list is the rest.
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="tag-options"], [data-p3="dialog-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
-          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="tag-options"], [data-p3="dialog-options"]')).length,
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"]')).length,
+          search: {
+            line: document.querySelector('[data-p3="search-options-derived"]')?.textContent ?? null,
+            chips: [...document.querySelectorAll('[data-p3="search-options"] [data-p3^="search-field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
+          },
           tag: {
             line: document.querySelector('[data-p3="tag-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="tag-options"] [data-p3^="tag-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
@@ -8337,6 +8338,8 @@ for (const host of ['web', 'figma']) {
         `#2905 Q59: previewing ${label}, Field options carry the derived line and hold Field style's chips, the way to Control shape left live (${JSON.stringify(d.field)})`);
       ok(d.tag.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.tag.chips.length === 2 && d.tag.chips.every(Boolean),
         `#2931 Q59: previewing ${label}, Tag options carry the derived line and hold Tag style's chips (${JSON.stringify(d.tag)})`);
+      ok(d.search.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.search.chips.length === 3 && d.search.chips.every(Boolean),
+        `#2952 Q59: previewing ${label}, Search options carry the derived line and hold Search field style's chips (${JSON.stringify(d.search)})`);
       ok(d.dialog.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.dialog.chips.length === 3 && d.dialog.chips.every(Boolean),
         `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's chips (${JSON.stringify(d.dialog)})`);
       ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
@@ -8442,8 +8445,8 @@ for (const host of ['web', 'figma']) {
         };
       });
       const r0 = await read();
-      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Tag options', 'Dialog options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
-        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Tag options" and one "Dialog options" line (#2958), in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options" and one "Dialog options" line (#2958), in the list, and not in the preview (${JSON.stringify(r0)})`);
       ok(r0.expanded === 'false' && !r0.shown,
         `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
       ok(r0.rows === 4 && r0.lineBelowSets,
@@ -8509,7 +8512,7 @@ for (const host of ['web', 'figma']) {
 }
 // #2905 phase 1 (owner decisions Q538 and Q548 on wireframe v2, every call A): the Components page in sections. On both
 // hosts, at 1280 and at 380:
-//   · the sections, in order: Buttons, Fields, Other components, Subcomponents (Q548, Q6 A, Q10 A);
+//   · the sections, in order: Buttons, Fields, Tag, Other components, Subcomponents (Q548, Q6 A, Q10 A, #2931 Q579 A);
 //   · Buttons lists the Buttons family's four sets and Fields the four fields, each set a row at the section's edge, with
 //     no family row and no fold inside either (Q8 A); every other component row is in Other components;
 //   · ONE EDGE (Q1 A, Q8 A): in each section with settings, every set row's first cell, the disclosure line and the open
@@ -8519,6 +8522,10 @@ for (const host of ['web', 'figma']) {
 //     no way to Density; Underline writes `fieldStyle: underline`;
 //   · opening Field options focuses the section's first set (the preview shows Password field), and with Select already
 //     in focus, keeps Select.
+//   · #2952 (#2905 Q5 A, Q7 A): Fields' SECOND block, Search options, below Field options behind its own line: the line
+//     and block at the same one edge, the line after Field options' block; its title and description (Q10 A), Search
+//     field style's chips, and under Follow field style the readout naming the Field style it follows (Q10 A), which
+//     moves when Field options' Field style does.
 //
 // Oracle: the section titles, the set ids, the copy and the expected values are literals typed here (the wireframe's);
 // the edges are read off bounding boxes; the write is read off the persisted brand input, never the page's state.
@@ -8530,6 +8537,8 @@ for (const host of ['web', 'figma']) {
 //     no family row …`.
 //   · the Control shape line keeping the shape under Underline (`readout` always `label` in `field-options.ts`) → `#2905 Q3
 //     B: <host> <w>: under Underline the Control shape line reads "No corners on an underline field." …`.
+//   · Fields' blocks reversed (`SECTION_BLOCKS.fields` = ['search', 'fields']) → `#2952 Q5 A: <host> <w>: Search options
+//     sits below Field options …`.
 for (const host of ['web', 'figma']) {
   for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
     const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
@@ -8537,8 +8546,8 @@ for (const host of ['web', 'figma']) {
       await goPlace(page, 'components');
       await hooks.need(page, '[data-p3="components-levers"]');
       // Tag first (#2931 Q579 A): opening a block focuses its section's first set, and the Fields case reads Password field.
-      for (const k of ['tags', 'dialogs', 'buttons', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
-      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'tag-options-section', 'dialog-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
+      for (const k of ['tags', 'dialogs', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
+      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section', 'dialog-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
       const r = await page.evaluate(() => {
         const secs = [...document.querySelectorAll('[data-p3="cp-section"]')];
         const by = (name) => secs.find((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name === name);
@@ -8559,6 +8568,9 @@ for (const host of ['web', 'figma']) {
         const fo = document.querySelector('[data-p3="field-options-section"]');
         const to = document.querySelector('[data-p3="tag-options-section"]');
         const dO = document.querySelector('[data-p3="dialog-options-section"]');
+        const so = document.querySelector('[data-p3="search-options-section"]');
+        const soLine = document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=search"]');
+        const ro = so?.querySelector('[data-p3="lever-search-field-style"] .p3-readout');
         return {
           titles: secs.map((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name ?? null),
           buttons: edges('Buttons', 'button-options-section'), fields: edges('Fields', 'field-options-section'), tags: edges('Tag', 'tag-options-section'),
@@ -8578,6 +8590,15 @@ for (const host of ['web', 'figma']) {
           dO: dO ? {
             title: dO.querySelector('[data-p3="dialog-options-title"]')?.textContent ?? null, desc: dO.querySelector('[data-p3="dialog-options-desc"]')?.textContent ?? null,
             chips: [...dO.querySelectorAll('[data-p3^="dialog-title-size-choice-"]')].map((n) => n.textContent),
+          } : null,
+          so: so ? {
+            title: so.querySelector('[data-p3="search-options-title"]')?.textContent ?? null, desc: so.querySelector('[data-p3="search-options-desc"]')?.textContent ?? null,
+            chips: [...so.querySelectorAll('[data-p3^="search-field-style-choice-"]')].map((n) => n.textContent),
+            readout: ro && !ro.hidden ? ro.textContent : null,
+            inFields: !!by('Fields')?.contains(so) && !!soLine && by('Fields').contains(soLine),
+            line: x(soLine), block: x(so), head: x(by('Fields')?.querySelector('[data-p3="cp-section-head"]')),
+            below: !!fo && !!soLine && fo.getBoundingClientRect().bottom <= soLine.getBoundingClientRect().top + 1,
+            lineText: soLine?.textContent.trim() ?? null,
           } : null,
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
@@ -8606,9 +8627,16 @@ for (const host of ['web', 'figma']) {
         const one = xs.length > 2 && xs.every((v) => v !== null && Math.abs(v - xs[0]) <= 0.5);
         ok(one && e.inBlock && e.after, `#2905 Q1 A: ${host} ${w}: ${name}: rows, line and block start at one edge, the section head's, and the block follows the sets (${JSON.stringify(e)})`);
       }
-      ok(!!r.fo && r.fo.title === 'Field options' && r.fo.desc === 'How Text field, Password field, Select and Textarea draw their edge.'
+      // #2952: the second sentence is approved as drafted (owner decision Q601 A).
+      ok(!!r.fo && r.fo.title === 'Field options' && r.fo.desc === 'How Text field, Password field, Select and Textarea draw their edge. Search field has its own setting below.'
         && r.fo.shape === 'Rounded' && r.fo.link === 'Set it in Shape › Control shape' && !r.fo.density && JSON.stringify(r.fo.chips) === JSON.stringify(['Outline', 'Underline']),
         `#2905 Q3 B, Q10 A: ${host} ${w}: Field options: its drafted title and description, the way to Control shape reading Rounded, Field style's chips, and no way to Density (${JSON.stringify(r.fo)})`);
+      const S = r.so;
+      ok(!!S && S.inFields && S.below && S.lineText === 'Search options' && [S.line, S.block].every((v) => v !== null && Math.abs(v - S.head) <= 0.5),
+        `#2952 Q5 A: ${host} ${w}: Search options sits below Field options in Fields, behind its own line, at the section's one edge (${JSON.stringify(S)})`);
+      ok(!!S && S.title === 'Search options' && S.desc === 'How Search field draws its edge, apart from the other fields.'
+        && JSON.stringify(S.chips) === JSON.stringify(['Follow field style', 'Outline', 'Underline']) && S.readout === 'now Outline',
+        `#2952, #2905 Q10 A: ${host} ${w}: Search options: its drafted title and description, Search field style's chips, and under Follow the readout "now Outline" (${JSON.stringify(S)})`);
       ok(r.title === 'Code input', `#2905, Q-2789.3 A: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Code input (${r.title})`);
       await hooks.click(page.locator('[data-p3="field-style-choice-underline"]'));
       await page.waitForFunction(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent !== 'Rounded', null, { timeout: 5000 }).catch(() => {});
@@ -8616,6 +8644,9 @@ for (const host of ['web', 'figma']) {
       // The web persists the brand input; the plugin's store is the host's, so there the readout is the write's witness.
       ok((host !== 'web' || (await persisted(page))?.fieldStyle === 'underline') && u === 'No corners on an underline field.',
         `#2905 Q3 B: ${host} ${w}: Underline writes fieldStyle: underline, and under Underline the Control shape line reads "No corners on an underline field." (${(await persisted(page))?.fieldStyle}, ${JSON.stringify(u)})`);
+      // #2952 (Q10 A): Search options' readout follows Field style, one block up.
+      const su = await page.evaluate(() => { const n = document.querySelector('[data-p3="search-options"] [data-p3="lever-search-field-style"] .p3-readout'); return n && !n.hidden ? n.textContent : null; });
+      ok(su === 'now Underline', `#2952 Q10 A: ${host} ${w}: with Field style Underline, Search options' readout under Follow reads "now Underline" (${JSON.stringify(su)})`);
       // With a set of the section in focus, opening its block keeps that focus.
       await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Select$/ }).first());
@@ -8641,6 +8672,17 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="tag-options"] [data-p3="tag-style-choice-pill"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="tag-options"] [data-p3="tag-style-choice-pill"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         ok((await persisted(page))?.tagStyle === 'pill', `#2887: Tag options' Pill writes tagStyle: pill (${(await persisted(page))?.tagStyle})`);
+        // #2888's writes, moved here with the control (#2952): Underline from Dark writes the brand value and leaves
+        // fieldStyle, the readout gives way; Follow field style writes its own value back.
+        await hooks.click(page.locator('[data-p3="search-options"] [data-p3="search-field-style-choice-underline"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="search-options"] [data-p3="search-field-style-choice-underline"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const pS = await persisted(page);
+        const roGone = await page.evaluate(() => !!document.querySelector('[data-p3="search-options"] [data-p3="lever-search-field-style"] .p3-readout')?.hidden);
+        ok(pS?.searchFieldStyle === 'underline' && pS?.fieldStyle === 'outline' && JSON.stringify(pS?.modeLevers) === JSON.stringify(before?.modeLevers) && roGone,
+          `#2888 Q54: previewing Dark, Search options' Underline writes searchFieldStyle: underline, leaves fieldStyle and writes no per-mode value; the Follow readout hides (${pS?.searchFieldStyle}, ${pS?.fieldStyle}, ${JSON.stringify(pS?.modeLevers)}, hidden ${roGone})`);
+        await hooks.click(page.locator('[data-p3="search-options"] [data-p3="search-field-style-choice-follow"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="search-options"] [data-p3="search-field-style-choice-follow"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        ok((await persisted(page))?.searchFieldStyle === 'follow', `#2888: Search options' Follow field style writes searchFieldStyle: follow (${(await persisted(page))?.searchFieldStyle})`);
         // #2958: Dialog title size is brand-wide too: Small from Dark writes the brand value, Large restores it.
         await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-small"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-small"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
@@ -10737,8 +10779,9 @@ const EXPECT_HEADINGS = {
     // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
     // #2958: Dialog, its Dialog options (L2) and Dialog title size (L3), Tag options' way.
     L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents'],
-    L2: ['Button options', 'Field options', 'Tag options', 'Dialog options'],
-    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Tag style', 'Dialog title size'],
+    // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
+    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options'],
+    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
@@ -10755,7 +10798,7 @@ const HEADING_ADVANCED = {
   'color-palettes': ['[data-p3="palettes-advanced"]'], type: ['[data-p3="scale-advanced"]', '[data-p3="type-sections-advanced"]'],
   shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
   // #2844: a family's settings are closed behind their line; the audit reads them open.
-  components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]',
+  components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]',
     '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
