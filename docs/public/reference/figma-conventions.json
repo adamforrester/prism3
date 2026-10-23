@@ -205,7 +205,8 @@
             "components": [
               "pagination-item",
               "pagination"
-            ]
+            ],
+            "usagePanelLead": "pagination"
           }
         ]
       },

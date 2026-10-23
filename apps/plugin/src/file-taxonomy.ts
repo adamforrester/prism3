@@ -145,7 +145,7 @@ export const TAXONOMY: Taxonomy = {
         // Pagination (#2665, owner call 16 A) — its own page under Components, Pagination.Item beside it. The item builds
         // first, so the row's slot items resolve against it on the same page; IconButton and Button build wherever their
         // pages sort, before it.
-        { page: 'Pagination', defs: ['pagination-item', 'pagination'] },
+        { page: 'Pagination', defs: ['pagination-item', 'pagination'], lead: 'pagination' },
       ],
     },
     {
