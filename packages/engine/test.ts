@@ -16700,6 +16700,23 @@ arm: {
       ok(trackOff.length === 0,
         `#2669 Q550 a / e the track: one thickness per size (border-width/thick, heavy, x-heavy) in color/field/border/rest, the square-ended bar at the same thickness in color/interactive/neutral/border/rest, growing segments around the thumbs in a size/md/min-height control row at every size, disabled track color/disabled/fill and bar color/disabled/icon (${trackOff.length} off — ${trackOff.slice(0, 3).join('; ') || 'none'})`);
 
+      // Q550 e, in pixels: the three track rungs above resolve to 2 / 4 / 6px in the emitted tree of every corpus brand.
+      // The arm above pins which rung each size binds; this pins what the rung is worth, so a regenerated 5px x-heavy
+      // fails here (review N3 on #2792). The literals are typed from Q550, never read off tree.ts.
+      const trackPxOff: string[] = [];
+      for (const b of ['aurora', 'harbor', 'nb', 'prism3', 'wendys']) {
+        const tree = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'));
+        const r = tree[Object.keys(tree).find((k) => !k.startsWith('$'))!];
+        const deref = (ref: string) => ref.replace(/^\{|\}$/g, '').split('.').slice(1).reduce((o: any, k) => o?.[k], r);
+        for (const [rung, px] of [['thick', '2px'], ['heavy', '4px'], ['x-heavy', '6px']] as const) {
+          let v = r['border-width']?.[rung]?.$value;
+          for (let hop = 0; typeof v === 'string' && v.startsWith('{') && hop < 8; hop++) v = deref(v)?.$value;
+          if (v !== px) trackPxOff.push(`${b} border-width.${rung} ${String(v)}`);
+        }
+      }
+      ok(trackPxOff.length === 0,
+        `#2669 Q550 e the track widths: border-width thick, heavy and x-heavy resolve to 2, 4 and 6px in all five corpus brands (${trackPxOff.length} off — ${trackPxOff.slice(0, 3).join('; ') || 'none'})`);
+
       // (3) Call 2 A: the state shows on one thumb. The thumb of a single value, and the maximum thumb of a range, nest
       // Slider.Thumb at the member's state; the minimum thumb stays at rest, except disabled. Q550 e: both at the
       // member's size.
