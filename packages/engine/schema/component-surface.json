@@ -523,7 +523,7 @@
     },
     "tag": {
       "members": 45,
-      "sha256": "0ef1268f84a35b06eaafbd4cb5d2d52a3031d453557bb3e624bdc6b220c2c0fd",
+      "sha256": "fe1a9ae8a85a7d9855857e003f710bfcda7c0f95630f88b23e12e6e90ab1c530",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -532,7 +532,7 @@
     },
     "tag@outline-solid-tint": {
       "members": 45,
-      "sha256": "aeb5093ea2b9c26f6ddafba889574af9d99d0de45a5b36efba115bf5d238935e",
+      "sha256": "bbbda42cefe71d66eaa4b82d702915020199b832cf425f273d383e03c1d755e8",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -541,7 +541,43 @@
     },
     "tag@outline-none": {
       "members": 45,
-      "sha256": "8faff5974fb38ffbc15e6c675af92bfaa0ffe3a66a4071e880c6169cb33901da",
+      "sha256": "768fab7ff3955e48f43aeb3ae0327f0e69eab83b6807280ceb764707c9f6fad9",
+      "properties": [
+        "check icon:BOOLEAN",
+        "label:TEXT",
+        "leading icon:BOOLEAN"
+      ]
+    },
+    "tag@button-label-default": {
+      "members": 45,
+      "sha256": "9862ebd5cd18cde5766a31c918aa15acb6517649a389162cd66669569c303c8e",
+      "properties": [
+        "check icon:BOOLEAN",
+        "label:TEXT",
+        "leading icon:BOOLEAN"
+      ]
+    },
+    "tag@button-smaller-label-default": {
+      "members": 45,
+      "sha256": "9862ebd5cd18cde5766a31c918aa15acb6517649a389162cd66669569c303c8e",
+      "properties": [
+        "check icon:BOOLEAN",
+        "label:TEXT",
+        "leading icon:BOOLEAN"
+      ]
+    },
+    "tag@button-text-fill-label-default": {
+      "members": 45,
+      "sha256": "9862ebd5cd18cde5766a31c918aa15acb6517649a389162cd66669569c303c8e",
+      "properties": [
+        "check icon:BOOLEAN",
+        "label:TEXT",
+        "leading icon:BOOLEAN"
+      ]
+    },
+    "tag@tag-underline": {
+      "members": 45,
+      "sha256": "2ce4e38dd784038bd1ba92029544c77f8495923cef19cf4b407d9ad67218b8df",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -804,6 +840,35 @@
         "icon:BOOLEAN",
         "title text:TEXT",
         "title:BOOLEAN"
+      ]
+    },
+    "code-input-cell": {
+      "members": 28,
+      "sha256": "d0857df733826ea6e1f2a9e869c212c47b475d9613bc2582cef9bcbc95120a9c",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input-cell@outline-solid-tint": {
+      "members": 28,
+      "sha256": "dc1ce53587bb028f5fb6acf512a779b0e019ef50c4c52ce8abc55e54a6654cce",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input-cell@outline-none": {
+      "members": 28,
+      "sha256": "10273a351aca9f6670b859ae4f5999eafe21050f105f91e44c44654d6cbeede6",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input": {
+      "members": 48,
+      "sha256": "925bf5a057b85e4036d3e53ce41a78c816e60f868895d83f8ab915e41216f7dc",
+      "properties": [
+        "items:SLOT",
+        "message:BOOLEAN"
       ]
     }
   }

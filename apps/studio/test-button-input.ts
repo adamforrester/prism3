@@ -4,7 +4,7 @@
  *   npx tsx apps/studio/test-button-input.ts
  *
  * `src/state/button-input.ts` holds every edit the legacy Size & radius page's Button options make to the working
- * brand (Button icons, Button label & icon, Button label weight, Button minimum width) and the reader the button
+ * brand (Button icons, Button label & icon, Control label weight, Button minimum width) and the reader the button
  * specimen is drawn from. This holds each write where no DOM is needed, so one can fail here by name before the
  * browser suites run.
  *

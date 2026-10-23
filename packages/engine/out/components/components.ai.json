@@ -2602,6 +2602,7 @@
           "radio-group",
           "segmented-control",
           "counter",
+          "code-input",
           "field-message"
         ],
         "triggerKeywords": [
@@ -5827,7 +5828,7 @@
             "medium",
             "large"
           ],
-          "description": "Tag height, padding and label type. The height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density)."
+          "description": "Tag height, padding and label type. Under Tag style Pill the height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. Under Underline the tag hugs its content: 20px, 26px and 32px tall. Under Pill a tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density); under Underline it has no minimum width."
         },
         {
           "name": "disabled",
@@ -5886,8 +5887,8 @@
           "2.1.1 Keyboard (every tag can be toggled or removed from the keyboard)",
           "2.4.3 Focus Order (after a removal, focus moves to the next tag, the previous one or the group, never to the top of the page)",
           "2.4.7 Focus Visible (a focus ring around the tag on keyboard focus)",
-          "2.5.8 Target Size (Minimum) (24×24 — a small tag and its × slot are 36px on comfortable density and 28px at compact)",
-          "2.5.5 Target Size (Enhanced) (44×44, as intent — a medium tag and its × slot clear 44px on comfortable and spacious density and miss it at compact (36px); a small tag reaches 44 only at spacious density, and elsewhere through a code-side hit area)",
+          "2.5.8 Target Size (Minimum) (24×24 — a small tag and its × slot are 36px on comfortable density and 28px at compact; under Tag style Underline a small tag is 20px tall and its × slot 16px wide, and both reach 24px through a code-side hit area)",
+          "2.5.5 Target Size (Enhanced) (44×44, as intent — under Tag style Pill a medium tag and its × slot clear 44px on comfortable and spacious density and miss it at compact (36px), and a small tag reaches 44 only at spacious density; elsewhere, and at every size under Underline, a code-side hit area reaches it)",
           "1.1.1 Non-text Content / 4.1.2 Name, Role, Value (the remove control is named \"Remove\" followed by the label, and a select tag exposes its state)"
         ],
         "keyboard": "Select: Space or Enter toggles. In a single-choice group, arrows move and select, as radios do. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.",
@@ -9781,6 +9782,393 @@
         "replacesPatterns": [
           "a colored div with an icon and role=\"alert\" on a message present at load",
           "an error shown as a toast that disappears"
+        ]
+      }
+    },
+    "code-input-cell": {
+      "id": "code-input-cell",
+      "name": "CodeInput.Cell",
+      "aliases": [
+        "code-cell",
+        "otp-cell"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "One cell of a code input: a box holding one character of the code. Used only inside a code input.",
+      "description": "One cell of a code input: a box that shows one character of the code. It is drawn, not typed into: the code input holds one real input, and each cell shows the character at its place. The active cell, where the next character goes, carries the focus ring and the caret. A cell in error takes the danger border. Used only inside a code input, which sets every cell from its input.",
+      "props": [
+        {
+          "name": "digit",
+          "type": "string",
+          "required": false,
+          "description": "The character this cell shows: one digit, or one letter in a code that allows letters. Empty until the user reaches it."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large",
+            "xlarge"
+          ],
+          "description": "The cell size and its character size. Set by the code input."
+        },
+        {
+          "name": "isActive",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether this is the cell the next character goes into while the input has focus. Set by the code input."
+        },
+        {
+          "name": "isInvalid",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the code input is in error. Set by the code input."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the code input is disabled. Set by the code input."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "error"
+      ],
+      "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large",
+            "xlarge"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "none: an aria-hidden drawing; the code input's one input carries the role, the name and the value",
+        "wcag": [
+          "1.4.11 Non-text Contrast (targets 3:1 for the cell border against the page)",
+          "2.4.7 Focus Visible (the ring on the active cell)",
+          "2.4.13 Focus Appearance (the shared focus ring, as intent)"
+        ],
+        "keyboard": "None of its own: the code input's input takes every key.",
+        "focus": "Never focused itself. While the code input's input has focus, the active cell shows the focus ring.",
+        "aria": "aria-hidden=\"true\". A screen reader meets the code input's one input and its whole value, never a cell."
+      },
+      "docs": {
+        "usage": "Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input's cell slot and set each cell's state to match the field: error cells when the field is in error, disabled cells when it is disabled. In code, the code input sets every cell.",
+        "do": [
+          "Set every cell to error when the code input is in error",
+          "Set every cell to disabled when the code input is disabled"
+        ],
+        "dont": [
+          "Place a cell outside a code input",
+          "Build a code input from separate inputs, one per cell"
+        ],
+        "contentGuidelines": "One character per cell."
+      },
+      "ai": {
+        "primaryPurpose": "Show one character of a one-time code inside a code input.",
+        "whenToUse": "Only as a child of CodeInput. Generate CodeInput, which places one cell per character and sets which one is active.",
+        "avoidWhen": "Anywhere outside a code input: a single character field is a text field, and a code is always one code input.",
+        "commonPartners": [
+          "code-input"
+        ],
+        "triggerKeywords": [
+          "code cell",
+          "otp cell",
+          "verification code box"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "The caret does not blink; the ring and borders change at once, with no transition."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "one input per character of a one-time code"
+        ]
+      }
+    },
+    "code-input": {
+      "id": "code-input",
+      "name": "CodeInput",
+      "aliases": [
+        "otp-input",
+        "one-time-code",
+        "verification-code",
+        "pin-input"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Field for a one-time code: one input, shown as a row of cells, one per character.",
+      "description": "A field for a short one-time code sent by text message, email or an authenticator app: four to eight characters. It shows the code as a row of cells, so the user sees how long the code is and how far they have got. Underneath is one input holding one string, so pasting the code or filling it from the message fills every cell. A label names it and a message under it says how many characters to enter and where the code was sent. Not for a code of unknown length or one inside a longer form (TextField with one-time-code autocomplete), and not for a password or a PIN the user keeps (PasswordField).",
+      "props": [
+        {
+          "name": "label",
+          "type": "string | node",
+          "required": true,
+          "description": "The visible label (rendered as FieldLabel), such as \"Verification code\". Required."
+        },
+        {
+          "name": "length",
+          "type": "number",
+          "default": 6,
+          "required": false,
+          "description": "How many characters the code has, 4 to 8. Draws that many cells and caps the value at that length."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": false,
+          "description": "Controlled value; pair with onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "required": false,
+          "description": "Uncontrolled initial value."
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with the value after spaces and hyphens are removed."
+        },
+        {
+          "name": "onComplete",
+          "type": "function",
+          "required": false,
+          "description": "Called once with the value when it reaches the set length, and again only if the value changes and reaches it again. The page decides whether to submit."
+        },
+        {
+          "name": "inputMode",
+          "type": "enum: 'numeric' | 'text'",
+          "default": "numeric",
+          "required": false,
+          "values": [
+            "numeric",
+            "text"
+          ],
+          "description": "numeric for a code of digits, text for a code with letters."
+        },
+        {
+          "name": "autoComplete",
+          "type": "string",
+          "default": "one-time-code",
+          "required": false,
+          "description": "one-time-code by default, so the phone offers the code from the message. Never off."
+        },
+        {
+          "name": "helpText",
+          "type": "string | node",
+          "required": false,
+          "description": "Persistent guidance (rendered as FieldMessage): how many characters and where the code was sent."
+        },
+        {
+          "name": "validation",
+          "type": "enum: 'default' | 'error'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "error"
+          ],
+          "description": "error swaps every cell to the danger border, sets the message to the error status and sets aria-invalid."
+        },
+        {
+          "name": "validationMessage",
+          "type": "string | node",
+          "required": false,
+          "description": "The error text: too few characters, a wrong code or an expired code, each said plainly."
+        },
+        {
+          "name": "showMessage",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to show the helper or validation message below the cells. Never hides a message the field needs: turn it on wherever there is helper or validation text."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large",
+            "xlarge"
+          ],
+          "description": "The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes."
+        },
+        {
+          "name": "width",
+          "type": "enum: 'auto' | 'full'",
+          "default": "auto",
+          "required": false,
+          "values": [
+            "auto",
+            "full"
+          ],
+          "description": "auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled."
+        },
+        {
+          "name": "isPending",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "The code is being checked; sets aria-busy and keeps the input editable."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "A real <input name>, so the field works in a native <form>."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "description": "Wiring; generated if omitted."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled"
+      ],
+      "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large",
+            "xlarge"
+          ],
+          "kind": "authoring"
+        },
+        "status": {
+          "values": [
+            "default",
+            "error"
+          ],
+          "kind": "runtime"
+        }
+      },
+      "accessibility": {
+        "role": "textbox (one native <input>); the cells are aria-hidden",
+        "wcag": [
+          "1.3.1 Info and Relationships (one labeled input, the helper and error in aria-describedby)",
+          "1.3.5 Identify Input Purpose (autocomplete one-time-code)",
+          "3.3.1 Error Identification / 3.3.3 Error Suggestion (the error says which case it is)",
+          "3.3.8 Accessible Authentication (paste and the phone's code suggestion fill the whole code)",
+          "3.2.2 On Input (no auto-submit)",
+          "4.1.2 Name, Role, Value (one textbox, one name, one value)",
+          "1.4.11 Non-text Contrast (targets 3:1 for the cell border)",
+          "2.4.13 Focus Appearance (the ring on the active cell, as intent)",
+          "2.5.8 Target Size (the row of cells is one target)"
+        ],
+        "keyboard": "One Tab stop. Typing fills the next cell; Backspace removes the last character; arrow keys, Home and End move the caret, and the active cell follows it. Paste fills every cell.",
+        "focus": "Focus stays on the one input. The active cell, where the next character goes, shows the focus ring.",
+        "aria": "aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale."
+      },
+      "content": {
+        "labelPattern": "Noun phrase, sentence case: \"Verification code\". Spell it out; never an acronym.",
+        "errorPattern": "Say which case it is: \"Enter all 6 digits\", \"That code is wrong. Check the latest message and try again\", \"That code has expired. We sent a new one\".",
+        "emptyPattern": "The helper text says how many characters and where the code was sent: \"Enter the 6-digit code sent to your phone.\""
+      },
+      "docs": {
+        "usage": "Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with one-time-code autocomplete.",
+        "do": [
+          "Accept a pasted or autofilled code in full, ignoring spaces and hyphens",
+          "Say which error it is: too few digits, wrong code or expired code",
+          "Keep the resend link and any expiry time next to the field"
+        ],
+        "dont": [
+          "Build one input per cell: paste and autofill then fill one cell",
+          "Block paste or turn off autocomplete",
+          "Submit on the last digit without announcing the result"
+        ],
+        "contentGuidelines": "Label = noun phrase, sentence case. Helper = the length and where the code went. Error = which case it is and what to do."
+      },
+      "ai": {
+        "primaryPurpose": "Capture a short one-time code in one input, drawn as a row of cells.",
+        "whenToUse": "A step whose job is a fixed-length code of four to eight characters sent by text message, email or an authenticator app.",
+        "avoidWhen": "The code length is unknown or the code sits inside a longer form (TextField with one-time-code autocomplete), the value is a password or a kept PIN (PasswordField), or it is a quantity (a number input, not built yet).",
+        "commonPartners": [
+          "code-input-cell",
+          "field-label",
+          "field-message",
+          "button",
+          "link"
+        ],
+        "triggerKeywords": [
+          "code input",
+          "otp input",
+          "one-time code",
+          "verification code",
+          "pin input",
+          "2fa code"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "none (present on mount)",
+        "exit": "none",
+        "reduceMotion": "The active cell moves at once and the caret does not blink."
+      },
+      "composition": {
+        "composesWith": [
+          "field-label",
+          "code-input-cell",
+          "field-message"
+        ],
+        "alternativeTo": [
+          "text-field",
+          "password-field"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "one input per character of a one-time code",
+          "a code field with paste blocked",
+          "auto-submit on the last digit"
         ]
       }
     }

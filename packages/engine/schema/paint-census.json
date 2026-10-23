@@ -600,6 +600,30 @@
         "assignments": 40,
         "sha256": "de9baa297f7ba1e25d891f6f59a6964bebb209a26b4fbf98828cc0d3303c7641"
       }
+    },
+    "code-input-cell": {
+      "set": {
+        "members": 28,
+        "assignments": 72,
+        "sha256": "62c5bfd8bc07ff8275fabd5046639794fd78089e2f06d9d3ccc2ee5a16056b41"
+      },
+      "grid": {
+        "members": 28,
+        "assignments": 72,
+        "sha256": "43cf8ee3e498b0d320f2a5a8a9046eda2d2dd7b578f8af0edb625e656695ebfd"
+      }
+    },
+    "code-input": {
+      "set": {
+        "members": 48,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "grid": {
+        "members": 56,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
     }
   }
 }

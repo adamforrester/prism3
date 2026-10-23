@@ -7861,9 +7861,9 @@ for (const host of ['web', 'figma']) {
       const want = `${size} button · ${HEIGHT_PX(step)}px`;
       ok(r.heights[step] === want, `D6: ${host}: the ${size} button height reads "${want}" (${JSON.stringify(r.heights[step])})`);
     }
-    // radius.lg is the unbound size probed: Toast binds radius.xl since #2668.
-    ok(r.used.find(([s]) => s === 'md')?.[1]?.includes('Button') && r.used.find(([s]) => s === 'lg')?.[1] === SHAPE_COPY.usedByNone,
-      `${host}: "used by" names Button on radius.md under the default Control shape, and the fallback "${SHAPE_COPY.usedByNone}" where nothing binds a size (${JSON.stringify(r.used.slice(2, 5))})`);
+    // radius.3xl is the unbound size probed: Toast binds radius.xl since #2668, and Code input's xlarge cell radius.lg since #2428.
+    ok(r.used.find(([s]) => s === 'md')?.[1]?.includes('Button') && r.used.find(([s]) => s === '3xl')?.[1] === SHAPE_COPY.usedByNone,
+      `${host}: "used by" names Button on radius.md under the default Control shape, and the fallback "${SHAPE_COPY.usedByNone}" where nothing binds a size (${JSON.stringify(r.used.filter(([s]) => ['md', 'lg', 'xl', '3xl'].includes(s)))})`);
     ok(JSON.stringify(r.shapes) === JSON.stringify([['boxed', null], ['hairline', null], ['rounded', 'true'], ['pill', null]]), `${host}: the four control shapes, Rounded marked current (${JSON.stringify(r.shapes)})`);
     // D16 and E2's plain words: no "ramp", "ladder", "face", "band", "rung", "muted" or "column" in Shape's visible copy,
     // and "Radius" (not "Corners") in the headings. Token pills taken out.
@@ -8576,9 +8576,9 @@ for (const host of ['web', 'figma']) {
         `#2931 Q579 A, #2905 Q10 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
       const B = r.buttons, F = r.fields;
       ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
-        && JSON.stringify(F.ids) === JSON.stringify(['password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
-        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its five fields, each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
-      ok(!r.other.some((t) => /^(Buttons|Button|Text field|Password field|Search field|Select|Textarea|Tag)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
+        && JSON.stringify(F.ids) === JSON.stringify(['code-input', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
+        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its six fields (Code input since Q-2789.3 A), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
+      ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
         `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
       for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T]]) {
         const xs = e ? [e.head, ...e.rows, e.line, e.block] : [];
@@ -8588,7 +8588,7 @@ for (const host of ['web', 'figma']) {
       ok(!!r.fo && r.fo.title === 'Field options' && r.fo.desc === 'How Text field, Password field, Select and Textarea draw their edge.'
         && r.fo.shape === 'Rounded' && r.fo.link === 'Set it in Shape › Control shape' && !r.fo.density && JSON.stringify(r.fo.chips) === JSON.stringify(['Outline', 'Underline']),
         `#2905 Q3 B, Q10 A: ${host} ${w}: Field options: its drafted title and description, the way to Control shape reading Rounded, Field style's chips, and no way to Density (${JSON.stringify(r.fo)})`);
-      ok(r.title === 'Password field', `#2905: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Password field (${r.title})`);
+      ok(r.title === 'Code input', `#2905, Q-2789.3 A: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Code input (${r.title})`);
       await hooks.click(page.locator('[data-p3="field-style-choice-underline"]'));
       await page.waitForFunction(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent !== 'Rounded', null, { timeout: 5000 }).catch(() => {});
       const u = await page.evaluate(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent ?? null);
@@ -10704,9 +10704,10 @@ const EXPECT_HEADINGS = {
     // #2905: the list's sections are Buttons, Fields, Other components and Subcomponents, each with settings holding one
     // group (L2) after its sets; Field options' one lever, Field style, is L3 as the Button options are.
     // #2931 Q579 A: Tag, its Tag options (L2) and Tag style (L3), Field options' way.
+    // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
     L1: ['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents'],
     L2: ['Button options', 'Field options', 'Tag options'],
-    L3: ['Button icons', 'Medium button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Tag style'],
+    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Tag style'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).

@@ -139,10 +139,13 @@ export const leverManifest: Lever[] = [
   { key: 'buttonContentSize', group: 'form', kind: 'value', label: 'Medium button label & icon', control: 'enum', default: 'match',
     options: enumOpts(['match', 'Medium'], ['smaller', 'Small']),
     description: 'The label and icon size of a medium button. Medium keeps its own; Small gives it the small button’s label and icon at the medium height and padding. Other button sizes are unchanged.' },
-  // #1752 — label and option labels are the owner's exact words (2026-09-28). Buttons only.
-  { key: 'buttonLabelWeight', group: 'form', kind: 'value', label: 'Button label weight', control: 'enum', default: 'emphasis',
+  // #1752 — option labels are the owner's exact words (2026-09-28). #2945 (owner Q591 A, Q591.1 A and Q591.2 A,
+  // 2026-10-23): widened to buttons AND tags, and the label and description are the owner's approved draft. The key
+  // keeps its #1752 name, `buttonLabelWeight`, though it now covers tags: no migration, so every brand file, the
+  // plugin and Studio keep working.
+  { key: 'buttonLabelWeight', group: 'form', kind: 'value', label: 'Control label weight', control: 'enum', default: 'emphasis',
     options: enumOpts(['default', 'Default'], ['emphasis', 'Emphasis']),
-    description: 'The weight of a button label: Emphasis (600 by default) or Default (400). Default adds that weight to the label styles. Tags and badges keep Emphasis.' },
+    description: 'The weight of button and tag labels: Emphasis (600 by default) or Default (400). Default adds that weight to the label styles. Badges keep Emphasis.' },
   // #2324 — label and option labels are the owner's words (2026-10-08); the description is a DRAFT for the owner.
   { key: 'buttonTextHover', group: 'form', kind: 'structural', label: 'Text button hover', control: 'enum', default: 'text',
     options: enumOpts(['text', 'Text & icon only'], ['fill', 'Fill']),
