@@ -37036,6 +37036,689 @@
         }
       ]
     },
+    "progress": {
+      "id": "progress",
+      "name": "Progress",
+      "members": 12,
+      "axes": [
+        {
+          "name": "shape",
+          "figmaName": "shape",
+          "values": [
+            "linear",
+            "circular"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "type",
+          "figmaName": "type",
+          "values": [
+            "determinate",
+            "indeterminate"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "active",
+            "complete",
+            "error"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 12
+        },
+        {
+          "part": "container/header",
+          "kind": "frame",
+          "members": 4,
+          "when": {
+            "shape": [
+              "linear"
+            ]
+          }
+        },
+        {
+          "part": "container/header/label",
+          "kind": "text",
+          "members": 4,
+          "when": {
+            "shape": [
+              "linear"
+            ]
+          }
+        },
+        {
+          "part": "container/header/value",
+          "kind": "text",
+          "members": 2
+        },
+        {
+          "part": "container/track",
+          "kind": "frame",
+          "members": 4,
+          "when": {
+            "shape": [
+              "linear"
+            ]
+          }
+        },
+        {
+          "part": "container/track/fill",
+          "kind": "frame",
+          "members": 4,
+          "when": {
+            "shape": [
+              "linear"
+            ]
+          }
+        },
+        {
+          "part": "container/track/rest",
+          "kind": "frame",
+          "members": 3
+        },
+        {
+          "part": "container/track/dotGlyph",
+          "kind": "glyph",
+          "members": 3
+        },
+        {
+          "part": "container/header/valueComplete",
+          "kind": "text",
+          "members": 1
+        },
+        {
+          "part": "container/messageComplete",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "status": [
+              "complete"
+            ]
+          }
+        },
+        {
+          "part": "container/messageError",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "status": [
+              "error"
+            ]
+          }
+        },
+        {
+          "part": "container/track/lead",
+          "kind": "frame",
+          "members": 1
+        },
+        {
+          "part": "container/ringRow",
+          "kind": "frame",
+          "members": 8,
+          "when": {
+            "shape": [
+              "circular"
+            ]
+          }
+        },
+        {
+          "part": "container/ringRow/ring",
+          "kind": "frame",
+          "members": 8,
+          "when": {
+            "shape": [
+              "circular"
+            ]
+          }
+        },
+        {
+          "part": "container/ringRow/ring/ringGlyph",
+          "kind": "glyph",
+          "members": 8,
+          "when": {
+            "shape": [
+              "circular"
+            ]
+          }
+        },
+        {
+          "part": "container/ringRow/ring/arcGlyph",
+          "kind": "glyph",
+          "members": 6
+        },
+        {
+          "part": "container/ringRow/ringValue",
+          "kind": "text",
+          "members": 4
+        },
+        {
+          "part": "container/ringRow/ring/fullRingGlyph",
+          "kind": "glyph",
+          "members": 2
+        },
+        {
+          "part": "container/ringRow/ringValueComplete",
+          "kind": "text",
+          "members": 2
+        }
+      ],
+      "redlineKey": [
+        "size",
+        "shape"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium",
+            "shape": "linear"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.075"
+                },
+                "buildWidth": {
+                  "px": 360,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/header",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "minHeight": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/track",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                }
+              }
+            },
+            {
+              "part": "container/track/dotGlyph",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                },
+                "width": {
+                  "token": "border-width.heavy"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "shape": "circular"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.075"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring",
+              "values": {
+                "height": {
+                  "token": "icon.size.xl"
+                },
+                "width": {
+                  "token": "icon.size.xl"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/ringGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xl"
+                },
+                "width": {
+                  "token": "icon.size.xl"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/arcGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xl"
+                },
+                "width": {
+                  "token": "icon.size.xl"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/fullRingGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xl"
+                },
+                "width": {
+                  "token": "icon.size.xl"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "shape": "circular"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.075"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/ringGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/arcGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/fullRingGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/header/label",
+              "textStyle": "type.label.md.emphasis"
+            },
+            {
+              "part": "container/header/value",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/header/valueComplete",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/ringRow/ringValue",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/ringRow/ringValueComplete",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/ringRow/ringValue",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/ringRow/ringValueComplete",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "shape",
+        "type",
+        "status"
+      ],
+      "colors": [
+        {
+          "where": {
+            "shape": "linear",
+            "type": "determinate",
+            "status": "active"
+          },
+          "parts": [
+            {
+              "part": "container/header/label",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/header/value",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/track",
+              "fill": "color.background.tertiary"
+            },
+            {
+              "part": "container/track/fill",
+              "fill": "color.icon.brand"
+            },
+            {
+              "part": "container/track/dotGlyph",
+              "icon": "color.icon.brand"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "linear",
+            "type": "determinate",
+            "status": "complete"
+          },
+          "parts": [
+            {
+              "part": "container/header/label",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/header/valueComplete",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/track",
+              "fill": "color.background.tertiary"
+            },
+            {
+              "part": "container/track/fill",
+              "fill": "color.icon.success"
+            },
+            {
+              "part": "container/track/dotGlyph",
+              "icon": "color.icon.success"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "linear",
+            "type": "determinate",
+            "status": "error"
+          },
+          "parts": [
+            {
+              "part": "container/header/label",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/header/value",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/track",
+              "fill": "color.background.tertiary"
+            },
+            {
+              "part": "container/track/fill",
+              "fill": "color.icon.danger"
+            },
+            {
+              "part": "container/track/dotGlyph",
+              "icon": "color.icon.danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "linear",
+            "type": "indeterminate",
+            "status": "active"
+          },
+          "parts": [
+            {
+              "part": "container/header/label",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/track",
+              "fill": "color.background.tertiary"
+            },
+            {
+              "part": "container/track/fill",
+              "fill": "color.icon.brand"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "circular",
+            "type": "determinate",
+            "status": "active"
+          },
+          "parts": [
+            {
+              "part": "container/ringRow/ring/ringGlyph",
+              "icon": "color.background.tertiary"
+            },
+            {
+              "part": "container/ringRow/ring/arcGlyph",
+              "icon": "color.icon.brand"
+            },
+            {
+              "part": "container/ringRow/ringValue",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "circular",
+            "type": "determinate",
+            "status": "complete"
+          },
+          "parts": [
+            {
+              "part": "container/ringRow/ring/ringGlyph",
+              "icon": "color.background.tertiary"
+            },
+            {
+              "part": "container/ringRow/ring/fullRingGlyph",
+              "icon": "color.icon.success"
+            },
+            {
+              "part": "container/ringRow/ringValueComplete",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "circular",
+            "type": "determinate",
+            "status": "error"
+          },
+          "parts": [
+            {
+              "part": "container/ringRow/ring/ringGlyph",
+              "icon": "color.background.tertiary"
+            },
+            {
+              "part": "container/ringRow/ring/arcGlyph",
+              "icon": "color.icon.danger"
+            },
+            {
+              "part": "container/ringRow/ringValue",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "circular",
+            "type": "indeterminate",
+            "status": "active"
+          },
+          "parts": [
+            {
+              "part": "container/ringRow/ring/ringGlyph",
+              "icon": "color.background.tertiary"
+            },
+            {
+              "part": "container/ringRow/ring/arcGlyph",
+              "icon": "color.icon.brand"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/messageComplete",
+          "kind": "instance",
+          "component": "field-message",
+          "variant": {
+            "status": "success"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/messageError",
+          "kind": "instance",
+          "component": "field-message",
+          "variant": {
+            "status": "error"
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "label text",
+          "type": "TEXT",
+          "default": "Label"
+        },
+        {
+          "name": "value text",
+          "type": "TEXT",
+          "default": "50%"
+        },
+        {
+          "name": "complete value text",
+          "type": "TEXT",
+          "default": "100%"
+        },
+        {
+          "name": "label",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "value",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "message",
+          "type": "BOOLEAN",
+          "default": true
+        }
+      ]
+    },
     "search-field": {
       "id": "search-field",
       "name": "SearchField",
