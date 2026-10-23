@@ -39194,6 +39194,9 @@
                 "gap": {
                   "token": "space.150"
                 },
+                "minWidth": {
+                  "token": "container.min"
+                },
                 "buildWidth": {
                   "px": 480,
                   "source": "literal"
@@ -39292,6 +39295,9 @@
                 },
                 "gap": {
                   "token": "space.150"
+                },
+                "minWidth": {
+                  "token": "container.min"
                 },
                 "buildWidth": {
                   "px": 960,
