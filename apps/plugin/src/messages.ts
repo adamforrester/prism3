@@ -119,6 +119,11 @@ export type UiToMain =
    *  writing to storage on every pointer-move. The main thread clamps — the UI does not decide
    *  the minimum. */
   | { type: 'resize-ui'; width: number; height: number; commit: boolean }
+  /** The link strip (#2949, the owner's Q1 A and Q600 A): `true` from the Minimize tile beside the Agent tile, `false`
+   *  from the strip's Restore. The main thread resizes the window to the strip and back, and answers `ui-minimized`; it
+   *  never touches the link or its poll. The strip's size skips the 380×420 floor and is never kept as the window size;
+   *  Restore returns to the size from before minimizing. Turning the link off (`agent-link` off) also restores. */
+  | { type: 'minimize-ui'; minimized: boolean }
   /** The person chose a chrome theme in the Theme menu (the owner's top-bar decision, 2026-10-05): Match Figma
    *  (`figma`), Light or Dark. The main thread keeps it in `clientStorage`, per person, and sends it back on
    *  `ui-ready` as `theme-pref`. */
@@ -419,6 +424,9 @@ export type MainToUi =
    *  after every command, so the panel's control always shows what the link is doing. The shared UI body
    *  never reads it — the agent-link control (`agent-link-ui.ts`) is its only consumer. */
   | { type: 'agent-link-state'; state: AgentLinkState }
+  /** Whether the window is the link strip (#2949), after each `minimize-ui` and when turning the link off restores it.
+   *  The main thread is the authority, as for the link itself; read by the agent-link control (`agent-link-ui.ts`). */
+  | { type: 'ui-minimized'; minimized: boolean }
   /** The chrome theme this person last chose (`set-theme-pref`), read from `clientStorage` on `ui-ready`. Not sent
    *  when nothing was kept: the UI starts on Match Figma. Read by the plugin's UI entry (`ui/entry.ts`), never by the
    *  shared UI body's host messages. */

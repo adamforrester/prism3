@@ -18,7 +18,15 @@
  * it: the web build carries none of it. The frame mounts and unmounts with the app view (the start screen
  * has none), so the tile is built once and moved into whichever slot is in the document.
  *
- * It does three things and owns no state of its own:
+ * THE LINK STRIP (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A, 2026-10-23). While the link is on, a Minimize tile sits
+ * beside the Agent tile in the same slot. It asks the main thread to shrink the window to a one-row strip (`minimize-ui`),
+ * and the main thread answers `ui-minimized`, the authority as for the link. Minimized, the document shows only the strip
+ * (`html[data-strip]`, `chrome.css`): the link's dot, its status in the Activity drawer's words plus the running or last
+ * command and its age (`agentStripText`), Restore, and Turn off, which turns the link off and so restores the window too
+ * (`main.ts`). Everything else stays mounted under it, only not drawn, so Restore returns to the same page and state. The
+ * strip is built once and appended to `<body>`, like the live region, since the frame comes and goes with the app view.
+ *
+ * It does these things and owns no state of its own:
  *   · a click posts `agent-link` with the opposite of the state the main thread last published — the
  *     main thread is the authority on whether the link is on;
  *   · it renders every `agent-link-state` the main thread posts, and tells Activity whether the link is on;
@@ -59,6 +67,29 @@ export const agentLinkShortStatus = (s: AgentLinkState | null): { readonly text:
   if (s.inboxError) return { text: 'Agent error', error: true };
   if (!s.transports.mailbox && !s.transports.bridge) return { text: 'Agent not listening', error: true };
   return { text: 'Agent listening', error: false };
+};
+
+/** An age in the strip's words (#2949): seconds under a minute, then whole minutes, then whole hours. Pure. */
+export const agentAge = (ms: number): string => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h`;
+};
+
+/** The strip's one line (#2949, the owner's Q2 A and Q3 A): the short status, and while it is not an error state, the
+ *  command running with how long it has run, or the last command with how long ago it finished. Nothing while the link is
+ *  off. `running` is the command the panel was told started and not yet finished (`agent-started`, `agent-finished`);
+ *  `now` is milliseconds since the epoch. Pure. */
+export const agentStripText = (s: AgentLinkState | null, running: { readonly cmd: string; readonly since: number } | null, now: number):
+  { readonly text: string; readonly error: boolean } | null => {
+  const short = agentLinkShortStatus(s);
+  if (!short || short.error) return short;
+  if (running) return { text: `Agent running ${running.cmd}… ${agentAge(now - running.since)}`, error: false };
+  const last = s?.lastCommand;
+  const at = last ? Date.parse(last.finishedAt) : NaN;
+  if (!last || Number.isNaN(at)) return { text: `${short.text} · no command yet`, error: false };
+  return { text: `${short.text} · last: ${last.cmd} ${agentAge(now - at)} ago`, error: false };
 };
 
 const post = (m: UiToMain): void => parent.postMessage({ pluginMessage: m }, '*');
@@ -105,12 +136,62 @@ export const mountAgentLink = (): void => {
   const dot = hook(h('span', 'p3-dot p3-agent-dot'), 'agent-dot');
   dot.setAttribute('aria-hidden', 'true');
   mark.append(glyph('agent'), dot);
-  wrap.append(chip);
+  // #2949 (Q600 A): Minimize, beside the Agent tile and only while the link is on. A plain button: the main thread decides.
+  const { btn: minBtn, mark: minMark, tip: minTip } = tile('agent-minimize', 'Minimize');
+  minBtn.classList.add('p3-agent-min');
+  minBtn.setAttribute('aria-label', 'Minimize');
+  minTip.textContent = 'Minimize';
+  minMark.append(glyph('dash'));
+  minBtn.hidden = true;
+  minBtn.addEventListener('click', () => post({ type: 'minimize-ui', minimized: true }));
+  wrap.append(chip, minBtn);
+
+  // The strip (#2949): the link's dot, its line, Restore and Turn off. Drawn only while the main thread says minimized.
+  const strip = hook(h('div', 'p3-strip'), 'agent-strip');
+  strip.hidden = true;
+  const stripDot = hook(h('span', 'p3-dot p3-dot-ok'), 'agent-strip-dot');
+  stripDot.setAttribute('aria-hidden', 'true');
+  const stripText = hook(h('span', 'p3-strip-text'), 'agent-strip-text');
+  const restore = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon'), 'agent-strip-restore');
+  restore.type = 'button';
+  restore.setAttribute('aria-label', 'Restore');
+  restore.title = 'Restore';
+  restore.append(glyph('restore'));
+  restore.addEventListener('click', () => post({ type: 'minimize-ui', minimized: false }));
+  const turnOff = hook(h('button', 'p3-btn', 'Turn off'), 'agent-strip-off');
+  turnOff.type = 'button';
+  turnOff.addEventListener('click', () => post({ type: 'agent-link', on: false }));
+  strip.append(stripDot, stripText, restore, turnOff);
+  document.body.append(strip);
+  let minimized = false;
+  /** The command the panel was told started and not yet finished, with when it was told. */
+  let running: { cmd: string; since: number } | null = null;
+  let ticker: ReturnType<typeof setInterval> | null = null;
+  const renderStrip = (): void => {
+    if (!minimized) return;
+    const line = agentStripText(state, running, Date.now());
+    stripText.textContent = line?.text ?? '';
+    stripText.dataset.error = String(!!line?.error);
+    stripDot.className = line?.error ? 'p3-dot p3-dot-bad' : 'p3-dot p3-dot-ok';
+    strip.title = state ? agentLinkStatusText(state) : '';
+  };
+  const setMinimized = (on: boolean): void => {
+    if (on === minimized) return;
+    minimized = on;
+    strip.hidden = !on;
+    if (on) document.documentElement.dataset.strip = 'true';
+    else delete document.documentElement.dataset.strip;
+    if (ticker !== null) { clearInterval(ticker); ticker = null; }
+    if (on) { renderStrip(); ticker = setInterval(renderStrip, 1000); restore.focus(); }
+    else if (!minBtn.hidden) minBtn.focus();
+  };
 
   const render = (): void => {
     const on = !!state?.on;
     chip.setAttribute('aria-pressed', String(on));
     chip.dataset.on = String(on);
+    minBtn.hidden = !on;
+    renderStrip();
     // Activity's name and tooltip say "agent link on" while it is (the owner's top-bar decision, 2026-10-05).
     setAgentLinkOn(on);
     // The Activity drawer's agent status (#2213): the short status in its bar row, and the full line while the link is
@@ -143,11 +224,14 @@ export const mountAgentLink = (): void => {
 
   window.addEventListener('message', (e: MessageEvent) => {
     const m = e.data && (e.data as { pluginMessage?: { type?: string; state?: AgentLinkState } }).pluginMessage;
+    if (m && m.type === 'ui-minimized') { setMinimized((m as { minimized?: unknown }).minimized === true); return; }
     if (!m || typeof m.type !== 'string' || !m.type.startsWith('agent-')) return;
     if (m.type === 'agent-link-state' && m.state && typeof m.state === 'object') {
       state = m.state;
       render();
     }
+    if (m.type === 'agent-started') { running = { cmd: String((m as { cmd?: unknown }).cmd ?? ''), since: Date.now() }; renderStrip(); }
+    if (m.type === 'agent-finished') { running = null; renderStrip(); }
     relay?.fromMain(m as Parameters<ReturnType<typeof createBridgeRelay>['fromMain']>[0]);
   });
 

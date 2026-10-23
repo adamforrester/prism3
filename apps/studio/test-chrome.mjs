@@ -654,7 +654,8 @@ const FIT_ORACLE = () => {
 const FIT_SEEN = () => {
   const bm = document.querySelector('[data-p3="bar-main"]');
   const drawn = (n) => !!n && n.getClientRects().length > 0 && n.getBoundingClientRect().width > 0 && getComputedStyle(n).display !== 'none';
-  const labels = [...bm.querySelectorAll('.p3-tile-label')].map(drawn);
+  // The labels of the tiles drawn: a tile not drawn at all (Minimize while the link is off, #2949) has no label to show.
+  const labels = [...bm.querySelectorAll('.p3-tile-label')].filter((l) => drawn(l.closest('.p3-tile'))).map(drawn);
   const name = drawn(bm.querySelector('.p3-mark-name'));
   const bn = bm.querySelector('[data-p3="brand-switcher"] .p3-brand-name');
   const textW = (n) => {
@@ -2304,7 +2305,7 @@ const recordPosts = (page) => page.evaluate(() => {
   window.__writes = [];
   window.addEventListener('message', (e) => {
     const m = e.data?.pluginMessage;
-    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
+    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link', 'minimize-ui'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
   });
 });
 /** The messages posted since the last call. A post is delivered as a task, so one task is let through first. */
@@ -2439,8 +2440,10 @@ for (const host of ['web', 'figma']) {
         });
         const chip = await page.evaluate(() => {
           const frame = document.querySelector('[data-p3="frame"]');
-          // Anything outside the frame that names an agent or holds a control: where the old chip was mounted.
-          const outside = [...document.body.querySelectorAll('*')].filter((e) => !frame.contains(e) && !e.contains(frame) && !['SCRIPT', 'STYLE'].includes(e.tagName));
+          // Anything outside the frame that names an agent or holds a control: where the old chip was mounted. The link
+          // strip (#2949) is the one exception, by its hook: it lives on <body> by design and is checked in its own block.
+          const strip = document.querySelector('[data-p3="agent-strip"]');
+          const outside = [...document.body.querySelectorAll('*')].filter((e) => !frame.contains(e) && !e.contains(frame) && !strip?.contains(e) && !['SCRIPT', 'STYLE'].includes(e.tagName));
           return {
             inBar: !!document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-toggle"]'),
             old: !!document.querySelector('#p3-agent-link'), popover: !!document.querySelector('.p3-agent-chip, .p3-agent-pop'),
@@ -2469,11 +2472,94 @@ for (const host of ['web', 'figma']) {
         ok(isWire(sw, AGENT_WIRE), `T7 ${where}: a click on the Agent tile asks the main thread to turn the link on, ${JSON.stringify(AGENT_WIRE)} (posted ${JSON.stringify(sw)})`);
         await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
         await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 5000 }).catch(() => {});
+        // #2949: the link on draws Minimize beside the tile, which widens the bar and can re-fit it a frame or more later,
+        // moving tiles under the pointer and with them which tooltip shows. Measure once the bar holds still: Minimize
+        // drawn and every bar control in the same box over four frames running.
+        await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-p3="agent-minimize"]') ?? document.body).display !== 'none'
+          && !!document.querySelector('[data-p3="agent-minimize"]'), null, { timeout: 5000 }).catch(() => {});
+        await page.evaluate(() => new Promise((done) => {
+          const boxes = () => [...document.querySelectorAll('[data-p3="top-bar"] button, [data-p3="top-bar"] a')].map((n) => { const r = n.getBoundingClientRect(); return `${r.left},${r.top},${r.width}`; }).join('|');
+          let last = boxes(), still = 0, frames = 0;
+          const step = () => { const now = boxes(); still = now === last ? still + 1 : 0; last = now; if (still >= 4 || ++frames > 120) done(); else requestAnimationFrame(step); };
+          requestAnimationFrame(step);
+        }));
+        // Then put the pointer back on the Agent tile, where the click left it: hover is taken from a real move, not from
+        // whenever the browser next re-reads it after the layout moved, so its tooltip is drawn, and stays drawn, when measured.
+        const at = await page.locator('[data-p3="agent-toggle"]').boundingBox();
+        if (at) await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+        await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
         const a1 = await agentState();
         ok(a1.name === 'Agent' && a1.pressed === 'true' && a1.dot && a1.tip === 'Agent', `T7 ${where}: the main thread's state turns the tile on: named "Agent", aria-pressed true, the dot drawn (${JSON.stringify(a1)})`);
         const mc = await measure(page, `${where} / Agent on`, host, w);
         check(mc, `${where} / Agent on`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="agent-toggle"]'] });
         await shot('agent');
+
+        // ── the link strip (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A) ──────────────────────────
+        // EXPECTED is written here: Minimize beside the Agent tile only while the link is on; minimized, the document
+        // draws the strip alone, its line in the Activity drawer's words plus the command and its age, whole at the
+        // strip's size (480×40, the size `main.ts` resizes to), with Restore and Turn off; restored, the same frame node
+        // is drawn again. The window's size is the main thread's (`test-agent-link.ts` strip/*); here the viewport stands in.
+        const minTile = () => page.evaluate(() => {
+          const slot = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"]');
+          const b = slot?.querySelector('[data-p3="agent-minimize"]');
+          const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
+          const kids = slot ? [...slot.querySelectorAll('[data-p3="agent-toggle"], [data-p3="agent-minimize"]')].map((n) => n.getAttribute('data-p3')) : [];
+          return { shown: vis(b), name: b?.getAttribute('aria-label') ?? null, order: kids };
+        });
+        const m1 = await minTile();
+        ok(m1.shown && m1.name === 'Minimize' && JSON.stringify(m1.order) === '["agent-toggle","agent-minimize"]',
+          `#2949 ${where}: with the link on, Minimize shows beside the Agent tile, named "Minimize" (${JSON.stringify(m1)})`);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="agent-minimize"]'), WAIT);
+        const mw = await takeWrites(page);
+        ok(isWire(mw, { type: 'minimize-ui', minimized: true }), `#2949 ${where}: Minimize asks the main thread to minimize (posted ${JSON.stringify(mw)})`);
+        await page.evaluate(() => { document.querySelector('[data-p3="frame"]').__p3Mark = 'frame'; });
+        const LONGEST = 'Agent listening · last: update-components 59m ago';
+        await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, lastCommand: { id: 'x', cmd: 'update-components', ok: true, headline: '✓ done',
+          finishedAt: await page.evaluate(() => new Date(Date.now() - 59 * 60000 - 30000).toISOString()) } } });
+        await postMsg(page, { type: 'ui-minimized', minimized: true });
+        await page.setViewportSize({ width: 480, height: 40 });
+        await page.waitForFunction(() => !document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 5000 }).catch(() => {});
+        const stripState = () => page.evaluate(() => {
+          const st = document.querySelector('[data-p3="agent-strip"]');
+          const t = st?.querySelector('[data-p3="agent-strip-text"]');
+          const r = st?.getBoundingClientRect();
+          const app = document.getElementById('app');
+          const rs = st?.querySelector('[data-p3="agent-strip-restore"]');
+          const off = st?.querySelector('[data-p3="agent-strip-off"]');
+          const box = (n) => { const b = n?.getBoundingClientRect(); return b ? [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)] : null; };
+          return { drawn: !!st && !st.hidden && getComputedStyle(st).display !== 'none', rect: r ? [Math.round(r.width), Math.round(r.height)] : null,
+            appDrawn: !!app && getComputedStyle(app).display !== 'none', text: t?.textContent ?? null, whole: !!t && t.scrollWidth <= t.clientWidth,
+            restore: rs?.getAttribute('aria-label') ?? null, off: off?.textContent ?? null, focus: document.activeElement?.getAttribute('data-p3') ?? null,
+            inside: [box(t), box(rs), box(off)].every((b) => b && b[0] >= 0 && b[1] >= 0 && b[2] <= 480 && b[3] <= 40) };
+        });
+        const s1 = await stripState();
+        ok(s1.drawn && !s1.appDrawn && JSON.stringify(s1.rect) === '[480,40]',
+          `#2949 ${where}: minimized, the strip fills the 480×40 window and the panel is not drawn (${JSON.stringify({ drawn: s1.drawn, app: s1.appDrawn, rect: s1.rect })})`);
+        ok(s1.text === LONGEST && s1.whole && s1.inside,
+          `#2949 ${where}: the strip reads "${LONGEST}", whole, every part inside the strip (${JSON.stringify({ text: s1.text, whole: s1.whole, inside: s1.inside })})`);
+        ok(s1.restore === 'Restore' && s1.off === 'Turn off' && s1.focus === 'agent-strip-restore',
+          `#2949 ${where}: the strip carries Restore and Turn off, and focus moves to Restore (${JSON.stringify({ restore: s1.restore, off: s1.off, focus: s1.focus })})`);
+        await shot('strip');
+        await postMsg(page, { type: 'agent-started', id: 'm1', cmd: 'update-components' });
+        await page.waitForFunction(() => /^Agent running/.test(document.querySelector('[data-p3="agent-strip-text"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+        const s2 = await stripState();
+        ok(/^Agent running update-components… \d+s$/.test(s2.text ?? '') && s2.whole, `#2949 ${where}: while a command runs the strip reads "Agent running update-components… <age>" (${JSON.stringify(s2.text)})`);
+        await postMsg(page, { type: 'agent-finished', id: 'm1', cmd: 'update-components' });
+        await hooks.click(page.locator('[data-p3="agent-strip-restore"]'), WAIT);
+        const rw = await takeWrites(page);
+        ok(isWire(rw, { type: 'minimize-ui', minimized: false }), `#2949 ${where}: Restore asks the main thread to restore (posted ${JSON.stringify(rw)})`);
+        await hooks.click(page.locator('[data-p3="agent-strip-off"]'), WAIT);
+        const ow = await takeWrites(page);
+        ok(isWire(ow, { type: 'agent-link', on: false }), `#2949 ${where}: Turn off asks the main thread to turn the link off (posted ${JSON.stringify(ow)})`);
+        await postMsg(page, { type: 'ui-minimized', minimized: false });
+        await page.setViewportSize({ width: w, height: h });
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 5000 }).catch(() => {});
+        const back = await page.evaluate(() => ({ same: document.querySelector('[data-p3="frame"]')?.__p3Mark === 'frame', app: getComputedStyle(document.getElementById('app')).display !== 'none',
+          strip: !document.querySelector('[data-p3="agent-strip"]')?.hidden, focus: document.activeElement?.getAttribute('data-p3') ?? null }));
+        ok(back.same && back.app && !back.strip && back.focus === 'agent-minimize',
+          `#2949 ${where}: restored, the same frame is drawn again, the strip is gone and focus is back on Minimize (${JSON.stringify(back)})`);
+        await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
         await hooks.click(page.locator('[data-p3="agent-toggle"]'), WAIT);
         const sw2 = await takeWrites(page);
         ok(isWire(sw2, { type: 'agent-link', on: false }), `T7 ${where}: a click while on asks the main thread to turn the link off (posted ${JSON.stringify(sw2)})`);
@@ -2481,6 +2567,8 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'false', null, { timeout: 5000 }).catch(() => {});
         const a2 = await agentState();
         ok(a2.name === 'Agent' && a2.pressed === 'false' && !a2.dot, `T7 ${where}: the published off state clears the dot and the pressed state (${JSON.stringify(a2)})`);
+        const m2 = await minTile();
+        hooks.absent(ok, { seen: a2.pressed === 'false', state: 'the Agent tile off' }, !m2.shown, `#2949 ${where}: with the link off, Minimize is not drawn (${JSON.stringify(m2)})`);
 
         // ── the Figma menu: by keyboard, then each item's action ──────────────────────────────────
         await page.locator('[data-p3="figma-open"]').focus();
