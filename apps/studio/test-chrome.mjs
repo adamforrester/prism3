@@ -730,12 +730,13 @@ const BAR = ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="act
  *  went with the old Style guide page in H12, #2289, owner PG1 A; section 26 holds its absence on both hosts.) */
 /** #2909 IA v2 phase 1 (the owner's decisions of 2026-10-24, round-4 wireframe): the plugin's shell is the left rail. Its
  *  four areas in order, then its foot (Agent, Help, Appearance); the top bar holds the brand switcher and Update file
- *  (Minimize only while the link is on), and the levers header its search. The Figma menu, Apply Theme, the bar's
+ *  (and Minimize, link on or off, the owner's direction of 2026-10-24), and the levers header its search. The Figma menu, Apply Theme, the bar's
  *  Activity, Export and Docs tiles and the bar's product mark are gone from the plugin. Authored from the wireframe. */
 const FIGMA_RAIL_AREAS = ['[data-p3="rail-theme"]', '[data-p3="rail-components"]', '[data-p3="rail-documentation"]', '[data-p3="rail-export"]'];
 const FIGMA_RAIL_FOOT = ['[data-p3="agent-toggle"]', '[data-p3="docs-open"]', '[data-p3="theme-toggle"]'];
 const FIGMA_RAIL = [...FIGMA_RAIL_AREAS, ...FIGMA_RAIL_FOOT];
-const FIGMA_BAR = ['[data-p3="brand-switcher"]', '[data-p3="update-file"]', '[data-p3="search-open"]'];
+// Minimize is on the top bar whether the link is on or off (the owner's direction on #2909, 2026-10-24).
+const FIGMA_BAR = ['[data-p3="brand-switcher"]', '[data-p3="agent-minimize"]', '[data-p3="update-file"]', '[data-p3="search-open"]'];
 /** On the rail the tab row is Theme's pages alone: Components is an area (Q2909.1 A, Q2909.21 A). */
 const FIGMA_TABS = TABS.filter((t) => t !== '[data-p3="tab-components"]');
 const EXPECT_CONTROLS = {
@@ -2593,7 +2594,7 @@ for (const host of ['web', 'figma']) {
         await shot('agent');
 
         // ── the link strip (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A) ──────────────────────────
-        // EXPECTED is written here: Minimize beside the Agent tile only while the link is on; minimized, the document
+        // EXPECTED is written here: Minimize on the top bar whether the link is on or off (#2909); minimized, the document
         // draws the strip alone, its line in the Activity drawer's words plus the command and its age, whole at the
         // strip's size (480×40, the size `main.ts` resizes to), with Restore and Turn off; restored, the same frame node
         // is drawn again. The window's size is the main thread's (`test-agent-link.ts` strip/*); here the viewport stands in.
@@ -2606,6 +2607,11 @@ for (const host of ['web', 'figma']) {
           const upd = document.querySelector('[data-p3="top-bar"] [data-p3="update-file"]');
           return { shown: vis(b), name: b?.getAttribute('aria-label') ?? null, order: kids, beforeUpdate: !!slot && !!upd && !!(slot.compareDocumentPosition(upd) & Node.DOCUMENT_POSITION_FOLLOWING) };
         });
+        // The owner's direction (#2909, 2026-10-24): Minimize does not depend on the link. Before the link is on, it is drawn.
+        await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, on: false, since: null } });
+        const m0 = await minTile();
+        ok(m0.shown && m0.name === 'Minimize' && m0.beforeUpdate, `#2909 ${where}: with the link off, Minimize shows on the top bar, before Update file (${JSON.stringify(m0)})`);
+        await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
         const m1 = await minTile();
         ok(m1.shown && m1.name === 'Minimize' && JSON.stringify(m1.order) === '["agent-minimize"]' && m1.beforeUpdate,
           `#2949 ${where}: with the link on, Minimize shows on the top bar, before Update file, named "Minimize" (#2909) (${JSON.stringify(m1)})`);
@@ -2668,7 +2674,20 @@ for (const host of ['web', 'figma']) {
         const a2 = await agentState();
         ok(a2.name === 'Agent' && a2.pressed === 'false' && !a2.dot, `T7 ${where}: the published off state clears the dot and the pressed state (${JSON.stringify(a2)})`);
         const m2 = await minTile();
-        hooks.absent(ok, { seen: a2.pressed === 'false', state: 'the Agent tile off' }, !m2.shown, `#2949 ${where}: with the link off, Minimize is not drawn (${JSON.stringify(m2)})`);
+        ok(m2.shown && m2.name === 'Minimize', `#2909 ${where}: with the link off again, Minimize is still drawn (the owner's direction of 2026-10-24) (${JSON.stringify(m2)})`);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="agent-minimize"]'), WAIT);
+        const mw2 = await takeWrites(page);
+        ok(isWire(mw2, { type: 'minimize-ui', minimized: true }), `#2909 ${where}: with the link off, Minimize asks the main thread to minimize (posted ${JSON.stringify(mw2)})`);
+        // Minimized with the link off, the strip shows the product's name and Restore: no link dot, no Turn off.
+        await postMsg(page, { type: 'ui-minimized', minimized: true });
+        await page.waitForFunction(() => !document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 5000 }).catch(() => {});
+        const idle = await page.evaluate(() => { const vis = (n) => !!n && !n.hidden && n.getClientRects().length > 0;
+          return { text: document.querySelector('[data-p3="agent-strip-text"]')?.textContent ?? null, dot: vis(document.querySelector('[data-p3="agent-strip-dot"]')),
+            off: vis(document.querySelector('[data-p3="agent-strip-off"]')), restore: vis(document.querySelector('[data-p3="agent-strip-restore"]')) }; });
+        ok(idle.text === 'Prism3' && !idle.dot && !idle.off && idle.restore, `#2909 ${where}: minimized with the link off, the strip reads "Prism3" with Restore only (${JSON.stringify(idle)})`);
+        await postMsg(page, { type: 'ui-minimized', minimized: false });
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 5000 }).catch(() => {});
 
         // ── Update file (#2909 IA v2 phase 1, owner decisions Q668 A, Q2909.2 A, Q2909.5 A) ───────────────────────────
         // The Figma menu and the bar's Apply Theme went into Update file, the plugin's one global write, and Prune stale
@@ -9123,7 +9142,7 @@ const BAR_PROBE = () => {
   const alpha = (c) => { const m = /rgba?\(([^)]+)\)/.exec(c ?? ''); if (!m) return 1; const p = m[1].split(/[,\s/]+/).filter(Boolean); return p.length > 3 ? Number(p[3]) : 1; };
   const shown = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).visibility !== 'hidden'; };
   const all = [...document.querySelectorAll('*')];
-  const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'figma-open', 'apply-to-figma', 'update-file'];
+  const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'figma-open', 'apply-to-figma', 'agent-minimize', 'update-file'];
   const order = HOOKS.filter((k) => q(k)).sort((a, b) => all.indexOf(q(a)) - all.indexOf(q(b)));
   // Dividers: a separator element, an edge on anything that is not a control, or a thin filled bar.
   const inside = (n) => n.closest('button, select, [role="menu"], .p3-menu, [role="dialog"], .p3-bardlg-scrim, .p3-tile-tip, .p3-seg');
@@ -9167,11 +9186,11 @@ const BAR_PROBE = () => {
 };
 const BAR_ORDER = {
   web: ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'activity-open', 'export-open'],
-  // #2909 (round 4): the plugin's bar is the brand switcher and Update file (Minimize between them while the link is on,
-  // which it is not here); the rest moved to the rail, the Theme area and the drawer.
-  figma: ['brand-switcher', 'update-file'],
+  // #2909 (round 4, and the owner's direction of 2026-10-24): the plugin's bar is the brand switcher, Minimize (link on or
+  // off) and Update file; the rest moved to the rail, the Theme area and the drawer.
+  figma: ['brand-switcher', 'agent-minimize', 'update-file'],
 };
-const TILE_LABEL = { verdict: 'Contrast', 'theme-toggle': 'Theme', 'agent-toggle': 'Agent', 'activity-open': 'Activity', 'export-open': 'Export' };
+const TILE_LABEL = { verdict: 'Contrast', 'theme-toggle': 'Theme', 'agent-toggle': 'Agent', 'activity-open': 'Activity', 'export-open': 'Export', 'agent-minimize': 'Minimize' };
 for (const { w, h } of WIDTHS) {
   for (const host of ['web', 'figma']) {
     for (const theme of ['light', 'dark']) {
@@ -9186,7 +9205,7 @@ for (const { w, h } of WIDTHS) {
         ok(bp.dividers.length === 0, `${where}: bar dividers: none between the bar's items (${bp.dividers.join(' | ') || 'none'})`);
         for (const x of bp.white) ok(x.bg && x.edge && x.chev, `${where}: bar menus: ${x.k} is a white button with an edge and ▾ (white ${x.bg}, edge ${x.edge}, ▾ ${x.chev})`);
         ok(bp.white.length === 1, `${where}: bar menus: the brand switcher measured (${bp.white.map((x) => x.k).join(', ')})`);
-        ok(bp.tiles.length === (host === 'web' ? 4 : 0), `${where}: bar tiles: ${host === 'web' ? 'Contrast, Theme, Activity and Export all measured' : 'none on the plugin bar, whose tiles moved to the rail (#2909)'} (${bp.tiles.map((x) => x.k).join(', ')})`);
+        ok(bp.tiles.length === (host === 'web' ? 4 : 1), `${where}: bar tiles: ${host === 'web' ? 'Contrast, Theme, Activity and Export all measured' : 'Minimize alone on the plugin bar, whose other tiles moved to the rail (#2909)'} (${bp.tiles.map((x) => x.k).join(', ')})`);
         // #2214 (BL1 A+B, BL3 A): above the narrow tier every label drops together when the full bar would not fit on
         // one row, which `FIT_ORACLE` measures; an ambiguous width (within 1px) accepts either.
         const fit29 = narrow ? null : await page.evaluate(FIT_ORACLE);
