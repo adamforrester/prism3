@@ -4,7 +4,7 @@ Owner decision Q656 A set one rule for where a component's parts are built. A pa
 
 ### The check
 
-`assertPartPages` in `apps/plugin/src/file-taxonomy.ts` fails by name on any def that exactly one def nests and that sits on a different page from it. It reads "nested by" off the defs' own `nests` at any depth (anatomy parts and default slot items) through `consumersOf`, and never off the taxonomy (`docs/34`). Two defs have exactly one consumer and still keep their own pages, because they are components a designer places directly. Badge is nested by Tab.Item (S8 O1), and Button.Group by Dialog (#2661, Q363). Both are listed in `STANDALONE_NESTED`, each with its decision, and a listed def that no longer qualifies is reported as stale.
+`assertPartPages` in `apps/plugin/src/file-taxonomy.ts` fails by name on any def that exactly one def nests and that sits on a different page from it. It reads "nested by" off the defs' own `nests` at any depth (anatomy parts and default slot items) through `consumersOf`, and never off the taxonomy (`docs/34`). Three defs have exactly one consumer and still keep their own pages, because they are components a designer places directly. Badge is nested by Tab.Item (S8 O1), Button.Group by Dialog (#2661, Q363), and Text field by Slider (#2669, merged while this PR was open; the check caught it on the first run after the merge). All three are listed in `STANDALONE_NESTED`, each with its decision, and a listed def that no longer qualifies is reported as stale.
 
 ### The move on an existing file
 

@@ -206,6 +206,8 @@ export const STANDALONE_NESTED: Readonly<Record<string, string>> = {
   badge: 'S8 scope, O1',
   // Button.Group: on the Buttons page (#2661, owner decision Q363). Dialog nests it; a designer places it in any footer.
   'button-group': '#2661, Q363',
+  // Text field: its own page under Components. Slider (#2669) nests it for the value input; a designer places it anywhere.
+  'text-field': 'Text field page; nested by Slider since #2669',
 };
 
 /**
