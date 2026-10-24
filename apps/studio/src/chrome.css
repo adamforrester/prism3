@@ -1071,7 +1071,7 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-linkmode[data-below="true"] .p3-ico { color: var(--p3-bad-icon); }
 .p3-linkfollow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); margin: 0; font-size: var(--p3-fs-12); color: var(--p3-text-2); }
 .p3-linkfollow-step { display: inline-flex; align-items: center; gap: var(--p3-space-050); font-family: var(--p3-font-mono); }
-.p3-linkfollow .p3-fill-sw { width: var(--p3-space-200); height: var(--p3-space-200); flex: none; }
+.p3-linkfollow-sw { display: block; flex: none; width: var(--p3-space-200); height: var(--p3-space-200); border-radius: var(--p3-radius-md); outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline)); }
 
 /* ── Color › Surfaces & fills (S4a): labeled fields, the fill rows, the gradient editor ──────────── */
 /* One set of surface controls, for the previewed mode (S4c, owner decision Q22: no Light and Dark groups). */

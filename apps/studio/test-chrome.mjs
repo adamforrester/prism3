@@ -5118,7 +5118,8 @@ for (const host of ['web', 'plugin']) {
       const blocked = grid.filter((g) => g.blocked);
       ok(blocked.length > 0 && blocked.length < grid.length && grid.every((g) => g.blocked === g.below), `web #2990: the inverse link's picker blocks exactly its below-floor steps and leaves the rest pickable (${blocked.length} of ${grid.length} blocked)`);
       const before = JSON.stringify((await persisted(page))?.overrides?.light ?? null);
-      await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${blocked[0].step}"]`));
+      // Playwright refuses to click an aria-disabled element, so the click is dispatched as a pointer would send it.
+      await page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${blocked[0].step}"]`).dispatchEvent('click');
       const after = JSON.stringify((await persisted(page))?.overrides?.light ?? null);
       ok(before === after, `web #2990: clicking a below-floor link step (${blocked[0].step}) writes nothing (${before} → ${after})`);
       const open1 = grid.find((g) => !g.blocked);

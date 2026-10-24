@@ -190,7 +190,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       const x = roles[`${prefix}.${st}`];
       if (!x) continue;
       const s = h('span', 'p3-linkfollow-step');
-      const sw = h('span', 'p3-fill-sw');
+      const sw = h('span', 'p3-linkfollow-sw');
       sw.dataset.content = '';
       sw.style.background = x.hex;
       s.append(sw, h('span', undefined, `${st} ${stepOfPath(x.path)?.step ?? palette}`));
