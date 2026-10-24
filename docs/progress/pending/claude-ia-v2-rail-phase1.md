@@ -9,7 +9,8 @@ so `EXECUTOR_REVISION` stays. The web studio's shell is unchanged (Q2909.9 is ph
   the plugin only, with Theme · Components · Documentation · Export, then Agent (the one-click link toggle, filled with a
   green dot while on), Help (the old Docs) and Appearance (the old Theme menu). Labels and icons are the round-4 drafts,
   placeholders until Chunk 2 (Q2909.10, .19, .20). The rail keeps its labels at 380 (Q2909.16 A).
-- **The top bar** holds the brand, Minimize (while the link is on) and Update file. Contrast moved into the Theme
+- **The top bar** holds the brand, Minimize (whether the agent link is on or off, the
+  owner's direction of 2026-10-24; the strip shows the link status only while it is on) and Update file. Contrast moved into the Theme
   area's preview header; Export, Activity's tile, the Figma menu and Apply Theme left the bar.
 - **Update file** (`shell/update-file.ts` over `state/update-file.ts`): the checklist always opens (Q2909.2 A). Set up
   file is its first item on a file that is not set up (Q668 A); Theme is ticked; the sets the file lacks are listed

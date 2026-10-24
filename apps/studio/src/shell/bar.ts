@@ -125,8 +125,8 @@ export type BarPlaced = {
   /** The plugin's Docs (#2637 Q384): asks the main thread to open the docs in the browser. Null on the web, where Docs
    *  is a link to the site's own `/docs/`. */
   readonly openDocs: (() => void) | null;
-  /** #2909 IA v2 phase 1 (plugin): the rail shell. The bar then holds only the brand switcher, Minimize's slot (while the
-   *  agent link is on) and Update file: the mark, Contrast, Theme, Agent, Activity, Docs and Export left it for the rail,
+  /** #2909 IA v2 phase 1 (plugin): the rail shell. The bar then holds only the brand switcher, Minimize's slot (whether
+   *  agent link is on or off) and Update file: the mark, Contrast, Theme, Agent, Activity, Docs and Export left it for the rail,
    *  the Theme area and the drawer. Null on the web, whose bar is unchanged until Q2909.9 is built. */
   readonly rail: {
     readonly minimize: HTMLElement;
@@ -247,7 +247,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     // #2879: a home keeps the mark, Theme, the Agent tile's slot, Activity and Docs, none of which needs a brand.
     const rail = placed.rail;
     const order: (HTMLElement | null)[] = rail
-      // #2909 (round 4): the brand, then Minimize while the link is on, then Update file, the one global action.
+      // #2909 (round 4): the brand, then Minimize (link on or off), then Update file, the one global action.
       ? (v.home ? [homeName, spacer, rail.minimize, layer] : [brandWrap, spacer, rail.minimize, rail.update, layer])
       : v.home
         ? [placed.mark, homeName, spacer, placed.theme, placed.agent, placed.activity, docsTile.btn, layer]
