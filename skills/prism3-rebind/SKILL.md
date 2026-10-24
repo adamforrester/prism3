@@ -100,7 +100,7 @@ decision for the owner (section 6), and most become component work.
     width. A fixed-height row clips a taller card.
 12. **Structure with pixels.** Pair every structural read with a screenshot before calling content
     missing. A depth-limited dump hides deep content.
-13. **Steps that need the owner's hands.** The session can be refused some steps even after approval in
+13. **Steps only the owner can do.** The session can be refused some steps even after approval in
     chat; edits to a shared library are a common one. Tell the owner at the start which steps they will
     do themselves, and re-read the current state before asking.
 
@@ -138,7 +138,7 @@ decision for the owner (section 6), and most become component work.
 - **Measure the original first.** Store its measurements before inserting anything, then hide it, build,
   and compare against what you stored. Never build beside the original inside a horizontal auto layout
   parent: both get squeezed, and they agree with each other while both are wrong.
-- **Check each swapped node before removing the original.** Fingerprint at depth: variant and boolean
+- **Check each swapped node before removing the original.** Compare at every depth: variant and boolean
   properties, text, image hash and visibility. Position and size (x, y, width, height) match within
   2px, and so does the container's height. Remove the original only when every check passes; otherwise
   revert.
@@ -191,7 +191,7 @@ decision for the owner (section 6), and most become component work.
 | A FILL child collapses inside a hugging slot | A card whose inner frame fills vertically keeps the height of the card it replaced | Build components that go into slots to hug on both axes, with `minHeight` for a fixed look; test them inside the slot component |
 | `resetOverrides()` renames a nested slot | The slot takes its main's name, and lookups by name break | Rename it back, or look slots up by their property reference |
 | Setting a property to its current value records no override | The value doesn't survive a later update to the main component | Set the other value, then set it back; confirm it in the parent's overrides |
-| Sticky isn't settable | The plugin can't set a frame's scroll behavior; the typings this repo pins have no property for it | An owner step in the UI: Prototype, then Sticky |
+| Sticky isn't settable | The plugin can't make a layer Sticky: the pinned typings have no property for it. Fixed is settable, through the parent frame's `numberOfFixedChildren`. | An owner step in the UI: Prototype, then Sticky |
 | Screenshots render the active file only | A second connected file can't be screenshotted | Read its geometry back through the bridge, in that file |
 | A node's screenshot has no background | It renders on transparency, which is useless for contrast | Screenshot the container and crop |
 
