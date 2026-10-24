@@ -1,6 +1,6 @@
 ## (2026-10-24) — Theme › Color: link rows gate every pick on the surfaces they sit on, in every mode (#2990)
 
-Draft PR. Built on the recommended answers to Q2990.1–5, which the owner has not answered yet. Wireframe linked on #2990.
+Built on the recommended answers to Q2990.1–5 while they were open; the owner then chose A on all five and accepted the copy as drafted. Wireframe linked on #2990.
 
 ### What was already there
 The issue's premise was that no Theme UI exposes link roles. It does. Color › Interactive › Links has had `Text link` and `Text link · inverse` rows since the S5 redesign, and the plugin mounts the same page. Pinning one already moves hover, visited and pressed by their derived step distance (`setLinkFamilyOverride`), and the engine already clamps a sub-floor link pin to the nearest clearing step (#1510). So the owner's inverse-link change was possible through Apply Theme already. What was missing: the row measured one mode and one ground; a sub-floor step could still be clicked, and the engine then landed a different step (865 times in the sweep); and nothing said the states follow.

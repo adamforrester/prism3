@@ -45,7 +45,7 @@ export type StepPickerOpts = {
   readonly onClose: () => void;
 };
 
-/** What a screen reader hears after "below floor" on a step that cannot be chosen (#2990; copy pending Q2990.5). */
+/** What a screen reader hears after "below floor" on a step that cannot be chosen (#2990; owner decision Q2990 A, APPROVED as drafted). */
 export const STEP_BLOCKED = ', not available';
 
 /** A color's worst ratio against `against` and every surface it also sits on. */

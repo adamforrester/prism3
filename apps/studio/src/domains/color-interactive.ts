@@ -82,7 +82,7 @@ export const DISABLED_SWITCH = {
 } as const;
 /** The link palette's Auto (owner decision Q36). */
 export const LINK_AUTO = 'Auto: follows action palette';
-/** The text-link rows' added lines (#2990; copy pending the owner, Q2990.2 and Q2990.3). */
+/** The text-link rows' added lines (#2990; owner decision Q2990 A, APPROVED as drafted). */
 export const LINK_COPY = {
   modes: 'Contrast in every mode',
   follow: 'Hover, visited and pressed follow this step:',
