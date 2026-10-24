@@ -740,6 +740,9 @@ html[data-strip="true"] body > :not(.p3-strip, .p3-sr) { display: none; }
 .p3-levers[data-fit="snug"] .p3-fillrow > :nth-child(n + 3) { grid-column: 1 / -1; justify-self: stretch; }
 .p3-levers[data-fit="snug"] .p3-bprow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
 .p3-levers[data-fit="snug"] .p3-bprow > :nth-child(n + 4) { grid-column: 2 / -1; }
+/* The way on to the next page keeps to the pane as well: in a snug pane its words wrap rather than run past the edge
+   (#2909: the plugin's 640 window is 580px beside the rail, so its levers column is 243px). */
+.p3-levers[data-fit="snug"] .p3-btn.p3-next { flex: 0 1 auto; max-width: 100%; white-space: normal; text-align: left; padding-block: var(--p3-space-075); }
 .p3-lsec-head { display: grid; gap: var(--p3-space-050); }
 .p3-lsec-title { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-tighter); line-height: var(--p3-lh-compact); }
 .p3-lsec-desc { margin: 0; color: var(--p3-text-2); line-height: var(--p3-lh-cozy); }

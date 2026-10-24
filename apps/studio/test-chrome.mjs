@@ -13460,10 +13460,18 @@ for (const host of ['web', 'figma']) {
         await page.evaluate(() => document.activeElement?.blur?.());
         const row = await csAx(page, CS_TAB_ROW);
         const tabs = row.filter((n) => n.role === 'tab');
-        if (!narrow) ok(JSON.stringify(tabs.map((n) => n.name)) === JSON.stringify(CS_TABS), `${at}: the tab row exposes every domain's tab, in order (read ${JSON.stringify(tabs.map((n) => `${n.role} ${n.name}`))})`);
+        // #2909: in the plugin the tab row is Theme's pages (Q2909.1 A), and Components is a rail area with no tab row:
+        // there the rail's tile is the current one, and the row exposes nothing current.
+        const railArea = host === 'figma' && place === 'components';
+        const wantTabs = host === 'figma' ? CS_TABS.filter((t) => t !== 'Components') : CS_TABS;
+        if (railArea) ok(tabs.length === 0, `${at}: the Components area draws no tab row (read ${JSON.stringify(tabs.map((n) => `${n.role} ${n.name}`))})`);
+        else if (!narrow) ok(JSON.stringify(tabs.map((n) => n.name)) === JSON.stringify(wantTabs), `${at}: the tab row exposes every ${host === 'figma' ? 'Theme page\'s' : 'domain\'s'} tab, in order (read ${JSON.stringify(tabs.map((n) => `${n.role} ${n.name}`))})`);
         else ok(row.some((n) => n.role === 'combobox'), `${at}: the tab row exposes its select (read ${JSON.stringify(row.map((n) => n.role))})`);
         const rowCur = csCurrent(row);
-        ok(JSON.stringify(rowCur) === JSON.stringify([tab]), `${at}: the tab row reports ${tab} current, and only it (read ${JSON.stringify(rowCur)})`);
+        if (railArea) {
+          const cur = await page.evaluate(() => [...document.querySelectorAll('[data-p3="rail-areas"] [aria-current="page"]')].map((n) => n.getAttribute('aria-label')));
+          ok(rowCur.length === 0 && JSON.stringify(cur) === JSON.stringify(['Components']), `${at}: the rail reports Components current, and only it, and the tab row nothing (rail ${JSON.stringify(cur)}, row ${JSON.stringify(rowCur)})`);
+        } else ok(JSON.stringify(rowCur) === JSON.stringify([tab]), `${at}: the tab row reports ${tab} current, and only it (read ${JSON.stringify(rowCur)})`);
         const subs = await csAx(page, CS_SUB_ROW);
         const subCur = csCurrent(subs);
         if (sub) {
@@ -13966,7 +13974,9 @@ const fcKeyFocus = async (page, sel) => {
 console.log(`\n#1855: forced colors keep every state (Windows High Contrast)\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
-    const w = 1280;
+    // #2909: the plugin's preview header holds the verdict beside the 60px rail, so its mode radios fit from about 1440
+    // (at 1280 the select shows, section 17's fit). The live radio this section measures is drawn there.
+    const w = host === 'figma' ? 1440 : 1280;
     const where = `#1855 ${host} ${theme} ${w}`;
     const { ctx, page, errors } = await open({ host, theme, w, h: 900, query: host === 'web' ? '?p3-test-hooks' : '' });
     const shot = async (name, clip) => { if (SHOTS) await page.screenshot({ path: join(SHOTS, `1855-${host === 'web' ? 'web' : 'plugin'}-${theme}-${w}-${name}.png`), ...(clip ? { clip } : {}) }); };
