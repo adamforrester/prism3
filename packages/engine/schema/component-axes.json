@@ -76,7 +76,12 @@
     "axes": {
       "emphasis": [
         "bold",
-        "subtle"
+        "subtle",
+        "surface"
+      ],
+      "size": [
+        "medium",
+        "small"
       ],
       "tone": [
         "danger",
@@ -91,7 +96,7 @@
         "status"
       ]
     },
-    "members": 20,
+    "members": 40,
     "properties": {
       "label": "TEXT",
       "value": "TEXT"

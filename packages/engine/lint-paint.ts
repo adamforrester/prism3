@@ -495,6 +495,20 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'tone `neutral` maps to the inverse ink `inverse.text.primary` on the inverse surface — the token tier has no `text.on-neutral`',
   'badge|neutral.dot.bold.fill':
     'tone `neutral` maps to the inverse surface `inverse.foreground.tertiary`, the count\'s fill — the token tier has no `foreground.neutral`',
+  // THE SURFACE EMPHASIS (#2983): every tone's fill is the page surface, so no surface fill carries its tone. The
+  // label carries it (`text.<tone>`), except neutral's, which is the primary text. Both measured at 4.5:1 in `test.ts`.
+  'badge|neutral.status.surface.fill':
+    'tone `neutral` at emphasis surface paints the page surface `background.primary`, the solid ground the label brings onto a busy surface — no surface fill names a tone',
+  'badge|neutral.status.surface.label':
+    'tone `neutral` at emphasis surface inks with the primary text role `text.primary` on the page surface — the token tier has no `text.neutral`',
+  'badge|info.status.surface.fill':
+    'tone `info` at emphasis surface paints the page surface `background.primary`, the solid ground the label brings onto a busy surface; `text.info` carries the tone',
+  'badge|success.status.surface.fill':
+    'tone `success` at emphasis surface paints the page surface `background.primary`, the solid ground the label brings onto a busy surface; `text.success` carries the tone',
+  'badge|warning.status.surface.fill':
+    'tone `warning` at emphasis surface paints the page surface `background.primary`, the solid ground the label brings onto a busy surface; `text.warning` carries the tone',
+  'badge|danger.status.surface.fill':
+    'tone `danger` at emphasis surface paints the page surface `background.primary`, the solid ground the label brings onto a busy surface; `text.danger` carries the tone',
   'badge|info.status.subtle.fill':
     'tone `info` paints its subtle tint `foreground.info-subtle`, the surface `text.info` is contracted against',
   'badge|success.status.subtle.fill':

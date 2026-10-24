@@ -514,8 +514,8 @@
       "properties": []
     },
     "badge": {
-      "members": 20,
-      "sha256": "5f9ae6ce007805d6aac2194fe5e7222e3245220f86bd8ef80df8c52a10509280",
+      "members": 40,
+      "sha256": "0536a67e7247104e2d79aa25a70b5c7803cab4ccb22fd6cc1197d2868ada9ba8",
       "properties": [
         "label:TEXT",
         "value:TEXT"
@@ -586,7 +586,7 @@
     },
     "tab-item": {
       "members": 30,
-      "sha256": "4ff89e08c53596e3242a48f7ef2e805337400285d81a1dbb87d6ee17bbcf5148",
+      "sha256": "a39d2f9d9cfcad1e10a71e6eee5c651c1d52a871d509b36ed53a4cb0b3b3bd9d",
       "properties": [
         "count:BOOLEAN",
         "label:TEXT",

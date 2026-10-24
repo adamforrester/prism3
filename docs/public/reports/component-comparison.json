@@ -234,9 +234,14 @@
           "count",
           "dot"
         ],
+        "size": [
+          "medium",
+          "small"
+        ],
         "emphasis": [
           "subtle",
-          "bold"
+          "bold",
+          "surface"
         ],
         "tone": [
           "neutral",
@@ -257,11 +262,20 @@
           ]
         },
         {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
           "name": "emphasis",
           "default": "subtle",
           "values": [
             "subtle",
-            "bold"
+            "bold",
+            "surface"
           ]
         },
         {
@@ -298,7 +312,11 @@
           ]
         }
       ],
-      "sizes": []
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
     },
     {
       "id": "banner",
@@ -5112,7 +5130,8 @@
       {
         "values": [
           "bold",
-          "subtle"
+          "subtle",
+          "surface"
         ],
         "components": [
           "badge"
@@ -5459,6 +5478,7 @@
           "small"
         ],
         "components": [
+          "badge",
           "breadcrumb-item",
           "breadcrumbs",
           "progress",
@@ -6269,7 +6289,8 @@
         "default": "subtle",
         "values": [
           "subtle",
-          "bold"
+          "bold",
+          "surface"
         ]
       },
       {
@@ -7631,6 +7652,14 @@
         ]
       },
       {
+        "id": "badge",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
         "id": "breadcrumb-item",
         "default": "medium",
         "values": [
@@ -8919,7 +8948,7 @@
         "badge",
         "field-label"
       ],
-      "detail": "the emphasis axis takes 2 value sets — [bold, subtle] in badge; [primary, secondary] in field-label"
+      "detail": "the emphasis axis takes 2 value sets — [bold, subtle, surface] in badge; [primary, secondary] in field-label"
     },
     {
       "kind": "axis values",
@@ -8968,6 +8997,7 @@
         "_accordion-indicator",
         "_slider-thumb",
         "accordion",
+        "badge",
         "breadcrumb-item",
         "breadcrumbs",
         "button",
@@ -9011,7 +9041,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -9119,6 +9149,14 @@
         "accordion"
       ],
       "detail": "accordion declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "badge",
+      "components": [
+        "badge"
+      ],
+      "detail": "badge declares its sizes as [medium, small], not smallest first"
     },
     {
       "kind": "size order",
@@ -9446,7 +9484,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 44 of 45 sized components default to medium"
+      "detail": "field-label defaults size to small; 45 of 46 sized components default to medium"
     },
     {
       "kind": "prop default",
