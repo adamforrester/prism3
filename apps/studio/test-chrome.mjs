@@ -10913,7 +10913,9 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
             }
             if (brand === 'long') {
               tipCheck('down', w, tip, seen, fit.narrow);
-              if (seen.cut) sawCut = true; else if (fit.narrow && sawCut) narrowAfterCut++;
+              // Any narrow width after a cut, the name whole there or cut too (#2909: on the rail's one-row bar it stays cut).
+              if (fit.narrow && sawCut) narrowAfterCut++;
+              if (seen.cut) sawCut = true;
             }
             if (theme === 'light' && !fit.narrow) seenBy[brand][w] = seen.step;
             if (seen.step === 'trim') (fit.narrow ? narrowTrim : trimmedOn)[host]++;
