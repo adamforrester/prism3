@@ -15405,7 +15405,10 @@ for (const host of ['web', 'figma']) {
               const c = n.getBoundingClientRect();
               if (r.left < c.left - 0.5 || r.right > c.right + 0.5 || r.top < c.top - 0.5 || r.bottom > c.bottom + 0.5) cut.push(n.className);
             }
-            return { focused: true, scrolled: (x === 'start' ? pre.scrollLeft === 0 : pre.scrollLeft > 0) && (y === 'start' ? pre.scrollTop === 0 : pre.scrollTop > 0), cut };
+            // An axis with nothing to scroll has one extreme (#2909: the plugin's Export area is a page, and at 1280 its
+            // lines fit the column across); the other axis must still reach both of its own.
+            const canX = pre.scrollWidth > pre.clientWidth, canY = pre.scrollHeight > pre.clientHeight;
+            return { focused: true, scrolled: (canX || canY) && (x === 'start' || !canX ? pre.scrollLeft === 0 : pre.scrollLeft > 0) && (y === 'start' || !canY ? pre.scrollTop === 0 : pre.scrollTop > 0), cut };
           }, [x, y]);
           const ring = clip.focused ? await page.evaluate(FOCUS_RING_READ, [false, [], INSPECT_LEGACY]) : null;
           corners.push({ at: `${x}/${y}`, ...clip, miss: ring ? ringMisses(ring, 'light') : ['not focused'], ring: ring && `${ring.width}px ${ring.hex} at ${ring.offset}px, ${ring.r}:1` });
