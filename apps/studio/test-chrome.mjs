@@ -2682,10 +2682,10 @@ for (const host of ['web', 'figma']) {
         // Minimized with the link off, the strip shows the product's name and Restore: no link dot, no Turn off.
         await postMsg(page, { type: 'ui-minimized', minimized: true });
         await page.waitForFunction(() => !document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 5000 }).catch(() => {});
-        const idle = await page.evaluate(() => { const vis = (n) => !!n && !n.hidden && n.getClientRects().length > 0;
+        const idleStrip = await page.evaluate(() => { const vis = (n) => !!n && !n.hidden && n.getClientRects().length > 0;
           return { text: document.querySelector('[data-p3="agent-strip-text"]')?.textContent ?? null, dot: vis(document.querySelector('[data-p3="agent-strip-dot"]')),
             off: vis(document.querySelector('[data-p3="agent-strip-off"]')), restore: vis(document.querySelector('[data-p3="agent-strip-restore"]')) }; });
-        ok(idle.text === 'Prism3' && !idle.dot && !idle.off && idle.restore, `#2909 ${where}: minimized with the link off, the strip reads "Prism3" with Restore only (${JSON.stringify(idle)})`);
+        ok(idleStrip.text === 'Prism3' && !idleStrip.dot && !idleStrip.off && idleStrip.restore, `#2909 ${where}: minimized with the link off, the strip reads "Prism3" with Restore only (${JSON.stringify(idleStrip)})`);
         await postMsg(page, { type: 'ui-minimized', minimized: false });
         await page.waitForFunction(() => !!document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 5000 }).catch(() => {});
 
