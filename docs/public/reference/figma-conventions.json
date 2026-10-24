@@ -1684,7 +1684,7 @@
         "kind": "component set",
         "page": "↳ Badge",
         "section": "Components",
-        "members": 20,
+        "members": 40,
         "variantProperties": [
           {
             "name": "type",
@@ -1698,7 +1698,8 @@
             "name": "emphasis",
             "values": [
               "subtle",
-              "bold"
+              "bold",
+              "surface"
             ]
           },
           {
@@ -1709,6 +1710,13 @@
               "success",
               "warning",
               "danger"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
             ]
           }
         ],

@@ -154,6 +154,9 @@ export const badge: ComponentDef = {
   axisKinds: { type: 'authoring', size: 'authoring', emphasis: 'runtime', tone: 'runtime' },
 
   paintKeys: ['{tone}.{type}.{emphasis}.{slot}'],
+  // The small label's caption rung names its weight by INTENT (#2983): `strong` is the default brand's bold caption,
+  // and a brand that ships its bold caption under another role (`emphasis`) is repointed before projection.
+  typeWeight: { group: 'caption', intent: 'bold' },
 
   tokens: {
     // The label type, per size (#2983). Medium is the status label's original rung. Small is the corpus's only
@@ -179,6 +182,12 @@ export const badge: ComponentDef = {
     'count.medium.pad-y': 'space.025',
     'dot.medium.pad-x': 'space.0',
     'dot.medium.pad-y': 'space.0',
+    // The count and dot have no small member (`excludeCoordinates`), but the padding template is checked over the
+    // full grid, so their small keys repeat the medium rungs.
+    'count.small.pad-x': 'space.075',
+    'count.small.pad-y': 'space.025',
+    'dot.small.pad-x': 'space.0',
+    'dot.small.pad-y': 'space.0',
     // The dot's diameter: the tier's small dot rung, 8px at comfortable density and 6px at compact.
     'dot-size': 'control.size.sm.dot',
 
@@ -272,7 +281,8 @@ export const badge: ComponentDef = {
       },
       count: {
         kind: 'text',
-        type: '{size}.type',
+        // Medium only: the count has no small member (#2983), so its type is not keyed on the size.
+        type: 'medium.type',
         presentWhen: { type: ['count'] },
         note: 'The number, in the ink paired with the bold tone fill. Capped as the maximum followed by a plus sign, as in "99+".',
       },

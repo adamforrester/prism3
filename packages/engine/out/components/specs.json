@@ -24556,7 +24556,7 @@
     "badge": {
       "id": "badge",
       "name": "Badge",
-      "members": 20,
+      "members": 40,
       "axes": [
         {
           "name": "type",
@@ -24573,7 +24573,8 @@
           "figmaName": "emphasis",
           "values": [
             "subtle",
-            "bold"
+            "bold",
+            "surface"
           ],
           "kind": "variant"
         },
@@ -24588,6 +24589,15 @@
             "danger"
           ],
           "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "size"
         }
       ],
       "codeOnlyStates": [],
@@ -24595,12 +24605,12 @@
         {
           "part": "surface",
           "kind": "frame",
-          "members": 20
+          "members": 40
         },
         {
           "part": "surface/label",
           "kind": "text",
-          "members": 10,
+          "members": 30,
           "when": {
             "type": [
               "status"
@@ -24629,11 +24639,13 @@
         }
       ],
       "redlineKey": [
+        "size",
         "type"
       ],
       "redlines": [
         {
           "where": {
+            "size": "medium",
             "type": "status"
           },
           "parts": [
@@ -24658,6 +24670,32 @@
         },
         {
           "where": {
+            "size": "small",
+            "type": "status"
+          },
+          "parts": [
+            {
+              "part": "surface",
+              "values": {
+                "paddingTop": {
+                  "token": "space.025"
+                },
+                "paddingRight": {
+                  "token": "space.100"
+                },
+                "paddingBottom": {
+                  "token": "space.025"
+                },
+                "paddingLeft": {
+                  "token": "space.100"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
             "type": "count"
           },
           "parts": [
@@ -24682,6 +24720,7 @@
         },
         {
           "where": {
+            "size": "medium",
             "type": "dot"
           },
           "parts": [
@@ -24716,10 +24755,14 @@
           ]
         }
       ],
-      "typeKey": [],
+      "typeKey": [
+        "size"
+      ],
       "type": [
         {
-          "where": {},
+          "where": {
+            "size": "medium"
+          },
           "parts": [
             {
               "part": "surface/label",
@@ -24728,6 +24771,17 @@
             {
               "part": "surface/count",
               "textStyle": "type.label.sm.emphasis"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "surface/label",
+              "textStyle": "type.caption.md.strong"
             }
           ]
         }
@@ -24910,6 +24964,91 @@
             {
               "part": "surface/label",
               "ink": "color.text.on-danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "status",
+            "emphasis": "surface",
+            "tone": "neutral"
+          },
+          "parts": [
+            {
+              "part": "surface",
+              "fill": "color.background.primary"
+            },
+            {
+              "part": "surface/label",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "status",
+            "emphasis": "surface",
+            "tone": "info"
+          },
+          "parts": [
+            {
+              "part": "surface",
+              "fill": "color.background.primary"
+            },
+            {
+              "part": "surface/label",
+              "ink": "color.text.info"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "status",
+            "emphasis": "surface",
+            "tone": "success"
+          },
+          "parts": [
+            {
+              "part": "surface",
+              "fill": "color.background.primary"
+            },
+            {
+              "part": "surface/label",
+              "ink": "color.text.success"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "status",
+            "emphasis": "surface",
+            "tone": "warning"
+          },
+          "parts": [
+            {
+              "part": "surface",
+              "fill": "color.background.primary"
+            },
+            {
+              "part": "surface/label",
+              "ink": "color.text.warning"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "status",
+            "emphasis": "surface",
+            "tone": "danger"
+          },
+          "parts": [
+            {
+              "part": "surface",
+              "fill": "color.background.primary"
+            },
+            {
+              "part": "surface/label",
+              "ink": "color.text.danger"
             }
           ]
         },
