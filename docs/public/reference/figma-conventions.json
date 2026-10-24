@@ -224,6 +224,14 @@
             "components": [
               "progress"
             ]
+          },
+          {
+            "name": "↳ Slider",
+            "components": [
+              "_slider-thumb",
+              "slider"
+            ],
+            "usagePanelLead": "slider"
           }
         ]
       },
@@ -2817,6 +2825,117 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/banner.md"
       },
       {
+        "id": "_slider-thumb",
+        "name": "Slider.Thumb",
+        "figmaName": "_slider-thumb",
+        "kind": "component set",
+        "private": true,
+        "page": "↳ Slider",
+        "section": "Components",
+        "members": 15,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_slider-thumb.md"
+      },
+      {
+        "id": "slider",
+        "name": "Slider",
+        "figmaName": "slider",
+        "kind": "component set",
+        "page": "↳ Slider",
+        "section": "Components",
+        "members": 30,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "single",
+              "range"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "value text",
+            "type": "TEXT"
+          },
+          {
+            "name": "min label",
+            "type": "TEXT"
+          },
+          {
+            "name": "milestone",
+            "type": "TEXT"
+          },
+          {
+            "name": "max label",
+            "type": "TEXT"
+          },
+          {
+            "name": "range text",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "value",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "milestones",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "inputs",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "helper",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/slider.md"
+      },
+      {
         "id": "code-input-cell",
         "name": "CodeInput.Cell",
         "figmaName": "code-input-cell",
@@ -3248,6 +3367,8 @@
       "_breadcrumb-separator",
       "breadcrumb-item",
       "breadcrumbs",
+      "_slider-thumb",
+      "slider",
       "code-input-cell",
       "code-input"
     ],

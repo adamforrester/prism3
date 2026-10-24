@@ -346,6 +346,7 @@ Every bump after 14.0.0 has added guaranteed paths and removed or retyped none, 
 | 14.6.0 | #2528 | `type.label.{sm,md,lg}.default` and `-link`: labels always ship the default weight |
 | 14.7.0 | #2590 (#2586) | `type.label.{sm,md,lg}.line-box` |
 | 14.9.0 | #2973 (#2971) | `container.min`, the 320px narrowest column Banner's width floor binds |
+| 14.10.0 | #2792 (#2669) | `border-width.x-heavy`, the 6px track of the large Slider |
 
 ## Change classification
 
