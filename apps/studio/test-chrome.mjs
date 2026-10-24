@@ -9663,10 +9663,10 @@ const FOCUS_SWEEP_NEEDS = {
     '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
     '[data-p3="mode-option"]', '[data-p3="inspect-open"]', ...B2_RING_NEEDS],
   figma: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
-    '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
-    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', ...B2_RING_NEEDS,
-    // #2909: the rail's tiles and the reduced bar's controls (Export is an area; Apply Theme and the set boxes retired).
-    ...RAIL, '[data-p3="agent-minimize"]', '[data-p3="update-file"]'],
+    '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="search-open"]',
+    '[data-p3="inspect-open"]', ...B2_RING_NEEDS,
+    // #2909: the mode control is the select at 1280 in the plugin (the verdict beside the rail), section 17's fit.: the rail's tiles and the reduced bar's controls (Export is an area; Apply Theme and the set boxes retired).
+    ['[data-p3="mode-option"]', '[data-p3="mode-select"]'], ...RAIL, '[data-p3="agent-minimize"]', '[data-p3="update-file"]'],
 };
 /** #2909: Update file's checklist, swept with every set listed (a file that holds none): the controls it must reach. */
 const UPDATE_RING_NEEDS = ['[data-p3="update-x"]', '[data-p3="update-tab-update"]', '[data-p3="update-check-theme"]', '[data-p3="update-set"]',
@@ -9766,7 +9766,10 @@ for (const host of ['web', 'figma']) {
       }
       console.log(`  ${where}: ${counts.join(', ')}`);
       ok(bad.length === 0, `${where}: every focused chrome control draws its ring in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide, ${FOCUS_OFFSET}px outside, at ${NONTEXT_MIN}:1${bad.length ? ` — ${bad.length} miss: ${ringReport(bad)}` : ''}`);
-      for (const want of FOCUS_SWEEP_NEEDS[host]) ok(reached.has(hooks.role(want)), `${where}: the sweep reaches ${want} and reads its ring`);
+      for (const want of FOCUS_SWEEP_NEEDS[host]) {
+        const alts = Array.isArray(want) ? want : [want];
+        ok(alts.some((a) => reached.has(hooks.role(a))), `${where}: the sweep reaches ${alts.join(' or ')} and reads its ring`);
+      }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
