@@ -11679,6 +11679,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
     },
+    "container.min": {
+      "$description": "container min — 320px narrowest column (the WCAG 1.4.10 reflow width)",
+      "meaning": "Container primitive — min",
+      "tier": "primitive",
+      "consume": "Private primitive — prefer a semantic token."
+    },
     "container.fluid": {
       "$description": "container fluid — full width with margins (the default)",
       "meaning": "Container primitive — fluid",

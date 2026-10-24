@@ -2126,7 +2126,13 @@ export type LayoutAxis = {
   baseColumns: number;
   containerMax: number;
   containerNarrow: number;
+  containerMin: number;
 };
+/** `container.min` (#2971): the narrowest column a component that lays out across its container holds, 320px, the
+ *  WCAG 1.4.10 reflow width and the smallest phone viewport. FIXED, not a lever: the reflow width is the same for
+ *  every brand. Banner binds it as its width floor, and code clamps it to the host (`min-inline-size: min(var(--container-min), 100%)`),
+ *  so a host narrower than the floor (a 320 phone's 288 column) never scrolls the page sideways. */
+export const CONTAINER_MIN_PX = 320;
 // Count-aware names: ≤5 tiers anchor at sm (sm/md/lg/xl/2xl — Tailwind); 6+ prepend
 // xs (xs/sm/md/lg/xl/2xl — Bootstrap), so a small-phone tier is labeled correctly.
 const bpNames = (n: number): string[] =>
@@ -2201,7 +2207,7 @@ const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
     gutterPx: resolveGap(gutterOverrides[b.name], GUTTER_PX[Math.min(i, GUTTER_PX.length - 1)], 'gutterOverrides', b.name),
     marginPx: resolveGap(marginOverrides[b.name], MARGIN_PX[Math.min(i, MARGIN_PX.length - 1)], 'marginOverrides', b.name),
   }));
-  return { breakpoints, grid, baseColumns: base, containerMax: input.containerMax ?? 1440, containerNarrow: input.containerNarrow ?? 720 };
+  return { breakpoints, grid, baseColumns: base, containerMax: input.containerMax ?? 1440, containerNarrow: input.containerNarrow ?? 720, containerMin: CONTAINER_MIN_PX };
 };
 
 // ---------------------------------------------------------------------------

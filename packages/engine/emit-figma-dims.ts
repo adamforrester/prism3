@@ -564,7 +564,7 @@ export const buildFigmaMotion = (theme: Theme): FigmaCollectionFile[] => {
 //   breakpoint/{name}   — FLOAT, the min-width threshold (mode-invariant).
 //   grid/columns        — FLOAT, per-mode count. No scope (no count scope exists).
 //   grid/gutter,margin  — FLOAT, PER-MODE alias into `space/*`. Scope: GAP.
-//   container/max,narrow— FLOAT, viewport-invariant. Scope: WIDTH_HEIGHT.
+//   container/max,narrow,min — FLOAT, viewport-invariant. Scope: WIDTH_HEIGHT.
 // `container/fluid` (`"100%"`) skipped — Figma has no percentage FLOAT primitive.
 // ---------------------------------------------------------------------------
 
@@ -657,8 +657,8 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
       });
     }
 
-    // container/max + container/narrow — viewport-invariant. Skip fluid (100%).
-    for (const cKey of ['max', 'narrow'] as const) {
+    // container/max + container/narrow + container/min — viewport-invariant. Skip fluid (100%).
+    for (const cKey of ['max', 'narrow', 'min'] as const) {
       const leaf = containerNode[cKey];
       variables.push({
         name: ns(`container/${cKey}`),

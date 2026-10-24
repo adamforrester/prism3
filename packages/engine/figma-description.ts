@@ -307,6 +307,7 @@ export const figmaBreakpointDescription = (px: number): string => `Min-width ${p
 export const figmaContainerDescription = (key: string, px: number): string => {
   if (key === 'max') return `Content width cap — ${px}px (fluid below it)`;
   if (key === 'narrow') return `Reading measure — ${px}px`;
+  if (key === 'min') return `Narrowest column — ${px}px, the reflow width`;
   throw new Error(`figma-description: no Figma description for container '${key}'`);
 };
 /** `grid/<key>` across breakpoint modes — `perBreakpoint` is the `sm 4 · md 8 · lg–2xl 12` list. */

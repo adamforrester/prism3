@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 260 of 790 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 261 of 791 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -2032,6 +2032,14 @@ Type: color. Bound by 1 component(s).
 |---|---|---|---|
 | veil | `light.subtle` | wash | intensity: subtle · value: light (5 of 30) |
 
+### `container.min`
+
+Type: dimension. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| banner | `min-width` | container | every member (8 of 8) |
+
 ### `container.narrow`
 
 Type: dimension. Bound by 3 component(s).
@@ -3371,9 +3379,9 @@ Every token each component uses. "Declared, not drawn" names tokens the definiti
 
 ### banner
 
-23 token(s); 8 design-file member(s).
+24 token(s); 8 design-file member(s).
 
-`border-width.hairline`, `border-width.none`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.warning`, `color.foreground.danger-subtle`, `color.foreground.info-subtle`, `color.foreground.success-subtle`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.success`, `color.icon.warning`, `color.text.primary`, `icon.size.md`, `radius.md`, `radius.none`, `space.050`, `space.150`, `space.200`, `type.body.md.default`, `type.label.md.emphasis`
+`border-width.hairline`, `border-width.none`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.warning`, `color.foreground.danger-subtle`, `color.foreground.info-subtle`, `color.foreground.success-subtle`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.success`, `color.icon.warning`, `color.text.primary`, `container.min`, `icon.size.md`, `radius.md`, `radius.none`, `space.050`, `space.150`, `space.200`, `type.body.md.default`, `type.label.md.emphasis`
 
 ### breadcrumb-item
 

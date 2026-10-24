@@ -115,6 +115,16 @@
       "description": "Reading measure — 720px",
       "value": 720,
       "alias": null
+    },
+    {
+      "name": "ads/container/min",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Narrowest column — 320px, the reflow width",
+      "value": 320,
+      "alias": null
     }
   ]
 }
