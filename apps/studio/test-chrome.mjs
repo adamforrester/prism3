@@ -1399,6 +1399,10 @@ const exemptionCanary = async (page, sel = '[data-p3="bp-row"] input:disabled') 
  *  and exempted nowhere. */
 const canaryHolds = (c) => c.planted && c.live && c.differ?.length === 0 && c.measured > 0 && c.under > 0 && c.exempted === 0;
 const measure = async (page, where, host, w) => {
+  // Two frames first (#2980): Chromium holds a mouse move to the next frame, and only a frame lands it, so a move
+  // away from a tile (no frame since, keys alone draw none) could land between the probe and the font read below,
+  // and hide a tooltip the probe saw drawn. After two frames the hover the probe reads is the one the font read sees.
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await holdSpin(page, true);
   const m = await page.evaluate(PROBE, { kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS });
   const fonts = await fontsDrawn(page);
@@ -2572,8 +2576,11 @@ for (const host of ['web', 'figma']) {
 
         // ── the Figma menu: by keyboard, then each item's action ──────────────────────────────────
         // The pointer leaves the Agent tile it just clicked: a tip drawn on hover can drop between the in-page probe
-        // and the CDP font read, which then reports it drew nothing (#2962's CI, figma light 380).
+        // and the CDP font read, which then reports it drew nothing (#2962's CI, figma light 380). The move lands on
+        // a frame, not when it is sent (#2980), so wait until the tile no longer reads as hovered.
         await page.mouse.move(0, h - 1);
+        const left = await page.waitForFunction(() => !document.querySelector('[data-p3="agent-toggle"]')?.matches(':hover'), null, { timeout: 5000 }).then(() => true, () => false);
+        ok(left, `Figma menu ${where}: the pointer has left the Agent tile before the menu is measured, so its hover-only tooltip is not drawn (#2980)`);
         await page.locator('[data-p3="figma-open"]').focus();
         await page.keyboard.press('ArrowDown');
         const k0 = await menuState(page);
