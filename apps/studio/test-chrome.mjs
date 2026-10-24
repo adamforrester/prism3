@@ -9213,7 +9213,7 @@ for (const { w, h } of WIDTHS) {
         const either = !narrow && !dropped && fit29.also.some((x) => x !== 'full');
         for (const t of bp.tiles) {
           const want = TILE_LABEL[t.k];
-          const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : t.k === 'agent-toggle' ? t.name === 'Agent' : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
+          const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : t.k === 'agent-toggle' ? t.name === 'Agent' : t.k === 'agent-minimize' ? t.name === 'Minimize' : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
           const tipOk = t.k === 'verdict' ? t.name === `Verdict: ${t.tip}. Open Inspect, Contrast` : t.tip === t.name;
           ok(t.borderless && t.clear && t.glyph && (either ? t.label === null || t.label === want : dropped ? t.label === null : t.label === want) && t.labelHidden && nameOk && tipOk && t.tipHidden,
             `${where}: bar tiles: ${t.k} is borderless (${t.borderless && t.clear}) with its glyph (${t.glyph}), ${narrow ? 'its label dropped' : dropped ? 'its label dropped, as the full bar would not fit on one row (#2214)' : `labelled "${want}"`} ("${t.label}"), named "${t.name}", its tooltip "${t.tip}"${fit29 ? ` (fit ${fit29.step}: need ${fit29.full} in ${fit29.room})` : ''}`);
