@@ -79,7 +79,9 @@ export type HostMessage =
   | { kind: 'font-list'; families: string[]; styles: number[] }
   // #2909 — the file's Documentation settings (`apps/plugin/src/doc-settings.ts`): the usage-panel and cover switches,
   // and the Style guides tab's choices as the panel last saved them (`null` until it has). `error` when a save was refused.
-  | { kind: 'doc-settings'; panels: boolean; cover: boolean; styleGuide: Record<string, unknown> | null; error: string | null };
+  | { kind: 'doc-settings'; panels: boolean; cover: boolean; styleGuide: Record<string, unknown> | null; error: string | null }
+  // #2909 — Update file's checklist: the def ids whose set the file holds, and whether Set up file has run.
+  | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null };
 
 /** What the library home states about the library a file uses (#2879), as the host found it on the current page. */
 export type LibraryFileView = {
@@ -144,6 +146,8 @@ export interface HostCommit {
   postPrune(input: unknown, confirm: boolean): void;
   /** #2909: keep Documentation's settings in the file (`doc-settings-save`). Figma only; inert on the web. */
   saveDocSettings(settings: unknown): void;
+  /** #2909: ask which sets the file holds (`file-sets-request`). Figma only; inert on the web. */
+  requestFileSets(): void;
   /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
    *  read-back seed summary, the #131 knob-rehydration (the persisted `BrandInput`, typed `unknown`
    *  here to keep this DOM layer free of the engine type import) or its #480 loud refusal when the
@@ -388,6 +392,9 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
     const sg = x.styleGuide && typeof x.styleGuide === 'object' && !Array.isArray(x.styleGuide) ? x.styleGuide as Record<string, unknown> : null;
     return { kind: 'doc-settings', panels: x.panels !== false, cover: x.cover !== false, styleGuide: sg, error: str(m.error) && m.error ? m.error : null };
   },
+  // #2909. Ids that are not strings are dropped; a malformed `setUp` reads as not set up, the claim that asks for more.
+  'file-sets': (m) => ({ kind: 'file-sets', present: Array.isArray(m.present) ? (m.present as unknown[]).filter(str) : [], setUp: m.setUp === true,
+    error: str(m.error) && m.error ? m.error : null }),
   'agent-result': null,
   'agent-progress': (m) => {
     const raw = m.progress && typeof m.progress === 'object' ? m.progress as Record<string, unknown> : null;
@@ -457,6 +464,9 @@ const figmaCommit = (): HostCommit => ({
   postPrune(input, confirm) {
     post({ type: 'prune', input: input as ApplyTheme['input'], confirm });
   },
+  requestFileSets() {
+    post({ type: 'file-sets-request' });
+  },
   saveDocSettings(settings) {
     post({ type: 'doc-settings-save', settings });
   },
@@ -487,6 +497,7 @@ const webCommit = (): HostCommit => ({
   cleanUpStyleGuide() {/* no style guide runs on web (Q412 A) */},
   postPrune() {/* no figma.variables on web — CSS custom properties have no stale-item problem (#1521) */},
   saveDocSettings() {/* no file on web (#2909) */},
+  requestFileSets() {/* no file on web (#2909) */},
   onHostMessage() {/* no host messages on web */},
   requestResize() {/* the browser window is the user's to size on web */},
 });

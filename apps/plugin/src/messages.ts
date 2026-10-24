@@ -136,7 +136,10 @@ export type UiToMain =
   /** Documentation's settings (#2909, owner decisions Q667 A and Q2909.23 A; the cover switch, #2977), kept in the
    *  file's root plugin data so they travel with it (`doc-settings.ts`). The main thread normalizes them, keeps them and
    *  answers `doc-settings` with what it kept. */
-  | { type: 'doc-settings-save'; settings: unknown };
+  | { type: 'doc-settings-save'; settings: unknown }
+  /** Update file's checklist opening (#2909): which sets the file holds, and whether it is set up. Answered with one
+   *  `file-sets`. A read; never refused by the run guard. */
+  | { type: 'file-sets-request' };
 
 /** A style-guide specimen (#259) — the `type` axis of `_style-guide-swatches` a table row instances. */
 export type SwatchType = 'default' | 'text' | 'icon' | 'border' | 'transparency';
@@ -451,6 +454,9 @@ export type MainToUi =
   /** The file's Documentation settings (#2909, `doc-settings.ts`): on `ui-ready`, and as the answer to each
    *  `doc-settings-save`, with `error` when the save was refused (the settings are then the file's, unchanged). */
   | { type: 'doc-settings'; settings: DocSettings; error?: string }
+  /** The answer to `file-sets-request` (#2909): the def ids whose set the file holds, and whether Set up file has run.
+   *  `error` when the file could not be read; then `present` is empty and `setUp` false. */
+  | { type: 'file-sets'; present: string[]; setUp: boolean; error?: string }
   /** The result of an `agent-command` — the protocol's own envelope, relayed to the bridge unchanged. */
   | { type: 'agent-result'; result: AgentResult }
   /** A build's progress reading while an agent command runs, streamed to the bridge (#684's reading). */

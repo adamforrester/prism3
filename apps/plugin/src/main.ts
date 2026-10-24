@@ -73,7 +73,7 @@ import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { materializeForBrand } from './brand-def';
-import { prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
+import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
 import { button } from '@prism3/engine/components/button';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -985,6 +985,22 @@ const panelBeside = async (f: FurnitureOutcome, setId: string, defId: string): P
   if (set && set.type === 'COMPONENT_SET') withPanel(f, await panelFor(set as unknown as XNode, defId));
 };
 
+/**
+ * WHAT UPDATE FILE'S CHECKLIST READS (#2909): the buildable defs whose set (or, for an `emitAsComponents` def, any of its
+ * components) the file holds, by the name the build gives it (`presentNames`, the dependency walk's own search), and
+ * whether Set up file has run. Never throws to the panel: an unreadable file answers with `error` and nothing present.
+ */
+const fileSets = async (): Promise<void> => {
+  try {
+    await figma.loadAllPagesAsync();
+    const names = presentNames(figma as unknown as Parameters<typeof presentNames>[0]);
+    const present = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]) });
+  } catch (e) {
+    postToUi({ type: 'file-sets', present: [], setUp: false, error: (e as Error)?.message ?? String(e) });
+  }
+};
+
 /** `seatNewSet` on a set by id (#2723), with the room its usage panel will take (#846). CAUGHT, as `furnishSet` is:
  *  the set is built, and this is its placement. */
 const seatSet = async (setId: string, defId: string): Promise<void> => {
@@ -1474,6 +1490,10 @@ onUiMessage((msg: UiToMain) => {
     case 'set-theme-pref':
       // The Theme menu's choice, kept per person (the owner's top-bar decision, 2026-10-05).
       if (isThemePref(msg.pref)) void figma.clientStorage.setAsync(THEME_PREF_KEY, msg.pref).catch(() => {/* best-effort */});
+      return;
+    case 'file-sets-request':
+      // #2909: Update file's checklist — which sets the file holds, and whether it is set up. A read: never guarded.
+      void fileSets();
       return;
     case 'doc-settings-save':
       // #2909 (Q2909.23 A): Documentation's settings, kept in the file. A read of nothing else; never guarded.

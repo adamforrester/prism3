@@ -109,7 +109,9 @@ export type HostTopic =
   /** The Build style guides page (S11.2): the file's catalog arrived, or a table of the panel's run moved. */
   | 'host:sgpage'
   /** #2909: the file's Documentation settings (`doc-settings`). */
-  | 'host:docs';
+  | 'host:docs'
+  /** #2909: Update file's checklist read (`file-sets`). */
+  | 'host:update';
 
 /** What changed. `brand`: the working input, the resolved theme or the error (every `rebuild`, and a
  *  wholesale load). `origin`: the provenance was reassigned. `mode`: the mode being viewed. `page`: the

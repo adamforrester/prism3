@@ -204,6 +204,9 @@ export interface HostSession {
   /** The file's Documentation settings (#2909, `apps/plugin/src/doc-settings.ts`), as the host last said them: `null`
    *  until it has (and always on the web). `error` is the host's words when a save was refused. */
   readonly docSettings: DocSettingsView | null;
+  /** What Update file's checklist read when it opened (#2909): the def ids whose set the file holds, and whether Set up
+   *  file has run. `null` until the first answer; `error` is the host's words when it could not read the file. */
+  readonly fileSets: { readonly present: readonly string[]; readonly setUp: boolean; readonly error: string | null } | null;
 }
 
 /** Documentation's settings as the panel holds them (#2909). */
@@ -237,6 +240,7 @@ export const initialHostSession = (): HostSession => ({
   agentRun: null,
   refused: null,
   docSettings: null,
+  fileSets: null,
 });
 
 /** The panel's own slot for `op`, out of `pending` (#1957). The slot's last verdict was replaced by
@@ -372,6 +376,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       return { ...s, pruneBusy: false, prunePreview: null, pruneVerdict: { ok: m.ok, applied: false, count: 0, summary: m.summary } };
     case 'doc-settings':
       return { ...s, docSettings: { panels: m.panels, cover: m.cover, styleGuide: m.styleGuide, error: m.error } };
+    case 'file-sets':
+      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error } };
     case 'seed-info':
       // Joins the two independent boot reads into one outcome (#721); `restore-input` repairs it if it lands later.
       return { ...s, seedOutcome: joinSeed({ present: m.present, ok: m.ok, detail: m.summary, failed: m.failed }, s.inputRecovered) };
@@ -437,6 +443,7 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'prune-result': return ['host'];
     case 'seed-info': return ['host'];
     case 'doc-settings': return ['host:docs'];
+    case 'file-sets': return ['host:update'];
     // UI redesign S11: the Activity drawer's agent rows. A start or an end it does not show moves nothing.
     case 'agent-started': return next === prev ? [] : ['host'];
     case 'agent-finished': return next === prev ? [] : ['host'];
