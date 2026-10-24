@@ -56,6 +56,7 @@ import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
+import { emptiedLine, pageMovesLine, relocateSets, type PageMove } from './page-moves';
 import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furniture';
 import { docPanelReach, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
@@ -83,6 +84,8 @@ export const previewHashOf = (r: UpdatePreview): string =>
   // A set's move (#2542), the page list (#2568) and the set's blockers are in the hash, so a set or a page someone moves,
   // or a font or variable that comes or goes (#2601), between the check and the confirm refuses the apply.
   fnv(JSON.stringify([r.sets.map((s) => [s.set, s.previewHash, ...(s.setMove ? [s.setMove] : []), ...(s.blockers.length ? [s.blockers] : []), ...(s.furniture ? [s.furniture] : [])]), r.missing, r.refused, ...(r.pages ? [r.pages] : []),
+    // #2989: the sets to move to their pages, only when there are any, so a file with none hashes as it did before.
+    ...(r.pageMoves ? [{ pageMoves: r.pageMoves }] : []),
     // #2858: the About frame, only while it is work, so a file whose frame is current hashes as it did before it.
     ...(aboutIsWork(r.about) ? [r.about] : []),
     // #2859: the library cover, the same way.
@@ -170,6 +173,10 @@ export type ApplyResult = {
   refused: { def: string; reason: string }[];
   /** #2568 — the component pages the apply put in alphabetical order, by full page name. Absent when none. */
   reordered?: string[];
+  /** #2989 — the sets moved to the page the taxonomy names now, and the pages that left empty (never deleted). Absent
+   *  when none. */
+  relocated?: PageMove[];
+  emptied?: string[];
   /** #2858 — the Cover page's "About this library" frame, drawn after the sets. Absent when the run wrote nothing. */
   about?: AboutOutcome;
   /** #2858 — the library publish description, offered with a Copy button: no Plugin API call sets it. Absent when the
@@ -744,13 +751,16 @@ export const applyUpdate = async (
   const moving = preview.sets.filter((p) => p.setMove && !p.blockers.length);
   // THE PAGE ORDER (#2568) is work of its own: a file whose sets are all up to date can still have pages to reorder.
   const reorder = !!preview.pages?.length && typeof host.root.insertChild === 'function' && !!host.root.children;
+  // THE SETS ON A FORMER PAGE (#2989) are work of their own too, on a host that can make and move pages.
+  const relocate = !!preview.pageMoves?.length && !!host.root.children && typeof (host as unknown as { createPage?: unknown }).createPage === 'function'
+    && typeof (host as unknown as { loadAllPagesAsync?: unknown }).loadAllPagesAsync === 'function';
   // THE ABOUT FRAME (#2858) is work of its own when it is missing or drawn for another engine.
   // …and the library cover (#2859), when it is missing or behind.
   const about = aboutIsWork(preview.about) || coverIsWork(preview.cover);
-  if (!ready.length && !moving.length && !reorder && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
+  if (!ready.length && !moving.length && !reorder && !relocate && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
   // THE ABOUT FRAME ALONE SAVES NO VERSION (owner decision Q498 B): no set changes, so Q7's way back has nothing to
   // cover. `settle` still saves one before any re-spacing it finds, as for any other second write.
-  if (!ready.length && !moving.length && !reorder && !furnishing.length) {
+  if (!ready.length && !moving.length && !reorder && !relocate && !furnishing.length) {
     res.aboutOnly = true;
     await settle(host, targets, preview, res, opts);
     if (res.version) delete res.aboutOnly;
@@ -759,9 +769,9 @@ export const applyUpdate = async (
   }
   // A NAMED VERSION, ONCE, BEFORE THE FIRST WRITE (Q7), for all of it: the sets updated or moved, then the page order.
   // Refused or unavailable, nothing is written.
-  const setIds = [...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set), ...furnishing.map((p) => p.set)])];
+  const setIds = [...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set), ...furnishing.map((p) => p.set), ...(relocate ? preview.pageMoves!.map((m) => m.set) : [])])];
   try {
-    res.version = (await saveVersion(host, { run: 'update', sets: setIds.map((set) => ({ set, name: opts.nameOf?.(set) })), pageOrder: reorder, about: aboutIsWork(preview.about), cover: coverIsWork(preview.cover) })).title;
+    res.version = (await saveVersion(host, { run: 'update', sets: setIds.map((set) => ({ set, name: opts.nameOf?.(set) })), pageOrder: reorder, about: aboutIsWork(preview.about), cover: coverIsWork(preview.cover), pageMoves: relocate })).title;
   } catch (err) {
     res.refusedAll = `the named version could not be saved (${(err as Error)?.message ?? String(err)}), so nothing was written`;
     return res;
@@ -771,6 +781,13 @@ export const applyUpdate = async (
     const root = host.root;
     const done = reorderPages({ root: { get children() { return root.children ?? []; }, insertChild: (i, p) => root.insertChild!(i, p) } });
     if (done.length) res.reordered = done;
+  }
+  // THE SETS ON A FORMER PAGE MOVE NEXT (#2989), before any set is written, so each set below is updated, furnished and
+  // re-spaced on the page it now belongs on. Moved, never rebuilt: every id, instance and hand edit comes with it.
+  if (relocate) {
+    const r = await relocateSets(host as unknown as Parameters<typeof relocateSets>[0]);
+    if (r.moved.length) res.relocated = r.moved;
+    if (r.emptied.length) res.emptied = r.emptied;
   }
   for (const { t, p, live, stampOnly } of ready) {
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
@@ -856,6 +873,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   const setsMoved = r.outcomes.filter((o) => o.setMoved).length;
   const furnished = r.outcomes.filter((o) => !o.refused && !o.stopped && furnitureDueCount(o.furniture)).length;
   const reordered = r.reordered?.length ?? 0;
+  const relocated = r.relocated?.length ?? 0;
   const lines: string[] = [];
   for (const o of r.outcomes) {
     if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); continue; }
@@ -901,6 +919,9 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   for (const x of r.refused) lines.push(`${x.def}: not updated. ${x.reason}.`);
   // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
   if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
+  // #2989: the sets moved to their pages, and any page the move left empty, for the owner to delete by hand.
+  if (relocated) lines.push(pageMovesLine(r.relocated, true));
+  if (r.emptied?.length) lines.push(emptiedLine(r.emptied));
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   // #2858: the Cover page's About frame, drawn last.
   // #2859: the library cover, kept current before it.
@@ -920,6 +941,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                   // (Q246 A, Q264 A) joined, so neither hides the other.
                   : setsMoved && reordered ? `✓ ${n(setsMoved, 'set')} moved, reordered ${n(reordered, 'page')}`
                     : setsMoved ? `✓ ${n(setsMoved, 'set')} moved` : reordered ? `✓ reordered ${n(reordered, 'page')}`
+                      // DRAFT wording for the owner (#2989): a run whose only work was moving sets to their pages.
+                      : relocated ? `✓ ${n(relocated, 'set')} moved to ${relocated === 1 ? 'its page' : 'their pages'}`
                       // DRAFT wording for the owner (#2803, Q379 A): a run whose only work was the canvas furniture.
                       : furnished ? `✓ canvas furniture drawn for ${n(furnished, 'set')}`
                         // DRAFT wording for the owner (#2858): a run whose only work was the About frame.
