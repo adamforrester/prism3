@@ -9334,7 +9334,8 @@ for (const { w, h } of WIDTHS) {
           if (w !== 640) {
             const tw = await tabWalk(page, 'export-page');
             const out = [...tw.fwd, ...tw.back].filter((k) => k.startsWith('out:'));
-            ok(tw.stops.includes('dialog-confirm') && tw.fwd.includes(String(tw.stops.indexOf('dialog-confirm'))),
+            // Never modal, so Tab goes on past the page into the rest of the panel; what is held is that it reaches Download.
+            ok(tw.stops.includes('dialog-confirm') && tw.confirm,
               `${where} / Export: Tab from the page's first control reaches Download (stops ${tw.stops.join(', ')}; Tab ${tw.fwd.join(' → ')}${out.length ? `; leaves the page for ${out.join(', ')}` : ''})`);
           }
           await hooks.click(page.locator('[data-p3="rail-theme"]'));
