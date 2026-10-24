@@ -154,6 +154,8 @@ export const PRODUCT_VARS = [
   // S12: the start window's width unit, from the dimension grid: the window is five of these (640px, the mockup's) and
   // the guard over it three and three quarters (480px).
   ['dlg-unit', 'core.dimension.128', 'core.dimension.128', D, 'the start window\'s and the guard\'s widths'],
+  // #2909 IA v2 phase 1: the plugin's left rail, 60px wide (the round-4 wireframe), from the dimension grid.
+  ['rail-w', 'core.dimension.60', 'core.dimension.60', D, 'the plugin rail\'s width (#2909)'],
   // S12 (owner decision S5): the guard's Discard wears Prism3's destructive button, the Button.Destructive component's
   // default (filled) appearance: its fill and its on-fill ink at rest, from the same tokens in both themes. Hover moves
   // the edge to the destructive border's hover step, the way the outline appearance carries state: the filled hover
@@ -218,6 +220,8 @@ export const SHELL_VARS = [
   'dlg-unit', 'space-250', 'danger-fill', 'danger-on', 'danger-edge-hover',
   // S11.2: the Build style guides page's switch, concept v6's track and knob.
   'track-w', 'track-h', 'thumb', 'thumb-inset',
+  // #2909 IA v2 phase 1: the plugin's left rail.
+  'rail-w',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.

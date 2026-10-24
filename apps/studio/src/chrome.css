@@ -1621,6 +1621,82 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
    `forced-color-adjust: none`, and every color it and what it holds draw is a system color, set here. No other control
    opts out. `test:chrome` section 39 measures each state under Chromium's forced-colors emulation, the selected labels
    as drawn. */
+/* ── the plugin's left rail (#2909 IA v2 phase 1, round-4 wireframe; plugin only) ───────────── */
+/* A 60px column on the page ground, fixed to the window's left edge, and every layout of the frame starts after it. Its
+   tiles are bar tiles (`dom.ts` `tile`), labels kept at every width (Q2909.16 A), their tooltips to the right. The
+   current area's tile and the Agent tile while the link is on take the second inset fill behind the glyph: the dark
+   rail's first inset (`fill-1`) is too faint to read as a selected tile, so the round-4 wireframe drew a value outside
+   the map there; `fill-2` is the mapped step, the same in both themes (a held question for the owner). Hover takes
+   `fill-1`. */
+.p3-rail { display: none; }
+.p3-frame[data-shell="rail"] > .p3-rail {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 35; box-sizing: border-box; width: var(--p3-rail-w);
+  display: flex; flex-direction: column; align-items: center; gap: var(--p3-space-025); padding: var(--p3-space-100) 0;
+  background: var(--p3-bg-page); border-right: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-frame[data-shell="rail"]:is([data-layout="panes"], [data-layout="page"], [data-layout="home"], [data-w="narrow"]:has(> .p3-drawer[data-open="true"])) { left: var(--p3-rail-w); }
+.p3-rail-mark { display: flex; align-items: center; justify-content: center; min-height: var(--p3-ctl-h-sm); margin-bottom: var(--p3-space-075); }
+.p3-rail-areas, .p3-rail-foot { display: flex; flex-direction: column; align-items: center; gap: var(--p3-space-025); }
+.p3-rail-foot { margin-top: auto; }
+.p3-rail-div { width: var(--p3-space-400); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); margin: var(--p3-space-050) 0; }
+.p3-frame[data-shell="rail"] .p3-rail .p3-btn.p3-tile { min-height: var(--p3-ctl-h); padding: var(--p3-space-025) 0; }
+.p3-frame[data-shell="rail"] .p3-rail .p3-tile-mark { justify-content: center; min-width: var(--p3-ctl-h); min-height: var(--p3-ctl-h-xs); border-radius: var(--p3-radius-xl); }
+.p3-frame[data-shell="rail"] .p3-rail .p3-tile-label {
+  display: block; max-width: var(--p3-rail-w); color: var(--p3-text); text-align: center; white-space: normal; hyphens: manual;
+}
+/* A full-width page on the rail (Documentation, Export) draws its own header: the tab row and Color's sub-row are Theme's. */
+.p3-frame[data-shell="rail"][data-layout="page"] :is(.p3-nav, .p3-subnav) { display: none; }
+.p3-frame[data-shell="rail"] .p3-rail .p3-btn.p3-tile:where(:not(:disabled, [aria-disabled="true"])):hover > .p3-tile-mark { background: var(--p3-fill-1); }
+.p3-frame[data-shell="rail"] .p3-rail .p3-tile:is([aria-current="page"], [data-on="true"]) > .p3-tile-mark { background: var(--p3-fill-2); }
+.p3-frame[data-shell="rail"] .p3-rail .p3-tile[aria-current="page"] .p3-tile-label { font-weight: var(--p3-fw-strong); }
+.p3-frame[data-shell="rail"] .p3-rail .p3-tile-tip { top: 0; right: auto; left: calc(100% + var(--p3-space-050)); }
+.p3-frame[data-shell="rail"] .p3-rail .p3-agent-slot { display: flex; }
+/* A home has no brand in the file to edit, so the rail's areas go and its foot stays (#2879). */
+.p3-frame[data-shell="rail"][data-layout="home"] .p3-rail-areas { display: none; }
+/* Contrast sits in the Theme area's preview header (round 4), never on Components. */
+.p3-frame[data-shell="rail"][data-place="components"] .p3-preview-head > .p3-tile-start { display: none; }
+.p3-min-slot:empty { display: none; }
+/* On the rail the tab row holds Theme's pages alone: Components' page has no tab, so its row keeps the search only. */
+.p3-frame[data-shell="rail"][data-place="components"] .p3-nav .p3-tabs { display: none; }
+
+/* ── Documentation (#2909, Q667 A, Q2909.21 A): a page no tab shows, full width, its own tab row ─────────── */
+.p3-docs {
+  display: grid; gap: var(--p3-space-200); align-content: start; max-width: calc(29 * var(--p3-ctl-h)); margin: 0 auto;
+  padding: var(--p3-space-300) var(--p3-space-500); color: var(--p3-text); font-family: var(--p3-font-ui);
+  font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
+}
+.p3-docs-head { display: grid; gap: var(--p3-space-100); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-docs-select { display: none; }
+.p3-frame[data-w="narrow"] .p3-docs { padding: var(--p3-space-200) var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-docs-tabs { display: none; }
+.p3-frame[data-w="narrow"] .p3-docs-select { display: flex; margin-bottom: var(--p3-space-100); }
+.p3-docs-body > .p3-sg { max-width: none; margin: 0; padding: 0; }
+.p3-docs-card {
+  display: grid; gap: var(--p3-space-075); padding: var(--p3-space-200); border: var(--p3-bw-hairline) solid var(--p3-line-1);
+  border-radius: var(--p3-radius-xl); background: var(--p3-bg-page);
+}
+.p3-docs-cardrow { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-200); }
+.p3-docs-cardtitle { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); }
+.p3-docs-card > p { margin: 0; }
+.p3-docs-card > [hidden] { display: none; }
+
+/* ── Export as an area (#2909): the export dialog's parts as a page, never modal ─────────────────────── */
+.p3-export-host { display: contents; }
+.p3-bardlg.p3-export-page { max-width: none; width: auto; margin: 0; border: 0; border-radius: 0; max-height: none; }
+
+/* ── Update file (#2909): the overlay's tabs, items and sets ─────────────────────────────────────── */
+.p3-upd-tabs { flex: none; padding: 0 var(--p3-space-300); margin: 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-upd-body { padding: var(--p3-space-150) var(--p3-space-300); gap: var(--p3-space-100); overflow: auto; }
+.p3-upd-body p { margin: 0; }
+.p3-upd-item { display: grid; gap: var(--p3-space-050); padding: var(--p3-space-100) 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-upd-item:last-child { border-bottom: 0; }
+.p3-upd-sub { padding-left: var(--p3-space-400); }
+.p3-upd-title { padding-left: var(--p3-space-100); }
+.p3-upd-sets { display: grid; gap: var(--p3-space-025); padding-left: var(--p3-space-300); }
+.p3-upd-setname { flex: 1 1 auto; min-width: 0; }
+.p3-upd-line, .p3-upd-summary { color: var(--p3-text); }
+.p3-btn.p3-upd-btn { flex: none; }
+
 @media (forced-colors: active) {
   /* A glyph takes the forced ink, not the chrome color it names: `HighlightText` on a selected control and `GrayText` on a
      disabled one, below. */

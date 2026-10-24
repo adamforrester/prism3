@@ -125,6 +125,15 @@ export type BarPlaced = {
   /** The plugin's Docs (#2637 Q384): asks the main thread to open the docs in the browser. Null on the web, where Docs
    *  is a link to the site's own `/docs/`. */
   readonly openDocs: (() => void) | null;
+  /** #2909 IA v2 phase 1 (plugin): the rail shell. The bar then holds only the brand switcher, Minimize's slot (while the
+   *  agent link is on) and Update file: the mark, Contrast, Theme, Agent, Activity, Docs and Export left it for the rail,
+   *  the Theme area and the drawer. Null on the web, whose bar is unchanged until Q2909.9 is built. */
+  readonly rail: {
+    readonly minimize: HTMLElement;
+    readonly update: HTMLElement;
+    /** Export's area: while it is open, the export dialog's content is drawn here, as a page, not over the panel. */
+    readonly exportPage: HTMLElement;
+  } | null;
 };
 
 /** Mount the bar's controls into `host` (the frame's bar slot). Returns the node, which is the `brand-bar` chrome
@@ -229,17 +238,21 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     // is the page content's. At the narrow tier the plugin's file actions take a second row (`rowBreak`), Apply Theme
     // on its right (`spacer2`); above it both draw nothing. The shell's nodes are placed, never re-minted, so one that
     // holds focus keeps it.
-    const fileRow = !v.home && !!(placed.figma || applyBtn);
+    const fileRow = !placed.rail && !v.home && !!(placed.figma || applyBtn);
     if (v.home) {
       if (homeNameText.textContent !== v.home.name) homeNameText.textContent = v.home.name;
       homeBadge.textContent = v.home.badge ?? '';
       homeBadge.hidden = !v.home.badge;
     }
     // #2879: a home keeps the mark, Theme, the Agent tile's slot, Activity and Docs, none of which needs a brand.
-    const order: (HTMLElement | null)[] = v.home
-      ? [placed.mark, homeName, spacer, placed.theme, placed.agent, placed.activity, docsTile.btn, layer]
-      : [placed.mark, brandWrap, placed.verdict, spacer, placed.theme, placed.agent, placed.activity, docsTile.btn, exportWrap,
-        fileRow ? rowBreak : null, placed.figma, fileRow ? spacer2 : null, applyBtn, layer];
+    const rail = placed.rail;
+    const order: (HTMLElement | null)[] = rail
+      // #2909 (round 4): the brand, then Minimize while the link is on, then Update file, the one global action.
+      ? (v.home ? [homeName, spacer, rail.minimize, layer] : [brandWrap, spacer, rail.minimize, rail.update, layer])
+      : v.home
+        ? [placed.mark, homeName, spacer, placed.theme, placed.agent, placed.activity, docsTile.btn, layer]
+        : [placed.mark, brandWrap, placed.verdict, spacer, placed.theme, placed.agent, placed.activity, docsTile.btn, exportWrap,
+          fileRow ? rowBreak : null, placed.figma, fileRow ? spacer2 : null, applyBtn, layer];
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);
 
@@ -255,7 +268,13 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
       const ta = expNode.querySelector<HTMLTextAreaElement>('[data-p3="import-text"]');
       if (ta && ta.value !== v.importText) ta.value = v.importText;
     }
-    const kids = [expNode, v.prune ? pruneDialog(v.prune) : null].filter((n): n is HTMLElement => !!n);
+    // #2909: on the rail, Export is an area: its content is drawn into the area's page, and the layer holds no dialog.
+    const pageExport = !!placed.rail;
+    if (placed.rail) {
+      const want = expNode ? [expNode] : [];
+      if (want.length !== placed.rail.exportPage.children.length || want.some((n, i) => placed.rail!.exportPage.children[i] !== n)) placed.rail.exportPage.replaceChildren(...want);
+    }
+    const kids = [pageExport ? null : expNode, v.prune ? pruneDialog(v.prune) : null].filter((n): n is HTMLElement => !!n);
     if (kids.length !== layer.children.length || kids.some((n, i) => layer.children[i] !== n)) layer.replaceChildren(...kids);
 
     // Focus. A dialog first (#2124 review, findings 1 and 2): as one opens, focus moves into it (its first control);
@@ -270,9 +289,9 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     wasPrune = !!v.prune;
     const into = (role: string): void => { const d = layer.querySelector<HTMLElement>(`[data-p3="${role}"]`); if (d) (focusables(d)[0] ?? d).focus(); };
     const figmaOpener = (): HTMLElement | null => placed.figma?.querySelector<HTMLElement>('[data-p3="figma-open"]') ?? null;
-    if (exportOpened) into('export-dialog');
+    if (exportOpened && !pageExport) into('export-dialog');
     else if (pruneOpened) into('prune-dialog');
-    else if (exportClosed && !v.prune) exp.focus({ preventScroll: true });
+    else if (exportClosed && !v.prune && !pageExport) exp.focus({ preventScroll: true });
     else if (pruneClosed && !v.exportOpen) (figmaOpener() ?? sel).focus({ preventScroll: true });
     else if (justOpened) {
       const items = menuItems(brandWrap);
@@ -280,7 +299,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     } else if (focused && !focused.isConnected) {
       // Redrawn: the same control again, or, when the menu closed under it, the switcher that opened it.
       // Never behind an open dialog: there, the dialog's first control.
-      const inDlg = v.exportOpen ? 'export-dialog' : v.prune ? 'prune-dialog' : null;
+      const inDlg = v.exportOpen && !pageExport ? 'export-dialog' : v.prune ? 'prune-dialog' : null;
       const back = again?.() ?? null;
       if (back) back.focus({ preventScroll: true });
       else if (inDlg) into(inDlg);
@@ -407,9 +426,22 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     return { scrim, dlg };
   };
 
+  /** #2909: the Export area's page, the dialog's parts without the scrim, the Close and the modal trap. */
+  const exportPageShell = (): { scrim: HTMLElement; dlg: HTMLElement } => {
+    const dlg = hook(h('section', 'p3-bardlg p3-export-page'), 'export-page');
+    dlg.setAttribute('aria-labelledby', 'p3-export-page-h');
+    const head = h('div', 'p3-bardlg-head');
+    const h1 = h('h1', 'p3-bardlg-title', 'Export');
+    h1.id = 'p3-export-page-h';
+    head.append(h1);
+    dlg.append(head);
+    return { scrim: dlg, dlg };
+  };
+
   /** The export dialog (#723): the artifact, its settings, then the files and a preview, the action, the import slot. */
   const exportDialog = (x: ExportView, v: BarView): HTMLElement => {
-    const { scrim, dlg } = dialog('export-dialog', 'Export', act.closeExport);
+    // #2909: on the rail the same content is the Export area's page: no scrim, no Close and no Cancel, never modal.
+    const { scrim, dlg } = placed.rail ? exportPageShell() : dialog('export-dialog', 'Export', act.closeExport);
     // Two columns: the settings on the left, what they produce on the right (#720's verify item: a preview you have
     // to scroll to is not a preview). One column at narrow widths, the preview after the settings.
     const body = h('div', 'p3-bardlg-body p3-export-body');
@@ -469,7 +501,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     go.type = 'button';
     if (x.go.off) { go.disabled = true; go.title = x.go.off; }
     go.onclick = act.download;
-    foot.append(cancel, go);
+    if (placed.rail) foot.append(go); else foot.append(cancel, go);
     dlg.append(foot);
     // Import, a slot: the same conversation as export (#723).
     if (x.imports.length) {
@@ -514,7 +546,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
   const onKey = (e: KeyboardEvent): void => {
     if (e.key !== 'Escape' || e.defaultPrevented) return;
     const v = lend.read();
-    if (v.exportOpen) { act.escapeExport(); exp.focus(); }
+    if (v.exportOpen && !placed.rail) { act.escapeExport(); exp.focus(); }
     else if (v.prune) act.closePrune();
   };
   document.addEventListener('mousedown', onDown);

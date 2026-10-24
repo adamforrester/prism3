@@ -48,8 +48,10 @@ import type { WsLike } from './agent-bridge-relay';
 import { glyph, h, hook, switchEl, tile } from '../../studio/src/shell/dom';
 import { setAgentLinkOn, setAgentLinkStatus } from '../../studio/src/shell/activity';
 
-/** The frame's stable slot for the tile, by its hook. */
+/** The frame's stable slot for the tile, by its hook: on the rail's foot since #2909. */
 const SLOT = '[data-p3="bar-agent"]';
+/** #2909 (round 4): Minimize's slot on the reduced top bar, beside Update file. */
+const MIN_SLOT = '[data-p3="bar-minimize"]';
 /** The library home's slot for its switch (#2879), by its hook. */
 const HOME_SLOT = '[data-p3="home-agent"]';
 
@@ -142,7 +144,8 @@ export const mountAgentLink = (): void => {
   tip.textContent = 'Agent';
   const dot = hook(h('span', 'p3-dot p3-agent-dot'), 'agent-dot');
   dot.setAttribute('aria-hidden', 'true');
-  mark.append(glyph('agent'), dot);
+  // #2909 (Q2909.19 A, a draft): the chain link, the rail's Agent icon.
+  mark.append(glyph('link'), dot);
   // #2949 (Q600 A): Minimize, beside the Agent tile and only while the link is on. A plain button: the main thread decides.
   const { btn: minBtn, mark: minMark, tip: minTip } = tile('agent-minimize', 'Minimize');
   minBtn.classList.add('p3-agent-min');
@@ -185,6 +188,8 @@ export const mountAgentLink = (): void => {
   /** The command the panel was told started and not yet finished, with when it was told. */
   let running: { cmd: string; since: number } | null = null;
   let ticker: ReturnType<typeof setInterval> | null = null;
+  /** #2909: keeps the drawer's "… ago" current while the link is on. */
+  let drawerTicker: ReturnType<typeof setInterval> | null = null;
   const renderStrip = (): void => {
     if (!minimized) return;
     const line = agentStripText(state, running, Date.now());
@@ -223,8 +228,13 @@ export const mountAgentLink = (): void => {
     else if (!short?.error && shownError) live.textContent = '';
     shownShort = nextShort;
     shownError = !!short?.error;
-    setAgentLinkStatus({ short: short?.text ?? null, error: !!short?.error,
+    // #2909 (Q2909.22 A): the drawer's right end says what the strip says, the last command and how long ago
+    // ("Agent listening · last: readback 2m ago"); the ticker below keeps the age current while the link is on.
+    const line = agentStripText(state, running, Date.now());
+    setAgentLinkStatus({ short: line?.text ?? null, error: !!line?.error,
       full: state && (state.on || state.inboxError) ? agentLinkStatusText(state) : null });
+    if (on && drawerTicker === null) drawerTicker = setInterval(render, 30_000);
+    if (!on && drawerTicker !== null) { clearInterval(drawerTicker); drawerTicker = null; }
   };
   chip.addEventListener('click', () => post({ type: 'agent-link', on: !state?.on }));
 
@@ -250,8 +260,8 @@ export const mountAgentLink = (): void => {
       state = m.state;
       render();
     }
-    if (m.type === 'agent-started') { running = { cmd: String((m as { cmd?: unknown }).cmd ?? ''), since: Date.now() }; renderStrip(); }
-    if (m.type === 'agent-finished') { running = null; renderStrip(); }
+    if (m.type === 'agent-started') { running = { cmd: String((m as { cmd?: unknown }).cmd ?? ''), since: Date.now() }; render(); }
+    if (m.type === 'agent-finished') { running = null; render(); }
     relay?.fromMain(m as Parameters<ReturnType<typeof createBridgeRelay>['fromMain']>[0]);
   });
 
@@ -263,6 +273,9 @@ export const mountAgentLink = (): void => {
   const place = (): void => {
     const slot = document.querySelector(SLOT);
     if (slot && wrap.parentElement !== slot) slot.append(wrap);
+    // #2909: Minimize sits on the top bar, apart from the tile, while the frame draws its slot there.
+    const minSlot = document.querySelector(MIN_SLOT);
+    if (minSlot && minBtn.parentElement !== minSlot) minSlot.append(minBtn);
     // The library home's slot is mounted with the frame (`frame.ts`), so it arrives with the same frame.
     const homeSlot = document.querySelector(HOME_SLOT);
     if (homeSlot && homeRow.parentElement !== homeSlot) homeSlot.append(homeRow);
