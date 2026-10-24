@@ -5102,7 +5102,7 @@ for (const host of ['web', 'plugin']) {
     await goPlace(page, 'color-interactive');
     const ROLES = ['text.link.default', 'inverse.text.link.default'];
     const lines = await page.evaluate((roles) => roles.map((r) => {
-      const wrap = document.querySelector(`[data-p3="levers-pane"] [data-p3="int-row-${r.replace(/\./g, '-')}"]`)?.closest('.p3-fillrow-wrap');
+      const wrap = document.querySelector(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${r}"]`)?.closest('.p3-fillrow-wrap');
       return { role: r, modes: wrap ? [...wrap.querySelectorAll('[data-p3="link-mode"]')].map((c) => c.dataset.mode) : null,
         below: wrap ? wrap.querySelectorAll('[data-p3="link-mode"][data-below="true"]').length : null,
         follow: wrap?.querySelector('[data-p3="link-follow"]')?.textContent ?? null };
