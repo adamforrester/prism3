@@ -43,7 +43,7 @@
  * HELD FOR THE OWNER: `SPEC_GAP`, the redline geometry, `REDLINE` (the spec magenta, Q from 2026-10-19), the state
  * column's width, and every sentence this file writes (DRAFT wording, Q2830.7).
  */
-import { componentSpec, type ComponentSpec, type SpecValue } from '@prism3/engine/component-specs';
+import { componentSpec, specMaterialize, type ComponentSpec, type SpecValue } from '@prism3/engine/component-specs';
 import { docSections } from '@prism3/engine/component-doc-sections';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -152,8 +152,8 @@ export const planSpecDef = (authored: ComponentDef, def: ComponentDef = authored
     for (const p of row.parts) {
       const v = p.values;
       const path = below(p.part);
-      // The box a part pads is drawn; anything else it holds is a row under the specimen.
-      const framed = v.paddingLeft || v.paddingRight || v.paddingTop || (!path.length && v.height);
+      // The root and any box a part pads are drawn; anything else a part holds is a row under the specimen.
+      const framed = !path.length || v.paddingLeft || v.paddingRight || v.paddingTop;
       if (framed) {
         for (const prop of ['paddingLeft', 'paddingRight', 'paddingTop', 'height', 'gap'] as const) if (v[prop]) marks.push({ path, prop, ...valueLabel(v[prop]!, prop) });
         if (v.minWidth) marks.push({ path, prop: 'minWidth', ...valueLabel(v.minWidth, 'min width') });
@@ -216,12 +216,12 @@ export const planSpecDef = (authored: ComponentDef, def: ComponentDef = authored
 /**
  * The spec panel for a family, from its lead: one `SpecDefPlan` per set of the family that builds one, the lead
  * first. `materialize` is the def as this file builds it (`materializeForBrand` with the file's brand), so the tokens
- * are the ones its sets bind. Pure, so the whole content rule is checked with no host (`test-doc-panel.ts`).
+ * are the ones its sets bind; without one, the default brand's (`specMaterialize`), as the emitted model. Pure, so the whole content rule is checked with no host (`test-doc-panel.ts`).
  */
 export const planSpecPanel = (lead: ComponentDef, opts: { materialize?: (d: ComponentDef) => ComponentDef } = {}): SpecPanelPlan => {
   const fam = panelFamily(lead.id);
   const ids = fam ? [lead.id, ...fam.members.filter((m) => m !== lead.id)] : [lead.id];
-  const defs = ids.flatMap((id) => componentDefs.filter((d) => d.id === id && d.figmaProperties)).map((d) => planSpecDef(d, opts.materialize ? opts.materialize(d) : d));
+  const defs = ids.flatMap((id) => componentDefs.filter((d) => d.id === id && d.figmaProperties)).map((d) => planSpecDef(d, (opts.materialize ?? specMaterialize)(d)));
   const body = {
     def: lead.id,
     title: `${lead.name} specs`,
