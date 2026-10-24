@@ -150,7 +150,7 @@ Keyed by `width`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | — | build width 480px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 480px (literal) |
 | `container/infoGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |
@@ -163,7 +163,7 @@ Keyed by `width`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | — | build width 960px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 960px (literal) |
 | `container/infoGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |

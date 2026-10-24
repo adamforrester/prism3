@@ -195,6 +195,8 @@ export interface CompNode {
   /** The reserved-lines floor (textarea's `rows`): a TEXT node's minimum height, `minLines` × its own line
    *  height, written by the PARENT after the append and read back. Figma types it `number | null`. */
   minHeight?: number | null;
+  /** #2976 — never written by a plan; only cleared (`null`) in place, with the other three, when no plan sets it. */
+  maxHeight?: number | null;
   /** READ, never written: the line height and font size the node's applied style gave it, which the
    *  reserved-lines floor multiplies. Figma types both with `| figma.mixed`, so the port carries `| symbol`
    *  (the `fontName` rule above) and the executor checks the shape before using either. */
@@ -755,6 +757,9 @@ export const realYield: YieldFn = (ms = 0) => new Promise<void>((resolve) => { s
  *  wrong floor misses by whole lines. The same 0.01 is inlined in the paste payload
  *  (`anatomy-figma.ts` `PAYLOAD_MIN_LINES`) and the read-back (`anatomy-readback.ts` `minLines`). */
 export const MIN_HEIGHT_TOLERANCE = 0.01;
+
+/** The min and max sizes an in-place update clears from a node whose plan no longer sets them (#2976). */
+const MIN_MAX_SIZE = ['minWidth', 'maxWidth', 'minHeight', 'maxHeight'] as const;
 
 /**
  * THE REFERENCE BACK-OFF (#1664) — the waits, in ms, before each retry pass over the references the wire
@@ -2305,6 +2310,16 @@ const writeComponentSet = async (
         if (planned.has('strokeWeight')) for (const side of ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight']) planned.add(side);
         for (const field of Object.keys((node.boundVariables ?? {}) as Record<string, unknown>))
           if (!planned.has(field) && field !== 'fills' && field !== 'strokes') node.setBoundVariable?.(field, null);
+        // AND A MIN OR MAX SIZE THE PLAN NO LONGER SETS IS CLEARED (#2976). Unbinding leaves the value the binding wrote
+        // behind as a plain number, and a literal floor a superseded plan wrote stays too, so a tag built as a Pill and
+        // updated to Underline kept the pill's height and 1.5x width as floors a fresh build does not have. A parent's
+        // own writes onto this node (`maxWidth`, the reserved lines' `minHeight`) come after this, and stand.
+        for (const prop of MIN_MAX_SIZE) {
+          if (planned.has(prop) || (prop === 'minWidth' && n.minWidth !== undefined)) continue;
+          if (typeof node[prop] !== 'number') continue;
+          try { node[prop] = null; }
+          catch (err) { misses.push(`${n.name}.${prop} -> not cleared (${(err as Error).message}); it keeps ${String(node[prop])} from an earlier build`); }
+        }
       }
 
       // PAINTS — a fourth API shape, and the returned paint must be assigned BACK into the array.

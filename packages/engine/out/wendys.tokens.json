@@ -21654,6 +21654,17 @@
           }
         }
       },
+      "min": {
+        "$type": "dimension",
+        "$value": "320px",
+        "$description": "container min — 320px narrowest column (the WCAG 1.4.10 reflow width)",
+        "$extensions": {
+          "prism3": {
+            "generated": true,
+            "px": 320
+          }
+        }
+      },
       "fluid": {
         "$type": "dimension",
         "$value": "100%",

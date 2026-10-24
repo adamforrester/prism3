@@ -97,6 +97,9 @@ export const banner: ComponentDef = {
     'body-type': 'type.body.md.default',
     'glyph-size': 'icon.size.md',
     'border-width': 'border-width.hairline',
+    // ── THE WIDTH FLOOR (#2971, owner decision 2026-10-23, Q2971.1–3 A): one minimum for both widths, the narrowest column
+    // (`container.min`, 320, the reflow width), so a narrow host no longer wraps the body to a sliver.
+    'min-width': 'container.min',
     // ── THE EDGE'S SIDES (Q533.4, built on its recommended answer): contained is edged all round; full is a page-top bar,
     // edged top and bottom only, so it runs into the page's sides. The top and bottom bind `border-width` on both.
     'width.contained.edge-side': 'border-width.hairline',
@@ -131,6 +134,8 @@ export const banner: ComponentDef = {
         // Built at 480 contained (the proposal's §9) and 960 full (Q533.4, built on its recommended answer), so the page-top
         // bar reads wider on the canvas; a host stretches the instance either way.
         builtSize: { axis: 'width', widths: { contained: 480, full: 960 } },
+        // The floor (#2971): every member holds at least `container.min` (320) under a host that narrows it.
+        minWidthKey: 'min-width',
         padding: { block: 'pad', inlineLabel: 'pad' },
         gap: 'gap',
         radius: 'width.{width}.radius',
@@ -224,6 +229,7 @@ export const banner: ComponentDef = {
       'RTL — logical properties throughout: the glyph and the dismiss button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric).',
       'text expansion — never a fixed height. The text wraps, and so does the action\'s label.',
       'forced colors — the edge is a border, so it stays in the system border color when the browser removes the fill.',
+      'the minimum width — `min-inline-size: min(var(--container-min), 100%)`, one floor for both widths: 320px, the narrowest column, so a narrow host does not wrap the body to a sliver. Clamped to the host, so in a host narrower than 320 (a 320px phone\'s 288px column) the banner takes the host\'s width and the page never scrolls sideways (1.4.10 Reflow). Figma binds the same floor as `container/min`, unclamped, since Figma has no min().',
       'the full width — a bar across the page: square corners, and the edge on the top and bottom only (`border-block`, no `border-inline`), spanning its container with no side margin. Figma builds it at 960 so it reads wider than the 480 contained member.',
     ],
   },
@@ -317,6 +323,7 @@ export const banner: ComponentDef = {
     ],
     evolution: [
       'Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog\'s close does (Q385), and the action nests the primary Button, preferring Button.Neutral only when the file has it.',
+      '#2971 (owner QA 2026-10-23; owner decision 2026-10-23, Q2971.1–3 A): one minimum width for both widths, `container.min` (320, the reflow width), bound as the root\'s `minWidth`; in code clamped to the host.',
       'Owner QA Q533 (2026-10-22): one text action only, with no second action, no outline action and no Button group (Q533.1), which supersedes Q327.6\'s two actions; the full width made visibly different (Q533.4).',
       'Owner decisions: the proposal on #2579 and Q327 (2026-10-16): tones info, success, warning and danger; subtle emphasis only; placement on a width axis, contained or full; title and body in text.primary; the body a native content slot; up to two actions, outline then text, off by default; the name Banner with the aliases alert, callout and inline-alert; a full 1px border in the tone color. Q346: the edge binds the border role, never an icon or text role.',
     ],

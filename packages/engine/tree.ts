@@ -1132,6 +1132,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const container = {
     max: dimLeaf(ly.containerMax, `container max — ${ly.containerMax}px content cap (fluid below it)`),
     narrow: dimLeaf(ly.containerNarrow, `container narrow — ${ly.containerNarrow}px reading measure`),
+    min: dimLeaf(ly.containerMin, `container min — ${ly.containerMin}px narrowest column (the WCAG 1.4.10 reflow width)`),
     fluid: { $type: 'dimension', $value: '100%', $description: 'container fluid — full width with margins (the default)', $extensions: { prism3: { generated: true } } },
   };
 

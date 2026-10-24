@@ -272,6 +272,7 @@
     "color.veil.light.subtle": "color",
     "container.fluid": "dimension",
     "container.max": "dimension",
+    "container.min": "dimension",
     "container.narrow": "dimension",
     "control.size.lg.dot": "dimension",
     "control.size.lg.height": "dimension",

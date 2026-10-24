@@ -657,9 +657,10 @@ export const ENGINE_VERSION = '0.237.0';
  * path cannot break a reference. Nothing is removed or retyped.
  */
 /**
- * 14.9.0 (#2669, owner Q550 e, 2026-10-22): MINOR. `border-width.x-heavy` (6px, aliasing `core.dimension.6`) joins
- * the guaranteed surface, the step above `heavy`: the large Slider's track, so the three slider sizes read 2, 4 and
- * 6px. An added path cannot break a reference. Nothing is removed or retyped.
+ * 14.9.0 (#2971, owner decision 2026-10-23, Q2971.1–3 A): MINOR. `container.min` joins the guaranteed
+ * surface: 320px, the narrowest column (the WCAG 1.4.10 reflow width), beside `container.max` and `container.narrow`.
+ * Fixed for every brand, not a lever. Banner binds it as its width floor. One added path; an added path cannot break a
+ * reference. Nothing is removed or retyped.
  */
 export const CONTRACT_VERSION = '14.9.0';
 
