@@ -1652,6 +1652,9 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile:is([aria-current="page"], [data-on="true"]) > .p3-tile-mark { background: var(--p3-fill-2); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile[aria-current="page"] .p3-tile-label { font-weight: var(--p3-fw-strong); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile-tip { top: 0; right: auto; left: calc(100% + var(--p3-space-050)); }
+/* A menu a rail tile opens (Appearance, at the rail's foot) opens beside the rail, to the right of its tile and level with
+   its bottom, so it stays in the window: under the tile it ran past the window's bottom edge, and right-aligned past its left. */
+.p3-frame[data-shell="rail"] .p3-rail .p3-menu { top: auto; bottom: 0; right: auto; left: calc(100% + var(--p3-space-050)); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-agent-slot { display: flex; }
 /* A home has no brand in the file to edit, so the rail's areas go and its foot stays (#2879). */
 .p3-frame[data-shell="rail"][data-layout="home"] .p3-rail-areas { display: none; }
@@ -1705,8 +1708,6 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 /* The rail's narrow tier and dialogs (#2909): at 380 a dialog's columns stop scrolling (`.p3-bardlg-col` above), so
    Update file's body scrolls itself, and its footer stays in the window. */
 .p3-frame[data-w="narrow"] .p3-bardlg-col.p3-upd-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
-/* The Appearance menu opens to the rail's right, from the foot up, so it stays in the window at every size. */
-.p3-frame[data-shell="rail"] .p3-rail .p3-menu { top: auto; bottom: 0; right: auto; left: calc(100% + var(--p3-space-050)); }
 /* Components' page on the rail has no tab, so the narrow tier's domain select goes with the tab row. */
 .p3-frame[data-shell="rail"][data-place="components"] .p3-nav .p3-domrow { display: none; }
 /* The rail takes 60px, so above the narrow tier the levers column keeps the room its pages are laid out in (#1975): 42%,

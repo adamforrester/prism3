@@ -1481,7 +1481,8 @@ const exportView = (): ExportView => {
 const barActions: BarActions = {
   // Closing the menu discards a staged load with it (#1033): an unanswered "Replace the current brand?" must not be
   // waiting behind a reopened menu.
-  toggleMenu: () => { importGen++; brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } barChanged(); },
+  // The web's export dialog closes as the menu opens; in the plugin Export is an area (#2909), which a menu leaves as it is.
+  toggleMenu: () => { importGen++; brandMenuOpen = !brandMenuOpen; if (!commit.isFigma) exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } barChanged(); },
   closeMenu: () => { brandMenuOpen = false; importOpen = false; pendingLoad = null; barChanged(); },
   // #1033: through the guard, not straight to `loadBrand`. The confirm fires only when there are edits to lose.
   example: (name) => stageLoad(BRANDS[name], { kind: 'example', id: name }),
