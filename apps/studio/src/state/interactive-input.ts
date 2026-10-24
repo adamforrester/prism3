@@ -203,6 +203,16 @@ export const LINK_ROWS: readonly InteractiveRow[] = [
   { role: 'icon.link.default', group: 'Icon link', label: 'Icon link', paletteKey: 'link', write: 'link-family' },
   { role: 'inverse.icon.link.default', group: 'Icon link · inverse', label: 'Icon link · inverse', paletteKey: 'link', write: 'link-family' },
 ];
+/** The surfaces a text link sits on beside its own floor ground, by family (#2990, Q2990.4 A): the page's and the
+ *  inverse band's primary and secondary tiers. The third tier is held as #2991. */
+export const LINK_SURFACES: Readonly<Record<'text' | 'inverse.text', readonly string[]>> = {
+  text: ['background.primary', 'background.secondary'],
+  'inverse.text': ['inverse.background.primary', 'inverse.background.secondary'],
+};
+/** True for the two resting text-link rows, which show their contrast in every mode and gate every pick (#2990). */
+export const isTextLinkRow = (r: InteractiveRow): boolean => r.write === 'link-family' && /^(inverse\.)?text\.link\.default$/.test(r.role);
+/** The surfaces a text-link role sits on, by its family. */
+export const linkSurfacesOf = (role: string): readonly string[] => LINK_SURFACES[role.startsWith('inverse.') ? 'inverse.text' : 'text'];
 /** The built-in columns, by name, with the palette key each draws its steps from. */
 export const BUILT_IN_COLUMNS: ReadonlyArray<readonly [string, string]> = [['primary', 'action'], ['neutral', 'neutral'], ['destructive', 'danger']];
 /** Every row of the three built-in columns, then the link rows. An accent's rows are `interactiveRowsFor`. */

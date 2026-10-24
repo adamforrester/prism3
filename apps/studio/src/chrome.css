@@ -1059,6 +1059,19 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-step-ratio { color: var(--p3-text-2); }
 .p3-step[data-below="true"] .p3-step-ratio { color: var(--p3-bad-text); }
 .p3-step[data-below="true"] .p3-step-ratio .p3-ico { color: var(--p3-bad-icon); }
+/* A link step below its floor cannot be chosen (#2990): hatched, still focusable, its chip dimmed. */
+.p3-step[aria-disabled="true"] { cursor: not-allowed; background: repeating-linear-gradient(135deg, var(--p3-fill-1) 0 var(--p3-space-050), var(--p3-bg-page) var(--p3-space-050) var(--p3-space-100)); }
+.p3-step[aria-disabled="true"] .p3-step-chip { opacity: .4; }
+/* A text-link row's contrast in every mode and the steps its states follow (#2990). */
+.p3-linkmodes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); font-size: var(--p3-fs-12); color: var(--p3-text-2); }
+.p3-linkmodes-title { flex-basis: 100%; font-weight: var(--p3-fw-emphasis); }
+.p3-linkmode { display: inline-flex; gap: var(--p3-space-050); align-items: center; }
+.p3-linkmode-ratio { display: inline-flex; align-items: center; gap: var(--p3-space-050); font-family: var(--p3-font-mono); color: var(--p3-text); }
+.p3-linkmode[data-below="true"] .p3-linkmode-ratio { color: var(--p3-bad-text); }
+.p3-linkmode[data-below="true"] .p3-ico { color: var(--p3-bad-icon); }
+.p3-linkfollow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); margin: 0; font-size: var(--p3-fs-12); color: var(--p3-text-2); }
+.p3-linkfollow-step { display: inline-flex; align-items: center; gap: var(--p3-space-050); font-family: var(--p3-font-mono); }
+.p3-linkfollow-sw { display: block; flex: none; width: var(--p3-space-200); height: var(--p3-space-200); border-radius: var(--p3-radius-md); outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline)); }
 
 /* ── Color › Surfaces & fills (S4a): labeled fields, the fill rows, the gradient editor ──────────── */
 /* One set of surface controls, for the previewed mode (S4c, owner decision Q22: no Light and Dark groups). */
