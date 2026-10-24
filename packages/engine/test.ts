@@ -6392,7 +6392,7 @@ arm: {
     ok(measured === CELLS && low.length === 0,
       `badge bold fill separates from the page (${m}): ${fill} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
-  // THE SURFACE EMPHASIS (#2983, owner direction 2026-10-24; draft, pending Q2983.4–6). A literal table written from
+  // THE SURFACE EMPHASIS (#2983, owner direction 2026-10-24; Q2983.4–6 A). A literal table written from
   // the issue, not read from the def or from PAINT (docs/34): the page surface under the tone's text role. The label
   // brings its own ground, so its contrast never depends on the photo or pattern under it. CONTRAST is measured on
   // THESE literal roles, so a def that rebinds a surface key fails the PAINT pin above and this floor stays put.
@@ -6404,7 +6404,7 @@ arm: {
       `badge surface contrast (${t}): ${SURFACE_INK[t]} on ${SURFACE_FILL} clears 4.5:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
   // PROJECTION, per size: every surface member in the Figma set paints that fill and ink and draws no edge; and every
-  // status member pads and sets its text at its size's literal rungs (Q2983.5 rec A for small). A surface key that went
+  // status member pads and sets its text at its size's literal rungs (owner decision Q2983.5 A for small). A surface key that went
   // missing, or a size key that fell through to the other size, fails here by member name.
   const figVar = (role: string) => `color/${role.replace(/\./g, '/')}`;
   const SIZE_BOX: Record<string, { pad: string; style: string }> = {
@@ -6429,8 +6429,8 @@ arm: {
   ok(statusPlans.length === 30 && wrongStatus.length === 0,
     `badge status members by size: all 30 pad and set text at their size's rungs, and the 10 surface members paint ${figVar(SURFACE_FILL)} under their tone's text ink with no edge (got ${statusPlans.length}${wrongStatus.length ? ` — ${wrongStatus.slice(0, 4).join(' | ')}` : ''})`);
   // NEUTRAL + BOLD (owner direction, 2026-10-24: "near-black badges = tone=neutral + emphasis=bold"). Measured, it is
-  // the page's INVERSE: near-black on the light and hc-light pages, near-white on dark and hc-dark (raised as Q2983.6,
-  // rec A keeps it). Held per mode from literal luminance bands, so a fill that stopped inverting, or a near-black
+  // the page's INVERSE: near-black on the light and hc-light pages, near-white on dark and hc-dark (owner decision
+  // Q2983.6 A, 2026-10-24, keeps it). Held per mode from literal luminance bands, so a fill that stopped inverting, or a near-black
   // that drifted grey, fails by cell; the ink on it is held at 4.5:1 by the contrast loop above.
   const NEAR: Record<string, 'black' | 'white'> = { light: 'black', 'hc-light': 'black', dark: 'white', 'hc-dark': 'white' };
   const offNeutral: string[] = [];

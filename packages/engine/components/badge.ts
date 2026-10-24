@@ -59,17 +59,17 @@
  * It is a RUNTIME axis in `axisKinds`, the strict default, so the footprint cohort holds a subtle status
  * label and its bold twin to one box — which the inside stroke below makes true.
  *
- * ── THE SIZE AXIS AND THE SURFACE EMPHASIS (owner direction on #2983, 2026-10-24; draft, pending Q2983.4–6) ──
+ * ── THE SIZE AXIS AND THE SURFACE EMPHASIS (owner direction on #2983, 2026-10-24; Q2983.4–6 A) ──
  *
  * `size` (`small | medium`) gives the status label a compact size, the one commerce cards put on a product photo
  * and the one the owner expects to be used most. `medium` is today's label and the FIRST value, so Figma's default
  * member is unchanged and every existing member takes `size=medium` in place. It is AUTHORING: the two sizes
- * differ in box. Small (Q2983.5 rec A) is `type.caption.md.strong`, the corpus's only 11px rung, at
+ * differ in box. Small (owner decision Q2983.5 A, 2026-10-24) is `type.caption.md.strong`, the corpus's only 11px rung, at
  * `space.025` × `space.100`, about 19px tall. The count and dot stay one size, `medium`, so
  * `excludeCoordinates` drops them at `small`. The padding and the text are keyed `size.{size}.{type}.pad-*`
  * and `size.{size}.type`, the `size.*` key family `lint-rung-names` reads.
  *
- * `emphasis` gains a third value, `surface` (working name, Q2983.4): the page surface `background.primary`, no
+ * `emphasis` gains a third value, `surface` (owner decision Q660 A / Q2983.4 A, 2026-10-24): the page surface `background.primary`, no
  * edge, the tone's text role. It is the style for a label on any busy or mixed ground (a photo, a gradient, a
  * patterned band), because the label brings its own solid ground and its contrast never depends on what is
  * under it. It is a level of emphasis, not a tone and not a separate axis (owner direction). It shares the
@@ -160,7 +160,7 @@ export const badge: ComponentDef = {
 
   tokens: {
     // The label type, per size (#2983). Medium is the status label's original rung. Small is the corpus's only
-    // 11px rung (Q2983.5 rec A); it is a caption rung, and a label rung at 11px would be a new token name.
+    // 11px rung (owner decision Q2983.5 A, 2026-10-24); it is a caption rung, and a label rung at 11px would be a new token name.
     'size.medium.type': 'type.label.sm.emphasis',
     'size.small.type': 'type.caption.md.strong',
     // ── GEOMETRY, per type. The CORNER is per type (owner decision, 2026-09-28): the status label takes the
@@ -406,7 +406,7 @@ export const badge: ComponentDef = {
       'The status label\'s corner is the small radius, `radius.sm` (owner decision, 2026-09-28): 2px in nb and prism3, 4px in aurora, so it scales per brand. The count and the dot stay `radius.round`. Before it every type was a pill, and a subtle status label with its 1px edge read close to Tag\'s outlined pill.',
       'A leading icon on the status label, as the brief allows, painted from the tone\'s icon role.',
       'A `size` axis, `small | medium`, for the status label (owner direction on #2983, 2026-10-24): small is 11px text at 2px × 8px padding, about 19px tall. The count and dot stay medium. A large size, or a small count, once a host needs one.',
-      'A third emphasis, `surface` (working name, #2983): the page surface with the tone\'s text and no edge, for a label on a photo or any busy ground. It replaces a separate `surface: default | media` axis drafted first, which the owner turned down: the style is an emphasis level, and its name must not say "media".',
+      'A third emphasis, `surface` (owner decision on #2983, 2026-10-24): the page surface with the tone\'s text and no edge, for a label on a photo or any busy ground. It replaces a separate `surface: default | media` axis drafted first, which the owner turned down: the style is an emphasis level, and its name must not say "media".',
     ],
   },
 };

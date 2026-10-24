@@ -254,7 +254,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'the same thing on both defs, so none is shared. `subtle` LEADS because it is the code default and so '
       + 'Figma\'s default member. Only the status type carries every value; the count and dot are bold-only through '
       + '`figmaProperties.excludeCoordinates`, which leaves this value set unchanged. `surface` (#2983, owner direction '
-      + '2026-10-24; the name is pending Q2983.4) is the third level: the page surface under the tone\'s text, no edge, '
+      + '2026-10-24; the name is owner decision Q660 A / Q2983.4 A) is the third level: the page surface under the tone\'s text, no edge, '
       + 'for a label on a photo or any busy ground. Still disjoint: it names a paint treatment, not a text role.',
   },
   {
