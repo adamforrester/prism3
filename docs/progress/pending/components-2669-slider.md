@@ -13,7 +13,7 @@ selected part and the thumb in neutral ink (`interactive.neutral.border.*`), bec
 tells the selected part apart and the primary fill is 1.15:1 against the track where ink is 4.23:1; (b) the thumb sits on
 the track, no page-colored ring; (c) a 0px header gap, the 44px control row kept; (d) labeled milestones in place of the
 end labels, off by default, no ticks; (e) a `size` axis, small / medium / large, thumb 18 / 24 / 30px and track 2 / 4 /
-6px, medium first, which needed a new `border-width.x-heavy` (6px) and a CONTRACT minor (14.9.0, after Progress took 14.8.0); (f) a halo in
+6px, medium first, which needed a new `border-width.x-heavy` (6px) and a CONTRACT minor (14.10.0, after Progress took 14.8.0 and #2973 took 14.9.0); (f) a halo in
 `border.primary`, 4px at hover and 8px pressed, the shared focus ring, and disabled dimming the thumb and the selected
 part together (`disabled.icon`). Slider 10 → 30 members, Slider.Thumb 5 → 15. Calls 3 A, 5 A and 6 A of the first
 approval are superseded; the rest stand.

@@ -13,5 +13,5 @@ thumbs, drawn as growing segments around them. Optional labeled milestones (`typ
 `color.interactive.neutral.border` rest, hover and pressed, `control.size.sm/md/lg.thumb` (18, 24, 30px), sitting on
 the track with no ring; a `color.border.primary` halo, 4px at hover and 8px pressed; the shared focus ring; and
 `color.disabled.icon` when disabled, with the selected part. In a range member the state shows on the maximum thumb; the
-minimum one stays at rest. New token `border-width.x-heavy` (6px): CONTRACT 14.8.0 → 14.9.0. Its own page under
+minimum one stays at rest. New token `border-width.x-heavy` (6px): CONTRACT 14.9.0 → 14.10.0. Its own page under
 Components.
