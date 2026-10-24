@@ -4086,6 +4086,7 @@
         "RTL — logical properties throughout: the glyph and the dismiss button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric).",
         "text expansion — never a fixed height. The text wraps, and so does the action's label.",
         "forced colors — the edge is a border, so it stays in the system border color when the browser removes the fill.",
+        "the minimum width — `min-inline-size: min(var(--container-min), 100%)`, one floor for both widths: 320px, the narrowest column, so a narrow host does not wrap the body to a sliver. Clamped to the host, so in a host narrower than 320 (a 320px phone's 288px column) the banner takes the host's width and the page never scrolls sideways (1.4.10 Reflow). Figma binds the same floor as `container/min`, unclamped, since Figma has no min().",
         "the full width — a bar across the page: square corners, and the edge on the top and bottom only (`border-block`, no `border-inline`), spanning its container with no side margin. Figma builds it at 960 so it reads wider than the 480 contained member."
       ],
       "notes": {
@@ -4100,6 +4101,7 @@
         ],
         "evolution": [
           "Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog's close does (Q385), and the action nests the primary Button, preferring Button.Neutral only when the file has it.",
+          "#2971 (owner QA 2026-10-23; owner decision 2026-10-23, Q2971.1–3 A): one minimum width for both widths, `container.min` (320, the reflow width), bound as the root's `minWidth`; in code clamped to the host.",
           "Owner QA Q533 (2026-10-22): one text action only, with no second action, no outline action and no Button group (Q533.1), which supersedes Q327.6's two actions; the full width made visibly different (Q533.4).",
           "Owner decisions: the proposal on #2579 and Q327 (2026-10-16): tones info, success, warning and danger; subtle emphasis only; placement on a width axis, contained or full; title and body in text.primary; the body a native content slot; up to two actions, outline then text, off by default; the name Banner with the aliases alert, callout and inline-alert; a full 1px border in the tone color. Q346: the edge binds the border role, never an icon or text role."
         ],
@@ -4124,6 +4126,147 @@
         {
           "section": "content",
           "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
+    },
+    "_slider-thumb": {
+      "codeOnly": [
+        "The thumb in code — a visually hidden native <input type=\"range\"> under the drawn disc supplies focus, the keyboard, form submission and role=\"slider\". The disc is aria-hidden drawing.",
+        "touch-target-expansion — the visible disc is 18, 24 or 30px; its hit area is at least 44×44px at every size and density in code, never under 24×24px: a transparent ::before inset outward and centered on the thumb. The small 18px disc relies on it most.",
+        "The halo — a box-shadow on the disc, 0 0 0 4px at hover and 0 0 0 8px while pressed, in color.border.primary. It does not move the thumb or change its hit area. Under forced-colors the halo is dropped.",
+        "Pointer capture — on pointerdown call setPointerCapture(pointerId) on the thumb so a drag survives the pointer leaving the track; release on pointerup and pointercancel.",
+        "Motion — while dragging, the thumb follows the pointer 1:1 with transition: none (a data-dragging attribute), so it never lags the cursor. The halo grows on motion.duration.fast; under reduced motion it changes at once.",
+        "forced-colors — the disc keeps a system-color fill or border, so the thumb still shows; the focus ring is an outline."
+      ],
+      "notes": {
+        "contested": [],
+        "unverified": [
+          "The halo overflows the thumb's frame in Figma: two boxes larger than the frame, centered on it and unclipped, so the track segments do not move with state. Code draws it as a box-shadow. The halo is pointer feedback and carries no contrast floor (1.4.11 asks it of the disc, not the halo)."
+        ],
+        "evolution": [
+          "2026-10-16 (#2669): built with the Slider to the approved proposal (all calls A). A nested component, not a part of the Slider, so the minimum thumb of a range can stay at rest while the maximum thumb shows the state (Q349 `_` prefix).",
+          "2026-10-22 (#2669, owner Q550): an ink disc on the track with no ring, a size axis (18 / 24 / 30px), and a halo in color.border.primary, 4px at hover and 8px pressed. 15 members."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
+    },
+    "slider": {
+      "codeOnly": [
+        "code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.",
+        "The track in code — one rail across the control, with the fill and the thumbs positioned by value over it; the fill runs under the thumb to its center, so the two meet with no gap. Figma draws the same picture as growing segments around the thumbs, because auto layout has no per-child offset.",
+        "Size — small, medium and large set the thumb (control.size.sm/md/lg.thumb: 18, 24, 30px) and the track (border-width.thick, heavy, x-heavy: 2, 4, 6px). The control row stays size.md.min-height and each thumb's hit area stays at least 44×44px at every size, so the small 18px thumb keeps a target well over 24×24px.",
+        "Milestones — with showMilestones on, the minimum and the maximum are labeled under the ends of the track and each value in milestones under its own position (left: the value's fraction of the range, centered on it; the end labels align to the track's edges). Figma draws three labels, the ends and one between, spaced evenly; code draws one label per value in milestones. The labels are text, not ticks, and are aria-hidden: each thumb's aria-valuetext already carries the value.",
+        "Each thumb is a visually hidden native <input type=\"range\"> under the drawn disc: focus, the keyboard, form submission and role=\"slider\" come from it. A range has two, each with its own name (\"Minimum {label}\", \"Maximum {label}\") and its own aria-valuemin and aria-valuemax: the other thumb's value, less minStepsBetweenThumbs.",
+        "aria-valuetext — set whenever the value is not a bare number (\"$40\", \"120%\"), from the same Intl.NumberFormat formatter as the visible value text.",
+        "Keyboard — Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move one largeStep (ten steps by default); Home and End go to the ends of the thumb's own range; Tab moves from the minimum thumb to the maximum thumb.",
+        "Thumb collision — a thumb stops at the other thumb (less minStepsBetweenThumbs), by pointer and by keyboard; it never pushes or crosses it.",
+        "Click to jump — a pointerdown on the rail moves the nearer thumb there and starts a drag, so a user does not have to grab the thumb.",
+        "Rounding — each value snaps to the nearest exact multiple of step before onChange (0.1 + 0.2 is not 0.3 in floating point).",
+        "Edge alignment — at the minimum and maximum the thumb's outer edge stays inside the control: its translate runs from 0% to -100% of its own width across the range, so it never causes a horizontal scroll.",
+        "Geometry — value to pixel from the control's measured getBoundingClientRect, recomputed on resize (ResizeObserver) and when the direction changes.",
+        "Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the slide is 0ms; motion.duration-reduced.fast keeps 100ms, so the slider sets 0 itself.",
+        "Paired inputs — one shared value; typing in an input moves its thumb and dragging updates the input. An incoming value is applied only if it differs, which stops an update loop. With inputs on, the value text is off.",
+        "readOnly and disabled — readOnly keeps the hidden inputs focusable and submitted, with the value unchangeable; disabled drops them from the form payload.",
+        "The Figma value text, inputs and milestones are placeholders: \"50\" for a single value, \"30 – 70\" and 30 and 70 for a range, near where the growing segments put the thumbs, and 0, 50 and 100 under the track.",
+        "RTL — the minimum sits at the right and the fill grows leftward; Right Arrow lowers and Left Arrow raises, while Up and Down do not change. Logical properties and the measured dir handle it.",
+        "text expansion — the label and the value text share the header row; a long translated label wraps above the value rather than truncating it."
+      ],
+      "notes": {
+        "contested": [
+          "NO ERROR MEMBERS IN FIGMA. Q354 puts every control that can be invalid on the fields' `status` axis. The approved proposal (call 2 A, 10 members) holds that a slider's own value is always in range, so an error comes from a paired input or outside validation, and the field message carries it; there is no error skin on the track. So the set has no `status` axis, and code carries `validation` (default, error) onto the nested message. Held for the owner: a `status` axis would make 20 members."
+        ],
+        "unverified": [
+          "Figma draws three milestone labels (the ends and one between) spaced evenly, so a middle value sits exactly only at the halfway point; code places one label under each value in milestones (Q550 d). A file that needs more labels between the ends has none to turn on.",
+          "The nested inputs in Figma show TextField's own label (\"Label\") and its message: a host can set a nested instance's text and swap properties, not a boolean or a property two levels down (#2781); in code the inputs are labeled \"Minimum\" and \"Maximum\" and carry no message."
+        ],
+        "evolution": [
+          "2026-10-16 (#2669): owner decision, every call A on the proposal and wireframe. One Slider with a type axis (single, range) × five states = 10 members, one size, header value text, a 2px rail and 4px fill, a 24px ringed thumb nested as Slider.Thumb, optional end labels, inputs and message.",
+          "2026-10-22 (#2669): owner decision Q550, A on Q536 a–f. One track thickness in field.border.rest with the selected part and the thumb in neutral ink; the thumb on the track with no ring; a 0px header gap; labeled milestones in place of the end labels, off by default; a size axis (small, medium, large) for 30 members; a halo at hover and press."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.milestone.note",
+          "reason": "names a tool"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "ai.commonPartners",
           "reason": "empty"
         },
         {

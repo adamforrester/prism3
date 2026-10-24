@@ -12,6 +12,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |---|---|---|
 | _accordion-indicator | accordion | accordion |
 | _breadcrumb-separator | breadcrumb-item | breadcrumb-item, breadcrumbs |
+| _slider-thumb | slider | slider |
 | badge | tab-item | tab-item, tabs |
 | breadcrumb-item | breadcrumbs | breadcrumbs |
 | button | banner, button-group, password-field, toast | banner, button-group, dialog, password-field, toast |
@@ -20,10 +21,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 | checkbox-row | checkbox-group | checkbox-group |
 | code-input-cell | code-input | code-input |
 | divider | accordion, dialog | accordion, dialog |
-| field-label | checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, text-field, textarea | checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, text-field, textarea |
-| field-message | checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, text-field, textarea | checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, text-field, textarea |
+| field-label | checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea | checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea |
+| field-message | checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea | checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea |
 | flush-icon-button-neutral | banner, breadcrumb-item, counter, dialog, toast | banner, breadcrumb-item, breadcrumbs, counter, dialog, toast |
-| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, search-field, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast |
+| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, search-field, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast |
 | link | breadcrumb-item, breadcrumbs | breadcrumb-item, breadcrumbs |
 | list-item | list | list |
 | pagination-item | pagination | pagination |
@@ -33,6 +34,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | banner, button, button-destructive, button-group, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field, toast |
 | switch-control | switch-row | switch-row |
 | tab-item | tabs | tabs |
+| text-field | slider | slider |
 
 A component not in this table is nested by nothing; a change to it reaches only itself.
 
@@ -42,6 +44,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 |---|---|---|---|
 | _accordion-indicator | 0 | — | — |
 | _breadcrumb-separator | 0 | — | — |
+| _slider-thumb | 1 | focus-ring | focus-ring |
 | accordion | 1 | _accordion-indicator, divider, focus-ring | _accordion-indicator, divider, focus-ring |
 | badge | 0 | — | — |
 | banner | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
@@ -84,6 +87,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | segmented-control | 2 | field-label, segmented-control-segment | field-label, focus-ring, segmented-control-segment |
 | segmented-control-segment | 1 | focus-ring | focus-ring |
 | select | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
+| slider | 2 | _slider-thumb, field-label, field-message, text-field | _slider-thumb, field-label, field-message, focus-ring, text-field |
 | spinner | 0 | — | — |
 | switch-control | 1 | focus-ring | focus-ring |
 | switch-row | 2 | switch-control | focus-ring, switch-control |
@@ -101,6 +105,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 
 | From | Part | Kind | To | Relation | Fixed variant | Follows | Exposes |
 |---|---|---|---|---|---|---|---|
+| _slider-thumb | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | divider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | accordion | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | leadingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
@@ -203,6 +208,13 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | select | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | select | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | select | message | nest | field-message | nest-fixed | status=default | status | — |
+| slider | inputMax | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
+| slider | inputMin | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
+| slider | inputSingle | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
+| slider | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=bold, state=rest | — | — |
+| slider | message | nest | field-message | nest-fixed | status=default | — | — |
+| slider | thumb | nest | _slider-thumb | nest-fixed | size=medium, state=rest | size | — |
+| slider | thumbMin | nest | _slider-thumb | nest-fixed | size=medium, state=rest | size | — |
 | switch-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | switch-row | control | nest | switch-control | nest-exposed | selection=off, state=rest, status=default | size, status | selection, state, showStateLabel |
 | tab-item | count | nest | badge | nest-fixed | type=count, emphasis=bold, tone=neutral, surface=default | — | — |

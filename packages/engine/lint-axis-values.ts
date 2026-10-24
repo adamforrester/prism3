@@ -297,6 +297,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'type',
+    values: ['single', 'range'],
+    defs: ['slider'],
+    relation: 'disjoint',
+    reason:
+      'How many values a slider holds (owner decision on #2669, call 2 A): one thumb for a single value, two for a '
+      + 'minimum and a maximum. In code the type is read from the value (a number or a pair), so the axis names the '
+      + 'two looks rather than a setting. `single` LEADS because it is the code default and Figma\'s default member '
+      + '(Q347). DISJOINT from Badge\'s canonical set, the loud kind of divergence: a badge type is a content kind and '
+      + 'a slider type a value count, and no value would mean the same thing on both defs, so none is shared.',
+  },
+  {
+    axis: 'type',
     values: ['unordered', 'ordered', 'icon'],
     defs: ['list-item', 'list'],
     relation: 'disjoint',
@@ -464,7 +476,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'pagination-item', 'pagination'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '

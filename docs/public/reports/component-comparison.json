@@ -88,6 +88,56 @@
       "sizes": []
     },
     {
+      "id": "_slider-thumb",
+      "name": "Slider.Thumb",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "aria-label"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "accordion",
       "name": "Accordion",
       "category": "navigation",
@@ -3714,6 +3764,141 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "slider",
+      "name": "Slider",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ],
+        "type": [
+          "single",
+          "range"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "onChangeEnd"
+        },
+        {
+          "name": "min",
+          "default": 0
+        },
+        {
+          "name": "max",
+          "default": 100
+        },
+        {
+          "name": "step",
+          "default": 1
+        },
+        {
+          "name": "largeStep"
+        },
+        {
+          "name": "minStepsBetweenThumbs",
+          "default": 0
+        },
+        {
+          "name": "formatOptions"
+        },
+        {
+          "name": "thumbLabels"
+        },
+        {
+          "name": "type",
+          "default": "single",
+          "values": [
+            "single",
+            "range"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "showValue",
+          "default": true
+        },
+        {
+          "name": "showMilestones",
+          "default": false
+        },
+        {
+          "name": "milestones"
+        },
+        {
+          "name": "showInputs",
+          "default": false
+        },
+        {
+          "name": "helpText"
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "name"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "spinner",
       "name": "Spinner",
       "category": "foundations",
@@ -4565,6 +4750,15 @@
       "basis": "components named IconButton or IconButton.<variant>, where the suffix is not a role"
     },
     {
+      "kind": "variant family",
+      "name": "Slider",
+      "members": [
+        "_slider-thumb",
+        "slider"
+      ],
+      "basis": "components named Slider or Slider.<variant>, where the suffix is not a role"
+    },
+    {
       "kind": "role peers",
       "name": "*.Control",
       "members": [
@@ -4649,6 +4843,7 @@
   ],
   "stateVocabulary": {
     "disabled": [
+      "_slider-thumb",
       "button",
       "button-destructive",
       "button-neutral",
@@ -4671,6 +4866,7 @@
       "search-field",
       "segmented-control-segment",
       "select",
+      "slider",
       "switch-control",
       "switch-row",
       "tab-item",
@@ -4698,6 +4894,7 @@
       "textarea"
     ],
     "focus-visible": [
+      "_slider-thumb",
       "accordion",
       "button",
       "button-destructive",
@@ -4721,6 +4918,7 @@
       "search-field",
       "segmented-control-segment",
       "select",
+      "slider",
       "switch-control",
       "switch-row",
       "tab-item",
@@ -4738,6 +4936,7 @@
       "textarea"
     ],
     "hover": [
+      "_slider-thumb",
       "button",
       "button-destructive",
       "button-neutral",
@@ -4759,6 +4958,7 @@
       "search-field",
       "segmented-control-segment",
       "select",
+      "slider",
       "switch-control",
       "switch-row",
       "tab-item",
@@ -4790,6 +4990,7 @@
       "textarea"
     ],
     "pressed": [
+      "_slider-thumb",
       "button",
       "button-destructive",
       "button-neutral",
@@ -4806,6 +5007,7 @@
       "radio-control",
       "radio-row",
       "segmented-control-segment",
+      "slider",
       "switch-control",
       "switch-row",
       "tab-item",
@@ -4823,6 +5025,7 @@
       "textarea"
     ],
     "rest": [
+      "_slider-thumb",
       "accordion",
       "button",
       "button-destructive",
@@ -4847,6 +5050,7 @@
       "search-field",
       "segmented-control-segment",
       "select",
+      "slider",
       "switch-control",
       "switch-row",
       "tab-item",
@@ -5223,6 +5427,7 @@
         ],
         "components": [
           "_accordion-indicator",
+          "_slider-thumb",
           "accordion",
           "button",
           "button-destructive",
@@ -5252,6 +5457,7 @@
           "segmented-control",
           "segmented-control-segment",
           "select",
+          "slider",
           "tab-item",
           "tabs",
           "tag",
@@ -5513,6 +5719,15 @@
         "components": [
           "pagination-item"
         ]
+      },
+      {
+        "values": [
+          "range",
+          "single"
+        ],
+        "components": [
+          "slider"
+        ]
       }
     ],
     "value": [
@@ -5687,6 +5902,9 @@
       }
     ],
     "aria-label": [
+      {
+        "id": "_slider-thumb"
+      },
       {
         "id": "button"
       },
@@ -5877,6 +6095,9 @@
         "id": "segmented-control"
       },
       {
+        "id": "slider"
+      },
+      {
         "id": "tabs"
       },
       {
@@ -5922,6 +6143,10 @@
       }
     ],
     "disabled": [
+      {
+        "id": "_slider-thumb",
+        "default": false
+      },
       {
         "id": "button",
         "default": false
@@ -6015,6 +6240,10 @@
         "default": false
       },
       {
+        "id": "slider",
+        "default": false
+      },
+      {
         "id": "switch-control",
         "default": false
       },
@@ -6095,6 +6324,11 @@
         ]
       }
     ],
+    "formatOptions": [
+      {
+        "id": "slider"
+      }
+    ],
     "fullWidth": [
       {
         "id": "button",
@@ -6155,6 +6389,9 @@
       },
       {
         "id": "select"
+      },
+      {
+        "id": "slider"
       },
       {
         "id": "text-field"
@@ -6588,6 +6825,9 @@
         "id": "select"
       },
       {
+        "id": "slider"
+      },
+      {
         "id": "spinner",
         "default": "Loading"
       },
@@ -6624,6 +6864,11 @@
       {
         "id": "pagination-item",
         "default": false
+      }
+    ],
+    "largeStep": [
+      {
+        "id": "slider"
       }
     ],
     "layout": [
@@ -6688,6 +6933,10 @@
       {
         "id": "progress",
         "default": 100
+      },
+      {
+        "id": "slider",
+        "default": 100
       }
     ],
     "maxItems": [
@@ -6720,6 +6969,11 @@
         "id": "toast"
       }
     ],
+    "milestones": [
+      {
+        "id": "slider"
+      }
+    ],
     "min": [
       {
         "id": "counter",
@@ -6727,6 +6981,10 @@
       },
       {
         "id": "progress",
+        "default": 0
+      },
+      {
+        "id": "slider",
         "default": 0
       }
     ],
@@ -6739,6 +6997,12 @@
     "minRows": [
       {
         "id": "textarea"
+      }
+    ],
+    "minStepsBetweenThumbs": [
+      {
+        "id": "slider",
+        "default": 0
       }
     ],
     "name": [
@@ -6818,6 +7082,9 @@
         "id": "select"
       },
       {
+        "id": "slider"
+      },
+      {
         "id": "text-field"
       },
       {
@@ -6869,6 +7136,9 @@
         "id": "select"
       },
       {
+        "id": "slider"
+      },
+      {
         "id": "tabs"
       },
       {
@@ -6876,6 +7146,11 @@
       },
       {
         "id": "textarea"
+      }
+    ],
+    "onChangeEnd": [
+      {
+        "id": "slider"
       }
     ],
     "onClear": [
@@ -7056,6 +7331,10 @@
       },
       {
         "id": "select",
+        "default": false
+      },
+      {
+        "id": "slider",
         "default": false
       },
       {
@@ -7264,6 +7543,12 @@
         "default": false
       }
     ],
+    "showInputs": [
+      {
+        "id": "slider",
+        "default": false
+      }
+    ],
     "showLabel": [
       {
         "id": "counter",
@@ -7300,6 +7585,12 @@
         "default": false
       }
     ],
+    "showMilestones": [
+      {
+        "id": "slider",
+        "default": false
+      }
+    ],
     "showStateLabel": [
       {
         "id": "switch-control",
@@ -7313,6 +7604,10 @@
     "showValue": [
       {
         "id": "progress",
+        "default": true
+      },
+      {
+        "id": "slider",
         "default": true
       }
     ],
@@ -7331,6 +7626,15 @@
     "size": [
       {
         "id": "_accordion-indicator",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "_slider-thumb",
         "default": "medium",
         "values": [
           "small",
@@ -7654,6 +7958,15 @@
         ]
       },
       {
+        "id": "slider",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
         "id": "spinner",
         "default": "medium",
         "values": [
@@ -7760,6 +8073,10 @@
     "step": [
       {
         "id": "counter",
+        "default": 1
+      },
+      {
+        "id": "slider",
         "default": 1
       }
     ],
@@ -7896,6 +8213,11 @@
           "default",
           "inverse"
         ]
+      }
+    ],
+    "thumbLabels": [
+      {
+        "id": "slider"
       }
     ],
     "title": [
@@ -8114,6 +8436,14 @@
         ]
       },
       {
+        "id": "slider",
+        "default": "single",
+        "values": [
+          "single",
+          "range"
+        ]
+      },
+      {
         "id": "tag",
         "default": "select",
         "values": [
@@ -8222,6 +8552,14 @@
         ]
       },
       {
+        "id": "slider",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
         "id": "switch-control",
         "default": "default",
         "values": [
@@ -8278,6 +8616,9 @@
         "id": "select"
       },
       {
+        "id": "slider"
+      },
+      {
         "id": "text-field"
       },
       {
@@ -8329,6 +8670,9 @@
       },
       {
         "id": "select"
+      },
+      {
+        "id": "slider"
       },
       {
         "id": "tab-item"
@@ -8418,6 +8762,14 @@
         "code-input-cell"
       ],
       "detail": "code-input-cell's variant axes differ from the family's common set"
+    },
+    {
+      "kind": "variant axes",
+      "subject": "variant family: Slider",
+      "components": [
+        "_slider-thumb"
+      ],
+      "detail": "_slider-thumb's variant axes differ from the family's common set"
     },
     {
       "kind": "state set",
@@ -8643,6 +8995,7 @@
       "subject": "axis size",
       "components": [
         "_accordion-indicator",
+        "_slider-thumb",
         "accordion",
         "breadcrumb-item",
         "breadcrumbs",
@@ -8677,6 +9030,7 @@
         "segmented-control",
         "segmented-control-segment",
         "select",
+        "slider",
         "spinner",
         "switch-control",
         "switch-row",
@@ -8686,7 +9040,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -8765,9 +9119,10 @@
         "pagination",
         "pagination-item",
         "progress",
+        "slider",
         "tag"
       ],
-      "detail": "the type axis takes 7 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item"
+      "detail": "the type axis takes 8 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [range, single] in slider"
     },
     {
       "kind": "axis values",
@@ -8796,6 +9151,14 @@
         "_accordion-indicator"
       ],
       "detail": "_accordion-indicator declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "_slider-thumb",
+      "components": [
+        "_slider-thumb"
+      ],
+      "detail": "_slider-thumb declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -9063,6 +9426,14 @@
     },
     {
       "kind": "size order",
+      "subject": "slider",
+      "components": [
+        "slider"
+      ],
+      "detail": "slider declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "switch-control",
       "components": [
         "switch-control"
@@ -9123,7 +9494,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 42 of 43 sized components default to medium"
+      "detail": "field-label defaults size to small; 44 of 45 sized components default to medium"
     },
     {
       "kind": "prop default",
@@ -9158,9 +9529,10 @@
       "subject": "prop max",
       "components": [
         "badge",
-        "progress"
+        "progress",
+        "slider"
       ],
-      "detail": "max defaults differ over the same values — 100 in progress; 99 in badge"
+      "detail": "max defaults differ over the same values — 100 in progress, slider; 99 in badge"
     },
     {
       "kind": "axis without prop",

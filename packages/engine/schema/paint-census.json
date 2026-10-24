@@ -625,6 +625,30 @@
         "sha256": "de9baa297f7ba1e25d891f6f59a6964bebb209a26b4fbf98828cc0d3303c7641"
       }
     },
+    "_slider-thumb": {
+      "set": {
+        "members": 15,
+        "assignments": 24,
+        "sha256": "58025fd66e8996cfd5a8b5cb0a00edc059b23b11e41c0f8e87883186b64f3ba2"
+      },
+      "grid": {
+        "members": 15,
+        "assignments": 24,
+        "sha256": "f077c18aebeb6eede78c589c77843d1672ea1462f115a9c75da20c405daabbb2"
+      }
+    },
+    "slider": {
+      "set": {
+        "members": 30,
+        "assignments": 180,
+        "sha256": "8561fdc47d1397548f310640636765587af4e1e73e4c526a51890f5994b50071"
+      },
+      "grid": {
+        "members": 30,
+        "assignments": 180,
+        "sha256": "25ce5ac499ff43cb0d3dd1e2fb063fb7f76da38c24f313c461244050fe9b5d09"
+      }
+    },
     "code-input-cell": {
       "set": {
         "members": 28,

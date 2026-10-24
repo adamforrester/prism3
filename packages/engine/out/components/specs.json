@@ -41303,6 +41303,9 @@
                 "gap": {
                   "token": "space.150"
                 },
+                "minWidth": {
+                  "token": "container.min"
+                },
                 "buildWidth": {
                   "px": 480,
                   "source": "literal"
@@ -41401,6 +41404,9 @@
                 },
                 "gap": {
                   "token": "space.150"
+                },
+                "minWidth": {
+                  "token": "container.min"
                 },
                 "buildWidth": {
                   "px": 960,
@@ -41798,6 +41804,1388 @@
         {
           "name": "body",
           "type": "SLOT"
+        }
+      ]
+    },
+    "_slider-thumb": {
+      "id": "_slider-thumb",
+      "name": "Slider.Thumb",
+      "members": 15,
+      "axes": [
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "hover",
+            "pressed",
+            "focus-visible",
+            "disabled"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "frame",
+          "kind": "frame",
+          "members": 15
+        },
+        {
+          "part": "frame/pressHalo",
+          "kind": "frame",
+          "members": 15
+        },
+        {
+          "part": "frame/pressHalo/hoverHalo",
+          "kind": "frame",
+          "members": 15
+        },
+        {
+          "part": "frame/pressHalo/hoverHalo/disc",
+          "kind": "frame",
+          "members": 15
+        },
+        {
+          "part": "frame/focusRing",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "state": [
+              "focus-visible"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "frame",
+              "values": {
+                "height": {
+                  "token": "control.size.md.thumb"
+                },
+                "width": {
+                  "token": "control.size.md.thumb"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                },
+                "paddingRight": {
+                  "token": "space.050"
+                },
+                "paddingBottom": {
+                  "token": "space.050"
+                },
+                "paddingLeft": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                },
+                "paddingRight": {
+                  "token": "space.050"
+                },
+                "paddingBottom": {
+                  "token": "space.050"
+                },
+                "paddingLeft": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "values": {
+                "height": {
+                  "token": "control.size.md.thumb"
+                },
+                "width": {
+                  "token": "control.size.md.thumb"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "frame",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.thumb"
+                },
+                "width": {
+                  "token": "control.size.sm.thumb"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                },
+                "paddingRight": {
+                  "token": "space.050"
+                },
+                "paddingBottom": {
+                  "token": "space.050"
+                },
+                "paddingLeft": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                },
+                "paddingRight": {
+                  "token": "space.050"
+                },
+                "paddingBottom": {
+                  "token": "space.050"
+                },
+                "paddingLeft": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.thumb"
+                },
+                "width": {
+                  "token": "control.size.sm.thumb"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "frame",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.thumb"
+                },
+                "width": {
+                  "token": "control.size.lg.thumb"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                },
+                "paddingRight": {
+                  "token": "space.050"
+                },
+                "paddingBottom": {
+                  "token": "space.050"
+                },
+                "paddingLeft": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                },
+                "paddingRight": {
+                  "token": "space.050"
+                },
+                "paddingBottom": {
+                  "token": "space.050"
+                },
+                "paddingLeft": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.thumb"
+                },
+                "width": {
+                  "token": "control.size.lg.thumb"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "fill": "color.interactive.neutral.border.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "frame/pressHalo/hoverHalo",
+              "stroke": "color.border.primary"
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "fill": "color.interactive.neutral.border.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "frame/pressHalo",
+              "fill": "color.border.primary"
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo",
+              "stroke": "color.border.primary"
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "fill": "color.interactive.neutral.border.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "fill": "color.interactive.neutral.border.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "fill": "color.disabled.icon"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "frame/focusRing",
+          "kind": "instance",
+          "component": "focus-ring",
+          "variant": {
+            "surface": "default"
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": []
+    },
+    "slider": {
+      "id": "slider",
+      "name": "Slider",
+      "members": 30,
+      "axes": [
+        {
+          "name": "type",
+          "figmaName": "type",
+          "values": [
+            "single",
+            "range"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "hover",
+            "pressed",
+            "focus-visible",
+            "disabled"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 30
+        },
+        {
+          "part": "container/field",
+          "kind": "frame",
+          "members": 30
+        },
+        {
+          "part": "container/field/header",
+          "kind": "frame",
+          "members": 30
+        },
+        {
+          "part": "container/field/header/label",
+          "kind": "instance",
+          "members": 30
+        },
+        {
+          "part": "container/field/header/valueSingle",
+          "kind": "text",
+          "members": 15,
+          "when": {
+            "type": [
+              "single"
+            ]
+          }
+        },
+        {
+          "part": "container/field/control",
+          "kind": "frame",
+          "members": 30
+        },
+        {
+          "part": "container/field/control/track",
+          "kind": "frame",
+          "members": 30
+        },
+        {
+          "part": "container/field/control/track/bar",
+          "kind": "frame",
+          "members": 30
+        },
+        {
+          "part": "container/field/control/track/thumb",
+          "kind": "instance",
+          "members": 30
+        },
+        {
+          "part": "container/field/control/track/spaceEnd",
+          "kind": "frame",
+          "members": 30
+        },
+        {
+          "part": "container/field/milestones",
+          "kind": "frame",
+          "members": 30
+        },
+        {
+          "part": "container/field/milestones/minLabel",
+          "kind": "text",
+          "members": 30
+        },
+        {
+          "part": "container/field/milestones/milestone",
+          "kind": "text",
+          "members": 30
+        },
+        {
+          "part": "container/field/milestones/maxLabel",
+          "kind": "text",
+          "members": 30
+        },
+        {
+          "part": "container/inputs",
+          "kind": "frame",
+          "members": 30
+        },
+        {
+          "part": "container/inputs/inputSingle",
+          "kind": "instance",
+          "members": 15,
+          "when": {
+            "type": [
+              "single"
+            ]
+          }
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "members": 30
+        },
+        {
+          "part": "container/field/header/valueRange",
+          "kind": "text",
+          "members": 15,
+          "when": {
+            "type": [
+              "range"
+            ]
+          }
+        },
+        {
+          "part": "container/field/control/track/spaceStart",
+          "kind": "frame",
+          "members": 15,
+          "when": {
+            "type": [
+              "range"
+            ]
+          }
+        },
+        {
+          "part": "container/field/control/track/thumbMin",
+          "kind": "instance",
+          "members": 15,
+          "when": {
+            "type": [
+              "range"
+            ]
+          }
+        },
+        {
+          "part": "container/inputs/inputMin",
+          "kind": "instance",
+          "members": 15,
+          "when": {
+            "type": [
+              "range"
+            ]
+          }
+        },
+        {
+          "part": "container/inputs/inputMax",
+          "kind": "instance",
+          "members": 15,
+          "when": {
+            "type": [
+              "range"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/field",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/field/control",
+              "values": {
+                "height": {
+                  "token": "size.md.min-height"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/spaceEnd",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                }
+              }
+            },
+            {
+              "part": "container/inputs",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/spaceStart",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/field",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/field/control",
+              "values": {
+                "height": {
+                  "token": "size.md.min-height"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/spaceEnd",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/inputs",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/spaceStart",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/field",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/field/control",
+              "values": {
+                "height": {
+                  "token": "size.md.min-height"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track",
+              "values": {
+                "height": {
+                  "token": "border-width.x-heavy"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.x-heavy"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/spaceEnd",
+              "values": {
+                "height": {
+                  "token": "border-width.x-heavy"
+                }
+              }
+            },
+            {
+              "part": "container/inputs",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/spaceStart",
+              "values": {
+                "height": {
+                  "token": "border-width.x-heavy"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueSingle",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/header/valueRange",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueSingle",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/header/valueRange",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueSingle",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/header/valueRange",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "type",
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "type": "single",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueSingle",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/field/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "single",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueSingle",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/field/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "single",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueSingle",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/field/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "single",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueSingle",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/field/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "single",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueSingle",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/field/control/track",
+              "fill": "color.disabled.fill"
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "fill": "color.disabled.icon"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "ink": "color.disabled.text"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "range",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueRange",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/field/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "range",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueRange",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/field/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "range",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueRange",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/field/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "range",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueRange",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/field/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "range",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueRange",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/field/control/track",
+              "fill": "color.disabled.fill"
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "fill": "color.disabled.icon"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "ink": "color.disabled.text"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/field/header/label",
+          "kind": "instance",
+          "component": "field-label",
+          "variant": {
+            "size": "medium",
+            "emphasis": "secondary",
+            "weight": "bold",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/field/control/track/thumb",
+          "kind": "instance",
+          "component": "_slider-thumb",
+          "variant": {
+            "size": "medium",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "hover": {
+                "state": "hover"
+              },
+              "pressed": {
+                "state": "pressed"
+              },
+              "focus-visible": {
+                "state": "focus-visible"
+              },
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/inputs/inputSingle",
+          "kind": "instance",
+          "component": "text-field",
+          "variant": {
+            "size": "medium",
+            "status": "default",
+            "state": "filled"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "component": "field-message",
+          "variant": {
+            "status": "default"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/field/control/track/thumbMin",
+          "kind": "instance",
+          "component": "_slider-thumb",
+          "variant": {
+            "size": "medium",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/inputs/inputMin",
+          "kind": "instance",
+          "component": "text-field",
+          "variant": {
+            "size": "medium",
+            "status": "default",
+            "state": "filled"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/inputs/inputMax",
+          "kind": "instance",
+          "component": "text-field",
+          "variant": {
+            "size": "medium",
+            "status": "default",
+            "state": "filled"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "value text",
+          "type": "TEXT",
+          "default": "50"
+        },
+        {
+          "name": "min label",
+          "type": "TEXT",
+          "default": "0"
+        },
+        {
+          "name": "milestone",
+          "type": "TEXT",
+          "default": "50"
+        },
+        {
+          "name": "max label",
+          "type": "TEXT",
+          "default": "100"
+        },
+        {
+          "name": "range text",
+          "type": "TEXT",
+          "default": "30 – 70"
+        },
+        {
+          "name": "label",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "value",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "milestones",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "inputs",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "helper",
+          "type": "BOOLEAN",
+          "default": false
         }
       ]
     },

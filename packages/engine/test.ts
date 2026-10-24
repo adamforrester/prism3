@@ -6477,6 +6477,16 @@ arm: {
     }
     ok(wrong.length === 0,
       `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, built 480 contained and 960 full with no side edges at full, and nests ONE primary text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, both off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+    // #2971: one width floor on every member, contained and full alike, bound to `container/min` (never a literal).
+    const floors = set.map((m) => `${planComponentName(m)}: ${m.root.bound?.minWidth ?? '-'}/${m.root.minWidth ?? '-'}`);
+    ok(set.length === 8 && set.every((m) => m.root.bound?.minWidth === 'container/min' && m.root.minWidth === undefined),
+      `banner #2971: all 8 members bind the root's minWidth to container/min, with no literal floor (got ${floors.join(' | ')})`);
+    // And the token it binds resolves to 320px in every committed example brand (read off the emission, not the builder).
+    const outDir = join(HERE, 'out');
+    const mins = readdirSync(outDir).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.'))
+      .map((f) => { const t = JSON.parse(readFileSync(join(outDir, f), 'utf8')); const r = Object.keys(t).find((k) => !k.startsWith('$'))!; return [f, t[r]?.container?.min?.$value] as const; });
+    ok(mins.length >= 5 && mins.every(([, v]) => v === '320px'),
+      `banner #2971: container.min is 320px in every committed brand (${mins.map(([f, v]) => `${f.replace('.tokens.json', '')} ${v}`).join(', ')})`);
     // Q346: an edge never binds an icon or text role. Read off the TOKENS too, so a border key on any coordinate counts.
     const badEdge = Object.entries(bannerDef.tokens).filter(([k, ref]) => /(^|\.)border$/.test(k) && !String(ref).startsWith('color.border.'));
     ok(badEdge.length === 0, `banner edge: every border key binds a color.border.* role (Q346)${badEdge.length ? ` — ${badEdge.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
@@ -13001,13 +13011,24 @@ arm: {
   // nothing in any mode, `vals` was five `undefined`s, `distinct.size` was 1, and "invariant across
   // modes" passed on a variable that was not there at all. Absence is now the first thing reported.
   const invariantBad: string[] = [];
-  for (const name of ['container/max', 'container/narrow', 'breakpoint/sm', 'breakpoint/md', 'breakpoint/lg', 'breakpoint/xl', 'breakpoint/2xl'].map(nbVar)) {
+  for (const name of ['container/max', 'container/narrow', 'container/min', 'breakpoint/sm', 'breakpoint/md', 'breakpoint/lg', 'breakpoint/xl', 'breakpoint/2xl'].map(nbVar)) {
     const vals = layout.map((l) => l.variables.find((v) => v.name === name)?.value);
     if (vals.some((x) => x === undefined)) { invariantBad.push(`${name} is absent from ${vals.filter((x) => x === undefined).length}/${layout.length} modes`); continue; }
     const distinct = new Set(vals);
     if (distinct.size !== 1) invariantBad.push(`${name} varies across modes: ${[...distinct].join(',')}`);
   }
   ok(invariantBad.length === 0, 'figma layout: container/* + breakpoint/* are viewport-invariant (same value in every mode)' + (invariantBad.length ? ` — ${invariantBad.slice(0, 3).join('; ')}` : ''));
+
+  // (g2) #2971: `container/min` is 320 in every mode, a WIDTH_HEIGHT float, and the DTCG leaf it mirrors is 320px.
+  // Literals, not read back from `CONTAINER_MIN_PX`, so a moved constant fails here by value.
+  const minBad: string[] = [];
+  for (const l of layout) {
+    const v = l.variables.find((x) => x.name === nbVar('container/min'));
+    if (!v) { minBad.push(`${l.$mode}: absent`); continue; }
+    if (v.value !== 320 || v.alias !== null || JSON.stringify(v.scopes) !== '["WIDTH_HEIGHT"]') minBad.push(`${l.$mode}: ${v.value} alias ${JSON.stringify(v.alias)} scopes ${JSON.stringify(v.scopes)}`);
+  }
+  ok(minBad.length === 0 && brand.container?.min?.$value === '320px',
+    `figma layout (#2971): container/min is a plain 320 WIDTH_HEIGHT float in every mode, mirroring DTCG container.min = 320px (DTCG ${brand.container?.min?.$value})${minBad.length ? ` — ${minBad.join('; ')}` : ''}`);
 
   // (h) container/fluid is INTENTIONALLY SKIPPED — Figma has no FLOAT primitive
   // for `100%` (percentage-of-parent). Same class of "no Figma primitive" skip
@@ -13020,8 +13041,8 @@ arm: {
   ok(!hasFluid, `figma layout: container/fluid (100%) is intentionally skipped (no Figma primitive for percentage-of-parent; stays code-side)`);
 
   // (i) A variable count sanity — the exact shape a Figma-MCP materialiser
-  // will import: 10 vars × 5 modes (5 breakpoint + 3 grid + 2 container).
-  ok(layout[0].variables.length === 10, `figma layout: 10 vars per mode (5 breakpoint + 3 grid + 2 container) — got ${layout[0].variables.length}`);
+  // will import: 11 vars × 5 modes (5 breakpoint + 3 grid + 3 container: max, narrow, min since #2971).
+  ok(layout[0].variables.length === 11, `figma layout: 11 vars per mode (5 breakpoint + 3 grid + 3 container) — got ${layout[0].variables.length}`);
 }
 
 // (19b) CR-08 (#65) — the layout axis must follow the brand's ACTUAL breakpoints, not a hardcoded
@@ -13050,7 +13071,7 @@ arm: {
   const spaceNames = new Set(dims.space.variables.map((v) => v.name));
   const dangling = layout.flatMap((l) => l.variables.filter((v) => v.alias && !spaceNames.has(v.alias.name)).map((v) => `${l.$mode}:${v.name}`));
   ok(dangling.length === 0, `CR-08: every aurora layout alias resolves into space/* across all 6 modes (${dangling.length} dangling)`);
-  ok(layout[0].variables.length === 11, `CR-08: aurora emits 11 vars per mode (6 breakpoint + 3 grid + 2 container), got ${layout[0].variables.length}`);
+  ok(layout[0].variables.length === 12, `CR-08: aurora emits 12 vars per mode (6 breakpoint + 3 grid + 3 container), got ${layout[0].variables.length}`);
 }
 
 // (19c) #1479 — BREAKPOINT-COUNT FLEX. The breakpoint count is a per-brand lever (`layout.breakpoints`)
@@ -16779,6 +16800,215 @@ arm: {
         '#2416 Q179 tabs: no code prop drives a tab toggle (Figma-only; in code the count is children)');
     }
 
+    // ---- #2669 (owner decision 2026-10-16, every call A; Q550 2026-10-22, A on Q536 a–f): Slider and Slider.Thumb ----
+    // Every expected value below is a literal typed here from the approved proposal and Q550, never read off the defs: the
+    // defs and their projected plans are the SUBJECT (docs/34 shape 1). Each arm names its call, so a mutation of the def
+    // fails the arm it breaks, by name.
+    {
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+      const sliderDef = componentDefs.find((d) => d.id === 'slider')!;
+      const thumbDef = componentDefs.find((d) => d.id === '_slider-thumb')!;
+      const sMembers = figmaAnatomySet(sliderDef, {});
+      const tMembers = figmaAnatomySet(thumbDef, {});
+      const STATES5 = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
+      const SIZES = ['medium', 'small', 'large'];
+      const sizeOf = (m: AnatomyPlan) => (m.size ?? m.coord.size) as string;
+      const sOf = (size: string, type: string, state: string) => sMembers.find((m) => sizeOf(m) === size && m.coord.type === type && m.coord.state === state);
+      const tOf = (size: string, state: string) => tMembers.find((m) => sizeOf(m) === size && m.coord.state === state);
+      // Q550 e: the three sizes, a literal: thumb rung, track width.
+      const THUMB: Record<string, string> = { small: 'control/size/sm/thumb', medium: 'control/size/md/thumb', large: 'control/size/lg/thumb' };
+      const TRACK: Record<string, string> = { small: 'border-width/thick', medium: 'border-width/heavy', large: 'border-width/x-heavy' };
+
+      // (1) Call 2 A × Q550 e: size [medium, small, large] × type [single, range] × five states = 30 members; Q347: the
+      // first member is the code default, medium single at rest. The Thumb: 3 sizes × 5 states = 15.
+      const WANT_NAMES = ['single', 'range'].flatMap((t) => SIZES.flatMap((z) => STATES5.map((s) => `type=${t}, size=${z}, state=${s}`)));
+      const gotNames = sMembers.map(planComponentName);
+      ok(JSON.stringify(gotNames) === JSON.stringify(WANT_NAMES) && gotNames[0] === 'type=single, size=medium, state=rest',
+        `#2669 call 2 A / Q550 e slider: 30 members, type single, range × size medium, small, large × five states, the first type=single, size=medium, state=rest (${gotNames.length}: ${gotNames.slice(0, 3).join(' | ')} …)`);
+      const WANT_THUMB = SIZES.flatMap((z) => STATES5.map((s) => `size=${z}, state=${s}`));
+      ok(JSON.stringify(tMembers.map(planComponentName)) === JSON.stringify(WANT_THUMB),
+        `#2669 Q349 / Q550 e Slider.Thumb: 15 members, size medium, small, large × five states (${tMembers.map(planComponentName).slice(0, 3).join(' | ')} …)`);
+      ok(thumbDef.id === '_slider-thumb' && sliderDef.composition?.composesWith?.includes('_slider-thumb'),
+        `#2669 Q349 the thumb is used only inside the Slider, so its id takes the _ prefix (${thumbDef.id})`);
+
+      // (2) Q550 a / e: the track. One thickness per size (2 / 4 / 6px) in field.border.rest across the control, the
+      // selected bar at the same thickness in neutral ink, square-ended so it meets the disc, in a 44px control row at every
+      // size. Single: [bar, thumb, spaceEnd]; range: [spaceStart, thumbMin, bar, thumb, spaceEnd]. Neither paint moves with
+      // the state. Q550 f: disabled dims the bar with the thumb (disabled.icon) and the track to disabled.fill.
+      const trackOff: string[] = [];
+      const ORDER: Record<string, string[]> = { single: ['bar', 'thumb', 'spaceEnd'], range: ['spaceStart', 'thumbMin', 'bar', 'thumb', 'spaceEnd'] };
+      for (const size of SIZES) for (const type of ['single', 'range']) for (const state of STATES5) {
+        const m = sOf(size, type, state);
+        if (!m) { trackOff.push(`${size}/${type}/${state}: missing`); continue; }
+        const control = findIn(m.root, 'control'), track = findIn(m.root, 'track'), bar = findIn(m.root, 'bar');
+        const dis = state === 'disabled';
+        if (control?.bound?.height !== 'size/md/min-height') trackOff.push(`${size}/${type}/${state}: control height ${String(control?.bound?.height)}`);
+        if (track?.bound?.height !== TRACK[size] || track?.paints?.fills !== (dis ? 'color/disabled/fill' : 'color/field/border/rest')) trackOff.push(`${size}/${type}/${state}: track ${String(track?.bound?.height)} ${String(track?.paints?.fills)}`);
+        if (bar?.bound?.height !== TRACK[size] || bar?.paints?.fills !== (dis ? 'color/disabled/icon' : 'color/interactive/neutral/border/rest') || bar?.bound?.topLeftRadius !== undefined) trackOff.push(`${size}/${type}/${state}: bar ${String(bar?.bound?.height)} ${String(bar?.paints?.fills)} radius ${String(bar?.bound?.topLeftRadius)}`);
+        for (const n of ['spaceStart', 'spaceEnd']) { const sp = findIn(m.root, n); if (sp && (sp.bound?.height !== TRACK[size] || sp.paints?.fills !== undefined)) trackOff.push(`${size}/${type}/${state}: ${n} ${String(sp.bound?.height)} ${String(sp.paints?.fills)}`); }
+        const kids = (track?.children ?? []).map((k) => k.name);
+        if (JSON.stringify(kids) !== JSON.stringify(ORDER[type])) trackOff.push(`${size}/${type}/${state}: track holds ${kids.join(', ')}`);
+        if (!['bar', 'spaceEnd', ...(type === 'range' ? ['spaceStart'] : [])].every((n) => findIn(m.root, n)?.layoutGrow === 1)) trackOff.push(`${size}/${type}/${state}: a segment does not grow`);
+      }
+      ok(trackOff.length === 0,
+        `#2669 Q550 a / e the track: one thickness per size (border-width/thick, heavy, x-heavy) in color/field/border/rest, the square-ended bar at the same thickness in color/interactive/neutral/border/rest, growing segments around the thumbs in a size/md/min-height control row at every size, disabled track color/disabled/fill and bar color/disabled/icon (${trackOff.length} off — ${trackOff.slice(0, 3).join('; ') || 'none'})`);
+
+      // Q550 e, in pixels: the three track rungs above resolve to 2 / 4 / 6px in the emitted tree of every corpus brand.
+      // The arm above pins which rung each size binds; this pins what the rung is worth, so a regenerated 5px x-heavy
+      // fails here (review N3 on #2792). The literals are typed from Q550, never read off tree.ts.
+      const trackPxOff: string[] = [];
+      for (const b of ['aurora', 'harbor', 'nb', 'prism3', 'wendys']) {
+        const tree = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'));
+        const r = tree[Object.keys(tree).find((k) => !k.startsWith('$'))!];
+        const deref = (ref: string) => ref.replace(/^\{|\}$/g, '').split('.').slice(1).reduce((o: any, k) => o?.[k], r);
+        for (const [rung, px] of [['thick', '2px'], ['heavy', '4px'], ['x-heavy', '6px']] as const) {
+          let v = r['border-width']?.[rung]?.$value;
+          for (let hop = 0; typeof v === 'string' && v.startsWith('{') && hop < 8; hop++) v = deref(v)?.$value;
+          if (v !== px) trackPxOff.push(`${b} border-width.${rung} ${String(v)}`);
+        }
+      }
+      ok(trackPxOff.length === 0,
+        `#2669 Q550 e the track widths: border-width thick, heavy and x-heavy resolve to 2, 4 and 6px in all five corpus brands (${trackPxOff.length} off — ${trackPxOff.slice(0, 3).join('; ') || 'none'})`);
+
+      // (3) Call 2 A: the state shows on one thumb. The thumb of a single value, and the maximum thumb of a range, nest
+      // Slider.Thumb at the member's state; the minimum thumb stays at rest, except disabled. Q550 e: both at the
+      // member's size.
+      const stateOff: string[] = [];
+      for (const size of SIZES) for (const type of ['single', 'range']) for (const state of STATES5) {
+        const m = sOf(size, type, state)!;
+        const t = findIn(m.root, 'thumb'), t0 = findIn(m.root, 'thumbMin');
+        if (t?.nestTarget !== '_slider-thumb' || t?.nestVariant?.state !== state || t?.nestVariant?.size !== size) stateOff.push(`${size}/${type}/${state}: thumb ${String(t?.nestTarget)} at ${JSON.stringify(t?.nestVariant)}`);
+        if (type === 'range' && (t0?.nestTarget !== '_slider-thumb' || t0?.nestVariant?.state !== (state === 'disabled' ? 'disabled' : 'rest') || t0?.nestVariant?.size !== size)) stateOff.push(`${size}/${type}/${state}: thumbMin at ${JSON.stringify(t0?.nestVariant)}`);
+        if (type === 'single' && t0) stateOff.push(`${size}/${type}/${state}: a minimum thumb on a single value`);
+      }
+      ok(stateOff.length === 0, `#2669 call 2 A / Q550 e the state is on the maximum thumb; the minimum thumb of a range stays at rest except disabled; both at the member's size (${stateOff.length} off — ${stateOff.slice(0, 3).join('; ') || 'none'})`);
+
+      // (3b) Owner QA 2026-10-19, item 1: the value readout sits INSIDE the component, at the header row's end opposite the
+      // label. Figma lays the header out left to right across the component's 320; a nested FieldLabel is built at its OWN
+      // 320 (its root's placementWidth, a literal here), so a label that does not grow takes the whole row and pushes the
+      // readout out of the box to the right. The readout's right edge is the sum of the widths ahead of it: a nested label
+      // counts as 320 unless it grows, a growing child counts as 0, and text counts as 0 (its advance is the brand font's).
+      // The readout must start BEFORE the box's right edge (a start at 320 is outside), on every member that shows one, and the header must span it.
+      {
+        const BOX = 320, FIELD_LABEL_BUILT_AT = 320;
+        const outside: string[] = [];
+        for (const m of sMembers) {
+          const header = findIn(m.root, 'header');
+          const value = findIn(m.root, m.coord.type === 'range' ? 'valueRange' : 'valueSingle');
+          if (!header || !value || m.root.placementWidth !== BOX || header.layoutAlign !== 'STRETCH') {
+            outside.push(`${planComponentName(m)}: no header spanning the ${BOX}px box (${String(header?.layoutAlign)}) or no readout`); continue;
+          }
+          let x = 0;
+          for (const c of header.children) {
+            if (c === value) break;
+            x += (c.layoutGrow === 1 ? 0 : c.type === 'NESTED_INSTANCE' ? FIELD_LABEL_BUILT_AT : 0);
+          }
+          if (x >= BOX) outside.push(`${planComponentName(m)}: the readout starts at ${x}px, at or past the ${BOX}px box edge`);
+        }
+        ok(outside.length === 0, `#2669 QA item 1 the value readout stays inside the component's ${BOX}px, at the header's end opposite the label (${outside.length} off — ${outside.slice(0, 2).join('; ') || 'none'})`);
+        // The label sits at the start and the readout is the last child, so it ends the row.
+        const order = sMembers.filter((m) => { const h = findIn(m.root, 'header'); return h?.children[0]?.name === 'label' && h.children[h.children.length - 1].name.startsWith('value'); });
+        ok(order.length === sMembers.length, `#2669 QA item 1 the header holds the label first and the readout last on every member (${order.length} of ${sMembers.length})`);
+      }
+
+      // (3c) Q550 c: no gap under the header. The header, the control row and the milestones sit in one column at
+      // space/0; the inputs and the message keep space/100 below it.
+      const gapOff = sMembers.flatMap((m) => {
+        const field = findIn(m.root, 'field');
+        const kids = (field?.children ?? []).map((k) => k.name);
+        return field?.bound?.itemSpacing === 'space/0' && JSON.stringify(kids) === JSON.stringify(['header', 'control', 'milestones']) && m.root.bound?.itemSpacing === 'space/100'
+          ? [] : [`${planComponentName(m)}: field gap ${String(field?.bound?.itemSpacing)} holding ${kids.join(', ')}, container gap ${String(m.root.bound?.itemSpacing)}`];
+      });
+      ok(gapOff.length === 0, `#2669 Q550 c the header sits on the control row with a 0px gap (space/0), the milestones under it, the container gap space/100 (${gapOff.length} off — ${gapOff.slice(0, 2).join('; ') || 'none'})`);
+
+      // (4) Q550 a / b / e / f: the thumb. A frame exactly the disc's size (control/size/{sm,md,lg}/thumb), holding a
+      // disc in neutral ink that steps rest → hover → pressed with no ring around it. The halo: the inner 4px band a
+      // border-width/heavy stroke at hover and pressed, the outer 4px band (space/050 padding) a fill only pressed, both
+      // color/border/primary; none at rest, focus-visible or disabled. Disabled: the disc color/disabled/icon. The focus
+      // ring at focus-visible only.
+      const INK: Record<string, string> = { rest: 'color/interactive/neutral/border/rest', hover: 'color/interactive/neutral/border/hover', pressed: 'color/interactive/neutral/border/pressed', 'focus-visible': 'color/interactive/neutral/border/rest', disabled: 'color/disabled/icon' };
+      const HALO = 'color/border/primary';
+      const thumbOff = SIZES.flatMap((z) => STATES5.flatMap((s) => {
+        const r = tOf(z, s)?.root;
+        if (!r) return [`${z}/${s}: missing`];
+        const outer = findIn(r, 'pressHalo'), inner = findIn(r, 'hoverHalo'), disc = findIn(r, 'disc');
+        const frameOk = r.paints?.fills === undefined && r.paints?.strokes === undefined && r.bound?.width === THUMB[z] && r.bound?.height === THUMB[z];
+        const discOk = disc?.paints?.fills === INK[s] && disc?.paints?.strokes === undefined && disc?.bound?.width === THUMB[z] && disc?.bound?.topLeftRadius === 'radius/round';
+        const outerOk = outer?.paints?.fills === (s === 'pressed' ? HALO : undefined) && outer?.bound?.paddingTop === 'space/050' && outer?.bound?.paddingLeft === 'space/050';
+        const innerOk = inner?.paints?.strokes === (s === 'hover' || s === 'pressed' ? HALO : undefined) && inner?.paints?.fills === undefined && inner?.bound?.strokeWeight === 'border-width/heavy' && inner?.bound?.paddingTop === 'space/050';
+        const ringNode = findIn(r, 'focusRing');
+        const ringOk = s === 'focus-visible' ? ringNode?.nestTarget === 'focus-ring' : !ringNode;
+        return frameOk && discOk && outerOk && innerOk && ringOk ? [] : [`${z}/${s}: frame ${String(r.bound?.width)} ${String(r.paints?.fills)}, disc ${String(disc?.paints?.fills)} ${String(disc?.bound?.width)}, outer halo ${String(outer?.paints?.fills)} ${String(outer?.bound?.paddingTop)}, inner halo ${String(inner?.paints?.strokes)} ${String(inner?.bound?.strokeWeight)}, focus ring ${String(ringNode?.nestTarget)}`];
+      }));
+      ok(thumbOff.length === 0, `#2669 Q550 a / b / e / f the thumb: a frame the disc's size (control/size/{sm,md,lg}/thumb), the disc in color/interactive/neutral/border rest/hover/pressed with no ring, a color/border/primary halo 4px at hover (a border-width/heavy stroke) and 8px pressed (plus a space/050 fill band), color/disabled/icon when disabled, the focus ring at focus-visible only (${thumbOff.length} off — ${thumbOff.slice(0, 2).join('; ') || 'none'})`);
+
+      // (5) Calls 4 A / 7 A, Q550 d, Q345: the panel. Lowercase names; label and value on; milestones, inputs and helper
+      // off. No end labels and no ticks: the milestones replace them.
+      const panel = planSetProperties(sMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`).sort();
+      ok(JSON.stringify(panel) === JSON.stringify(['helper=false', 'inputs=false', 'label=true', 'milestones=false', 'value=true']),
+        `#2669 calls 4 A / 7 A, Q550 d, Q345 slider booleans: label and value on, milestones, inputs and helper off, all lowercase (${panel.join(', ')})`);
+      const msOff = sMembers.flatMap((m) => {
+        const ms = findIn(m.root, 'milestones');
+        const kids = (ms?.children ?? []).map((k) => `${k.name}:${String(k.paints?.fills)}`);
+        const ink = m.coord.state === 'disabled' ? 'color/disabled/text' : 'color/text/secondary';
+        return JSON.stringify(kids) === JSON.stringify(['minLabel', 'milestone', 'maxLabel'].map((n) => `${n}:${ink}`)) && !findIn(m.root, 'ends') ? [] : [`${planComponentName(m)}: ${kids.join(', ')}`];
+      });
+      ok(msOff.length === 0, `#2669 Q550 d the milestones: the minimum, one value between and the maximum, in color/text/secondary (disabled color/disabled/text), and no end-labels row (${msOff.length} off — ${msOff.slice(0, 2).join('; ') || 'none'})`);
+
+      // (6) The contrast floors, in every committed brand × mode (5 brands × 4 modes = 20 cells, a literal): against the
+      // page, the track, the selected bar and the thumb at rest, hover and press clear 3:1 (SC 1.4.11), the focus ring 3:1,
+      // and the value text and the milestones 4.5:1 (SC 1.4.3). Q550 a: with one thickness, color alone tells the selected
+      // bar from the track, so the bar against the track clears 3:1 too, and so does the thumb at rest. Q550 f: the halo is
+      // visible against the page (above 1.1:1, no WCAG floor applies to pointer feedback) and the hovered disc stays 3:1
+      // inside it. The roles measured are read off the PLAN (the subject); the floors and the cell count are literals.
+      const sliderThemes: [string, any][] = loadedRows([
+        ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+        ['nb', nbTheme()],
+        ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
+        ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+        ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+      ]);
+      const SLIDER_CELLS = 20;
+      const role = (v: unknown): string => String(v ?? '(unbound)').replace(/^color\//, '').replace(/\//g, '.');
+      // The ring the thumb nests at focus-visible, at the coordinate it nests (surface=default), as that member strokes it.
+      const ringNest = findIn(tOf('medium', 'focus-visible')!.root, 'focusRing');
+      const ringMember = figmaAnatomySet(componentDefs.find((d) => d.id === 'focus-ring')!, {}).find((m) => m.coord.surface === ringNest?.nestVariant?.surface);
+      const ringRole = role(ringMember?.root.paints?.strokes);
+      const rest = sOf('medium', 'range', 'rest')!;
+      const PAGE = 'background.primary';
+      const trackRole = role(findIn(rest.root, 'track')?.paints?.fills);
+      const PAIRS: [string, string, string, number][] = [
+        ['the track', trackRole, PAGE, 3],
+        ['the selected bar', role(findIn(rest.root, 'bar')?.paints?.fills), PAGE, 3],
+        ['the selected bar against the track', role(findIn(rest.root, 'bar')?.paints?.fills), trackRole, 3],
+        ['the thumb at rest', role(findIn(tOf('medium', 'rest')!.root, 'disc')?.paints?.fills), PAGE, 3],
+        ['the thumb at rest against the track', role(findIn(tOf('medium', 'rest')!.root, 'disc')?.paints?.fills), trackRole, 3],
+        ['the thumb at hover', role(findIn(tOf('medium', 'hover')!.root, 'disc')?.paints?.fills), PAGE, 3],
+        ['the thumb at press', role(findIn(tOf('medium', 'pressed')!.root, 'disc')?.paints?.fills), PAGE, 3],
+        ['the thumb at hover inside its halo', role(findIn(tOf('medium', 'hover')!.root, 'disc')?.paints?.fills), role(findIn(tOf('medium', 'hover')!.root, 'hoverHalo')?.paints?.strokes), 3],
+        // The pressed disc inside its 8px halo is NOT held to 3:1: it measures 2.52:1 at the lowest (the high-contrast modes
+        // darken border.primary), held for the owner on the PR. The halo itself clears the page there, so the pressed
+        // thumb's outline stays visible.
+        ['the halo', role(findIn(tOf('medium', 'pressed')!.root, 'pressHalo')?.paints?.fills), PAGE, 1.1],
+        ['the focus ring', ringRole, PAGE, 3],
+        ['the value text', role(findIn(rest.root, 'valueRange')?.paints?.fills), PAGE, 4.5],
+        ['the milestones', role(findIn(rest.root, 'minLabel')?.paints?.fills), PAGE, 4.5],
+      ];
+      for (const [what, ink, ground, floor] of PAIRS) {
+        const low: string[] = [];
+        let measured = 0, min = Infinity;
+        for (const [brand, th] of sliderThemes) for (const m of resolveAllModes(th)) {
+          const x = m.roles[ink], y = m.roles[ground];
+          if (!x?.hex || !y?.hex) { low.push(`${brand}/${m.mode}: missing ${!x?.hex ? ink : ground}`); continue; }
+          const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
+          measured++; min = Math.min(min, r);
+          if (r < floor) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
+        }
+        ok(measured === SLIDER_CELLS && low.length === 0,
+          `#2669 slider contrast (${what}): ${ink} against ${ground} clears ${floor}:1 in all ${measured} of ${SLIDER_CELLS} brand × mode cells (lowest ${min.toFixed(2)})${low.length ? ` — ${low.join('; ')}` : ''}`);
+      }
+    }
+
     // ---- #2418 (owner decisions Q269 1-8 A): SegmentedControl.Segment and SegmentedControl ----
     // Every expected value below is a literal typed here from Q269 and the refreshed proposal it decided, never read
     // off the defs: the defs and their projected plans are the SUBJECT (docs/34 shape 1). Each arm names its decision,
@@ -17666,11 +17896,11 @@ arm: {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
-      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2,
+      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
-      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'pagination-item': 9,
+      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'pagination-item': 9, '_slider-thumb': 9,
       // Breadcrumbs (#2666): the trail is placed on its own; its step and separator are parts its host places.
       breadcrumbs: 2, 'breadcrumb-item': 9, '_breadcrumb-separator': 9,
     };
@@ -20582,10 +20812,10 @@ arm: {
       // name-derived number would make the footprint arm's hand-written `2` unfalsifiable — the drift
       // would be `2 x whatever the stub invented` and the expected side would have to be computed from
       // the same value it is checking. These four are the one group where a real figure is available and
-      // brand-INVARIANT: `border-width.{none,hairline,thick,heavy}` resolve to 0/1/2/4 in all four corpus
-      // brands, aliased to `<root>.core.dimension.{0,1,2,4}`. Authored here from the emitted tokens, not
+      // brand-INVARIANT: `border-width.{none,hairline,thick,heavy,x-heavy}` resolve to 0/1/2/4/6 in all four corpus
+      // brands, aliased to `<root>.core.dimension.{0,1,2,4,6}`. Authored here from the emitted tokens, not
       // read off the def under test, so the expected drift stays independent of what `button.ts` binds.
-      const BORDER_PX: Record<string, number> = { none: 0, hairline: 1, thick: 2, heavy: 4 };
+      const BORDER_PX: Record<string, number> = { none: 0, hairline: 1, thick: 2, heavy: 4, 'x-heavy': 6 };
       const varValue = (name: string): number => {
         // `varValues` PINS a variable's resolved VALUE (what `boundVariables[field].value` reads back),
         // where `varOverrides` pins `resolveForConsumer` (the inset path). Both exist so the concentric
@@ -28912,7 +29142,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {

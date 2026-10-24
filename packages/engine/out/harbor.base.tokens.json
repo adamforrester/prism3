@@ -4097,6 +4097,11 @@
         "$value": "720px",
         "$description": "container narrow — 720px reading measure"
       },
+      "min": {
+        "$type": "dimension",
+        "$value": "320px",
+        "$description": "container min — 320px narrowest column (the WCAG 1.4.10 reflow width)"
+      },
       "fluid": {
         "$type": "dimension",
         "$value": "100%",
@@ -4267,6 +4272,11 @@
         "$type": "dimension",
         "$value": "{hds.core.dimension.4}",
         "$description": "border-width heavy — 4px"
+      },
+      "x-heavy": {
+        "$type": "dimension",
+        "$value": "{hds.core.dimension.6}",
+        "$description": "border-width x-heavy — 6px"
       }
     },
     "focus": {

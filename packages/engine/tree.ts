@@ -839,7 +839,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   }
   const control = { size: controlSize };
 
-  // ---- border-width — numeric primitives via the dimension grid (0/1/2/4) ----
+  // ---- border-width — numeric primitives via the dimension grid (0/1/2/4/6) ----
   // 1px hairline floor; no sub-px tokens (unreliable on hi-dpi). Field consensus
   // clusters here (Tailwind 0/1/2/4/8, Atlassian 1/2, Fluent thin/thick).
   const bwAlias = (px: number, name: string): Token =>
@@ -849,6 +849,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     hairline: bwAlias(1, 'border-width hairline — 1px (default border floor)'),
     thick: bwAlias(2, 'border-width thick — 2px (emphasis / selected)'),
     heavy: bwAlias(4, 'border-width heavy — 4px'),
+    // #2669 (owner Q550 e): the large Slider's track. The step above heavy, so the three slider sizes read 2/4/6.
+    'x-heavy': bwAlias(6, 'border-width x-heavy — 6px'),
   };
   // ---- focus ring — WCAG 2.2 SC 2.4.13 (AAA) / 2.4.11 (AA) ----
   // width ≥2px floor (bump to 3 for clarity); offset separates the ring from the
@@ -1130,6 +1132,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const container = {
     max: dimLeaf(ly.containerMax, `container max — ${ly.containerMax}px content cap (fluid below it)`),
     narrow: dimLeaf(ly.containerNarrow, `container narrow — ${ly.containerNarrow}px reading measure`),
+    min: dimLeaf(ly.containerMin, `container min — ${ly.containerMin}px narrowest column (the WCAG 1.4.10 reflow width)`),
     fluid: { $type: 'dimension', $value: '100%', $description: 'container fluid — full width with margins (the default)', $extensions: { prism3: { generated: true } } },
   };
 
