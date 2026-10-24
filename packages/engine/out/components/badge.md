@@ -17,7 +17,7 @@ A small, static marker of one of three types. A status label is short text in th
 
 ## Anatomy
 
-Shown on the default member: type `status`, emphasis `subtle`, tone `neutral`.
+Shown on the default member: type `status`, size `medium`, emphasis `subtle`, tone `neutral`.
 
 1. **Surface** — The badge body, sized by what it holds: a small-radius label around a status text, a circle around one digit that grows into a pill, or the round dot itself. A subtle status label is the tone's tint with a 1px edge in the tone's border color, drawn inside the edge so it adds no size. A bold badge is the solid tone fill with no edge. Neither paints an interactive color.
 2. **Label** — The status text in the tone's text role. It carries the meaning, so the tone is never the only signal.
@@ -29,12 +29,13 @@ Shown on the default member: type `status`, emphasis `subtle`, tone `neutral`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `type` | `status`, `count`, `dot` | once, when authored | Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name. |
-| `emphasis` | `subtle`, `bold` | at runtime | How strongly a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. A count and a dot are always bold. |
+| `size` | `medium`, `small` | once, when authored | The status label's size. medium = 12px text, about 30px tall. small = 11px text, about 19px tall, for dense layouts such as a label on a product card. A count and a dot come in medium only. |
+| `emphasis` | `subtle`, `bold`, `surface` | at runtime | How a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. surface = the page color with the tone's text and no edge, for a label on a photo or any busy ground, where it brings its own background. A count and a dot are always bold. |
 | `tone` | `neutral`, `info`, `success`, `warning`, `danger` | at runtime | Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it. |
 
 ## Usage guidelines
 
-Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.
+Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Use surface for a label on a photo or any busy ground, such as "Selling fast" on a product image. Use small where space is tight, such as on a product card. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.
 
 ### Do
 
@@ -93,7 +94,8 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `type` | enum: 'status' \| 'count' \| 'dot' | `status` | no | Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name. |
-| `emphasis` | enum: 'subtle' \| 'bold' | `subtle` | no | How strongly a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. A count and a dot are always bold. |
+| `size` | enum: 'small' \| 'medium' | `medium` | no | The status label's size. medium = 12px text, about 30px tall. small = 11px text, about 19px tall, for dense layouts such as a label on a product card. A count and a dot come in medium only. |
+| `emphasis` | enum: 'subtle' \| 'bold' \| 'surface' | `subtle` | no | How a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. surface = the page color with the tone's text and no edge, for a label on a photo or any busy ground, where it brings its own background. A count and a dot are always bold. |
 | `tone` | enum: 'neutral' \| 'info' \| 'success' \| 'warning' \| 'danger' | `neutral` | no | Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it. |
 | `label` | string | — | no | The status text, for type status. One or two words, in consistent casing across the product. |
 | `value` | number | — | no | The count, for type count. Above max it shows as max followed by a plus sign, formatted for the locale. |
@@ -103,7 +105,7 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 20 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 40 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -118,21 +120,27 @@ Generated from the plan that builds the design-file component: 20 members. Value
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `type`.
+Keyed by `size`, `type`.
 
-**type=status**
+**size=medium, type=status**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `surface` | `space.100` / `space.150` / `space.100` / `space.150` | — | — | — | — | — |
 
-**type=count**
+**size=small, type=status**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `surface` | `space.025` / `space.100` / `space.025` / `space.100` | — | — | — | — | — |
+
+**size=medium, type=count**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `surface` | `space.025` / `space.075` / `space.025` / `space.075` | — | — | — | — | — |
 
-**type=dot**
+**size=medium, type=dot**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -141,12 +149,13 @@ Keyed by `type`.
 
 ### Type
 
-Keyed by nothing: one row covers every member.
+Keyed by `size`.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| every member | `surface/label` | `type.label.sm.emphasis` |
-| every member | `surface/count` | `type.label.sm.emphasis` |
+| size=medium | `surface/label` | `type.label.sm.emphasis` |
+| size=medium | `surface/count` | `type.label.sm.emphasis` |
+| size=small | `surface/label` | `type.caption.md.strong` |
 
 ### Color
 
@@ -221,6 +230,41 @@ Keyed by `type`, `emphasis`, `tone`.
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.danger` | — | — | — |
 | `surface/label` | — | — | `color.text.on-danger` | — |
+
+**type=status, emphasis=surface, tone=neutral**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.background.primary` | — | — | — |
+| `surface/label` | — | — | `color.text.primary` | — |
+
+**type=status, emphasis=surface, tone=info**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.background.primary` | — | — | — |
+| `surface/label` | — | — | `color.text.info` | — |
+
+**type=status, emphasis=surface, tone=success**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.background.primary` | — | — | — |
+| `surface/label` | — | — | `color.text.success` | — |
+
+**type=status, emphasis=surface, tone=warning**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.background.primary` | — | — | — |
+| `surface/label` | — | — | `color.text.warning` | — |
+
+**type=status, emphasis=surface, tone=danger**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.background.primary` | — | — | — |
+| `surface/label` | — | — | `color.text.danger` | — |
 
 **type=count, emphasis=bold, tone=neutral**
 

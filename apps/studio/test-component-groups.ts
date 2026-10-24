@@ -156,7 +156,7 @@ const four = ['button', 'button-destructive', 'dialog', 'text-field'];
 const c4 = costOf(catalog, four);
 ok(c4.sets === 4 && c4.variants === 576 + 576 + 24 + 84 && c4.components === 0, `four sets cost ${c4.variants} variants (the wireframe's 1,251, plus Dialog's 3 end members, #2877, and 6 fill members, #2880)`);
 const ci = costOf(catalog, ['icon', 'badge']);
-ok(ci.variants === 20 && ci.components === 46, `a set built as separate components counts as components, not variants (Icon: ${ci.components})`);
+ok(ci.variants === 40 && ci.components === 46, `a set built as separate components counts as components, not variants (Icon: ${ci.components}; Badge's 40 members, its status label at two sizes and three emphases since #2983: ${ci.variants})`);
 ok(JSON.stringify(alsoBuilds(catalog, four)) === JSON.stringify(['Icon', 'Spinner', 'Focus ring', 'Flush icon button Neutral', 'Divider', 'Button Group', 'Field label', 'Field message']),
   `idea 7: the sets a build makes first, transitively, minus the selection, named as the list names them (Q392 on #2812) (${alsoBuilds(catalog, four).join(', ')})`);
 ok(displayNameOf(catalog, 'button-destructive') === 'Button Destructive' && displayNameOf(catalog, 'tab-item') === 'Tab Item' && displayNameOf(catalog, 'image-placeholder') === 'Image placeholder',

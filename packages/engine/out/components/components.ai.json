@@ -5580,15 +5580,27 @@
           "description": "Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name."
         },
         {
+          "name": "size",
+          "type": "enum: 'small' | 'medium'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium"
+          ],
+          "description": "The status label's size. medium = 12px text, about 30px tall. small = 11px text, about 19px tall, for dense layouts such as a label on a product card. A count and a dot come in medium only."
+        },
+        {
           "name": "emphasis",
-          "type": "enum: 'subtle' | 'bold'",
+          "type": "enum: 'subtle' | 'bold' | 'surface'",
           "default": "subtle",
           "required": false,
           "values": [
             "subtle",
-            "bold"
+            "bold",
+            "surface"
           ],
-          "description": "How strongly a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. A count and a dot are always bold."
+          "description": "How a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. surface = the page color with the tone's text and no edge, for a label on a photo or any busy ground, where it brings its own background. A count and a dot are always bold."
         },
         {
           "name": "tone",
@@ -5652,10 +5664,18 @@
           ],
           "kind": "authoring"
         },
+        "size": {
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "authoring"
+        },
         "emphasis": {
           "values": [
             "subtle",
-            "bold"
+            "bold",
+            "surface"
           ],
           "kind": "runtime"
         },
@@ -5687,7 +5707,7 @@
         "labelPattern": "Status label: one or two words, in the same casing everywhere (\"In review\", \"Failed\", \"PDF 262 KB\"). Count: a number, capped (\"99+\"). Dot: no text on screen. The host names what it means (\"3 unread messages\", \"Online\")."
       },
       "docs": {
-        "usage": "Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.",
+        "usage": "Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Use surface for a label on a photo or any busy ground, such as \"Selling fast\" on a product image. Use small where space is tight, such as on a product card. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.",
         "do": [
           "Put the meaning of a count or dot in the host's accessible name",
           "Cap a count, as in \"99+\", and hide it at zero unless zero matters",
