@@ -61,8 +61,7 @@
  *
  * ── THE PAINT ─────────────────────────────────────────────────────────────────────────────────────────
  *
- * ONE GRAMMAR PER SURFACE, `{tone}.default.{type}.{emphasis}.{slot}` on the page (the media one is below), with no
- * fallback between them: every member names its own
+ * ONE GRAMMAR, `{tone}.{type}.{emphasis}.{slot}`, with no fallback template: every member names its own
  * fill, label and edge, so a missing key is a hole `lint-paint` reports rather than a coordinate that
  * silently paints another member's colors.
  *
@@ -85,35 +84,6 @@
  * `test.ts` gates all of it with literals: text on its fill at 4.5:1 for every emphasis × tone × text-bearing
  * type, the subtle edge against the page at 3:1, and every bold fill against the page at 3:1, in 20 brand ×
  * mode cells each.
- *
- * ── THE SURFACE AXIS: A STATUS LABEL ON PHOTOGRAPHY (#2983, owner decision Q644 A; BUILT ON THE Q2983.1–3
- *    RECOMMENDATIONS, PENDING THE OWNER'S ANSWERS) ────────────────────────────────────────────────────────
- *
- * A commerce card puts a short status on the product image ("Selling fast", an exclusivity label). Neither
- * emphasis reads well there: subtle's tint and edge are designed for page grounds, and bold is too loud for a
- * quiet merchandising label. `surface` (`default | media`) says what the badge sits on. It REUSES the axis name
- * Button, Icon Button, Link and Focus Ring already give to "the ground this sits on" (`default | inverse`), and
- * like theirs it is AUTHORING: a designer places a badge on a photo once, so the media label may be a different
- * size. `emphasis` keeps its runtime footprint check across subtle and bold. The projector's inverse rewrite
- * fires only on `surface=inverse`, so `media` binds the roles named here and nothing else.
- *
- * MEDIA (status only, one member per tone): the page surface `background.primary` with no edge, under the tone's
- * text role (`text.primary` for neutral). The label must not depend on the photo, so its fill is a solid page
- * surface, and these pairs are the page text inks the engine already contracts against that surface: lowest
- * 4.94:1 across the corpus. The fill is a mode-varying role, not a raw white, so dark mode turns the label dark.
- * It pads at `space.025` × `space.100` (2px × 8px) for an 18px label with the status type's 12px text, close to
- * the reference's ~20px; the existing 30px status size is too big for a photo corner. `emphasis` does not apply
- * on media: the Figma set excludes media × bold, and the paint grammar's leading template names no emphasis.
- * The count and dot sit over a host, never on a photo, so media × count|dot is excluded too: 25 members.
- *
- * THE SURFACE IN THE PAINT GRAMMAR. Both templates carry the surface SECOND, right after the tone, which still
- * leads so `lint-paint`'s provenance arm reads it: `{tone}.media.{slot}` for a media member and
- * `{tone}.default.{type}.{emphasis}.{slot}` for every other. The media template is tried first. A default member
- * binds no three-segment key, and a media member can reach no default key, so neither falls through to the other.
- * That matters for the edge: a media member asks for a border too, and with the surface outside the default
- * keys it would have reached `{tone}.status.subtle.border` and drawn the subtle edge (measured while building
- * this; `test.ts`'s media arm caught it by name). The media grammar names no type, because only the status label
- * sits on media, and no emphasis, because emphasis does not apply there.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -130,7 +100,6 @@ export const badge: ComponentDef = {
   props: [
     { name: 'type', type: "enum: 'status' | 'count' | 'dot'", values: ['status', 'count', 'dot'], default: 'status', required: false, description: 'Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name.' },
     { name: 'emphasis', type: "enum: 'subtle' | 'bold'", values: ['subtle', 'bold'], default: 'subtle', required: false, description: 'How strongly a status label reads. subtle = the tone\'s tint with a 1px edge in the tone\'s border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. A count and a dot are always bold.' },
-    { name: 'surface', type: "enum: 'default' | 'media'", values: ['default', 'media'], default: 'default', required: false, description: 'What the badge sits on, for type status. default = the page or a card. media = a photo or video, where the label sits on a solid page-surface fill with no edge, in the tone\'s text color, so its contrast does not depend on the image. A media label is smaller, and emphasis does not apply to it.' },
     { name: 'tone', type: "enum: 'neutral' | 'info' | 'success' | 'warning' | 'danger'", values: ['neutral', 'info', 'success', 'warning', 'danger'], default: 'neutral', required: false, description: 'Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it.' },
     { name: 'label', type: 'string', required: false, description: 'The status text, for type status. One or two words, in consistent casing across the product.' },
     { name: 'value', type: 'number', required: false, description: 'The count, for type count. Above max it shows as max followed by a plus sign, formatted for the locale.' },
@@ -147,9 +116,6 @@ export const badge: ComponentDef = {
     type: ['status', 'count', 'dot'],
     emphasis: ['subtle', 'bold'],
     tone: ['neutral', 'info', 'success', 'warning', 'danger'],
-    // Last, so every existing member keeps its name and gains `surface=default`, and `default` first, so the
-    // Figma default member is the code default.
-    surface: ['default', 'media'],
   },
   // WHEN each axis changes (#1611): a status label's tone moves live (a build going from running to
   // failed), so `tone` is runtime, and the box must not move when it does — the text and padding are
@@ -157,12 +123,9 @@ export const badge: ComponentDef = {
   // is authoring, and the three types may differ in size. `emphasis` is RUNTIME, the strict default: a
   // subtle status label and its bold twin share one footprint cohort, so the build reports any difference
   // in box size between them. The inside stroke keeps them equal.
-  // `surface` is authoring, as on Button and Link: a badge is placed on a photo once and stays there.
-  axisKinds: { type: 'authoring', emphasis: 'runtime', tone: 'runtime', surface: 'authoring' },
+  axisKinds: { type: 'authoring', emphasis: 'runtime', tone: 'runtime' },
 
-  // Both grammars carry the surface second, after the tone (#2983; see the header): a media member binds
-  // `{tone}.media.{slot}` and can reach no default key, and a default member binds no three-segment key.
-  paintKeys: ['{tone}.{surface}.{slot}', '{tone}.{surface}.{type}.{emphasis}.{slot}'],
+  paintKeys: ['{tone}.{type}.{emphasis}.{slot}'],
 
   tokens: {
     'type': 'type.label.sm.emphasis',
@@ -176,21 +139,12 @@ export const badge: ComponentDef = {
     // The surface hugs its content, so the padding pair is the rest of the shape: a small-radius label around
     // the status text, a near-circle around one digit that grows into a pill, and nothing around the dot's
     // fixed square.
-    // Keyed on `surface` too (#2983): the media label pads 2px × 8px for an 18px label, close to the reference's
-    // ~20px. The count and dot never sit on media (excluded), but the anatomy resolves the template at every
-    // declared value, so their media keys repeat the default ones and are never projected.
-    'default.status.pad-x': 'space.150',
-    'default.status.pad-y': 'space.100',
-    'default.count.pad-x': 'space.075',
-    'default.count.pad-y': 'space.025',
-    'default.dot.pad-x': 'space.0',
-    'default.dot.pad-y': 'space.0',
-    'media.status.pad-x': 'space.100',
-    'media.status.pad-y': 'space.025',
-    'media.count.pad-x': 'space.075',
-    'media.count.pad-y': 'space.025',
-    'media.dot.pad-x': 'space.0',
-    'media.dot.pad-y': 'space.0',
+    'status.pad-x': 'space.150',
+    'status.pad-y': 'space.100',
+    'count.pad-x': 'space.075',
+    'count.pad-y': 'space.025',
+    'dot.pad-x': 'space.0',
+    'dot.pad-y': 'space.0',
     // The dot's diameter: the tier's small dot rung, 8px at comfortable density and 6px at compact.
     'dot-size': 'control.size.sm.dot',
 
@@ -198,68 +152,55 @@ export const badge: ComponentDef = {
     'border-width': 'border-width.hairline',
 
     // ── STATUS, SUBTLE: the tone's tint, the tone's text ink, and a 1px edge in the tone's border role.
-    'neutral.default.status.subtle.fill': 'color.foreground.secondary',
-    'neutral.default.status.subtle.label': 'color.text.primary',
+    'neutral.status.subtle.fill': 'color.foreground.secondary',
+    'neutral.status.subtle.label': 'color.text.primary',
     // `border.tertiary`, the first neutral edge contracted at the non-text bar on every ground (#2569). It is the
     // pill's only boundary, so it needs 3:1; `border.secondary` is decorative (~2:1) and must not carry it.
-    'neutral.default.status.subtle.border': 'color.border.tertiary',
-    'info.default.status.subtle.fill': 'color.foreground.info-subtle',
-    'info.default.status.subtle.label': 'color.text.info',
-    'info.default.status.subtle.border': 'color.border.info',
-    'success.default.status.subtle.fill': 'color.foreground.success-subtle',
-    'success.default.status.subtle.label': 'color.text.success',
-    'success.default.status.subtle.border': 'color.border.success',
-    'warning.default.status.subtle.fill': 'color.foreground.warning-subtle',
-    'warning.default.status.subtle.label': 'color.text.warning',
-    'warning.default.status.subtle.border': 'color.border.warning',
-    'danger.default.status.subtle.fill': 'color.foreground.danger-subtle',
-    'danger.default.status.subtle.label': 'color.text.danger',
-    'danger.default.status.subtle.border': 'color.border.danger',
+    'neutral.status.subtle.border': 'color.border.tertiary',
+    'info.status.subtle.fill': 'color.foreground.info-subtle',
+    'info.status.subtle.label': 'color.text.info',
+    'info.status.subtle.border': 'color.border.info',
+    'success.status.subtle.fill': 'color.foreground.success-subtle',
+    'success.status.subtle.label': 'color.text.success',
+    'success.status.subtle.border': 'color.border.success',
+    'warning.status.subtle.fill': 'color.foreground.warning-subtle',
+    'warning.status.subtle.label': 'color.text.warning',
+    'warning.status.subtle.border': 'color.border.warning',
+    'danger.status.subtle.fill': 'color.foreground.danger-subtle',
+    'danger.status.subtle.label': 'color.text.danger',
+    'danger.status.subtle.border': 'color.border.danger',
 
     // ── STATUS, BOLD: the solid tone fill and the ink the engine contracts on it; neutral is the inverse
     // surface and its ink. No edge.
-    'neutral.default.status.bold.fill': 'color.inverse.foreground.tertiary',
-    'neutral.default.status.bold.label': 'color.inverse.text.primary',
-    'info.default.status.bold.fill': 'color.foreground.info',
-    'info.default.status.bold.label': 'color.text.on-info',
-    'success.default.status.bold.fill': 'color.foreground.success',
-    'success.default.status.bold.label': 'color.text.on-success',
-    'warning.default.status.bold.fill': 'color.foreground.warning',
-    'warning.default.status.bold.label': 'color.text.on-warning',
-    'danger.default.status.bold.fill': 'color.foreground.danger',
-    'danger.default.status.bold.label': 'color.text.on-danger',
-
-    // ── STATUS, MEDIA (#2983), as `media.{tone}.{slot}`: the page surface and the tone's text role, no edge, so the
-    // label never depends on the photo under it. Neutral takes the primary text ink.
-    'neutral.media.fill': 'color.background.primary',
-    'neutral.media.label': 'color.text.primary',
-    'info.media.fill': 'color.background.primary',
-    'info.media.label': 'color.text.info',
-    'success.media.fill': 'color.background.primary',
-    'success.media.label': 'color.text.success',
-    'warning.media.fill': 'color.background.primary',
-    'warning.media.label': 'color.text.warning',
-    'danger.media.fill': 'color.background.primary',
-    'danger.media.label': 'color.text.danger',
+    'neutral.status.bold.fill': 'color.inverse.foreground.tertiary',
+    'neutral.status.bold.label': 'color.inverse.text.primary',
+    'info.status.bold.fill': 'color.foreground.info',
+    'info.status.bold.label': 'color.text.on-info',
+    'success.status.bold.fill': 'color.foreground.success',
+    'success.status.bold.label': 'color.text.on-success',
+    'warning.status.bold.fill': 'color.foreground.warning',
+    'warning.status.bold.label': 'color.text.on-warning',
+    'danger.status.bold.fill': 'color.foreground.danger',
+    'danger.status.bold.label': 'color.text.on-danger',
 
     // ── COUNT, BOLD ONLY: the status label's bold pair.
-    'neutral.default.count.bold.fill': 'color.inverse.foreground.tertiary',
-    'neutral.default.count.bold.label': 'color.inverse.text.primary',
-    'info.default.count.bold.fill': 'color.foreground.info',
-    'info.default.count.bold.label': 'color.text.on-info',
-    'success.default.count.bold.fill': 'color.foreground.success',
-    'success.default.count.bold.label': 'color.text.on-success',
-    'warning.default.count.bold.fill': 'color.foreground.warning',
-    'warning.default.count.bold.label': 'color.text.on-warning',
-    'danger.default.count.bold.fill': 'color.foreground.danger',
-    'danger.default.count.bold.label': 'color.text.on-danger',
+    'neutral.count.bold.fill': 'color.inverse.foreground.tertiary',
+    'neutral.count.bold.label': 'color.inverse.text.primary',
+    'info.count.bold.fill': 'color.foreground.info',
+    'info.count.bold.label': 'color.text.on-info',
+    'success.count.bold.fill': 'color.foreground.success',
+    'success.count.bold.label': 'color.text.on-success',
+    'warning.count.bold.fill': 'color.foreground.warning',
+    'warning.count.bold.label': 'color.text.on-warning',
+    'danger.count.bold.fill': 'color.foreground.danger',
+    'danger.count.bold.label': 'color.text.on-danger',
 
     // ── DOT, BOLD ONLY: the count's fill, and no text.
-    'neutral.default.dot.bold.fill': 'color.inverse.foreground.tertiary',
-    'info.default.dot.bold.fill': 'color.foreground.info',
-    'success.default.dot.bold.fill': 'color.foreground.success',
-    'warning.default.dot.bold.fill': 'color.foreground.warning',
-    'danger.default.dot.bold.fill': 'color.foreground.danger',
+    'neutral.dot.bold.fill': 'color.inverse.foreground.tertiary',
+    'info.dot.bold.fill': 'color.foreground.info',
+    'success.dot.bold.fill': 'color.foreground.success',
+    'warning.dot.bold.fill': 'color.foreground.warning',
+    'danger.dot.bold.fill': 'color.foreground.danger',
   },
 
   anatomy: {
@@ -270,7 +211,7 @@ export const badge: ComponentDef = {
         role: 'target',
         paintSlots: ['fill', 'border'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
-        padding: { block: '{surface}.{type}.pad-y', inlineLabel: '{surface}.{type}.pad-x' },
+        padding: { block: '{type}.pad-y', inlineLabel: '{type}.pad-x' },
         radius: '{type}.radius',
         strokeWidth: 'border-width',
         children: ['label', 'count', 'dot'],
@@ -307,15 +248,10 @@ export const badge: ComponentDef = {
   },
 
   figmaProperties: {
-    variantAxes: ['type', 'emphasis', 'tone', 'surface'],
+    variantAxes: ['type', 'emphasis', 'tone'],
     // The count and dot are bold-only (owner decision, 2026-09-28): 3 × 2 × 5 = 30 coordinates, less the 10
-    // count and dot members at `subtle`, is 20. On media (#2983) only the status label exists, at one emphasis
-    // (`subtle`, the default, since emphasis does not apply there): 5 more, so 25.
-    excludeCoordinates: [
-      { type: ['count', 'dot'], emphasis: ['subtle'] },
-      { surface: ['media'], type: ['count', 'dot'] },
-      { surface: ['media'], emphasis: ['bold'] },
-    ],
+    // count and dot members at `subtle`, is 20.
+    excludeCoordinates: [{ type: ['count', 'dot'], emphasis: ['subtle'] }],
     texts: {
       label: {
         part: 'label',
@@ -349,7 +285,7 @@ export const badge: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. On a photo or video, such as a product image, set surface to media: the label sits on a solid page-surface fill, so the image never decides its contrast. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.',
+    usage: 'Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.',
     do: [
       'Put the meaning of a count or dot in the host\'s accessible name',
       'Cap a count, as in "99+", and hide it at zero unless zero matters',
@@ -409,7 +345,6 @@ export const badge: ComponentDef = {
       'The subtle tints separate by their edge (#1735, owner decision 2026-09-28). The tone tints measure 1.06–1.40:1 against the page and the neutral tint 1.00:1 in both high-contrast modes, so the tint alone gave the pill no shape. The subtle status label now carries a 1px edge in the tone\'s border role, at least 3.75:1 against the page (`border.tertiary` for neutral, at least 3:1 on every page and surface tier since #2569, when `border.secondary` became a decorative rung), and the tint is no longer held to 3:1.',
       'The status label\'s corner is the small radius, `radius.sm` (owner decision, 2026-09-28): 2px in nb and prism3, 4px in aurora, so it scales per brand. The count and the dot stay `radius.round`. Before it every type was a pill, and a subtle status label with its 1px edge read close to Tag\'s outlined pill.',
       'A leading icon on the status label, as the brief allows, painted from the tone\'s icon role.',
-      'The `surface` axis (#2983, owner decision Q644 A, built on the Q2983.1–3 recommendations): a status label on photography, `surface=media`, is the page surface with no edge under the tone\'s text role, padded 2px × 8px, so its contrast never depends on the image.',
       'A size axis (small, medium, large) for the count and status label, once a host needs more than one.',
     ],
   },

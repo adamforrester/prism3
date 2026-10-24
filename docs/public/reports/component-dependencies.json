@@ -1618,8 +1618,7 @@
       "variant": {
         "type": "count",
         "emphasis": "bold",
-        "tone": "neutral",
-        "surface": "default"
+        "tone": "neutral"
       }
     },
     {

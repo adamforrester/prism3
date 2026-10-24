@@ -24556,7 +24556,7 @@
     "badge": {
       "id": "badge",
       "name": "Badge",
-      "members": 25,
+      "members": 20,
       "axes": [
         {
           "name": "type",
@@ -24588,15 +24588,6 @@
             "danger"
           ],
           "kind": "variant"
-        },
-        {
-          "name": "surface",
-          "figmaName": "surface",
-          "values": [
-            "default",
-            "media"
-          ],
-          "kind": "variant"
         }
       ],
       "codeOnlyStates": [],
@@ -24604,12 +24595,12 @@
         {
           "part": "surface",
           "kind": "frame",
-          "members": 25
+          "members": 20
         },
         {
           "part": "surface/label",
           "kind": "text",
-          "members": 15,
+          "members": 10,
           "when": {
             "type": [
               "status"
@@ -24638,14 +24629,12 @@
         }
       ],
       "redlineKey": [
-        "type",
-        "surface"
+        "type"
       ],
       "redlines": [
         {
           "where": {
-            "type": "status",
-            "surface": "default"
+            "type": "status"
           },
           "parts": [
             {
@@ -24669,33 +24658,7 @@
         },
         {
           "where": {
-            "type": "status",
-            "surface": "media"
-          },
-          "parts": [
-            {
-              "part": "surface",
-              "values": {
-                "paddingTop": {
-                  "token": "space.025"
-                },
-                "paddingRight": {
-                  "token": "space.100"
-                },
-                "paddingBottom": {
-                  "token": "space.025"
-                },
-                "paddingLeft": {
-                  "token": "space.100"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "where": {
-            "type": "count",
-            "surface": "default"
+            "type": "count"
           },
           "parts": [
             {
@@ -24719,8 +24682,7 @@
         },
         {
           "where": {
-            "type": "dot",
-            "surface": "default"
+            "type": "dot"
           },
           "parts": [
             {
@@ -24773,16 +24735,14 @@
       "colorKey": [
         "type",
         "emphasis",
-        "tone",
-        "surface"
+        "tone"
       ],
       "colors": [
         {
           "where": {
             "type": "status",
             "emphasis": "subtle",
-            "tone": "neutral",
-            "surface": "default"
+            "tone": "neutral"
           },
           "parts": [
             {
@@ -24800,26 +24760,7 @@
           "where": {
             "type": "status",
             "emphasis": "subtle",
-            "tone": "neutral",
-            "surface": "media"
-          },
-          "parts": [
-            {
-              "part": "surface",
-              "fill": "color.background.primary"
-            },
-            {
-              "part": "surface/label",
-              "ink": "color.text.primary"
-            }
-          ]
-        },
-        {
-          "where": {
-            "type": "status",
-            "emphasis": "subtle",
-            "tone": "info",
-            "surface": "default"
+            "tone": "info"
           },
           "parts": [
             {
@@ -24837,26 +24778,7 @@
           "where": {
             "type": "status",
             "emphasis": "subtle",
-            "tone": "info",
-            "surface": "media"
-          },
-          "parts": [
-            {
-              "part": "surface",
-              "fill": "color.background.primary"
-            },
-            {
-              "part": "surface/label",
-              "ink": "color.text.info"
-            }
-          ]
-        },
-        {
-          "where": {
-            "type": "status",
-            "emphasis": "subtle",
-            "tone": "success",
-            "surface": "default"
+            "tone": "success"
           },
           "parts": [
             {
@@ -24874,26 +24796,7 @@
           "where": {
             "type": "status",
             "emphasis": "subtle",
-            "tone": "success",
-            "surface": "media"
-          },
-          "parts": [
-            {
-              "part": "surface",
-              "fill": "color.background.primary"
-            },
-            {
-              "part": "surface/label",
-              "ink": "color.text.success"
-            }
-          ]
-        },
-        {
-          "where": {
-            "type": "status",
-            "emphasis": "subtle",
-            "tone": "warning",
-            "surface": "default"
+            "tone": "warning"
           },
           "parts": [
             {
@@ -24911,26 +24814,7 @@
           "where": {
             "type": "status",
             "emphasis": "subtle",
-            "tone": "warning",
-            "surface": "media"
-          },
-          "parts": [
-            {
-              "part": "surface",
-              "fill": "color.background.primary"
-            },
-            {
-              "part": "surface/label",
-              "ink": "color.text.warning"
-            }
-          ]
-        },
-        {
-          "where": {
-            "type": "status",
-            "emphasis": "subtle",
-            "tone": "danger",
-            "surface": "default"
+            "tone": "danger"
           },
           "parts": [
             {
@@ -24947,27 +24831,8 @@
         {
           "where": {
             "type": "status",
-            "emphasis": "subtle",
-            "tone": "danger",
-            "surface": "media"
-          },
-          "parts": [
-            {
-              "part": "surface",
-              "fill": "color.background.primary"
-            },
-            {
-              "part": "surface/label",
-              "ink": "color.text.danger"
-            }
-          ]
-        },
-        {
-          "where": {
-            "type": "status",
             "emphasis": "bold",
-            "tone": "neutral",
-            "surface": "default"
+            "tone": "neutral"
           },
           "parts": [
             {
@@ -24984,8 +24849,7 @@
           "where": {
             "type": "status",
             "emphasis": "bold",
-            "tone": "info",
-            "surface": "default"
+            "tone": "info"
           },
           "parts": [
             {
@@ -25002,8 +24866,7 @@
           "where": {
             "type": "status",
             "emphasis": "bold",
-            "tone": "success",
-            "surface": "default"
+            "tone": "success"
           },
           "parts": [
             {
@@ -25020,8 +24883,7 @@
           "where": {
             "type": "status",
             "emphasis": "bold",
-            "tone": "warning",
-            "surface": "default"
+            "tone": "warning"
           },
           "parts": [
             {
@@ -25038,8 +24900,7 @@
           "where": {
             "type": "status",
             "emphasis": "bold",
-            "tone": "danger",
-            "surface": "default"
+            "tone": "danger"
           },
           "parts": [
             {
@@ -25056,8 +24917,7 @@
           "where": {
             "type": "count",
             "emphasis": "bold",
-            "tone": "neutral",
-            "surface": "default"
+            "tone": "neutral"
           },
           "parts": [
             {
@@ -25074,8 +24934,7 @@
           "where": {
             "type": "count",
             "emphasis": "bold",
-            "tone": "info",
-            "surface": "default"
+            "tone": "info"
           },
           "parts": [
             {
@@ -25092,8 +24951,7 @@
           "where": {
             "type": "count",
             "emphasis": "bold",
-            "tone": "success",
-            "surface": "default"
+            "tone": "success"
           },
           "parts": [
             {
@@ -25110,8 +24968,7 @@
           "where": {
             "type": "count",
             "emphasis": "bold",
-            "tone": "warning",
-            "surface": "default"
+            "tone": "warning"
           },
           "parts": [
             {
@@ -25128,8 +24985,7 @@
           "where": {
             "type": "count",
             "emphasis": "bold",
-            "tone": "danger",
-            "surface": "default"
+            "tone": "danger"
           },
           "parts": [
             {
@@ -25146,8 +25002,7 @@
           "where": {
             "type": "dot",
             "emphasis": "bold",
-            "tone": "neutral",
-            "surface": "default"
+            "tone": "neutral"
           },
           "parts": [
             {
@@ -25160,8 +25015,7 @@
           "where": {
             "type": "dot",
             "emphasis": "bold",
-            "tone": "info",
-            "surface": "default"
+            "tone": "info"
           },
           "parts": [
             {
@@ -25174,8 +25028,7 @@
           "where": {
             "type": "dot",
             "emphasis": "bold",
-            "tone": "success",
-            "surface": "default"
+            "tone": "success"
           },
           "parts": [
             {
@@ -25188,8 +25041,7 @@
           "where": {
             "type": "dot",
             "emphasis": "bold",
-            "tone": "warning",
-            "surface": "default"
+            "tone": "warning"
           },
           "parts": [
             {
@@ -25202,8 +25054,7 @@
           "where": {
             "type": "dot",
             "emphasis": "bold",
-            "tone": "danger",
-            "surface": "default"
+            "tone": "danger"
           },
           "parts": [
             {
@@ -26980,8 +26831,7 @@
           "variant": {
             "type": "count",
             "emphasis": "bold",
-            "tone": "neutral",
-            "surface": "default"
+            "tone": "neutral"
           },
           "follows": [],
           "exposes": []

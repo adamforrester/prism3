@@ -1684,7 +1684,7 @@
         "kind": "component set",
         "page": "↳ Badge",
         "section": "Components",
-        "members": 25,
+        "members": 20,
         "variantProperties": [
           {
             "name": "type",
@@ -1709,13 +1709,6 @@
               "success",
               "warning",
               "danger"
-            ]
-          },
-          {
-            "name": "surface",
-            "values": [
-              "default",
-              "media"
             ]
           }
         ],

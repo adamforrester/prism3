@@ -5591,17 +5591,6 @@
           "description": "How strongly a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. A count and a dot are always bold."
         },
         {
-          "name": "surface",
-          "type": "enum: 'default' | 'media'",
-          "default": "default",
-          "required": false,
-          "values": [
-            "default",
-            "media"
-          ],
-          "description": "What the badge sits on, for type status. default = the page or a card. media = a photo or video, where the label sits on a solid page-surface fill with no edge, in the tone's text color, so its contrast does not depend on the image. A media label is smaller, and emphasis does not apply to it."
-        },
-        {
           "name": "tone",
           "type": "enum: 'neutral' | 'info' | 'success' | 'warning' | 'danger'",
           "default": "neutral",
@@ -5679,13 +5668,6 @@
             "danger"
           ],
           "kind": "runtime"
-        },
-        "surface": {
-          "values": [
-            "default",
-            "media"
-          ],
-          "kind": "authoring"
         }
       },
       "accessibility": {
@@ -5705,7 +5687,7 @@
         "labelPattern": "Status label: one or two words, in the same casing everywhere (\"In review\", \"Failed\", \"PDF 262 KB\"). Count: a number, capped (\"99+\"). Dot: no text on screen. The host names what it means (\"3 unread messages\", \"Online\")."
       },
       "docs": {
-        "usage": "Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. On a photo or video, such as a product image, set surface to media: the label sits on a solid page-surface fill, so the image never decides its contrast. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.",
+        "usage": "Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.",
         "do": [
           "Put the meaning of a count or dot in the host's accessible name",
           "Cap a count, as in \"99+\", and hide it at zero unless zero matters",

@@ -244,10 +244,6 @@
           "success",
           "warning",
           "danger"
-        ],
-        "surface": [
-          "default",
-          "media"
         ]
       },
       "props": [
@@ -266,14 +262,6 @@
           "values": [
             "subtle",
             "bold"
-          ]
-        },
-        {
-          "name": "surface",
-          "default": "default",
-          "values": [
-            "default",
-            "media"
           ]
         },
         {
@@ -5598,15 +5586,6 @@
           "icon-button-neutral",
           "link"
         ]
-      },
-      {
-        "values": [
-          "default",
-          "media"
-        ],
-        "components": [
-          "badge"
-        ]
       }
     ],
     "tone": [
@@ -8119,14 +8098,6 @@
     ],
     "surface": [
       {
-        "id": "badge",
-        "default": "default",
-        "values": [
-          "default",
-          "media"
-        ]
-      },
-      {
         "id": "button",
         "default": "default",
         "values": [
@@ -9078,25 +9049,6 @@
         "textarea"
       ],
       "detail": "the style axis takes 3 value sets — [outline] in password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [inline, standalone] in link"
-    },
-    {
-      "kind": "axis values",
-      "subject": "axis surface",
-      "components": [
-        "badge",
-        "button",
-        "button-destructive",
-        "button-neutral",
-        "flush-icon-button",
-        "flush-icon-button-destructive",
-        "flush-icon-button-neutral",
-        "focus-ring",
-        "icon-button",
-        "icon-button-destructive",
-        "icon-button-neutral",
-        "link"
-      ],
-      "detail": "the surface axis takes 2 value sets — [default, inverse] in button, button-destructive, button-neutral, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, focus-ring, icon-button, icon-button-destructive, icon-button-neutral, link; [default, media] in badge"
     },
     {
       "kind": "axis values",

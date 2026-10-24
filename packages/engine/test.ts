@@ -6212,14 +6212,12 @@ arm: {
   const colorRefs = Object.entries(badgeDef.tokens).filter(([, r]) => r.startsWith('color.'));
   const interactive = Object.entries(badgeDef.tokens).filter(([, r]) => /(^|\.)interactive(\.|$)/.test(r));
   // A surface role, a text role or a semantic border role, on the page or on the inverse ground. Never
-  // interactive. 50 = 5 tones x (subtle status fill + label + edge, bold status fill + label, count fill +
-  // label, dot fill, media status fill + label). The page surface `background.primary` is admitted for the
-  // media fill keys ONLY (#2983): it is the solid ground the on-media label sits on, and no other member binds it.
+  // interactive. 40 = 5 tones x (subtle status fill + label + edge, bold status fill + label, count fill +
+  // label, dot fill).
   const BADGE_COLOR_FAMILIES = ['color.foreground.', 'color.text.', 'color.border.', 'color.inverse.foreground.', 'color.inverse.text.'];
-  const isMediaFill = (k: string, r: string) => /^[a-z]+\.media\.fill$/.test(k) && r === 'color.background.primary';
-  const offFamily = colorRefs.filter(([k, r]) => !BADGE_COLOR_FAMILIES.some((f) => r.startsWith(f)) && !isMediaFill(k, r));
-  ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 50,
-    `badge binds no interactive role: all ${colorRefs.length} of 50 color refs are foreground.*, text.* or border.*, or their inverse twins, or the media fill's page surface${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
+  const offFamily = colorRefs.filter(([, r]) => !BADGE_COLOR_FAMILIES.some((f) => r.startsWith(f)));
+  ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 40,
+    `badge binds no interactive role: all ${colorRefs.length} of 40 color refs are foreground.*, text.* or border.*, or their inverse twins${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
 
   // THE PAINT TABLE (owner decisions, 2026-09-28), member by member. SUBTLE status: the tone's tint under the
   // tone's text ink, edged in the tone's border role; neutral is the second surface under the primary text,
@@ -6238,12 +6236,7 @@ arm: {
       [`${t}.dot.bold`, { fill: `foreground.${t}` }],
     ])),
   };
-  // The table names a member `{tone}.{type}.{emphasis}`; the def keys it on the default surface as
-  // `{tone}.default.{type}.{emphasis}` (#2983). A media key (`{tone}.media.{slot}`) is read as written.
-  const bound = (k: string): string | undefined => {
-    const [tone, ...rest] = k.split('.');
-    return badgeDef.tokens[rest[0] === 'media' ? k : [tone, 'default', ...rest].join('.')]?.replace(/^color\./, '');
-  };
+  const bound = (k: string): string | undefined => badgeDef.tokens[k]?.replace(/^color\./, '');
   const wrongPaint = Object.entries(PAINT).flatMap(([m, want]) => (['fill', 'label', 'border'] as const)
     .filter((slot) => bound(`${m}.${slot}`) !== want[slot]).map((slot) => `${m}.${slot} → ${bound(`${m}.${slot}`) ?? 'unbound'} (want ${want[slot] ?? 'unbound'})`));
   ok(Object.keys(PAINT).length === 20 && wrongPaint.length === 0,
@@ -6272,10 +6265,9 @@ arm: {
   ok(/outline-offset: -1px/.test(forcedLine) && /bold badge \(status, count or dot\) carries the same inset outline in transparent/.test(forcedLine),
     `badge forced colors: the subtle edge is an inset outline and a bold badge carries it transparent (#1747) (${forcedLine.slice(0, 120) || 'no forced-colors line'})`);
 
-  // THE FIGMA SET (owner decisions, 2026-09-28; #2983). Read off the PROJECTED members, not the def's declarations:
-  // 25 members — on the default surface the status label at both emphases (10), the count and the dot bold only
-  // (5 each); on media the status label alone, at emphasis=subtle (5) — and NO member at `type=count|dot` with
-  // `emphasis=subtle`. Each type's member carries its own content: the status
+  // THE FIGMA SET (owner decisions, 2026-09-28). Read off the PROJECTED members, not the def's declarations:
+  // 20 members — the status label at both emphases (10), the count and the dot bold only (5 each) — and NO
+  // member at `type=count|dot` with `emphasis=subtle`. Each type's member carries its own content: the status
   // label reads "Status", the count reads a number and no label, the dot carries no text and a fixed square.
   // Every subtle member strokes and no bold member does, and the stroke weight is the bound 1px role.
   const badgeSet = figmaAnatomySet(badgeDef);
@@ -6284,26 +6276,25 @@ arm: {
   const members = (badgeSet as any[]).map((m) => {
     const name = planComponentName(m);
     return {
-      name, type: /type=(\w+)/.exec(name)?.[1] ?? '(none)', emphasis: /emphasis=(\w+)/.exec(name)?.[1] ?? '(none)', surface: /surface=(\w+)/.exec(name)?.[1] ?? '(none)',
+      name, type: /type=(\w+)/.exec(name)?.[1] ?? '(none)', emphasis: /emphasis=(\w+)/.exec(name)?.[1] ?? '(none)',
       texts: texts(m.root), parts: partNames(m.root), stroke: m.root.paints?.strokes as string | undefined, weight: m.root.bound?.strokeWeight as string | undefined,
     };
   });
-  const cell = (g: string, e: string, s = 'default') => members.filter((m) => m.type === g && m.emphasis === e && m.surface === s);
+  const cell = (g: string, e: string) => members.filter((m) => m.type === g && m.emphasis === e);
   const badSubtle = members.filter((m) => (m.type === 'count' || m.type === 'dot') && m.emphasis === 'subtle');
-  ok(badgeSet.length === 25 && badSubtle.length === 0
+  ok(badgeSet.length === 20 && badSubtle.length === 0
     && cell('status', 'subtle').length === 5 && cell('status', 'bold').length === 5
-    && cell('count', 'bold').length === 5 && cell('dot', 'bold').length === 5
-    && cell('status', 'subtle', 'media').length === 5,
-    `badge projects to Figma: exactly 25 members — status at subtle and bold, count and dot at bold only, status on media at subtle only — and none at type=count|dot with emphasis=subtle (got ${badgeSet.length}: ${['default', 'media'].flatMap((s) => ['status', 'count', 'dot'].flatMap((g) => ['subtle', 'bold'].map((e) => `${s}/${g}/${e} ${cell(g, e, s).length}`))).join(', ')}${badSubtle.length ? `; excluded members present: ${badSubtle.map((m) => m.name).join(' | ')}` : ''})`);
+    && cell('count', 'bold').length === 5 && cell('dot', 'bold').length === 5,
+    `badge projects to Figma: exactly 20 members — status at subtle and bold, count and dot at bold only — and none at type=count|dot with emphasis=subtle (got ${badgeSet.length}: ${['status', 'count', 'dot'].flatMap((g) => ['subtle', 'bold'].map((e) => `${g}/${e} ${cell(g, e).length}`)).join(', ')}${badSubtle.length ? `; excluded members present: ${badSubtle.map((m) => m.name).join(' | ')}` : ''})`);
   const wrongContent = members.filter((m) => !(
     m.type === 'status' ? JSON.stringify(m.texts) === '["Status"]' && !m.parts.includes('count') && !m.parts.includes('dot')
       : m.type === 'count' ? m.texts.length === 1 && /^[0-9]+\+?$/.test(m.texts[0]) && !m.parts.includes('text') && !m.parts.includes('dot')
         : m.texts.length === 0 && m.parts.includes('dot')));
   ok(wrongContent.length === 0,
     `badge type content: each member carries its type's own content${wrongContent.length ? ` — ${wrongContent.map((m) => `${m.name} [${m.texts.join('|') || '-'}]`).join('; ')}` : ''}`);
-  const wrongEdge = members.filter((m) => (m.emphasis === 'subtle' && m.surface === 'default') !== (m.stroke !== undefined) || (m.stroke !== undefined && m.weight !== 'border-width/hairline'));
+  const wrongEdge = members.filter((m) => (m.emphasis === 'subtle') !== (m.stroke !== undefined) || (m.stroke !== undefined && m.weight !== 'border-width/hairline'));
   ok(wrongEdge.length === 0,
-    `badge edge: every subtle member on the default surface strokes at border-width/hairline, and no bold or media member strokes${wrongEdge.length ? ` — ${wrongEdge.map((m) => `${m.name} stroke ${m.stroke ?? 'none'} at ${m.weight ?? 'unbound'}`).join('; ')}` : ''}`);
+    `badge edge: every subtle member strokes at border-width/hairline and no bold member strokes${wrongEdge.length ? ` — ${wrongEdge.map((m) => `${m.name} stroke ${m.stroke ?? 'none'} at ${m.weight ?? 'unbound'}`).join('; ')}` : ''}`);
   // THE RENAME (owner, 2026-09-28): the Figma variant property is `type`, the name Tag's axis carries, and no member
   // is still keyed `genre=`. Read off the projected member names, which are what a designer's panel shows.
   const stillGenre = members.filter((m) => /genre=/.test(m.name) || !/(^|, )type=(status|count|dot)(,|$)/.test(m.name));
@@ -6387,36 +6378,6 @@ arm: {
     ok(measured === CELLS && low.length === 0,
       `badge bold fill separates from the page (${m}): ${fill} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
-  // THE ON-MEDIA LABEL (#2983, owner decision Q644 A; built on the Q2983.1–3 recommendations, pending the owner's
-  // answers). A literal table written from the issue, not read from the def (docs/34): the page surface under the
-  // tone's text role, no edge, padded 2px × 8px. Three arms. PIN: the def binds exactly these roles. CONTRAST: each
-  // ink on its own fill clears 4.5:1 in every brand × mode cell, so the label never depends on the photo under it.
-  // PROJECTION: every media member in the Figma set paints this fill and ink, draws no edge, and pads at the literal
-  // rungs, so a media key that went missing, and fell through to the subtle paint, fails here by name.
-  const MEDIA_FILL = 'background.primary';
-  const MEDIA_INK: Record<string, string> = { neutral: 'text.primary', info: 'text.info', success: 'text.success', warning: 'text.warning', danger: 'text.danger' };
-  const mediaPin = TONES.flatMap((t) => [[`${t}.media.fill`, MEDIA_FILL], [`${t}.media.label`, MEDIA_INK[t]]])
-    .filter(([k, want]) => bound(k) !== want).map(([k, want]) => `${k} → ${bound(k) ?? '(unbound)'}, want ${want}`);
-  ok(mediaPin.length === 0,
-    `badge media paint: each of the 5 tones binds ${MEDIA_FILL} under its own text role${mediaPin.length ? ` — ${mediaPin.join('; ')}` : ''}`);
-  for (const t of TONES) {
-    const { measured, low } = measure(MEDIA_INK[t], MEDIA_FILL, 4.5);
-    ok(measured === CELLS && low.length === 0,
-      `badge media contrast (${t}): ${MEDIA_INK[t]} on ${MEDIA_FILL} clears 4.5:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
-  }
-  const figVar = (role: string) => `color/${role.replace(/\./g, '/')}`;
-  const mediaPlans = (badgeSet as any[]).filter((m) => /surface=media/.test(planComponentName(m)));
-  const wrongMedia = mediaPlans.flatMap((m) => {
-    const name = planComponentName(m);
-    const tone = /tone=(\w+)/.exec(name)?.[1] ?? '(none)';
-    const label = (m.root.children ?? []).find((c: any) => c.name === 'label');
-    const got = { fill: m.root.paints?.fills, stroke: m.root.paints?.strokes, ink: label?.paints?.fills,
-      pad: [m.root.bound?.paddingTop, m.root.bound?.paddingBottom, m.root.bound?.paddingLeft, m.root.bound?.paddingRight].join(' ') };
-    const want = { fill: figVar(MEDIA_FILL), stroke: undefined, ink: MEDIA_INK[tone] && figVar(MEDIA_INK[tone]), pad: 'space/025 space/025 space/100 space/100' };
-    return JSON.stringify(got) === JSON.stringify(want) && /type=status/.test(name) ? [] : [`${name}: got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`];
-  });
-  ok(mediaPlans.length === 5 && wrongMedia.length === 0,
-    `badge media members: all 5 are status labels on ${figVar(MEDIA_FILL)} with their tone's text ink, no edge, padded space/025 × space/100 (got ${mediaPlans.length}${wrongMedia.length ? ` — ${wrongMedia.join(' | ')}` : ''})`);
 }
 
 // ---- BANNER — the owner's decisions on #2579 (Q327, 2026-10-16), held here with literal expectations ---------------
@@ -7013,7 +6974,7 @@ arm: {
   // Caught, not thrown: a badge whose axis is no longer `type` (the 2026-09-28 rename reverted) makes the projector
   // refuse this coordinate, and a throw here would end the suite with no summary instead of failing the arms below.
   const badgeAt = (emphasis: string, tone: string) => {
-    try { return paintsOf(figmaAnatomyPlan(badgeDef, undefined, { type: 'status', emphasis, tone, surface: 'default' } as never)); }
+    try { return paintsOf(figmaAnatomyPlan(badgeDef, undefined, { type: 'status', emphasis, tone } as never)); }
     catch (e) { return { fill: `(refused: ${(e as Error).message.slice(0, 80)})`, stroke: undefined, radius: undefined, refs: [] as string[], names: [] as string[] }; }
   };
   const TAG_KINDS: [string, string][] = [['select', 'unselected'], ['select', 'selected'], ['dismissible', 'unselected']];
@@ -11334,7 +11295,7 @@ arm: {
 
   const tokOf = (def: any, k: string) => def.tokens?.[k];
   const BIND_2569: [string, any, string, string][] = [
-    ['badge subtle neutral edge', componentDefs.find((d) => d.id === 'badge'), 'neutral.default.status.subtle.border', 'color.border.tertiary'],
+    ['badge subtle neutral edge', componentDefs.find((d) => d.id === 'badge'), 'neutral.status.subtle.border', 'color.border.tertiary'],
     ['divider separator (decorative=false)', divider, 'separator.fill', 'color.border.tertiary'],
     ['divider decorative default', divider, 'fill', 'color.border.secondary'],
     ['tab hover bar', tab, 'unselected.fill.hover', 'color.border.secondary'],

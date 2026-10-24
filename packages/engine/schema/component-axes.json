@@ -78,10 +78,6 @@
         "bold",
         "subtle"
       ],
-      "surface": [
-        "default",
-        "media"
-      ],
       "tone": [
         "danger",
         "info",
@@ -95,7 +91,7 @@
         "status"
       ]
     },
-    "members": 25,
+    "members": 20,
     "properties": {
       "label": "TEXT",
       "value": "TEXT"

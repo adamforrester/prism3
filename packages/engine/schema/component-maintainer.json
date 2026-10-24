@@ -2276,7 +2276,6 @@
           "The subtle tints separate by their edge (#1735, owner decision 2026-09-28). The tone tints measure 1.06–1.40:1 against the page and the neutral tint 1.00:1 in both high-contrast modes, so the tint alone gave the pill no shape. The subtle status label now carries a 1px edge in the tone's border role, at least 3.75:1 against the page (`border.tertiary` for neutral, at least 3:1 on every page and surface tier since #2569, when `border.secondary` became a decorative rung), and the tint is no longer held to 3:1.",
           "The status label's corner is the small radius, `radius.sm` (owner decision, 2026-09-28): 2px in nb and prism3, 4px in aurora, so it scales per brand. The count and the dot stay `radius.round`. Before it every type was a pill, and a subtle status label with its 1px edge read close to Tag's outlined pill.",
           "A leading icon on the status label, as the brief allows, painted from the tone's icon role.",
-          "The `surface` axis (#2983, owner decision Q644 A, built on the Q2983.1–3 recommendations): a status label on photography, `surface=media`, is the page surface with no edge under the tone's text role, padded 2px × 8px, so its contrast never depends on the image.",
           "A size axis (small, medium, large) for the count and status label, once a host needs more than one."
         ],
         "projection": []
