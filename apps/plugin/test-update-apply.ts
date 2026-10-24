@@ -394,10 +394,13 @@ section('page moves — a set on its former page moves to the page the taxonomy 
 {
   const w = await world(TAG);
   type K = { id: string; name: string; type: string; x: number; y: number; width: number; height: number; children?: K[]; getSharedPluginData(ns: string, k: string): string };
-  type P = { name: string; isPageDivider?: boolean; children: K[]; appendChild(c: K): void };
+  type P = { name: string; isPageDivider?: boolean; children: K[]; appendChild(c: K): void; remove(): void };
   const pages: P[] = [];
+  // `remove()` drops the page as Figma's `PageNode.remove` does and records the call, so `moves/apply` can fail on a deletion.
+  const removed: string[] = [];
   const pg = (name: string, isPageDivider = false): P => {
-    const p: P = { name, isPageDivider, children: [], appendChild(c: K) { for (const q of pages) { const i = q.children.indexOf(c); if (i >= 0) q.children.splice(i, 1); } p.children.push(c); } };
+    const p: P = { name, isPageDivider, children: [], appendChild(c: K) { for (const q of pages) { const i = q.children.indexOf(c); if (i >= 0) q.children.splice(i, 1); } p.children.push(c); },
+      remove() { removed.push(p.name); const i = pages.indexOf(p); if (i >= 0) pages.splice(i, 1); } };
     return p;
   };
   pages.push(pg('Cover'), pg('---', true), pg('Components'), pg('↳ Breadcrumbs'), pg('---', true), pg('Subcomponents'), pg('↳ Breadcrumb Item'));
@@ -419,8 +422,8 @@ section('page moves — a set on its former page moves to the page the taxonomy 
   pages[3].children.splice(0, 1); pages[6].children.push(step);
   const res = await applyUpdate(host, w.api as any, targets, previewHashOf(await previewUpdate(host, targets)));
   const av = applyVerdict(res);
-  ok(pages[3].children.includes(step) && step.children![0] === member && pages.length === 7 && pages[6].name === '↳ Breadcrumb Item',
-    `moves/apply: the same set node now sits on Breadcrumbs, and every page is still there (${pages.map((p) => `${p.name}:${p.children.length}`).join(', ')})`);
+  ok(pages[3].children.includes(step) && step.children![0] === member && removed.length === 0 && pages.length === 7 && pages[6].name === '↳ Breadcrumb Item',
+    `moves/apply: the same set node now sits on Breadcrumbs, and every page is still there (${pages.map((p) => `${p.name}:${p.children.length}`).join(', ')})${removed.length ? ` — REMOVED: ${removed.join(', ')}` : ''}`);
   ok(av.headline === '✓ 1 set moved to its page' && av.lines.includes('Moved to its page: breadcrumb-item (Breadcrumb Item to Breadcrumbs).')
     && av.lines.includes('Breadcrumb Item is now empty, safe to delete.'), `moves/verdict: the move and the emptied page named (${av.headline}; ${av.lines.join(' | ')})`);
   ok(w.api._versions.length === 1 && w.api._versions[0] === 'Saved before Prism3 updated breadcrumb-item', `moves/version: one named version before the move (${JSON.stringify(w.api._versions)})`);

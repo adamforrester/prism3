@@ -52,9 +52,12 @@ const isSolidWhite = (p: PageLike): boolean => {
 // ── The page shim ────────────────────────────────────────────────────────────────────────────────
 // Models `figma.root`'s page list. `insertChild` is REMOVE-THEN-SPLICE (the contract `file-setup.ts`
 // documents and Figma's reposition primitive follows); `createPage`/`createPageDivider` append at the end.
-interface ShimPage extends PageLike { _kids: unknown[]; }
-const makePagesShim = (): { api: PagesApi; children: ShimPage[]; names: () => string[] } => {
+// A page's `remove()` does what Figma's `PageNode.remove` does, drops it from the list, and records the call, so an
+// arm that holds "the plugin never deletes a page" can fail (#2989): a shim without it made the call a silent no-op.
+interface ShimPage extends PageLike { _kids: unknown[]; remove(): void; }
+const makePagesShim = (): { api: PagesApi; children: ShimPage[]; names: () => string[]; removed: string[] } => {
   const children: ShimPage[] = [];
+  const removed: string[] = [];
   const mk = (divider: boolean): ShimPage => ({
     name: divider ? '---' : '',
     isPageDivider: divider,
@@ -65,6 +68,7 @@ const makePagesShim = (): { api: PagesApi; children: ShimPage[]; names: () => st
     _kids: [],
     appendChild(c: unknown) { this._kids.push(c); },
     findOne(pred: (n: unknown) => boolean) { return this._kids.find(pred) ?? null; },
+    remove() { removed.push(this.name); const i = children.indexOf(this); if (i >= 0) children.splice(i, 1); },
   });
   const api: PagesApi = {
     root: {
@@ -87,7 +91,7 @@ const makePagesShim = (): { api: PagesApi; children: ShimPage[]; names: () => st
   };
   // Render the page list as names, dividers shown as `---`, for order assertions.
   const names = (): string[] => children.map((p) => (p.isPageDivider ? '---' : p.name));
-  return { api, children, names };
+  return { api, children, names, removed };
 };
 
 // ── 1. Fresh scaffold lays the spine in order ────────────────────────────────────────────────────
@@ -599,7 +603,7 @@ console.log('5. applyComponentPlan targetPage routing');
 // ── 7. Sets on a former page move to the page the taxonomy names now (#2989, owner decision Q656 A) ─────────
 console.log('7. relocateSets: a part\'s set leaves its former page, and no page is deleted');
 {
-  const { api, children } = makePagesShim();
+  const { api, children, removed } = makePagesShim();
   // Nodes with plugin data, written by the literal keys the plugin stores ('prism3' / 'memberStamp', 'furniture',
   // 'docPanel'), so the arm fails if the module stops recognizing a set or its furniture by them.
   type N = { id: string; name: string; type: string; x: number; y: number; width: number; height: number; children?: N[]; data: Record<string, string>; getSharedPluginData(ns: string, k: string): string };
@@ -639,7 +643,8 @@ console.log('7. relocateSets: a part\'s set leaves its former page, and no page 
   ok(item.id === 's2' && item.children![0].id === 'm2' && item.children![0].data.memberStamp.startsWith('9.9.9|'), 'moves/kept: the set is the same node, members and stamps as they were (moved, never rebuilt)');
   ok(label.x - item.x === -0 && label.y - item.y === -30 && panel.x - item.x === 200, 'moves/places: the set\'s own nodes keep their places around it');
   ok(sep.x >= host.x + host.width + 160 && item.x >= host.x + host.width + 160, 'moves/clear: the moved sets land past what the page already held, a set gap away');
-  ok(children.length === before && children.includes(old), 'moves/never-delete: no page is removed, the emptied one included');
+  ok(removed.length === 0 && children.length === before && children.includes(old),
+    `moves/never-delete: no page is removed, the emptied one included${removed.length ? ` — REMOVED: ${removed.join(', ')}` : ''}`);
   ok(JSON.stringify(r.emptied) === JSON.stringify([`${NEST_PREFIX}Breadcrumb Item`]) && emptiedLine(r.emptied) === 'Breadcrumb Item is now empty, safe to delete.',
     `moves/emptied: the page left empty is reported as safe to delete (${JSON.stringify(r.emptied)})`);
   ok(cell.children.includes(theirs) && !r.emptied.includes(`${NEST_PREFIX}Code Cell`), 'moves/theirs: a designer\'s set stays, and its page is not reported');
