@@ -163,7 +163,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   // ── rows ───────────────────────────────────────────────────────────────────────────────────────
   /** A text-link row's two added lines (#2990): its worst ratio across its surfaces in every mode, each against
    *  that mode's floor, and the steps its hover, visited and pressed land on in the mode the preview shows. */
-  const linkLines = (r: InteractiveRow, palette: string): HTMLElement[] => {
+  const linkLines = (r: InteractiveRow): HTMLElement[] => {
     const strip = hook(h('div', 'p3-linkmodes'), 'link-modes');
     strip.setAttribute('role', 'group');
     strip.setAttribute('aria-label', `${r.label}: ${LINK_COPY.modes}`);
@@ -188,12 +188,13 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     follow.append(h('span', undefined, LINK_COPY.follow));
     for (const st of ['hover', 'visited', 'pressed']) {
       const x = roles[`${prefix}.${st}`];
-      if (!x) continue;
+      const at = stepOfPath(x?.path);
+      if (!x || !at) continue;
       const s = h('span', 'p3-linkfollow-step');
       const sw = h('span', 'p3-linkfollow-sw');
       sw.dataset.content = '';
       sw.style.background = x.hex;
-      s.append(sw, h('span', undefined, `${st} ${stepOfPath(x.path)?.step ?? palette}`));
+      s.append(sw, h('span', undefined, `${st} ${at.step}`));
       follow.append(s);
     }
     return [strip, follow];
@@ -312,8 +313,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
         palettes,
         current,
         against,
-        // A link can't be pinned below its floor (#2990, Q2990.5 A): the engine would move the pick (#1510).
-        blockBelow: r.write === 'link-family',
+        // A text link can't be pinned below its floor (#2990, Q2990.5 A): the engine would move the pick (#1510).
+        blockBelow: textLink,
         overridden,
         onPick: (p, step) => edit(key, () => writeInteractiveRow(mode, r, r.write === 'inverse-fill' ? `${p}::${step}` : step)),
         onAuto: () => edit(key, () => writeInteractiveRow(mode, r, undefined)),
@@ -322,7 +323,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       wrap.append(pk.el);
       pickers.set(r.role, pk.focusCurrent);
     }
-    if (textLink) wrap.append(...linkLines(r, palette));
+    if (textLink) wrap.append(...linkLines(r));
     return { el: wrap, said, key: `row:${r.role}`, refmark };
   };
 

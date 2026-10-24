@@ -7,7 +7,7 @@ The issue's premise was that no Theme UI exposes link roles. It does. Color › 
 
 ### What changed
 - The step picker takes extra surfaces (`against.also`) and rates each step at its worst across them. It also takes `blockBelow`, which marks a sub-floor step `aria-disabled` so it can't be picked. The step stays focusable, so arrow keys still move over it.
-- The two text-link rows pass the family's primary and secondary surfaces and block sub-floor steps. Each now has a four-mode contrast strip and a state line. Icon-link rows are unchanged (wireframe scope).
+- The two text-link rows pass the family's primary and secondary surfaces and block sub-floor steps. Each now has a four-mode contrast strip and a state line. Icon-link rows are unchanged (wireframe scope): their pickers still let a sub-floor step through to the engine's clamp. An earlier push blocked them too, because they share the `link-family` write; independent review caught it, and test:chrome now asserts the icon picker blocks nothing.
 
 ### The surfaces question, held
 Derived links measure about 4.1:1 on `background.tertiary` in four of five corpus brands, because the link walk gates on the floor ground only. Whether links sit on the third tier is the owner's call (Q2990.4), so it is filed as #2991. L-07 and the UI use primary and secondary only.

@@ -5126,7 +5126,20 @@ for (const host of ['web', 'plugin']) {
       await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${open1.step}"]`));
       await page.waitForFunction(() => !!JSON.parse(localStorage.getItem('prism3:brandInput') ?? '{}')?.input?.overrides?.light?.['inverse.text.link.default'], null, { timeout: 5000 }).catch(() => {});
       const pinned = (await persisted(page))?.overrides?.light?.['inverse.text.link.default']?.step;
-      ok(pinned === open1.step, `web #2990: a clearing link step pins exactly (${open1.step} → ${pinned})`);
+      // What the engine EMITS, not only what was stored: the row's swatch is painted from the resolved role, so after the
+      // rebuild it is the clicked step's own chip color (a clamp would land a different step and a different color).
+      const paint = await page.evaluate(([r, st]) => {
+        const row = document.querySelector(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${r}"]`)?.closest('.p3-fillrow');
+        const chip = document.querySelector(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${st}"] .p3-step-chip`);
+        return { row: row ? getComputedStyle(row.querySelector('.p3-fill-sw')).backgroundColor : null, chip: chip ? getComputedStyle(chip).backgroundColor : null };
+      }, [role, open1.step]);
+      ok(pinned === open1.step && !!paint.row && paint.row === paint.chip, `web #2990: a clearing link step pins exactly, stored and emitted (${open1.step} → stored ${pinned}, row ${paint.row}, step ${paint.chip})`);
+      // An icon-link row keeps today's picker (Q2990.5 scope is the two text links): its below-floor steps stay pickable.
+      await page.keyboard.press('Escape');
+      await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="int-pick"][data-role="icon.link.default"]'));
+      await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+      const iconBlocked = await page.evaluate(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-disabled="true"]').length);
+      ok(iconBlocked === 0, `web #2990: the icon link's picker blocks nothing (${iconBlocked} blocked)`);
     }
     ok(errors.length === 0, `${host} #2990 link rows: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
