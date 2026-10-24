@@ -9162,7 +9162,7 @@ const BAR_PROBE = () => {
     const b = q(k), cs = getComputedStyle(b);
     return { k, bg: cs.backgroundColor === page, edge: parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle === 'solid' && alpha(cs.borderTopColor) > 0, chev: chev(b) };
   });
-  const tiles = ['verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open'].filter((k) => q(k)).map((k) => {
+  const tiles = ['verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'agent-minimize'].filter((k) => q(k)).map((k) => {
     const b = q(k), cs = getComputedStyle(b), lab = b.querySelector('.p3-tile-label'), tip = b.querySelector('.p3-tile-tip'), g = b.querySelector('.p3-tile-mark svg.p3-ico');
     return { k, borderless: ['Top', 'Right', 'Bottom', 'Left'].every((sd) => parseFloat(cs[`border${sd}Width`]) === 0 || alpha(cs[`border${sd}Color`]) === 0), clear: alpha(cs.backgroundColor) === 0,
       glyph: shown(g) && g.getAttribute('aria-hidden') === 'true', label: shown(lab) ? lab.textContent : null, labelHidden: lab?.getAttribute('aria-hidden') === 'true',
