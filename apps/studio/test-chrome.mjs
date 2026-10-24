@@ -4694,8 +4694,11 @@ for (const host of ['web', 'figma']) {
         const besideOf = (r) => r.pick.left >= r.name.right - ALIGN_TOLERANCE && r.pick.top < r.label.bottom;
         const offRight = others.filter((r) => Math.abs(r.pick.right - floor.pick.right) > ALIGN_TOLERANCE);
         ok(offRight.length === 0, `${where}: the Contrast floor's picker ends at the other rows' picker edge (right ${floor.pick.right.toFixed(1)}; ${others.map((r) => `${r.role} ${r.pick.right.toFixed(1)}`).join(', ')})`);
-        ok(floor.pick.top < floor.label.bottom, `${where}: the Contrast floor's picker starts on its name's line, not under it (picker top ${floor.pick.top.toFixed(1)}, label bottom ${floor.label.bottom.toFixed(1)})`);
         const theirs = [...new Set(others.map(besideOf))];
+        // #2909 (Q2909.16 A): on the plugin at 380 the rail leaves the levers 320px, a snug pane, where every row's picker
+        // goes under its name; there the floor's must too (the arm below). Wherever the other rows keep theirs beside
+        // their names, the floor's starts on its name's line.
+        if (!(theirs.length === 1 && theirs[0] === false)) ok(floor.pick.top < floor.label.bottom, `${where}: the Contrast floor's picker starts on its name's line, not under it (picker top ${floor.pick.top.toFixed(1)}, label bottom ${floor.label.bottom.toFixed(1)})`);
         ok(theirs.length === 1 && besideOf(floor) === theirs[0], `${where}: the Contrast floor's picker sits beside its name exactly as the other rows' do (floor ${besideOf(floor) ? 'beside' : 'under'}; others ${theirs.map((b) => (b ? 'beside' : 'under')).join(', ')})`);
         // FL1 A (owner, #2197): on Auto the button shows "Auto · ‹palette› ‹step›", the step as the picker names steps;
         // its tooltip is the full sentence ("Auto · follows background.secondary (‹step›)") when it follows the tier, and

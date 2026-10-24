@@ -1697,6 +1697,24 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-line, .p3-upd-summary { color: var(--p3-text); }
 .p3-btn.p3-upd-btn { flex: none; }
 
+/* The rail's narrow tier and dialogs (#2909): at 380 a dialog's columns stop scrolling (`.p3-bardlg-col` above), so
+   Update file's body scrolls itself, and its footer stays in the window. */
+.p3-frame[data-w="narrow"] .p3-bardlg-col.p3-upd-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+/* The Appearance menu opens to the rail's right, from the foot up, so it stays in the window at every size. */
+.p3-frame[data-shell="rail"] .p3-rail .p3-menu { top: auto; bottom: 0; right: auto; left: calc(100% + var(--p3-space-050)); }
+/* Components' page on the rail has no tab, so the narrow tier's domain select goes with the tab row. */
+.p3-frame[data-shell="rail"][data-place="components"] .p3-nav .p3-domrow { display: none; }
+/* The rail takes 60px, so above the narrow tier the levers column keeps the room its pages are laid out in (#1975): 42%,
+   but never under four layout columns. */
+.p3-frame[data-shell="rail"][data-layout="panes"][data-w="wide"] { grid-template-columns: max(42%, calc(var(--p3-l-col) * 4)) minmax(0, 1fr); }
+/* Export's page fills the area, and its two columns scroll themselves, as they do in the web's dialog (#2523). */
+.p3-frame[data-shell="rail"] .p3-sgpage:has(> .p3-export-host) { display: flex; flex-direction: column; overflow: hidden; }
+.p3-bardlg.p3-export-page { flex: 1 1 auto; min-height: 0; }
+.p3-frame[data-w="narrow"] .p3-bardlg.p3-export-page .p3-bardlg-body { overflow-y: auto; }
+
+.p3-drawer-link-short { display: none; }
+.p3-frame[data-w="narrow"] .p3-drawer-link-long { display: none; }
+.p3-frame[data-w="narrow"] .p3-drawer-link-short { display: inline; }
 @media (forced-colors: active) {
   /* A glyph takes the forced ink, not the chrome color it names: `HighlightText` on a selected control and `GrayText` on a
      disabled one, below. */

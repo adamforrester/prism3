@@ -1413,7 +1413,9 @@ const barRead = (): BarView => ({
   confirm: pendingLoad && (pendingLoad.origin.kind === 'example' || pendingLoad.origin.kind === 'import')
     ? { at: pendingLoad.origin.kind, text: overwriteText(pendingLoad) } : null,
   importOpen, importText, importErr,
-  exportOpen: exportMenuOpen,
+  // #2909: in the plugin Export is an area, so its content shows for as long as the area is open, whatever else
+  // (the brand menu, a download) closes the web's dialog.
+  exportOpen: exportMenuOpen || (commit.isFigma && page === 'export'),
   home: homeBar(homeShown()),
   // #2909: on the rail the prune's preview is Update file's Clean up tab, never this dialog.
   prune: host.prunePreview && !commit.isFigma ? {

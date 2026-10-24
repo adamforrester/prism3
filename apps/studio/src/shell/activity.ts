@@ -494,7 +494,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     // row has no room for it. Its tooltip is the link's full status line, and so is the rest of its accessible name,
     // after its visible words.
     if (agentLinkStatus.short) {
-      const ln = hook(h('span', 'p3-drawer-link', agentLinkStatus.short), 'activity-agent-link');
+      // #2909 (round 4): the full words above the narrow tier; at 380, where the rail leaves the drawer 320px, the
+      // wireframe's one word, or the error in two. The full line is the tooltip and the accessible name either way.
+      const ln = hook(h('span', 'p3-drawer-link'), 'activity-agent-link');
+      ln.append(h('span', 'p3-drawer-link-long', agentLinkStatus.short), h('span', 'p3-drawer-link-short', agentLinkStatus.error ? 'Agent error' : 'Agent'));
       ln.dataset.error = String(agentLinkStatus.error);
       if (agentLinkStatus.full) { ln.title = agentLinkStatus.full; ln.append(h('span', 'p3-sr', agentLinkStatus.full)); }
       parts.push(ln);
