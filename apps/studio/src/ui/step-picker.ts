@@ -29,8 +29,13 @@ export type StepPickerOpts = {
   readonly palettes: readonly PickerPalette[];
   /** The step the role resolves to now. */
   readonly current: { readonly palette: string; readonly step: string } | null;
-  /** The color the role is measured against, its name, and its floor; null when the role has no floor. */
-  readonly against: { readonly hex: string; readonly name: string; readonly floor: number } | null;
+  /** The color the role is measured against, its name, and its floor; null when the role has no floor. `also`
+   *  names the other surfaces the role sits on (a link's page tiers, #2990): a step is rated at its worst across
+   *  `hex` and every one of them. */
+  readonly against: { readonly hex: string; readonly name: string; readonly floor: number; readonly also?: readonly string[] } | null;
+  /** True when a step below the floor cannot be chosen (a link, #2990): it stays in the grid, marked and
+   *  focusable, but `aria-disabled` and its click does nothing. Otherwise a below-floor step is marked only. */
+  readonly blockBelow?: boolean;
   /** True when the role is overridden now, so Return to Auto has something to undo. */
   readonly overridden: boolean;
   /** False for a control with no Auto to return to (the page surface, Q21 and Q45): no Return to Auto. */
@@ -39,6 +44,13 @@ export type StepPickerOpts = {
   readonly onAuto: () => void;
   readonly onClose: () => void;
 };
+
+/** What a screen reader hears after "below floor" on a step that cannot be chosen (#2990; owner decision Q2990 A, APPROVED as drafted). */
+export const STEP_BLOCKED = ', not available';
+
+/** A color's worst ratio against `against` and every surface it also sits on. */
+export const worstRatio = (hex: string, against: NonNullable<StepPickerOpts['against']>): number =>
+  Math.min(...[against.hex, ...(against.also ?? [])].map((g) => contrast(hexToRgb(hex), hexToRgb(g))));
 
 /** A ratio as the chrome prints one: two decimals, floored, so a pick never reads above what it measures. */
 export const fmtRatio = (r: number): string => `${(Math.floor(r * 100) / 100).toFixed(2)}:1`;
@@ -58,7 +70,7 @@ export const stepPicker = (o: StepPickerOpts): { el: HTMLElement; focusCurrent: 
   close.onclick = () => o.onClose();
   head.append(close);
   const hint = h('p', 'p3-picker-hint', o.against
-    ? `Floor ${o.against.floor}:1 against ${o.against.name}. Each step shows its ratio before you choose.`
+    ? `Floor ${o.against.floor}:1 against ${o.against.name}${o.against.also?.length ? ' and the surfaces it sits on' : ''}. Each step shows its ratio before you choose.`
     : 'No contrast floor on this role.');
 
   const tools = h('div', 'p3-picker-tools');
@@ -83,7 +95,7 @@ export const stepPicker = (o: StepPickerOpts): { el: HTMLElement; focusCurrent: 
   let buttons: HTMLButtonElement[] = [];
   const drawSteps = (): void => {
     buttons = shown.steps.map((s) => {
-      const ratio = o.against ? contrast(hexToRgb(s.hex), hexToRgb(o.against.hex)) : null;
+      const ratio = o.against ? worstRatio(s.hex, o.against) : null;
       const below = !!o.against && ratio !== null && ratio + 1e-9 < o.against.floor;
       const cur = o.current?.palette === shown.palette && o.current.step === s.key;
       const b = hook(h('button', 'p3-step'), 'step-picker-step');
@@ -91,8 +103,10 @@ export const stepPicker = (o: StepPickerOpts): { el: HTMLElement; focusCurrent: 
       b.dataset.step = s.key;
       b.dataset.palette = shown.palette;
       if (below) b.dataset.below = 'true';
+      const blocked = below && !!o.blockBelow;
+      if (blocked) b.setAttribute('aria-disabled', 'true');
       b.setAttribute('aria-pressed', String(cur));
-      b.setAttribute('aria-label', `${shown.palette} ${s.key}${ratio !== null ? `, ${fmtRatio(ratio)}` : ''}${below ? ', below floor' : ''}${cur ? ', current' : ''}`);
+      b.setAttribute('aria-label', `${shown.palette} ${s.key}${ratio !== null ? `, ${fmtRatio(ratio)}` : ''}${below ? ', below floor' : ''}${blocked ? STEP_BLOCKED : ''}${cur ? ', current' : ''}`);
       b.tabIndex = -1;
       const chip = h('span', 'p3-step-chip');
       chip.dataset.content = '';
@@ -102,7 +116,7 @@ export const stepPicker = (o: StepPickerOpts): { el: HTMLElement; focusCurrent: 
       const r = h('span', 'p3-step-ratio', ratio !== null ? fmtRatio(ratio) : '');
       if (below) r.append(glyph('x'));
       b.append(chip, key, r);
-      b.onclick = () => o.onPick(shown.palette, s.key);
+      b.onclick = () => { if (!blocked) o.onPick(shown.palette, s.key); };
       return b;
     });
     const start = buttons.find((b) => b.getAttribute('aria-pressed') === 'true') ?? buttons[0];

@@ -1191,6 +1191,57 @@ for (const b of brands) {
   ok(gStep !== sub.key, `L-06: the clamp moves off the raw sub-floor step (${sub.key} → ${gStep})`);
 }
 
+// L-07 (#2990) — NO PINNED LINK STEP LANDS UNDER 4.5:1 ON A SURFACE IT SITS ON, IN ANY MODE.
+// Theme › Color lets a brand pin its resting link (page and inverse) to any step of its link palette, per
+// editable mode; the UI hatches the steps it judges below floor, but the UI is not the guarantee. This sweeps
+// EVERY step of the link palette, pinned onto all ten text-link roles at once (default, hover, pressed,
+// visited, focused × page and inverse), in each editable mode (light, dark), for every brand built from an
+// input (the shipped examples and the minimal brand), and reads all four resolved modes. EXPECTED is
+// recomputed HERE from resolved HEX VALUES with the shared `contrast` primitive: the role's own hex against the
+// resolved hex of each surface the family sits on, named literally below (page primary and secondary; inverse
+// primary and secondary, Q2990.4 A, the third tier held as #2991). Neither the role's recorded `ratio`, its
+// `against`, nor any studio code is read (docs/34). The floor is 4.5 written literally, raised to the role's
+// declared `min` where that is higher (HC modes, 7). BY-NAME MUTATION: delete the link floor guard's
+// `if (isLinkRole(rolePath) …)` clamp in modes.ts → this arm fails by name, naming brand, pin and surface.
+{
+  const LINK_ROLES = ['text', 'inverse.text'].flatMap((p) => ['default', 'hover', 'pressed', 'visited', 'focused'].map((s) => `${p}.link.${s}`));
+  const SURFACES: Record<string, readonly string[]> = {
+    text: ['background.primary', 'background.secondary'],
+    'inverse.text': ['inverse.background.primary', 'inverse.background.secondary'],
+  };
+  const brands = Object.entries({ ...exampleBrands(), minimal: MINIMAL_BRAND }) as Array<[string, BrandInput]>;
+  const misses: string[] = [];
+  let checked = 0, pins = 0;
+  for (const [id, inp] of brands) {
+    const base = brandTheme(inp);
+    const pal = base.linkPalette;
+    const steps = base.palettes.find((p) => p.palette === pal)?.steps ?? [];
+    for (const mode of ['light', 'dark']) for (const st of steps) {
+      pins++;
+      const own = (inp.overrides as Record<string, Record<string, unknown>> | undefined) ?? {};
+      const pin = Object.fromEntries(LINK_ROLES.map((r) => [r, { palette: pal, step: st.key }]));
+      const t = brandTheme({ ...inp, overrides: { ...own, [mode]: { ...(own[mode] ?? {}), ...pin } } } as BrandInput);
+      for (const m of resolveAllModes(t)) {
+        const R = m.roles as unknown as Record<string, { hex: string; min?: number } | undefined>;
+        for (const role of LINK_ROLES) {
+          const x = R[role];
+          if (!x) { misses.push(`${id}: ${role} missing in ${m.mode}`); continue; }
+          const floor = Math.max(4.5, x.min ?? 0);
+          for (const g of SURFACES[role.startsWith('inverse.') ? 'inverse.text' : 'text']) {
+            const ground = R[g]?.hex;
+            if (!ground) { misses.push(`${id}: surface ${g} missing in ${m.mode}`); continue; }
+            checked++;
+            const c = contrast(hexToRgb(x.hex), hexToRgb(ground));
+            if (c + 1e-9 < floor) misses.push(`${id}: pin ${pal} ${st.key} in ${mode} → ${role} in ${m.mode} is ${x.hex}, ${c.toFixed(2)}:1 on ${g} (floor ${floor})`);
+          }
+        }
+      }
+    }
+  }
+  ok(brands.length >= 4 && pins >= 4 * 2 * 15 && checked > 0, `L-07: the sweep covers ${brands.length} brands, ${pins} pins, ${checked} role-on-surface pairs (non-vacuous)`);
+  ok(misses.length === 0, `L-07 (#2990): no pinned link step lands under its floor on a surface it sits on, in any mode (${misses.length} miss(es)${misses.length ? `: ${misses.slice(0, 3).join('; ')}` : ''})`);
+}
+
 // FO-01 (#2025) — an OVERRIDE is re-rated against its real ground when that ground is a PALETTE STEP.
 // A floor-measured role (`foreground.*`, links, `interactive.<c>.fill.*`) names its ground as a ramp
 // step — `neutral.050`, the contrast floor — not a role. The override pass looked `against` up among
