@@ -31,6 +31,8 @@ export type UpdateFileLend = {
     readonly catalog: Catalog;
     /** The run that is out, or null. */
     readonly run: UpdateRun | null;
+    /** The last run that ended on a failed step, with the step and its words, until the next run; else null. */
+    readonly stopped: { readonly step: StepKey; readonly headline: string } | null;
     /** Why Update file cannot run now (the file's brand did not restore), or null. */
     readonly off: string | null;
     readonly prune: {
@@ -132,7 +134,10 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     ticks ??= defaultTicks(r.catalog, f);
     const t = ticks;
     const fresh = !f.setUp;
-    const body: HTMLElement[] = [h('p', 'p3-sub p3-upd-lead', fresh ? UPDATE_COPY.leadFresh : UPDATE_COPY.lead)];
+    const body: HTMLElement[] = [];
+    // A run that stopped on a failed step says so here, so a step that refused to start is never silent.
+    if (r.stopped) body.push(hook(h('p', 'p3-sg-error', UPDATE_COPY.stopped(STEP_TITLE[r.stopped.step], r.stopped.headline)), 'update-stopped'));
+    body.push(h('p', 'p3-sub p3-upd-lead', fresh ? UPDATE_COPY.leadFresh : UPDATE_COPY.lead));
     if (fresh) body.push(item('setup', t.setup, UPDATE_COPY.setup, UPDATE_COPY.setupSub, () => { ticks = { ...t, setup: !t.setup }; }));
     body.push(item('theme', t.theme, UPDATE_COPY.theme, UPDATE_COPY.themeSub, () => { ticks = { ...t, theme: !t.theme }; }));
     // The sets: the item's head says how many are not in the file; each is its own box.
@@ -173,8 +178,10 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   const cleanBody = (): { body: HTMLElement[]; foot: HTMLElement[] } => {
     const r = lend.read();
     const p = r.prune;
-    if (!pruneAsked && !p.busy && !p.preview) { pruneAsked = true; lend.pruneCheck(); }
+    // Never after a failed restore: the brand on screen is then the demo's, and its preview would not be the file's.
+    if (!pruneAsked && !p.busy && !p.preview && !r.off) { pruneAsked = true; lend.pruneCheck(); }
     const body: HTMLElement[] = [h('p', 'p3-sub p3-upd-lead', UPDATE_COPY.cleanLead)];
+    if (r.off) body.push(hook(h('p', 'p3-sg-error', r.off), 'clean-off'));
     const foot: HTMLElement[] = [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.close, close)];
     if (p.busy) body.push(hook(h('p', 'p3-upd-line', UPDATE_COPY.cleanChecking), 'clean-checking'));
     else if (p.preview) {
@@ -199,6 +206,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   const paint = (): void => {
     const r = lend.read();
     setBusy(button, !!r.run);
+    // Busy, it still opens the overlay (the step running, and Stop), so it is not announced as unavailable.
+    button.removeAttribute('aria-disabled');
     if (!open) { if (layer.firstChild) layer.replaceChildren(); return; }
     const focused = document.activeElement instanceof HTMLElement && layer.contains(document.activeElement) ? document.activeElement.dataset.key ?? null : null;
     const scrim = h('div', 'p3-bardlg-scrim');

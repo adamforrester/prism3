@@ -95,6 +95,7 @@ export const UPDATE_COPY = {
   close: 'Close',
   stop: 'Stop after this step',
   running: (step: string, at: number, of: number): string => `Step ${at} of ${of} · ${step}`,
+  stopped: (step: string, headline: string): string => `The last update stopped at ${step}: ${headline}`,
   cleanLead: 'Things Prism3 wrote earlier and no longer writes. Nothing here rides Update file.',
   cleanChecking: 'Checking for stale items…',
   cleanNone: 'Nothing stale in this file.',

@@ -1513,7 +1513,8 @@ const barActions: BarActions = {
     barChanged();
   },
   download: () => {
-    exportMenuOpen = false; barChanged();
+    // #2909: in the plugin Export is an area, so a download leaves its page as it is; the web's dialog closes.
+    if (!commit.isFigma) { exportMenuOpen = false; barChanged(); }
     if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
   },
   // Cancel deletes nothing: a review is not a commitment. Only Delete's `postPrune(…, true)` does, and the main thread
@@ -1735,7 +1736,8 @@ const runApply = (): void => {
 };
 /** Prune stale: a dry run first, whose count the confirm dialog shows (#1521). */
 const runPrune = (): void => {
-  if (pruneBlocked()) return;
+  // #2909: never after a failed restore either, when the brand on screen is the demo's, not the file's (#1989).
+  if (pruneBlocked() || restoreFailure) return;
   setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, false);
 };
 /** Set up file (#1558). `openDetail` is cleared for the reason the build clears it: the previous run's
@@ -1841,13 +1843,17 @@ const documentationLend: DocumentationLend = {
 // `handleHostMessage` after the reduce), and a failed step ends the run.
 /** The run out now, or null. */
 let updateRun: UpdateRun | null = null;
+/** The last run that ended on a failed step, with that step's words, until the next run starts. */
+let updateStopped: { readonly step: StepKey; readonly headline: string } | null = null;
 /** The style-guide step asked for a fresh catalog and waits for it, to draw with Documentation's saved settings. */
 let guidesWait = false;
 const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
 /** The run after the step out ended: record it, then start the next or end the run. */
 const endStep = (ok: boolean, headline: string): void => {
   if (!updateRun) return;
+  const step = stepOf(updateRun);
   updateRun = stepDone(updateRun, ok, headline);
+  if (!ok && step) updateStopped = { step, headline };
   if (updateRun.done) { updateRun = null; updateChanged(); return; }
   startStep();
 };
@@ -1885,13 +1891,14 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
 /** Update file's reads and writes, lent to the shell (`shell/update-file.ts`). */
 const updateFileLend: UpdateFileLend = {
   read: () => ({
-    fileSets: host.fileSets, catalog: componentCatalog(), run: updateRun, off: restoreFailure ? RESTORE_OFF_HINT : null,
+    fileSets: host.fileSets, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: restoreFailure ? RESTORE_OFF_HINT : null,
     prune: { busy: host.pruneBusy, preview: host.prunePreview, verdict: host.pruneVerdict },
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
   }),
   check: () => commit.requestFileSets(),
   run: (steps, sets) => {
     if (updateRun || restoreFailure) return;
+    updateStopped = null;
     updateRun = startUpdate(steps, sets);
     startStep();
   },
