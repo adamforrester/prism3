@@ -952,7 +952,9 @@ const goPlace = async (page, place) => {
  *  1280 its radios do not fit and the select shows; the fit itself is section 17's. Waits for the choice to land. */
 const pickMode = async (page, mode) => {
   const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`).first();
-  if (await radio.count() && await radio.isVisible()) await hooks.click(radio);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const fit = await page.evaluate(() => document.querySelector('[data-p3="mode-control"]')?.parentElement?.dataset.fit ?? null);
+  if (fit !== 'select' && await radio.count() && await radio.isVisible()) await hooks.click(radio);
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
     || document.querySelector('[data-p3="mode-select"]')?.value === m, mode, { timeout: 5000 });
@@ -4283,7 +4285,11 @@ const VISIBLE_WORDS = () => {
 /** Show `mode` in the preview: its radio, or the select when the radios do not all fit. */
 const showMode = async (page, mode) => {
   const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
-  if (await radio.count() && await radio.first().isVisible()) await hooks.click(radio.first());
+  // The control measures whether its radios fit once it is drawn, and can swap them for the select a frame later (#2909:
+  // the plugin's header holds the verdict too); read its own fit after it settles, as `roShowMode` does.
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const fit = await page.evaluate(() => document.querySelector('[data-p3="mode-control"]')?.parentElement?.dataset.fit ?? null);
+  if (fit !== 'select' && await radio.count() && await radio.first().isVisible()) await hooks.click(radio.first());
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
   await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode !== undefined
     && [...document.querySelectorAll('[data-p3="mode-option"]')].some((b) => b.dataset.mode === m && b.getAttribute('aria-checked') === 'true')
@@ -10917,7 +10923,9 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
               if (fit.narrow && sawCut) narrowAfterCut++;
               if (seen.cut) sawCut = true;
             }
-            if (theme === 'light' && !fit.narrow) seenBy[brand][w] = seen.step;
+            // #2909: the plugin's rail-shell bar has room at every width above the narrow tier, so its long name gives way
+            // at the narrow tier only: read there on the plugin.
+            if (theme === 'light' && (!fit.narrow || host === 'figma')) seenBy[brand][w] = seen.step;
             if (seen.step === 'trim') (fit.narrow ? narrowTrim : trimmedOn)[host]++;
             const allowed = seen.step === 'trim' ? (fit.fileRow ? 2 : 1) : MAX_ROWS[seen.step] ?? 0;
             if (!fit.also.includes(seen.step) || seen.rows.length > allowed) missed.push(`${w}: want ${fit.also.join('/')} (full ${fit.full}, without labels ${fit.glyphs}, without the name ${fit.logo}${fit.fileRow ? `, first of two rows ${fit.rows}` : ''}, in ${fit.room}), drew ${seen.step} in ${seen.rows.length} row(s) ${JSON.stringify(seen.rows)}`);
@@ -10961,7 +10969,9 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
     ok(later.length > 0 && behind.length === 0, `29d ${host}: the long name gives way sooner than "prism3" (further along at ${later.join(', ') || 'no width'}; behind at ${behind.join(', ') || 'none'})`);
   }
   // Q83 A's case: the plugin's long name reaches the cut name (570–590, Lane D's sweep on #2257).
-  ok(trimmedOn.figma > 0, `29d figma: the long name reaches the cut-name step somewhere in the sweep (${trimmedOn.figma} state(s))`);
+  // Q83 A's case was the plugin's crowded bar above the narrow tier (570–590). Since #2909 that bar is the rail shell's
+  // three controls, which never crowd there; its cut is the narrow tier's, held just below.
+  ok(trimmedOn.figma + narrowTrim.figma > 0, `29d figma: the long name reaches the cut-name step somewhere in the sweep (${trimmedOn.figma} above the narrow tier, ${narrowTrim.figma} at it)`);
   // #2262's case: at the narrow tier the long name wrapped the bar (the plugin at 460 and below, the web at about 430 and
   // below), so each host must reach the cut name there, or the narrow half of the sweep proves nothing.
   for (const host of ['figma', 'web']) ok(narrowTrim[host] > 0, `29d ${host}: the long name reaches the cut-name step at the narrow tier (${narrowTrim[host]} state(s))`);
@@ -11206,7 +11216,8 @@ const PLUGIN_ONLY_PAGES = [SG_PLACE];
 /** The pages the rule is measured on, per host. */
 const HEADING_PAGES = { web: [...NEW_PAGES], figma: [...NEW_PAGES, SG_PLACE] };
 /** The style guides page's own literal floors (per host and theme, both widths), under the counts measured when it joined. */
-const SG_HEADING_FLOOR = { L1: 2, L2: 5, L3: 14, swept: 9 };
+// #2909: Documentation › Style guides holds settings only (Q2909.23 A): no Draw bar and no run list, one swept heading fewer.
+const SG_HEADING_FLOOR = { L1: 2, L2: 5, L3: 14, swept: 8 };
 const openStyleGuides = async (page) => {
   await openDocs(page, WAIT);
   await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
