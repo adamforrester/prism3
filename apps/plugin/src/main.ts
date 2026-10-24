@@ -56,7 +56,7 @@ import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNo
 import { ensureFurnitureTemplates } from './furniture-templates';
 import { ensureDocBlock, docBlockNote, type DocBlockApi } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
-import { drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
+import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -735,6 +735,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
           clearFurniture(page as unknown as FurnitureParent, target.id);
           // Its usage panel too, when its set is gone and no one edited it (#846); an edited one stays.
           await clearOrphanPanels(figma as unknown as PanelApi, page, target.id);
+          // And its spec panel (#2830), on the same rule.
+          await clearOrphanSpecPanels(figma as unknown as PanelApi, page, target.id);
         }
       }
       const built = await applyComponentPlan(project(target), figma, {
@@ -1092,8 +1094,8 @@ const drawSpecs = async (defId: string | undefined, sink: ActionSink): Promise<v
     try { brandInput = restoreInput(figma.root); } catch { /* untrusted/absent → defaults, as `buildComponents` */ }
     await figma.loadAllPagesAsync();
     const api = figma as unknown as SpecApi;
-    const targets = specTargets(api, defId);
-    const drawn: string[] = [], items: string[] = [];
+    const { targets, skipped } = specTargets(api, defId);
+    const drawn: string[] = [], items: string[] = [...skipped];
     for (const { def, set } of targets) {
       let o: SpecOutcome;
       try { o = await drawSpecPanel(api, set, def, { materialize: (d) => materializeForBrand(d, brandInput) }); }
@@ -1105,7 +1107,7 @@ const drawSpecs = async (defId: string | undefined, sink: ActionSink): Promise<v
     }
     sink.data({ specs: { drawn, items } });
     // DRAFT wording (Q2830.7).
-    const ok = drawn.length > 0 && drawn.length === targets.length;
+    const ok = drawn.length > 0 && drawn.length === targets.length && !skipped.length;
     const headline = !targets.length ? '✗ no sets to spec' : ok ? `✓ drew ${drawn.length} spec panel${drawn.length === 1 ? '' : 's'}` : `⚠ drew ${drawn.length} of ${targets.length} spec panels`;
     const summary = !targets.length ? `No family's lead set is in this file${defId ? ` for ${defId}` : ''}.` : [`Drew ${drawn.length} of ${targets.length}.`, ...items].join(' ');
     postVerdict({ type: 'component-update-result', ok: ok && !items.length, headline, summary, lines: targets.length ? [`Drew ${drawn.length} of ${targets.length}.`, ...items] : [summary] }, sink);

@@ -74,7 +74,7 @@ import { ensureDocBlock, type DocBlockApi } from './src/doc-block';
 import { drawFurniture, furnishUpdate, furnitureLayout, seatNewSet, templatesLine, withPanel, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { pageSetMoves, previewUpdate, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, previewHashOf } from './src/update-apply';
-import { drawSpecPanel, planSpecPanel, specItems, type SpecApi } from './src/spec-panel';
+import { clearOrphanSpecPanels, drawSpecPanel, planSpecPanel, specItems, type SpecApi } from './src/spec-panel';
 
 let failed = 0;
 const ok = (cond: boolean, label: string, detail = ''): void => {
@@ -1237,6 +1237,44 @@ const specPage = async (name: string) => {
   const u = panelsOn(p).find((n) => tagOf(n).state === 'live')!;
   ok(r.drawn, `specs/usage not blocked: the usage panel draws over its own spec panel's old spot (${panelItems(r).join('; ')})`);
   ok(!!u && Number(sp.y) === Number(u.y) + Number(u.height) + 40 && !overlap(u, sp), `specs/usage pushes down: the spec panel moves to 40 below the redrawn usage panel (${sp.y} vs ${Number(u?.y) + Number(u?.height) + 40})`);
+}
+{
+  // A blocked draw leaves the set's earlier panel as it was: it is removed only once the fresh one lands.
+  const { p, set, api, usage } = await specPage('↳ Specs blocked again');
+  await drawSpecPanel(api, set, def('button'));
+  const old = specPanelsOn(p)[0];
+  p.appendChild!(mk('FRAME', 'Notes', [], { x: Number(usage.x) + 100, y: Number(old.y) + 200, _w: 100, _h: 40 }));
+  const r = await drawSpecPanel(api, set, def('button'));
+  ok(!r.drawn && r.replaced === 0 && !old.removed && specPanelsOn(p).length === 1, `specs/blocked keeps: a refused redraw keeps the earlier panel (${r.replaced} replaced, ${specPanelsOn(p).length} on the page)`);
+}
+{
+  // An edited usage panel set aside by a taller redraw lands below the spec panel, never under it.
+  const { p, set, api, usage } = await specPage('↳ Specs and an edited usage panel');
+  await drawSpecPanel(api, set, def('button'));
+  const sp = specPanelsOn(p)[0];
+  walk(usage).find((c) => c.type === 'TEXT' && String(c.characters).length > 20)!.characters = 'Our own lede.';
+  sp.y = Number(sp.y) - 300;
+  await drawDocPanel(api, set, def('button'), { names });
+  const keptUsage = panelsOn(p).find((n) => tagOf(n).state === 'kept');
+  ok(!!keptUsage && !overlap(keptUsage, sp) && Number(keptUsage.y) > Number(sp.y), `specs/edited usage below: the kept usage panel sits below the spec panel, clear of it (${keptUsage?.y} vs ${sp.y})`);
+}
+{
+  // A deleted set's unedited spec panel comes off before its def is built again; an edited one stays.
+  const { p, set, api } = await specPage('↳ Specs orphan');
+  await drawSpecPanel(api, set, def('button'));
+  const sp = specPanelsOn(p)[0];
+  set.remove!();
+  const n = await clearOrphanSpecPanels(api, p, 'button');
+  ok(n === 1 && sp.removed === true, `specs/orphan: the unedited spec panel of a deleted set is cleared (${n})`);
+}
+{
+  // Without the template's face loaded, the panel draws with no redlines and names why; nothing is left half drawn.
+  const { p, set, api } = await specPage('↳ Specs no face');
+  const noFace = { ...api, loadFontAsync: async () => { throw new Error('font unavailable'); } } as unknown as SpecApi;
+  const r = await drawSpecPanel(noFace, set, def('button'));
+  const sp = specPanelsOn(p)[0];
+  ok(r.drawn && !!sp && r.redlines === 0 && r.misses.some((m) => m.startsWith('redlines:')) && !sp.children.some((c) => String(c.name).startsWith('redline ')),
+    `specs/no face: no redlines without a loaded face, and the run says so (${r.misses.filter((m) => m.startsWith('redlines')).join('; ')})`);
 }
 {
   // Update moves a live spec panel with its set, as it moves the usage panel.

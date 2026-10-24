@@ -1058,18 +1058,20 @@ export const drawDocPanel = async (
     n.x = x;
     n.y = Math.max(...col.map((c) => (c.y ?? 0) + (c.height ?? 0))) + PANEL_GAP;
   };
+  // THE SET'S SPEC PANEL (#2830) sits `PANEL_GAP` below its usage panel: a usage panel drawn taller pushes it down, so
+  // the two never overlap and the spec panel keeps its gap. Done before the edited panels go below everything, so they
+  // are measured below it, never under it. A kept spec panel is the designer's and stays put.
+  const specs = (parent.children as readonly PNode[]).filter((c) => !c.removed && ownSpecPanel(c, set));
+  for (const sp of specs) {
+    if (overlaps({ ...box(panel), height: (panel.height ?? 0) + PANEL_GAP }, box(sp))) sp.y = (panel.y ?? 0) + (panel.height ?? 0) + PANEL_GAP;
+  }
   for (const e of edited) {
     if (!String(e.name ?? '').endsWith(' (edited)')) e.name = `${e.name ?? `${def.name} usage`} (edited)`;
     writeTag(e, { v: 1, def: def.id, set: String(set.id ?? ''), state: 'kept', ...family });
     if (e.parent === parent) below(e);
     out.kept.push(String(e.name));
   }
-  for (const k of kept) if (overlaps(box(panel), box(k))) below(k);
-  // THE SET'S SPEC PANEL (#2830) sits `PANEL_GAP` below its usage panel: a usage panel drawn taller pushes it down, so
-  // the two never overlap and the spec panel keeps its gap. A kept spec panel is the designer's and stays put.
-  for (const sp of (parent.children as readonly PNode[]).filter((c) => !c.removed && ownSpecPanel(c, set))) {
-    if (overlaps({ ...box(panel), height: (panel.height ?? 0) + PANEL_GAP }, box(sp))) sp.y = (panel.y ?? 0) + (panel.height ?? 0) + PANEL_GAP;
-  }
+  for (const k of kept) if (overlaps(box(panel), box(k)) || specs.some((sp) => overlaps(box(sp), box(k)))) below(k);
   out.misses = [...new Set(out.misses)];
   return out;
 };

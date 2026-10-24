@@ -326,11 +326,10 @@ export const drawSpecPanel = async (
   const setOf = (id: string): PNode | undefined => (id === def.id ? set : opts.sets?.(id)
     ?? (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).find((n) => n.type === 'COMPONENT_SET' && !n.removed && n.name === id));
 
-  const edited: PNode[] = [];
-  for (const p of earlierSpecPanels(api, set, def.id)) {
-    if (await specPanelUnedited(p)) { p.remove?.(); out.replaced++; }
-    else edited.push(p);
-  }
+  // THE EARLIER PANELS: read now, removed only once the fresh one lands, so a blocked or failed draw leaves the set's
+  // panel as it was.
+  const edited: PNode[] = [], unedited: PNode[] = [];
+  for (const p of earlierSpecPanels(api, set, def.id)) (await specPanelUnedited(p) ? unedited : edited).push(p);
 
   const vars = api.variables ? await api.variables.getLocalVariablesAsync() : [];
   const byTail = (tail: string) => vars.find((v) => v.name === tail || v.name.endsWith(`/${tail}`));
@@ -483,12 +482,14 @@ export const drawSpecPanel = async (
   parent.appendChild(panel);
   panel.x = at.x;
   panel.y = at.y;
-  out.redlines = await drawRedlines(api, panel, staged, magenta, faceLoaded ? face : undefined, out);
+  // A write the host refuses from here on must not leave an untagged half-panel on the canvas.
+  try { out.redlines = await drawRedlines(api, panel, staged, magenta, faceLoaded ? face : undefined, out); }
+  catch (e) { panel.remove?.(); throw e; }
 
-  // NOTHING UNDER IT: every node on the parent but the panels this draw moves and the set's own labels.
+  // NOTHING UNDER IT: every node on the parent but the panels this draw replaces or moves and the set's own labels.
   const kids = parent.children as readonly PNode[];
   const kept = kids.filter((c) => readSpecTag(c)?.state === 'kept' && readSpecTag(c)?.def === def.id);
-  const movers = new Set<PNode>([panel, ...edited.filter((e) => e.parent === parent), ...kept]);
+  const movers = new Set<PNode>([panel, ...unedited, ...edited.filter((e) => e.parent === parent), ...kept]);
   const hits = kids.filter((c) => !movers.has(c) && !c.removed && readTag(c as never)?.set !== String(set.id ?? '\u0000') && overlaps(boxOf(panel), boxOf(c)));
   if (hits.length) {
     panel.remove?.();
@@ -498,6 +499,7 @@ export const drawSpecPanel = async (
     return out;
   }
 
+  for (const p of unedited) { p.remove?.(); out.replaced++; }
   writeTag(panel, { v: 1, def: def.id, set: String(set.id ?? ''), state: 'live' });
   panel.setSharedPluginData?.(SPEC_PANEL_NS, SPEC_PANEL_PLAN, plan.hash);
   panel.setSharedPluginData?.(SPEC_PANEL_NS, SPEC_PANEL_PRINT, await panelPrint(panel));
@@ -533,7 +535,9 @@ const drawRedlines = async (
 ): Promise<number> => {
   type Side = 'top' | 'bottom' | 'left' | 'right';
   type Laid = { mark: RedlineMark; part: PNode; side: Side; text: string; tier: number; lo: number; hi: number };
-  const sideOf = (p: RedlineMark['prop']): Side => (p === 'paddingTop' ? 'left' : p === 'height' ? 'right' : p === 'minWidth' || p === 'buildWidth' || p === 'gap' ? 'top' : 'bottom');
+  const vertical = (n: PNode): boolean => (n as unknown as { layoutMode?: unknown }).layoutMode === 'VERTICAL';
+  // A gap is measured along its part's own direction: across the top for a row, down the left for a column.
+  const sideOf = (p: RedlineMark['prop'], n: PNode): Side => (p === 'gap' ? (vertical(n) ? 'left' : 'top') : p === 'paddingTop' ? 'left' : p === 'height' ? 'right' : p === 'minWidth' || p === 'buildWidth' ? 'top' : 'bottom');
   const pxOf = (m: RedlineMark, n: PNode): number | undefined => {
     if (m.px !== undefined) return m.px;
     const r = n as unknown as Record<string, unknown>;
@@ -549,7 +553,7 @@ const drawRedlines = async (
       case 'paddingTop': return [B.y, B.y + px];
       case 'height': return [B.y, B.y + B.height];
       case 'minWidth': case 'buildWidth': return [B.x, B.x + px];
-      case 'gap': { const k = shown(n); if (k.length < 2) return undefined; const a = rect(k[0]); return [a.x + a.width, a.x + a.width + px]; }
+      case 'gap': { const k = shown(n); if (k.length < 2) return undefined; const a = rect(k[0]); return vertical(n) ? [a.y + a.height, a.y + a.height + px] : [a.x + a.width, a.x + a.width + px]; }
     }
   };
   const all: { spec: PNode; stage?: PNode; laid: Laid[] }[] = [];
@@ -563,17 +567,19 @@ const drawRedlines = async (
       const sp = span(mark, part, px);
       if (!sp) continue;
       const text = mark.px !== undefined ? mark.label : `${mark.label} · ${px}`;
-      laid.push({ mark, part, side: sideOf(mark.prop), text, tier: 0, lo: sp[0], hi: sp[1] });
+      laid.push({ mark, part, side: sideOf(mark.prop, part), text, tier: 0, lo: sp[0], hi: sp[1] });
     }
     all.push({ spec: s.spec, stage: s.stage, laid });
   }
   const every = all.flatMap((a) => a.laid);
   if (!every.length) return 0;
+  // A label needs a loaded face: without the template's, Figma refuses the text, so the redlines are left out and named.
+  if (!face) { out.misses.push('redlines: the template\'s text face could not be loaded'); return 0; }
   // Labels are measured once written, so a tier knows how wide each one is.
   const labels = new Map<Laid, PNode>();
   for (const l of every) {
     const t = api.createText();
-    if (face) { try { (t as { fontName?: unknown }).fontName = face; } catch { /* the default face */ } }
+    (t as { fontName?: unknown }).fontName = face;
     try { t.fontSize = REDLINE_TYPE; } catch { /* the default size */ }
     t.characters = l.text;
     t.fills = magenta;
@@ -600,8 +606,8 @@ const drawRedlines = async (
     const need: Record<Side, number> = {
       top: deepest('top') < 0 ? 0 : LINE_GAP + (deepest('top') + 1) * (LABEL_ROW + TICK),
       bottom: deepest('bottom') < 0 ? 0 : LINE_GAP + (deepest('bottom') + 1) * (LABEL_ROW + TICK),
-      left: deepest('left') < 0 ? 0 : LINE_GAP + TICK + 4 + sideW('left') + deepest('left') * LABEL_ROW,
-      right: deepest('right') < 0 ? 0 : LINE_GAP + TICK + 4 + sideW('right') + deepest('right') * LABEL_ROW,
+      left: deepest('left') < 0 ? 0 : LINE_GAP + (deepest('left') + 1) * (TICK + 4 + sideW('left')),
+      right: deepest('right') < 0 ? 0 : LINE_GAP + (deepest('right') + 1) * (TICK + 4 + sideW('right')),
     };
     for (const [k, side] of [['paddingTop', 'top'], ['paddingBottom', 'bottom'], ['paddingLeft', 'left'], ['paddingRight', 'right']] as const) {
       if (need[side] > Number(stage[k] ?? 0)) { try { stage[k] = Math.ceil(need[side]); } catch { out.misses.push(`the specimen's ${side} gutter could not grow`); } }
@@ -625,10 +631,12 @@ const drawRedlines = async (
         tx = (sp[0] + sp[1]) / 2 - lw / 2;
         ty = l.side === 'bottom' ? y + TICK / 2 + 1 : y - TICK / 2 - lh - 1;
       } else {
-        const x = l.side === 'left' ? P.x - LINE_GAP : P.x + P.width + LINE_GAP;
+        // Each tier one label's width further out, so two lines on one side never sit on each other.
+        const step = l.tier * (TICK + 4 + Math.max(0, ...laid.filter((o) => o.side === l.side).map((o) => widthOf(o))));
+        const x = l.side === 'left' ? P.x - LINE_GAP - step : P.x + P.width + LINE_GAP + step;
         lines.push({ x, y: sp[0], width: 1, height: Math.max(1, sp[1] - sp[0]) }, { x: x - TICK / 2, y: sp[0], width: TICK, height: 1 }, { x: x - TICK / 2, y: sp[1] - 1, width: TICK, height: 1 });
         tx = l.side === 'left' ? x - TICK - lw : x + TICK;
-        ty = (sp[0] + sp[1]) / 2 - lh / 2 + (l.side === 'left' ? l.tier * LABEL_ROW : l.tier * LABEL_ROW);
+        ty = (sp[0] + sp[1]) / 2 - lh / 2;
       }
       const boxes = [{ x: tx, y: ty, width: lw, height: lh }, ...lines];
       const u = { x: Math.min(...boxes.map((b) => b.x)), y: Math.min(...boxes.map((b) => b.y)) };
@@ -673,14 +681,32 @@ export const specItems = (o: SpecOutcome | undefined): string[] => {
 export const specPanelStale = (n: PNode, plan: SpecPanelPlan): boolean => (n.getSharedPluginData?.(SPEC_PANEL_NS, SPEC_PANEL_PLAN) ?? '') !== plan.hash;
 
 /** The family leads whose sets are in the file, each with its set: what `draw-specs` with no def draws. */
-export const specTargets = (api: Pick<PanelApi, 'root'>, onlyDef?: string): { def: ComponentDef; set: PNode }[] => {
+export const specTargets = (api: Pick<PanelApi, 'root'>, onlyDef?: string): { targets: { def: ComponentDef; set: PNode }[]; skipped: string[] } => {
   const sets = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).filter((n) => n.type === 'COMPONENT_SET' && !n.removed);
-  const out: { def: ComponentDef; set: PNode }[] = [];
+  const targets: { def: ComponentDef; set: PNode }[] = [], skipped: string[] = [];
   for (const d of componentDefs) {
     if (!d.figmaProperties || panelFamily(d.id)?.lead !== d.id) continue;
     if (onlyDef !== undefined && panelFamily(onlyDef)?.lead !== d.id && onlyDef !== d.id) continue;
     const hit = sets.filter((s) => s.name === d.id);
-    if (hit.length === 1) out.push({ def: d, set: hit[0] });
+    if (hit.length === 1) targets.push({ def: d, set: hit[0] });
+    // Two sets of one name: which one the panel documents is not this command's call, as for Update.
+    else if (hit.length > 1) skipped.push(`No spec panel for ${d.id}: the file has ${hit.length} sets named ${d.id}`);
+    else if (onlyDef !== undefined) skipped.push(`No spec panel for ${d.id}: its set is not in the file`);
   }
-  return out;
+  return { targets, skipped };
+};
+
+/**
+ * Before a set is built on `page`: its def's unedited live spec panels whose set is gone come off, as its usage panels
+ * do (`clearOrphanPanels`), so they neither block the new set's panels nor stand as furniture of no set. An edited one
+ * stays. Returns how many went.
+ */
+export const clearOrphanSpecPanels = async (api: Pick<PanelApi, 'root'>, page: unknown, defId: string): Promise<number> => {
+  const setIds = new Set((api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).map((s) => String(s.id ?? '')));
+  let n = 0;
+  for (const { node, tag } of allSpecPanels(api)) {
+    if (tag.state !== 'live' || tag.def !== defId || node.parent !== page || setIds.has(tag.set)) continue;
+    if (await specPanelUnedited(node)) { node.remove?.(); n++; }
+  }
+  return n;
 };
