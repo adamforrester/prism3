@@ -448,7 +448,7 @@ export const viewLabel = (v: ViewId | InspectId): string =>
 
 // ── the plugin's rail (#2909 IA v2 phase 1) ─────────────────────────────────────────────────────────────────────────────
 /** The rail's areas, in order (owner decision of 2026-10-24): Theme · Components · Documentation · Export. Labels are the
- *  round-4 drafts, placeholders until the owner words them (Q2909.10 A, Q2909.20 A): one word under each icon, so
+ *  owner's (Q2909.20 A, Chunk 2, 2026-10-24): one word under each icon, so
  *  Documentation is "Docs" on the rail and "Documentation" in its own header. */
 export const RAIL_AREAS = [
   { id: 'theme', label: 'Theme', name: 'Theme', glyph: 'swatches' },

@@ -81,8 +81,7 @@ const GLYPHS = {
   // S11.2: the Build style guides page's part-checked box (a dash) and a table that was not drawn (concept v6's error).
   dash: '<path d="M4 8h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   error: '<circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6v4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="11.2" r="0.95" fill="currentColor"/>',
-  // #2909 IA v2 phase 1: the plugin rail's draft icons (Q2909.14 A, Q2909.19 A; placeholders until the owner confirms
-  // them): three swatches (Theme), four diamonds (Components), a page with ruled lines (Documentation), an arrow up out
+  // #2909 IA v2 phase 1: the plugin rail's icons (Q2909.14 A; Q2909.19 A, Chunk 2, 2026-10-24): three swatches (Theme), four diamonds (Components), a page with ruled lines (Documentation), an arrow up out
   // of a tray (Export), a chain link (Agent), a question mark in a circle (Help) and a half-filled circle (Appearance).
   swatches: '<circle cx="5.3" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10.7" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="10.8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
   diamonds: '<path d="M8 1.9l2 2-2 2-2-2zM3.9 6l2 2-2 2-2-2zM12.1 6l2 2-2 2-2-2zM8 10.1l2 2-2 2-2-2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',

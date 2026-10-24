@@ -19,8 +19,8 @@
  * KEYBOARD: the rail is a `nav` landmark ("Areas") of plain buttons in the tab order. Arrow Up and Arrow Down move
  * between the area tiles, Home and End to the first and the last, as a toolbar of tiles would.
  *
- * The labels and icons are the round-4 drafts, placeholders until the owner words and confirms them (Chunk 2: Q2909.10,
- * .19, .20). The rail keeps its labels at 380 (Q2909.16 A).
+ * The labels and icons are the owner's (Chunk 2, 2026-10-24: Q2909.19 A icons, Q2909.20 A labels). The rail keeps its
+ * labels at 380 (Q2909.16 A). Its selected tile's fill is the mapped `fill-2` (Q2909.24 A).
  */
 import { RAIL_AREAS, type AreaId } from './pages';
 import { glyph, h, hook, tile } from './dom';

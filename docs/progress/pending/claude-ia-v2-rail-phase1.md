@@ -7,8 +7,9 @@ so `EXECUTOR_REVISION` stays. The web studio's shell is unchanged (Q2909.9 is ph
 
 - **The rail (owner decisions of 2026-10-24; round-4 wireframe).** `apps/studio/src/shell/rail.ts`: a 60px column, on
   the plugin only, with Theme · Components · Documentation · Export, then Agent (the one-click link toggle, filled with a
-  green dot while on), Help (the old Docs) and Appearance (the old Theme menu). Labels and icons are the round-4 drafts,
-  placeholders until Chunk 2 (Q2909.10, .19, .20). The rail keeps its labels at 380 (Q2909.16 A).
+  green dot while on), Help (the old Docs) and Appearance (the old Theme menu). Labels and icons are the owner's Chunk 2
+  decisions (Q2909.19 A, .20 A); the rail keeps its labels at 380 (Q2909.16 A); its selected tile is the mapped `fill-2`
+  (Q2909.24 A). Other UI words stay placeholders until the owner supplies them before merge (Q2909.10 A).
 - **The top bar** holds the brand, Minimize (whether the agent link is on or off, the
   owner's direction of 2026-10-24; the strip shows the link status only while it is on) and Update file. Contrast moved into the Theme
   area's preview header; Export, Activity's tile, the Figma menu and Apply Theme left the bar.
@@ -38,12 +39,15 @@ so `EXECUTOR_REVISION` stays. The web studio's shell is unchanged (Q2909.9 is ph
   Activity sheet's Escape and Close sent focus to the Activity tile, which the rail shell does not draw, so focus fell
   to BODY. Focus now goes to the drawer's own row.
 - **`test:chrome` on the rail shell.** The plugin arms read the rail, the reduced bar and Update file in place of the
-  Figma menu, Apply Theme and the Activity tile. Every write still gets checked on the wire: Theme, Set up file and
-  Clean up's dry run and Delete. The plugin's Components page has no Build bar or boxes (Q2909.5 A), so the arms that
-  measured them (#2825, C4, #2180) are retired, each with a note where it stood, and S8.2 holds their absence. The suite
-  reads the plugin's mode control through the radios or the select: at 1280 the plugin's preview header also holds the
-  verdict beside the 60px rail, so the radios do not fit and the select shows. A harness fix: the exemption canary's
-  probe left `data-cprobe` marks, which the next font read then checked on nodes that had since been hidden.
+  Figma menu, Apply Theme and the Activity tile, with the plugin's rosters and bar order authored from the round-4
+  wireframe. Every write is still checked on the wire. Arms whose plugin subject is gone (the Figma menu, the bar's Apply
+  Theme and Activity tile, the Components Build bar and boxes, the bar's file row) are retired for the plugin only, each
+  with a note where it stood. Added: the rail's order, names and labels at 1280 and 380, `aria-current` following the
+  area, the selected tile's `fill-2` against the emission, Minimize link on and off, and the idle strip. At 380 the rail
+  leaves the levers 320px, a snug pane (Q2909.16 A), so #2179's "picker on its name's line" holds wherever the other rows
+  keep theirs beside their names.
+- **Two runs of this lane pushed to the branch in parallel** (about 20:30–21:40 UTC). Their commits are merged, not
+  replaced, except their copy of `test-chrome.mjs`; the owner chose this run to continue (Q2909.25 A).
 
 ### Deferred to phase 2
 
@@ -52,6 +56,7 @@ file already holds in place from the checklist, Components grouped by tiers (Q29
 (Q2909.9), and cutting the Decisions log (Q2909.7). The checklist saves no single version up front: each step saves
 what it saved before (Apply, #2851).
 
-### Held for the owner
+### Owner decisions taken in the lane
 
-The dark rail's selected tile uses `fill-2` (mapped, both themes), not the wireframe's unmapped `#2a2a2d`.
+- **Q2909.24 A:** the dark rail's selected tile uses `fill-2` (mapped, both themes), not the wireframe's unmapped `#2a2a2d`.
+- **Q2909.25 A:** of two runs pushing to this branch, this one continues to Ready.

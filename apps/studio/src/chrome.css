@@ -1631,7 +1631,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
    tiles are bar tiles (`dom.ts` `tile`), labels kept at every width (Q2909.16 A), their tooltips to the right. The
    current area's tile and the Agent tile while the link is on take the second inset fill behind the glyph: the dark
    rail's first inset (`fill-1`) is too faint to read as a selected tile, so the round-4 wireframe drew a value outside
-   the map there; `fill-2` is the mapped step, the same in both themes (a held question for the owner). Hover takes
+   the map there; `fill-2` is the mapped step, the same in both themes (the owner's Q2909.24 A). Hover takes
    `fill-1`. */
 .p3-rail { display: none; }
 .p3-frame[data-shell="rail"] > .p3-rail {

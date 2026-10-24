@@ -149,7 +149,7 @@ export const mountAgentLink = (): void => {
   tip.textContent = 'Agent';
   const dot = hook(h('span', 'p3-dot p3-agent-dot'), 'agent-dot');
   dot.setAttribute('aria-hidden', 'true');
-  // #2909 (Q2909.19 A, a draft): the chain link, the rail's Agent icon.
+  // #2909 (Q2909.19 A): the chain link, the rail's Agent icon.
   mark.append(glyph('link'), dot);
   // #2949 (Q600 A): Minimize, on the top bar since #2909, whether the link is on or off. A plain button: the main thread decides.
   const { btn: minBtn, mark: minMark, tip: minTip } = tile('agent-minimize', 'Minimize');
