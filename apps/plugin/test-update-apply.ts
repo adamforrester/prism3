@@ -385,6 +385,52 @@ section('pages — component pages out of alphabetical order: listed by the dry 
   ok(!!res2.refusedAll && !res2.reordered, `pages/hash: a page moved since the check refuses the confirm (${res2.refusedAll})`);
 }
 
+/* ── page moves ───────────────────────────────────────────────────────────────────────────────────────── */
+// #2989, owner decision Q656 A: a Prism3 set still on the page an earlier taxonomy gave it (Breadcrumb Item) is listed
+// by the dry run and moved by the apply onto the page the taxonomy names now, after the named version, and the page it
+// leaves is reported, never deleted. Mutations: the dry run's read dropped → `moves/dry run`; the apply's move dropped →
+// `moves/apply`; the moves left out of the hash → `moves/hash`.
+section('page moves — a set on its former page moves to the page the taxonomy names now; no page is deleted');
+{
+  const w = await world(TAG);
+  type K = { id: string; name: string; type: string; x: number; y: number; width: number; height: number; children?: K[]; getSharedPluginData(ns: string, k: string): string };
+  type P = { name: string; isPageDivider?: boolean; children: K[]; appendChild(c: K): void; remove(): void };
+  const pages: P[] = [];
+  // `remove()` drops the page as Figma's `PageNode.remove` does and records the call, so `moves/apply` can fail on a deletion.
+  const removed: string[] = [];
+  const pg = (name: string, isPageDivider = false): P => {
+    const p: P = { name, isPageDivider, children: [], appendChild(c: K) { for (const q of pages) { const i = q.children.indexOf(c); if (i >= 0) q.children.splice(i, 1); } p.children.push(c); },
+      remove() { removed.push(p.name); const i = pages.indexOf(p); if (i >= 0) pages.splice(i, 1); } };
+    return p;
+  };
+  pages.push(pg('Cover'), pg('---', true), pg('Components'), pg('↳ Breadcrumbs'), pg('---', true), pg('Subcomponents'), pg('↳ Breadcrumb Item'));
+  const member: K = { id: 'bm', name: 'state=rest', type: 'COMPONENT', x: 0, y: 0, width: 10, height: 10, getSharedPluginData: (ns, k) => (ns === NS && k === STAMP_KEY ? '9.9.9|0123456789abcdef|1' : '') };
+  const step: K = { id: 'bs', name: 'breadcrumb-item', type: 'COMPONENT_SET', x: 0, y: 0, width: 100, height: 40, children: [member], getSharedPluginData: () => '' };
+  pages[6].children.push(step);
+  const host = { ...w.host, createPage() { const p = pg(''); pages.push(p); return p; }, async loadAllPagesAsync() {},
+    root: { ...w.host.root, get children() { return pages; }, insertChild(i: number, p: P) { const at = pages.indexOf(p); if (at >= 0) pages.splice(at, 1); pages.splice(i, 0, p); }, appendChild(p: P) { pages.push(p); } } } as unknown as ApplyHost;
+  const targets = [{ def: TAG, plans: w.plans }];
+  const pre = await previewUpdate(host, targets);
+  const v = previewVerdict(pre);
+  ok(JSON.stringify(pre.pageMoves) === JSON.stringify([{ set: 'breadcrumb-item', from: '↳ Breadcrumb Item', to: '↳ Breadcrumbs' }])
+    && v.lines.includes('To move to its page: breadcrumb-item (Breadcrumb Item to Breadcrumbs).') && v.headline === 'Would move 1 set to its page',
+    `moves/dry run: the step listed, the targeted set itself up to date (${JSON.stringify(pre.pageMoves)}; ${v.headline}; ${v.lines.join(' | ')})`);
+  // A set moved by hand after the check is a different file: the confirm writes nothing.
+  pages[6].children.splice(0, 1); pages[3].children.push(step);
+  const refused = await applyUpdate(host, w.api as any, targets, previewHashOf(pre));
+  ok(!!refused.refusedAll && !refused.relocated, `moves/hash: a set moved since the check refuses the confirm (${refused.refusedAll})`);
+  pages[3].children.splice(0, 1); pages[6].children.push(step);
+  const res = await applyUpdate(host, w.api as any, targets, previewHashOf(await previewUpdate(host, targets)));
+  const av = applyVerdict(res);
+  ok(pages[3].children.includes(step) && step.children![0] === member && removed.length === 0 && pages.length === 7 && pages[6].name === '↳ Breadcrumb Item',
+    `moves/apply: the same set node now sits on Breadcrumbs, and every page is still there (${pages.map((p) => `${p.name}:${p.children.length}`).join(', ')})${removed.length ? ` — REMOVED: ${removed.join(', ')}` : ''}`);
+  ok(av.headline === '✓ 1 set moved to its page' && av.lines.includes('Moved to its page: breadcrumb-item (Breadcrumb Item to Breadcrumbs).')
+    && av.lines.includes('Breadcrumb Item is now empty, safe to delete.'), `moves/verdict: the move and the emptied page named (${av.headline}; ${av.lines.join(' | ')})`);
+  ok(w.api._versions.length === 1 && w.api._versions[0] === 'Saved before Prism3 updated breadcrumb-item', `moves/version: one named version before the move (${JSON.stringify(w.api._versions)})`);
+  const again = await previewUpdate(host, targets);
+  ok(!again.pageMoves && previewVerdict(again).headline === '✓ All sets up to date', `moves/converges: the next dry run lists no move (${previewVerdict(again).headline})`);
+}
+
 /* ── hand ────────────────────────────────────────────────────────────────────────────────────────────── */
 section('hand — a hand edit is kept, and still reported after the update');
 {
