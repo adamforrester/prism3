@@ -795,9 +795,10 @@ const PANE_TOGGLE = ['[data-p3="pane-toggle-settings"]', '[data-p3="pane-toggle-
 const expectFor = (column, place, state = 'page') => {
   const narrow = column.endsWith('narrow');
   const figma = column.startsWith('figma');
-  // #2909: on the rail, Components has no tab (its tab row keeps the search alone), and Contrast sits in the preview
+  // #2909: on the rail, Components has no tab and, at 380, no domain select (its tab row keeps the search alone), and
+  // Contrast sits in the preview
   // header of Theme's pages, never on Components.
-  const base = EXPECT_CONTROLS[column].filter((h) => (place.startsWith('color-') || !COLOR_SUBS.includes(h)) && !(figma && place === 'components' && FIGMA_TABS.includes(h)));
+  const base = EXPECT_CONTROLS[column].filter((h) => (place.startsWith('color-') || !COLOR_SUBS.includes(h)) && !(figma && place === 'components' && (FIGMA_TABS.includes(h) || h === '[data-p3="tab-select"]')));
   const PREVIEW_HEAD = figma && place !== 'components' ? [...PREVIEW_HEAD_ALL, '[data-p3="verdict"]'] : PREVIEW_HEAD_ALL;
   const levers = LEVERS_CONTROLS[place];
   if (!levers) return base;
@@ -9506,7 +9507,9 @@ for (const host of ['web', 'figma']) {
           });
           ok(ag.shown && ag.filled && ag.color === ag.okColor && ag.dy <= 0 && ag.dx >= 0 && ag.name === 'Agent' && ag.pressed === 'true',
             `${where}: the Agent tile's dot, while the link is on: filled, at its glyph's top right, in the ok green ${ag.okColor} (${JSON.stringify(ag)})`);
-          ok(hexOfRgb(ag.mark) === RAIL_SELECTED[theme], `${where}: the Agent tile is filled while the link is on (Q2909.22 A), with the inset role (${RAIL_SELECTED[theme]}) (${ag.mark})`);
+          // The block above left the chrome on the other theme (its kept-choice reload), so that is the theme the role is read in.
+          const shownTheme = theme === 'light' ? 'dark' : 'light';
+          ok(hexOfRgb(ag.mark) === RAIL_SELECTED[shownTheme], `${where}: the Agent tile is filled while the link is on (Q2909.22 A), with the inset role in the ${shownTheme} chrome (${RAIL_SELECTED[shownTheme]}) (${ag.mark})`);
           await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
         }
       } catch (e) {
@@ -11784,7 +11787,9 @@ for (const theme of ['light', 'dark']) {
         await page.waitForFunction((on) => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === String(on), state.on, WAIT).catch(() => {});
         await settle(page);
         const s = await page.evaluate(LINK_PROBE);
-        const want = LINK_WANT[k];
+        // #2909 (round 4 wireframe): at 380, where the rail leaves the drawer 320px, the visible words are "Agent", in the
+        // same ink as the full words would be; the full line stays the tooltip and the rest of the name.
+        const want = w === 380 && LINK_WANT[k].short ? { ...LINK_WANT[k], short: 'Agent' } : LINK_WANT[k];
         const full = LINK_TEXT(state);
         if (k !== 'offStale') await shoot(`closed-${k}`, '[data-p3="activity-toggle"]');
         // One baseline, in every state.

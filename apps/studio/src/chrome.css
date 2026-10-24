@@ -1712,9 +1712,8 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-bardlg.p3-export-page { flex: 1 1 auto; min-height: 0; }
 .p3-frame[data-w="narrow"] .p3-bardlg.p3-export-page .p3-bardlg-body { overflow-y: auto; }
 
-.p3-drawer-link-short { display: none; }
-.p3-frame[data-w="narrow"] .p3-drawer-link-long { display: none; }
-.p3-frame[data-w="narrow"] .p3-drawer-link-short { display: inline; }
+/* The Contrast tile in the rail's preview header hangs its tooltip from its right edge, so it stays in the window. */
+.p3-frame[data-shell="rail"] .p3-preview-head > .p3-tile-start > .p3-tile-tip { left: auto; right: 0; }
 @media (forced-colors: active) {
   /* A glyph takes the forced ink, not the chrome color it names: `HighlightText` on a selected control and `GrayText` on a
      disabled one, below. */
