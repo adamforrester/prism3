@@ -9,7 +9,7 @@ description: >-
   not change, the Figma plugin-API traps that silently break a rebind, the
   mapping traps, the rogue-binding audit, and how to sort every remaining
   difference into a Prism3 improvement, a Prism3 gap to file, or a brand-only
-  item. For an agent working in a brand's Figma file through a plugin or a
+  item, and how to audit and repair a rebuild someone else made. For an agent working in a brand's Figma file through a plugin or a
   desktop bridge that runs plugin code, with Prism3 either materialized in that
   file or published as a team library the file can enable.
 when_to_use: >-
@@ -81,6 +81,28 @@ decision for the owner (section 6), and most become component work.
    (`packages/engine/levers.ts`). Examples: `buttonMinWidthMultiplier` (a narrow action row overflows),
    `buttonLabelWeight` (label weight), `radiusScale` and `controlShape` (corner radius). A setting is a brand
    change, not component work.
+6. **Components the file has never used.** List every library component the pass will place that the
+   file has no instance of yet, and get each one's key before the first screen. The plugin can't list a
+   library's components from the consuming file (section 8, step 2), and a design-system search given no
+   library file key may search only the open file. If a token or key lookup is refused, stop and ask;
+   never route around the refusal.
+7. **Publish state, per component.** Read each component's `getPublishStatusAsync()` in the library file.
+   "Every published update accepted" in the consuming file is compatible with edits in the library that
+   were never published (section 8, step 7).
+8. **Geometry before building.** Compute what each decision implies before you build it: a placeholder
+   ratio at a card's width gives the card's height. Where two decisions conflict, settle it with a
+   measurement check here, not on the canvas.
+9. **Grid columns per breakpoint.** Check each grid's column count at every breakpoint against the
+   options the component offers. A mobile grid isn't always one column.
+10. **Scope by page.** Check every screen in scope sits on the page in scope. An overlay state can sit
+    over a view from a different page; that is a scope question for the owner.
+11. **Slot sizing.** For a slot component, read its own sizing (horizontal and vertical), not only its
+    width. A fixed-height row clips a taller card.
+12. **Structure with pixels.** Pair every structural read with a screenshot before calling content
+    missing. A depth-limited dump hides deep content.
+13. **Steps that need the owner's hands.** The session can be refused some steps even after approval in
+    chat; edits to a shared library are a common one. Tell the owner at the start which steps they will
+    do themselves, and re-read the current state before asking.
 
 ## 3. Running a screen
 
@@ -111,6 +133,42 @@ decision for the owner (section 6), and most become component work.
   node tree. A hugging inner frame that doesn't stretch, a 36px tap target overflowing a fixed-width row, and
   a dropped label are all visible only in pixels.
 
+### Swapping in place
+
+- **Measure the original first.** Store its measurements before inserting anything, then hide it, build,
+  and compare against what you stored. Never build beside the original inside a horizontal auto layout
+  parent: both get squeezed, and they agree with each other while both are wrong.
+- **Check each swapped node before removing the original.** Fingerprint at depth: variant and boolean
+  properties, text, image hash and visibility. Position and size (x, y, width, height) match within
+  2px, and so does the container's height. Remove the original only when every check passes; otherwise
+  revert.
+- **When exactly one node fails,** ask the owner about that node, with its neighbors' values beside it.
+  After the decision, re-run the check and confirm it is the only difference.
+- **Copying overrides between instances of one set:** walk the children by index. Swap the main
+  component where its key differs, then `setProperties` for the changed properties that aren't instance
+  swaps. Copy visibility, the characters (after loading the fonts) and the whole fills array.
+- **Order the cards of a GRID auto layout by absolute position,** y then x, never by child order.
+- **Fit-test a library component at its new width** before swapping it in.
+- **A name the original places outside its card is still the card's.** Before calling a sparse card's
+  text missing, check the same card at the other breakpoint.
+
+### Spacing
+
+- **The default rule, until the owner sets another:** for each row role, per breakpoint, take the value
+  most frames use and give it to every frame. Snap it to the nearest space step (a tie goes to the larger
+  step) and bind it. Remove spacers of 150px or more, and give that row the role's majority value. If a
+  spacer is the only value a role has, borrow the other breakpoint's value and flag it. A value already
+  bound in an earlier, decided step isn't unified again.
+- **Spacers take two forms:** large padding, and fixed-height frames with no children and no fill. Scan
+  for both.
+- **After any spacing change, refit absolutely positioned overlays** to their anchor, and read back
+  their y and height.
+- **After removing a spacer, screenshot the bottom of the frame** before changing a band. If the space
+  below is gone, that is an owner question.
+- **An owner's value can be off the token scale.** Search every FLOAT variable first, aliases resolved.
+  If none matches, apply the raw value, flag it and propose a token. Never snap it, and never add a token
+  to the library yourself.
+
 ## 4. Plugin-API traps
 
 | Trap | What happens | Do instead |
@@ -126,6 +184,16 @@ decision for the owner (section 6), and most become component work.
 | `createAutoLayout` isn't part of the plugin API | It isn't in the plugin typings, so a script written against it fails at its first call | `createFrame()`, then set the layout mode and auto sizing |
 | Mixed values are Symbols | A mixed `cornerRadius` or `strokeWeight` throws inside a template string | Guard for a Symbol before formatting |
 | Stale references after a placement | Reading a node after its parent was replaced, or looping into the nested parts of a component you have placed | Collect labels before placing; skip nodes inside instances; check `.removed` before each use |
+| A new library import never settles | `importComponentByKeyAsync`, `importComponentSetByKeyAsync` or `importStyleByKeyAsync` neither resolves nor rejects for minutes, and later imports queue behind it | Race every import against a timeout. Run a long one as a background promise kept on `globalThis` and poll it. After about 60 seconds, reload the plugin UI; if it still hangs, ask the owner to drag one instance into the file |
+| Imported library objects don't last | An imported set, style or variable that nothing uses is gone a few calls later | Place an instance of each imported main in a parking frame at once, and reach the main through `getMainComponentAsync()`. Re-import styles and variables right before use. Remove the parking frame when the pass is done |
+| A timed-out call keeps running | The plugin finishes its work after the bridge has reported a timeout, and leaves orphan nodes | After a timeout, find and remove orphans before rerunning. Give each slow step its own timeout race |
+| A photo is a stack of image fills | Copying only the first IMAGE paint shows the wrong colorway | Copy the whole fills array |
+| A FILL child collapses inside a hugging slot | A card whose inner frame fills vertically keeps the height of the card it replaced | Build components that go into slots to hug on both axes, with `minHeight` for a fixed look; test them inside the slot component |
+| `resetOverrides()` renames a nested slot | The slot takes its main's name, and lookups by name break | Rename it back, or look slots up by their property reference |
+| Setting a property to its current value records no override | The value doesn't survive a later update to the main component | Set the other value, then set it back; confirm it in the parent's overrides |
+| Sticky isn't settable | The plugin can't set a frame's scroll behavior; the typings this repo pins have no property for it | An owner step in the UI: Prototype, then Sticky |
+| Screenshots render the active file only | A second connected file can't be screenshotted | Read its geometry back through the bridge, in that file |
+| A node's screenshot has no background | It renders on transparency, which is useless for contrast | Screenshot the container and crop |
 
 ## 5. Mapping traps
 
@@ -145,6 +213,11 @@ decision for the owner (section 6), and most become component work.
 - **Contrast is measured on the real ground.** Status text on a tinted card or photo background is measured
   against that ground, not white. A design value that barely passes on it (around 4.5:1 at small sizes)
   is a value question for the owner, not a binding question.
+- **Over photography, measure the ring.** Sample a 2–8px ring of photo around the text box, not the whole
+  image. Report the mean, the brightest 5% and the brightest pixel, and give the brightest-5% figure as
+  the ratio.
+- **Check `textDecoration` before choosing which text layer carries a value.** A price stack can hold a
+  struck-through layer next to the current one.
 
 ## 6. Sorting every difference: improvement, gap, or brand
 
@@ -182,6 +255,21 @@ A rogue binding is anything that still resolves to the legacy library. Walk ever
 Report "left on purpose" separately, with a reason for each: photo fills, third-party marks, effects with
 no Prism3 equivalent (map effects to Prism3's `shadow/*` and `shadow-dark/*` effect styles and its
 gradient styles first), hidden leftovers the owner deferred. Finish by rechecking every fingerprint.
+
+- **Say where each rogue item comes from:** the file, a library main component, or a local team
+  component's main. One from a library goes to the library's owner. Inside a local team component,
+  report it and don't edit it.
+- **Detached-component checks normalize names** (case, spaces, hyphens) and compare structure, not names
+  alone.
+- **Check the explicit breakpoint and type modes** on every top-level frame (section 3).
+- **"Update available" can't be read from the plugin API.** Report it as NOT VERIFIABLE, an owner check
+  in the UI.
+- **Classify a variable by its collection's key,** never by whether it appears in the published
+  descriptor list. A hidden collection has no descriptors, yet published styles bind its variables. On
+  the library path, read Prism3's collection keys in the library file, where hidden collections are
+  listed too (section 8, step 5).
+- **Exempt the placeholder (FPO) fill and deliberate component states** from consistency checks.
+- **An instance's own padding isn't a raw value.** Leave instance nodes out of the unbound-spacing scan.
 
 Once a set of rebuilt pages is done, run the consistency audit too (section 10). Every node can be
 bound to Prism3 while the pages still disagree with each other.
@@ -222,7 +310,8 @@ skill says "remote" to mean legacy, read "remote, and not one of Prism3's keys".
    styles a component binds inside itself) are not in it, and would read as legacy. Build the set of
    Prism3 keys from the library: every variable key `getVariablesInLibraryCollectionAsync` returns for
    each Prism3 collection (a variable is Prism3's when its collection's `key` is one of those
-   collections' keys), and every component, variant and style key read from the library file or from
+   collections' keys; a hidden collection lists no descriptors, so take its key from
+   `getLocalVariableCollectionsAsync()` in the library file), and every component, variant and style key read from the library file or from
    an imported set's `children`. An instance is Prism3's when its main component's key is in the set,
    a style when its `key` is. Resolve a binding's alias with `getVariableByIdAsync(alias.id)` to read
    the variable's `key` and its `variableCollectionId`. Everything remote outside the set is legacy,
@@ -246,6 +335,7 @@ Log the library's name, every key imported, every import that failed and its rea
   anything a gap depends on.
 - The difference table, each row sorted as improvement, gap or brand (proposed), with measurements.
 - For a set of rebuilt pages: the consistency audit's findings table, and its row on #2886 (section 10).
+- For an audit of someone else's rebuild: the report shape in section 11.
 - Issues for the gaps the owner confirms. Brand-only items and setting changes go on a list for the brand's
   own file, kept out of the shared repository.
 - Never put a client's name, file name, file key, product or page names into the shared repository,
@@ -291,6 +381,11 @@ default, so pass a longer `timeoutMs` in the command's args.
    solid fill or stroke outside an instance is a raw color. It does not read gradient or image paints. This is section 7's audit in short form; section 7
    still applies in full to a rebind.
 
+**Padding is yours to read.** Check 3's spacing is the auto layout gap or the distance from the previous
+sibling; the script doesn't read padding, and vertical rhythm often lives in a wrapper row's top padding.
+Add padding to the spacing you compare: group it by row role and breakpoint across the frames, so a drift
+shows as the one frame that differs from the rest.
+
 **What the checks rely on.** A role is the layer name, normalized: lowercase, separators as spaces, and a
 trailing `copy` or `copy 2` removed, so `Price copy` and `price` are one role. A number stays, so
 `Heading 1` and `Heading 2` are two roles. A layer Figma named (`Frame 12`, `Rectangle 4`, or a text
@@ -311,3 +406,23 @@ cells (true positives, false positives, and any rule change you made after the r
 issue with a comment, together with the findings table. Those rows decide when the audit becomes a
 plugin command. `apps/plugin/test-consistency-audit.ts` runs the audit on a fixture and proves each
 check fires on a seeded drift and stays quiet on a consistent set; change the audit only with it.
+
+## 11. Auditing and repairing someone else's rebuild
+
+The file has already been rebuilt, by another agent or a designer, and you are asked to check it and fix
+what is wrong. Sections 1 to 10 still hold. What changes is that every node already has a value someone
+chose, so each write replaces a decision, and the owner needs to see each one and undo any of them.
+
+1. **Report in a fixed shape.**
+   - A pass/fail table. NOT VERIFIABLE (the plugin API can't read it) and NOT VERIFIED (blocked, with
+     the blocker) are outcomes of their own, never folded into pass.
+   - Every change as node ID, value before → value after.
+   - Every item skipped or held, with its reason and what unblocks it.
+   - A closing "what's left" table.
+   - A before/after screenshot pair for each frame you changed.
+2. **Save a named version at every pass boundary** (`figma.saveVersionHistoryAsync`, or the owner saves
+   one in the UI), so the owner can undo one pass without undoing the others.
+3. **Read before each write.** Read the node's current value and compare it with the value you recorded.
+   On a mismatch, abort the batch: someone else changed the file since your read.
+4. **A library republish moves heights on its own.** When the owner accepts library updates, re-measure
+   before the first write. Measurements taken before the update are stale.
