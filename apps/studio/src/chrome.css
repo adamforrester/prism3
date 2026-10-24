@@ -1688,7 +1688,10 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 
 /* ── Update file (#2909): the overlay's tabs, items and sets ─────────────────────────────────────── */
 .p3-upd-tabs { flex: none; padding: 0 var(--p3-space-300); margin: 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
-.p3-upd-body { padding: var(--p3-space-150) var(--p3-space-300); gap: var(--p3-space-100); overflow: auto; }
+.p3-upd-body { flex: 1 1 auto; min-height: 0; padding: var(--p3-space-150) var(--p3-space-300); gap: var(--p3-space-100); overflow: auto; }
+/* The checklist scrolls inside itself at every width, so its foot (the action) stays in the window: the narrow tier's
+   rule for the export dialog's columns (`overflow: visible`, the body scrolls there) would let it run off the bottom. */
+.p3-frame[data-w="narrow"] .p3-bardlg-col.p3-upd-body { overflow-y: auto; }
 .p3-upd-body p { margin: 0; }
 .p3-upd-item { display: grid; gap: var(--p3-space-050); padding: var(--p3-space-100) 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-upd-item:last-child { border-bottom: 0; }

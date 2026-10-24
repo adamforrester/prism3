@@ -701,20 +701,28 @@ const PLACE_CLICKS = {
   layout: ['[data-p3="tab-layout"]'],
   components: ['[data-p3="tab-components"]'],
 };
+/** #2909 IA v2 phase 1: the places the plugin's rail reaches itself, not through Theme's tab row. */
+const RAIL_PLACE_CLICKS = { components: ['[data-p3="rail-components"]'] };
 
 /** Each column's controls, by hook, on the opening page (Color › Palettes). Wide is 1280 and 640; narrow is
  *  380. Away from Color the sub-pages are not drawn (`expectFor`). (D8's Depth & motion switch went with S9.2.) */
 const TABS = ['[data-p3="tab-brand"]', '[data-p3="tab-color"]', '[data-p3="tab-type"]', '[data-p3="tab-shape"]', '[data-p3="tab-depth"]', '[data-p3="tab-layout"]', '[data-p3="tab-components"]'];
 const COLOR_SUBS = ['[data-p3="color-sub-palettes"]', '[data-p3="color-sub-fills"]', '[data-p3="color-sub-interactive"]'];
 const BAR = ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="search-open"]'];
-/** The plugin's own top-bar controls (S1.4): the Agent chip (IA-3), the Figma menu, and Apply Theme. (The Pages menu
- *  went with the old Style guide page in H12, #2289, owner PG1 A; section 26 holds its absence on both hosts.) */
-const FIGMA_BAR = ['[data-p3="agent-toggle"]', '[data-p3="theme-toggle"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]'];
+/** The plugin's shell since #2909 IA v2 phase 1 (owner decisions of 2026-10-24, round 4): the left rail, with the four
+ *  areas and, at its foot, the Agent tile, Help and Appearance; and the reduced top bar, the brand switcher, Minimize
+ *  (link on or off, the owner's direction of 2026-10-24) and Update file. Contrast (the verdict) moved into the Theme
+ *  area's preview header (`RAIL_PREVIEW_HEAD`), and the tab row is Theme's pages, without Components. Activity's tile,
+ *  Export's, the Figma menu and Apply Theme left the bar. */
+const RAIL = ['[data-p3="rail-theme"]', '[data-p3="rail-components"]', '[data-p3="rail-documentation"]', '[data-p3="rail-export"]',
+  '[data-p3="agent-toggle"]', '[data-p3="docs-open"]', '[data-p3="theme-toggle"]'];
+const RAIL_BAR = ['[data-p3="brand-switcher"]', '[data-p3="agent-minimize"]', '[data-p3="update-file"]', '[data-p3="search-open"]'];
+const THEME_TABS = TABS.filter((t) => t !== '[data-p3="tab-components"]');
 const EXPECT_CONTROLS = {
   'web wide': [...BAR, '[data-p3="theme-toggle"]', ...TABS, ...COLOR_SUBS],
   'web narrow': [...BAR, '[data-p3="theme-toggle"]', '[data-p3="tab-select"]', ...COLOR_SUBS],
-  'figma wide': [...BAR, ...FIGMA_BAR, ...TABS, ...COLOR_SUBS],
-  'figma narrow': [...BAR, ...FIGMA_BAR, '[data-p3="tab-select"]', ...COLOR_SUBS],
+  'figma wide': [...RAIL, ...RAIL_BAR, ...THEME_TABS, ...COLOR_SUBS],
+  'figma narrow': [...RAIL, ...RAIL_BAR, '[data-p3="tab-select"]', ...COLOR_SUBS],
 };
 /** Color › Palettes in the two panes (S2): the levers it must render on the Settings side, by hook, and the
  *  preview header's controls. Narrow shows one pane (the Settings one at boot) and the pane toggle. */
@@ -763,16 +771,22 @@ const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRA
  *  (640, or a brand with more modes, S3 review), the select of the same modes: either one represents it (an
  *  inner list is any-of). Section 17 holds which one shows and that no option is ever clipped. */
 const PREVIEW_HEAD = [['[data-p3="mode-option"]', '[data-p3="mode-select"]'], '[data-p3="inspect-open"]'];
+/** #2909: on the plugin's rail shell the preview header holds the verdict too (round 4: Contrast moved into Theme). */
+const RAIL_PREVIEW_HEAD = ['[data-p3="verdict"]', ...PREVIEW_HEAD];
 const PANE_TOGGLE = ['[data-p3="pane-toggle-settings"]', '[data-p3="pane-toggle-preview"]'];
 const expectFor = (column, place, state = 'page') => {
   const narrow = column.endsWith('narrow');
   const base = EXPECT_CONTROLS[column].filter((h) => place.startsWith('color-') || !COLOR_SUBS.includes(h));
   const levers = LEVERS_CONTROLS[place];
   if (!levers) return base;
+  // #2909: Components is a rail area of its own, with no tab row and no preview header verdict (the verdict is Theme's).
+  const head = !column.startsWith('figma') ? PREVIEW_HEAD : place === 'components' ? PREVIEW_HEAD : RAIL_PREVIEW_HEAD;
+  const own = column.startsWith('figma') && place === 'components'
+    ? base.filter((x) => !['[data-p3="tab-select"]', '[data-p3="search-open"]', ...THEME_TABS].includes(x)) : base;
   // A moved place. Narrow, on the Preview pane (Inspect opens there), the tab row and the levers are hidden.
-  if (narrow && state !== 'page') return [...base.filter((x) => !['[data-p3="tab-select"]', '[data-p3="search-open"]', ...COLOR_SUBS].includes(x)), ...PANE_TOGGLE, ...(state === 'preview' ? PREVIEW_HEAD : [])];
-  if (narrow) return [...base, ...levers, ...PANE_TOGGLE];
-  return [...base, ...levers, ...(state === 'inspect' ? [] : PREVIEW_HEAD)];
+  if (narrow && state !== 'page') return [...own.filter((x) => !['[data-p3="tab-select"]', '[data-p3="search-open"]', ...COLOR_SUBS].includes(x)), ...PANE_TOGGLE, ...(state === 'preview' ? head : [])];
+  if (narrow) return [...own, ...levers, ...PANE_TOGGLE];
+  return [...own, ...levers, ...(state === 'inspect' ? [] : head)];
 };
 /** Per column, the least each measurement must have seen on the opening page, so an empty read fails
  *  naming itself. Set below the measured values (printed per state), above what a chrome that rendered
@@ -787,8 +801,9 @@ const FLOORS = {
 const FOCUS_STOPS = {
   'web wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
   'web narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  'figma wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="agent-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  'figma narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="agent-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  // #2909: the rail's tiles in order, then the reduced bar, then Theme's tab row; wide, the verdict in the preview header.
+  'figma wide': [...RAIL, '[data-p3="brand-switcher"]', '[data-p3="agent-minimize"]', '[data-p3="update-file"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]', '[data-p3="verdict"]'],
+  'figma narrow': [...RAIL, '[data-p3="brand-switcher"]', '[data-p3="agent-minimize"]', '[data-p3="update-file"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
 };
 const PLACE_FLOOR = { text: 9, edges: 10, glyphs: 3, controls: 12, fonts: 9 };
 /** Inspect at 380: the tab row is a select and the bar is glyphs, so fewer chrome words are drawn. */
@@ -907,15 +922,30 @@ const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3' }) 
   return { ctx, page, errors };
 };
 
-/** Reach a place through the tab row (the select, when narrow), and wait for the frame to show it. */
+/** Reach a place through the tab row (the select, when narrow), and wait for the frame to show it. On the plugin's rail
+ *  shell (#2909 IA v2 phase 1) Components is a rail area of its own (`RAIL_PLACE_CLICKS`), and Theme's pages are its tab
+ *  row, reached through the rail's Theme tile first when another area is open. */
 const goPlace = async (page, place) => {
-  const narrow = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
-  const [tabSel, subSel] = PLACE_CLICKS[place];
-  if (narrow) await page.locator('[data-p3="tab-select"]').selectOption(hooks.role(tabSel).slice('tab-'.length));
+  const { narrow, rail, inTheme } = await page.evaluate(() => {
+    const f = document.querySelector('[data-p3="frame"]');
+    return { narrow: f?.dataset.w === 'narrow', rail: f?.dataset.shell === 'rail',
+      inTheme: document.querySelector('[data-p3="rail-theme"]')?.getAttribute('aria-current') === 'page' };
+  });
+  const [tabSel, subSel] = (rail && RAIL_PLACE_CLICKS[place]) || PLACE_CLICKS[place];
+  if (rail && !RAIL_PLACE_CLICKS[place] && !inTheme) await hooks.click(page.locator('[data-p3="rail-theme"]'));
+  if (rail && RAIL_PLACE_CLICKS[place]) await hooks.click(page.locator(tabSel));
+  else if (narrow) await page.locator('[data-p3="tab-select"]').selectOption(hooks.role(tabSel).slice('tab-'.length));
   else await hooks.click(page.locator(tabSel));
   if (subSel) await hooks.click(page.locator(subSel));
   await page.waitForFunction((p) => document.querySelector('[data-p3="frame"]')?.dataset.place === p, place);
   await page.evaluate(() => document.fonts.ready);
+};
+
+/** #2909 IA v2 phase 1: the plugin's style-guide settings, Documentation › Style guides (Q667 A, Q2909.21 A), reached by the
+ *  rail's Docs tile. Until #2909 the Figma menu's "Build style guides…" opened them as a page of their own. */
+const openDocs = async (page, bound) => {
+  await hooks.click(page.locator('[data-p3="rail-documentation"]'), bound);
+  await hooks.need(page, '[data-p3="style-guides"]', bound);
 };
 
 /** #2844: a family's settings are closed when the Components page opens, behind a disclosure line under its sets: open the
@@ -1387,7 +1417,9 @@ const PLANT_CANARY = (sel) => {
 const exemptionCanary = async (page, sel = '[data-p3="bp-row"] input:disabled') => {
   const p = await page.evaluate(PLANT_CANARY, sel);
   const m = p.planted ? await page.evaluate(PROBE, { kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS }) : null;
-  await page.evaluate(() => { for (const n of document.querySelectorAll('[data-ccanary]')) n.remove(); for (const n of document.querySelectorAll('[data-coff]')) n.removeAttribute('data-coff'); });
+  // The probe marks every text node it measured for the font read (`data-cprobe`), which this measurement does not make:
+  // cleared here, or the next `measure` reads them again, drawn or not since (#2909: the tab row hides on Components).
+  await page.evaluate(() => { for (const n of document.querySelectorAll('[data-ccanary]')) n.remove(); for (const n of document.querySelectorAll('[data-coff], [data-cprobe]')) { n.removeAttribute('data-coff'); n.removeAttribute('data-cprobe'); } });
   // What the canary drew that has a floor: its value (a field), its text (a button), its edges and its glyphs.
   const nodes = m ? [...m.fields.filter((x) => x.canary).map((x) => ({ ...x, floor: TEXT_MIN })), ...m.text.filter((x) => x.canary).map((x) => ({ ...x, floor: x.large ? LARGE_TEXT_MIN : TEXT_MIN })),
     ...m.edges.filter((x) => x.canary).map((x) => ({ ...x, floor: NONTEXT_MIN })), ...m.glyphs.filter((x) => x.canary).map((x) => ({ ...x, floor: NONTEXT_MIN }))] : [];
@@ -1577,7 +1609,24 @@ for (const host of ['web', 'figma']) {
           control: !!mark && (mark.matches('button, a[href], [tabindex]') || !!mark.querySelector('button, a[href], [tabindex]')),
         };
       });
-      {
+      if (host === 'figma') {
+        // #2909 IA v2 phase 1 (round 4): on the plugin the mark heads the rail, not the bar. The logo alone (the 60px column
+        // has no room for a name), its name the mark's accessible name. Expected values are the literals here.
+        const rm = await page.evaluate(() => {
+          const rail = document.querySelector('[data-p3="rail"]');
+          const marks = [...document.querySelectorAll('[data-p3="rail-mark"]')];
+          const mark = marks[0] ?? null;
+          const logo = mark?.querySelector('.logo') ?? null;
+          const r = logo?.getBoundingClientRect();
+          return { n: marks.length, first: !!mark && rail?.firstElementChild === mark, inBar: document.querySelectorAll('[data-p3="top-bar"] [data-p3="product-mark"], [data-p3="top-bar"] [data-p3="rail-mark"]').length,
+            label: mark?.getAttribute('aria-label') ?? null, role: mark?.getAttribute('role') ?? null, text: (mark?.textContent ?? '').trim(),
+            logoShown: !!r && r.width > 0 && r.height > 0, logoHidden: logo?.getAttribute('aria-hidden') === 'true',
+            control: !!mark && (mark.matches('button, a[href], [tabindex]') || !!mark.querySelector('button, a[href], [tabindex]')) };
+        });
+        ok(rm.n === 1 && rm.first && rm.inBar === 0, `product mark ${where}: the rail draws the product mark once, first in the rail, and the top bar draws none (#2909; ${JSON.stringify({ n: rm.n, first: rm.first, inBar: rm.inBar })})`);
+        ok(rm.label === 'Prism3' && rm.role === 'img' && rm.text === '', `product mark ${where}: the rail's mark is the logo alone, named "Prism3" (${JSON.stringify({ label: rm.label, role: rm.role, text: rm.text })})`);
+        ok(rm.logoShown && rm.logoHidden && !rm.control, `product mark ${where}: the logo is drawn and hidden from assistive tech, and the mark is not a control (${JSON.stringify({ logo: rm.logoShown, hidden: rm.logoHidden, control: rm.control })})`);
+      } else {
         const ahead = !!mk.mark && !!mk.switcher && (mk.mark.bottom <= mk.switcher.top + 0.5 || mk.mark.right <= mk.switcher.left + 0.5);
         ok(mk.n === 1 && mk.inBar, `product mark ${where}: the top bar draws the product mark once (${mk.n} found${mk.inBar ? '' : ', none in the top bar'})`);
         ok(mk.first && ahead, `product mark ${where}: the mark is first in the top bar, ahead of the brand switcher (${JSON.stringify({ first: mk.first, mark: mk.mark, switcher: mk.switcher })})`);
@@ -1750,9 +1799,7 @@ console.log(`\n#1031 — fields in a dark theme\n${'='.repeat(78)}`);
 {
   const host = 'figma';
   const { ctx, page } = await open({ host, theme: 'dark', w: 1280, h: 900 });
-  await hooks.click(page.locator('[data-p3="figma-open"]'));
-  await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'));
-  await hooks.need(page, '[data-p3="style-guides"]');
+  await openDocs(page);
   await page.evaluate((c) => window.postMessage({ pluginMessage: { type: 'style-guide-catalog', catalog: c } }, '*'), SG_RING_CATALOG);
   await hooks.need(page, '[data-p3="sg-collection"]');
   // #2341: the per-kind option groups (Color value, Color sample, …) render after the catalog's selection settles, which
@@ -1835,7 +1882,8 @@ console.log(`\nBehavior\n${'='.repeat(78)}`);
   // Since the owner's top-bar decision (2026-10-05) the plugin offers a Theme menu too, on Match Figma by default,
   // which is what the live follow above shows; §29b holds its choices.
   const toggle = await page.evaluate(() => document.querySelector('[data-p3="theme-toggle"]')?.getAttribute('aria-label') ?? null);
-  ok(toggle === 'Theme: Match Figma', `the plugin's Theme menu starts on Match Figma ("${toggle}")`);
+  // #2909 (round 4): on the rail it is Appearance, so it does not collide with the Theme area.
+  ok(toggle === 'Appearance: Match Figma', `the plugin's Appearance menu starts on Match Figma ("${toggle}")`);
   await ctx.close();
 }
 
@@ -2223,10 +2271,14 @@ for (const theme of ['light', 'dark']) {
     const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
     if (host === 'figma') await page.evaluate(() => { window.__docsPosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && m.type !== 'ui-ready') window.__docsPosts.push(m); }); });
     const tileOf = await page.evaluate(() => {
-      const t = document.querySelector('[data-p3="bar-main"] [data-p3="docs-open"]');
+      // #2909 (round 4): in the plugin, Help on the rail's foot (the old Docs, renamed so it does not collide with
+      // Documentation), after the Agent tile's slot and before Appearance.
+      const t = document.querySelector('[data-p3="bar-main"] [data-p3="docs-open"]') ?? document.querySelector('[data-p3="rail-foot"] > [data-p3="docs-open"]');
       const next = t?.nextElementSibling;
       return t ? { tag: t.tagName.toLowerCase(), href: t.getAttribute('href'), target: t.getAttribute('target'), rel: t.getAttribute('rel'), name: t.getAttribute('aria-label'),
-        beforeExport: !!next?.querySelector(':scope > [data-p3="export-open"]'), shown: t.getClientRects().length > 0 } : null;
+        beforeExport: !!next?.querySelector(':scope > [data-p3="export-open"]'), shown: t.getClientRects().length > 0,
+        onRail: !!t.closest('[data-p3="rail-foot"]'), afterAgent: t.previousElementSibling?.getAttribute('data-p3') === 'bar-agent',
+        beforeAppearance: !!next?.querySelector(':scope > [data-p3="theme-toggle"]') } : null;
     });
     if (host === 'web') {
       ok(tileOf?.tag === 'a' && tileOf.href === LANDING && tileOf.target === '_blank' && tileOf.rel === 'noopener' && tileOf.name === 'Docs' && tileOf.beforeExport && tileOf.shown,
@@ -2236,8 +2288,8 @@ for (const theme of ['light', 'dark']) {
       ok(new URL(tab.url()).pathname === LANDING && page.url() === before,
         `web: Docs opens ${LANDING} in a new tab and leaves the studio where it was (opened ${tab.url()}; studio ${page.url() === before ? 'unchanged' : page.url()})`);
     } else {
-      ok(tileOf?.tag === 'button' && tileOf.href === null && tileOf.name === 'Docs' && tileOf.beforeExport && tileOf.shown,
-        `figma: the bar's Docs is a button, just before Export — read ${JSON.stringify(tileOf)}`);
+      ok(tileOf?.tag === 'button' && tileOf.href === null && tileOf.name === 'Help' && tileOf.onRail && tileOf.afterAgent && tileOf.beforeAppearance && tileOf.shown,
+        `figma: Help is a button on the rail's foot, after the Agent tile and before Appearance (#2909) — read ${JSON.stringify(tileOf)}`);
       const before = page.url();
       const opened = [];
       ctx.on('page', (pg) => opened.push(pg.url()));
@@ -2275,22 +2327,12 @@ for (const { w, h } of WIDTHS) {
 console.log(`\nActivity, the Figma menu and the Agent chip (S1.4)\n${'='.repeat(78)}`);
 /** F2 and v5 Q9, as the owner decided them: a success collapses the drawer 4 s after it lands. Literal. */
 const COLLAPSE_MS = 4000;
-/** The Figma menu's items, by hook suffix and label: today's labels (the old Prune stale control, the file-setup
- *  button) and concept v6's two option-first items. No Apply Theme (#2178, owner decision 2026-10-05): the bar's
- *  filled button is its one control. Literal. */
-const FIGMA_ITEMS = [['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build sets…'], ['style-guide', 'Build style guides…']];
-/** Each item's hook, spelled out so the hook guard reads every one. */
-const FIGMA_OPTION = { prune: '[data-p3="figma-option-prune"]', 'file-setup': '[data-p3="figma-option-file-setup"]',
-  build: '[data-p3="figma-option-build"]', 'style-guide': '[data-p3="figma-option-style-guide"]' };
-/** What each item must do, observed: the write message it posts to the main thread (the message the old
- *  control posted), or where it opens: a legacy page (Style guide…), or since S8.2 a tab (Build set… opens the
- *  Components tab, owner decision G2 A, where the set is chosen and built). Typed here from
- *  `apps/plugin/src/messages.ts`'s names and the tab's hook. */
-const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-setup': ['file-setup'], build: { tab: 'components' }, 'style-guide': { menuPage: 'style-guides' } };
-/** The Figma menu's Prune item while each half of a prune runs (`figmaActions` in main.ts). Literal. */
-const PRUNE_LABEL = { preview: '… Checking…', delete: '… Removing…' };
-/** The drawer's note, per host: concept v6's plugin line, and the studio's own. Literal. */
-const DRAWER_NOTE = { figma: 'Results of Apply, Build and Prune appear here after they run.', web: 'Nothing has run in this session.' };
+/** What each write must post, observed: the write message (the message the old control posted). Since #2909 they are
+ *  Update file's steps (Theme, Set up file) and its Clean up tab's dry run. Typed here from `apps/plugin/src/messages.ts`'s names. */
+const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-setup': ['file-setup'] };
+/** The drawer's note on the studio, which can open it before anything runs. Literal. (The plugin's rail shell has no
+ *  Activity tile to open it idle, #2909.) */
+const DRAWER_NOTE = { web: 'Nothing has run in this session.' };
 /** An agent-link state the main thread could publish, and the status line it must read as (today's words). */
 const AGENT_ON = { v: 1, on: true, since: '2026-10-01T09:00:00.000Z', engineVersion: 'x', build: 'x', pollMs: 1000, transports: { mailbox: true, bridge: false }, lastCommand: null, inboxError: null };
 /** What each write must carry on the wire, worked out without the UI: the brand the page loaded is the
@@ -2309,7 +2351,7 @@ const recordPosts = (page) => page.evaluate(() => {
   window.__writes = [];
   window.addEventListener('message', (e) => {
     const m = e.data?.pluginMessage;
-    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link', 'minimize-ui'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
+    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link', 'minimize-ui', 'file-sets-request'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
   });
 });
 /** The messages posted since the last call. A post is delivered as a task, so one task is let through first. */
@@ -2382,17 +2424,35 @@ const sinceMs = async (page, t0, ms) => { const left = t0 + ms - Date.now(); if 
 /** A write's control's label as drawn: the text of whichever label layer is visible. A control carries its idle
  *  and busy labels in one cell (owner decision #4 on #1956); both visible, or neither, reads as both, or empty. */
 const SHOWN = `(n) => n ? ([...n.querySelectorAll('[data-p3="label-idle"], [data-p3="label-busy"]')].filter((x) => getComputedStyle(x).visibility === 'visible').map((x) => x.textContent).join('') || (n.querySelector('[data-p3^="label-"]') ? '' : n.textContent)) : null`;
-const menuState = (page) => page.evaluate((shownSrc) => { const shown = eval(shownSrc); return {
-  open: !!document.querySelector('[data-p3="figma-menu"]'), expanded: document.querySelector('[data-p3="figma-open"]')?.getAttribute('aria-expanded'),
-  items: [...document.querySelectorAll('[data-p3="figma-menu"] [role="menuitem"]')].map((n) => [n.getAttribute('data-p3'), shown(n), n.disabled, n.getAttribute('aria-busy') === 'true' && n.getAttribute('aria-disabled') === 'true']),
-  focus: document.activeElement?.getAttribute('data-p3') ?? null,
-}; }, SHOWN);
-/** The bar's Apply control: its label as drawn, any aria-label overriding it, whether it is natively disabled,
- *  whether it says it is busy (`aria-busy` and `aria-disabled`, owner decision #4), and its width. */
-const applyBar = (page) => page.evaluate((shownSrc) => { const shown = eval(shownSrc); const b = document.querySelector('[data-p3="apply-to-figma"]');
-  return { text: shown(b), name: b?.getAttribute('aria-label') ?? null, disabled: b?.disabled ?? null,
-    busy: !!b && b.getAttribute('aria-busy') === 'true' && b.getAttribute('aria-disabled') === 'true', width: b ? Math.round(b.getBoundingClientRect().width * 10) / 10 : null }; }, SHOWN);
 const openFigma = async (page) => { await hooks.click(page.locator('[data-p3="figma-open"]'), WAIT); await hooks.need(page, '[data-p3="figma-menu"]', WAIT); };
+/** Update file's words (#2909 IA v2 phase 1; DRAFT placeholders, Q2909.10 A), typed here, never read from
+ *  `state/update-file.ts`: they are the words a designer reads. The busy label carries the spinner's cell, as Apply's did. */
+const UPDATE_LABEL = 'Update file';
+const UPDATE_RUNNING = '\u2026 Updating\u2026';
+const UPDATE_FRESH = 'Set up and update';
+const CLEAN_CHECKING = 'Checking for stale items…';
+/** The checklist's items and their boxes, by hook, in run order (`state/update-file.ts` STEP_ORDER, typed here). */
+const UPDATE_ITEM = { setup: '[data-p3="update-item-setup"]', theme: '[data-p3="update-item-theme"]', sets: '[data-p3="update-item-sets"]', guides: '[data-p3="update-item-guides"]' };
+const UPDATE_CHECK = { setup: '[data-p3="update-check-setup"]', theme: '[data-p3="update-check-theme"]', guides: '[data-p3="update-check-guides"]' };
+/** Update file and its overlay, as drawn: the button's label, name, busy and disabled states and width; whether the
+ *  overlay is open and modal and holds focus; its items, ticks and sets; its lines on each tab. */
+const updState = (page) => page.evaluate((shownSrc) => { const shown = eval(shownSrc);
+  const b = document.querySelector('[data-p3="update-file"]');
+  const d = document.querySelector('[data-p3="update-dialog"]');
+  const txt = (sel) => d?.querySelector(sel)?.textContent ?? null;
+  const sets = d ? [...d.querySelectorAll('[data-p3="update-set"]')] : [];
+  return { text: shown(b), name: b?.getAttribute('aria-label') ?? null, disabled: b?.disabled ?? null, busy: b?.getAttribute('aria-busy') === 'true',
+    ariaDisabled: b?.getAttribute('aria-disabled') ?? null, width: b ? Math.round(b.getBoundingClientRect().width * 10) / 10 : null,
+    open: !!d, modal: d?.getAttribute('aria-modal') === 'true', focus: document.activeElement?.getAttribute('data-p3') ?? null, focusIn: !!d && d.contains(document.activeElement),
+    tab: d?.querySelector('[role="tab"][aria-selected="true"]')?.getAttribute('data-p3') ?? null,
+    items: d ? [...d.querySelectorAll('[data-p3^="update-item-"]')].map((n) => n.getAttribute('data-p3')) : [],
+    checked: d ? Object.fromEntries([...d.querySelectorAll('[data-p3^="update-check-"]')].map((n) => [n.getAttribute('data-p3'), n.getAttribute('aria-checked')])) : {},
+    sets: sets.length, setsOn: sets.filter((n) => n.getAttribute('aria-checked') === 'true').length,
+    checking: !!d?.querySelector('[data-p3="update-checking"]'), go: txt('[data-p3="update-go"]'), running: txt('[data-p3="update-running"]'),
+    stop: !!d?.querySelector('[data-p3="update-stop"]'), stopped: txt('[data-p3="update-stopped"]'),
+    cleanChecking: txt('[data-p3="clean-checking"]'), pruneSummary: txt('[data-p3="clean-prune-summary"]'), pruneConfirm: txt('[data-p3="clean-prune-confirm"]'),
+    pruneResult: txt('[data-p3="clean-prune-result"]') };
+}, SHOWN);
 
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
@@ -2405,8 +2465,9 @@ for (const host of ['web', 'figma']) {
         await recordPosts(page);
         // Idle: nothing has run, so the drawer is not drawn and the button says nothing more than its name.
         const idle = await drawerState(page);
-        ok(!idle.shown && !idle.open && idle.expanded === 'false' && idle.name === 'Activity' && idle.dot === 'none',
-          `F2 ${where}: before anything runs the drawer is not drawn and Activity reads "Activity" with no dot (${JSON.stringify({ shown: idle.shown, name: idle.name, dot: idle.dot })})`);
+        // #2909: the plugin's rail shell has no Activity tile (Q2909.15 A: the drawer is Activity), so only the drawer is read there.
+        ok(!idle.shown && !idle.open && (host === 'figma' || (idle.expanded === 'false' && idle.name === 'Activity' && idle.dot === 'none')),
+          `F2 ${where}: before anything runs the drawer is not drawn${host === 'figma' ? '' : ' and Activity reads "Activity" with no dot'} (${JSON.stringify({ shown: idle.shown, name: idle.name, dot: idle.dot })})`);
 
         if (host === 'web') {
           // The studio runs no write: Activity opens the drawer on its note, and closes it again.
@@ -2430,16 +2491,25 @@ for (const host of ['web', 'figma']) {
           continue;
         }
 
-        // ── the Agent tile (IA-3; the owner's T7 A, 2026-10-05), in the top bar; the bottom-left chip is gone (D6) ──
-        // A borderless tile between Theme and Activity, its glyph over "Agent" (the label drops at the narrow tier). A
+        // ── #2909 IA v2 phase 1: the plugin's rail shell (owner decisions of 2026-10-24, round 4) ──────────────
+        // The bar holds the brand, Minimize and Update file; Activity's tile, Export's, the Figma menu and Apply Theme
+        // left it. Their writes moved into Update file (Apply Theme, Set up file, new sets) and its Clean up tab (Prune
+        // stale), and their pages into the rail's areas. Read by hook, so a control put back fails here.
+        const gone = await page.evaluate(() => ({ bar: !!document.querySelector('[data-p3="top-bar"]'), rail: !!document.querySelector('[data-p3="rail"]'),
+          found: [...document.querySelectorAll('[data-p3="activity-open"], [data-p3="export-open"], [data-p3="figma-open"], [data-p3="figma-menu"], [data-p3="apply-to-figma"], [data-p3="product-mark"]')].map((n) => n.getAttribute('data-p3')) }));
+        hooks.absent(ok, { seen: gone.bar && gone.rail, state: 'the rail and the top bar' }, gone.found.length === 0,
+          `#2909 ${where}: the rail shell draws no Activity tile, Export tile, Figma menu, Apply Theme or bar mark (found ${JSON.stringify(gone.found)})`);
+
+        // ── the Agent tile (IA-3; the owner's T7 A, 2026-10-05), on the rail's foot since #2909 (Q2909.22 A) ──
+        // A borderless tile, its chain-link glyph over "Agent": the rail keeps its labels at every width (Q2909.16 A). A
         // click posts the same `agent-link` request the old popover's switch did; the main thread's published state is
         // what the tile shows: the fixed name "Agent" (a toggle, Q44), aria-pressed false or true, and a green dot only while on.
         const agentState = () => page.evaluate(() => {
-          const c = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-toggle"]');
+          const c = document.querySelector('[data-p3="rail-foot"] [data-p3="bar-agent"] [data-p3="agent-toggle"]');
           const dot = c?.querySelector('[data-p3="agent-dot"]');
           const lab = c?.querySelector('.p3-tile-label');
           const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none' && getComputedStyle(n).visibility !== 'hidden'; };
-          return { inBar: !!c, name: c?.getAttribute('aria-label') ?? null, pressed: c?.getAttribute('aria-pressed') ?? null, dot: vis(dot), label: vis(lab) ? lab.textContent : null,
+          return { onRail: !!c, name: c?.getAttribute('aria-label') ?? null, pressed: c?.getAttribute('aria-pressed') ?? null, dot: vis(dot), label: vis(lab) ? lab.textContent : null,
             tip: c?.querySelector('[data-p3="agent-toggle-tip"]')?.textContent ?? null };
         });
         const chip = await page.evaluate(() => {
@@ -2449,46 +2519,43 @@ for (const host of ['web', 'figma']) {
           const strip = document.querySelector('[data-p3="agent-strip"]');
           const outside = [...document.body.querySelectorAll('*')].filter((e) => !frame.contains(e) && !e.contains(frame) && !strip?.contains(e) && !['SCRIPT', 'STYLE'].includes(e.tagName));
           return {
-            inBar: !!document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-toggle"]'),
+            onRail: !!document.querySelector('[data-p3="rail-foot"] [data-p3="bar-agent"] [data-p3="agent-toggle"]'),
             old: !!document.querySelector('#p3-agent-link'), popover: !!document.querySelector('.p3-agent-chip, .p3-agent-pop'),
             strays: outside.filter((e) => /agent/i.test(e.textContent ?? '') || e.querySelector('button')).map((e) => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ''}`),
           };
         });
         const a0 = await agentState();
-        // #2214: above the narrow tier the label drops when the full bar would not fit on one row (`FIT_ORACLE`).
-        const fitT7 = narrow ? null : await page.evaluate(FIT_ORACLE);
-        const dropT7 = narrow || fitT7.also.every((x) => x !== 'full');
-        const eitherT7 = !dropT7 && fitT7.also.some((x) => x !== 'full');
-        ok(a0.inBar && a0.name === 'Agent' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent' && (eitherT7 ? a0.label === null || a0.label === 'Agent' : a0.label === (dropT7 ? null : 'Agent')),
-          `T7 ${where}: the Agent tile sits in the top bar's Agent slot, named "Agent", aria-pressed false, no dot, ${narrow ? 'its label dropped' : dropT7 ? 'its label dropped, as the full bar would not fit on one row (#2214)' : 'labelled "Agent"'} (${JSON.stringify(a0)}${fitT7 ? `, fit ${fitT7.step}` : ''})`);
-        hooks.absent(ok, { seen: chip.inBar, state: 'the Agent tile in the top bar' }, !chip.old && !chip.popover && chip.strays.length === 0,
+        ok(a0.onRail && a0.name === 'Agent' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent' && a0.label === 'Agent',
+          `T7 ${where}: the Agent tile sits in the rail foot's Agent slot, named "Agent", aria-pressed false, no dot, labelled "Agent" at every width (#2909, Q2909.16 A; ${JSON.stringify(a0)})`);
+        hooks.absent(ok, { seen: chip.onRail, state: 'the Agent tile on the rail' }, !chip.old && !chip.popover && chip.strays.length === 0,
           `D6 ${where}: the old chips are gone — no bottom-left chip, no Agent chip or popover, and nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'}, chip or popover ${chip.popover ? 'present' : 'absent'})`);
         const slot = await page.evaluate(() => { const s0 = document.querySelector('[data-p3="bar-agent"]'); s0.__p3Mark = 'slot'; return true; });
-        // A re-render of the bar (the brand menu opening and closing; the Pages menu did this until H12, #2289) keeps the
-        // same slot, tile inside.
+        // A re-render of the bar (the brand menu opening and closing) keeps the same slot, tile inside.
         await hooks.click(page.locator('[data-p3="brand-switcher"]'), WAIT);
         await hooks.click(page.locator('[data-p3="brand-switcher"]'), WAIT);
         const kept = await page.evaluate(() => { const s1 = document.querySelector('[data-p3="bar-agent"]'); return s1?.__p3Mark === 'slot' && !!s1.querySelector('[data-p3="agent-toggle"]'); });
         ok(slot && kept, `IA-3 ${where}: the Agent slot is the same node after the bar re-renders, and still holds the tile`);
+
+        // ── Minimize (#2949), on the top bar since #2909, link on or off (the owner's direction of 2026-10-24) ──
+        const minTile = () => page.evaluate(() => {
+          const slot = document.querySelector('[data-p3="top-bar"] [data-p3="bar-minimize"]');
+          const b = slot?.querySelector('[data-p3="agent-minimize"]');
+          const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
+          const upd = document.querySelector('[data-p3="top-bar"] [data-p3="update-file"]');
+          return { shown: vis(b), name: b?.getAttribute('aria-label') ?? null, beforeUpdate: !!b && !!upd && !!(b.compareDocumentPosition(upd) & Node.DOCUMENT_POSITION_FOLLOWING) };
+        });
+        const m0 = await minTile();
+        ok(m0.shown && m0.name === 'Minimize' && m0.beforeUpdate,
+          `#2909 ${where}: with the link off, Minimize shows on the top bar, named "Minimize", before Update file (the owner's direction of 2026-10-24: Minimize does not depend on the link; ${JSON.stringify(m0)})`);
+
         await takePosts(page);
         await hooks.click(page.locator('[data-p3="agent-toggle"]'), WAIT);
         const sw = await takeWrites(page);
         ok(isWire(sw, AGENT_WIRE), `T7 ${where}: a click on the Agent tile asks the main thread to turn the link on, ${JSON.stringify(AGENT_WIRE)} (posted ${JSON.stringify(sw)})`);
         await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
         await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 5000 }).catch(() => {});
-        // #2949: the link on draws Minimize beside the tile, which widens the bar and can re-fit it a frame or more later,
-        // moving tiles under the pointer and with them which tooltip shows. Measure once the bar holds still: Minimize
-        // drawn and every bar control in the same box over four frames running.
-        await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-p3="agent-minimize"]') ?? document.body).display !== 'none'
-          && !!document.querySelector('[data-p3="agent-minimize"]'), null, { timeout: 5000 }).catch(() => {});
-        await page.evaluate(() => new Promise((done) => {
-          const boxes = () => [...document.querySelectorAll('[data-p3="top-bar"] button, [data-p3="top-bar"] a')].map((n) => { const r = n.getBoundingClientRect(); return `${r.left},${r.top},${r.width}`; }).join('|');
-          let last = boxes(), still = 0, frames = 0;
-          const step = () => { const now = boxes(); still = now === last ? still + 1 : 0; last = now; if (still >= 4 || ++frames > 120) done(); else requestAnimationFrame(step); };
-          requestAnimationFrame(step);
-        }));
-        // Then put the pointer back on the Agent tile, where the click left it: hover is taken from a real move, not from
-        // whenever the browser next re-reads it after the layout moved, so its tooltip is drawn, and stays drawn, when measured.
+        // Put the pointer back on the Agent tile, where the click left it, and let two frames land it (#2980), so its
+        // hover-only tooltip is drawn, and stays drawn, when measured.
         const at = await page.locator('[data-p3="agent-toggle"]').boundingBox();
         if (at) await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
         await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
@@ -2499,20 +2566,12 @@ for (const host of ['web', 'figma']) {
         await shot('agent');
 
         // ── the link strip (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A) ──────────────────────────
-        // EXPECTED is written here: Minimize beside the Agent tile only while the link is on; minimized, the document
-        // draws the strip alone, its line in the Activity drawer's words plus the command and its age, whole at the
-        // strip's size (480×40, the size `main.ts` resizes to), with Restore and Turn off; restored, the same frame node
-        // is drawn again. The window's size is the main thread's (`test-agent-link.ts` strip/*); here the viewport stands in.
-        const minTile = () => page.evaluate(() => {
-          const slot = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"]');
-          const b = slot?.querySelector('[data-p3="agent-minimize"]');
-          const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
-          const kids = slot ? [...slot.querySelectorAll('[data-p3="agent-toggle"], [data-p3="agent-minimize"]')].map((n) => n.getAttribute('data-p3')) : [];
-          return { shown: vis(b), name: b?.getAttribute('aria-label') ?? null, order: kids };
-        });
+        // EXPECTED is written here: minimized, the document draws the strip alone, its line in the Activity drawer's
+        // words plus the command and its age, whole at the strip's size (480×40, the size `main.ts` resizes to), with
+        // Restore and Turn off while the link is on; restored, the same frame node is drawn again. The window's size is
+        // the main thread's (`test-agent-link.ts` strip/*); here the viewport stands in.
         const m1 = await minTile();
-        ok(m1.shown && m1.name === 'Minimize' && JSON.stringify(m1.order) === '["agent-toggle","agent-minimize"]',
-          `#2949 ${where}: with the link on, Minimize shows beside the Agent tile, named "Minimize" (${JSON.stringify(m1)})`);
+        ok(m1.shown && m1.name === 'Minimize', `#2949 ${where}: with the link on, Minimize still shows on the top bar, named "Minimize" (${JSON.stringify(m1)})`);
         await takeWrites(page);
         await hooks.click(page.locator('[data-p3="agent-minimize"]'), WAIT);
         const mw = await takeWrites(page);
@@ -2531,17 +2590,19 @@ for (const host of ['web', 'figma']) {
           const app = document.getElementById('app');
           const rs = st?.querySelector('[data-p3="agent-strip-restore"]');
           const off = st?.querySelector('[data-p3="agent-strip-off"]');
+          const dot = st?.querySelector('[data-p3="agent-strip-dot"]');
+          const vis = (n) => { if (!n) return false; const b = n.getBoundingClientRect(); return b.width > 0 && b.height > 0 && getComputedStyle(n).display !== 'none'; };
           const box = (n) => { const b = n?.getBoundingClientRect(); return b ? [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)] : null; };
           return { drawn: !!st && !st.hidden && getComputedStyle(st).display !== 'none', rect: r ? [Math.round(r.width), Math.round(r.height)] : null,
             appDrawn: !!app && getComputedStyle(app).display !== 'none', text: t?.textContent ?? null, whole: !!t && t.scrollWidth <= t.clientWidth,
-            restore: rs?.getAttribute('aria-label') ?? null, off: off?.textContent ?? null, focus: document.activeElement?.getAttribute('data-p3') ?? null,
-            inside: [box(t), box(rs), box(off)].every((b) => b && b[0] >= 0 && b[1] >= 0 && b[2] <= 480 && b[3] <= 40) };
+            restore: rs?.getAttribute('aria-label') ?? null, off: vis(off) ? off.textContent : null, dot: vis(dot), focus: document.activeElement?.getAttribute('data-p3') ?? null,
+            inside: [box(t), box(rs), ...(vis(off) ? [box(off)] : [])].every((b) => b && b[0] >= 0 && b[1] >= 0 && b[2] <= 480 && b[3] <= 40) };
         });
         const s1 = await stripState();
         ok(s1.drawn && !s1.appDrawn && JSON.stringify(s1.rect) === '[480,40]',
           `#2949 ${where}: minimized, the strip fills the 480×40 window and the panel is not drawn (${JSON.stringify({ drawn: s1.drawn, app: s1.appDrawn, rect: s1.rect })})`);
-        ok(s1.text === LONGEST && s1.whole && s1.inside,
-          `#2949 ${where}: the strip reads "${LONGEST}", whole, every part inside the strip (${JSON.stringify({ text: s1.text, whole: s1.whole, inside: s1.inside })})`);
+        ok(s1.text === LONGEST && s1.whole && s1.inside && s1.dot,
+          `#2949 ${where}: the strip reads "${LONGEST}", whole, its dot drawn, every part inside the strip (${JSON.stringify({ text: s1.text, whole: s1.whole, dot: s1.dot, inside: s1.inside })})`);
         ok(s1.restore === 'Restore' && s1.off === 'Turn off' && s1.focus === 'agent-strip-restore',
           `#2949 ${where}: the strip carries Restore and Turn off, and focus moves to Restore (${JSON.stringify({ restore: s1.restore, off: s1.off, focus: s1.focus })})`);
         await shot('strip');
@@ -2571,84 +2632,101 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'false', null, { timeout: 5000 }).catch(() => {});
         const a2 = await agentState();
         ok(a2.name === 'Agent' && a2.pressed === 'false' && !a2.dot, `T7 ${where}: the published off state clears the dot and the pressed state (${JSON.stringify(a2)})`);
+        // The owner's direction (2026-10-24): with the link off, Minimize is still drawn and still minimizes; the strip
+        // then shows the product's name and Restore, and nothing of the link.
         const m2 = await minTile();
-        hooks.absent(ok, { seen: a2.pressed === 'false', state: 'the Agent tile off' }, !m2.shown, `#2949 ${where}: with the link off, Minimize is not drawn (${JSON.stringify(m2)})`);
+        ok(m2.shown && m2.name === 'Minimize', `#2909 ${where}: with the link off again, Minimize is still drawn (${JSON.stringify(m2)})`);
+        await hooks.click(page.locator('[data-p3="agent-minimize"]'), WAIT);
+        const mw2 = await takeWrites(page);
+        ok(isWire(mw2, { type: 'minimize-ui', minimized: true }), `#2909 ${where}: with the link off, Minimize asks the main thread to minimize (posted ${JSON.stringify(mw2)})`);
+        await postMsg(page, { type: 'ui-minimized', minimized: true });
+        await page.setViewportSize({ width: 480, height: 40 });
+        await page.waitForFunction(() => !document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 5000 }).catch(() => {});
+        const s3 = await stripState();
+        ok(s3.drawn && !s3.appDrawn && s3.text === 'Prism3' && s3.off === null && !s3.dot && s3.restore === 'Restore' && s3.inside && s3.focus === 'agent-strip-restore',
+          `#2909 ${where}: minimized with the link off, the strip reads "Prism3" with Restore alone: no link dot, no Turn off (${JSON.stringify(s3)})`);
+        await hooks.click(page.locator('[data-p3="agent-strip-restore"]'), WAIT);
+        const rw2 = await takeWrites(page);
+        ok(isWire(rw2, { type: 'minimize-ui', minimized: false }), `#2909 ${where}: with the link off, Restore asks the main thread to restore (posted ${JSON.stringify(rw2)})`);
+        await postMsg(page, { type: 'ui-minimized', minimized: false });
+        await page.setViewportSize({ width: w, height: h });
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 5000 }).catch(() => {});
 
-        // ── the Figma menu: by keyboard, then each item's action ──────────────────────────────────
-        // The pointer leaves the Agent tile it just clicked: a tip drawn on hover can drop between the in-page probe
-        // and the CDP font read, which then reports it drew nothing (#2962's CI, figma light 380). The move lands on
-        // a frame, not when it is sent (#2980), so wait until the tile no longer reads as hovered.
+        // ── Update file (#2909, Q668 A, Q2909.2 A, Q2909.5 A): the plugin's one global write ───────────────
+        // The pointer leaves the tiles it clicked: a tip drawn on hover can drop between the in-page probe and the CDP
+        // font read (#2962's CI, figma light 380). The move lands on a frame, not when it is sent (#2980).
         await page.mouse.move(0, h - 1);
-        const left = await page.waitForFunction(() => !document.querySelector('[data-p3="agent-toggle"]')?.matches(':hover'), null, { timeout: 5000 }).then(() => true, () => false);
-        ok(left, `Figma menu ${where}: the pointer has left the Agent tile before the menu is measured, so its hover-only tooltip is not drawn (#2980)`);
-        await page.locator('[data-p3="figma-open"]').focus();
-        await page.keyboard.press('ArrowDown');
-        const k0 = await menuState(page);
-        ok(k0.open && k0.expanded === 'true' && k0.focus === 'figma-option-prune', `Figma menu ${where}: Arrow Down on the button opens the menu on its first item (${JSON.stringify({ open: k0.open, focus: k0.focus })})`);
-        ok(JSON.stringify(k0.items.map(([hk, l]) => [hk, l])) === JSON.stringify(FIGMA_ITEMS.map(([id, l]) => [hooks.role(FIGMA_OPTION[id]), l])),
-          `Figma menu ${where}: the items read ${FIGMA_ITEMS.map(([, l]) => l).join(', ')} — read ${k0.items.map(([, l]) => l).join(', ')}`);
-        // #2178 (owner decision, 2026-10-05): Apply Theme is the bar's filled button and nothing else. Read by label and
-        // by hook, so an item put back under either fails here; the proof is the open menu with its items read.
-        hooks.absent(ok, { seen: k0.open && k0.items.length > 0, state: 'the Figma menu open with its items' },
-          !k0.items.some(([hk, l]) => /apply/i.test(`${hk} ${l}`)),
-          `#2178 Figma menu ${where}: the menu lists no Apply Theme, the bar's button is its one control (items ${JSON.stringify(k0.items.map(([hk, l]) => [hk, l]))})`);
-        const keys = [];
-        for (const key of ['ArrowDown', 'End', 'Home', 'ArrowUp']) { await page.keyboard.press(key); keys.push((await menuState(page)).focus); }
-        ok(JSON.stringify(keys) === JSON.stringify(['figma-option-file-setup', 'figma-option-style-guide', 'figma-option-prune', 'figma-option-style-guide']),
-          `Figma menu ${where}: Arrow Down, End, Home and Arrow Up (wrapping) move along the items (${keys.join(', ')})`);
-        const mm = await measure(page, `${where} / Figma menu open`, host, w);
-        check(mm, `${where} / Figma menu open`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: Object.values(FIGMA_OPTION) });
-        await shot('figma-menu');
+        const left = await page.waitForFunction(() => !document.querySelector('[data-p3="agent-toggle"]:hover, [data-p3="agent-minimize"]:hover'), null, { timeout: 5000 }).then(() => true, () => false);
+        ok(left, `#2909 ${where}: the pointer has left the tiles before Update file is measured, so no hover-only tooltip is drawn (#2980)`);
+        const updIdle = await updState(page);
+        ok(updIdle.text === UPDATE_LABEL && updIdle.name === null && !updIdle.disabled && !updIdle.busy && !updIdle.open,
+          `#2909 ${where}: Update file reads "${UPDATE_LABEL}", named by its text, and can run (read ${JSON.stringify(updIdle)})`);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+        await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+        const wq = await takeWrites(page);
+        const u0 = await updState(page);
+        ok(isWire(wq, { type: 'file-sets-request' }), `#2909 ${where}: opening Update file asks the main thread which sets the file holds, and writes nothing (posted ${JSON.stringify(wq)})`);
+        ok(u0.open && u0.modal && u0.checking && u0.focusIn, `#2909 ${where}: Update file opens its checklist, modal, says "Checking the file…" until the answer lands, focus inside (${JSON.stringify({ open: u0.open, modal: u0.modal, checking: u0.checking, focus: u0.focus })})`);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+        await hooks.need(page, '[data-p3="update-go"]', WAIT);
+        const u1 = await updState(page);
+        ok(JSON.stringify(u1.items) === JSON.stringify([UPDATE_ITEM.theme, UPDATE_ITEM.sets, UPDATE_ITEM.guides].map(hooks.role)) && u1.checked[hooks.role(UPDATE_CHECK.theme)] === 'true'
+          && u1.checked[hooks.role(UPDATE_CHECK.guides)] === 'false' && u1.sets > 0 && u1.setsOn === 0 && u1.go === UPDATE_LABEL,
+          `#2909 ${where}: on a file that is set up, the checklist is Theme (ticked), Component sets (each new set unticked, Q2909.5 A) and Style guides (unticked), and its action reads "${UPDATE_LABEL}" (${JSON.stringify({ items: u1.items, checked: u1.checked, sets: u1.sets, on: u1.setsOn, go: u1.go })})`);
+        const mu = await measure(page, `${where} / Update file open`, host, w);
+        check(mu, `${where} / Update file open`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR,
+          { extra: ['[data-p3="update-x"]', '[data-p3="update-tab-update"]', '[data-p3="update-tab-clean"]', UPDATE_CHECK.theme, '[data-p3="update-set"]', '[data-p3="update-cancel"]', '[data-p3="update-go"]'] });
+        await shot('update-file');
         await page.keyboard.press('Escape');
-        const k1 = await menuState(page);
-        ok(!k1.open && k1.expanded === 'false' && k1.focus === 'figma-open', `Figma menu ${where}: Escape closes it back to its button (${JSON.stringify({ open: k1.open, focus: k1.focus })})`);
-        await openFigma(page);
-        await page.keyboard.press('Tab');
-        ok(!(await menuState(page)).open, `Figma menu ${where}: Tab closes the menu`);
+        const u2 = await updState(page);
+        ok(!u2.open && u2.focus === 'update-file', `#2909 ${where}: Escape closes the checklist back to Update file (${JSON.stringify({ open: u2.open, focus: u2.focus })})`);
+        hooks.absent(ok, { seen: u1.open, state: 'the checklist open' }, (await takeWrites(page)).length === 0, `#2909 ${where}: opening and closing the checklist writes nothing`);
 
-        // The bar's Apply, idle: its label and its accessible name are the literal label.
-        const applyIdle = await applyBar(page);
-        ok(applyIdle.text === APPLY_LABEL && applyIdle.name === null && !applyIdle.disabled && !applyIdle.busy,
-          `${where}: the bar's Apply reads "${APPLY_LABEL}", named by its text, and can run (read ${JSON.stringify(applyIdle)})`);
-        // Apply Theme, from the bar's filled button (its one control since #2178): the write, and the drawer opens by itself (F2).
-        await takePosts(page);
-        await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
+        // Theme alone (Q2909.2 A: the checklist shows even then): its action posts the brand the page loaded, whole.
+        await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+        await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+        await hooks.need(page, '[data-p3="update-go"]', WAIT);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
         const wa = await takeWrites(page);
         const pa = wa.map(keyOf);
-        ok(JSON.stringify(pa) === JSON.stringify(FIGMA_EFFECT.apply), `#2178 ${where}: the bar's Apply Theme posts ${FIGMA_EFFECT.apply} — posted ${JSON.stringify(pa)}`);
-        ok(isWire(wa, FIGMA_WIRE.apply), `#2178 ${where}: the bar's Apply Theme posts the brand the page loaded (example-brands.json's prism3), whole — ${wireDiff(wa[0], FIGMA_WIRE.apply)}`);
+        ok(JSON.stringify(pa) === JSON.stringify(FIGMA_EFFECT.apply), `#2909 ${where}: Update file with Theme ticked posts ${FIGMA_EFFECT.apply} — posted ${JSON.stringify(pa)}`);
+        ok(isWire(wa, FIGMA_WIRE.apply), `#2909 ${where}: Update file's Theme posts the brand the page loaded (example-brands.json's prism3), whole — ${wireDiff(wa[0], FIGMA_WIRE.apply)}`);
         await settle(page);
         const r = await drawerState(page);
         const ra = r.ops['apply'];
+        const ub = await updState(page);
+        ok(!ub.open && ub.focus === 'update-file', `#2909 ${where}: the run closes the checklist, focus back on Update file (${JSON.stringify({ open: ub.open, focus: ub.focus })})`);
         ok(ra?.state === 'running' && ra.phase === 'Writing to Figma…', `F2 ${where}: the running write sits on the drawer's Apply Theme row, reading "Writing to Figma…" (row ${JSON.stringify(ra)})`);
         ok((r.last ?? '').includes('Apply Theme') && (r.last ?? '').includes('Writing to Figma…'), `F2 ${where}: the drawer's bar row names the running write and its phase (read "${r.last}")`);
         hooks.absent(ok, { seen: ra?.state === 'running', state: 'the running write on its drawer row' }, r.barPills === 0, `F2 ${where}: no status pill is left in the top bar (${r.barPills} found)`);
-        ok(r.dot === 'run' && r.name === 'Activity, 1 running', `F2 ${where}: Activity's dot and name say a write is running (dot ${r.dot}, name "${r.name}")`);
         if (narrow) {
           ok(!r.open && r.shown && r.pinned && !r.body, `F2 ${where}: at 380 a running write shows in the strip, pinned to the bottom edge, and the drawer stays closed (${JSON.stringify({ open: r.open, shown: r.shown, pinned: r.pinned })})`);
         } else {
-          ok(r.open && r.body && r.expanded === 'true' && r.pinned, `F2 ${where}: Apply opens the drawer by itself while it runs, pinned to the bottom edge (${JSON.stringify({ open: r.open, body: r.body, pinned: r.pinned })})`);
+          ok(r.open && r.body && r.pinned, `F2 ${where}: the run opens the drawer by itself while it runs, pinned to the bottom edge (${JSON.stringify({ open: r.open, body: r.body, pinned: r.pinned })})`);
           ok(r.note === null && (await rowOf(page, 'apply'))?.expanded === 'true', `F2 ${where}: the open drawer's body shows the Apply Theme row, expanded, and not its empty note (note "${r.note}")`);
         }
         const mr = await measure(page, `${where} / a write running`, host, w);
         check(mr, `${where} / a write running`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="activity-toggle"]'] });
         await shot(narrow ? 'drawer-collapsed' : 'drawer-open');
-        const applyBusy = await applyBar(page);
-        ok(applyBusy.text === APPLY_RUNNING && applyBusy.busy && applyBusy.disabled === false,
-          `${where}: while the write runs, the bar's Apply reads "${APPLY_RUNNING}", busy and aria-disabled, not natively disabled (owner decision #4; read ${JSON.stringify(applyBusy)})`);
-        ok(applyBusy.width === applyIdle.width, `${where}: the bar's Apply keeps its width while busy (${applyIdle.width} idle, ${applyBusy.width} busy)`);
-        // While it runs, Prune stale is unavailable (today's rule: a prune reads what an apply writes); Set up file
-        // is not.
-        await openFigma(page);
-        const busy = await menuState(page);
-        const dis = Object.fromEntries(busy.items.map(([hk, , d, b]) => [hk, b ? 'busy' : d ? 'disabled' : 'ready']));
-        ok(dis['figma-option-prune'] === 'disabled' && dis['figma-option-file-setup'] === 'ready',
-          `Figma menu ${where}: while Apply runs, Prune stale is unavailable and Set up file can run (${JSON.stringify(dis)})`);
+        // Busy, it still opens the checklist (the step running, and Stop), so it is not announced as unavailable.
+        ok(ub.text === UPDATE_RUNNING && ub.busy && ub.ariaDisabled === null && ub.disabled === false,
+          `#2909 ${where}: while the run is out, Update file reads "${UPDATE_RUNNING}", aria-busy, neither aria-disabled nor natively disabled (read ${JSON.stringify(ub)})`);
+        ok(ub.width === updIdle.width, `#2909 ${where}: Update file keeps its width while busy (${updIdle.width} idle, ${ub.width} busy)`);
+        await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+        await hooks.need(page, '[data-p3="update-running"]', WAIT);
+        const ur = await updState(page);
+        ok(ur.running === 'Step 1 of 1 · Theme' && ur.stop && (await takeWrites(page)).length === 0,
+          `#2909 ${where}: reopened while it runs, the checklist says "Step 1 of 1 · Theme" with Stop, and asks nothing (${JSON.stringify({ running: ur.running, stop: ur.stop })})`);
         await page.keyboard.press('Escape');
         // A success collapses the drawer COLLAPSE_MS after it lands, and not before (timed at 1280).
         await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
         const t0 = Date.now();
         await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="apply"] [data-p3="op-verdict"]')?.textContent ?? '').includes('✓ Applied'), null, { timeout: 5000 }).catch(() => {});
+        const ud = await updState(page);
+        ok(ud.text === UPDATE_LABEL && !ud.busy, `#2909 ${where}: the run's last step lands and Update file is free again (read ${JSON.stringify(ud)})`);
         if (w === 1280) {
           await sinceMs(page, t0, COLLAPSE_MS - 1000);
           const early = await drawerState(page);
@@ -2659,37 +2737,55 @@ for (const host of ['web', 'figma']) {
             `F2 ${where}: a success collapses the drawer by ${(COLLAPSE_MS + 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s), its result still on the drawer's bar row — open ${late.open}, bar "${late.last}"`);
           await shot('drawer-collapsed');
         } else if (narrow) {
-          const s1 = await drawerState(page);
-          ok(!s1.open && s1.shown && s1.dot === 'unread' && s1.name === 'Activity, new result', `F2 ${where}: at 380 a success stays in the strip and marks a new result (${JSON.stringify({ open: s1.open, dot: s1.dot, name: s1.name })})`);
+          const s4 = await drawerState(page);
+          ok(!s4.open && s4.shown, `F2 ${where}: at 380 a success stays in the strip (${JSON.stringify({ open: s4.open, shown: s4.shown })})`);
         }
-        // Prune stale, from the menu: the dry run the old Prune stale button posted.
-        await openFigma(page);
-        await hooks.click(page.locator('[data-p3="figma-option-prune"]'), WAIT);
+
+        // ── Clean up (Q668 A): Prune stale, with its own preview; it never rides Update ─────────────────
+        await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+        await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-tab-clean"]'), WAIT);
         const wp = await takeWrites(page);
         const pp = wp.map(keyOf);
-        ok(JSON.stringify(pp) === JSON.stringify(FIGMA_EFFECT.prune), `Figma menu ${where}: Prune stale posts a dry-run prune (${FIGMA_EFFECT.prune}) — posted ${JSON.stringify(pp)}`);
-        ok(isWire(wp, FIGMA_WIRE.prune), `Figma menu ${where}: Prune stale posts the brand the page loaded with confirm false, whole — ${wireDiff(wp[0], FIGMA_WIRE.prune)}`);
-        // While the dry run is out, the menu's Prune item says so (#1954). The expected text is the literal label.
-        const pruneLabel = async () => { await openFigma(page); const t = await page.evaluate((shownSrc) => eval(shownSrc)(document.querySelector('[data-p3="figma-option-prune"]')), SHOWN); await page.keyboard.press('Escape'); return t; };
-        const checking = await pruneLabel();
-        ok(checking === PRUNE_LABEL.preview, `Figma menu ${where}: while the dry run is out, Prune stale reads "${PRUNE_LABEL.preview}" (read "${checking}")`);
-        // The dry run finds something, the confirm dialog opens, and its Delete posts the real prune; while that
-        // runs, the item reads the delete's label. The delete's result then lands as the dry run's empty one did.
+        ok(JSON.stringify(pp) === JSON.stringify(FIGMA_EFFECT.prune), `#2909 Clean up ${where}: opening the tab posts a dry-run prune (${FIGMA_EFFECT.prune}) — posted ${JSON.stringify(pp)}`);
+        ok(isWire(wp, FIGMA_WIRE.prune), `#2909 Clean up ${where}: the dry run carries the brand the page loaded with confirm false, whole — ${wireDiff(wp[0], FIGMA_WIRE.prune)}`);
+        const c0 = await updState(page);
+        ok(c0.tab === hooks.role('[data-p3="update-tab-clean"]') && c0.cleanChecking === CLEAN_CHECKING, `#2909 Clean up ${where}: while the dry run is out, the tab reads "${CLEAN_CHECKING}" (${JSON.stringify({ tab: c0.tab, line: c0.cleanChecking })})`);
         await postMsg(page, { type: 'prune-result', ok: true, applied: false, count: 3, summary: '3 stale items: 3 variables.' });
-        await hooks.click(page.locator('[data-p3="prune-dialog"] [data-p3="dialog-confirm"]'), WAIT);
+        await hooks.need(page, '[data-p3="clean-prune-confirm"]', WAIT);
+        const c1 = await updState(page);
+        ok(c1.pruneSummary === '3 stale items: 3 variables.' && c1.pruneConfirm === 'Delete 3 items', `#2909 Clean up ${where}: the dry run's count shows, with "Delete 3 items" (${JSON.stringify({ summary: c1.pruneSummary, confirm: c1.pruneConfirm })})`);
+        const mcl = await measure(page, `${where} / Clean up`, host, w);
+        check(mcl, `${where} / Clean up`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="update-tab-clean"]', '[data-p3="clean-prune-confirm"]'] });
+        await hooks.click(page.locator('[data-p3="clean-prune-confirm"]'), WAIT);
         const wd = await takePosts(page);
-        ok(JSON.stringify(wd) === JSON.stringify(['prune:true']), `Figma menu ${where}: the prune dialog's Delete posts the confirmed prune — posted ${JSON.stringify(wd)}`);
-        const removing = await pruneLabel();
-        ok(removing === PRUNE_LABEL.delete, `Figma menu ${where}: while the delete runs, Prune stale reads "${PRUNE_LABEL.delete}" (read "${removing}")`);
+        ok(JSON.stringify(wd) === JSON.stringify(['prune:true']), `#2909 Clean up ${where}: Delete posts the confirmed prune — posted ${JSON.stringify(wd)}`);
+        const c2 = await updState(page);
+        ok(c2.cleanChecking === CLEAN_CHECKING && c2.pruneConfirm === null, `#2909 Clean up ${where}: while the delete runs, the tab says so and offers no second Delete (${JSON.stringify({ line: c2.cleanChecking, confirm: c2.pruneConfirm })})`);
         await postMsg(page, { type: 'prune-result', ok: true, applied: true, count: 3, summary: 'Removed 3 stale items.' });
-        // Set up file, from the menu: the write the page's own button posts. Its result fails (light) or warns
-        // (dark), and either keeps the drawer open (F2); at 380 it opens the full-pane sheet.
-        await openFigma(page);
-        await hooks.click(page.locator('[data-p3="figma-option-file-setup"]'), WAIT);
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="clean-prune-result"]'), null, { timeout: 5000 }).catch(() => {});
+        const c3 = await updState(page);
+        ok(c3.pruneResult === 'Removed 3 stale items.', `#2909 Clean up ${where}: the delete's result shows in the tab (${JSON.stringify(c3.pruneResult)})`);
+        await page.keyboard.press('Escape');
+
+        // ── Set up file (Q668 A): on a file that is not set up, the first checklist is the setup ───────────
+        // Its run starts with Set up file alone; the result fails (light) or warns (dark), either of which ends the run
+        // there and keeps the drawer open (F2); at 380 it opens the full-pane sheet.
+        await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+        await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: false });
+        await hooks.need(page, '[data-p3="update-go"]', WAIT);
+        const f0 = await updState(page);
+        ok(JSON.stringify(f0.items) === JSON.stringify(Object.values(UPDATE_ITEM).map(hooks.role))
+          && Object.values(UPDATE_CHECK).every((k) => f0.checked[hooks.role(k)] === 'true') && f0.sets > 0 && f0.setsOn === f0.sets && f0.go === UPDATE_FRESH,
+          `#2909 ${where}: on a file that is not set up, Set up file comes first and every item and new set starts ticked (Q668 A, Q2909.5 A), its action "${UPDATE_FRESH}" (${JSON.stringify({ items: f0.items, checked: f0.checked, sets: f0.sets, on: f0.setsOn, go: f0.go })})`);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
         const wf = await takeWrites(page);
         const pf = wf.map(keyOf);
-        ok(JSON.stringify(pf) === JSON.stringify(FIGMA_EFFECT['file-setup']), `Figma menu ${where}: Set up file posts ${FIGMA_EFFECT['file-setup']} — posted ${JSON.stringify(pf)}`);
-        ok(isWire(wf, FIGMA_WIRE['file-setup']), `Figma menu ${where}: Set up file posts ${JSON.stringify(FIGMA_WIRE['file-setup'])} and nothing more — ${wireDiff(wf[0], FIGMA_WIRE['file-setup'])}`);
+        ok(JSON.stringify(pf) === JSON.stringify(FIGMA_EFFECT['file-setup']), `#2909 ${where}: the setup run starts with Set up file alone, ${FIGMA_EFFECT['file-setup']} — posted ${JSON.stringify(pf)}`);
+        ok(isWire(wf, FIGMA_WIRE['file-setup']), `#2909 ${where}: Set up file posts ${JSON.stringify(FIGMA_WIRE['file-setup'])} and nothing more — ${wireDiff(wf[0], FIGMA_WIRE['file-setup'])}`);
         const kind = theme === 'light' ? 'failure' : 'warning';
         const bad = theme === 'light'
           ? { type: 'file-setup-result', ok: false, headline: '✗ file setup failed', summary: 'file setup failed: a page named Components already exists' }
@@ -2697,41 +2793,43 @@ for (const host of ['web', 'figma']) {
         await postMsg(page, bad);
         const t1 = Date.now();
         await page.waitForFunction((s) => document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-summary"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
+        const after = await takeWrites(page);
+        ok(after.length === 0, `#2909 ${where}: a ${kind} from Set up file ends the run there: nothing more is posted (posted ${JSON.stringify(after.map(keyOf))})`);
         if (w === 1280 || narrow) await sinceMs(page, t1, COLLAPSE_MS + 1000);
         const f = await drawerState(page);
         const fs = f.ops['filesetup'];
         ok(f.open && f.body && fs?.summary === bad.summary, `F2 ${where}: a ${kind} keeps the drawer open${w === 1280 || narrow ? ` past ${(COLLAPSE_MS + 1000) / 1000} s` : ''}, its row's summary showing — open ${f.open}, summary "${fs?.summary}"`);
-        // D-RED A (owner, 2026-10-05): the tile's dot is red ('bad') for a failure and green ('warn') for a warning; the
-        // name says it needs attention either way.
-        const wantDot = kind === 'failure' ? 'bad' : 'warn';
-        ok(f.dot === wantDot && f.name === 'Activity, 1 needs attention', `F2 ${where}: Activity's dot (${wantDot}) and name say a result needs attention (dot ${f.dot}, name "${f.name}")`);
         if (narrow) ok(f.sheet, `F2 ${where}: at 380 a ${kind} opens the full-pane sheet under the top row (sheet ${f.sheet})`);
         const mf = await measure(page, `${where} / a ${kind} open`, host, w);
         check(mf, `${where} / a ${kind} open`, columnOf(host, w), narrow ? { ...INSPECT_NARROW_FLOOR, text: 4, fonts: 4, controls: 6 } : PLACE_FLOOR,
-          { state: narrow ? 'sheet' : 'page', only: narrow ? ['[data-p3="brand-switcher"]', '[data-p3="activity-open"]', ...FIGMA_BAR, '[data-p3="activity-toggle"]', '[data-p3="op-head"]'] : null, extra: narrow ? [] : ['[data-p3="activity-toggle"]', '[data-p3="op-head"]'] });
+          { state: narrow ? 'sheet' : 'page', only: narrow ? ['[data-p3="brand-switcher"]', '[data-p3="update-file"]', '[data-p3="activity-toggle"]', '[data-p3="op-head"]'] : null, extra: narrow ? [] : ['[data-p3="activity-toggle"]', '[data-p3="op-head"]'] });
         if (narrow) await shot('drawer-open');
         await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
         const c = await drawerState(page);
-        ok(!c.open && c.shown && c.dot === wantDot, `F2 ${where}: the drawer's toggle closes it, and the dot keeps the ${kind} (open ${c.open}, dot ${c.dot})`);
-        // (The old Style guide page's row verdict, which opened the drawer on its row by hand, went with the page in H12,
-        // #2289. Build style guides' own verdict pill does the same, held by `apps/plugin/test-style-guides-page.mjs`.)
-        // The two option-first items open where those options are; neither writes on its own. Build set… opens the
-        // Components tab (S8.2, G2 A): the tab row selects it, the place is Components, and no legacy page shows.
-        for (const id of ['build', 'style-guide']) {
-          if (id === 'build') await goPlace(page, 'color-palettes');
-          await openFigma(page);
-          await hooks.click(page.locator(FIGMA_OPTION[id]), WAIT);
-          const want = FIGMA_EFFECT[id];
-          if (want.tab) await page.waitForFunction((t) => document.querySelector('[data-p3="frame"]')?.dataset.place === t, want.tab, { timeout: 5000 }).catch(() => {});
-          else if (want.menuPage) await page.waitForFunction(() => !!document.querySelector('[data-p3="style-guides"]'), null, { timeout: 5000 }).catch(() => {});
-          const at = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null,
-            selected: document.querySelector('[data-p3^="tab-"][aria-selected="true"]')?.getAttribute('data-p3') ?? null,
-            sets: !!document.querySelector('[data-p3="components-build"]'),
-            menuPage: document.querySelector('[data-p3="frame"]')?.dataset.layout === 'page' && !!document.querySelector('[data-p3="style-guides"]') }));
+        ok(!c.open && c.shown, `F2 ${where}: the drawer's toggle closes it (open ${c.open}, shown ${c.shown})`);
+        // A run that stopped on a failed step says so the next time the checklist opens, so a stop is never silent.
+        await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+        await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: false });
+        await hooks.need(page, '[data-p3="update-stopped"]', WAIT);
+        const fst = await updState(page);
+        ok(fst.stopped === `The last update stopped at Set up file: ${bad.headline}`, `#2909 ${where}: reopened, the checklist says where the last run stopped (${JSON.stringify(fst.stopped)})`);
+        await page.keyboard.press('Escape');
+
+        // The rail's areas open where their options are, and none writes on its own: Components (the sets' list and
+        // settings, S8.2's place) and Documentation (the style guides' settings, Q2909.23 A: no Draw of its own).
+        await takeWrites(page);
+        for (const [tile, want] of [['[data-p3="rail-components"]', 'components'], ['[data-p3="rail-documentation"]', 'documentation']]) {
+          await hooks.click(page.locator(tile), WAIT);
+          if (want === 'components') await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components', null, { timeout: 5000 }).catch(() => {});
+          else await page.waitForFunction(() => !!document.querySelector('[data-p3="documentation"]'), null, { timeout: 5000 }).catch(() => {});
+          const atA = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null, layout: document.querySelector('[data-p3="frame"]')?.dataset.layout ?? null,
+            current: document.querySelector('[data-p3="rail-areas"] [aria-current="page"]')?.getAttribute('data-p3') ?? null,
+            levers: !!document.querySelector('[data-p3="components-levers"]'), docs: !!document.querySelector('[data-p3="documentation"]') }));
           const px = await takePosts(page);
-          const landed = want.tab ? at.place === want.tab && at.selected === `tab-${want.tab}` && at.sets
-            : at.menuPage && at.selected === null;
-          ok(landed && px.length === 0, `Figma menu ${where}: ${FIGMA_ITEMS.find(([x]) => x === id)[1]} opens the ${want.tab ? `${want.tab} tab` : `${want.page ?? want.menuPage} page`} and writes nothing — ${landed ? '' : 'nothing opened: '}place "${at.place}", tab ${at.selected}, Build control ${at.sets}, posted ${JSON.stringify(px)}`);
+          const landed = want === 'components' ? atA.place === 'components' && atA.levers && atA.current === 'rail-components'
+            : atA.layout === 'page' && atA.docs && atA.current === 'rail-documentation';
+          ok(landed && px.length === 0, `#2909 ${where}: the rail's ${want} tile opens its area and writes nothing — place "${atA.place}", layout ${atA.layout}, current ${atA.current}, posted ${JSON.stringify(px)}`);
         }
         const bad2 = errors.filter((e) => !/WebSocket/.test(e));
         ok(bad2.length === 0, `${where} S1.4: 0 console errors (the agent link's bridge socket aside)${bad2.length ? ` — ${bad2.slice(0, 2).join(' | ')}` : ''}`);
@@ -9756,9 +9854,7 @@ for (const host of ['web', 'figma']) {
       // The plugin's Build style guides page (S11.2; review of #2171), which no tab shows: its switch, its title box's
       // fold and every other control on it, with a catalog posted so the tree and every option group are drawn.
       if (host === 'figma') {
-        await openFigma(page);
-        await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), WAIT);
-        await hooks.need(page, '[data-p3="style-guides"]');
+        await openDocs(page, WAIT);
         await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
         await settle(page);
         const rings = await focusRings(page, { all: true, max: 600, skipIn: FOCUS_SWEEP_SKIP });
@@ -11208,9 +11304,7 @@ const HEADING_PAGES = { web: [...NEW_PAGES], figma: [...NEW_PAGES, SG_PLACE] };
 /** The style guides page's own literal floors (per host and theme, both widths), under the counts measured when it joined. */
 const SG_HEADING_FLOOR = { L1: 2, L2: 5, L3: 14, swept: 9 };
 const openStyleGuides = async (page) => {
-  await openFigma(page);
-  await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), WAIT);
-  await hooks.need(page, '[data-p3="style-guides"]');
+  await openDocs(page, WAIT);
   await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
   await settle(page);
 };
@@ -14831,9 +14925,7 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
     let step = 'open Build style guides';
     try {
       // A12: the titles disclosure through a repaint.
-      await openFigma(page);
-      await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), BOUND);
-      await hooks.need(page, '[data-p3="style-guides"]', BOUND);
+      await openDocs(page, BOUND);
       await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
       await hooks.need(page, '[data-p3="sg-titles-summary"]', BOUND);
       step = 'open "Draw by table title" by keyboard';
@@ -15023,9 +15115,7 @@ console.log(`\n#2487 names, landmarks, the selected segment and the display-only
             step = 'Build style guides';
             await hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
             await hooks.click(page.locator('[data-p3="inspect-close"]'), WAIT);
-            await openFigma(page);
-            await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), WAIT);
-            await hooks.need(page, '[data-p3="style-guides"]');
+            await openDocs(page, WAIT);
             await settle(page);
             const sg = await axRead(page);
             ok(sg.mains === 1, `${where} / build style guides: D5 exactly one main landmark (main ${sg.mains}, regions ${JSON.stringify(sg.regions)})`);
