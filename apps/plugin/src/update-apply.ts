@@ -941,7 +941,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                   // (Q246 A, Q264 A) joined, so neither hides the other.
                   : setsMoved && reordered ? `✓ ${n(setsMoved, 'set')} moved, reordered ${n(reordered, 'page')}`
                     : setsMoved ? `✓ ${n(setsMoved, 'set')} moved` : reordered ? `✓ reordered ${n(reordered, 'page')}`
-                      // DRAFT wording for the owner (#2989): a run whose only work was moving sets to their pages.
+                      // Owner-approved wording (#2989, Q3 A, 2026-10-24): a run whose only work was moving sets to their pages.
                       : relocated ? `✓ ${n(relocated, 'set')} moved to ${relocated === 1 ? 'its page' : 'their pages'}`
                       // DRAFT wording for the owner (#2803, Q379 A): a run whose only work was the canvas furniture.
                       : furnished ? `✓ canvas furniture drawn for ${n(furnished, 'set')}`

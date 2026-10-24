@@ -1525,7 +1525,7 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
   const claimable = r.sets.some((p) => !p.blockers.length && p.adoptable.length);
   const blocked = r.sets.filter((p) => p.blockers.length).length + r.refused.length;
   const reorder = r.pages?.length ?? 0;
-  // #2989: the sets to move to their pages are work, as the page order is. DRAFT wording for the owner.
+  // #2989: the sets to move to their pages are work, as the page order is. Owner-approved wording (Q3 A, 2026-10-24).
   const relocate = r.pageMoves?.length ?? 0;
   // Owner-approved wording (#2568, Q264 A): pages to reorder and nothing else is its own headline.
   // DRAFT wording for the owner (#2858): the About frame as the only work reads as work, as the page order does.

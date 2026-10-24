@@ -34,7 +34,7 @@ export const versionOf = (r: VersionRun): { title: string; description: string }
   const engine = `Engine ${ENGINE_VERSION}.`;
   if (r.run === 'style-guide') return { title: `${MARKER} drew style guides`, description: `${engine} ${plural(r.tables, 'table')}.` };
   if (r.run === 'apply-theme') return { title: `${MARKER} applied the theme`, description: `${engine} Variables and styles.` };
-  // DRAFT wording for the owner (#2989): Set up file saves one only when it moves sets to their pages.
+  // Owner-approved wording (#2989, Q3 A, 2026-10-24): Set up file saves one only when it moves sets to their pages.
   if (r.run === 'setup') return { title: `${MARKER} set up the file`, description: `${engine} Sets moved to their pages: ${r.sets.map((s) => s.set).join(', ')}.` };
   const n = r.sets.length;
   const verb = r.run === 'update' ? 'updated' : 'added';

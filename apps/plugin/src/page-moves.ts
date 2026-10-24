@@ -84,10 +84,10 @@ export const relocateSets = async (api: PagesApi, t: Taxonomy = TAXONOMY): Promi
   return { moved, emptied: [...left].filter((p) => !(p.children ?? []).length).map((p) => p.name) };
 };
 
-/** DRAFT wording for the owner (#2989): the moves, as the dry run lists them and as the apply reports them done. */
+/** Owner-approved wording (#2989, Q3 A, 2026-10-24): the moves, as the dry run lists them and as the apply reports them done. */
 export const pageMovesLine = (moves: readonly PageMove[] | undefined, done: boolean): string =>
   moves?.length ? `${done ? 'Moved' : 'To move'} to ${moves.length === 1 ? 'its page' : 'their pages'}: ${moves.map((m) => `${m.set} (${m.from.slice(NEST_PREFIX.length)} to ${m.to.slice(NEST_PREFIX.length)})`).join(', ')}.` : '';
 
-/** DRAFT wording for the owner (#2989): a page the move left empty. The plugin never deletes a page. */
+/** Owner-approved wording (#2989, Q3 A, 2026-10-24): a page the move left empty. The plugin never deletes a page. */
 export const emptiedLine = (pages: readonly string[] | undefined): string =>
   pages?.length ? `${pages.map((p) => p.slice(NEST_PREFIX.length)).join(', ')} ${pages.length === 1 ? 'is' : 'are'} now empty, safe to delete.` : '';
