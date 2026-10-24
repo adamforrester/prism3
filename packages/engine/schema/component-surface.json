@@ -514,8 +514,8 @@
       "properties": []
     },
     "badge": {
-      "members": 20,
-      "sha256": "5f9ae6ce007805d6aac2194fe5e7222e3245220f86bd8ef80df8c52a10509280",
+      "members": 40,
+      "sha256": "0536a67e7247104e2d79aa25a70b5c7803cab4ccb22fd6cc1197d2868ada9ba8",
       "properties": [
         "label:TEXT",
         "value:TEXT"
