@@ -1690,7 +1690,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 
 /* ── Export as an area (#2909): the export dialog's parts as a page, never modal ─────────────────────── */
 .p3-export-host { display: contents; }
-.p3-bardlg.p3-export-page { max-width: none; width: auto; margin: 0; border: 0; border-radius: 0; max-height: none; }
+.p3-bardlg.p3-export-page { max-width: none; width: auto; margin: 0; border: 0; border-radius: 0; max-height: none; height: 100%; box-sizing: border-box; }
 
 /* ── Update file (#2909): the overlay's tabs, items and sets ─────────────────────────────────────── */
 .p3-upd-tabs { flex: none; padding: 0 var(--p3-space-300); margin: 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
