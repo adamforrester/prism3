@@ -76,7 +76,10 @@ export type HostMessage =
   // file uses a Prism3 library and holds no Prism3 tokens of its own. `name` is null without the team-library list.
   | { kind: 'restore-input-reading' }
   | { kind: 'restore-input-library'; library: LibraryFileView }
-  | { kind: 'font-list'; families: string[]; styles: number[] };
+  | { kind: 'font-list'; families: string[]; styles: number[] }
+  // #2909 — the file's Documentation settings (`apps/plugin/src/doc-settings.ts`): the usage-panel and cover switches,
+  // and the Style guides tab's choices as the panel last saved them (`null` until it has). `error` when a save was refused.
+  | { kind: 'doc-settings'; panels: boolean; cover: boolean; styleGuide: Record<string, unknown> | null; error: string | null };
 
 /** What the library home states about the library a file uses (#2879), as the host found it on the current page. */
 export type LibraryFileView = {
@@ -139,6 +142,8 @@ export interface HostCommit {
    *  true` performs the delete. `input` is the `BrandInput`, typed `unknown` here for the same reason
    *  `postTheme` is — to keep this DOM layer free of the engine type import. */
   postPrune(input: unknown, confirm: boolean): void;
+  /** #2909: keep Documentation's settings in the file (`doc-settings-save`). Figma only; inert on the web. */
+  saveDocSettings(settings: unknown): void;
   /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
    *  read-back seed summary, the #131 knob-rehydration (the persisted `BrandInput`, typed `unknown`
    *  here to keep this DOM layer free of the engine type import) or its #480 loud refusal when the
@@ -377,6 +382,12 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'theme-pref': null,
   // The Activity drawer's kept height (#2176): read by the plugin's UI entry, not here.
   'activity-height': null,
+  // #2909. A record with a switch that is not a boolean reads that switch as on, the main thread's own default.
+  'doc-settings': (m) => {
+    const x = (m.settings ?? {}) as Record<string, unknown>;
+    const sg = x.styleGuide && typeof x.styleGuide === 'object' && !Array.isArray(x.styleGuide) ? x.styleGuide as Record<string, unknown> : null;
+    return { kind: 'doc-settings', panels: x.panels !== false, cover: x.cover !== false, styleGuide: sg, error: str(m.error) && m.error ? m.error : null };
+  },
   'agent-result': null,
   'agent-progress': (m) => {
     const raw = m.progress && typeof m.progress === 'object' ? m.progress as Record<string, unknown> : null;
@@ -446,6 +457,9 @@ const figmaCommit = (): HostCommit => ({
   postPrune(input, confirm) {
     post({ type: 'prune', input: input as ApplyTheme['input'], confirm });
   },
+  saveDocSettings(settings) {
+    post({ type: 'doc-settings-save', settings });
+  },
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
       const msg = toHostMessage(e.data);
@@ -472,6 +486,7 @@ const webCommit = (): HostCommit => ({
   cancelStyleGuide() {/* no style guide runs on web (S11.2) */},
   cleanUpStyleGuide() {/* no style guide runs on web (Q412 A) */},
   postPrune() {/* no figma.variables on web — CSS custom properties have no stale-item problem (#1521) */},
+  saveDocSettings() {/* no file on web (#2909) */},
   onHostMessage() {/* no host messages on web */},
   requestResize() {/* the browser window is the user's to size on web */},
 });

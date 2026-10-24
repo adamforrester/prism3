@@ -26,6 +26,7 @@ import type { BrandInput } from '@prism3/engine/theme';
 import type { AgentLinkState, AgentResult, AgentProgress, AgentCmd } from './agent-protocol';
 import type { WriteCmd } from './run-guard';
 import type { LibraryFile } from './file-kind';
+import type { DocSettings } from './doc-settings';
 
 /** Messages the UI iframe sends TO the main thread. Wrapped in `{ pluginMessage }` on the wire. */
 export type UiToMain =
@@ -131,7 +132,11 @@ export type UiToMain =
   | { type: 'set-theme-pref'; pref: 'figma' | 'light' | 'dark' }
   /** The person dragged or stepped the open Activity drawer to a height (#2176, the owner's AD1), in CSS pixels. The
    *  main thread keeps it in `clientStorage`, per person, and sends it back on `ui-ready` as `activity-height`. */
-  | { type: 'set-activity-height'; px: number };
+  | { type: 'set-activity-height'; px: number }
+  /** Documentation's settings (#2909, owner decisions Q667 A and Q2909.23 A; the cover switch, #2977), kept in the
+   *  file's root plugin data so they travel with it (`doc-settings.ts`). The main thread normalizes them, keeps them and
+   *  answers `doc-settings` with what it kept. */
+  | { type: 'doc-settings-save'; settings: unknown };
 
 /** A style-guide specimen (#259) — the `type` axis of `_style-guide-swatches` a table row instances. */
 export type SwatchType = 'default' | 'text' | 'icon' | 'border' | 'transparency';
@@ -443,6 +448,9 @@ export type MainToUi =
   /** The Activity drawer's height this person last chose (`set-activity-height`, #2176), read from `clientStorage` on
    *  `ui-ready`. Not sent when nothing was kept: the drawer opens at its own height. Read by the plugin's UI entry. */
   | { type: 'activity-height'; px: number }
+  /** The file's Documentation settings (#2909, `doc-settings.ts`): on `ui-ready`, and as the answer to each
+   *  `doc-settings-save`, with `error` when the save was refused (the settings are then the file's, unchanged). */
+  | { type: 'doc-settings'; settings: DocSettings; error?: string }
   /** The result of an `agent-command` — the protocol's own envelope, relayed to the bridge unchanged. */
   | { type: 'agent-result'; result: AgentResult }
   /** A build's progress reading while an agent command runs, streamed to the bridge (#684's reading). */

@@ -201,7 +201,13 @@ export interface HostSession {
    *  The one slot it moves is the panel's own `pending`, and only when an agent's run holds the operation:
    *  the panel's request was then the one declined, and nothing is coming to answer it. */
   readonly refused: { readonly op: OpKey; readonly message: string; readonly agent: boolean; readonly n: number } | null;
+  /** The file's Documentation settings (#2909, `apps/plugin/src/doc-settings.ts`), as the host last said them: `null`
+   *  until it has (and always on the web). `error` is the host's words when a save was refused. */
+  readonly docSettings: DocSettingsView | null;
 }
+
+/** Documentation's settings as the panel holds them (#2909). */
+export type DocSettingsView = { readonly panels: boolean; readonly cover: boolean; readonly styleGuide: Readonly<Record<string, unknown>> | null; readonly error: string | null };
 
 /** The session before the host has said anything — and, on web, forever. */
 export const initialHostSession = (): HostSession => ({
@@ -230,6 +236,7 @@ export const initialHostSession = (): HostSession => ({
   hostFontStyles: new Map(),
   agentRun: null,
   refused: null,
+  docSettings: null,
 });
 
 /** The panel's own slot for `op`, out of `pending` (#1957). The slot's last verdict was replaced by
@@ -363,6 +370,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       if (m.count > 0 && m.pillOnly) return { ...s, pruneBusy: false, prunePreview: null, pruneVerdict: { ok: m.ok, applied: false, count: m.count, summary: `Agent preview: ${m.summary}` } };
       if (m.count > 0) return { ...s, pruneBusy: false, prunePreview: { count: m.count, summary: m.summary }, pruneVerdict: null };
       return { ...s, pruneBusy: false, prunePreview: null, pruneVerdict: { ok: m.ok, applied: false, count: 0, summary: m.summary } };
+    case 'doc-settings':
+      return { ...s, docSettings: { panels: m.panels, cover: m.cover, styleGuide: m.styleGuide, error: m.error } };
     case 'seed-info':
       // Joins the two independent boot reads into one outcome (#721); `restore-input` repairs it if it lands later.
       return { ...s, seedOutcome: joinSeed({ present: m.present, ok: m.ok, detail: m.summary, failed: m.failed }, s.inputRecovered) };
@@ -427,6 +436,7 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'style-guide-table': return next === prev ? [] : ['host:sgpage'];
     case 'prune-result': return ['host'];
     case 'seed-info': return ['host'];
+    case 'doc-settings': return ['host:docs'];
     // UI redesign S11: the Activity drawer's agent rows. A start or an end it does not show moves nothing.
     case 'agent-started': return next === prev ? [] : ['host'];
     case 'agent-finished': return next === prev ? [] : ['host'];
