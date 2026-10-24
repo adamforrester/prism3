@@ -35,7 +35,7 @@
  * along it.
  *
  * ONE ANATOMY, THREE SHAPES, by presence gates rather than three trees. The `surface` paints the fill in
- * every type, and its padding and its CORNER are keyed on the type (`{type}.{size}.pad-x`, `{type}.{size}.pad-y`,
+ * every type, and its padding and its CORNER are keyed on the type (`size.{size}.{type}.pad-x`, `size.{size}.{type}.pad-y`,
  * `{type}.radius`). The status label's corner is `radius.sm` (owner decision, 2026-09-28: a smaller radius
  * that scales per brand, so a status label never reads as Tag's pill); the count and dot keep `radius.round`:
  *   · status — the `label` part, the status label, at `space.150` × `space.100`, as before.
@@ -66,8 +66,8 @@
  * member is unchanged and every existing member takes `size=medium` in place. It is AUTHORING: the two sizes
  * differ in box. Small (Q2983.5 rec A) is `type.caption.md.strong`, the corpus's only 11px rung, at
  * `space.025` × `space.100`, about 19px tall. The count and dot stay one size, `medium`, so
- * `excludeCoordinates` drops them at `small`. The padding and the text are keyed `{type}.{size}.pad-*` and
- * `{size}.type`.
+ * `excludeCoordinates` drops them at `small`. The padding and the text are keyed `size.{size}.{type}.pad-*`
+ * and `size.{size}.type`, the `size.*` key family `lint-rung-names` reads.
  *
  * `emphasis` gains a third value, `surface` (working name, Q2983.4): the page surface `background.primary`, no
  * edge, the tone's text role. It is the style for a label on any busy or mixed ground (a photo, a gradient, a
@@ -161,8 +161,8 @@ export const badge: ComponentDef = {
   tokens: {
     // The label type, per size (#2983). Medium is the status label's original rung. Small is the corpus's only
     // 11px rung (Q2983.5 rec A); it is a caption rung, and a label rung at 11px would be a new token name.
-    'medium.type': 'type.label.sm.emphasis',
-    'small.type': 'type.caption.md.strong',
+    'size.medium.type': 'type.label.sm.emphasis',
+    'size.small.type': 'type.caption.md.strong',
     // ── GEOMETRY, per type. The CORNER is per type (owner decision, 2026-09-28): the status label takes the
     // tier's small radius, `radius.sm` (2px in nb and prism3, 4px in aurora — it scales per brand), so a status
     // label reads as a label and never as Tag's pill; the count and the dot stay fully round, `radius.round`,
@@ -174,20 +174,20 @@ export const badge: ComponentDef = {
     // the status text, a near-circle around one digit that grows into a pill, and nothing around the dot's
     // fixed square.
     // Keyed on the size too (#2983). The count and dot exist at medium only.
-    'status.medium.pad-x': 'space.150',
-    'status.medium.pad-y': 'space.100',
-    'status.small.pad-x': 'space.100',
-    'status.small.pad-y': 'space.025',
-    'count.medium.pad-x': 'space.075',
-    'count.medium.pad-y': 'space.025',
-    'dot.medium.pad-x': 'space.0',
-    'dot.medium.pad-y': 'space.0',
+    'size.medium.status.pad-x': 'space.150',
+    'size.medium.status.pad-y': 'space.100',
+    'size.small.status.pad-x': 'space.100',
+    'size.small.status.pad-y': 'space.025',
+    'size.medium.count.pad-x': 'space.075',
+    'size.medium.count.pad-y': 'space.025',
+    'size.medium.dot.pad-x': 'space.0',
+    'size.medium.dot.pad-y': 'space.0',
     // The count and dot have no small member (`excludeCoordinates`), but the padding template is checked over the
     // full grid, so their small keys repeat the medium rungs.
-    'count.small.pad-x': 'space.075',
-    'count.small.pad-y': 'space.025',
-    'dot.small.pad-x': 'space.0',
-    'dot.small.pad-y': 'space.0',
+    'size.small.count.pad-x': 'space.075',
+    'size.small.count.pad-y': 'space.025',
+    'size.small.dot.pad-x': 'space.0',
+    'size.small.dot.pad-y': 'space.0',
     // The dot's diameter: the tier's small dot rung, 8px at comfortable density and 6px at compact.
     'dot-size': 'control.size.sm.dot',
 
@@ -267,7 +267,7 @@ export const badge: ComponentDef = {
         role: 'target',
         paintSlots: ['fill', 'border'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
-        padding: { block: '{type}.{size}.pad-y', inlineLabel: '{type}.{size}.pad-x' },
+        padding: { block: 'size.{size}.{type}.pad-y', inlineLabel: 'size.{size}.{type}.pad-x' },
         radius: '{type}.radius',
         strokeWidth: 'border-width',
         children: ['label', 'count', 'dot'],
@@ -275,14 +275,14 @@ export const badge: ComponentDef = {
       },
       label: {
         kind: 'text',
-        type: '{size}.type',
+        type: 'size.{size}.type',
         presentWhen: { type: ['status'] },
         note: 'The status text in the tone\'s text role. It carries the meaning, so the tone is never the only signal.',
       },
       count: {
         kind: 'text',
         // Medium only: the count has no small member (#2983), so its type is not keyed on the size.
-        type: 'medium.type',
+        type: 'size.medium.type',
         presentWhen: { type: ['count'] },
         note: 'The number, in the ink paired with the bold tone fill. Capped as the maximum followed by a plus sign, as in "99+".',
       },

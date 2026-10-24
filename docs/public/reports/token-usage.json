@@ -21598,10 +21598,10 @@
         },
         "badge": {
           "keys": [
-            "dot.medium.pad-x",
-            "dot.medium.pad-y",
-            "dot.small.pad-x",
-            "dot.small.pad-y"
+            "size.medium.dot.pad-x",
+            "size.medium.dot.pad-y",
+            "size.small.dot.pad-x",
+            "size.small.dot.pad-y"
           ],
           "parts": {
             "surface": {
@@ -22020,9 +22020,9 @@
         },
         "badge": {
           "keys": [
-            "count.medium.pad-y",
-            "count.small.pad-y",
-            "status.small.pad-y"
+            "size.medium.count.pad-y",
+            "size.small.count.pad-y",
+            "size.small.status.pad-y"
           ],
           "parts": {
             "surface": {
@@ -22283,8 +22283,8 @@
       "components": {
         "badge": {
           "keys": [
-            "count.medium.pad-x",
-            "count.small.pad-x"
+            "size.medium.count.pad-x",
+            "size.small.count.pad-x"
           ],
           "parts": {
             "surface": {
@@ -22580,8 +22580,8 @@
         },
         "badge": {
           "keys": [
-            "status.medium.pad-y",
-            "status.small.pad-x"
+            "size.medium.status.pad-y",
+            "size.small.status.pad-x"
           ],
           "parts": {
             "surface": {
@@ -23199,7 +23199,7 @@
         },
         "badge": {
           "keys": [
-            "status.medium.pad-x"
+            "size.medium.status.pad-x"
           ],
           "parts": {
             "surface": {
@@ -25784,7 +25784,7 @@
       "components": {
         "badge": {
           "keys": [
-            "small.type"
+            "size.small.type"
           ],
           "parts": {
             "label": {
@@ -26841,7 +26841,7 @@
         },
         "badge": {
           "keys": [
-            "medium.type"
+            "size.medium.type"
           ],
           "parts": {
             "count": {

@@ -15942,7 +15942,7 @@ arm: {
           `#2945 Control label weight: a ${style} tag at Emphasis (${content}) is the same def back`);
       }
       const OTHERS: [ComponentDef, [string, string][]][] = [
-        [badge, [['medium.type', 'type.label.sm.emphasis'], ['small.type', 'type.caption.md.strong']]],
+        [badge, [['size.medium.type', 'type.label.sm.emphasis'], ['size.small.type', 'type.caption.md.strong']]],
         [select, Object.entries(select.tokens).filter(([, r]) => r.startsWith('type.'))],
       ];
       const moved = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' }, () => 44))

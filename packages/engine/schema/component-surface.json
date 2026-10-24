@@ -586,7 +586,7 @@
     },
     "tab-item": {
       "members": 30,
-      "sha256": "4ff89e08c53596e3242a48f7ef2e805337400285d81a1dbb87d6ee17bbcf5148",
+      "sha256": "a39d2f9d9cfcad1e10a71e6eee5c651c1d52a871d509b36ed53a4cb0b3b3bd9d",
       "properties": [
         "count:BOOLEAN",
         "label:TEXT",

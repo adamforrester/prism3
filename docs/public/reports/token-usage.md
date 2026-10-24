@@ -2804,7 +2804,7 @@ Type: dimension. Bound by 22 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.panel-pad-top`, `size.medium.panel-pad-top`, `size.small.panel-pad-top` | content | expansion: expanded (12 of 24) |
-| badge | `dot.medium.pad-x`, `dot.medium.pad-y`, `dot.small.pad-x`, `dot.small.pad-y` | surface | emphasis: bold · size: medium · type: dot (5 of 40) |
+| badge | `size.medium.dot.pad-x`, `size.medium.dot.pad-y`, `size.small.dot.pad-x`, `size.small.dot.pad-y` | surface | emphasis: bold · size: medium · type: dot (5 of 40) |
 | button | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-destructive | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-neutral | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
@@ -2847,7 +2847,7 @@ Type: dimension. Bound by 3 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.title-offset`, `size.medium.title-offset`, `size.small.title-offset` | titleBox | every member (24 of 24) |
-| badge | `count.medium.pad-y`, `count.small.pad-y`, `status.small.pad-y` | surface | type: count, status (20 of 40) |
+| badge | `size.medium.count.pad-y`, `size.small.count.pad-y`, `size.small.status.pad-y` | surface | type: count, status (20 of 40) |
 | tag | `size.small.dismissible.gap` | content | selection: unselected · size: small · type: dismissible (5 of 45) |
 
 ### `space.050`
@@ -2881,7 +2881,7 @@ Type: dimension. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `count.medium.pad-x`, `count.small.pad-x` | surface | emphasis: bold · size: medium · type: count (5 of 40) |
+| badge | `size.medium.count.pad-x`, `size.small.count.pad-x` | surface | emphasis: bold · size: medium · type: count (5 of 40) |
 | button | `size.small.padding-y` | container | size: small (192 of 576) |
 | button-destructive | `size.small.padding-y` | container | size: small (192 of 576) |
 | button-neutral | `size.small.padding-y` | container | size: small (192 of 576) |
@@ -2908,7 +2908,7 @@ Type: dimension. Bound by 32 component(s).
 |---|---|---|---|
 | accordion | `size.small.gap`, `size.small.pad-y` | header | size: small (8 of 24) |
 |  |  | titleRow | size: small (8 of 24) |
-| badge | `status.medium.pad-y`, `status.small.pad-x` | surface | type: status (30 of 40) |
+| badge | `size.medium.status.pad-y`, `size.small.status.pad-x` | surface | type: status (30 of 40) |
 | breadcrumb-item | `size.medium.gap` | container | size: medium (5 of 10) |
 | breadcrumbs | `size.medium.gap` | items | path: full · size: medium (2 of 6) |
 | button | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
@@ -2970,7 +2970,7 @@ Type: dimension. Bound by 16 component(s).
 | accordion | `size.medium.gap`, `size.medium.pad-y`, `size.small.pad-x`, `size.small.panel-pad-end` | content | expansion: expanded · size: small (4 of 24) |
 |  |  | header | size: medium, small (16 of 24) |
 |  |  | titleRow | size: medium (8 of 24) |
-| badge | `status.medium.pad-x` | surface | size: medium · type: status (15 of 40) |
+| badge | `size.medium.status.pad-x` | surface | size: medium · type: status (15 of 40) |
 | banner | `actions-gap`, `gap` | actions | every member (8 of 8) |
 |  |  | container | every member (8 of 8) |
 | button | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
@@ -3273,7 +3273,7 @@ Type: typography. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `small.type` | label | size: small · type: status (15 of 40) |
+| badge | `size.small.type` | label | size: small · type: status (15 of 40) |
 
 ### `type.label.lg.default`
 
@@ -3382,7 +3382,7 @@ Type: typography. Bound by 9 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.small.type` | label | size: small (8 of 24) |
-| badge | `medium.type` | count | emphasis: bold · size: medium · type: count (5 of 40) |
+| badge | `size.medium.type` | count | emphasis: bold · size: medium · type: count (5 of 40) |
 |  |  | label | size: medium · type: status (15 of 40) |
 | button | `size.small.filled.type`, `size.small.outline.type` | label | appearance: filled, outline · inset: default · size: small (96 of 576) |
 | button-destructive | `size.small.filled.type`, `size.small.outline.type` | label | appearance: filled, outline · inset: default · size: small (96 of 576) |

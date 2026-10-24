@@ -26969,6 +26969,7 @@
           "component": "badge",
           "variant": {
             "type": "count",
+            "size": "medium",
             "emphasis": "bold",
             "tone": "neutral"
           },
