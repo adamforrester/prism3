@@ -39,10 +39,10 @@
  */
 import { normalizeDisabledStrategy } from '@prism3/engine/theme';
 import { brandState, currentMode, getPath, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
-import { isDerived } from '../state/verdict';
+import { isDerived, resolvedModes } from '../state/verdict';
 import { overrideOf, rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
 import {
-  BUILT_IN_COLUMNS, LINK_ROWS, addAccent, anchorOf, baselineAnchorStepOf, baselineStepOf, interactivePaletteOf, interactiveRowsFor,
+  BUILT_IN_COLUMNS, LINK_ROWS, addAccent, isTextLinkRow, linkSurfacesOf, anchorOf, baselineAnchorStepOf, baselineStepOf, interactivePaletteOf, interactiveRowsFor,
   removeAccent, setLever, setLinkPalette, setLinkRung, setStrictInteractiveContrast, stepKeyOf, writeInteractiveRow,
   type InteractiveRow, type LinkRungState,
 } from '../state/interactive-input';
@@ -52,7 +52,7 @@ import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
 import { addRowButton, choice, jumpLabel, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, pageEdit, markRefused } from '../ui/lever-kit';
 import { scrollToStart } from '../preview/follow-edit';
-import { fmtRatio, stepPicker, type PickerPalette } from '../ui/step-picker';
+import { fmtRatio, stepPicker, worstRatio, type PickerPalette } from '../ui/step-picker';
 
 /** The button sets lever's info text (owner-approved, 2026-10-02). */
 export const BUTTON_SET_TOOLTIP = 'Add a button set from any brand color on Palettes. Each set gets fill, text, border and state colors in every mode.';
@@ -82,6 +82,11 @@ export const DISABLED_SWITCH = {
 } as const;
 /** The link palette's Auto (owner decision Q36). */
 export const LINK_AUTO = 'Auto: follows action palette';
+/** The text-link rows' added lines (#2990; copy pending the owner, Q2990.2 and Q2990.3). */
+export const LINK_COPY = {
+  modes: 'Contrast in every mode',
+  follow: 'Hover, visited and pressed follow this step:',
+} as const;
 /** The legacy page's promotable list never offered these: they are the built-in columns' names. */
 const RESERVED_COLUMNS = new Set(['primary', 'neutral', 'destructive']);
 
@@ -156,6 +161,44 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   };
 
   // ── rows ───────────────────────────────────────────────────────────────────────────────────────
+  /** A text-link row's two added lines (#2990): its worst ratio across its surfaces in every mode, each against
+   *  that mode's floor, and the steps its hover, visited and pressed land on in the mode the preview shows. */
+  const linkLines = (r: InteractiveRow, palette: string): HTMLElement[] => {
+    const strip = hook(h('div', 'p3-linkmodes'), 'link-modes');
+    strip.setAttribute('role', 'group');
+    strip.setAttribute('aria-label', `${r.label}: ${LINK_COPY.modes}`);
+    strip.append(h('span', 'p3-linkmodes-title', LINK_COPY.modes));
+    for (const { mode: m } of resolvedModes(theme)) {
+      const rs = rolesIn(m) as Record<string, IRole | undefined>;
+      const x = rs[r.role];
+      if (!x?.against || !(x.min ?? 0)) continue;
+      const g = [x.against, ...linkSurfacesOf(r.role)].map((k) => rs[k]?.hex ?? (() => { const d = k.lastIndexOf('.'); return stepHex(k.slice(0, d), k.slice(d + 1)); })()).filter((v): v is string => !!v);
+      const w = worstRatio(x.hex, { hex: g[0], name: x.against, floor: x.min!, also: g.slice(1) });
+      const cell = hook(h('span', 'p3-linkmode'), 'link-mode');
+      cell.dataset.mode = m;
+      const rr = h('span', 'p3-linkmode-ratio', fmtRatio(w));
+      if (w + 1e-9 < x.min!) { cell.dataset.below = 'true'; rr.append(glyph('x')); }
+      cell.append(h('span', 'p3-linkmode-name', modeLabel(m)), rr);
+      cell.title = `Floor ${x.min}:1`;
+      strip.append(cell);
+    }
+    const roles = rolesIn(currentMode) as Record<string, IRole | undefined>;
+    const prefix = r.role.slice(0, -'.default'.length);
+    const follow = hook(h('p', 'p3-linkfollow'), 'link-follow');
+    follow.append(h('span', undefined, LINK_COPY.follow));
+    for (const st of ['hover', 'visited', 'pressed']) {
+      const x = roles[`${prefix}.${st}`];
+      if (!x) continue;
+      const s = h('span', 'p3-linkfollow-step');
+      const sw = h('span', 'p3-fill-sw');
+      sw.dataset.content = '';
+      sw.style.background = x.hex;
+      s.append(sw, h('span', undefined, `${st} ${stepOfPath(x.path)?.step ?? palette}`));
+      follow.append(s);
+    }
+    return [strip, follow];
+  };
+
   /** One row: the swatch, the name and role, and the picker button, or a read-out for a wash. */
   const rowOf = (r: InteractiveRow, nested: boolean): Item | null => {
     const mode = currentMode;
@@ -215,7 +258,17 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       current = overridden ? { palette, step: ov! } : at;
       autoName = at && !overridden ? `${at.palette} ${at.step}` : `${palette} ${baselineStepOf(r.role, mode)}`;
     }
-    const ratio = res.against && res.against !== 'self' && typeof res.ratio === 'number' ? res.ratio : null;
+    const textLink = isTextLinkRow(r);
+    // The ground the role is measured on: a role in the mode, or a palette step (a link's contrast floor).
+    const againstHex = (role: IRole, rs: Record<string, IRole | undefined>): string =>
+      rs[role.against!]?.hex ?? (() => { const d = role.against!.lastIndexOf('.'); return stepHex(role.against!.slice(0, d), role.against!.slice(d + 1)) ?? '#ffffff'; })();
+    /** A text link's floor ground and the surfaces it sits on, in a mode (#2990). */
+    const linkGround = (role: IRole, rs: Record<string, IRole | undefined>) => ({
+      hex: againstHex(role, rs), name: role.against!, floor: role.min!,
+      also: linkSurfacesOf(r.role).map((g) => rs[g]?.hex).filter((x): x is string => !!x),
+    });
+    const measured = res.against && res.against !== 'self' && typeof res.ratio === 'number';
+    const ratio = !measured ? null : textLink && (res.min ?? 0) > 0 ? worstRatio(res.hex, linkGround(res, roles)) : res.ratio!;
     const below = ratio !== null && (res.min ?? 0) > 0 && ratio + 1e-9 < res.min!;
     const now = overridden ? `Override · ${current ? `${current.palette} ${current.step}` : ''}` : `Auto · ${autoName}`;
     const btn = hook(h('button', 'p3-btn p3-btn-page p3-pick'), 'int-pick');
@@ -251,7 +304,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       const nPal = theme.roleToPalette.neutral;
       const palettes = r.write === 'inverse-fill' && nPal !== palette ? [palOf(palette), palOf(nPal)] : [palOf(palette)];
       const against = res.against && res.against !== 'self' && (res.min ?? 0) > 0
-        ? { hex: roles[res.against]?.hex ?? (() => { const d = res.against!.lastIndexOf('.'); return stepHex(res.against!.slice(0, d), res.against!.slice(d + 1)) ?? '#ffffff'; })(), name: res.against, floor: res.min! }
+        ? textLink ? linkGround(res, roles) : { hex: againstHex(res, roles), name: res.against, floor: res.min! }
         : null;
       const pk = stepPicker({
         role: r.role,
@@ -259,6 +312,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
         palettes,
         current,
         against,
+        // A link can't be pinned below its floor (#2990, Q2990.5 A): the engine would move the pick (#1510).
+        blockBelow: r.write === 'link-family',
         overridden,
         onPick: (p, step) => edit(key, () => writeInteractiveRow(mode, r, r.write === 'inverse-fill' ? `${p}::${step}` : step)),
         onAuto: () => edit(key, () => writeInteractiveRow(mode, r, undefined)),
@@ -267,6 +322,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       wrap.append(pk.el);
       pickers.set(r.role, pk.focusCurrent);
     }
+    if (textLink) wrap.append(...linkLines(r, palette));
     return { el: wrap, said, key: `row:${r.role}`, refmark };
   };
 
