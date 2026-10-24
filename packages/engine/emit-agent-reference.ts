@@ -125,6 +125,7 @@ export const WRITES: Record<string, string> = {
   'update-components': 'With confirm: false (or none), nothing: a check whose result carries a previewHash. With confirm: true and that previewHash, updates the sets in place; refused when the file no longer hashes the same.',
   'capture-baseline': 'Plugin data only: the as-built record on members built before it existed.',
   'adopt-members': 'Plugin data only: records and stamps members Prism3 did not build, so an update can bring them to the plan.',
+  'draw-specs': 'Canvas frames only: a spec panel below each family\'s usage panel, replacing its earlier unedited one and keeping an edited one aside as "(edited)". Never a component set, a variable or a style.',
   'run-code': 'Whatever the code writes. Dev builds only; a release build answers unknown-command.',
 };
 
