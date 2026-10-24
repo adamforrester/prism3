@@ -2804,7 +2804,7 @@ Type: dimension. Bound by 22 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.panel-pad-top`, `size.medium.panel-pad-top`, `size.small.panel-pad-top` | content | expansion: expanded (12 of 24) |
-| badge | `dot.medium.pad-x`, `dot.medium.pad-y` | surface | emphasis: bold · size: medium · type: dot (5 of 40) |
+| badge | `dot.medium.pad-x`, `dot.medium.pad-y`, `dot.small.pad-x`, `dot.small.pad-y` | surface | emphasis: bold · size: medium · type: dot (5 of 40) |
 | button | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-destructive | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-neutral | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
@@ -2847,7 +2847,7 @@ Type: dimension. Bound by 3 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.title-offset`, `size.medium.title-offset`, `size.small.title-offset` | titleBox | every member (24 of 24) |
-| badge | `count.medium.pad-y`, `status.small.pad-y` | surface | type: count, status (20 of 40) |
+| badge | `count.medium.pad-y`, `count.small.pad-y`, `status.small.pad-y` | surface | type: count, status (20 of 40) |
 | tag | `size.small.dismissible.gap` | content | selection: unselected · size: small · type: dismissible (5 of 45) |
 
 ### `space.050`
@@ -2881,7 +2881,7 @@ Type: dimension. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `count.medium.pad-x` | surface | emphasis: bold · size: medium · type: count (5 of 40) |
+| badge | `count.medium.pad-x`, `count.small.pad-x` | surface | emphasis: bold · size: medium · type: count (5 of 40) |
 | button | `size.small.padding-y` | container | size: small (192 of 576) |
 | button-destructive | `size.small.padding-y` | container | size: small (192 of 576) |
 | button-neutral | `size.small.padding-y` | container | size: small (192 of 576) |

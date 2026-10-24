@@ -29215,8 +29215,12 @@ arm: {
       const rest: Record<string, string> = {};
       if (statesOf(def).includes('rest') && !onState) rest.state = 'rest';
       for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
+      // A SIZE-SPARSE GRID (#2983): badge's count and dot have no small member, and `size` above is the def's SECOND
+      // size. A coordinate the set lacks at that size is read at the first size where it exists.
+      const excludedAt = (c: Record<string, string>, z: string | undefined) => isExcludedCoordinate(def, { ...c, ...(z === undefined ? {} : { size: z }) });
+      const sizeFor = (c: Record<string, string>) => (excludedAt(c, size) ? sizes.find((z) => !excludedAt(c, z)) ?? size : size);
       const has = (coord: Record<string, string>): boolean =>
-        planPartNames(figmaAnatomyPlan(def, size, coord as never).root).includes(name);
+        planPartNames(figmaAnatomyPlan(def, sizeFor(coord), coord as never).root).includes(name);
       // A SPARSE GRID (`excludeCoordinates`, 2026-09-28) may not have the pinned coordinate at every value of
       // the gated axis — badge has no `type=count, emphasis=subtle` — and the projector refuses a coordinate
       // the set does not have. So each value is read at the FIRST coordinate the set does have, walking the
@@ -29226,7 +29230,7 @@ arm: {
       let pins: Record<string, string>[] = [{ ...rest }];
       for (const [a, vs] of others) pins = pins.flatMap((c) => vs.map((x) => ({ ...c, [a]: x })));
       const at = (v: string): Record<string, string> =>
-        ({ ...(pins.find((c) => !isExcludedCoordinate(def, { ...c, [axis]: v, ...(size === undefined ? {} : { size }) })) ?? rest), [axis]: v });
+        ({ ...(pins.find((c) => !excludedAt({ ...c, [axis]: v }, size)) ?? pins.find((c) => sizes.some((z) => !excludedAt({ ...c, [axis]: v }, z))) ?? rest), [axis]: v });
       const declared = onState ? statesOf(def) : def.variants?.[axis] ?? [];
       // A GATE NAMING A VALUE THE AXIS DOES NOT DECLARE IS `anatomyErrors`' ERROR, NOT THIS BLOCK'S, and
       // it has to be handed over rather than projected. `figmaAnatomyPlan` THROWS on an undeclared axis

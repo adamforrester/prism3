@@ -21599,7 +21599,9 @@
         "badge": {
           "keys": [
             "dot.medium.pad-x",
-            "dot.medium.pad-y"
+            "dot.medium.pad-y",
+            "dot.small.pad-x",
+            "dot.small.pad-y"
           ],
           "parts": {
             "surface": {
@@ -22019,6 +22021,7 @@
         "badge": {
           "keys": [
             "count.medium.pad-y",
+            "count.small.pad-y",
             "status.small.pad-y"
           ],
           "parts": {
@@ -22280,7 +22283,8 @@
       "components": {
         "badge": {
           "keys": [
-            "count.medium.pad-x"
+            "count.medium.pad-x",
+            "count.small.pad-x"
           ],
           "parts": {
             "surface": {
