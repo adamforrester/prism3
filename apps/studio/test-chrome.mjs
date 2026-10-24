@@ -5092,6 +5092,60 @@ for (const host of ['web', 'figma']) {
     ok(false, `S5.2 text buttons ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+// #2990: the two text-link rows rate every step at its worst across the surfaces the link sits on, a step below the floor
+// is aria-disabled and its click writes nothing, a clearing step pins, and each row shows its contrast in every mode and the
+// steps its hover, visited and pressed follow. Both hosts. The floor itself is gated from resolved values, independent
+// of this UI, by test.ts L-07 (docs/34); this case holds the UI to its contract: block what it marks, write nothing for it.
+for (const host of ['web', 'plugin']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-interactive');
+    const ROLES = ['text.link.default', 'inverse.text.link.default'];
+    const lines = await page.evaluate((roles) => roles.map((r) => {
+      const wrap = document.querySelector(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${r}"]`)?.closest('.p3-fillrow-wrap');
+      return { role: r, modes: wrap ? [...wrap.querySelectorAll('[data-p3="link-mode"]')].map((c) => c.dataset.mode) : null,
+        below: wrap ? wrap.querySelectorAll('[data-p3="link-mode"][data-below="true"]').length : null,
+        follow: wrap?.querySelector('[data-p3="link-follow"]')?.textContent ?? null };
+    }), ROLES);
+    ok(lines.every((l) => l.modes?.length === 4 && l.below === 0 && /hover \d+.*visited \d+.*pressed \d+/.test(l.follow ?? '')),
+      `${host} #2990: each text-link row shows its contrast in all four modes, none below floor, and the steps its states follow (${JSON.stringify(lines)})`);
+    if (host === 'web') {
+      const role = 'inverse.text.link.default';
+      await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${role}"]`));
+      await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+      const grid = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="step-picker-step"]')]
+        .map((b) => ({ step: b.dataset.step, blocked: b.getAttribute('aria-disabled') === 'true', below: b.dataset.below === 'true' })));
+      const blocked = grid.filter((g) => g.blocked);
+      ok(blocked.length > 0 && blocked.length < grid.length && grid.every((g) => g.blocked === g.below), `web #2990: the inverse link's picker blocks exactly its below-floor steps and leaves the rest pickable (${blocked.length} of ${grid.length} blocked)`);
+      const before = JSON.stringify((await persisted(page))?.overrides?.light ?? null);
+      // Playwright refuses to click an aria-disabled element, so the click is dispatched as a pointer would send it.
+      await page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${blocked[0].step}"]`).dispatchEvent('click');
+      const after = JSON.stringify((await persisted(page))?.overrides?.light ?? null);
+      ok(before === after, `web #2990: clicking a below-floor link step (${blocked[0].step}) writes nothing (${before} → ${after})`);
+      const open1 = grid.find((g) => !g.blocked);
+      await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${open1.step}"]`));
+      await page.waitForFunction(() => !!JSON.parse(localStorage.getItem('prism3:brandInput') ?? '{}')?.input?.overrides?.light?.['inverse.text.link.default'], null, { timeout: 5000 }).catch(() => {});
+      const pinned = (await persisted(page))?.overrides?.light?.['inverse.text.link.default']?.step;
+      // What the engine EMITS, not only what was stored: the row's swatch is painted from the resolved role, so after the
+      // rebuild it is the clicked step's own chip color (a clamp would land a different step and a different color).
+      const paint = await page.evaluate(([r, st]) => {
+        const row = document.querySelector(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${r}"]`)?.closest('.p3-fillrow');
+        const chip = document.querySelector(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${st}"] .p3-step-chip`);
+        return { row: row ? getComputedStyle(row.querySelector('.p3-fill-sw')).backgroundColor : null, chip: chip ? getComputedStyle(chip).backgroundColor : null };
+      }, [role, open1.step]);
+      ok(pinned === open1.step && !!paint.row && paint.row === paint.chip, `web #2990: a clearing link step pins exactly, stored and emitted (${open1.step} → stored ${pinned}, row ${paint.row}, step ${paint.chip})`);
+      // An icon-link row keeps today's picker (Q2990.5 scope is the two text links): its below-floor steps stay pickable.
+      await page.keyboard.press('Escape');
+      await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="int-pick"][data-role="icon.link.default"]'));
+      await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+      const iconBlocked = await page.evaluate(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-disabled="true"]').length);
+      ok(iconBlocked === 0, `web #2990: the icon link's picker blocks nothing (${iconBlocked} blocked)`);
+    }
+    ok(errors.length === 0, `${host} #2990 link rows: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2990 link rows ${host}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 // Edits: a row edits the previewed mode (Q34): Light writes the column's own field, Dark writes modeAnchors and
 // leaves Light's alone; the picker opens under its row on its step, a pick writes and keeps focus, the preview
 // repaints to the emission's step, Return to Auto reverts, Escape closes to its button. A derived mode is
