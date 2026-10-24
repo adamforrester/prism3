@@ -28,6 +28,24 @@
     "members": 2,
     "properties": {}
   },
+  "_slider-thumb": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 15,
+    "properties": {}
+  },
   "accordion": {
     "axes": {
       "expansion": [
@@ -1141,6 +1159,39 @@
       "placeholder": "TEXT",
       "value": "TEXT",
       "↳ swap leading icon": "INSTANCE_SWAP"
+    }
+  },
+  "slider": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "type": [
+        "range",
+        "single"
+      ]
+    },
+    "members": 30,
+    "properties": {
+      "helper": "BOOLEAN",
+      "inputs": "BOOLEAN",
+      "label": "BOOLEAN",
+      "max label": "TEXT",
+      "milestone": "TEXT",
+      "milestones": "BOOLEAN",
+      "min label": "TEXT",
+      "range text": "TEXT",
+      "value": "BOOLEAN",
+      "value text": "TEXT"
     }
   },
   "spinner": {

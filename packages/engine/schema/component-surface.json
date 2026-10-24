@@ -877,6 +877,27 @@
         "title:BOOLEAN"
       ]
     },
+    "_slider-thumb": {
+      "members": 15,
+      "sha256": "1182808f96e60938100262e24d6a68a81a2eca6ee5267a6425850550017c1959",
+      "properties": []
+    },
+    "slider": {
+      "members": 30,
+      "sha256": "76f82ee3be7f7c2d90667311d83bb3456465e2d7f0bad923c9ec55877a735e2d",
+      "properties": [
+        "helper:BOOLEAN",
+        "inputs:BOOLEAN",
+        "label:BOOLEAN",
+        "max label:TEXT",
+        "milestone:TEXT",
+        "milestones:BOOLEAN",
+        "min label:TEXT",
+        "range text:TEXT",
+        "value text:TEXT",
+        "value:BOOLEAN"
+      ]
+    },
     "code-input-cell": {
       "members": 28,
       "sha256": "d0857df733826ea6e1f2a9e869c212c47b475d9613bc2582cef9bcbc95120a9c",

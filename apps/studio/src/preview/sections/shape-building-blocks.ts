@@ -21,7 +21,7 @@ export const SHAPE_BUILDING_BLOCKS = { title: 'Building blocks', desc: 'Fixed si
 export const SHAPE_BLOCK_TITLES = { border: 'Border width', icon: 'Icon size', grid: 'Grid' } as const;
 
 /** The border widths `tree.ts` writes (see the header). */
-const BORDER_WIDTHS: readonly (readonly [string, number])[] = [['none', 0], ['hairline', 1], ['thick', 2], ['heavy', 4]];
+const BORDER_WIDTHS: readonly (readonly [string, number])[] = [['none', 0], ['hairline', 1], ['thick', 2], ['heavy', 4], ['x-heavy', 6]];
 
 export const shapeBuildingBlocksSection = (c: SgCtx, dims: Theme['dims'], copy: { title: string; desc: string }): HTMLElement => {
   const sec = palSection(copy.title, copy.desc);

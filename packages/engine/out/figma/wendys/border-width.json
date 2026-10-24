@@ -53,6 +53,19 @@
         "type": "VARIABLE_ALIAS",
         "name": "wds/core/dimension/4"
       }
+    },
+    {
+      "name": "wds/border-width/x-heavy",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "STROKE_FLOAT"
+      ],
+      "description": "6px stroke",
+      "value": 6,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/dimension/6"
+      }
     }
   ]
 }
