@@ -1358,7 +1358,7 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Apply Theme, after a pre-flight check",
+          "via": "Update file: the Theme item of its checklist, after a pre-flight check",
           "sources": [
             "apps/plugin/src/apply-theme.ts",
             "apps/plugin/src/preflight.ts"
@@ -1392,7 +1392,7 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Components page, Build",
+          "via": "Update file: the sets the file lacks, listed in its checklist",
           "sources": [
             "apps/plugin/src/write-components.ts"
           ],
@@ -1490,7 +1490,7 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Prune stale: a preview, then Delete",
+          "via": "Update file, Clean up tab: a preview, then Delete",
           "sources": [
             "apps/plugin/src/prune-figma.ts"
           ],
@@ -1521,7 +1521,7 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Set up file",
+          "via": "Update file: the first item of its checklist on a file that is not set up",
           "sources": [
             "apps/plugin/src/file-setup.ts",
             "apps/plugin/src/file-taxonomy.ts"
@@ -1553,14 +1553,17 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Build style guides page",
+          "via": "Documentation holds the settings, kept in the file; Update file draws the tables, and Clean up removes retired ones",
           "sources": [
             "apps/studio/src/shell/style-guides.ts",
-            "apps/plugin/src/style-guide.ts"
+            "apps/plugin/src/style-guide.ts",
+            "apps/studio/src/shell/documentation.ts",
+            "apps/plugin/src/doc-settings.ts"
           ],
           "messages": [
             "style-guide",
-            "style-guide-cleanup"
+            "style-guide-cleanup",
+            "doc-settings-save"
           ]
         },
         "agent": {
@@ -1608,7 +1611,7 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Agent switch in the top bar; off each time the plugin opens. While it is on, Minimize shrinks the window to a strip that shows the link's status",
+          "via": "Agent tile on the rail; off each time the plugin opens. Minimize, on the top bar, shrinks the window to a strip, which shows the link status while the link is on",
           "sources": [
             "apps/plugin/src/agent-link-ui.ts"
           ],

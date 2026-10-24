@@ -60,7 +60,8 @@
  *   · strip/<arm> (#2949): minimizing to the link strip resizes the window and nothing else — the link stays on, the
  *     poll stays armed and a command sent while minimized is run; the strip skips the 380×420 floor, is never kept as
  *     the window size, ignores a late drag, and Restore returns to the size from before; Turn off (the link switched
- *     off) restores too; and nothing minimizes while the link is off. EXPECTED sizes are literals here. (mutation:
+ *     off) restores too; and Minimize works with the link off as well (#2909, the owner's direction of 2026-10-24;
+ *     mutation: `if (!agentLink.state().on) return;` back in `setMinimized` → strip/off fails). EXPECTED sizes are literals here. (mutation:
  *     `setMinimized` calling `agentLink.setOn(false)` → strip/link and strip/poll fail, by name). From Minimize to
  *     Restore the link's `since` holds and no `on: false` reaches the panel or the record, so a bounce (off, then on)
  *     shows too (mutation: `setOn(false); setOn(true)` in `setMinimized` → strip/since-min, strip/since-restore and strip/no-bounce fail)
@@ -983,9 +984,13 @@ section('strip — minimizing resizes the window and never touches the link or i
   await toUi({ type: 'agent-link', on: false });
   ok(JSON.stringify(sizes.at(-1)) === '[900,700]' && JSON.stringify(minimizedPosts()) === '[true,false,true,false]' && main.agentLink.state().on === false,
     `strip/turn-off: Turn off switches the link off and restores the full window (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts(), on: main.agentLink.state().on })})`);
-  const n = sizes.length;
+  // The owner's direction on #2909 (2026-10-24): Minimize does not depend on the link.
   await toUi({ type: 'minimize-ui', minimized: true });
-  ok(sizes.length === n && JSON.stringify(minimizedPosts()) === '[true,false,true,false]', 'strip/off: nothing minimizes while the link is off');
+  ok(JSON.stringify(sizes.at(-1)) === '[480,40]' && JSON.stringify(minimizedPosts()) === '[true,false,true,false,true]' && main.agentLink.state().on === false,
+    `strip/off: with the link off, Minimize still resizes to the strip and leaves the link off (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts(), on: main.agentLink.state().on })})`);
+  await toUi({ type: 'minimize-ui', minimized: false });
+  ok(JSON.stringify(sizes.at(-1)) === '[900,700]' && JSON.stringify(minimizedPosts()) === '[true,false,true,false,true,false]',
+    `strip/off-restore: with the link off, Restore returns to 900×700 (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts() })})`);
 
   ui.resize = origResize;
   cs.setAsync = origSet;

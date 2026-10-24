@@ -133,16 +133,17 @@ const clampSize = (w: number, h: number): { width: number; height: number } => (
 let uiSize: { width: number; height: number } = { ...DEFAULT_SIZE };
 
 /**
- * THE LINK STRIP (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A, 2026-10-23). While the agent link is on, the Minimize
- * tile beside the Agent tile shrinks the window to a one-row strip that shows the link's status, with Restore and Turn
- * off (`agent-link-ui.ts` draws it). Here, the window and nothing else:
+ * THE STRIP (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A, 2026-10-23). Minimize, on the top bar, shrinks the window
+ * to a one-row strip with Restore; while the agent link is on, the strip also shows the link's status and Turn off
+ * (`agent-link-ui.ts` draws it). Minimize does not depend on the link (the owner's direction on #2909, 2026-10-24): it
+ * minimizes whether the link is on or off. Here, the window and nothing else:
  *   · the strip's size is its own, under the 380×420 floor (`MIN_SIZE` is ours, not Figma's: `resize` takes 70×0 up),
  *     and is never kept as the window size;
  *   · `beforeStrip` holds the size from before minimizing, and Restore returns to it. The UI stays mounted the whole
  *     time, hidden under the strip, so the page and its state come back as they were;
  *   · it never touches the link or its poll: the poll runs on this thread's own timer (`agent-link.ts`), which the
  *     window's size does not reach. `test-agent-link.ts` (`strip`) holds that;
- *   · it minimizes only while the link is on, and turning the link off restores the full window.
+ *   · turning the link off while minimized (the strip's Turn off) still restores the full window.
  * The strip's width fits the longest listening line the strip can show (`agentStripText`), measured by `test:chrome`.
  */
 const STRIP_SIZE = { width: 480, height: 40 };
@@ -150,7 +151,6 @@ let beforeStrip: { width: number; height: number } | null = null;
 const setMinimized = (minimized: boolean): void => {
   if (minimized === (beforeStrip !== null)) return;
   if (minimized) {
-    if (!agentLink.state().on) return;
     beforeStrip = uiSize;
     figma.ui.resize(STRIP_SIZE.width, STRIP_SIZE.height);
   } else {

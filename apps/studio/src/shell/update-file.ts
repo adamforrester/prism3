@@ -176,10 +176,12 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   };
 
   const cleanBody = (): { body: HTMLElement[]; foot: HTMLElement[] } => {
+    const r0 = lend.read();
+    // Never after a failed restore: the brand on screen is then the demo's, and its preview would not be the file's.
+    if (!pruneAsked && !r0.prune.busy && !r0.prune.preview && !r0.off) { pruneAsked = true; lend.pruneCheck(); }
+    // Read again after asking: the dry run is out now, and the tab says so rather than drawing the reading from before.
     const r = lend.read();
     const p = r.prune;
-    // Never after a failed restore: the brand on screen is then the demo's, and its preview would not be the file's.
-    if (!pruneAsked && !p.busy && !p.preview && !r.off) { pruneAsked = true; lend.pruneCheck(); }
     const body: HTMLElement[] = [h('p', 'p3-sub p3-upd-lead', UPDATE_COPY.cleanLead)];
     if (r.off) body.push(hook(h('p', 'p3-sg-error', r.off), 'clean-off'));
     const foot: HTMLElement[] = [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.close, close)];

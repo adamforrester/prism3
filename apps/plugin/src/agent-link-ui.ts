@@ -18,12 +18,14 @@
  * it: the web build carries none of it. The frame mounts and unmounts with the app view (the start screen
  * has none), so the tile is built once and moved into whichever slot is in the document.
  *
- * THE LINK STRIP (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A, 2026-10-23). While the link is on, a Minimize tile sits
- * beside the Agent tile in the same slot. It asks the main thread to shrink the window to a one-row strip (`minimize-ui`),
- * and the main thread answers `ui-minimized`, the authority as for the link. Minimized, the document shows only the strip
- * (`html[data-strip]`, `chrome.css`): the link's dot, its status in the Activity drawer's words plus the running or last
- * command and its age (`agentStripText`), Restore, and Turn off, which turns the link off and so restores the window too
- * (`main.ts`). Everything else stays mounted under it, only not drawn, so Restore returns to the same page and state. The
+ * THE STRIP (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A, 2026-10-23). A Minimize tile sits on the top bar
+ * (`bar-minimize`, #2909). It asks the main thread to shrink the window to a one-row strip (`minimize-ui`), and the main
+ * thread answers `ui-minimized`, the authority as for the link. Minimize does not depend on the link (the owner's
+ * direction on #2909, 2026-10-24): it is drawn and works whether the link is on or off. Minimized, the document shows
+ * only the strip (`html[data-strip]`, `chrome.css`). While the link is on, the strip holds the link's dot, its status in
+ * the Activity drawer's words plus the running or last command and its age (`agentStripText`), Restore, and Turn off,
+ * which turns the link off and so restores the window too (`main.ts`). While the link is off, it holds the product's
+ * name and Restore only (`STRIP_IDLE`; placeholder wording, Q2909.10 A). Everything else stays mounted under it, only not drawn, so Restore returns to the same page and state. The
  * strip is built once and appended to `<body>`, like the live region, since the frame comes and goes with the app view.
  *
  * THE LIBRARY HOME'S SWITCH (#2879; the owner's Q613 3 A, 2026-10-23). The library home (`apps/studio/src/shell/home.ts`)
@@ -101,6 +103,9 @@ export const agentStripText = (s: AgentLinkState | null, running: { readonly cmd
   return { text: `${short.text} · last: ${last.cmd} ${agentAge(now - at)} ago`, error: false };
 };
 
+/** The strip's line while the link is off: the product's name, nothing about the link. */
+export const STRIP_IDLE = 'Prism3';
+
 const post = (m: UiToMain): void => parent.postMessage({ pluginMessage: m }, '*');
 
 /** The one live region for the link's status (#2275, the owner's Q86 B, 2026-10-07: announce errors only). Built once at
@@ -146,13 +151,12 @@ export const mountAgentLink = (): void => {
   dot.setAttribute('aria-hidden', 'true');
   // #2909 (Q2909.19 A, a draft): the chain link, the rail's Agent icon.
   mark.append(glyph('link'), dot);
-  // #2949 (Q600 A): Minimize, beside the Agent tile and only while the link is on. A plain button: the main thread decides.
+  // #2949 (Q600 A): Minimize, on the top bar since #2909, whether the link is on or off. A plain button: the main thread decides.
   const { btn: minBtn, mark: minMark, tip: minTip } = tile('agent-minimize', 'Minimize');
   minBtn.classList.add('p3-agent-min');
   minBtn.setAttribute('aria-label', 'Minimize');
   minTip.textContent = 'Minimize';
   minMark.append(glyph('dash'));
-  minBtn.hidden = true;
   minBtn.addEventListener('click', () => post({ type: 'minimize-ui', minimized: true }));
   wrap.append(chip, minBtn);
 
@@ -167,7 +171,8 @@ export const mountAgentLink = (): void => {
   homeSwitch.el.setAttribute('aria-describedby', homeStatus.id);
   homeRow.append(homeText, homeSwitch.el);
 
-  // The strip (#2949): the link's dot, its line, Restore and Turn off. Drawn only while the main thread says minimized.
+  // The strip (#2949): the link's dot, its line, Restore and Turn off; with the link off, the name and Restore. Drawn only
+  // while the main thread says minimized.
   const strip = hook(h('div', 'p3-strip'), 'agent-strip');
   strip.hidden = true;
   const stripDot = hook(h('span', 'p3-dot p3-dot-ok'), 'agent-strip-dot');
@@ -193,10 +198,14 @@ export const mountAgentLink = (): void => {
   const renderStrip = (): void => {
     if (!minimized) return;
     const line = agentStripText(state, running, Date.now());
-    stripText.textContent = line?.text ?? '';
+    stripText.textContent = line?.text ?? STRIP_IDLE;
     stripText.dataset.error = String(!!line?.error);
     stripDot.className = line?.error ? 'p3-dot p3-dot-bad' : 'p3-dot p3-dot-ok';
-    strip.title = state ? agentLinkStatusText(state) : '';
+    // The link's own parts only while it is on (the owner's direction on #2909, 2026-10-24).
+    const on = !!state?.on;
+    stripDot.hidden = !on;
+    turnOff.hidden = !on;
+    strip.title = on && state ? agentLinkStatusText(state) : '';
   };
   const setMinimized = (on: boolean): void => {
     if (on === minimized) return;
@@ -206,7 +215,7 @@ export const mountAgentLink = (): void => {
     else delete document.documentElement.dataset.strip;
     if (ticker !== null) { clearInterval(ticker); ticker = null; }
     if (on) { renderStrip(); ticker = setInterval(renderStrip, 1000); restore.focus(); }
-    else if (!minBtn.hidden) minBtn.focus();
+    else if (minBtn.isConnected) minBtn.focus();
   };
 
   const render = (): void => {
@@ -215,7 +224,6 @@ export const mountAgentLink = (): void => {
     chip.dataset.on = String(on);
     homeSwitch.set(on);
     homeStatus.textContent = agentLinkStatusText(state);
-    minBtn.hidden = !on;
     renderStrip();
     // Activity's name and tooltip say "agent link on" while it is (the owner's top-bar decision, 2026-10-05).
     setAgentLinkOn(on);

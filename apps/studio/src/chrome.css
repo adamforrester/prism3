@@ -689,12 +689,13 @@
    it is off. */
 .p3-agent-dot { display: none; background: var(--p3-ok-icon); }
 .p3-tile[data-on="true"] .p3-agent-dot { display: block; }
-/* Minimize (#2949, the owner's Q600 A): a tile beside the Agent tile, drawn only while the link is on. */
+/* Minimize (#2949, the owner's Q600 A): a tile on the top bar (#2909), drawn whether the agent link is on or off. */
 .p3-btn.p3-tile.p3-agent-min[hidden] { display: none; }
-/* The link strip (#2949, the owner's Q1 A): while minimized the window is one row, the strip, on the top bar's ground.
+/* The strip (#2949, the owner's Q1 A): while minimized the window is one row, the strip, on the top bar's ground.
    Everything else in the document stays mounted, only not drawn, so Restore returns to the same page and state. The
    live region (`p3-sr`) stays in the tree, so an error still announces. The line takes the room the buttons leave, and an
-   ellipsis if it must; the strip's tooltip carries the link's full status line. */
+   ellipsis if it must; the strip's tooltip carries the link's full status line. With the link off, the strip draws no dot
+   and no Turn off (#2909). */
 html[data-strip="true"] body > :not(.p3-strip, .p3-sr) { display: none; }
 .p3-strip {
   position: fixed; inset: 0; box-sizing: border-box; display: flex; align-items: center; gap: var(--p3-space-100);
@@ -704,6 +705,7 @@ html[data-strip="true"] body > :not(.p3-strip, .p3-sr) { display: none; }
 .p3-strip[hidden] { display: none; }
 .p3-strip-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .p3-strip > .p3-btn { flex: none; }
+.p3-strip > [hidden] { display: none; }
 
 /* ── the levers panel (S2 on): sections as white cards on the gray panel (IA-2, V7) ────────── */
 /* N-3 A, RX2 A (#1984): the region that holds a page's levers draws no box of its own. The read-only line above it is
@@ -1686,7 +1688,10 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 
 /* ── Update file (#2909): the overlay's tabs, items and sets ─────────────────────────────────────── */
 .p3-upd-tabs { flex: none; padding: 0 var(--p3-space-300); margin: 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
-.p3-upd-body { padding: var(--p3-space-150) var(--p3-space-300); gap: var(--p3-space-100); overflow: auto; }
+.p3-upd-body { flex: 1 1 auto; min-height: 0; padding: var(--p3-space-150) var(--p3-space-300); gap: var(--p3-space-100); overflow: auto; }
+/* The checklist scrolls inside itself at every width, so its foot (the action) stays in the window: the narrow tier's
+   rule for the export dialog's columns (`overflow: visible`, the body scrolls there) would let it run off the bottom. */
+.p3-frame[data-w="narrow"] .p3-bardlg-col.p3-upd-body { overflow-y: auto; }
 .p3-upd-body p { margin: 0; }
 .p3-upd-item { display: grid; gap: var(--p3-space-050); padding: var(--p3-space-100) 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-upd-item:last-child { border-bottom: 0; }
