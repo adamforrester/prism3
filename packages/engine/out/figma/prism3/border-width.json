@@ -53,6 +53,19 @@
         "type": "VARIABLE_ALIAS",
         "name": "pds3/core/dimension/4"
       }
+    },
+    {
+      "name": "pds3/border-width/x-heavy",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "STROKE_FLOAT"
+      ],
+      "description": "6px stroke",
+      "value": 6,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/6"
+      }
     }
   ]
 }

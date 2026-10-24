@@ -151,6 +151,9 @@ export const TAXONOMY: Taxonomy = {
         // Progress (#2670, owner call 10 A) — its own page under Components. It nests the Field Message, which the build
         // places first wherever its page sorts. The Spinner stays under Subcomponents (#1670).
         { page: 'Progress', defs: ['progress'] },
+        // Slider (#2669, owner call 9 A) — its own page under Components, sorted alphabetically (Q260 A). Its thumb builds
+        // first, so the slider's two nested thumbs resolve against it on the same page, as Tabs' do.
+        { page: 'Slider', defs: ['_slider-thumb', 'slider'], lead: 'slider' },
       ],
     },
     {

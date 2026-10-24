@@ -3496,10 +3496,10 @@ const main = async (): Promise<void> => {
     const bw = byTitle('Border width');
     ok(!!bw && bw.key === 'borderWidth|VariableCollectionId:border-width|pds3' && bw.page === SEM
       && JSON.stringify(bw.columns) === JSON.stringify(['Token', 'Default', 'Value', 'REM', 'Description'])
-      && bw.description === '7 border width variables in border-width and focus',
+      && bw.description === '8 border width variables in border-width and focus',
       `35: border-width draws one Border width table on Semantic tokens, Token · Default · Value · REM · Description (${bw?.key}; ${bw?.columns.join(', ')}; "${bw?.description}")`);
     ok(JSON.stringify(bw?.rows.map((r) => `${r.tokenCell}=${r.cells[0].value}/${r.cells[0].rem}`)) === JSON.stringify([
-      'pds3/border-width/none=0px/0rem', 'pds3/border-width/hairline=1px/0.0625rem', 'pds3/border-width/thick=2px/0.125rem', 'pds3/border-width/heavy=4px/0.25rem',
+      'pds3/border-width/none=0px/0rem', 'pds3/border-width/hairline=1px/0.0625rem', 'pds3/border-width/thick=2px/0.125rem', 'pds3/border-width/heavy=4px/0.25rem', 'pds3/border-width/x-heavy=6px/0.375rem',
       'pds3/focus/ring/width=2px/0.125rem', 'pds3/focus/ring/offset=2px/0.125rem', 'pds3/focus/ring/offset-field=0px/0rem']),
       `35: the focus ring's width and offset are rows of the Border width table, not a table of their own (${bw?.rows.map((r) => r.tokenCell).join(', ')})`);
     ok(!plan35.tables.some((t) => t.collectionId === 'VariableCollectionId:focus' || /focus/i.test(t.title)),
@@ -3549,10 +3549,10 @@ const main = async (): Promise<void> => {
     const bwG = gridOf(tableFrame(b1.sem, 'Border width'));
     // THE SPECIMEN IS THE RADIUS EXAMPLE (#2506, owner direction on #2490): each row draws the swatches set's type=radius
     // member, its radius-example layer's stroke weight bound to the row's variable and its corners left unbound, at the
-    // member's own 8px. The seven rows, their collections and the two 0 widths are typed here, not read off the planner.
+    // member's own 8px. The eight rows, their collections and the two 0 widths are typed here, not read off the planner.
     const instOf = (token: string): N | undefined => cellAt(bwG, rowOf(bwG, token), 1)?.findOne((k) => k.type === 'INSTANCE') ?? undefined;
     const strokeOf = (token: string): N | undefined => instOf(token)?.findOne((k) => k.name === 'radius-example') ?? undefined;
-    const BW_ROWS = ['pds3/border-width/none', 'pds3/border-width/hairline', 'pds3/border-width/thick', 'pds3/border-width/heavy',
+    const BW_ROWS = ['pds3/border-width/none', 'pds3/border-width/hairline', 'pds3/border-width/thick', 'pds3/border-width/heavy', 'pds3/border-width/x-heavy',
       'pds3/focus/ring/width', 'pds3/focus/ring/offset', 'pds3/focus/ring/offset-field'];
     const CORNER_FIELDS = ['cornerRadius', 'topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
     const notRadius = BW_ROWS.filter((t) => instOf(t)?.mainComponent?.name !== 'type=radius' || !strokeOf(t));

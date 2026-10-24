@@ -366,7 +366,9 @@ const LADDER_STATED_ONCE: Record<string, string> = {
  * Defs whose size ladder binds SPACING ONLY (the spacing model, 2026-09-29): every size-keyed binding is a
  * `space.*` step, so the default reaches no tier rung and arm 3 has nothing to compare. Admitted by name with
  * the reason, both directions: an admitted def that binds a tier rung at its default is stale, and a def whose
- * default reaches only spacing and is not admitted fails as before.
+ * default reaches only spacing and is not admitted fails as before. A `border-width.*` step (#2669) is the same
+ * shape: a step with no `md`, ranked by arm 2 on `BORDER_WIDTH_ORDER`, so a def whose default reaches only stroke
+ * steps is admitted here too.
  */
 const SPACING_ONLY_LADDER: Record<string, string> = {
   // #2319: List's own size binding is its item gap, a space step per size; its type and marker scale through the
@@ -375,6 +377,8 @@ const SPACING_ONLY_LADDER: Record<string, string> = {
   // #2666: as List — the trail's gap between items is its own size binding; the text, links and separators are sized by
   // the nested BreadcrumbItem and Link, each checked under its own name.
   breadcrumbs: 'its only size-keyed binding is the gap between items (`space.050` / `100`); the steps are sized by the nested BreadcrumbItem and Link, checked under their own names',
+  // #2669 (owner Q550 e): the Slider's own size binding is its track, a border-width step per size.
+  slider: 'its only size-keyed binding is the track (`border-width.thick` / `heavy` / `x-heavy`, 2 / 4 / 6px), a stroke step with no `md`; the thumb is sized by the nested Slider.Thumb (`control.size.*.thumb`), checked under its own name',
 };
 
 /**
@@ -433,6 +437,9 @@ const DEFAULT_FIRST: Record<string, string> = {
   progress: 'the Figma default is the 40px medium ring, the proposal\'s axis table approved with every call at A, and the code default `type` is determinate to match (#2791)',
   breadcrumbs: Q1B,
   'breadcrumb-item': Q1B,
+  // #2669: owner Q550 e ("medium first") agrees with Q1 B.
+  slider: Q1B,
+  '_slider-thumb': Q1B,
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -470,7 +477,7 @@ const MUST_COVER = [
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
-  'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter',
+  'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter', 'slider', '_slider-thumb',
   'tab-item', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',
@@ -543,6 +550,12 @@ type Binding = { key: string; value: string; ref: string; family: string; rung: 
  *  default is `md`) does not apply: a spacing step has no `md`. */
 const SPACE_FAMILY = 'space:';
 const spaceRank = (rung: string): number => Number(rung);
+/** A STROKE family (#2669): a size-keyed `border-width.*` step, the same shape as a spacing step — a name with no
+ *  tier rung — so it binds a family per key tail (`border-width:thickness`) and arm 2 checks its order on this ladder, a
+ *  literal written here from the scale's own description (`tree.ts`: 0 / 1 / 2 / 4 / 6px), never read off a def. */
+const BORDER_FAMILY = 'border-width:';
+const BORDER_WIDTH_ORDER = ['none', 'hairline', 'thick', 'heavy', 'x-heavy'];
+const stepFamily = (family: string): boolean => family.startsWith(SPACE_FAMILY) || family.startsWith(BORDER_FAMILY);
 const bindingsOf = (def: ComponentDef): { parsed: Binding[]; rungless: string[] } => {
   const parsed: Binding[] = [];
   const rungless: string[] = [];
@@ -552,6 +565,8 @@ const bindingsOf = (def: ComponentDef): { parsed: Binding[]; rungless: string[] 
     const r = String(ref);
     const sp = /^space\.([0-9]+)$/.exec(r);
     if (sp) { parsed.push({ key, ref: r, value: k[1], rung: sp[1], family: `${SPACE_FAMILY}${k[2] ?? ''}` }); continue; }
+    const bw = /^border-width\.(.+)$/.exec(r);
+    if (bw && BORDER_WIDTH_ORDER.includes(bw[1])) { parsed.push({ key, ref: r, value: k[1], rung: bw[1], family: `${BORDER_FAMILY}${k[2] ?? ''}` }); continue; }
     // The rung as a whole dot-delimited segment, so a substring inside a longer word cannot match.
     const seg = r.split('.');
     const at = seg.findIndex((s) => RUNG_ORDER.includes(s));
@@ -701,7 +716,7 @@ for (const def of componentDefs) {
       if (rs.size > 1)
         failures.push(`${def.id}: size '${v}' reaches ${rs.size} different rungs (${[...rs].join(', ')}) within one tier family '${family}' — two bindings for one size that disagree about which rung it is.`);
     }
-    const seq = rows.map((r) => (family.startsWith(SPACE_FAMILY) ? spaceRank(r.rung) : RUNG_ORDER.indexOf(r.rung)));
+    const seq = rows.map((r) => (family.startsWith(SPACE_FAMILY) ? spaceRank(r.rung) : family.startsWith(BORDER_FAMILY) ? BORDER_WIDTH_ORDER.indexOf(r.rung) : RUNG_ORDER.indexOf(r.rung)));
     for (let i = 1; i < seq.length; i++)
       if (seq[i] < seq[i - 1])
         failures.push(`${def.id}: in tier family '${family}' the enum walks '${rows[i - 1].value}' → ${rows[i - 1].rung} then '${rows[i].value}' → ${rows[i].rung}, which goes DOWN the tier. Every line resolves; the ladder is inverted. (${rows.map((r) => `${r.value}→${r.rung}`).join(', ')})`);
@@ -721,7 +736,7 @@ for (const def of componentDefs) {
     // offset (icon → `xs` or lower) BOTH fail BY NAME. The invariant changed shape; it did not disappear.
     const defaultFamilies = new Map<string, Set<string>>();
     for (const b of parsed) {
-      if (b.value !== dflt || b.family.startsWith(SPACE_FAMILY)) continue;
+      if (b.value !== dflt || stepFamily(b.family)) continue;
       if (!defaultFamilies.has(b.family)) defaultFamilies.set(b.family, new Set());
       defaultFamilies.get(b.family)!.add(b.rung);
     }
