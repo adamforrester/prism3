@@ -99,8 +99,10 @@
           {
             "name": "↳ Code input",
             "components": [
+              "code-input-cell",
               "code-input"
-            ]
+            ],
+            "usagePanelLead": "code-input"
           },
           {
             "name": "↳ Search field",
@@ -191,8 +193,11 @@
           {
             "name": "↳ Breadcrumbs",
             "components": [
+              "_breadcrumb-separator",
+              "breadcrumb-item",
               "breadcrumbs"
-            ]
+            ],
+            "usagePanelLead": "breadcrumbs"
           },
           {
             "name": "↳ Toast",
@@ -263,20 +268,6 @@
             "name": "↳ Spinner",
             "components": [
               "spinner"
-            ]
-          },
-          {
-            "name": "↳ Breadcrumb Item",
-            "components": [
-              "_breadcrumb-separator",
-              "breadcrumb-item"
-            ],
-            "usagePanelLead": "breadcrumb-item"
-          },
-          {
-            "name": "↳ Code Cell",
-            "components": [
-              "code-input-cell"
             ]
           }
         ]
@@ -2369,8 +2360,8 @@
         "figmaName": "_breadcrumb-separator",
         "kind": "component set",
         "private": true,
-        "page": "↳ Breadcrumb Item",
-        "section": "Subcomponents",
+        "page": "↳ Breadcrumbs",
+        "section": "Components",
         "members": 2,
         "variantProperties": [
           {
@@ -2389,8 +2380,8 @@
         "name": "BreadcrumbItem",
         "figmaName": "breadcrumb-item",
         "kind": "component set",
-        "page": "↳ Breadcrumb Item",
-        "section": "Subcomponents",
+        "page": "↳ Breadcrumbs",
+        "section": "Components",
         "members": 10,
         "variantProperties": [
           {
@@ -2830,8 +2821,8 @@
         "name": "CodeInput.Cell",
         "figmaName": "code-input-cell",
         "kind": "component set",
-        "page": "↳ Code Cell",
-        "section": "Subcomponents",
+        "page": "↳ Code input",
+        "section": "Components",
         "members": 28,
         "variantProperties": [
           {
