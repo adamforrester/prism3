@@ -27,6 +27,24 @@ so `EXECUTOR_REVISION` stays. The web studio's shell is unchanged (Q2909.9 is ph
 - **Components** in the plugin is the list and its settings, without the Build bar: new sets are added from Update file.
 - **The drawer's right end** says "Agent listening · last: readback 2m ago" while the link is on (Q2909.22 A).
 
+- **Minimize does not depend on the agent link** (the owner's direction of 2026-10-24). It is on the top bar and works
+  with the link on or off. With the link off, the strip shows the product's name and Restore only, with no link dot and
+  no Turn off (`STRIP_IDLE`, placeholder wording). Turning the link off while minimized still restores the window, as
+  #2949 decided. `test-agent-link.ts` `strip/off` holds it. Putting the old guard back in `setMinimized` fails it by name.
+- **Three UI fixes found by moving `test:chrome` to the rail shell.** Clean up drew its tab from the state read before it
+  asked for the dry run, so "Checking for stale items…" never showed. It now reads again after asking. At 380, the
+  checklist ran past the bottom of the window with every set listed, so its action could not be reached. The narrow
+  tier's `overflow: visible` for dialog columns reached its body; the checklist now scrolls inside itself. The 380
+  Activity sheet's Escape and Close sent focus to the Activity tile, which the rail shell does not draw, so focus fell
+  to BODY. Focus now goes to the drawer's own row.
+- **`test:chrome` on the rail shell.** The plugin arms read the rail, the reduced bar and Update file in place of the
+  Figma menu, Apply Theme and the Activity tile. Every write still gets checked on the wire: Theme, Set up file and
+  Clean up's dry run and Delete. The plugin's Components page has no Build bar or boxes (Q2909.5 A), so the arms that
+  measured them (#2825, C4, #2180) are retired, each with a note where it stood, and S8.2 holds their absence. The suite
+  reads the plugin's mode control through the radios or the select: at 1280 the plugin's preview header also holds the
+  verdict beside the 60px rail, so the radios do not fit and the select shows. A harness fix: the exemption canary's
+  probe left `data-cprobe` marks, which the next font read then checked on nodes that had since been hidden.
+
 ### Deferred to phase 2
 
 Lever re-homing (Q2909.3/.4), the due-check ledger and the background hand-edit pass (Q2909.8), updating the sets the

@@ -4741,8 +4741,11 @@ for (const host of ['web', 'figma']) {
         const besideOf = (r) => r.pick.left >= r.name.right - ALIGN_TOLERANCE && r.pick.top < r.label.bottom;
         const offRight = others.filter((r) => Math.abs(r.pick.right - floor.pick.right) > ALIGN_TOLERANCE);
         ok(offRight.length === 0, `${where}: the Contrast floor's picker ends at the other rows' picker edge (right ${floor.pick.right.toFixed(1)}; ${others.map((r) => `${r.role} ${r.pick.right.toFixed(1)}`).join(', ')})`);
-        ok(floor.pick.top < floor.label.bottom, `${where}: the Contrast floor's picker starts on its name's line, not under it (picker top ${floor.pick.top.toFixed(1)}, label bottom ${floor.label.bottom.toFixed(1)})`);
         const theirs = [...new Set(others.map(besideOf))];
+        // #2909: the plugin's rail takes 60px at every width (Q2909.16 A), so at 380 its area is 320px and every row of the
+        // group stacks its picker under its name. Where the other rows sit beside their names, so must the floor's.
+        if (theirs.length === 1 && theirs[0]) ok(floor.pick.top < floor.label.bottom, `${where}: the Contrast floor's picker starts on its name's line, not under it (picker top ${floor.pick.top.toFixed(1)}, label bottom ${floor.label.bottom.toFixed(1)})`);
+        else ok(host === 'figma' && w <= 560 && theirs.length === 1, `${where}: the rows stack their pickers under their names only in the plugin's narrow area, 320px beside the rail, and then all of them (others ${theirs.map((x) => (x ? 'beside' : 'under')).join(', ')})`);
         ok(theirs.length === 1 && besideOf(floor) === theirs[0], `${where}: the Contrast floor's picker sits beside its name exactly as the other rows' do (floor ${besideOf(floor) ? 'beside' : 'under'}; others ${theirs.map((b) => (b ? 'beside' : 'under')).join(', ')})`);
         // FL1 A (owner, #2197): on Auto the button shows "Auto · ‹palette› ‹step›", the step as the picker names steps;
         // its tooltip is the full sentence ("Auto · follows background.secondary (‹step›)") when it follows the tier, and
@@ -11669,7 +11672,9 @@ const LINK_STATES = {
  *  drawer's first line shows the full line (while the link is on, or while it holds an inbox error). Literals. */
 const LINK_WANT = {
   off: { short: null, full: false },
-  listening: { short: 'Agent listening', ink: 'color.text.secondary', full: true },
+  // #2909 (Q2909.22 A): the drawer's right end adds the last command and how long ago, the strip's words ("Agent
+  // listening · last: readback 2m ago"); the age is read against the clock, so its words are a pattern.
+  listening: { short: 'Agent listening', line: /^Agent listening · last: status \d+[smh] ago$/, ink: 'color.text.secondary', full: true },
   notListening: { short: 'Agent not listening', ink: 'color.text.danger', full: true },
   error: { short: 'Agent error', ink: 'color.text.danger', full: true },
   offStale: { short: null, full: true },
@@ -11819,7 +11824,7 @@ for (const theme of ['light', 'dark']) {
           hooks.absent(ok, { seen: s.rowShown && s.sumText !== null, state: 'the drawer\'s bar row, drawn with its summary' }, s.line === null,
             `${where} ${k}: no agent status in the bar row while the link is off (read ${JSON.stringify(s.text)})`);
         } else {
-          ok(s.lineShown && s.text === want.short, `${where} ${k}: the bar row's agent status reads "${want.short}" (read ${JSON.stringify(s.text)}, shown ${s.lineShown})`);
+          ok(s.lineShown && (want.line ? want.line.test(s.text ?? '') : s.text === want.short), `${where} ${k}: the bar row's agent status reads ${want.line ?? `"${want.short}"`} (read ${JSON.stringify(s.text)}, shown ${s.lineShown})`);
           if (s.line) {
             const leftEdge = Math.max(s.sum?.r ?? 0, s.when?.r ?? 0);
             const gap = s.caret ? s.caret.l - s.line.r : null;
@@ -13288,7 +13293,8 @@ for (const host of ['web', 'figma']) {
 // asserted here: the level rule is "no skip", and section 30 holds the levers' visual levels.
 const PAGE_H1 = { brand: 'Brand', 'color-palettes': 'Palettes', 'color-fills': 'Surfaces & fills', 'color-interactive': 'Interactive',
   type: 'Type', shape: 'Shape', depth: 'Depth & motion', layout: 'Layout', components: 'Components' };
-const SG_H1 = 'Build style guides';
+// #2909: the style-guide settings sit on Documentation, whose h1 is the area's name (Q2909.20 A: "Documentation").
+const SG_H1 = 'Documentation';
 /** At least this many headings per outline (Shape, Depth & motion and Components at 380 on their Settings pane, the
  *  fewest: the h1 and the page's two sections). */
 const OUTLINE_FLOOR = 3;
@@ -13342,7 +13348,7 @@ for (const host of ['web', 'figma']) {
       ok(NEW_PAGES.every((p) => seen.has(p)), `#2212 ${where0}: every place's outline was read (${[...seen].join(', ')})`);
       if (host === 'figma') {
         await openStyleGuides(page);
-        checkOutline(await outlineOf(page), `${where0} / Build style guides`, SG_H1);
+        checkOutline(await outlineOf(page), `${where0} / Documentation`, SG_H1);
       }
       ok(errors.length === 0, `#2212 ${where0}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
