@@ -376,7 +376,7 @@
         },
         {
           "name": "figma_run",
-          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
+          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -392,7 +392,8 @@
                   "readback",
                   "update-components",
                   "capture-baseline",
-                  "adopt-members"
+                  "adopt-members",
+                  "draw-specs"
                 ]
               },
               "args": {
@@ -699,6 +700,20 @@
           {
             "message": "adopt-members takes args.def: a component def id, or no def for every set",
             "source": "apps/plugin/src/agent-protocol.ts#parseCommand.adopt-members"
+          }
+        ],
+        "devOnly": false
+      },
+      {
+        "name": "draw-specs",
+        "args": "{ def?: string }",
+        "description": "#2830 phase 2: draw the spec panel below each family's usage panel. No `def` means every family whose lead's set is in the file; a `def` draws that def's family.",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.draw-specs",
+        "writes": "Canvas frames only: a spec panel below each family's usage panel, replacing its earlier unedited one and keeping an edited one aside as \"(edited)\". Never a component set, a variable or a style.",
+        "refuses": [
+          {
+            "message": "draw-specs takes args.def: a component def id, or no def for every family in the file",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.draw-specs"
           }
         ],
         "devOnly": false

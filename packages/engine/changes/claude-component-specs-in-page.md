@@ -1,0 +1,4 @@
+---
+engine: patch
+---
+Plugin: spec panels on the component page (#2830 phase 2, built on the wireframe's recommendations Q2830.1–.7 A, pending the owner's answers). A new agent command, draw-specs, draws one spec panel per family, 40px below the family's usage panel and at its width: anatomy numbered as the usage panel numbers it, per-size redlines over a live specimen labeled with the variable and the px the file holds, a color table per appearance and surface with rest in full and each other state's changes, then nesting and properties. Everything is read from the engine's spec model (component-specs.ts), with the def materialized for the file's brand. Build and Update never draw a spec panel. Update moves a live one with its set, as it moves the usage panel, and a usage panel redrawn taller pushes it down. A hand-edited spec panel is kept as "(edited)" on the next run, as a usage panel is. No committed engine artifact moves.

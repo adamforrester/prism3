@@ -841,7 +841,8 @@
           "readback",
           "update-components",
           "capture-baseline",
-          "adopt-members"
+          "adopt-members",
+          "draw-specs"
         ]
       }
     },
@@ -1475,6 +1476,27 @@
           ],
           "agentCommands": [
             "adopt-members"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "draw-specs",
+      "label": "Draw spec panels beside the sets",
+      "group": "Write to Figma",
+      "lanes": {
+        "agent": {
+          "status": "partial",
+          "via": "draw-specs, for every family or one: a spec panel below each usage panel",
+          "sources": [
+            "apps/plugin/src/spec-panel.ts"
+          ],
+          "agentCommands": [
+            "draw-specs"
           ],
           "connections": [
             "agent-link",
