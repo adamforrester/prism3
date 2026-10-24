@@ -56,6 +56,7 @@ import { adoptions, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP
 import { furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
 import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
+import { isLiveSpecPanel, readSpecTag } from './spec-tag';
 import { PANEL_WIDTH, docPanelBlockers, docPanelDue, docPanelReach, ownerSet, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
@@ -1137,8 +1138,9 @@ const pageViews = (found: readonly PageSet[], reach = 0) => {
       id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0), height: Number(k.height ?? 0),
       header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
       prism3: k.type === 'COMPONENT_SET' && setBuiltByPrism3(k),
-      furniture: !!readTag(k as never) || isLivePanel(k as PNode),
-      of: at.get(readTag(k as never)?.set ?? readPanelTag(k as PNode)?.set ?? ''),
+      // A live spec panel (#2830) is its set's furniture too: it moves with the set and never blocks it.
+      furniture: !!readTag(k as never) || isLivePanel(k as PNode) || isLiveSpecPanel(k),
+      of: at.get(readTag(k as never)?.set ?? readPanelTag(k as PNode)?.set ?? (isLiveSpecPanel(k) ? readSpecTag(k)?.set : undefined) ?? ''),
     }));
     // A SET'S USAGE PANEL IS PART OF ITS VISIBLE BOX (#846), as its labels are: a live panel is furniture of its set,
     // so the next set is spaced from the panel's edge and the panel moves with its set (`respaceLive`). A Prism3 set

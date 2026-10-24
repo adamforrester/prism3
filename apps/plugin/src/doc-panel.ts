@@ -64,6 +64,7 @@ import { NS } from './persist-figma';
 import { STAMP_KEY } from './write-components';
 import { builtByPrism3, readBaseline } from './member-baseline';
 import { readTag } from './canvas-furniture';
+import { readSpecTag } from './spec-tag';
 import { CAPTION, CHIP_SLOTS, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, TOP_PADDING, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
 
 export const DOC_PANEL_NS = 'prism3';
@@ -463,7 +464,7 @@ const printView = (n: SgNode): SgNode => new Proxy({}, {
 }) as SgNode;
 /** A print in this form starts with this, so one recorded before it is still read the old way. */
 const PRINT_V2 = '2:';
-const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V2}${await fingerprintOf(printView(n as unknown as SgNode))}`;
+export const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V2}${await fingerprintOf(printView(n as unknown as SgNode))}`;
 /**
  * THE TEXT PRISM3 WRITES INTO `defId`'s PANEL (#2968), today or before one panel per family (#2927): every string of its
  * plan; the wording #2927 changed (each part's own anatomy line, the def's own Do and Don't items and their count); a
@@ -577,7 +578,10 @@ const boxOf = (n: PNode): Box => ({ x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 
  *  `inverse-bg` is the designer's (Q172.5) and still blocks, as does another set's furniture, which stands for that set.
  *  Shared by the draw and the dry run, so the two cannot disagree. */
 const blockersAt = (kids: readonly PNode[], spot: Box, skip: ReadonlySet<PNode>, set: PNode): PNode[] =>
-  kids.filter((c) => !skip.has(c) && !c.removed && readTag(c as never)?.set !== String(set.id ?? '\u0000') && overlaps(spot, boxOf(c)));
+  kids.filter((c) => !skip.has(c) && !c.removed && readTag(c as never)?.set !== String(set.id ?? '\u0000') && !ownSpecPanel(c, set) && overlaps(spot, boxOf(c)));
+/** The set's live spec panel (#2830): it sits below the usage panel and moves down when the usage panel grows
+ *  (`drawDocPanel`), so it never keeps the usage panel out. */
+const ownSpecPanel = (c: PNode, set: PNode): boolean => { const t = readSpecTag(c); return t?.state === 'live' && t.set === String(set.id ?? '\u0000'); };
 /** Whether Update makes room past these blockers: each one is, or belongs to, a Prism3 set in the set's row and right of
  *  it, which the re-spacing moves `SET_GAP` past the panel (`respaceSets`). The dry run reads the moves themselves. */
 const updateMakesRoom = (set: PNode, hits: readonly PNode[], kids: readonly PNode[]): boolean => hits.every((h) => {
@@ -1061,6 +1065,11 @@ export const drawDocPanel = async (
     out.kept.push(String(e.name));
   }
   for (const k of kept) if (overlaps(box(panel), box(k))) below(k);
+  // THE SET'S SPEC PANEL (#2830) sits `PANEL_GAP` below its usage panel: a usage panel drawn taller pushes it down, so
+  // the two never overlap and the spec panel keeps its gap. A kept spec panel is the designer's and stays put.
+  for (const sp of (parent.children as readonly PNode[]).filter((c) => !c.removed && ownSpecPanel(c, set))) {
+    if (overlaps({ ...box(panel), height: (panel.height ?? 0) + PANEL_GAP }, box(sp))) sp.y = (panel.y ?? 0) + (panel.height ?? 0) + PANEL_GAP;
+  }
   out.misses = [...new Set(out.misses)];
   return out;
 };
