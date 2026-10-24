@@ -1519,6 +1519,41 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "_slider-thumb",
+    "name": "Slider.Thumb",
+    "category": "form",
+    "summary": "The thumb a Slider moves: an ink disc that sits on the track. Used only inside a Slider.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Slider",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 15,
+    "nests": [
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "slider",
+    "name": "Slider",
+    "category": "form",
+    "summary": "Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Slider",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "field-label",
+      "_slider-thumb",
+      "text-field",
+      "field-message"
+    ]
+  },
+  {
     "id": "code-input-cell",
     "name": "CodeInput.Cell",
     "category": "form",

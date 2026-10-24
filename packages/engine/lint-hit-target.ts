@@ -173,6 +173,10 @@ const INTERACTIVE: Record<string, Binding> = {
   'counter': { key: (s) => `size.${s}.height`, why: 'the Counter row height, on Button\'s height rung' },
   // #2665: each page cell is its own target, on IconButton's height rung (owner call 8).
   'pagination-item': { key: (s) => `size.${s}.height`, why: 'the page cell height' },
+  // #2669: the control row around the track is the click-to-jump target, on the interactive floor `size.md.min-height`
+  // at every size (owner Q550 e: the size axis moves the thumb and the track, never the row). Each thumb is its own
+  // code-side target below (CODE_SIDE_TARGETS).
+  'slider': { key: () => 'control-height', why: 'the control row around the track, the click-to-jump target, the same at every size' },
 };
 
 // ── TARGETS INSIDE A CONTROL (#1741): `<def>.<part>` → the tokens KEY of the part's side at a size ─────────
@@ -186,6 +190,10 @@ const INNER_TARGETS: Record<string, { key: (size: string) => string; why: string
   // #2317: a NESTED control with no side bound in the host. Its key is the NESTED def's (Button's box height), read
   // through Button's own tokens at the size the host nests it at, so a toggle pointed at a smaller rung fails here.
   'password-field.toggle': { key: (s) => `size.${s}.height`, why: 'the Show/Hide button, a nested flush text Button, small at every field size (Q301.3 B, Q380 A): its box height on Button\'s own rung; its hit area is the code-side flush rule below' },
+  // The paired inputs (owner call 7 A): nested TextFields at medium, measured through TextField's own height rung.
+  'slider.inputSingle': { key: (s) => `size.${s}.height`, why: 'the number input of a single value, a nested medium TextField' },
+  'slider.inputMin': { key: (s) => `size.${s}.height`, why: 'the minimum input of a range, a nested medium TextField' },
+  'slider.inputMax': { key: (s) => `size.${s}.height`, why: 'the maximum input of a range, a nested medium TextField' },
 };
 
 // ── A NESTED FLUSH BUTTON SHORTER THAN THE FLOOR (#2804, Q380 A; owner question on #2809, option A) ──────────────
@@ -242,12 +250,16 @@ const FLUSH_ICON_BUTTON_TARGET = (): { key: (size: string) => string; why: strin
   key: (s) => `size.${s}.flush`, why: "the flush icon button's glyph square, with no padding",
   atFloor: { key: (s) => `size.${s}.round`, sizes: ['medium', 'large'], why: "the round flush icon button's circle, the Counter's height" },
 });
-const CODE_SIDE_TARGETS: Record<string, { key: (size: string) => string; why: string; atFloor?: AtFloor }> = {
+const CODE_SIDE_TARGETS: Record<string, { key: (size: string) => string; why: string; atFloor?: AtFloor; single?: true }> = {
   'flush-icon-button': FLUSH_ICON_BUTTON_TARGET(),
   'flush-icon-button-destructive': FLUSH_ICON_BUTTON_TARGET(),
   'flush-icon-button-neutral': FLUSH_ICON_BUTTON_TARGET(),
+  // #2669 (owner call 6 A, Q550 e): the slider thumb's disc is 18, 24 or 30px by size (smaller at compact), and its hit
+  // area is 44×44 in code at every size and density, so the small 18px disc's target is well over 24×24.
+  '_slider-thumb': { key: (s) => `size.${s}.thumb`, why: "the slider thumb's disc, `control.size.{sm,md,lg}.thumb`" },
 };
-const CODE_SIDE_RULE = [/at least 44×44px at every size/, /::before`? inset outward/, /centered on the glyph/];
+// The thumb's entry is centered on the THUMB, the flush icon button's on the GLYPH: one rule, two words for the box.
+const CODE_SIDE_RULE = [/at least 44×44px at every size/, /::before`? inset outward/, /centered on the (glyph|thumb)/];
 const CODE_SIDE_DOC = [/hit area in code to at least 44×44px at every size/, /::before`? inset outward/];
 // ── FLUSH NESTS (#2427): a host nesting code-side targets, and the room it leaves their hit areas ─────────────
 // A code-side target's 44×44 hit area reaches past its box, so a host nesting two of them must keep their centers
@@ -265,6 +277,10 @@ const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [s
   'breadcrumb-item': { parts: ['overflow'], why: "the collapsed-steps button, the one code-side target in a breadcrumb step" },
   // #2668 (Q386): the Toast's close is one code-side target beside the action Button, which is a separate target measured under its own name.
   toast: { parts: ['close'], why: "the Toast's close, the one code-side icon target in its controls" },
+  // #2669: the Slider's two thumbs are code-side targets (Slider.Thumb), the minimum one only on a range. No pair is measured:
+  // their spacing is the value's, not the layout's, so two thumbs a step apart overlap by design and the code states the
+  // nearer-thumb rule (call 10 A) instead of a spacing the layout could keep.
+  slider: { parts: ['thumbMin', 'thumb'], why: "the Slider's maximum thumb, and the minimum thumb of a range; Slider.Thumb nested" },
 };
 /** The 44px center-to-center spacing, a literal (Q296 A), not FLOOR_PX: a different rule that happens to share the number. */
 const FLUSH_NEST_SPACING_PX = 44;
@@ -504,7 +520,8 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   if (!(defId in INTERACTIVE)) { failures.push(`INNER_TARGETS names '${id}', whose def is not an INTERACTIVE control.`); continue; }
   const nestsControl = part.kind === 'nest' && !!part.nests && part.nests in INTERACTIVE;
   if (!part.innerTarget && !nestsControl) continue;   // reported by `markFailures`
-  const size = defaultSizeOf(def);
+  // A single-size host (#2669, the Slider) has no size prop; its nested targets are measured at the size they nest.
+  const size = INTERACTIVE[defId].single ? 'single' : defaultSizeOf(def);
   if (!size) { failures.push(`${id}: its def has no default size to measure the inner target at.`); continue; }
   const want = inner.key(size);
   // A NESTED CONTROL WITH NO SIDE OF ITS OWN (#2317): measured through the NESTED def's tokens, at the size the host
@@ -633,7 +650,9 @@ const comfortable = floorBuilds.find((b) => b.density === 'comfortable')!;
 for (const [id, target] of Object.entries(CODE_SIDE_TARGETS)) {
   const def = componentDefs.find((d) => d.id === id);
   if (!def) continue;   // reported as stale above
-  const sizes = (def.variants?.size as string[] | undefined) ?? [];
+  const declared = def.variants?.size as string[] | undefined;
+  if (target.single && declared) { failures.push(`${id}: CODE_SIDE_TARGETS lists it single-size, and it declares variants.size [${declared.join(', ')}] — measure each size instead.`); continue; }
+  const sizes = target.single ? ['single'] : declared ?? [];
   if (!sizes.length) { failures.push(`${id}: CODE_SIDE_TARGETS measures each size, and the def declares no size axis.`); continue; }
   for (const size of sizes) {
     const path = (def.tokens as Record<string, string> | undefined)?.[target.key(size)];

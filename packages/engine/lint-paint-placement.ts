@@ -295,7 +295,7 @@ const EXPECT_ANATOMY = [
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
   'image-placeholder', 'spinner', 'badge', 'tag', 'tab-item', 'tabs', 'divider', '_accordion-indicator', 'accordion',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
-  'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
+  'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', '_slider-thumb', 'slider',
   'code-input-cell', 'code-input',
 ];
 const EXPECT_PAINTERS = [
@@ -304,6 +304,8 @@ const EXPECT_PAINTERS = [
   'image-placeholder', 'badge', 'tag', 'tab-item', 'tabs', 'divider', 'list-item', 'segmented-control-segment', 'segmented-control', 'dialog', 'banner',
   // #2665: the page cell's current-page border or underline and the hover wash.
   'pagination-item',
+  // #2669: the thumb's disc and halo; the Slider's rail and selected bar.
+  '_slider-thumb', 'slider',
   // #2457 Q287 A: the round shape's edge and wash. The flush shape's box resolves none of them.
   // Q295.2 B: three families, as IconButton's three.
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
