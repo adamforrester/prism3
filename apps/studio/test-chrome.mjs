@@ -8716,8 +8716,8 @@ for (const host of ['web', 'figma']) {
         `#2931 Q579 A, #2905 Q10 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
       const B = r.buttons, F = r.fields;
       ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
-        && JSON.stringify(F.ids) === JSON.stringify(['code-input', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
-        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its six fields (Code input since Q-2789.3 A), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
+        && JSON.stringify(F.ids) === JSON.stringify(['code-input', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
+        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its seven sets (Code input since Q-2789.3 A, its cell beside it since #2989), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
       ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
         `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
       for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T], ['Dialog', D]]) {
