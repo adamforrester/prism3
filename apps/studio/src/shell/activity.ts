@@ -494,7 +494,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     // row has no room for it. Its tooltip is the link's full status line, and so is the rest of its accessible name,
     // after its visible words.
     if (agentLinkStatus.short) {
-      const ln = hook(h('span', 'p3-drawer-link', agentLinkStatus.short), 'activity-agent-link');
+      // #2909 (round 4): the full words above the narrow tier; at 380, where the plugin's rail leaves the drawer 320px,
+      // the wireframe's one word, "Agent", in the error ink while the link is in trouble. The full line is the tooltip
+      // and the rest of the accessible name either way.
+      const ln = hook(h('span', 'p3-drawer-link', opts.host === 'figma' && opts.narrow() ? 'Agent' : agentLinkStatus.short), 'activity-agent-link');
       ln.dataset.error = String(agentLinkStatus.error);
       if (agentLinkStatus.full) { ln.title = agentLinkStatus.full; ln.append(h('span', 'p3-sr', agentLinkStatus.full)); }
       parts.push(ln);
@@ -727,17 +730,26 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
 
   button.onclick = () => show(!open, true);
   toggle.onclick = () => show(!open, true);
-  close.onclick = () => { show(false, true); button.focus(); };
+  // Focus back on the bar's Activity button; on the plugin's rail shell (#2909), which draws no Activity tile (the drawer is
+  // Activity, Q2909.15 A), on the drawer's own row, so a closed sheet never leaves focus on BODY.
+  const focusBack = (): void => (button.isConnected ? button : toggle).focus();
+  close.onclick = () => { show(false, true); focusBack(); };
   // The full-pane sheet at 380 closes on Escape, as its Close does, focus back on the bar's Activity button (#2487 A8).
   drawer.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !open || !narrow()) return;
     e.preventDefault();
     e.stopPropagation();
     show(false, true);
-    button.focus();
+    focusBack();
   });
   cleanups.push(subscribe('host', onHost), subscribe('host:detail', onHost), subscribe('host:progress', onProgress), clear);
   linkWatchers.add(paint);
+  // #2909: the agent status's words follow the width tier, which the frame sets on itself.
+  if (opts.room) {
+    const tierWatch = new MutationObserver(() => paint());
+    tierWatch.observe(opts.room.frame, { attributes: true, attributeFilter: ['data-w'] });
+    cleanups.push(() => tierWatch.disconnect());
+  }
   cleanups.push(() => linkWatchers.delete(paint));
   paint();
   return { button, drawer, live };

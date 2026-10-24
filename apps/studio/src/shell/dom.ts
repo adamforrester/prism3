@@ -81,6 +81,15 @@ const GLYPHS = {
   // S11.2: the Build style guides page's part-checked box (a dash) and a table that was not drawn (concept v6's error).
   dash: '<path d="M4 8h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   error: '<circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6v4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="11.2" r="0.95" fill="currentColor"/>',
+  // #2909 IA v2 phase 1: the plugin rail's icons (Q2909.14 A; Q2909.19 A, Chunk 2, 2026-10-24): three swatches (Theme), four diamonds (Components), a page with ruled lines (Documentation), an arrow up out
+  // of a tray (Export), a chain link (Agent), a question mark in a circle (Help) and a half-filled circle (Appearance).
+  swatches: '<circle cx="5.3" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10.7" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="10.8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  diamonds: '<path d="M8 1.9l2 2-2 2-2-2zM3.9 6l2 2-2 2-2-2zM12.1 6l2 2-2 2-2-2zM8 10.1l2 2-2 2-2-2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  page: '<path d="M4 2h5.3L12 4.7V14H4zM9.3 2v2.7H12M6 8h4M6 10.4h4M6 5.8h1.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  send: '<path d="M8 10V2.7M5.2 5.5L8 2.7l2.8 2.8M3.3 9.3v4h9.4v-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  link: '<path d="M6.7 9.3a2.7 2.7 0 0 0 3.8 0l2-2a2.7 2.7 0 0 0-3.8-3.8l-.7.7M9.3 6.7a2.7 2.7 0 0 0-3.8 0l-2 2a2.7 2.7 0 0 0 3.8 3.8l.7-.7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  help: '<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.4 6.4a1.7 1.7 0 0 1 3.2.6c0 1.1-1.6 1.4-1.6 2.4M8 11.3v.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  halfmoon: '<circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/>',
 } as const;
 export type Glyph = keyof typeof GLYPHS;
 

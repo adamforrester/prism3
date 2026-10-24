@@ -27,6 +27,8 @@ export const SETS_COPY = {
   /** The reason when the projector cannot build the definition (it declares no reason of its own). */
   noProjection: "the Figma build can't read its definition yet",
   web: 'Building sets needs the Figma plugin.',
+  /** #2909 (Q2909.5 A): in the plugin, sets are added from Update file's checklist. DRAFT (Q2909.10 A). */
+  plugin: 'Sets not in this file are added from Update file.',
   buildSet: (name: string): string => `Build ${name}`,
   busy: 'Building…',
   buildHint: "Builds any set it contains first, then switches Figma to the set's page.",

@@ -53,13 +53,15 @@
  */
 import { currentMode, page, rp, searchHits, searchQuery, setCurrentMode, setPage, setSearch, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { INSPECT, TABS, homeOf, isMenuPage, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
-import { glyph, h, hook, menuButton, tile } from './dom';
+import { INSPECT, TABS, THEME_TABS, areaOfPage, homeOf, isMenuPage, newPageOf, pageOfTab, placeId, placeOfPage, placeOfTab, viewLabel, type AreaId, type Host, type InspectId, type NewPageKey, type PageKey, type Place, type TabId } from './pages';
+import { glyph, h, hook, linkTile, menuButton, tile } from './dom';
+import { mountRail } from './rail';
+import { mountDocumentation, type DocumentationLend } from './documentation';
+import { mountUpdateFile, type UpdateFileLend } from './update-file';
 import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
-import { figmaMenu, type FigmaAction, type FigmaSource } from './figma';
+import type { FigmaAction } from './figma';
 import { mountBar, type BarLend } from './bar';
-import { mountStyleGuides, type StyleGuidesLend } from './style-guides';
 import { mountHome, type HomeView } from './home';
 import { THEME_CHOICES, onThemeChange, setThemePref, themeChoice } from './theme';
 import { mountPalettesLevers } from '../domains/color-palettes';
@@ -147,7 +149,6 @@ export type Frame = {
    *  Figma menu (plugin only). Kept on the frame beside `barMain`, as main has them. */
   readonly verdict: HTMLElement;
   readonly activity: HTMLElement;
-  readonly figma: HTMLElement | null;
   /** Slot: the notices row, under the top bar: the error strip (`notices.ts`). */
   readonly notices: HTMLElement;
   /** The Agent tile's stable, empty slot (IA-3, plugin only), placed by the bar between Theme and Activity (T7). The
@@ -201,10 +202,13 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly inspect: InspectLegacy;
   /** The host session's writes, as the Activity drawer reads them, and how it answers a request to show one (S1.4, S11). */
   readonly activity: ActivityLend;
-  /** The Figma menu's writes (S1.4), or null where there is no Figma file (the studio). */
-  readonly figma: FigmaSource | null;
-  /** The bar's Apply Theme (#2178: no longer a Figma menu item), or null where there is no Figma file. */
+  /** The bar's Apply Theme (#2178), or null. Null on both hosts since #2909: the plugin's write is Update file, and the
+   *  web has none. Kept as the bar's slot for a host that still draws it. */
   readonly applyTheme: (() => FigmaAction) | null;
+  /** #2909 IA v2 phase 1: Update file's reads and writes, or null where there is no Figma file (the studio). */
+  readonly updateFile: UpdateFileLend | null;
+  /** #2909: Documentation's reads and writes, or null where there is no Figma file. */
+  readonly documentation: DocumentationLend | null;
   /** The plugin's Docs (#2637 Q384): the main thread opens the docs in the browser. Null on the web, a link there. */
   readonly openDocs: (() => void) | null;
   /** The legacy renderers lent to the moved pages (S3: the Style guide, to Brand's preview), and the host's font
@@ -214,12 +218,13 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly logo: () => HTMLElement;
   /** The top bar's controls' state and actions (S13.1, `bar.ts`). */
   readonly bar: BarLend;
-  /** The Build style guides page's reads and writes (S11.2), or null where there is no Figma file. */
-  readonly styleGuides: StyleGuidesLend | null;
   /** #2879: a home's "Start a brand…" or "Set up a brand in this file…": open the start window over it. */
   readonly startBrand: () => void;
 }): Frame => {
   const { host } = opts;
+  // #2909 IA v2 phase 1: the plugin's shell is the left rail (`rail.ts`); the web keeps its bar and tab row (Q2909.9 is
+  // phase 2).
+  const railShell = host === 'figma';
   const cleanups: (() => void)[] = [];
   let place: Place | null = placeOfPage(page);
 
@@ -256,14 +261,17 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   // The theme menu (F3; on the plugin too since the owner's top-bar decision of 2026-10-05, with Match Figma first).
   // The bar places it, before Activity and Export.
-  const theme = themeToggle(cleanups);
+  // On the rail it is Appearance (round 4), so it does not collide with the Theme area.
+  const theme = themeToggle(cleanups, railShell ? 'Appearance' : 'Theme');
 
   // ── the tab row and Color's sub-row ─────────────────────────────────────────────────────────────
   const nav = hook(h('div', 'p3-nav'), 'tab-row');
   const tabList = h('div', 'p3-tabs');
   tabList.setAttribute('role', 'tablist');
   tabList.setAttribute('aria-label', 'Settings domains');
-  const tabs = TABS.map((t) => {
+  // On the rail, Components is an area of its own: the tab row is Theme's pages (Q2909.1 A, Q2909.21 A).
+  const tabData = railShell ? THEME_TABS : TABS;
+  const tabs = tabData.map((t) => {
     const b = tabButton('p3-tab', `p3-tab-${t.id}`, `tab-${t.id}`, t.label, PANEL_ID);
     b.onclick = () => go(placeOfTab(t.id));
     return b;
@@ -274,14 +282,14 @@ export const mountFrame = (app: HTMLElement, opts: {
     if (!to) return;
     e.preventDefault();
     to.focus();
-    go(placeOfTab(TABS[tabs.indexOf(to as HTMLButtonElement)].id));
+    go(placeOfTab(tabData[tabs.indexOf(to as HTMLButtonElement)].id));
   });
 
   // At narrow widths the tabs become a select (Q7).
   const domRow = h('div', 'p3-domrow');
   const domSelect = hook(h('select', 'p3-select'), 'tab-select');
   domSelect.setAttribute('aria-label', 'Settings domain');
-  for (const t of TABS) {
+  for (const t of tabData) {
     const o = h('option');
     o.value = t.id; o.textContent = t.label;
     domSelect.append(o);
@@ -433,11 +441,11 @@ export const mountFrame = (app: HTMLElement, opts: {
   // ── Activity (F2), the Figma menu and the Agent tile's slot (S1.4) ───────────────────────────────
   // The drawer sits last in the frame, pinned to the bottom edge, under whichever region shows the page.
   // S11.2 (P1, variant 1): while the Build style guides page shows its run, the drawer does not open by itself for it.
-  const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: (k) => k === 'styleguide' && isMenuPage(page),
+  // Since #2909 no page shows a style guide's run (Documentation holds settings only), so the drawer is never quiet.
+  const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: () => false,
     // #2176: the open drawer grows up to just under the preview header (or Inspect's, in its place; or, on a page of
     // the shell's own, the head). A region not drawn measures 0, so the lowest bottom is the one shown.
     room: { frame: root, ceiling: () => Math.max(...[head, previewHead, inspectHead].map((n) => n.getBoundingClientRect().bottom)) } }, cleanups);
-  const figma = host === 'figma' && opts.figma ? figmaMenu(opts.figma, cleanups) : null;
   const agent = host === 'figma' ? hook(h('div', 'p3-agent-slot'), 'bar-agent') : null;
 
   // The Activity status line rides in the top bar, which is always drawn, on the bar's own ground.
@@ -455,9 +463,44 @@ export const mountFrame = (app: HTMLElement, opts: {
   root.append(head, panes, menuPage, home.node, inspect, activity.drawer, layer);
   app.append(root);
 
-  // The verdict, on the bar, after the brand switcher; then the bar's controls (S13.1), which place the shell's nodes.
+  // The verdict: on the web, on the bar after the brand switcher; on the rail, in the Theme area's preview header (round
+  // 4: Contrast moved off the global bar into Theme). Then the bar's controls (S13.1), which place the shell's nodes.
   const verdict = verdictButton((opener) => openInspect('contrast', opener), cleanups);
-  const barMain = mountBar(opts.bar, { mark, verdict, activity: activity.button, agent, figma, theme, applyTheme: host === 'figma' ? opts.applyTheme : null, openDocs: host === 'figma' ? opts.openDocs : null }, cleanups);
+  // #2909: the rail and what it and the reduced bar hold. Minimize's slot sits on the bar; the plugin's entry fills it.
+  const minimize = railShell ? hook(h('div', 'p3-agent-slot p3-min-slot'), 'bar-minimize') : null;
+  const update = railShell && opts.updateFile ? mountUpdateFile(opts.updateFile, cleanups) : null;
+  const exportPage = railShell ? hook(h('div', 'p3-export-host'), 'export-host') : null;
+  let lastTheme: PageKey = isMenuPage(page) || page === 'components' ? pageOfTab('brand') : page;
+  const goArea = (a: AreaId): void => {
+    if (a === 'theme') setPage(lastTheme);
+    else if (a === 'components') setPage(pageOfTab('components'));
+    else setPage(a);
+  };
+  let rail: ReturnType<typeof mountRail> | null = null;
+  if (railShell) {
+    // Help (round 4): the old bar's Docs, renamed so it does not collide with Documentation.
+    const help = opts.openDocs ? tile('docs-open', 'Help') : linkTile('docs-open', 'Help', '/docs/');
+    help.mark.append(glyph('help'));
+    help.tip.textContent = 'Help';
+    help.btn.setAttribute('aria-label', 'Help');
+    if (opts.openDocs) help.btn.onclick = () => opts.openDocs!();
+    help.btn.classList.add('p3-rail-tile');
+    theme.querySelector('.p3-tile')?.classList.add('p3-rail-tile');
+    // "Appear-ance" in the 60px column, as the wireframe breaks it; its name stays whole.
+    const lab = theme.querySelector('.p3-tile-label');
+    if (lab) lab.textContent = 'Appear-ance';
+    const railLogo = opts.logo();
+    rail = mountRail({ logo: railLogo, go: goArea, foot: [agent!, help.btn, theme] });
+    root.prepend(rail.node);
+    root.dataset.shell = 'rail';
+    previewHead.insertBefore(verdict, previewHead.children[1] ?? null);
+    if (update) root.append(update.layer);
+  }
+  const barMain = mountBar(opts.bar, {
+    mark, verdict, activity: activity.button, agent: railShell ? null : agent, figma: null, theme: railShell ? null : theme,
+    applyTheme: null, openDocs: host === 'figma' ? opts.openDocs : null,
+    rail: railShell && minimize && update && exportPage ? { minimize, update: update.button, exportPage } : null,
+  }, cleanups);
   barSlot.append(barMain);
 
   // ── Inspect state ───────────────────────────────────────────────────────────────────────────────
@@ -627,24 +670,37 @@ export const mountFrame = (app: HTMLElement, opts: {
   let lastLayout: string | null = null;
   // The menu page, mounted while it is the page and released, subscriptions included, when it is not.
   let menuCleanups: (() => void)[] | null = null;
+  /** The menu page mounted now, or null. */
+  let menuFor: PageKey | null = null;
   const render = (): void => {
-    const onMenu = !homeView && isMenuPage(page) && !!opts.styleGuides;
+    const onMenu = !homeView && isMenuPage(page) && railShell;
     // Written only when the layout a place calls for changes, never on every render. A home (#2879) takes the place of
     // whatever page is current, which stays mounted under it.
     const layout = homeView ? 'home' : onMenu ? 'page' : 'panes';
-    if (onMenu && !menuCleanups) {
-      menuCleanups = [];
-      mountStyleGuides(menuPage, opts.styleGuides!, () => root.dataset.w === 'narrow', menuCleanups);
-    } else if (!onMenu && menuCleanups) {
-      for (const c of menuCleanups) c();
+    const want = onMenu ? page : null;
+    if (want !== menuFor) {
+      if (menuCleanups) for (const c of menuCleanups) c();
       menuCleanups = null;
       menuPage.replaceChildren();
+      // Export's content is the bar's (the export dialog's model is `main.ts`'s): it opens as the area does and closes
+      // as the area is left.
+      if (menuFor === 'export' && opts.bar.read().exportOpen) opts.bar.act.closeExport();
+      menuFor = want;
+      if (want === 'documentation' && opts.documentation) {
+        menuCleanups = [];
+        mountDocumentation(menuPage, opts.documentation, () => root.dataset.w === 'narrow', menuCleanups);
+      } else if (want === 'export' && exportPage) {
+        menuCleanups = [];
+        menuPage.append(exportPage);
+        if (!opts.bar.read().exportOpen) opts.bar.act.toggleExport();
+      }
     }
+    rail?.paint(homeView ? null : areaOfPage(page));
     if (layout !== lastLayout) { root.dataset.layout = layout; lastLayout = layout; }
     root.dataset.pane = pane;
     for (const b of paneButtons) b.setAttribute('aria-pressed', String(b === paneButtons[pane === 'settings' ? 0 : 1]));
 
-    select(tabs, place ? tabs[TABS.findIndex((t) => t.id === place!.tab)] : null);
+    select(tabs, place ? tabs[tabData.findIndex((t) => t.id === place!.tab)] ?? null : null);
     domSelect.value = place?.tab ?? '';
     buildSubRow();
     select(subTabs, place?.sub ? subTabs[TABS.find((t) => t.id === place!.tab)!.subs!.findIndex((s) => s.id === place!.sub)] : null);
@@ -705,6 +761,7 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   // A page change from anywhere: a tab, the Pages menu, a Continue button, a brand load.
   cleanups.push(subscribe('page', () => {
+    if (areaOfPage(page) === 'theme') lastTheme = page;
     const was = place;
     place = placeOfPage(page);
     if (inspecting && (place?.tab !== was?.tab || place?.sub !== was?.sub)) closeInspect(false);
@@ -834,16 +891,16 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   return {
     head, bar: barSlot, barMain, notices, verdict, syncSticky, layer,
-    activity: activity.button, figma, agent, setHome,
+    activity: activity.button, agent, setHome,
   };
 };
 
 /** The theme menu: a bar tile, "Theme", that opens a menu of radio items (concept v6): Light, Dark and System on the
  *  studio, Match Figma, Light and Dark on the plugin (`theme.ts`). The tile shows the current choice's glyph; its
  *  name and tooltip say the choice ("Theme: System"). */
-const themeToggle = (cleanups: (() => void)[]): HTMLElement => {
+const themeToggle = (cleanups: (() => void)[], label: string): HTMLElement => {
   const wrap = h('div', 'p3-popwrap');
-  const { btn, mark, tip } = tile('theme-toggle', 'Theme');
+  const { btn, mark, tip } = tile('theme-toggle', label);
   btn.setAttribute('aria-haspopup', 'menu');
   btn.setAttribute('aria-controls', 'p3-theme-menu');
   const menu = hook(h('div', 'p3-menu'), 'theme-menu');
@@ -867,8 +924,8 @@ const themeToggle = (cleanups: (() => void)[]): HTMLElement => {
   const paint = (): void => {
     const cur = themeChoice();
     mark.replaceChildren(glyph(cur.glyph));
-    btn.setAttribute('aria-label', `Theme: ${cur.label}`);
-    tip.textContent = `Theme: ${cur.label}`;
+    btn.setAttribute('aria-label', `${label}: ${cur.label}`);
+    tip.textContent = `${label}: ${cur.label}`;
     for (const [i, c] of THEME_CHOICES.entries()) items[i].setAttribute('aria-checked', String(c.pref === cur.pref));
   };
   cleanups.push(onThemeChange(paint));

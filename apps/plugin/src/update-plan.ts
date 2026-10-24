@@ -65,6 +65,7 @@ import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 import { pageMovesDue, pageMovesLine, type PageMove } from './page-moves';
 import { whatChangedLines } from './release-summary';
 import { ABOUT_NAME, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from './about-frame';
+import { readDocSettings } from './doc-settings';
 import { COVER_NAME, coverDue, coverDueLine, coverIsWork, coverPageOnlyLine, type CoverDue } from './cover-frame';
 import { colorVariablesOutOfOrder } from '@prism3/engine/color-order';
 
@@ -1238,7 +1239,8 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   const about = await aboutDue(host.root);
   if (about) out.about = about;
   // THE LIBRARY COVER (#2859): read once for the file, before the About frame is drawn beside it.
-  const cover = await coverDue(host.root, { api: host });
+  // #2977: not while Documentation has the cover off for this file: then Update neither draws nor redraws it.
+  const cover = readDocSettings(host.root as Parameters<typeof readDocSettings>[0]).cover ? await coverDue(host.root, { api: host }) : undefined;
   if (cover) out.cover = cover;
   // THE VARIABLE ORDER (#2860): read once for the file. Nothing here can move a variable, so this only names them.
   const variables = colorVariablesOutOfOrder((await host.variables.getLocalVariablesAsync()).map((v) => v.name));
