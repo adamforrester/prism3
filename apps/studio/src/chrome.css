@@ -1723,6 +1723,10 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 
 /* The Contrast tile in the rail's preview header hangs its tooltip from its right edge, so it stays in the window. */
 .p3-frame[data-shell="rail"] .p3-preview-head > .p3-tile-start > .p3-tile-tip { left: auto; right: 0; }
+/* Q2995.1 A (#2909): at the narrow tier the agent link's short status keeps its words whole, and the summary gives way. */
+.p3-frame[data-w="narrow"] .p3-drawer-link { flex: none; max-width: none; }
+/* Q2995.2 A (#2909): when the rail would run past the window's bottom edge, its logo hides (`rail.ts` measures it). */
+.p3-rail[data-tight="true"] > .p3-rail-mark { display: none; }
 @media (forced-colors: active) {
   /* A glyph takes the forced ink, not the chrome color it names: `HighlightText` on a selected control and `GrayText` on a
      disabled one, below. */

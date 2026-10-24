@@ -239,7 +239,7 @@ export const mountAgentLink = (): void => {
     // #2909 (Q2909.22 A): the drawer's right end says what the strip says, the last command and how long ago
     // ("Agent listening · last: readback 2m ago"); the ticker below keeps the age current while the link is on.
     const line = agentStripText(state, running, Date.now());
-    setAgentLinkStatus({ short: line?.text ?? null, error: !!line?.error,
+    setAgentLinkStatus({ short: line?.text ?? null, error: !!line?.error, brief: short?.text ?? null,
       full: state && (state.on || state.inboxError) ? agentLinkStatusText(state) : null });
     if (on && drawerTicker === null) drawerTicker = setInterval(render, 30_000);
     if (!on && drawerTicker !== null) { clearInterval(drawerTicker); drawerTicker = null; }

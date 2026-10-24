@@ -11806,9 +11806,10 @@ for (const theme of ['light', 'dark']) {
         await page.waitForFunction((on) => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === String(on), state.on, WAIT).catch(() => {});
         await settle(page);
         const s = await page.evaluate(LINK_PROBE);
-        // #2909 (round 4 wireframe): at 380, where the rail leaves the drawer 320px, the visible words are "Agent", in the
-        // same ink as the full words would be; the full line stays the tooltip and the rest of the name.
-        const want = w === 380 && LINK_WANT[k].short ? { ...LINK_WANT[k], short: 'Agent' } : LINK_WANT[k];
+        // The owner's Q2995.1 A (#2909): at 380, where the rail leaves the drawer 320px, the row shows the short status alone,
+        // whole ("Agent listening", without the last command), and the summary gives way; the full line stays the tooltip
+        // and the rest of the name.
+        const want = w === 380 && k === 'listening' ? { ...LINK_WANT[k], short: 'Agent listening' } : LINK_WANT[k];
         const full = LINK_TEXT(state);
         if (k !== 'offStale') await shoot(`closed-${k}`, '[data-p3="activity-toggle"]');
         // One baseline, in every state.
@@ -11828,8 +11829,9 @@ for (const theme of ['light', 'dark']) {
             const gap = s.caret ? s.caret.l - s.line.r : null;
             ok(s.line.l >= leftEdge - 0.5 && s.lastBeforeCaret && gap !== null && gap >= 0 && gap <= LINK_CARET_GAP_MAX,
               `${where} ${k}: the status sits right of the summary and its time, last before the caret, within ${LINK_CARET_GAP_MAX}px of it (status ${s.line.l.toFixed(1)}–${s.line.r.toFixed(1)}, summary and time end ${leftEdge.toFixed(1)}, caret at ${s.caret?.l.toFixed(1)}, last before the caret ${s.lastBeforeCaret})`);
-            ok(s.caret && s.row && s.caret.l >= s.row.l && s.caret.r <= s.row.r + 0.5 && s.sum && s.sum.l >= s.row.l && s.sumWhole,
-              `${where} ${k}: the caret and the whole summary stay on the row (row ${s.row?.l.toFixed(1)}–${s.row?.r.toFixed(1)}, caret ${s.caret?.l.toFixed(1)}–${s.caret?.r.toFixed(1)}, summary "${s.sumText}" whole ${s.sumWhole})`);
+            // Q2995.1 A (#2909): at 380 the summary gives way to the status, so there it stays on the row, cut if it must be.
+            ok(s.caret && s.row && s.caret.l >= s.row.l && s.caret.r <= s.row.r + 0.5 && s.sum && s.sum.l >= s.row.l && (w === 380 || s.sumWhole),
+              `${where} ${k}: the caret and the ${w === 380 ? '' : 'whole '}summary stay on the row (row ${s.row?.l.toFixed(1)}–${s.row?.r.toFixed(1)}, caret ${s.caret?.l.toFixed(1)}–${s.caret?.r.toFixed(1)}, summary "${s.sumText}" whole ${s.sumWhole})`);
             ok(s.rects === 1 && s.ink && s.line.h <= s.ink.lineH * 1.5 && !s.cut, `${where} ${k}: the status keeps to one line, its words whole (${s.rects} box(es), ${s.line.h.toFixed(1)}px tall, cut ${s.cut})`);
             const inkHex = LINK_INK[`${theme} ${want.ink}`];
             ok(s.ink?.hex === inkHex, `${where} ${k}: "${want.short}" draws in ${want.ink === 'color.text.danger' ? 'the chrome\'s error ink' : 'the quiet ink'}, the emission's ${want.ink} ${inkHex} (read ${s.ink?.hex})`);
@@ -12260,6 +12262,41 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
 //   window inert, both keys from <body> land on a control in the window. They hold the behavior once focus is in the
 //   window; they are not evidence for the mutation.
 // =============================================================================================
+console.log('\n#2909 Q2995.2 A. The rail at the plugin\'s least height');
+// The owner's Q2995.2 A: at the plugin's least window height (420, `MIN_SIZE` in apps/plugin/src/main.ts), every rail
+// tile keeps its label and lies inside the window; the logo hides to make the room. EXPECTED is the window's own edge and
+// the labels this suite authors for the rail; MUTATION: the logo kept at every height (`rail.ts` `fit` removed) → the
+// `inside the window` arm, by name, at both widths.
+for (const theme of ['light', 'dark']) for (const w of [1280, 380]) {
+  const where = `figma ${theme} ${w}×420`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: 420 });
+  try {
+    await hooks.need(page, '[data-p3="rail"]', WAIT);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const r = await page.evaluate(() => {
+      const vh = window.innerHeight;
+      const tiles = [...document.querySelectorAll('[data-p3="rail"] .p3-tile')].filter((t) => t.getClientRects().length);
+      const mark = document.querySelector('[data-p3="rail-mark"]');
+      return { vh, n: tiles.length, out: tiles.filter((t) => t.getBoundingClientRect().bottom > vh + 0.5).map((t) => t.getAttribute('data-p3')),
+        labels: tiles.map((t) => { const l = t.querySelector('.p3-tile-label'); return l && l.getClientRects().length ? l.textContent : null; }),
+        logo: !!mark && mark.getClientRects().length > 0 };
+    });
+    ok(r.n === 7 && r.out.length === 0, `#2909 Q2995.2 A ${where}: every rail tile lies inside the window (${r.n} tiles; past the bottom edge: ${r.out.join(', ') || 'none'})`);
+    ok(JSON.stringify(r.labels) === JSON.stringify(['Theme', 'Compo-nents', 'Docs', 'Export', 'Agent', 'Help', 'Appear-ance']), `#2909 Q2995.2 A ${where}: every rail tile keeps its label (${JSON.stringify(r.labels)})`);
+    ok(!r.logo, `#2909 Q2995.2 A ${where}: the rail's logo hides to make the room (logo drawn ${r.logo})`);
+    ok(errors.length === 0, `#2909 Q2995.2 A ${where}: 0 console errors${errors.length ? ` — ${errors[0]}` : ''}`);
+  } finally { await ctx.close(); }
+}
+{
+  // The control: at the default height the logo shows, so the arm above measures a real hide, not a missing logo.
+  const { ctx, page } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
+  try {
+    await hooks.need(page, '[data-p3="rail"]', WAIT);
+    const logo = await page.evaluate(() => { const m = document.querySelector('[data-p3="rail-mark"]'); return !!m && m.getClientRects().length > 0; });
+    ok(logo, `#2909 Q2995.2 A figma light 1280×900: the rail's logo shows where the rail has room (control)`);
+  } finally { await ctx.close(); }
+}
+
 console.log('\n#2232. The start window keeps focus after a click on blank space');
 for (const host of ['web', 'figma']) {
   const where = `#2232 ${host} light 1280`;

@@ -54,11 +54,14 @@ export const setAgentLinkOn = (on: boolean): void => {
  *  quiet; `null` draws none. `full` is the link's whole status line (`agentLinkStatusText`), the open drawer's first line
  *  and the short status's tooltip and accessible name; `null` draws none. The plugin's Agent tile reports it with each
  *  published state; the studio never sets it, so on the web there is none. */
-export type AgentLinkStatus = { readonly short: string | null; readonly error: boolean; readonly full: string | null };
-let agentLinkStatus: AgentLinkStatus = { short: null, error: false, full: null };
+export type AgentLinkStatus = { readonly short: string | null; readonly error: boolean; readonly full: string | null;
+  /** #2909 (Q2995.1 A): the narrow tier's words, the short status alone ("Agent listening", "Agent error", …), without the
+   *  last command. Absent, the narrow tier shows `short`. */
+  readonly brief?: string | null };
+let agentLinkStatus: AgentLinkStatus = { short: null, error: false, full: null, brief: null };
 export const setAgentLinkStatus = (st: AgentLinkStatus): void => {
-  if (st.short === agentLinkStatus.short && st.error === agentLinkStatus.error && st.full === agentLinkStatus.full) return;
-  agentLinkStatus = { short: st.short, error: st.error, full: st.full };
+  if (st.short === agentLinkStatus.short && st.error === agentLinkStatus.error && st.full === agentLinkStatus.full && (st.brief ?? null) === (agentLinkStatus.brief ?? null)) return;
+  agentLinkStatus = { short: st.short, error: st.error, full: st.full, brief: st.brief ?? null };
   for (const f of linkWatchers) f();
 };
 
@@ -494,10 +497,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     // row has no room for it. Its tooltip is the link's full status line, and so is the rest of its accessible name,
     // after its visible words.
     if (agentLinkStatus.short) {
-      // #2909 (round 4): the full words above the narrow tier; at 380, where the plugin's rail leaves the drawer 320px,
-      // the wireframe's one word, "Agent", in the error ink while the link is in trouble. The full line is the tooltip
-      // and the rest of the accessible name either way.
-      const ln = hook(h('span', 'p3-drawer-link', opts.host === 'figma' && opts.narrow() ? 'Agent' : agentLinkStatus.short), 'activity-agent-link');
+      // #2909: the full words above the narrow tier; at 380 the short status alone (the owner's Q2995.1 A), whole, and the
+      // summary gives way to it. The full line is the tooltip and the rest of the accessible name either way.
+      const ln = hook(h('span', 'p3-drawer-link', opts.narrow() ? agentLinkStatus.brief ?? agentLinkStatus.short : agentLinkStatus.short), 'activity-agent-link');
       ln.dataset.error = String(agentLinkStatus.error);
       if (agentLinkStatus.full) { ln.title = agentLinkStatus.full; ln.append(h('span', 'p3-sr', agentLinkStatus.full)); }
       parts.push(ln);

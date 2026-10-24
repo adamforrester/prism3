@@ -63,6 +63,13 @@ export const mountRail = (opts: { readonly logo: HTMLElement; readonly go: (area
   const foot = hook(h('div', 'p3-rail-foot'), 'rail-foot');
   foot.append(h('span', 'p3-rail-div'), ...opts.foot);
   node.append(mark, areas, foot);
+  // The owner's Q2995.2 A: below the height the rail needs (420px is the plugin's least), the logo hides, so every tile
+  // keeps its label inside the window. Measured, not a breakpoint: with the logo shown, does the column overflow?
+  const fit = (): void => {
+    delete node.dataset.tight;
+    if (node.scrollHeight > node.clientHeight + 0.5) node.dataset.tight = 'true';
+  };
+  new ResizeObserver(fit).observe(node);
   const paint = (area: AreaId | null): void => {
     RAIL_AREAS.forEach((a, i) => {
       if (a.id === area) tiles[i].setAttribute('aria-current', 'page');

@@ -656,6 +656,10 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     await page.waitForFunction(() => window.__prunes.length > 0, null, { timeout: 3000 }).catch(() => {});
     const asked = await page.evaluate(() => window.__prunes.slice());
     ok(JSON.stringify(asked) === '[false]', `#1663 control: opening Clean up asks for a preview, never a delete (Q668 A) — posted confirm ${JSON.stringify(asked)}`);
+    // While the dry run is out the tab says so (#2909): it draws from the state read after it asked, not before.
+    // MUTATION: drawing from the reading taken before `pruneCheck` → this arm, by name.
+    const checking = await page.locator('[data-p3="clean-checking"]').textContent({ timeout: 2000 }).catch(() => null);
+    ok(checking === 'Checking for stale items…', `#2909 while the dry run is out, Clean up reads "Checking for stale items…" — read ${JSON.stringify(checking)}`);
     await post(page, preview);
     await hooks.need(page, '[data-p3="clean-prune-summary"]', { timeout: 5000 });
     const s = await readPrune(page);
