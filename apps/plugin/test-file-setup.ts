@@ -25,7 +25,7 @@
  */
 import { scaffoldSkeleton, resolveComponentPage, pagesOutOfOrder, reorderPages } from './src/file-setup';
 import type { PagesApi, PageLike } from './src/file-setup';
-import { TAXONOMY, NEST_PREFIX, assertCoverage, EXCLUDED_DEFS } from './src/file-taxonomy';
+import { TAXONOMY, NEST_PREFIX, assertCoverage, assertPartPages, consumersOf, EXCLUDED_DEFS } from './src/file-taxonomy';
 import { applyComponentPlan } from './src/write-components';
 import type { CompPageTarget, CompNode } from './src/write-components';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
@@ -543,6 +543,21 @@ console.log('4. taxonomy coverage of componentDefs');
   ok(assertCoverage(['badge', 'tag'], leaf()).some((p) => p.includes("'Pair'") && p.includes('lead')), 'lead/missing: a page of two defs with no lead is reported by name');
   ok(assertCoverage(['badge', 'tag'], leaf('veil')).some((p) => p.includes("'Pair'") && p.includes("'veil'")), 'lead/foreign: a lead that is not one of the page\'s defs is reported by name');
   ok(assertCoverage(['badge', 'tag'], leaf('tag')).length === 0, 'lead/named: a page whose lead is one of its defs is clean');
+
+  // #2989 (owner decision Q656 A): a part only one def nests sits on that def's page. "Nested by" is read off the real
+  // defs' `nests` (the oracle), never off the taxonomy (the subject).
+  const parts = assertPartPages(componentDefs);
+  ok(parts.length === 0, `parts/real: every part one def nests sits on its consumer's page, bar the standalone exemptions (problems: ${JSON.stringify(parts)})`);
+  const by = consumersOf(componentDefs);
+  ok([...(by.get('breadcrumb-item') ?? [])].join() === 'breadcrumbs' && [...(by.get('code-input-cell') ?? [])].join() === 'code-input',
+    'parts/oracle: the step is nested by Breadcrumbs alone and the cell by Code input alone, read off the defs');
+  // Two synthetic defs: a part on its own page is reported by name, and an exemption with no reason left is stale.
+  const two = [{ id: 'host', anatomy: { parts: [{ kind: 'nest', nests: 'part' }] } }, { id: 'part' }];
+  const apart = { ...TAXONOMY, sections: [{ header: 'Components', leaves: [{ page: 'Host', defs: ['host'] }, { page: 'Part', defs: ['part'] }] }] };
+  ok(assertPartPages(two, apart, {}).some((p) => p.includes("'part'") && p.includes("'Part'") && p.includes("'Host'")), 'parts/apart: a single-consumer part on another page is reported by name, with both pages');
+  ok(assertPartPages(two, apart, { part: 'test' }).length === 0, 'parts/exempt: a listed standalone def is not reported');
+  const together = { ...TAXONOMY, sections: [{ header: 'Components', leaves: [{ page: 'Host', defs: ['part', 'host'], lead: 'host' }] }] };
+  ok(assertPartPages(two, together, { part: 'test' }).some((p) => p.includes('stale') && p.includes("'part'")), 'parts/stale: an exemption for a part already on its consumer\'s page is reported by name');
 }
 
 // ── 5. targetPage routes placement off currentPage ───────────────────────────────────────────────
