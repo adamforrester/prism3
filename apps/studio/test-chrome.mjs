@@ -635,8 +635,11 @@ const FIT_ORACLE = () => {
   // The two rows' first row: the controls before the plugin's row break, the rest taken out of the row.
   const rows = fileRow ? need('.p3-tile-label{display:none!important}.p3-mark-name{display:none!important}.p3-bar-break~*{display:none!important}') : null;
   st.remove();
-  const steps = narrow ? [fileRow ? ['rows', rows] : ['logo', logo]]
-    : [['full', full], ['glyphs', glyphs], ['logo', logo], ...(fileRow ? [['rows', rows]] : [])];
+  // #2909: the plugin's rail-shell bar draws no product mark (the mark heads the rail), so it has no name to drop: its
+  // steps are the labels, then the cut name, and its narrow row is the glyphs alone.
+  const named = !!bm.querySelector('.p3-mark-name');
+  const steps = narrow ? [fileRow ? ['rows', rows] : named ? ['logo', logo] : ['glyphs', glyphs]]
+    : [['full', full], ['glyphs', glyphs], ...(named ? [['logo', logo]] : []), ...(fileRow ? [['rows', rows]] : [])];
   // Past the last row that fits as it is, the brand switcher's name is cut short (Q83 A).
   const pick = (slack) => steps.find(([, x]) => x <= room + slack)?.[0] ?? 'trim';
   const step = pick(0), lo = pick(-1), hi = pick(1);
@@ -665,7 +668,8 @@ const FIT_SEEN = () => {
     return g.measureText(n.textContent).width;
   };
   const cut = drawn(bn) && bn.getBoundingClientRect().width < textW(bn) - 1 / 16;
-  const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'figma-open', 'apply-to-figma'];
+  // #2909: the rail shell's bar: the brand switcher, Minimize and Update file.
+  const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'figma-open', 'apply-to-figma', 'agent-minimize', 'update-file'];
   const ctl = (k) => { const n = bm.querySelector(`[data-p3="${k}"]`); return k === 'product-mark' ? n : n?.closest('button') ?? n; };
   const boxes = HOOKS.map((k) => [k, ctl(k)]).filter(([, n]) => drawn(n)).map(([k, n]) => { const r = n.getBoundingClientRect(); return { k, top: r.top, bottom: r.bottom, right: r.right, mid: (r.top + r.bottom) / 2 }; });
   const rows = [];
@@ -679,8 +683,10 @@ const FIT_SEEN = () => {
   const twoRows = rows.length === 2 && JSON.stringify(row2) === JSON.stringify(['figma-open', 'apply-to-figma']) && !!applyBox && Math.abs(applyBox.right - box.right) <= 1;
   const all = labels.length > 0 && labels.every(Boolean), none = labels.every((x) => !x);
   const fileRow = !!bm.querySelector('.p3-bar-break');
+  // #2909: a bar with no product mark (the plugin's rail shell) has no name to show or drop, so it reads as named.
+  const named = name || !bm.querySelector('.p3-mark-name');
   const step = cut ? (none && !name && (fileRow ? twoRows : oneRow) ? 'trim' : 'other')
-    : all && name && oneRow ? 'full' : none && name && oneRow ? 'glyphs' : none && !name && oneRow ? 'logo' : none && !name && twoRows ? 'rows' : 'other';
+    : all && named && oneRow ? 'full' : none && named && oneRow ? 'glyphs' : none && !name && oneRow ? 'logo' : none && !name && twoRows ? 'rows' : 'other';
   return { step, cut, labels: labels.filter(Boolean).length, of: labels.length, name, rows: rows.map((r) => r.map((b) => b.k).join(' ')), height: Math.round(box.height), tall: Math.round(tall) };
 };
 
@@ -941,11 +947,33 @@ const goPlace = async (page, place) => {
   await page.evaluate(() => document.fonts.ready);
 };
 
+/** Preview `mode` through the preview header's mode control: its radio when the radios are drawn, else the select of the
+ *  same modes (they share one state). Since #2909 the plugin's header also holds the verdict beside a 60px rail, so at
+ *  1280 its radios do not fit and the select shows; the fit itself is section 17's. Waits for the choice to land. */
+const pickMode = async (page, mode) => {
+  const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`).first();
+  if (await radio.count() && await radio.isVisible()) await hooks.click(radio);
+  else await page.locator('[data-p3="mode-select"]').selectOption(mode);
+  await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
+    || document.querySelector('[data-p3="mode-select"]')?.value === m, mode, { timeout: 5000 });
+};
+
 /** #2909 IA v2 phase 1: the plugin's style-guide settings, Documentation › Style guides (Q667 A, Q2909.21 A), reached by the
  *  rail's Docs tile. Until #2909 the Figma menu's "Build style guides…" opened them as a page of their own. */
 const openDocs = async (page, bound) => {
   await hooks.click(page.locator('[data-p3="rail-documentation"]'), bound);
   await hooks.need(page, '[data-p3="style-guides"]', bound);
+};
+
+/** #2909: Apply Theme as the plugin runs it now, from its one write: Update file's checklist, answered as a file that is
+ *  set up and holds every set it needs (no set listed ticked), with Theme ticked by default, then its action. Posts the
+ *  one `apply-theme` the old Apply button posted. */
+const applyViaUpdate = async (page, bound) => {
+  await hooks.click(page.locator('[data-p3="update-file"]'), bound);
+  await hooks.need(page, '[data-p3="update-dialog"]', bound);
+  await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'file-sets', present: [], setUp: true } }, '*'));
+  await hooks.need(page, '[data-p3="update-go"]', bound);
+  await hooks.click(page.locator('[data-p3="update-go"]'), bound);
 };
 
 /** #2844: a family's settings are closed when the Components page opens, behind a disclosure line under its sets: open the
@@ -1503,9 +1531,11 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   const boxKey = `${String(column).split(' ')[0]} ${m.scheme}`;
   if (boxKey in BOXES_BY) BOXES_BY[boxKey] += m.boxes.measured;
   ok(m.unparsed.length === 0, `${where}: every computed color the probe met was parsed${m.unparsed.length ? ` — ${m.unparsed.slice(0, 3).join(' | ')}` : ''}`);
-  // every place is a moved page (H12, #2289: the legacy frame is gone)
+  // every place is a moved page (H12, #2289: the legacy frame is gone); or, since #2909, a page of the plugin rail's own
+  // (Documentation, Export), which no tab shows: no place, the frame's full-width page layout.
   const moved = NEW_PAGES.includes(m.place);
-  ok(moved, `${where}: place "${m.place}" is in NEW_PAGES`);
+  if (state === 'menu-page') ok(m.place === '' && m.layout === 'page', `${where}: a page of the rail's own, no tab's place, in the full-width layout (place "${m.place}", layout "${m.layout}")`);
+  else ok(moved, `${where}: place "${m.place}" is in NEW_PAGES`);
   const shows = `layout "${m.layout}", levers ${m.leversShown ? 'shown' : 'hidden'}, preview ${m.previewShown ? 'shown' : 'hidden'}, Inspect ${m.inspectShown ? 'shown' : 'hidden'}`;
   if (moved && state === 'page') {
     // Wide: both panes. Narrow: one pane, the Settings one unless the state says otherwise.
@@ -2495,10 +2525,17 @@ for (const host of ['web', 'figma']) {
         // The bar holds the brand, Minimize and Update file; Activity's tile, Export's, the Figma menu and Apply Theme
         // left it. Their writes moved into Update file (Apply Theme, Set up file, new sets) and its Clean up tab (Prune
         // stale), and their pages into the rail's areas. Read by hook, so a control put back fails here.
-        const gone = await page.evaluate(() => ({ bar: !!document.querySelector('[data-p3="top-bar"]'), rail: !!document.querySelector('[data-p3="rail"]'),
-          found: [...document.querySelectorAll('[data-p3="activity-open"], [data-p3="export-open"], [data-p3="figma-open"], [data-p3="figma-menu"], [data-p3="apply-to-figma"], [data-p3="product-mark"]')].map((n) => n.getAttribute('data-p3')) }));
+        // Read by the names a designer would look for, so the retired Figma menu and Apply Theme are read without their
+        // retired hooks (the guard requires every hook named here to render somewhere).
+        const gone = await page.evaluate(() => {
+          const bar = document.querySelector('[data-p3="top-bar"]');
+          const names = bar ? [...bar.querySelectorAll('button, a')].map((b) => (b.getAttribute('aria-label') ?? b.textContent ?? '').trim()) : [];
+          return { bar: !!bar, rail: !!document.querySelector('[data-p3="rail"]'),
+            found: [...names.filter((n) => /^(Activity|Export|Figma|Apply Theme|Contrast|Verdict)\b/.test(n)),
+              ...[...document.querySelectorAll('[data-p3="activity-open"], [data-p3="export-open"], [data-p3="product-mark"]')].map((n) => n.getAttribute('data-p3'))] };
+        });
         hooks.absent(ok, { seen: gone.bar && gone.rail, state: 'the rail and the top bar' }, gone.found.length === 0,
-          `#2909 ${where}: the rail shell draws no Activity tile, Export tile, Figma menu, Apply Theme or bar mark (found ${JSON.stringify(gone.found)})`);
+          `#2909 ${where}: the rail shell draws no Activity tile, Export tile, Figma menu, Apply Theme, verdict or mark on the top bar (found ${JSON.stringify(gone.found)})`);
 
         // ── the Agent tile (IA-3; the owner's T7 A, 2026-10-05), on the rail's foot since #2909 (Q2909.22 A) ──
         // A borderless tile, its chain-link glyph over "Agent": the rail keeps its labels at every width (Q2909.16 A). A
@@ -2929,8 +2966,7 @@ for (const host of ['web', 'figma']) {
       const held0 = await modeHeld(page);
       ok(held0 === 0, `specimen ground: palettes ${host} ${theme} 1280: the mode control is live on Surfaces & fills, so ${mode} can be chosen there (#2321; ${held0} held)`);
       if (held0) continue;
-      await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
-      await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+      await pickMode(page, mode);
       await goPlace(page, 'color-palettes');
       const where = `${host} ${theme} 1280, entered from ${mode}`;
       const want = EMITTED.light;
@@ -2947,13 +2983,12 @@ for (const host of ['web', 'figma']) {
         `specimen ground: palettes ${where}: the opacity scale's 12 squares are inked in Light's text.primary ${EMITTED_LIGHT_INK} (read ${inks.length}: ${[...new Set(inks)].join(', ')})`);
     }
     await goPlace(page, 'color-fills');
-    await hooks.click(page.locator('[data-p3="mode-option"][data-mode="light"]'));
+    await pickMode(page, 'light');
     for (const [place, [label, expect]] of Object.entries(SPECIMEN_PLACES)) {
       await goPlace(page, place);
       for (const [mode] of EXPECT_MODES) {
         if (host === 'figma' && mode.startsWith('hc')) continue;
-        await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
-        await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+        await pickMode(page, mode);
         const where = `${host} ${theme} 1280, previewing ${mode}`;
         const g = await groundsOf(page);
         const want = EMITTED[mode];
@@ -2966,7 +3001,7 @@ for (const host of ['web', 'figma']) {
         ok(unlisted.length === 0, `specimen ground: ${label} ${where}: every ${label === 'brand' ? 'Style guide section' : 'strip'} drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
       }
       // Back to Light, so the next place starts where the page booted.
-      await hooks.click(page.locator('[data-p3="mode-option"][data-mode="light"]'));
+      await pickMode(page, 'light');
     }
     await ctx.close();
   }
@@ -4001,8 +4036,7 @@ for (const host of ['web', 'figma']) {
     await goPlace(page, 'color-fills');
     for (const [mode] of EXPECT_MODES) {
       if (host === 'figma' && mode.startsWith('hc')) continue;
-      await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
-      await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+      await pickMode(page, mode);
       const where = `${host} ${theme} 1280, previewing ${mode}`;
       const g = await fillsGrounds(page);
       const want = EMITTED[mode];
@@ -5066,8 +5100,7 @@ const groundsIn = (page, hostHook) => page.evaluate((hk) => {
   return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })) };
 }, hostHook);
 const chooseMode = async (page, mode) => {
-  await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
-  await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+  await pickMode(page, mode);
 };
 // Specimen grounds: both hosts, both chrome themes, every mode.
 for (const host of ['web', 'figma']) {
@@ -6694,8 +6727,7 @@ const figmaStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { draw
       const modes = await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode));
       ok(modes.length >= 2, `#2103 (figma) ${brand}: the mode control offers ${modes.length} modes (${modes.join(', ')})`);
       for (const mode of modes) {
-        await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
-        await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+        await pickMode(page, mode);
         const drawn = [];
         for (const [list, msg] of Object.entries(FIGMA_FONT_LISTS)) {
           await page.evaluate((m) => window.postMessage({ pluginMessage: { type: 'font-list', ...m } }, '*'), msg);
@@ -7718,9 +7750,11 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="layout-continue"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components', null, { timeout: 5000 }).catch(() => {});
     const landed = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place,
-      selected: document.querySelector('[data-p3="tab-row"] [role="tab"][aria-selected="true"]')?.getAttribute('data-p3'), levers: !!document.querySelector('[data-p3="components-levers"]') }));
-    ok(landed.place === 'components' && landed.levers && landed.selected === 'tab-components',
-      `T8: ${host}: Continue to Components lands on the Components tab's levers — landed ${JSON.stringify(landed)}`);
+      selected: document.querySelector('[data-p3="tab-row"] [role="tab"][aria-selected="true"]')?.getAttribute('data-p3') ?? null, levers: !!document.querySelector('[data-p3="components-levers"]'),
+      area: document.querySelector('[data-p3="rail-areas"] [aria-current="page"]')?.getAttribute('data-p3') ?? null }));
+    // #2909: in the plugin, Components is a rail area of its own: its tile is current and no tab of Theme's is selected.
+    ok(landed.place === 'components' && landed.levers && (host === 'figma' ? landed.area === 'rail-components' && landed.selected === null : landed.selected === 'tab-components'),
+      `T8: ${host}: Continue to Components lands on ${host === 'figma' ? 'the Components area' : 'the Components tab'}'s levers — landed ${JSON.stringify(landed)}`);
     ok(errors.length === 0, `Layout ${host}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S10 Layout ${host}: the case stopped at a step that threw — ${stopped(e)}`);
@@ -8357,8 +8391,8 @@ for (const { w, h } of WIDTHS) {
 // 26. Components (S8.2): moved to the two panes on both hosts. The Button options represented once each (G6 A), the way
 //     to Shape › Density, the preview's Button specimen in the brand's action colors on its page (G7 A) and the
 //     Component sets list (G5 A) on the brand's page; the copy and the Q23 pairs; Q59 in the derived modes; the edit's
-//     reveal (QA-B9); the web drawing no build control and no Figma menu (G5 A), the plugin a Build button for the chosen
-//     set (G2 A); Set up file nowhere on the page (G8 A); no "Internal" or "experimental" (G3 A); the web's Pages menu
+//     reveal (QA-B9); neither host drawing a build control or a Figma menu (G5 A on the web; #2909 Q2909.5 A in the
+//     plugin, whose sets are added from Update file); Set up file nowhere on the page (G8 A); no "Internal" or "experimental" (G3 A); the web's Pages menu
 //     gone (G19 A); and the chrome on Components.
 //
 //     Independence (docs/34): the lever keys, the hooks, the section titles, the copy and the expectations are literals
@@ -8367,8 +8401,8 @@ for (const { w, h } of WIDTHS) {
 //
 //     Mutations this fails by name: the buttonMinWidthMultiplier row dropped from `domains/components.ts` →
 //     `Components: every lever pages.ts places renders once — missing lever-button-min-width-multiplier ×0`; the web
-//     drawing a Build button → `G5: web: the Components page draws no build control …`; "Build set…" left on the legacy
-//     page key → section 10's `Figma menu …: Build set… opens the components tab and writes nothing — nothing opened`; Set
+//     drawing a Build button → `G5: web: the Components page draws no build control …`; the rail's Components tile left
+//     on another page → section 10's `#2909 …: the rail's components tile opens its area and writes nothing`; Set
 //     up file drawn on the page → `G8: … no Set up file control or words on the Components page …`.
 // =============================================================================================
 console.log(`\nComponents (S8.2)\n${'='.repeat(78)}`);
@@ -8393,10 +8427,9 @@ const COMPONENTS_COPY = {
   options: 'How buttons place their icons, size and weight their label, and set their minimum width. Icon buttons are not affected.',
   density: ['Density sets component heights and spacing.', 'Set it in Shape › Density'],
   web: 'Building sets needs the Figma plugin.',
+  // #2909 (Q2909.5 A): the plugin's line, a DRAFT (Q2909.10 A).
+  plugin: 'Sets not in this file are added from Update file.',
   intro: (n) => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
-  build: 'Build', buildOne: 'Build 1 set', busy: 'Building 1 of 1…',
-  nothing: 'Select sets to build them.',
-  orderHint: 'Apply Theme first, so the sets can use your variables.',
 };
 /** The families the list opens, in order, so every set is drawn: each family's fold. */
 const openAllFamilies = async (page) => {
@@ -8462,13 +8495,15 @@ for (const host of ['web', 'figma']) {
         density: [pane.querySelector('[data-p3="components-density"] .p3-sub')?.textContent ?? null, pane.querySelector('[data-p3="components-density-link"]')?.textContent ?? null],
         sets: [...pane.querySelectorAll('[data-p3="cp-row"][data-set], [data-p3="cp-member"][data-set]')].map((n) => n.dataset.set),
         offered: [...pane.querySelectorAll('[data-set][data-off="true"]')].map((n) => n.dataset.set),
-        build: [...document.querySelectorAll('[data-p3="components-build"]')].map((n) => [n.querySelector('[data-p3="label-idle"]')?.textContent ?? null, n.querySelector('[data-p3="label-busy"]')?.textContent ?? null, n.disabled]),
-        boxes: pane.querySelectorAll('[data-p3="cp-box"]').length,
-        checked: [...pane.querySelectorAll('[data-p3="cp-box"][aria-checked="true"]')].length,
-        summary: document.querySelector('[data-p3="components-summary"]')?.textContent ?? null,
+        // #2909: the plugin's Build bar and set boxes retired (Q2909.5 A), so they are read by their words and their role,
+        // never by their retired hooks: any button that builds, any check box in the list.
+        build: [pane, pv].flatMap((x) => [...x.querySelectorAll('button')]).filter((b) => /^\s*(…\s*)?Build(ing)?\b/.test(b.textContent ?? '')).map((n) => n.textContent.trim()),
+        boxes: pane.querySelectorAll(':is([data-p3="cp-row"], [data-p3="cp-member"], [data-p3="cp-section-head"]) [role="checkbox"]').length,
+        summary: /select sets to build/i.test(pane.textContent ?? '') ? 'Select sets to build them.' : null,
         webLines: [...document.querySelectorAll('[data-p3="components-web-line"]')].map((n) => n.textContent.trim()),
-        hint: document.querySelector('[data-p3="components-order-hint"]')?.textContent ?? null,
-        figma: document.querySelectorAll('[data-p3^="figma-option-"], [data-p3="figma-open"]').length,
+        hint: /apply theme first/i.test(`${pane.textContent} ${pv.textContent}`) ? 'Apply Theme first' : null,
+        // The Figma menu, by the name a designer would look for: gone on both hosts (#2909 on the plugin).
+        figma: [...document.querySelectorAll('[data-p3="top-bar"] button')].filter((b) => /^Figma\b/.test((b.getAttribute('aria-label') ?? b.textContent ?? '').trim())).length,
         // The Pages menu, by the accessible name a designer would look for: gone on both hosts (G19 A on the web; PG1 A,
         // H12 #2289, on the plugin), so it is read without its retired hook.
         pages: [...document.querySelectorAll('[data-p3="top-bar"] button')].filter((b) => b.getAttribute('aria-label') === 'Pages' || b.textContent.trim() === 'Pages').length,
@@ -8500,15 +8535,12 @@ for (const host of ['web', 'figma']) {
       ok(r.webLines.length === 2 && r.webLines.every((t) => t === COMPONENTS_COPY.web), `G5: web: the list and the preview both say "${COMPONENTS_COPY.web}" (${JSON.stringify(r.webLines)})`);
       ok(r.last.length === 0, `G9: web: no set states a build result (${r.last.length})`);
     } else {
-      ok(r.build.length === 1 && r.build[0][0] === COMPONENTS_COPY.build && r.build[0][2] === true && r.checked === 0 && r.summary === COMPONENTS_COPY.nothing && r.boxes >= DOC_SETS.length,
-        `#2700 call 13: figma: nothing is selected on open, and the one Build control waits for a set — ${JSON.stringify(r.build)}, ${r.checked} of ${r.boxes} boxes checked, "${r.summary}"`);
-      ok(r.hint === COMPONENTS_COPY.orderHint, `figma: the build's plain fact reads "${COMPONENTS_COPY.orderHint}" (${JSON.stringify(r.hint)})`);
-      ok(r.last.length === 4 && r.last.every((t) => t === 'Not built in this session'), `G9: figma: before any build, every set shown reads "Not built in this session" (${[...new Set(r.last)].join(', ')})`);
-      ok(r.webLines.length === 0, `figma: no web line in the plugin (${JSON.stringify(r.webLines)})`);
-      // Selecting a set names the build, in place, keeping focus on the box (#2700, call 17).
-      await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=tag"]'));
-      const ch = await page.evaluate(() => ({ label: document.querySelector('[data-p3="components-build"] [data-p3="label-idle"]')?.textContent, focus: document.activeElement?.dataset?.key }));
-      ok(ch.label === COMPONENTS_COPY.buildOne && ch.focus === 'set=tag', `#2700: figma: selecting Tag offers "${COMPONENTS_COPY.buildOne}", focus kept on its box (${JSON.stringify(ch)})`);
+      // #2909 IA v2 phase 1 (Q2909.5 A): the plugin's one write is Update file, whose checklist adds the sets the file
+      // lacks, so Components draws no boxes, no Build bar and no per-set result line; its line says where sets come from.
+      ok(r.build.length === 0 && r.boxes === 0 && r.figma === 0 && r.summary === null && r.hint === null,
+        `#2909: figma: the Components page draws no build control — Build ${r.build.length}, set boxes ${r.boxes}, Figma menu items ${r.figma}, summary ${JSON.stringify(r.summary)}, hint ${JSON.stringify(r.hint)}`);
+      ok(r.webLines.length === 2 && r.webLines.every((t) => t === COMPONENTS_COPY.plugin), `#2909: figma: the list and the preview both say "${COMPONENTS_COPY.plugin}" (${JSON.stringify(r.webLines)})`);
+      ok(r.last.length === 0, `#2909: figma: no set states a build result on the page; Activity reports builds (${r.last.length})`);
     }
     ok(r.fileSetup.controls === 0 && !r.fileSetup.words, `G8: ${host}: no Set up file control or words on the Components page (controls ${r.fileSetup.controls}, words ${r.fileSetup.words})`);
     ok(!r.internal, `G3: ${host}: nothing on the Components page says "Internal" or "experimental"`);
@@ -8949,45 +8981,10 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
-// #2825 (owner QA, 2026-10-19): in the plugin, each section head's box is centered on its title's FIRST line, as each
-// row's box is centered on its name, at 1280 and at 380 (where "Components" wraps its count onto a second line), and
-// Subcomponents' Build all on the same line. Measured off the render: the box's center against the center of the glyph
-// box of the title's first text (a DOM Range over the title's own words), held to the row's own offset within 1px.
-//
-// Mutations this fails by name: the head's `.p3-cp-line1` cells dropped (the box back on the grid's `align-items`) →
-// `#2825: figma 380: the Components head's box is centered on its title's first line …`.
-for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
-  const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w, h });
-  try {
-    await goPlace(page, 'components');
-    await hooks.need(page, '[data-p3="cp-section-head"] [data-p3="cp-box"]');
-    const m = await page.evaluate(() => {
-      const mid = (r) => (r.top + r.bottom) / 2;
-      const textMid = (node) => { const r = document.createRange(); r.selectNodeContents(node); return mid(r.getClientRects()[0]); };
-      const row = document.querySelector('[data-p3="cp-row"]');
-      const rowOff = mid(row.querySelector('.p3-check-box').getBoundingClientRect()) - textMid(row.querySelector('[data-p3="cp-name"] .p3-btn-label').firstChild);
-      return { rowOff, heads: [...document.querySelectorAll('[data-p3="cp-section-head"]')].map((hd) => {
-        const t = hd.querySelector('[data-p3="cp-section-title"]');
-        const line = textMid(t.firstChild);
-        const all = hd.querySelector('[data-p3="cp-build-all"]');
-        return { name: t.dataset.name, off: mid(hd.querySelector('[data-p3="cp-box"] .p3-check-box').getBoundingClientRect()) - line,
-          lines: Math.round(t.getBoundingClientRect().height / parseFloat(getComputedStyle(t).lineHeight)),
-          allOff: all ? mid(all.getBoundingClientRect()) - line : null };
-      }) };
-    });
-    ok(Math.abs(m.rowOff) <= 1, `#2825: figma ${w}: a row's box is centered on its name, the reference (${m.rowOff.toFixed(2)}px)`);
-    for (const hd of m.heads) {
-      ok(Math.abs(hd.off - m.rowOff) <= 1, `#2825: figma ${w}: the ${hd.name} head's box is centered on its title's first line, as a row's is on its name (${hd.off.toFixed(2)}px off the line, the row's ${m.rowOff.toFixed(2)}px; the title is ${hd.lines} line${hd.lines === 1 ? '' : 's'})`);
-      if (hd.allOff !== null) ok(Math.abs(hd.allOff) <= 1, `#2825: figma ${w}: ${hd.name}' Build all is centered on the title's first line (${hd.allOff.toFixed(2)}px)`);
-    }
-    // #2905: six sections now (Buttons, Fields, Tag, Dialog, Other components, Subcomponents; #2931 Q579 A, #2958), each head measured.
-    ok(m.heads.length === 6 && m.heads.some((x) => x.allOff !== null), `#2825: figma ${w}: every section head measured, Build all among them (${m.heads.length})`);
-    if (w === 380) ok(m.heads.some((x) => x.lines >= 2), `#2825: figma 380: a head's title wraps, so the first-line rule is tested where it differs from centering on the head (${JSON.stringify(m.heads.map((x) => x.lines))})`);
-    ok(errors.length === 0, `#2825 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
-  } catch (e) {
-    ok(false, `#2825 figma ${w}: the case stopped at a step that threw — ${stopped(e)}`);
-  } finally { await ctx.close(); }
-}
+// #2825 (owner QA, 2026-10-19) measured each section head's box and Subcomponents' Build all against the head's title,
+// in the plugin. RETIRED by #2909 IA v2 phase 1 (owner decision Q2909.5 A): the plugin's Components page has no boxes and
+// no Build all, since sets are added from Update file's checklist. Their absence is S8.2 represented's `#2909: figma: the
+// Components page draws no build control`.
 // C3 A (#2086): the build stamp moved from the foot of the Pages menu to the foot of the Inspect menu, in small text, on
 // both hosts (the plugin showed it too). Oracle: the engine version read from `packages/engine/version.ts` here, as
 // text, never the bundle's import; the stamp's words are #474's, unchanged.
@@ -9025,128 +9022,11 @@ for (const host of ['web', 'figma']) {
     ok(false, `S8.2 C3 ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
-// C4 A, moved by #2700 (idea 9 A): in the plugin, the action bar stays in view at the foot of the LIST pane at any scroll
-// position, as Draw does on Build style guides, and never covers the last row: at the end of the scroll the last row ends
-// above it. Read at three scroll positions, wide and narrow (at 380 the list is the Settings pane), by the browser's own
-// hit test at the bar's center. Its focus order (the list, then the Build button) and the Activity drawer over it still
-// work. Every family is opened first, so the list scrolls far enough to mean something.
-//
-// Mutations this fails by name: `position: sticky` dropped from `.p3-cp-bar` → `C4: figma 1280 at the top: the action
-// bar is in view …`.
-for (const { w, h } of [{ w: 1280, h: 700 }, { w: 380, h: 700 }]) {
-  const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w, h });
-  try {
-    await goPlace(page, 'components');
-    await hooks.need(page, '[data-p3="components-bar"]');
-    await openAllFamilies(page);
-    const scrollable = await page.evaluate(() => { const b = document.querySelector('[data-p3="levers-pane"]'); return b.scrollHeight - b.clientHeight; });
-    ok(scrollable > 400, `C4: figma ${w}: the list scrolls, so this check can mean something (${scrollable}px of scroll)`);
-    for (const [at, f] of [['the top', 0], ['the middle', 0.5], ['the end', 1]]) {
-      await page.evaluate((k) => { const b = document.querySelector('[data-p3="levers-pane"]'); b.scrollTop = Math.round((b.scrollHeight - b.clientHeight) * k); }, f);
-      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-      const g = await page.evaluate(() => {
-        const body = document.querySelector('[data-p3="levers-pane"]').getBoundingClientRect();
-        const barN = document.querySelector('[data-p3="components-bar"]');
-        const bar = barN.getBoundingClientRect();
-        const hit = document.elementFromPoint(bar.left + bar.width / 2, bar.top + bar.height / 2);
-        const rows = document.querySelectorAll('[data-p3="cp-row"], [data-p3="cp-member"]');
-        const lastRow = rows[rows.length - 1].getBoundingClientRect();
-        return { inView: bar.top >= body.top - 0.5 && bar.bottom <= body.bottom + 0.5 && bar.height > 0, onTop: !!hit && barN.contains(hit),
-          bar: [Math.round(bar.top), Math.round(bar.bottom)], body: [Math.round(body.top), Math.round(body.bottom)], lastBottom: Math.round(lastRow.bottom),
-          label: barN.querySelector('[data-p3="label-idle"]')?.textContent ?? null,
-          hints: barN.querySelectorAll('[data-p3="components-order-hint"]').length };
-      });
-      ok(g.inView && g.onTop && g.label === 'Build' && g.hints === 1,
-        `C4: figma ${w} at ${at}: the action bar is in view at the foot of the list and on top at its center, "Build" with its hint — bar ${JSON.stringify(g.bar)} in ${JSON.stringify(g.body)}, on top ${g.onTop}, ${JSON.stringify(g.label)}, ${g.hints} hint`);
-      if (f === 1) ok(g.lastBottom <= g.bar[0] + 0.5, `C4: figma ${w} at the end: the last row ends above the bar, not under it (row ends ${g.lastBottom}, bar starts ${g.bar[0]})`);
-    }
-    // Focus order: from the list's last control, Tab reaches the Build button next (a set selected, so it is enabled).
-    await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=badge"]'));
-    await page.evaluate(() => { const all = [...document.querySelectorAll('[data-p3="components-list"] button')]; all[all.length - 1].focus(); });
-    await page.keyboard.press('Tab');
-    const focus = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
-    ok(focus === 'components-build', `C4: figma ${w}: Tab from the list's last control reaches the Build button (on "${focus}")`);
-    // The Activity drawer, opened, sits over the bar wherever the two meet.
-    await hooks.click(page.locator('[data-p3="activity-open"]'));
-    await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 }).catch(() => {});
-    await page.waitForTimeout(400);
-    const d = await page.evaluate(() => {
-      const dr = document.querySelector('[data-p3="activity-drawer"]');
-      const a = dr.getBoundingClientRect(), b = document.querySelector('[data-p3="components-bar"]').getBoundingClientRect();
-      const x0 = Math.max(a.left, b.left), x1 = Math.min(a.right, b.right), y0 = Math.max(a.top, b.top), y1 = Math.min(a.bottom, b.bottom);
-      if (x1 - x0 < 2 || y1 - y0 < 2) return { open: dr.dataset.open, overlap: false, onTop: true };
-      const hit = document.elementFromPoint((x0 + x1) / 2, (y0 + y1) / 2);
-      return { open: dr.dataset.open, overlap: true, onTop: !!hit && dr.contains(hit) };
-    });
-    ok(d.open === 'true' && d.onTop, `C4: figma ${w}: the Activity drawer opens over the action bar, not under it (${JSON.stringify(d)})`);
-    ok(errors.length === 0, `C4 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
-  } catch (e) {
-    ok(false, `S8.2 C4 figma ${w}: the case stopped at a step that threw — ${stopped(e)}`);
-  } finally { await ctx.close(); }
-}
-// #2180 (owner QA, 2026-10-05): the build bar stands clear of the Activity drawer by the chrome's stacked-card gap,
-// `space.300` (the `.p3-stack` gap), at 1280 and 380, the drawer closed (its strip, shown once an operation has run) and
-// open, at the top, the middle and the end of the preview's scroll. THE ORACLE is `space.300` resolved here from the
-// committed emission (`chrome/tokens.mjs`), never the page's `--p3-*` variable; the gap is read off the render, the
-// drawer's top edge less the bar's bottom edge. At 380 the open drawer is the full-pane sheet (F2), which hides the
-// panes: there the bar must not be drawn at all, so nothing can sit on the sheet.
-//
-// Since #2700 the bar is the list pane's action bar, so it is read there, and the list is the Settings pane at 380.
-//
-// Mutation this fails by name: `.p3-cp-bar`'s `bottom` back to 0 → `#2180: figma 1280, drawer closed, at the top:
-// the build bar stands at least space.300 (24px) above the Activity drawer — gap 0 …`.
-{
-  const STACK_GAP = parseFloat(String(resolveToken(loadModes().light, P('space.300')).value));
-  ok(STACK_GAP > 0, `#2180 oracle: space.300 resolves from the committed emission (${STACK_GAP}px)`);
-  for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 700 }]) {
-    for (const drawer of ['closed', 'open']) {
-      const where = `#2180: figma ${w}, drawer ${drawer}`;
-      const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w, h });
-      try {
-        const narrow = w <= 560;
-        await goPlace(page, 'components');
-        await hooks.need(page, '[data-p3="components-bar"]');
-        await openAllFamilies(page);
-        // An operation, so the closed drawer is its strip rather than hidden: the bar's own Build, of one set.
-        await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=badge"]'));
-        await hooks.click(page.locator('[data-p3="components-build"]'));
-        await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.ever === 'true', null, WAIT);
-        const isOpen = () => page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true');
-        if ((await isOpen()) !== (drawer === 'open')) await hooks.click(page.locator('[data-p3="activity-toggle"]'));
-        await page.waitForFunction((want) => (document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true') === want, drawer === 'open', WAIT);
-        if (narrow && drawer === 'closed' && await page.locator('[data-p3="pane-toggle-settings"]').isVisible()) {
-          const onList = await page.evaluate(() => { const b = document.querySelector('[data-p3="components-bar"]')?.getBoundingClientRect(); return !!b && b.height > 0; });
-          if (!onList) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
-        }
-        await settle(page);
-        const GEOM = () => {
-          const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
-          const bar = document.querySelector('[data-p3="components-bar"]'), dr = document.querySelector('[data-p3="activity-drawer"]');
-          const b = bar.getBoundingClientRect(), d = dr.getBoundingClientRect();
-          // #2700: the bar is in the list pane; above the narrow tier the drawer spans the preview column only, so the two
-          // share no column and cannot meet. The gap is required where they do share one (380).
-          return { barShown: vis(bar), drawerShown: vis(dr), barBottom: b.bottom, drawerTop: d.top, beside: Math.min(b.right, d.right) - Math.max(b.left, d.left) < 1 };
-        };
-        if (narrow && drawer === 'open') {
-          const g = await page.evaluate(GEOM);
-          ok(g.drawerShown && !g.barShown, `${where}: the open drawer is the full-pane sheet and the build bar is not drawn on it (${JSON.stringify(g)})`);
-        } else {
-          for (const [at, f] of [['the top', 0], ['the middle', 0.5], ['the end', 1]]) {
-            await page.evaluate((k) => { const b = document.querySelector('[data-p3="levers-pane"]'); b.scrollTop = Math.round((b.scrollHeight - b.clientHeight) * k); }, f);
-            await settle(page);
-            const g = await page.evaluate(GEOM);
-            const gap = g.drawerTop - g.barBottom;
-            ok(g.barShown && g.drawerShown && (g.beside ? !narrow : gap >= STACK_GAP - ALIGN_TOLERANCE),
-              `${where}, at ${at}: the build bar stands at least space.300 (${STACK_GAP}px) above the Activity drawer, or (wide) beside it in its own column — ${g.beside ? 'beside it' : `gap ${gap.toFixed(1)}`} (bar shown ${g.barShown}, drawer shown ${g.drawerShown})`);
-          }
-        }
-        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
-      } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
-      } finally { await ctx.close(); }
-    }
-  }
-}
+// C4 A (moved by #2700) held the plugin's Components action bar in view at the foot of the list, its focus order and the
+// Activity drawer over it; #2180 (owner QA, 2026-10-05) held the bar clear of the drawer by `space.300`. RETIRED by #2909
+// IA v2 phase 1 (owner decision Q2909.5 A): the bar is gone, with the boxes it built from, since sets are added from Update
+// file's checklist (section 10's `#2909 …` arms). Its absence is S8.2 represented's `#2909: figma: the Components page
+// draws no build control`.
 // The chrome on Components: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane when
 // narrow).
 for (const { w, h } of WIDTHS) {
@@ -9293,7 +9173,8 @@ const BAR_PROBE = () => {
   const alpha = (c) => { const m = /rgba?\(([^)]+)\)/.exec(c ?? ''); if (!m) return 1; const p = m[1].split(/[,\s/]+/).filter(Boolean); return p.length > 3 ? Number(p[3]) : 1; };
   const shown = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).visibility !== 'hidden'; };
   const all = [...document.querySelectorAll('*')];
-  const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'figma-open', 'apply-to-figma'];
+  // #2909: the plugin's rail-shell bar: the brand switcher, Minimize and Update file.
+  const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'figma-open', 'apply-to-figma', 'agent-minimize', 'update-file'];
   const order = HOOKS.filter((k) => q(k)).sort((a, b) => all.indexOf(q(a)) - all.indexOf(q(b)));
   // Dividers: a separator element, an edge on anything that is not a control, or a thin filled bar.
   const inside = (n) => n.closest('button, select, [role="menu"], .p3-menu, [role="dialog"], .p3-bardlg-scrim, .p3-tile-tip, .p3-seg');
@@ -9313,7 +9194,7 @@ const BAR_PROBE = () => {
     const b = q(k), cs = getComputedStyle(b);
     return { k, bg: cs.backgroundColor === page, edge: parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle === 'solid' && alpha(cs.borderTopColor) > 0, chev: chev(b) };
   });
-  const tiles = ['verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open'].filter((k) => q(k)).map((k) => {
+  const tiles = ['verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'agent-minimize'].filter((k) => q(k)).map((k) => {
     const b = q(k), cs = getComputedStyle(b), lab = b.querySelector('.p3-tile-label'), tip = b.querySelector('.p3-tile-tip'), g = b.querySelector('.p3-tile-mark svg.p3-ico');
     return { k, borderless: ['Top', 'Right', 'Bottom', 'Left'].every((sd) => parseFloat(cs[`border${sd}Width`]) === 0 || alpha(cs[`border${sd}Color`]) === 0), clear: alpha(cs.backgroundColor) === 0,
       glyph: shown(g) && g.getAttribute('aria-hidden') === 'true', label: shown(lab) ? lab.textContent : null, labelHidden: lab?.getAttribute('aria-hidden') === 'true',
@@ -9337,9 +9218,10 @@ const BAR_PROBE = () => {
 };
 const BAR_ORDER = {
   web: ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'activity-open', 'export-open'],
-  figma: ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'figma-open', 'apply-to-figma'],
+  // #2909 (round 4): the reduced bar; the mark, Contrast, Theme, Agent, Activity, Docs and Export left it for the rail.
+  figma: ['brand-switcher', 'agent-minimize', 'update-file'],
 };
-const TILE_LABEL = { verdict: 'Contrast', 'theme-toggle': 'Theme', 'agent-toggle': 'Agent', 'activity-open': 'Activity', 'export-open': 'Export' };
+const TILE_LABEL = { verdict: 'Contrast', 'theme-toggle': 'Theme', 'agent-toggle': 'Agent', 'activity-open': 'Activity', 'export-open': 'Export', 'agent-minimize': 'Minimize' };
 for (const { w, h } of WIDTHS) {
   for (const host of ['web', 'figma']) {
     for (const theme of ['light', 'dark']) {
@@ -9353,8 +9235,8 @@ for (const { w, h } of WIDTHS) {
         ok(JSON.stringify(bp.order) === JSON.stringify(BAR_ORDER[host]), `${where}: bar order: ${BAR_ORDER[host].join(', ')} (${bp.order.join(', ')})`);
         ok(bp.dividers.length === 0, `${where}: bar dividers: none between the bar's items (${bp.dividers.join(' | ') || 'none'})`);
         for (const x of bp.white) ok(x.bg && x.edge && x.chev, `${where}: bar menus: ${x.k} is a white button with an edge and ▾ (white ${x.bg}, edge ${x.edge}, ▾ ${x.chev})`);
-        ok(bp.white.length === (host === 'web' ? 1 : 2), `${where}: bar menus: ${host === 'web' ? 'the brand switcher' : 'the brand switcher and Figma'} measured (${bp.white.map((x) => x.k).join(', ')})`);
-        ok(bp.tiles.length === (host === 'web' ? 4 : 5), `${where}: bar tiles: Contrast, Theme, ${host === 'web' ? '' : 'Agent, '}Activity and Export all measured (${bp.tiles.map((x) => x.k).join(', ')})`);
+        ok(bp.white.length === 1, `${where}: bar menus: the brand switcher measured, the bar's one menu (${bp.white.map((x) => x.k).join(', ')})`);
+        ok(bp.tiles.length === (host === 'web' ? 4 : 1), `${where}: bar tiles: ${host === 'web' ? 'Contrast, Theme, Activity and Export' : 'Minimize (#2909)'} all measured (${bp.tiles.map((x) => x.k).join(', ')})`);
         // #2214 (BL1 A+B, BL3 A): above the narrow tier every label drops together when the full bar would not fit on
         // one row, which `FIT_ORACLE` measures; an ambiguous width (within 1px) accepts either.
         const fit29 = narrow ? null : await page.evaluate(FIT_ORACLE);
@@ -9362,27 +9244,32 @@ for (const { w, h } of WIDTHS) {
         const either = !narrow && !dropped && fit29.also.some((x) => x !== 'full');
         for (const t of bp.tiles) {
           const want = TILE_LABEL[t.k];
-          const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : t.k === 'agent-toggle' ? t.name === 'Agent' : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
+          const nameOk = t.k === 'agent-minimize' ? t.name === 'Minimize' : t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : t.k === 'agent-toggle' ? t.name === 'Agent' : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
           const tipOk = t.k === 'verdict' ? t.name === `Verdict: ${t.tip}. Open Inspect, Contrast` : t.tip === t.name;
           ok(t.borderless && t.clear && t.glyph && (either ? t.label === null || t.label === want : dropped ? t.label === null : t.label === want) && t.labelHidden && nameOk && tipOk && t.tipHidden,
             `${where}: bar tiles: ${t.k} is borderless (${t.borderless && t.clear}) with its glyph (${t.glyph}), ${narrow ? 'its label dropped' : dropped ? 'its label dropped, as the full bar would not fit on one row (#2214)' : `labelled "${want}"`} ("${t.label}"), named "${t.name}", its tooltip "${t.tip}"${fit29 ? ` (fit ${fit29.step}: need ${fit29.full} in ${fit29.room})` : ''}`);
         }
-        ok(JSON.stringify(bp.filled) === JSON.stringify(host === 'web' ? [] : ['apply-to-figma']), `${where}: bar fill: ${host === 'web' ? 'no control' : 'Apply Theme alone'} is filled (${bp.filled.join(', ') || 'none'})`);
+        ok(JSON.stringify(bp.filled) === JSON.stringify(host === 'web' ? [] : ['update-file']), `${where}: bar fill: ${host === 'web' ? 'no control' : 'Update file alone (#2909)'} is filled (${bp.filled.join(', ') || 'none'})`);
         if (host === 'web' && w === 640) ok(bp.row2.length === 0, `${where}: bar rows: the web's bar is one row at 640 (second row: ${bp.row2.join(', ') || 'none'})`);
-        if (host === 'figma' && narrow) {
-          ok(JSON.stringify(bp.row1) === JSON.stringify(BAR_ORDER.figma.slice(0, 7)) && JSON.stringify(bp.row2) === JSON.stringify(['figma-open', 'apply-to-figma']),
-            `${where}: bar rows: the plugin at 380 keeps the mark, the brand, Contrast, Theme, Agent, Activity and Export on the first row and Pages, Figma and Apply Theme on the second (${bp.row1.join(', ')} / ${bp.row2.join(', ')})`);
+        if (host === 'figma') {
+          ok(JSON.stringify(bp.row1) === JSON.stringify(BAR_ORDER.figma) && bp.row2.length === 0,
+            `${where}: bar rows: the plugin's reduced bar is one row, the brand, Minimize and Update file (#2909; ${bp.row1.join(', ')} / ${bp.row2.join(', ') || 'none'})`);
         }
         if (w !== 640) {
-          ok(Math.abs(bp.lastRight - bp.contentRight) <= 1 && (host !== 'web' || bp.last === 'export-open'),
-            `${where}: bar alignment: the bar's last control on its top row (${bp.last}) ends at the page content's right edge (${bp.lastRight} vs ${bp.contentRight}, ${bp.contentFrom})${host === 'web' ? ', and it is Export' : ''}`);
+          const lastWant = host === 'web' ? 'export-open' : 'update-file';
+          ok(Math.abs(bp.lastRight - bp.contentRight) <= 1 && bp.last === lastWant,
+            `${where}: bar alignment: the bar's last control on its top row (${bp.last}) ends at the page content's right edge (${bp.lastRight} vs ${bp.contentRight}, ${bp.contentFrom}), and it is ${host === 'web' ? 'Export' : 'Update file'}`);
         }
-        // The tooltip, on hover: drawn under its tile, inside the window.
+        // The tooltip, on hover: drawn under its tile, inside the window. In the plugin Contrast sits in the preview header
+        // (#2909), so at 380 the Preview pane is shown for it.
+        const vPane = host === 'figma' && narrow;
+        if (vPane) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
         await page.locator('[data-p3="verdict"]').hover();
         const tp = await page.evaluate(() => { const t = document.querySelector('[data-p3="verdict-tip"]'); const r = t.getBoundingClientRect(); const b = document.querySelector('[data-p3="verdict"]').getBoundingClientRect();
           return { shown: getComputedStyle(t).display !== 'none' && r.width > 0, r: [Math.round(r.left), Math.round(r.top), Math.round(r.right)], under: r.top >= b.bottom - 1, vw: innerWidth }; });
         ok(tp.shown && tp.under && tp.r[0] >= 0 && tp.r[2] <= tp.vw, `${where}: Contrast's tooltip shows on hover, under it and inside the window (${JSON.stringify(tp)})`);
         await page.mouse.move(0, h - 1);
+        if (vPane) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
         // ── the brand menu, the import box open ──
         await hooks.click(page.locator('[data-p3="brand-switcher"]'));
         await hooks.need(page, '[data-p3="brand-menu"]');
@@ -9423,58 +9310,86 @@ for (const { w, h } of WIDTHS) {
         const k5 = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="brand-menu"]'), focus: document.activeElement?.getAttribute('data-p3') }));
         ok(!k5.open && k5.focus === 'brand-switcher', `${where}: keyboard: Escape from an item closes the menu back to the switcher (open ${k5.open}, focus on "${k5.focus}")`);
 
-        // ── the export dialog ──
-        await hooks.click(page.locator('[data-p3="export-open"]'));
-        await hooks.need(page, '[data-p3="export-dialog"]');
-        const md = await measure(page, `${where} / export dialog`, host, w);
-        check(md, `${where} / export dialog`, column, narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: EXPORT_HOOKS });
-        const cols = await page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="export-dialog"] .p3-bardlg-body')).gridTemplateColumns.split(' ').length);
-        ok(cols === (narrow ? 1 : 2), `${where} / export dialog: ${narrow ? 'one column at the narrow tier' : 'two columns, the settings beside the preview'} (${cols})`);
-        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-export.png`) });
-        await page.keyboard.press('Escape');
-        const k6 = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="export-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') }));
-        ok(!k6.open && k6.focus === 'export-open', `${where}: keyboard: Escape closes the export dialog back to Export (open ${k6.open}, focus on "${k6.focus}")`);
-        // #2124 review (findings 1, 2, 3a, 3c): every way out returns focus to Export; focus moves in as it opens and
-        // Tab stays inside while it is open.
-        const dlgAt = () => page.evaluate(() => ({ open: !!document.querySelector('[data-p3="export-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
-          inside: !!document.activeElement?.closest('[data-p3="export-dialog"]') }));
-        for (const how of ['Close', 'Cancel', 'the scrim']) {
+        // ── the export dialog (the web); Export's area (the plugin, #2909: never modal, a page of its own) ──
+        if (host === 'figma') {
+          await hooks.click(page.locator('[data-p3="rail-export"]'));
+          await hooks.need(page, '[data-p3="export-page"]');
+          const me = await measure(page, `${where} / Export`, host, w);
+          check(me, `${where} / Export`, column, narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR,
+            { state: 'menu-page', only: ['[data-p3="export-artifact"]', '[data-p3="dialog-confirm"]', ...RAIL, ...RAIL_BAR.filter((x) => x !== '[data-p3="search-open"]')] });
+          const ep = await page.evaluate(() => {
+            const d = document.querySelector('[data-p3="export-page"]');
+            return { cols: getComputedStyle(d.querySelector('.p3-bardlg-body')).gridTemplateColumns.split(' ').length, role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'),
+              close: !!d.querySelector('[data-p3="dialog-close"]'), cancel: !!d.querySelector('[data-p3="dialog-cancel"]'), go: !!d.querySelector('[data-p3="dialog-confirm"]'),
+              current: document.querySelector('[data-p3="rail-areas"] [aria-current="page"]')?.getAttribute('data-p3') ?? null,
+              layout: document.querySelector('[data-p3="frame"]')?.dataset.layout ?? null, scrim: !!document.querySelector('.p3-bardlg-scrim') };
+          });
+          ok(ep.cols === (narrow ? 1 : 2), `${where} / Export: ${narrow ? 'one column at the narrow tier' : 'two columns, the settings beside the preview'} (${ep.cols})`);
+          ok(ep.role === null && ep.modal === null && !ep.scrim && !ep.close && !ep.cancel && ep.go && ep.current === 'rail-export' && ep.layout === 'page',
+            `${where} / Export: Export is the rail's area, a page and never modal: no scrim, no Close and no Cancel, its Download kept, its tile current (${JSON.stringify(ep)})`);
+          if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-plugin-${theme}-${w}-export.png`) });
+          if (w !== 640) {
+            const tw = await tabWalk(page, 'export-page');
+            const out = [...tw.fwd, ...tw.back].filter((k) => k.startsWith('out:'));
+            ok(tw.stops.includes('dialog-confirm') && tw.fwd.includes(String(tw.stops.indexOf('dialog-confirm'))),
+              `${where} / Export: Tab from the page's first control reaches Download (stops ${tw.stops.join(', ')}; Tab ${tw.fwd.join(' → ')}${out.length ? `; leaves the page for ${out.join(', ')}` : ''})`);
+          }
+          await hooks.click(page.locator('[data-p3="rail-theme"]'));
+          const left = await page.evaluate(() => ({ page: !!document.querySelector('[data-p3="export-page"]'), layout: document.querySelector('[data-p3="frame"]')?.dataset.layout ?? null }));
+          ok(!left.page && left.layout === 'panes', `${where} / Export: the rail's Theme tile leaves Export for Theme's page (${JSON.stringify(left)})`);
+        } else {
           await hooks.click(page.locator('[data-p3="export-open"]'));
           await hooks.need(page, '[data-p3="export-dialog"]');
-          const in0 = await dlgAt();
-          ok(in0.inside, `${where}: dialog focus: opening Export moves focus into the dialog (on "${in0.focus}")`);
-          const modal = await page.evaluate(() => { const d = document.querySelector('[data-p3="export-dialog"]'); return [d?.getAttribute('role'), d?.getAttribute('aria-modal')]; });
-          ok(modal[0] === 'dialog' && modal[1] === 'true', `${where}: dialog focus: the export dialog is a modal dialog (role "${modal[0]}", aria-modal "${modal[1]}")`);
-          if (how === 'Close') {
-            const walk = [];
-            for (let i = 0; i < 24; i++) { await page.keyboard.press('Tab'); walk.push(await dlgAt()); }
-            for (let i = 0; i < 4; i++) { await page.keyboard.press('Shift+Tab'); walk.push(await dlgAt()); }
-            const out = walk.filter((x) => !x.inside).map((x) => x.focus);
-            ok(out.length === 0, `${where}: dialog focus: Tab and Shift+Tab stay inside the export dialog (${walk.length} presses${out.length ? `, left it for ${out.join(', ')}` : ''})`);
-            await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-close"]'));
-          } else if (how === 'Cancel') await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-cancel"]'));
-          else { await page.mouse.move(2, 2); await page.mouse.down(); await page.mouse.up(); }   // the scrim, outside the dialog
-          const back = await dlgAt();
-          ok(!back.open && back.focus === 'export-open', `${where}: dialog focus: ${how} closes the export dialog back to Export (open ${back.open}, focus on "${back.focus}")`);
-        }
-        if (w !== 640) {
-          await hooks.click(page.locator('[data-p3="export-open"]'));
-          await hooks.need(page, '[data-p3="export-dialog"]');
-          const tw = await tabWalk(page, 'export-dialog');
-          ok(tw.ok && tw.confirm, `${where}: dialog tab order: Tab from the export dialog's first control visits every stop, Download included, and Shift+Tab the reverse (stops ${tw.stops.join(', ')}; Tab ${tw.fwd.join(' → ')}; Shift+Tab ${tw.back.join(' → ')})`);
-          // The preview is a Tab stop of its own (tabindex 0), reached by Tab, whatever the trap does: a scroll region must
-          // stay keyboard-reachable.
-          const pv = await page.evaluate(() => { const p = document.querySelector('[data-p3="export-dialog"] .p3-export-pre'); return { tabindex: p?.getAttribute('tabindex') ?? null }; });
-          // Named by its hook since #2523 gave it one (`export-preview`); the walk names a hookless stop by its tag.
-          ok(pv.tabindex === '0' && tw.fwd.includes('export-preview'), `${where}: dialog tab order: the export preview is a Tab stop of its own (tabindex "${pv.tabindex}") and Tab reaches it (${tw.fwd.includes('export-preview')})`);
-          // The trap defers to the browser for a focusable node its list does not name: a link planted in the footer, ahead
-          // of Cancel, must be reached by Tab, and Tab from it must go on to Cancel (not wrap to the first control).
-          await page.evaluate(() => { const a = document.createElement('a'); a.href = '#'; a.textContent = 'planted'; a.setAttribute('data-planted', ''); document.querySelector('[data-p3="export-dialog"] .p3-bardlg-foot').prepend(a); });
-          const pw2 = await tabWalk(page, 'export-dialog');
-          const ai = pw2.fwd.indexOf('a');
-          ok(pw2.ok && ai > 0 && pw2.fwd[ai + 1] === 'dialog-cancel', `${where}: dialog tab order: Tab reaches a focusable control the trap's list does not name, and goes on from it to Cancel (Tab ${pw2.fwd.join(' → ')})`);
-          await page.evaluate(() => document.querySelector('[data-planted]')?.remove());
+          const md = await measure(page, `${where} / export dialog`, host, w);
+          check(md, `${where} / export dialog`, column, narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: EXPORT_HOOKS });
+          const cols = await page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="export-dialog"] .p3-bardlg-body')).gridTemplateColumns.split(' ').length);
+          ok(cols === (narrow ? 1 : 2), `${where} / export dialog: ${narrow ? 'one column at the narrow tier' : 'two columns, the settings beside the preview'} (${cols})`);
+          if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-export.png`) });
           await page.keyboard.press('Escape');
+          const k6 = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="export-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') }));
+          ok(!k6.open && k6.focus === 'export-open', `${where}: keyboard: Escape closes the export dialog back to Export (open ${k6.open}, focus on "${k6.focus}")`);
+          // #2124 review (findings 1, 2, 3a, 3c): every way out returns focus to Export; focus moves in as it opens and
+          // Tab stays inside while it is open.
+          const dlgAt = () => page.evaluate(() => ({ open: !!document.querySelector('[data-p3="export-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
+            inside: !!document.activeElement?.closest('[data-p3="export-dialog"]') }));
+          for (const how of ['Close', 'Cancel', 'the scrim']) {
+            await hooks.click(page.locator('[data-p3="export-open"]'));
+            await hooks.need(page, '[data-p3="export-dialog"]');
+            const in0 = await dlgAt();
+            ok(in0.inside, `${where}: dialog focus: opening Export moves focus into the dialog (on "${in0.focus}")`);
+            const modal = await page.evaluate(() => { const d = document.querySelector('[data-p3="export-dialog"]'); return [d?.getAttribute('role'), d?.getAttribute('aria-modal')]; });
+            ok(modal[0] === 'dialog' && modal[1] === 'true', `${where}: dialog focus: the export dialog is a modal dialog (role "${modal[0]}", aria-modal "${modal[1]}")`);
+            if (how === 'Close') {
+              const walk = [];
+              for (let i = 0; i < 24; i++) { await page.keyboard.press('Tab'); walk.push(await dlgAt()); }
+              for (let i = 0; i < 4; i++) { await page.keyboard.press('Shift+Tab'); walk.push(await dlgAt()); }
+              const out = walk.filter((x) => !x.inside).map((x) => x.focus);
+              ok(out.length === 0, `${where}: dialog focus: Tab and Shift+Tab stay inside the export dialog (${walk.length} presses${out.length ? `, left it for ${out.join(', ')}` : ''})`);
+              await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-close"]'));
+            } else if (how === 'Cancel') await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-cancel"]'));
+            else { await page.mouse.move(2, 2); await page.mouse.down(); await page.mouse.up(); }   // the scrim, outside the dialog
+            const back = await dlgAt();
+            ok(!back.open && back.focus === 'export-open', `${where}: dialog focus: ${how} closes the export dialog back to Export (open ${back.open}, focus on "${back.focus}")`);
+          }
+          if (w !== 640) {
+            await hooks.click(page.locator('[data-p3="export-open"]'));
+            await hooks.need(page, '[data-p3="export-dialog"]');
+            const tw = await tabWalk(page, 'export-dialog');
+            ok(tw.ok && tw.confirm, `${where}: dialog tab order: Tab from the export dialog's first control visits every stop, Download included, and Shift+Tab the reverse (stops ${tw.stops.join(', ')}; Tab ${tw.fwd.join(' → ')}; Shift+Tab ${tw.back.join(' → ')})`);
+            // The preview is a Tab stop of its own (tabindex 0), reached by Tab, whatever the trap does: a scroll region must
+            // stay keyboard-reachable.
+            const pv = await page.evaluate(() => { const p = document.querySelector('[data-p3="export-dialog"] .p3-export-pre'); return { tabindex: p?.getAttribute('tabindex') ?? null }; });
+            // Named by its hook since #2523 gave it one (`export-preview`); the walk names a hookless stop by its tag.
+            ok(pv.tabindex === '0' && tw.fwd.includes('export-preview'), `${where}: dialog tab order: the export preview is a Tab stop of its own (tabindex "${pv.tabindex}") and Tab reaches it (${tw.fwd.includes('export-preview')})`);
+            // The trap defers to the browser for a focusable node its list does not name: a link planted in the footer, ahead
+            // of Cancel, must be reached by Tab, and Tab from it must go on to Cancel (not wrap to the first control).
+            await page.evaluate(() => { const a = document.createElement('a'); a.href = '#'; a.textContent = 'planted'; a.setAttribute('data-planted', ''); document.querySelector('[data-p3="export-dialog"] .p3-bardlg-foot').prepend(a); });
+            const pw2 = await tabWalk(page, 'export-dialog');
+            const ai = pw2.fwd.indexOf('a');
+            ok(pw2.ok && ai > 0 && pw2.fwd[ai + 1] === 'dialog-cancel', `${where}: dialog tab order: Tab reaches a focusable control the trap's list does not name, and goes on from it to Cancel (Tab ${pw2.fwd.join(' → ')})`);
+            await page.evaluate(() => document.querySelector('[data-planted]')?.remove());
+            await page.keyboard.press('Escape');
+          }
         }
         // ── the overwrite confirm (web) and the prune review (plugin), measured as chrome (#2124 review, finding 3d) ──
         if (w === 1280 && host === 'web') {
@@ -9489,31 +9404,8 @@ for (const { w, h } of WIDTHS) {
           await hooks.click(page.locator('[data-p3="overwrite-cancel"]'));
           await page.keyboard.press('Escape');
         }
-        if (w !== 640 && host === 'figma') {
-          await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'Would remove 2 items: 2 variables.' } }, '*'));
-          await hooks.need(page, '[data-p3="prune-dialog"]');
-          const pw = await tabWalk(page, 'prune-dialog');
-          ok(pw.ok && pw.confirm, `${where}: dialog tab order: Tab from the prune review's first control visits every stop, its Delete included, and Shift+Tab the reverse (stops ${pw.stops.join(', ')}; Tab ${pw.fwd.join(' → ')}; Shift+Tab ${pw.back.join(' → ')})`);
-          const pm = await page.evaluate(() => { const d = document.querySelector('[data-p3="prune-dialog"]'); return { role: d?.getAttribute('role'), modal: d?.getAttribute('aria-modal'), inside: !!document.activeElement?.closest('[data-p3="prune-dialog"]') }; });
-          ok(pm.role === 'dialog' && pm.modal === 'true' && pm.inside, `${where}: dialog focus: the prune review is a modal dialog with focus inside it (${JSON.stringify(pm)})`);
-          // Every way out but Cancel (held below, after the measure) returns focus to the Figma menu, its opener.
-          for (const how of ['Close', 'the scrim', 'Escape']) {
-            if (how === 'Close') await hooks.click(page.locator('[data-p3="prune-dialog"] [data-p3="dialog-close"]'));
-            else if (how === 'Escape') await page.keyboard.press('Escape');
-            else { await page.mouse.move(2, 2); await page.mouse.down(); await page.mouse.up(); }
-            const pe = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="prune-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') ?? null }));
-            ok(!pe.open && pe.focus === 'figma-open', `${where}: dialog focus: ${how} closes the prune review back to the Figma menu (open ${pe.open}, focus on "${pe.focus}")`);
-            await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'Would remove 2 items: 2 variables.' } }, '*'));
-            await hooks.need(page, '[data-p3="prune-dialog"]');
-          }
-          const mp = await measure(page, `${where} / prune review`, host, w);
-          check(mp, `${where} / prune review`, column, narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="dialog-confirm"]', '[data-p3="dialog-cancel"]'] });
-          const pc = await page.evaluate(INK_PROBE, '[data-p3="prune-dialog"] .p3-bardlg-desc');
-          ok(pc.r >= TEXT_MIN, `${where} / prune review: its sentence's contrast ${pc.r}:1, at least ${TEXT_MIN}:1`);
-          await hooks.click(page.locator('[data-p3="prune-dialog"] [data-p3="dialog-cancel"]'));
-          const pf = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
-          ok(pf === 'figma-open', `${where}: dialog focus: the prune review's Cancel returns focus to the Figma menu (on "${pf}")`);
-        }
+        // (The plugin's prune review dialog retired with #2909: Prune stale's preview is Update file's Clean up tab, measured,
+        // keyboard-held and written in section 10's `#2909 Clean up …` arms.)
         // ── the error strip ──
         if (host === 'web') await page.evaluate(() => window.__prism3TestEdit('overrides', { light: { 'background.secondary': { palette: 'neutral', step: '200' } } }));
         else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), S131_REFUSED);
@@ -9609,14 +9501,14 @@ for (const host of ['web', 'figma']) {
           await hooks.click(page.locator('[data-p3="theme-toggle"]'));
           await hooks.need(page, '[data-p3="theme-menu"]');
           const m0 = await menuState();
-          ok(JSON.stringify(m0.items) === JSON.stringify([['Match Figma', 'true'], ['Light', 'false'], ['Dark', 'false']]) && m0.data === theme && m0.name === 'Theme: Match Figma',
-            `${where}: plugin Theme: Match Figma, Light and Dark, Match Figma checked by default and the chrome on Figma's ${theme} theme (${JSON.stringify(m0)})`);
+          ok(JSON.stringify(m0.items) === JSON.stringify([['Match Figma', 'true'], ['Light', 'false'], ['Dark', 'false']]) && m0.data === theme && m0.name === 'Appearance: Match Figma',
+            `${where}: plugin Appearance (the Theme menu, renamed on the rail, #2909): Match Figma, Light and Dark, Match Figma checked by default and the chrome on Figma's ${theme} theme (${JSON.stringify(m0)})`);
           const other = theme === 'light' ? 'dark' : 'light';
           await page.evaluate(() => { window.__themePosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'set-theme-pref') window.__themePosts.push(m.pref); }); });
           await hooks.click(page.locator(other === 'dark' ? '[data-p3="theme-option-dark"]' : '[data-p3="theme-option-light"]'));
           const posted = await page.evaluate(() => new Promise((r) => setTimeout(() => r(window.__themePosts.slice()), 50)));
           const m1 = await menuState();
-          ok(m1.data === other && m1.name === `Theme: ${other === 'dark' ? 'Dark' : 'Light'}` && JSON.stringify(posted) === JSON.stringify([other]),
+          ok(m1.data === other && m1.name === `Appearance: ${other === 'dark' ? 'Dark' : 'Light'}` && JSON.stringify(posted) === JSON.stringify([other]),
             `${where}: plugin Theme: choosing ${other} applies it and posts it to the main thread to keep (theme ${m1.data}, "${m1.name}", posted ${JSON.stringify(posted)})`);
           // A reload: the main thread answers ui-ready with what it kept (its half: apps/plugin/test-theme-pref.ts).
           await page.reload({ waitUntil: 'load' });
@@ -9634,55 +9526,22 @@ for (const host of ['web', 'figma']) {
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
         // Last, after the console check: a link switched on opens the desktop bridge's socket, which no harness serves.
         if (host === 'figma' && w === WIDTHS[0].w) {
-          // Activity's name and tooltip say "agent link on" while the link is on (approved copy, 2026-10-05).
-          const actName = () => page.evaluate(() => { const b = document.querySelector('[data-p3="activity-open"]'); return [b?.getAttribute('aria-label'), b?.querySelector('[data-p3="activity-open-tip"]')?.textContent]; });
-          const off = await actName();
+          // The Agent tile's dot (the owner's QA, 2026-10-05), on the rail since #2909: with the link on it sits at its glyph's
+          // top right, filled, in the ok green. (Activity's tile, its "agent link on" name and its attention dots (D-RED A)
+          // retired with the tile, Q2909.15 A: the drawer is Activity, and its row carries the link's status, section 31.)
           await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), AGENT_ON);
-          await page.waitForFunction(() => /agent link on/.test(document.querySelector('[data-p3="activity-open"]')?.getAttribute('aria-label') ?? ''), null, { timeout: 3000 }).catch(() => {});
-          const on = await actName();
-          ok(off[0] === 'Activity' && off[1] === 'Activity' && on[0] === 'Activity, agent link on' && on[1] === 'Activity, agent link on',
-            `${where}: Activity's name and tooltip add "agent link on" while the link is on (off ${JSON.stringify(off)}, on ${JSON.stringify(on)})`);
-          // The tile dots (the owner's QA, 2026-10-05): with the link on and a write running (Apply Theme posted, no main
-          // thread to answer), both dots are drawn. Each sits at its glyph's top right at the same offset (within 1px), each
-          // is filled, and each draws in the ok green. The web shows no tile dot in any state: it
-          // has no agent link and runs no write.
-          await hooks.click(page.locator('[data-p3="apply-to-figma"]'));
-          await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'run', null, { timeout: 3000 }).catch(() => {});
-          const dots = await page.evaluate(() => {
-            // The ok green, resolved by the chrome's own ok-dot class on a node read and removed at once.
+          await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 3000 }).catch(() => {});
+          const ag = await page.evaluate(() => {
             const g = document.createElement('div'); g.className = 'p3-dot p3-dot-ok'; document.body.append(g);
             const okColor = getComputedStyle(g).backgroundColor; g.remove();
-            return ['agent-toggle', 'activity-open'].map((k) => {
-              const b = document.querySelector(`[data-p3="${k}"]`), d = b?.querySelector('.p3-tile-mark > .p3-dot'), ic = b?.querySelector('.p3-tile-mark > svg.p3-ico');
-              const dr = d?.getBoundingClientRect(), ir = ic?.getBoundingClientRect(), cs = d ? getComputedStyle(d) : null;
-              return { k, shown: !!dr && dr.width > 0 && cs.display !== 'none', state: d?.dataset.state ?? (b?.dataset.on === 'true' ? 'on' : 'off'),
-                dx: dr && ir ? Math.round((dr.right - ir.right) * 10) / 10 : null, dy: dr && ir ? Math.round((dr.top - ir.top) * 10) / 10 : null,
-                color: cs ? cs.backgroundColor : null, okColor, name: b?.getAttribute('aria-label'), pressed: b?.getAttribute('aria-pressed'),
-                // Filled, the same shape on every tile (owner, 2026-10-05): a solid fill and no visible ring.
-                filled: !!cs && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && (parseFloat(cs.borderTopWidth) === 0 || cs.borderTopStyle === 'none' || cs.borderTopColor === cs.backgroundColor) };
-            });
+            const b = document.querySelector('[data-p3="agent-toggle"]'), d = b?.querySelector('.p3-tile-mark > .p3-dot'), ic = b?.querySelector('.p3-tile-mark > svg.p3-ico');
+            const dr = d?.getBoundingClientRect(), ir = ic?.getBoundingClientRect(), cs = d ? getComputedStyle(d) : null;
+            return { shown: !!dr && dr.width > 0 && cs.display !== 'none', dx: dr && ir ? Math.round((dr.right - ir.right) * 10) / 10 : null, dy: dr && ir ? Math.round((dr.top - ir.top) * 10) / 10 : null,
+              color: cs ? cs.backgroundColor : null, okColor, name: b?.getAttribute('aria-label'), pressed: b?.getAttribute('aria-pressed'),
+              filled: !!cs && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && (parseFloat(cs.borderTopWidth) === 0 || cs.borderTopStyle === 'none' || cs.borderTopColor === cs.backgroundColor) };
           });
-          const [ag, ac] = dots;
-          ok(ag.shown && ac.shown && ag.dx !== null && Math.abs(ag.dx - ac.dx) <= 1 && Math.abs(ag.dy - ac.dy) <= 1 && ag.dy <= 0 && ag.dx >= 0,
-            `${where}: tile dots: Agent's and Activity's dots sit at their glyph's top right at one offset (Agent ${ag.dx},${ag.dy}; Activity ${ac.dx},${ac.dy}; ${JSON.stringify(dots.map((d) => [d.k, d.shown, d.state]))})`);
-          ok(ag.filled && ac.filled, `${where}: tile dots: every dot is filled, Activity "${ac.state}" too (Agent filled ${ag.filled}, Activity filled ${ac.filled})`);
-          ok(ag.color === ag.okColor && ac.color === ac.okColor,
-            `${where}: tile dots: Agent "on" and Activity "${ac.state}" draw in the ok green ${ag.okColor} (Agent ${ag.color}, Activity ${ac.color})`);
-          ok(ag.name === 'Agent' && ag.pressed === 'true' && /^Activity, agent link on, 1 running$/.test(ac.name ?? ''),
-            `${where}: tile dots: the names still carry the state ("${ag.name}", "${ac.name}")`);
-          // D-RED A: a failure's dot is red; a warning's (an attention state that is not a failure) is green.
-          const actDot = () => page.evaluate(() => { const d = document.querySelector('[data-p3="activity-open"] .p3-tile-mark > .p3-status-dot');
-            const g = document.createElement('div'); g.className = 'p3-dot p3-dot-ok'; document.body.append(g); const okc = getComputedStyle(g).backgroundColor; g.className = 'p3-dot p3-dot-bad'; const badc = getComputedStyle(g).backgroundColor; g.remove();
-            const cs = getComputedStyle(d); return { state: d.dataset.state, shown: cs.display !== 'none', color: cs.backgroundColor, ok: okc, bad: badc, name: d.closest('button').getAttribute('aria-label') }; });
-          await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'The write failed.' } }, '*'));
-          await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'bad', null, { timeout: 3000 }).catch(() => {});
-          const fd = await actDot();
-          ok(fd.state === 'bad' && fd.shown && fd.color === fd.bad && /needs attention/.test(fd.name ?? ''), `${where}: tile dots: a failure's dot is red (${JSON.stringify(fd)})`);
-          await hooks.click(page.locator('[data-p3="apply-to-figma"]'));
-          await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'apply-result', ok: false, headline: '⚠ 4 misses', summary: '4 roles were not written.' } }, '*'));
-          await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'warn', null, { timeout: 3000 }).catch(() => {});
-          const wd = await actDot();
-          ok(wd.state === 'warn' && wd.shown && wd.color === wd.ok && /needs attention/.test(wd.name ?? ''), `${where}: tile dots: a warning's dot is green, and its name still says it needs attention (${JSON.stringify(wd)})`);
+          ok(ag.shown && ag.dx !== null && ag.dy <= 0 && ag.dx >= 0 && ag.filled && ag.color === ag.okColor && ag.name === 'Agent' && ag.pressed === 'true',
+            `${where}: the Agent tile's dot sits at its glyph's top right, filled, in the ok green ${ag.okColor}, the tile named "Agent" and pressed (${JSON.stringify(ag)})`);
           await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
         }
       } catch (e) {
@@ -9709,11 +9568,18 @@ for (const host of ['web', 'figma']) {
     // The start window first ("+ New brand" from the brand menu), then Export over the studio under it: the brand menu
     // closes an open export dialog, so this is the order in which both are open together. Export is reached by a
     // dispatched click, as the start window's scrim covers the bar.
+    // #2909: in the plugin Export is the rail's area, a page, so it is opened first and the start window over it.
+    if (host === 'figma') {
+      await hooks.click(page.locator('[data-p3="rail-export"]'));
+      await hooks.need(page, '[data-p3="export-page"]');
+    }
     await hooks.click(page.locator('[data-p3="brand-switcher"]'));
     await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
-    await hooks.need(page, '[data-p3="export-open"]');
-    await page.locator('[data-p3="export-open"]').dispatchEvent('click');
-    await hooks.need(page, '[data-p3="export-dialog"]');
+    if (host === 'web') {
+      await hooks.need(page, '[data-p3="export-open"]');
+      await page.locator('[data-p3="export-open"]').dispatchEvent('click');
+      await hooks.need(page, '[data-p3="export-dialog"]');
+    }
     // An element with the start window's class names, placed in the page beside the open export dialog and read, then
     // removed: no rule of the export dialog may lay it out (its body would be two tracks).
     const probe = await page.evaluate(() => {
@@ -9734,7 +9600,7 @@ for (const host of ['web', 'figma']) {
       // The S12 start window only (a `p3-dialog` over the app view); the legacy start screen, which replaces the frame
       // and the export dialog with it, carries the same hook and is not the case.
       const col = document.querySelector('.p3-dialog [data-p3="start-column"]');
-      const exp = document.querySelector('[data-p3="export-dialog"] .p3-bardlg-body');
+      const exp = document.querySelector(':is([data-p3="export-dialog"], [data-p3="export-page"]) .p3-bardlg-body');
       const tracks = (n) => (n ? getComputedStyle(n).gridTemplateColumns.split(' ').filter(Boolean).length : null);
       return { start: !!col, startTracks: tracks(col), exportOpen: !!exp, exportTracks: tracks(exp) };
     });
@@ -9794,11 +9660,17 @@ const FOCUS_SWEEP_NEEDS = {
     '[data-p3="mode-option"]', '[data-p3="inspect-open"]', ...B2_RING_NEEDS],
   figma: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
     '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
-    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', '[data-p3="apply-to-figma"]', '[data-p3="cp-box"]', ...B2_RING_NEEDS],
+    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', ...B2_RING_NEEDS,
+    // #2909: the rail's tiles and the reduced bar's controls (Export is an area; Apply Theme and the set boxes retired).
+    ...RAIL, '[data-p3="agent-minimize"]', '[data-p3="update-file"]'],
 };
+/** #2909: Update file's checklist, swept with every set listed (a file that holds none): the controls it must reach. */
+const UPDATE_RING_NEEDS = ['[data-p3="update-x"]', '[data-p3="update-tab-update"]', '[data-p3="update-check-theme"]', '[data-p3="update-set"]',
+  '[data-p3="update-check-guides"]', '[data-p3="update-cancel"]', '[data-p3="update-go"]'];
 /** The focused controls photographed for review when a screenshot directory is given: [hook, file name part]. */
 const FOCUS_SHOTS = [['palettes-continue', 'continue'], ['density-choice-comfortable', 'chip'], ['brand-name', 'text-field'], ['tab-color', 'tab']];
-const SG_RING_NEEDS = ['[data-p3="sg-opt-aliases"]', '[data-p3="sg-titles-summary"]', '[data-p3="sg-draw"]', '[data-p3="sg-close"]'];
+// #2909: Documentation › Style guides holds settings only (Q2909.23 A): no Draw and no Close; its own tab row instead.
+const SG_RING_NEEDS = ['[data-p3="sg-opt-aliases"]', '[data-p3="sg-titles-summary"]', '[data-p3="docs-tab-guides"]'];
 let focusSwept = 0;
 for (const host of ['web', 'figma']) {
   let hostTotal = 0;
@@ -9851,24 +9723,42 @@ for (const host of ['web', 'figma']) {
         focusSwept += rings.length;
         await hooks.click(page.locator('[data-p3="inspect-close"]'), WAIT);
       }
-      // The plugin's Build style guides page (S11.2; review of #2171), which no tab shows: its switch, its title box's
-      // fold and every other control on it, with a catalog posted so the tree and every option group are drawn.
+      // The plugin's style-guide settings (S11.2; review of #2171), on Documentation › Style guides since #2909, which no
+      // tab shows: its switch, its title box's fold and every other control on it, with a catalog posted so the tree and
+      // every option group are drawn.
       if (host === 'figma') {
         await openDocs(page, WAIT);
         await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
         await settle(page);
         const rings = await focusRings(page, { all: true, max: 600, skipIn: FOCUS_SWEEP_SKIP });
-        counts.push(`build style guides ${rings.length}`);
-        ok(rings.length >= FOCUS_PLACE_FLOOR, `${where} / build style guides: the sweep read ${rings.length} chrome focus rings (floor ${FOCUS_PLACE_FLOOR})`);
+        counts.push(`documentation ${rings.length}`);
+        ok(rings.length >= FOCUS_PLACE_FLOOR, `${where} / documentation: the sweep read ${rings.length} chrome focus rings (floor ${FOCUS_PLACE_FLOOR})`);
         for (const r of rings) {
           reached.add(r.hook);
           const miss = ringMisses(r, r.pinnedLight ? 'light' : theme);
-          if (miss.length) bad.push({ r: { ...r, hook: `build style guides ${r.hook}` }, miss });
+          if (miss.length) bad.push({ r: { ...r, hook: `documentation ${r.hook}` }, miss });
           lows.focus = Math.min(lows.focus, r.r);
         }
         hostTotal += rings.length;
         focusSwept += rings.length;
-        for (const want of SG_RING_NEEDS) ok(reached.has(hooks.role(want)), `${where}: the sweep reaches ${want} on the Build style guides page and reads its ring`);
+        for (const want of SG_RING_NEEDS) ok(reached.has(hooks.role(want)), `${where}: the sweep reaches ${want} on Documentation › Style guides and reads its ring`);
+        // #2909: Update file's checklist, a dialog over the area: Tab stays inside it, so the sweep ends back where it began.
+        await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+        await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+        await hooks.need(page, '[data-p3="update-go"]', WAIT);
+        const ur = await focusRings(page, { all: true, max: 600, skipIn: FOCUS_SWEEP_SKIP });
+        counts.push(`update file ${ur.length}`);
+        for (const r of ur) {
+          reached.add(r.hook);
+          const miss = ringMisses(r, r.pinnedLight ? 'light' : theme);
+          if (miss.length) bad.push({ r: { ...r, hook: `update file ${r.hook}` }, miss });
+          lows.focus = Math.min(lows.focus, r.r);
+        }
+        hostTotal += ur.length;
+        focusSwept += ur.length;
+        for (const want of UPDATE_RING_NEEDS) ok(reached.has(hooks.role(want)), `${where}: the sweep reaches ${want} in Update file's checklist and reads its ring`);
+        await page.keyboard.press('Escape');
       }
       console.log(`  ${where}: ${counts.join(', ')}`);
       ok(bad.length === 0, `${where}: every focused chrome control draws its ring in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide, ${FOCUS_OFFSET}px outside, at ${NONTEXT_MIN}:1${bad.length ? ` — ${bad.length} miss: ${ringReport(bad)}` : ''}`);
@@ -10336,8 +10226,9 @@ const HOME_LIT = {
   noneTitle: 'No brand in this file', noneBar: 'No brand', noneStart: 'Start a brand…',
   reading: 'Reading this file',
 };
-/** The bar's brand controls, none of which a home draws (there is no brand in the file). */
-const HOME_ABSENT = ['brand-switcher', 'verdict', 'export-open', 'figma-open', 'apply-to-figma', 'tab-row'];
+/** The bar's brand controls, none of which a home draws (there is no brand in the file). Since #2909 the plugin's are
+ *  the rail shell's: Update file and the rail's areas, besides the brand switcher, the verdict and the tab row. */
+const HOME_ABSENT = ['brand-switcher', 'verdict', 'update-file', 'rail-areas', 'tab-row'];
 /** The home's floors (literals): the library home draws its heading, two lines, the switch's title and status, the
  *  button and the bar's tiles; the minimal home fewer. */
 const HOME_FLOOR = { library: { text: 7, edges: 2, glyphs: 3, controls: 5, fonts: 6 }, none: { text: 4, edges: 1, glyphs: 3, controls: 4, fonts: 4 } };
@@ -10946,7 +10837,8 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
   };
   const ORDER = ['full', 'glyphs', 'logo', 'rows', 'trim'];
   const MAX_ROWS = { full: 1, glyphs: 1, logo: 1, rows: 2 };
-  const AX_HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'figma-open', 'apply-to-figma'];
+  // #2909: the plugin's rail-shell bar adds Minimize and Update file; the rest of its old controls left for the rail.
+  const AX_HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'figma-open', 'apply-to-figma', 'agent-minimize', 'update-file'];
   /** The computed accessible name of each bar control present, by hook. */
   const axBar = async (cdp) => {
     const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
@@ -11004,8 +10896,9 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
             const tip = await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.getAttribute('title') ?? null);
             if (w === 1280) {
               base = names;
-              ok(seen.step === 'full' && seen.labels === seen.of && seen.of >= (host === 'web' ? 4 : 5) && tip === null, `${where}: at 1280 the full bar shows, every tile labelled, no tooltip on the switcher (${JSON.stringify(seen)}, title ${JSON.stringify(tip)})`);
-              ok(Object.keys(names).length === (host === 'web' ? 6 : 9) && Object.values(names).every((v) => !!v) && names['brand-switcher'] === fullName,
+              ok(seen.step === 'full' && seen.labels === seen.of && seen.of >= (host === 'web' ? 4 : 1) && tip === null, `${where}: at 1280 the full bar shows, every tile labelled, no tooltip on the switcher (${JSON.stringify(seen)}, title ${JSON.stringify(tip)})`);
+              // #2909: the plugin's bar is the brand switcher, Minimize and Update file (the mark heads the rail).
+              ok(Object.keys(names).length === (host === 'web' ? 6 : 3) && Object.values(names).every((v) => !!v) && names['brand-switcher'] === fullName,
                 `${where}: every bar control and the mark have a computed name, the switcher's its brand's (${JSON.stringify(names)})`);
             } else {
               const moved = AX_HOOKS.filter((k) => names[k] !== base[k]);
@@ -11021,7 +10914,9 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
             if (!fit.also.includes(seen.step) || seen.rows.length > allowed) missed.push(`${w}: want ${fit.also.join('/')} (full ${fit.full}, without labels ${fit.glyphs}, without the name ${fit.logo}${fit.fileRow ? `, first of two rows ${fit.rows}` : ''}, in ${fit.room}), drew ${seen.step} in ${seen.rows.length} row(s) ${JSON.stringify(seen.rows)}`);
             if (seen.step === 'trim') {
               ok(names['brand-switcher'] === fullName && tip === fullName, `${where}${fit.narrow ? ' (narrow)' : ''}: the cut brand name keeps the full name as the switcher's accessible name and tooltip (name "${names['brand-switcher']}", title "${tip}")`);
-              ok(seen.rows[0]?.includes('export-open'), `${where}: Export stays on the first row while the brand name is cut (${JSON.stringify(seen.rows)})`);
+              // #2909: in the plugin, Update file, the bar's last control, is the one that must stay.
+              const last = host === 'figma' ? 'update-file' : 'export-open';
+              ok(seen.rows[0]?.includes(last), `${where}: ${host === 'figma' ? 'Update file' : 'Export'} stays on the first row while the brand name is cut (${JSON.stringify(seen.rows)})`);
             } else if (tip !== null) missed.push(`${w}: the switcher carries a tooltip (${JSON.stringify(tip)}) with its name whole (${seen.step})`);
             if (SHOTS && host === 'figma' && brand === 'long' && w >= 570 && w <= 590) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `q83-plugin-${theme}-${w}-long-name.png`) });
             if (SHOTS && brand === 'long' && (host === 'figma' ? [460, 380] : [430, 380]).includes(w)) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `2262-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-long-name.png`) });
@@ -11959,7 +11854,7 @@ for (const theme of ['light', 'dark']) {
       }
       // The counts are a text run too: a write running puts "1 running" in the row, beside the agent status.
       await postMsg(page, { type: 'agent-link-state', state: LINK_STATES.listening });
-      await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
+      await applyViaUpdate(page, WAIT);
       await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-toggle"] .p3-drawer-count'), null, WAIT).catch(() => {});
       const r = await page.evaluate(LINK_PROBE);
       const spread = baselineMiss(r.runs);
@@ -12180,7 +12075,7 @@ for (const theme of ['light', 'dark']) {
 //     locator.click: Timeout 10000ms exceeded. · waiting for locator(…"italic-choice-only"…) · <div class="p3-veil"></div>
 //     intercepts pointer events`. Before #2460 that label ended at "exceeded.".
 console.log(`\nItalic styles chips (#2192)\n${'='.repeat(78)}`);
-/** #2486: Apply as it stood when a click on it did not land, read over 12 frames, bounded: its native and busy states, its
+/** #2486: Apply as it stood when a click on it did not land (Update file since #2909, Apply's one control), read over 12 frames, bounded: its native and busy states, its
  *  label, whether it is drawn, every box it took and every `data-bar-fit` step the bar took (`fitBar` re-fitting the bar
  *  moves Apply, and Playwright then reports it as not stable). Distinct values only, in order. A page that draws no frame
  *  says so. The flake's label so far: "waiting for element to be visible, enabled and stable", on figma dark 1280. */
@@ -12190,12 +12085,12 @@ const applyAsItStood = (page) => Promise.race([
     const add = (a, v) => { if (a[a.length - 1] !== v) a.push(v); };
     for (let i = 0; i < 12; i++) {
       await new Promise((r) => requestAnimationFrame(r));
-      const n = document.querySelector('[data-p3="apply-to-figma"]');
+      const n = document.querySelector('[data-p3="update-file"]');
       const b = n?.getBoundingClientRect();
       add(boxes, b ? `${b.x.toFixed(1)},${b.y.toFixed(1)} ${b.width.toFixed(1)}×${b.height.toFixed(1)}` : 'not in the page');
       add(fits, document.querySelector('[data-p3="frame"]')?.dataset.barFit ?? 'none');
     }
-    const n = document.querySelector('[data-p3="apply-to-figma"]');
+    const n = document.querySelector('[data-p3="update-file"]');
     return JSON.stringify({ disabled: n?.disabled ?? null, ariaDisabled: n?.getAttribute('aria-disabled') ?? null, busy: n?.getAttribute('aria-busy') ?? null,
       label: n?.textContent?.trim() ?? null, drawn: !!n && n.getClientRects().length > 0, boxes, barFit: fits });
   }).catch((e) => `unreadable (${String(e?.message ?? e).split('\n')[0].slice(0, 80)})`),
@@ -12254,7 +12149,8 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     const saved = async () => {
       if (host === 'web') return persisted(page);
       // #2486: a click that does not land says what Apply was doing, read off the page, not Playwright's wait alone.
-      await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT).catch(async (e) => { e.applyState = await applyAsItStood(page); throw e; });
+      // #2909: Apply is Update file's Theme step now.
+      await applyViaUpdate(page, WAIT).catch(async (e) => { e.applyState = await applyAsItStood(page); throw e; });
       const ws = (await takeWrites(page)).filter((m) => m.type === 'apply-theme');
       await postMsg(page, { type: 'apply-result', ok: true, headline: 'Applied', summary: 'Applied' });
       await settle(page);
@@ -12507,7 +12403,13 @@ const dragGrip = async (page, y) => {
   return y0;
 };
 const openDrawer = async (page) => {
-  await hooks.click(page.locator('[data-p3="activity-open"]'));
+  // #2909: the plugin's rail shell has no Activity tile; its drawer is drawn once something ran (the boot read-back here)
+  // and opens by its own row.
+  if (await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.shell === 'rail')) {
+    await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'seed-info', ok: true, present: true, summary: 'Contract holds: 412 variables checked.', failed: 0 } }, '*'));
+    await hooks.need(page, '[data-p3="activity-toggle"]');
+    if (!(await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true'))) await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+  } else await hooks.click(page.locator('[data-p3="activity-open"]'));
   await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 });
 };
 const fx = (n) => (typeof n === 'number' ? Math.round(n * 10) / 10 : n);
@@ -12695,8 +12597,9 @@ for (const [form, pin] of [['stored hue 0', { l: 0.3211, c: 1.2e-8, h: 0 }], ['l
 //     measurement by subtraction (`fitBar`), and a `trim` can leave the name whole when that measurement runs wider
 //     than the bar now draws; the tooltip used to follow the step there. (§29d's 590 is not that case: there the row
 //     is 0.27px too wide and the name really is cut, with its ellipsis; FIT_SEEN used to read that cut as whole.)
-//     This builds the case on every machine. At a width 2px wider than the plugin's first row
-//     needs (FIT_ORACLE's own reading), one first-row control is made 4px wider and the frame re-measures (a font load,
+//     This builds the case on every machine. At a width 2px wider than the plugin's bar row needs at the narrow tier
+//     (FIT_ORACLE's own reading; the rail shell's bar is one row since #2909, the old bar's first of two rows before it),
+//     one of its controls is made 4px wider and the frame re-measures (a font load,
 //     one of its own re-measure signals); then the extra width is taken off with nothing the frame re-measures on (an
 //     inline style), and the window resized. The frame's sum is now 4px too wide, so it stays on `trim`, and the name
 //     fits its box: the bar must draw two rows (FIT_SEEN), the name whole, and no tooltip. Two controls hold the
@@ -12722,16 +12625,20 @@ console.log('\n34. #2272: trim and its tooltip follow the name\'s own cut');
         await settle(page);
         return { fit: await page.evaluate(FIT_ORACLE), seen: await page.evaluate(FIT_SEEN), tip: await tipOf(page) };
       };
-      const probe = await at(700);
-      ok(probe.fit.fileRow && typeof probe.fit.rows === 'number', `${where}: the plugin bar has its file row, so a first row to measure (${JSON.stringify(probe.fit)})`);
-      const W = Math.ceil(probe.fit.rows + (700 - probe.fit.room) + MARGIN);
+      // #2909: the plugin's rail-shell bar is one row (the brand, Minimize, Update file), so the case is built on that row at
+      // the narrow tier, where it is the one candidate (`glyphs`), as it was built on the old bar's first of two rows.
+      const P0 = 540;
+      const probe = await at(P0);
+      ok(probe.fit.narrow && !probe.fit.fileRow && typeof probe.fit.glyphs === 'number', `${where}: the plugin's bar at ${P0} is the narrow tier's one row, so a row to measure (${JSON.stringify(probe.fit)})`);
+      const W = Math.ceil(probe.fit.glyphs + (P0 - probe.fit.room) + MARGIN);
+      ok(W <= 560, `${where}: the fixture's width ${W} is still the narrow tier (560 and below), so the row it measures is the one drawn`);
       const before = await at(W);
-      ok(before.fit.step === 'rows' && before.fit.also.join() === 'rows' && before.seen.step === 'rows' && !before.seen.cut && before.tip === null,
-        `${where} ${W}: control: ${MARGIN}px wider than the first row needs, the bar draws two rows, the name whole, no tooltip (want rows, measured ${before.fit.also.join('/')} with the row ${before.fit.rows} in ${before.fit.room}; drew ${before.seen.step}, cut ${before.seen.cut}, title ${JSON.stringify(before.tip)})`);
+      ok(before.fit.step === 'glyphs' && before.fit.also.join() === 'glyphs' && before.seen.step === 'glyphs' && !before.seen.cut && before.tip === null,
+        `${where} ${W}: control: ${MARGIN}px wider than the row needs, the bar draws its one row, the name whole, no tooltip (want glyphs, measured ${before.fit.also.join('/')} with the row ${before.fit.glyphs} in ${before.fit.room}; drew ${before.seen.step}, cut ${before.seen.cut}, title ${JSON.stringify(before.tip)})`);
       // One first-row control made wider, and the frame told to measure again.
       const marked = await page.evaluate((px) => {
         const bm = document.querySelector('[data-p3="bar-main"]');
-        let c = bm.querySelector('[data-p3="export-open"]');
+        let c = bm.querySelector('[data-p3="update-file"]');
         while (c && c.parentElement !== bm) c = c.parentElement;
         if (!c) return false;
         c.setAttribute('data-inflate', '');
@@ -12742,13 +12649,13 @@ console.log('\n34. #2272: trim and its tooltip follow the name\'s own cut');
       await settle(page);
       const wide = { seen: await page.evaluate(FIT_SEEN), tip: await tipOf(page) };
       ok(marked && wide.seen.cut && wide.seen.step === 'trim' && wide.tip === LONG_NAME,
-        `${where} ${W}: control: with Export ${INFLATE}px wider the name is really cut, and the tooltip is the name (drew ${wide.seen.step}, cut ${wide.seen.cut}, title ${JSON.stringify(wide.tip)})`);
+        `${where} ${W}: control: with Update file ${INFLATE}px wider the name is really cut, and the tooltip is the name (drew ${wide.seen.step}, cut ${wide.seen.cut}, title ${JSON.stringify(wide.tip)})`);
       // The width taken off where the frame does not look (an inline style), then a resize: its sum is now too wide.
       await page.evaluate(() => { const c = document.querySelector('[data-inflate]'); c.style.marginLeft = ''; c.removeAttribute('data-inflate'); });
       await at(W + 1);
       const after = await at(W);
-      ok(!after.seen.cut && after.seen.step === 'rows' && after.tip === null,
-        `${where} ${W}: measured ${INFLATE}px too wide, the bar keeps two rows with the name whole and no tooltip, because nothing is cut (#2272) (drew ${after.seen.step}, cut ${after.seen.cut}, rows ${JSON.stringify(after.seen.rows)}, title ${JSON.stringify(after.tip)})`);
+      ok(!after.seen.cut && after.seen.step === 'glyphs' && after.tip === null,
+        `${where} ${W}: measured ${INFLATE}px too wide, the bar keeps its row with the name whole and no tooltip, because nothing is cut (#2272) (drew ${after.seen.step}, cut ${after.seen.cut}, rows ${JSON.stringify(after.seen.rows)}, title ${JSON.stringify(after.tip)})`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
@@ -13923,7 +13830,7 @@ const FC_CASES = ['oracle', 'segment', 'tab', 'held modes', 'palettes specimens'
   'live modes', 'switch', 'step picker', 'fills specimens', 'held switch', 'disabled field', 'value picker', 'weights check', 'verdict',
   'type value picker', 'layout value picker'];
 /** The plugin only: its tile dots, and the font type-ahead, which lists the host's fonts (the web has none to list). */
-const FC_PLUGIN_CASES = ['agent dot', 'activity dots', 'font list'];
+const FC_PLUGIN_CASES = ['agent dot', 'font list'];
 /** The fonts the type-ahead is handed, as the host would send them. Literal. */
 const FC_FONTS = { type: 'font-list', families: ['Inter', 'Roboto', 'Playfair Display'], styles: [18, 36, 12] };
 /** Floors on the specimens read (prism3: 182 drawn on Palettes, its squares, strips, heroes, role dots and the brand
@@ -14188,14 +14095,14 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="step-picker-close"]'));
       // A derived mode holds the panel's settings (#2284), the switch with them: GrayText, its knob kept on its side.
       step = 'Surfaces & fills, held';
-      await hooks.click(page.locator('[data-p3="mode-option"][data-mode="hc-light"]'));
+      await pickMode(page, 'hc-light');
       await page.waitForFunction((s) => { const n = document.querySelector(s); return !!n && (n.disabled || n.getAttribute('aria-disabled') === 'true'); }, SW, { timeout: 5000 }).catch(() => {});
       const sH = await swRead();
       ok(!!sH && sH.off && sH.edge === GT && sH.knob === GT && sH.track !== H,
         `${where}: a held switch draws its track's edge and its knob in GrayText ${GT}, never a Highlight track (${JSON.stringify(sH)})`);
       ran.add('held switch');
       await shot('fills-held');
-      await hooks.click(page.locator('[data-p3="mode-option"][data-mode="light"]'));
+      await pickMode(page, 'light');
 
       // ── Layout: the disabled field ───────────────────────────────────────────────────────────────────────────
       step = 'Layout';
@@ -14272,7 +14179,7 @@ for (const host of ['web', 'figma']) {
       ran.add('verdict');
 
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
-      // ── the plugin's tile dots: Agent on, Activity running (green) and failed (red) ─────────────────────────────
+      // ── the plugin's tile dot: Agent on (Activity's tile and its dots retired with #2909) ─────────────────────────────
       const dotOf = (k) => page.evaluate((x) => { const d = document.querySelector(`[data-p3="${x}"] .p3-tile-mark > .p3-dot`), b = d?.closest('button');
         const cs = d ? getComputedStyle(d) : null; return d ? { state: d.dataset.state ?? null, shown: d.getClientRects().length > 0 && cs.display !== 'none', bg: cs.backgroundColor, tile: getComputedStyle(b).backgroundColor } : null; }, k);
       // Last, after the console check: a link switched on opens the desktop bridge's socket, which no harness serves.
@@ -14283,17 +14190,7 @@ for (const host of ['web', 'figma']) {
         const a1 = await dotOf('agent-toggle');
         ok(!!a1 && a1.shown && a1.bg === CT && a1.bg !== CV, `${where}: the pressed Agent tile's dot fills with CanvasText ${CT}, drawn on the forced Canvas ${CV} (${JSON.stringify(a1)})`);
         ran.add('agent dot');
-        step = 'Activity';
-        await hooks.click(page.locator('[data-p3="apply-to-figma"]'));
-        await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'run', null, { timeout: 5000 }).catch(() => {});
-        const run = await dotOf('activity-open');
-        await shot('topbar-dots', { x: 0, y: 0, width: w, height: 64 });
-        await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'The write failed.' } }, '*'));
-        await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'bad', null, { timeout: 5000 }).catch(() => {});
-        const bad = await dotOf('activity-open');
-        ok(run?.state === 'run' && bad?.state === 'bad' && run.shown && bad.shown && run.bg === CT && bad.bg === CT,
-          `${where}: Activity's dots, running (green outside forced colors) and failed (red), each fill with CanvasText ${CT} on the forced Canvas (running ${JSON.stringify(run)}, failed ${JSON.stringify(bad)})`);
-        ran.add('activity dots');
+        // (Activity's tile dots, running and failed, retired with the tile on the plugin's rail shell, #2909 Q2909.15 A.)
         await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
       }
 
@@ -14885,35 +14782,56 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
       await after(page);
       const f2 = await focusOf(page);
       const shut = await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open);
-      ok(shut === 'false' && f2.hook === 'activity-open', `${where} A8: Escape closes the sheet and returns focus to the bar's Activity button (open ${shut}, focus ${JSON.stringify(f2)})`);
+      ok(shut === 'false' && f2.hook === 'activity-toggle', `${where} A8: Escape closes the sheet and returns focus to the drawer's own row, the rail shell drawing no Activity button (#2909; open ${shut}, focus ${JSON.stringify(f2)})`);
+      // The sheet's Close, by keyboard, the same way: the toggle is the one control left drawn.
+      step = 'the sheet\'s Close';
+      await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ write failed again', summary: 'The write failed again.' });
+      await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, BOUND);
+      await page.locator('[data-p3="activity-close"]').focus();
+      await page.keyboard.press('Enter');
+      await after(page);
+      const f3 = await focusOf(page);
+      const shut2 = await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open);
+      ok(shut2 === 'false' && f3.hook === 'activity-toggle', `${where} A8: the sheet's Close by keyboard closes it onto the drawer's own row, never BODY (#2909; open ${shut2}, focus ${JSON.stringify(f3)})`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 
-  // ── the plugin at 1280: the Figma menu; Build style guides ──────────────────────────────────────
+  // ── the plugin at 1280: Update file's checklist; Documentation › Style guides ─────────────────────────
+  // A11 held the Figma menu's focus when a host update disabled the focused item. The menu retired with #2909; its writes
+  // are Update file's checklist, which repaints on every host update and must keep focus on the same control.
   {
     const where = '§44 figma light 1280';
     const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
-    let step = 'open the Figma menu';
+    let step = 'open Update file';
     try {
-      // A11: a host update disables the focused item.
-      await openFigma(page);
-      const f0 = await focusOf(page);
-      ok(f0.hook === 'figma-option-prune', `${where} A11: the Figma menu opens on Prune stale (focus ${JSON.stringify(f0)})`);
-      step = 'an agent starts Apply Theme';
-      await postMsg(page, { type: 'agent-started', id: 'p44', cmd: 'apply-theme' });
-      await page.waitForFunction(() => document.querySelector('[data-p3="figma-option-prune"]')?.disabled === true, null, BOUND);
+      await hooks.click(page.locator('[data-p3="update-file"]'), BOUND);
+      await hooks.need(page, '[data-p3="update-dialog"]', BOUND);
+      await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+      await hooks.need(page, '[data-p3="update-set"]', BOUND);
+      step = 'tick a set by keyboard';
+      const set = page.locator('[data-p3="update-set"]').nth(1);
+      const key = await set.getAttribute('data-key');
+      await set.focus();
+      await page.keyboard.press('Space');
       await after(page);
-      const f1 = await page.evaluate(() => { const a = document.activeElement; return { hook: a?.getAttribute('data-p3') ?? a?.tagName, inMenu: !!a?.closest('[data-p3="figma-menu"]'), disabled: !!a?.disabled }; });
-      ok(f1.inMenu && !f1.disabled && f1.hook !== 'figma-option-prune', `${where} A11: the Figma menu keeps focus on an item that can run when a host update disables the focused one (focus ${JSON.stringify(f1)})`);
+      const f0 = await page.evaluate(() => ({ key: document.activeElement?.dataset?.key ?? null, checked: document.activeElement?.getAttribute('aria-checked') ?? null }));
+      ok(f0.key === key && f0.checked === 'true', `${where} A11: Space ticks a set in Update file's checklist and keeps focus on its box (focus ${JSON.stringify(f0)}, want ${key})`);
+      step = 'a host update repaints the checklist';
+      await postMsg(page, { type: 'agent-started', id: 'p44', cmd: 'readback' });
+      await postMsg(page, { type: 'agent-finished', id: 'p44', cmd: 'readback' });
+      await after(page);
+      const f1 = await page.evaluate(() => ({ key: document.activeElement?.dataset?.key ?? null, checked: document.activeElement?.getAttribute('aria-checked') ?? null,
+        inDialog: !!document.activeElement?.closest('[data-p3="update-dialog"]') }));
+      ok(f1.inDialog && f1.key === key && f1.checked === 'true', `${where} A11: the checklist keeps focus on the same box, still ticked, through a host update's repaint (focus ${JSON.stringify(f1)})`);
       step = 'Escape';
       await page.keyboard.press('Escape');
       await after(page);
       const f2 = await focusOf(page);
-      const menuOpen = await page.locator('[data-p3="figma-menu"]').count();
-      ok(menuOpen === 0 && f2.hook === 'figma-open', `${where} A11: Escape still closes the menu onto its button (menu ${menuOpen}, focus ${JSON.stringify(f2)})`);
+      const open2 = await page.locator('[data-p3="update-dialog"]').count();
+      ok(open2 === 0 && f2.hook === 'update-file', `${where} A11: Escape closes the checklist onto Update file (open ${open2}, focus ${JSON.stringify(f2)})`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
@@ -14922,7 +14840,7 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
   {
     const where = '§44 figma light 1280';
     const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
-    let step = 'open Build style guides';
+    let step = 'open Documentation › Style guides';
     try {
       // A12: the titles disclosure through a repaint.
       await openDocs(page, BOUND);
@@ -14939,14 +14857,8 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
       const det = await page.evaluate(() => document.querySelector('[data-p3="sg-titles"]')?.open ?? null);
       ok(f3.hook === 'sg-titles-summary' && det === true, `${where} A12: the "Draw by table title" disclosure keeps focus and stays open through a repaint (focus ${JSON.stringify(f3)}, open ${det})`);
 
-      // A5: Build style guides' Close, by keyboard.
-      step = 'Close Build style guides';
-      await page.locator('[data-p3="sg-close"]').focus();
-      await page.keyboard.press('Enter');
-      await page.waitForFunction(() => !document.querySelector('[data-p3="style-guides"]'), null, BOUND);
-      await after(page);
-      const f4 = await focusOf(page);
-      ok(/^(tab|color-sub)-/.test(f4.hook ?? '') && f4.selected === 'true', `${where} A5: Build style guides' Close by keyboard keeps focus off BODY, on the selected tab (focus ${JSON.stringify(f4)})`);
+      // (A5 held Build style guides' Close by keyboard. Documentation › Style guides has no Close since #2909: it is a rail
+      // area, left by the rail.)
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
@@ -15105,20 +15017,28 @@ console.log(`\n#2487 names, landmarks, the selected segment and the display-only
           ok(seg.found && seg.best && seg.best.w >= FOCUS_WIDTH_MIN && seg.best.own >= NONTEXT_MIN && seg.best.near >= NONTEXT_MIN,
             `${where}: Q195 the selected Alias path segment draws an edge of ${FOCUS_WIDTH_MIN}px or more at ${NONTEXT_MIN}:1 against its own fill and its neighbor's ground (read ${JSON.stringify(seg)})`);
           step = 'Activity';
-          await hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
+          // #2909: the plugin's rail shell has no Activity tile (the drawer is Activity, Q2909.15 A), and the drawer is drawn
+          // once something has run: the boot read-back, then the drawer's own row opens it.
+          const openActivity = async () => {
+            if (host !== 'figma') return hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
+            await postMsg(page, { type: 'seed-info', ok: true, present: true, summary: 'Contract holds: 412 variables checked.', failed: 0 });
+            await hooks.need(page, '[data-p3="activity-toggle"]');
+            if (!(await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true'))) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+          };
+          await openActivity();
           await hooks.need(page, '[data-p3="activity-body"]');
           await settle(page);
           const both = await axRead(page);
           ok(both.mains === 1 && JSON.stringify(both.regions) === JSON.stringify(['Activity', 'Inspect']),
             `${where} with Inspect and Activity open: D5 Q197 exactly one main landmark, and the named regions are Inspect and Activity alone (main ${both.mains}, regions ${JSON.stringify(both.regions)})`);
           if (host === 'figma') {
-            step = 'Build style guides';
-            await hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
+            step = 'Documentation';
+            await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
             await hooks.click(page.locator('[data-p3="inspect-close"]'), WAIT);
             await openDocs(page, WAIT);
             await settle(page);
             const sg = await axRead(page);
-            ok(sg.mains === 1, `${where} / build style guides: D5 exactly one main landmark (main ${sg.mains}, regions ${JSON.stringify(sg.regions)})`);
+            ok(sg.mains === 1, `${where} / documentation: D5 exactly one main landmark (main ${sg.mains}, regions ${JSON.stringify(sg.regions)})`);
           }
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
@@ -15265,7 +15185,7 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
-// A10 (figma 1280): a host message while the Export dialog is open repaints the bar but leaves the dialog as it is: the
+// A10 (figma 1280): a host message while Export is open (the rail's area since #2909) repaints the bar but leaves Export as it is: the
 // same node, the import text and its caret where they were. A marker set on the node by the TEST says whether it is the
 // same one; the message is an Apply verdict, which changes nothing the dialog shows.
 {
@@ -15273,14 +15193,15 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
   const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
   let step = 'open Export and its import box';
   try {
-    await hooks.click(page.locator('[data-p3="export-open"]'), BOUND);
-    await hooks.need(page, '[data-p3="export-dialog"]', BOUND);
+    // #2909: Export is the rail's area in the plugin, its content drawn on its page (`export-page`), not a dialog.
+    await hooks.click(page.locator('[data-p3="rail-export"]'), BOUND);
+    await hooks.need(page, '[data-p3="export-page"]', BOUND);
     await hooks.click(page.locator('[data-p3="export-import"]'), BOUND);
     await hooks.need(page, '[data-p3="import-text"]', BOUND);
     step = 'type into the import box and put the caret mid-text';
     const ta = page.locator('[data-p3="import-text"]');
     await ta.fill('---\nname: caret test\n---');
-    await ta.evaluate((n) => { n.focus(); n.setSelectionRange(4, 4); n.closest('[data-p3="export-dialog"]').__p3Mark = 'kept'; });
+    await ta.evaluate((n) => { n.focus(); n.setSelectionRange(4, 4); n.closest('[data-p3="export-page"]').__p3Mark = 'kept'; });
     step = 'a host message';
     // A verdict is a `host` notification, which the bar repaints on; the premise below reads that it reached the bar.
     await page.evaluate(() => { window.__p3Bar = 0; new MutationObserver((rs) => { window.__p3Bar += rs.length; }).observe(document.querySelector('[data-p3="bar-main"]'), { subtree: true, childList: true, attributes: true, characterData: true }); });
@@ -15289,12 +15210,12 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
     const barMoved = await page.evaluate(() => window.__p3Bar);
     ok(barMoved > 0, `${where} A10 premise: the host message reached the bar (${barMoved} mutation record(s))`);
     const st = await page.evaluate(() => {
-      const d = document.querySelector('[data-p3="export-dialog"]');
+      const d = document.querySelector('[data-p3="export-page"]');
       const t = document.querySelector('[data-p3="import-text"]');
       return { mark: d?.__p3Mark ?? null, value: t?.value ?? null, caret: t?.selectionStart ?? null, focused: document.activeElement === t };
     });
     ok(st.mark === 'kept' && st.value === '---\nname: caret test\n---' && st.caret === 4 && st.focused,
-      `${where} A10: a host message leaves the open Export dialog as it is, the import text and its caret in place (${JSON.stringify(st)})`);
+      `${where} A10: a host message leaves the open Export area as it is, the import text and its caret in place (${JSON.stringify(st)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
@@ -15391,7 +15312,7 @@ const PR5_MENUS = [
   ['[data-p3="brand-switcher"]', '[data-p3="brand-menu"]', ['web', 'figma']],
   ['[data-p3="theme-toggle"]', '[data-p3="theme-menu"]', ['web', 'figma']],
   ['[data-p3="inspect-open"]', '[data-p3="inspect-menu"]', ['web', 'figma']],
-  ['[data-p3="figma-open"]', '[data-p3="figma-menu"]', ['figma']],
+  // (The plugin's Figma menu retired with #2909: its writes are Update file's checklist, whose rings section 27 sweeps.)
 ];
 /** The fewest items a menu must be walked through, and the fewest controls the export dialog, per host (shape 9). */
 const PR5_MENU_FLOOR = 2;
@@ -15519,13 +15440,22 @@ for (const host of ['web', 'figma']) {
           await page.keyboard.press('Escape');
           await page.evaluate(() => document.activeElement?.blur());
         }
-        step = 'rings in the export dialog';
-        await page.locator('[data-p3="export-open"]').focus();
-        await page.keyboard.press('Enter');
-        await hooks.need(page, '[data-p3="export-dialog"]');
-        const inDlg = await page.evaluate(() => !!document.activeElement?.closest('[data-p3="export-dialog"]'));
+        // #2909: in the plugin, Export is the rail's area: its page, opened by its tile, walked from its first control.
+        step = host === 'figma' ? 'rings on the Export page' : 'rings in the export dialog';
+        const expSel = host === 'figma' ? '[data-p3="export-page"]' : '[data-p3="export-dialog"]';
+        if (host === 'figma') {
+          await page.locator('[data-p3="rail-export"]').focus();
+          await page.keyboard.press('Enter');
+          await hooks.need(page, '[data-p3="export-page"]');
+          await page.evaluate(() => { const d = document.querySelector('[data-p3="export-page"]'); d.querySelector('button, select, input, textarea, [tabindex="0"]')?.focus(); });
+        } else {
+          await page.locator('[data-p3="export-open"]').focus();
+          await page.keyboard.press('Enter');
+          await hooks.need(page, '[data-p3="export-dialog"]');
+        }
+        const inDlg = await page.evaluate((sel) => !!document.activeElement?.closest(sel), expSel);
         if (!inDlg) await page.keyboard.press('Tab');
-        const rings = await pr5Walk(page, '[data-p3="export-dialog"]', 'Tab');
+        const rings = await pr5Walk(page, expSel, 'Tab');
         const misses = rings.map((r) => ({ r, m: ringMisses(r, 'light') })).filter((x) => x.m.length);
         const miss = misses.filter((x) => !(x.r.hook in PR5_RING_GAPS));
         console.log(`  ${where}: export dialog ${rings.length} rings`);
@@ -15626,7 +15556,8 @@ for (const host of ['web', 'figma']) {
 // own two arms (Theme, the drift the review found).
 // =============================================================================================
 console.log(`\nOne menu button (#2487 PR 6)\n${'='.repeat(78)}`);
-for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], ['Inspect', 'inspect-open', 'inspect-menu']]], ['figma', [['Theme', 'theme-toggle', 'theme-menu'], ['Inspect', 'inspect-open', 'inspect-menu'], ['Figma', 'figma-open', 'figma-menu']]]]) {
+// #2909: the plugin's Figma menu retired (Update file holds its writes); its Theme menu is Appearance on the rail, the same menu.
+for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], ['Inspect', 'inspect-open', 'inspect-menu']]], ['figma', [['Appearance', 'theme-toggle', 'theme-menu'], ['Inspect', 'inspect-open', 'inspect-menu']]]]) {
   const where = `§47 ${host} light 1280`;
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
   let step = 'open';

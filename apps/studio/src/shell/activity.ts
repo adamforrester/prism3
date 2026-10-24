@@ -727,14 +727,17 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
 
   button.onclick = () => show(!open, true);
   toggle.onclick = () => show(!open, true);
-  close.onclick = () => { show(false, true); button.focus(); };
+  // Focus back on the bar's Activity button; on the plugin's rail shell (#2909), which draws no Activity tile (the drawer is
+  // Activity, Q2909.15 A), on the drawer's own row, so a closed sheet never leaves focus on BODY.
+  const focusBack = (): void => (button.isConnected ? button : toggle).focus();
+  close.onclick = () => { show(false, true); focusBack(); };
   // The full-pane sheet at 380 closes on Escape, as its Close does, focus back on the bar's Activity button (#2487 A8).
   drawer.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !open || !narrow()) return;
     e.preventDefault();
     e.stopPropagation();
     show(false, true);
-    button.focus();
+    focusBack();
   });
   cleanups.push(subscribe('host', onHost), subscribe('host:detail', onHost), subscribe('host:progress', onProgress), clear);
   linkWatchers.add(paint);
