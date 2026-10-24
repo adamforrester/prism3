@@ -402,7 +402,7 @@
  *   · the popover's focusout handler removed → `IA-3 … Tab past the switch closes the popover`.
  *   · Escape handled on the popover only → `IA-3 … Escape on the chip closes its open popover`.
  *   · the row header's toggle removed (S11) → `F2 … the row's own header collapses it, and the drawer stays open`.
- *   · the bar's Apply stuck disabled → `S1.4 … the case stopped at a wait that never resolved, … waiting for locator('[data-p3="apply-to-figma"]')`, and the run goes on.
+ *   · the bar's Apply stuck disabled → `S1.4 … the case stopped at a wait that never resolved, … waiting for locator(…"update-file"…)` (the bar's Apply until #2909), and the run goes on.
  *   #2178 (the Figma menu's Apply Theme removed, owner decision 2026-10-05):
  *   · the `apply` item put back into `figmaActions` → `#2178 Figma menu … the menu lists no Apply Theme, the bar's button is its one control`
  *     and `Figma menu … the items read Prune stale, Set up file, Build set…, Build style guides… — read Apply Theme, …`.
@@ -2456,7 +2456,6 @@ const sinceMs = async (page, t0, ms) => { const left = t0 + ms - Date.now(); if 
 /** A write's control's label as drawn: the text of whichever label layer is visible. A control carries its idle
  *  and busy labels in one cell (owner decision #4 on #1956); both visible, or neither, reads as both, or empty. */
 const SHOWN = `(n) => n ? ([...n.querySelectorAll('[data-p3="label-idle"], [data-p3="label-busy"]')].filter((x) => getComputedStyle(x).visibility === 'visible').map((x) => x.textContent).join('') || (n.querySelector('[data-p3^="label-"]') ? '' : n.textContent)) : null`;
-const openFigma = async (page) => { await hooks.click(page.locator('[data-p3="figma-open"]'), WAIT); await hooks.need(page, '[data-p3="figma-menu"]', WAIT); };
 /** Update file's words (#2909 IA v2 phase 1; DRAFT placeholders, Q2909.10 A), typed here, never read from
  *  `state/update-file.ts`: they are the words a designer reads. The busy label carries the spinner's cell, as Apply's did. */
 const UPDATE_LABEL = 'Update file';
@@ -2517,7 +2516,7 @@ for (const host of ['web', 'figma']) {
           ok(!b.open && !b.shown && b.expanded === 'false', `F2 ${where}: the drawer's own toggle closes it (${JSON.stringify({ open: b.open, shown: b.shown })})`);
           await shot('drawer-collapsed');
           const bar = await page.locator('[data-p3="top-bar"]').count();
-          hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, await page.locator('[data-p3="figma-open"]').count() === 0, `${where}: the studio offers no Figma menu`);
+          hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, (await page.evaluate(() => [...document.querySelectorAll('[data-p3="top-bar"] button')].filter((b) => /^Figma\b/.test((b.getAttribute('aria-label') ?? b.textContent ?? '').trim())).length)) === 0, `${where}: the studio offers no Figma menu (read by its name: the menu retired on both hosts with #2909)`);
           hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, await page.locator('[data-p3="bar-agent"]').count() === 0 && await page.locator('[data-p3="agent-toggle"]').count() === 0, `${where}: the studio renders no Agent slot or tile`);
           ok(errors.length === 0, `${where} Activity: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
           continue;
@@ -8520,7 +8519,8 @@ for (const host of ['web', 'figma']) {
         fileSetup: { controls: [pane, pv].flatMap((r) => [...r.querySelectorAll('button')]).filter((b) => /set up file/i.test(b.textContent ?? '')).length,
           words: /set up file/i.test(`${pane.textContent} ${pv.textContent}`) },
         internal: /\b(internal|experimental)\b/i.test(`${pane.textContent} ${pv.textContent}`),
-        last: [...pv.querySelectorAll('[data-p3="component-set-last"]')].map((n) => n.textContent),
+        // A set's build result line, by its class: neither host draws one since #2909 (Q2909.5 A), so not by its hook.
+        last: [...pv.querySelectorAll('.cset-last')].map((n) => n.textContent),
         previewSets: [...pv.querySelectorAll('[data-p3="component-set"]')].map((n) => n.dataset.set),
       };
     });
@@ -15514,7 +15514,11 @@ for (const host of ['web', 'figma']) {
               const c = n.getBoundingClientRect();
               if (r.left < c.left - 0.5 || r.right > c.right + 0.5 || r.top < c.top - 0.5 || r.bottom > c.bottom + 0.5) cut.push(n.className);
             }
-            return { focused: true, scrolled: (x === 'start' ? pre.scrollLeft === 0 : pre.scrollLeft > 0) && (y === 'start' ? pre.scrollTop === 0 : pre.scrollTop > 0), cut };
+            // An axis the preview does not overflow has no end to scroll to: on the plugin's full-width Export page (#2909)
+            // its lines fit, so only its height scrolls. Each axis that overflows must reach both ends, and one must.
+            const canX = pre.scrollWidth > pre.clientWidth + 1, canY = pre.scrollHeight > pre.clientHeight + 1;
+            const atX = x === 'start' ? pre.scrollLeft === 0 : !canX || pre.scrollLeft > 0, atY = y === 'start' ? pre.scrollTop === 0 : !canY || pre.scrollTop > 0;
+            return { focused: true, scrolled: (canX || canY) && atX && atY, cut };
           }, [x, y]);
           const ring = clip.focused ? await page.evaluate(FOCUS_RING_READ, [false, [], INSPECT_LEGACY]) : null;
           corners.push({ at: `${x}/${y}`, ...clip, miss: ring ? ringMisses(ring, 'light') : ['not focused'], ring: ring && `${ring.width}px ${ring.hex} at ${ring.offset}px, ${ring.r}:1` });
