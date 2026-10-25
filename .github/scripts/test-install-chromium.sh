@@ -22,6 +22,9 @@
 #              that cannot be written, or an archive directory that cannot be made, fails the run, named.
 #   old/…      the #2348 behavior (no clear before a retry) fails attempts 2 and 3 on the lock: the
 #              premise, shown, so `stall/…` is known to be able to fail.
+# ZOMBIES (#2981). Where PID 1 does not reap orphans, the stopped holder stays a zombie. The stand-in reads a
+# zombie as not holding the lock, as apt would, so the `stall/…` cases pass there too (measured under a
+# subreaper that never reaps; before this they failed there, five of them).
 # Mutations, each failing here by name (measured): the clear before a retry removed → `stall/ok`,
 # `stall/no lock error` and three more `stall/…`; the repair removed → `stall/repaired`; the config write
 # removed → `stall/config first`, `config/bounds`, `config/unwritable`; the final `exit 1` made `exit 0` →
@@ -64,7 +67,14 @@ cat > "$WORK/bin/stand-in-install" << 'EOF'
 #!/usr/bin/env bash
 D=$1; MODE=$2
 n=$(( $(cat "$D/count" 2> /dev/null || echo 0) + 1 )); echo "$n" > "$D/count"
-held() { [ -s "$D/lock" ] && kill -0 "$(cat "$D/lock")" 2> /dev/null; }
+# A zombie holds no lock: the kernel drops a process's locks when it exits, before anything reaps it. So a
+# holder that is stopped but unreaped (a container whose PID 1 does not reap orphans, #2981) has released
+# the lock, though `kill -0` still answers for it.
+held() {
+  local pid; pid=$(cat "$D/lock" 2> /dev/null) || return 1
+  [ -n "$pid" ] && kill -0 "$pid" 2> /dev/null || return 1
+  case $(ps -o stat= -p "$pid" 2> /dev/null) in Z*) return 1 ;; esac
+}
 if [ "$n" -gt 1 ] && held; then
   if grep -q 'DPkg::Lock::Timeout' "$D/apt.conf" 2> /dev/null; then
     for _ in 1 2; do held || break; sleep 0.5; done  # 1 s, inside the 2 s bound, as 120 s sits inside 240 s
