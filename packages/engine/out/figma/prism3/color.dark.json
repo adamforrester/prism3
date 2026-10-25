@@ -638,14 +638,14 @@
       ],
       "description": "Link text, default — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
+        "r": 0.3803921639919281,
+        "g": 0.5372549295425415,
+        "b": 0.9764705896377563,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
+        "name": "pds3/core/palette/primary/400"
       }
     },
     {
@@ -656,14 +656,14 @@
       ],
       "description": "Link text, hover — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.45098039507865906,
-        "g": 0.5960784554481506,
-        "b": 0.9725490212440491,
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/350"
+        "name": "pds3/core/palette/primary/300"
       }
     },
     {
@@ -674,14 +674,14 @@
       ],
       "description": "Link text, visited — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.7450980544090271,
-        "g": 0.8117647171020508,
-        "b": 0.9686274528503418,
+        "r": 0.8156862854957581,
+        "g": 0.8627451062202454,
+        "b": 0.9764705896377563,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/150"
+        "name": "pds3/core/palette/primary/100"
       }
     },
     {
@@ -692,14 +692,14 @@
       ],
       "description": "Link text, focused — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
+        "r": 0.3803921639919281,
+        "g": 0.5372549295425415,
+        "b": 0.9764705896377563,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
+        "name": "pds3/core/palette/primary/400"
       }
     },
     {
@@ -710,14 +710,14 @@
       ],
       "description": "Link text, pressed — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.6000000238418579,
-        "g": 0.7058823704719543,
+        "r": 0.6705882549285889,
+        "g": 0.7607843279838562,
         "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/250"
+        "name": "pds3/core/palette/primary/200"
       }
     },
     {
@@ -1233,14 +1233,14 @@
       ],
       "description": "Link icon, default — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
+        "r": 0.3803921639919281,
+        "g": 0.5372549295425415,
+        "b": 0.9764705896377563,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
+        "name": "pds3/core/palette/primary/400"
       }
     },
     {
@@ -1252,14 +1252,14 @@
       ],
       "description": "Link icon, hover — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.45098039507865906,
-        "g": 0.5960784554481506,
-        "b": 0.9725490212440491,
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/350"
+        "name": "pds3/core/palette/primary/300"
       }
     },
     {
@@ -1271,14 +1271,14 @@
       ],
       "description": "Link icon, visited — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.7450980544090271,
-        "g": 0.8117647171020508,
-        "b": 0.9686274528503418,
+        "r": 0.8156862854957581,
+        "g": 0.8627451062202454,
+        "b": 0.9764705896377563,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/150"
+        "name": "pds3/core/palette/primary/100"
       }
     },
     {
@@ -1290,14 +1290,14 @@
       ],
       "description": "Link icon, focused — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
+        "r": 0.3803921639919281,
+        "g": 0.5372549295425415,
+        "b": 0.9764705896377563,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
+        "name": "pds3/core/palette/primary/400"
       }
     },
     {
@@ -1309,14 +1309,14 @@
       ],
       "description": "Link icon, pressed — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.6000000238418579,
-        "g": 0.7058823704719543,
+        "r": 0.6705882549285889,
+        "g": 0.7607843279838562,
         "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/250"
+        "name": "pds3/core/palette/primary/200"
       }
     },
     {

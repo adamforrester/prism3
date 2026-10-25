@@ -4315,18 +4315,20 @@
     "text.link.default": {
       "$description": "Link text — default, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 4.5:1 on `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
         "light": "{wds.core.palette.primary.550}",
-        "dark": "{wds.core.palette.primary.400}",
+        "dark": "{wds.core.palette.primary.350}",
         "hc-light": "{wds.core.palette.primary.650}",
         "hc-dark": "{wds.core.palette.primary.250}"
       },
       "sits_on": [
         "background.primary",
         "background.secondary",
-        "foreground.primary"
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary"
       ],
       "contrast_with": [
         {
@@ -4344,7 +4346,7 @@
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
         "light": "{wds.core.palette.primary.650}",
-        "dark": "{wds.core.palette.primary.300}",
+        "dark": "{wds.core.palette.primary.250}",
         "hc-light": "{wds.core.palette.primary.750}",
         "hc-dark": "{wds.core.palette.primary.150}"
       },
@@ -4372,7 +4374,7 @@
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
         "light": "{wds.core.palette.primary.850}",
-        "dark": "{wds.core.palette.primary.100}",
+        "dark": "{wds.core.palette.primary.050}",
         "hc-light": "{wds.core.palette.primary.950}",
         "hc-dark": "{wds.core.palette.primary.025}"
       },
@@ -4396,18 +4398,20 @@
     "text.link.focused": {
       "$description": "Link text — focused, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 4.5:1 on `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
         "light": "{wds.core.palette.primary.550}",
-        "dark": "{wds.core.palette.primary.400}",
+        "dark": "{wds.core.palette.primary.350}",
         "hc-light": "{wds.core.palette.primary.650}",
         "hc-dark": "{wds.core.palette.primary.250}"
       },
       "sits_on": [
         "background.primary",
         "background.secondary",
-        "foreground.primary"
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary"
       ],
       "contrast_with": [
         {
@@ -4425,7 +4429,7 @@
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
         "light": "{wds.core.palette.primary.750}",
-        "dark": "{wds.core.palette.primary.200}",
+        "dark": "{wds.core.palette.primary.150}",
         "hc-light": "{wds.core.palette.primary.850}",
         "hc-dark": "{wds.core.palette.primary.050}"
       },
@@ -4979,18 +4983,20 @@
     "icon.link.default": {
       "$description": "Link icon — default, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 4.5:1 on `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
         "light": "{wds.core.palette.primary.550}",
-        "dark": "{wds.core.palette.primary.400}",
+        "dark": "{wds.core.palette.primary.350}",
         "hc-light": "{wds.core.palette.primary.650}",
         "hc-dark": "{wds.core.palette.primary.250}"
       },
       "sits_on": [
         "background.primary",
         "background.secondary",
-        "foreground.primary"
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary"
       ],
       "contrast_with": [
         {
@@ -5008,7 +5014,7 @@
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
         "light": "{wds.core.palette.primary.650}",
-        "dark": "{wds.core.palette.primary.300}",
+        "dark": "{wds.core.palette.primary.250}",
         "hc-light": "{wds.core.palette.primary.750}",
         "hc-dark": "{wds.core.palette.primary.150}"
       },
@@ -5036,7 +5042,7 @@
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
         "light": "{wds.core.palette.primary.850}",
-        "dark": "{wds.core.palette.primary.100}",
+        "dark": "{wds.core.palette.primary.050}",
         "hc-light": "{wds.core.palette.primary.950}",
         "hc-dark": "{wds.core.palette.primary.025}"
       },
@@ -5060,18 +5066,20 @@
     "icon.link.focused": {
       "$description": "Link icon — focused, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 4.5:1 on `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
         "light": "{wds.core.palette.primary.550}",
-        "dark": "{wds.core.palette.primary.400}",
+        "dark": "{wds.core.palette.primary.350}",
         "hc-light": "{wds.core.palette.primary.650}",
         "hc-dark": "{wds.core.palette.primary.250}"
       },
       "sits_on": [
         "background.primary",
         "background.secondary",
-        "foreground.primary"
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary"
       ],
       "contrast_with": [
         {
@@ -5089,7 +5097,7 @@
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
         "light": "{wds.core.palette.primary.750}",
-        "dark": "{wds.core.palette.primary.200}",
+        "dark": "{wds.core.palette.primary.150}",
         "hc-light": "{wds.core.palette.primary.850}",
         "hc-dark": "{wds.core.palette.primary.050}"
       },
@@ -5531,24 +5539,26 @@
     "inverse.text.link.default": {
       "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
-      "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary` and `inverse.foreground.secondary`. Below 4.5:1 on `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use `inverse.text.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.400}",
-        "dark": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.350}",
+        "dark": "{wds.core.palette.primary.550}",
         "hc-light": "{wds.core.palette.primary.300}",
         "hc-dark": "{wds.core.palette.primary.600}"
       },
       "sits_on": [
         "inverse.background.primary",
         "inverse.background.secondary",
-        "inverse.foreground.primary"
+        "inverse.background.tertiary",
+        "inverse.foreground.primary",
+        "inverse.foreground.secondary"
       ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 5.5,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -5559,8 +5569,8 @@
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use `inverse.text.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.300}",
-        "dark": "{wds.core.palette.primary.600}",
+        "light": "{wds.core.palette.primary.250}",
+        "dark": "{wds.core.palette.primary.650}",
         "hc-light": "{wds.core.palette.primary.200}",
         "hc-dark": "{wds.core.palette.primary.700}"
       },
@@ -5576,7 +5586,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 6.59,
+          "ratio": 7.84,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -5587,8 +5597,8 @@
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use `inverse.text.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.100}",
-        "dark": "{wds.core.palette.primary.800}",
+        "light": "{wds.core.palette.primary.050}",
+        "dark": "{wds.core.palette.primary.850}",
         "hc-light": "{wds.core.palette.primary.025}",
         "hc-dark": "{wds.core.palette.primary.900}"
       },
@@ -5604,7 +5614,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 12.56,
+          "ratio": 14.48,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -5612,24 +5622,26 @@
     "inverse.text.link.focused": {
       "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
-      "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary` and `inverse.foreground.secondary`. Below 4.5:1 on `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.focused`. Do not use for non-interactive text (use `inverse.text.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.400}",
-        "dark": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.350}",
+        "dark": "{wds.core.palette.primary.550}",
         "hc-light": "{wds.core.palette.primary.300}",
         "hc-dark": "{wds.core.palette.primary.600}"
       },
       "sits_on": [
         "inverse.background.primary",
         "inverse.background.secondary",
-        "inverse.foreground.primary"
+        "inverse.background.tertiary",
+        "inverse.foreground.primary",
+        "inverse.foreground.secondary"
       ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 5.5,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -5640,8 +5652,8 @@
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.pressed`. Do not use for non-interactive text (use `inverse.text.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.200}",
-        "dark": "{wds.core.palette.primary.700}",
+        "light": "{wds.core.palette.primary.150}",
+        "dark": "{wds.core.palette.primary.750}",
         "hc-light": "{wds.core.palette.primary.100}",
         "hc-dark": "{wds.core.palette.primary.800}"
       },
@@ -5657,7 +5669,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 9.27,
+          "ratio": 10.84,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6077,24 +6089,26 @@
     "inverse.icon.link.default": {
       "$description": "Link icon on an inverse surface — default, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
-      "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary` and `inverse.foreground.secondary`. Below 4.5:1 on `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.default`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.400}",
-        "dark": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.350}",
+        "dark": "{wds.core.palette.primary.550}",
         "hc-light": "{wds.core.palette.primary.300}",
         "hc-dark": "{wds.core.palette.primary.600}"
       },
       "sits_on": [
         "inverse.background.primary",
         "inverse.background.secondary",
-        "inverse.foreground.primary"
+        "inverse.background.tertiary",
+        "inverse.foreground.primary",
+        "inverse.foreground.secondary"
       ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 5.5,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6105,8 +6119,8 @@
       "when_to_use": "Hyperlinks and interactive icon on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.hover`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.300}",
-        "dark": "{wds.core.palette.primary.600}",
+        "light": "{wds.core.palette.primary.250}",
+        "dark": "{wds.core.palette.primary.650}",
         "hc-light": "{wds.core.palette.primary.200}",
         "hc-dark": "{wds.core.palette.primary.700}"
       },
@@ -6122,7 +6136,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 6.59,
+          "ratio": 7.84,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6133,8 +6147,8 @@
       "when_to_use": "Hyperlinks and interactive icon after it has been visited. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.visited`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.100}",
-        "dark": "{wds.core.palette.primary.800}",
+        "light": "{wds.core.palette.primary.050}",
+        "dark": "{wds.core.palette.primary.850}",
         "hc-light": "{wds.core.palette.primary.025}",
         "hc-dark": "{wds.core.palette.primary.900}"
       },
@@ -6150,7 +6164,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 12.56,
+          "ratio": 14.48,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6158,24 +6172,26 @@
     "inverse.icon.link.focused": {
       "$description": "Link icon on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
-      "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary` and `inverse.foreground.secondary`. Below 4.5:1 on `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.focused`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.400}",
-        "dark": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.350}",
+        "dark": "{wds.core.palette.primary.550}",
         "hc-light": "{wds.core.palette.primary.300}",
         "hc-dark": "{wds.core.palette.primary.600}"
       },
       "sits_on": [
         "inverse.background.primary",
         "inverse.background.secondary",
-        "inverse.foreground.primary"
+        "inverse.background.tertiary",
+        "inverse.foreground.primary",
+        "inverse.foreground.secondary"
       ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 5.5,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6186,8 +6202,8 @@
       "when_to_use": "Hyperlinks and interactive icon while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.pressed`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.200}",
-        "dark": "{wds.core.palette.primary.700}",
+        "light": "{wds.core.palette.primary.150}",
+        "dark": "{wds.core.palette.primary.750}",
         "hc-light": "{wds.core.palette.primary.100}",
         "hc-dark": "{wds.core.palette.primary.800}"
       },
@@ -6203,7 +6219,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 9.27,
+          "ratio": 10.84,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -8434,19 +8450,15 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.foreground.brand-subtle",
-        "color.icon.link.visited",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.pressed",
         "color.inverse.foreground.brand-subtle",
         "color.inverse.icon.link.pressed",
-        "color.inverse.icon.link.visited",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.pressed",
-        "color.inverse.text.link.pressed",
-        "color.inverse.text.link.visited",
-        "color.text.link.visited"
+        "color.inverse.text.link.pressed"
       ]
     },
     "core.palette.primary.150": {
@@ -8457,8 +8469,12 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.hover",
+        "color.icon.link.pressed",
         "color.interactive.primary.fill.hover",
-        "color.text.link.hover"
+        "color.inverse.icon.link.pressed",
+        "color.inverse.text.link.pressed",
+        "color.text.link.hover",
+        "color.text.link.pressed"
       ]
     },
     "core.palette.primary.200": {
@@ -8468,7 +8484,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.pressed",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.icon.hover",
@@ -8476,16 +8491,13 @@
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.pressed",
         "color.inverse.icon.link.hover",
-        "color.inverse.icon.link.pressed",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.hover",
         "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.pressed",
-        "color.inverse.text.link.hover",
-        "color.inverse.text.link.pressed",
-        "color.text.link.pressed"
+        "color.inverse.text.link.hover"
       ]
     },
     "core.palette.primary.250": {
@@ -8500,15 +8512,19 @@
         "color.icon.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.icon.link.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
         "color.inverse.icon.brand",
+        "color.inverse.icon.link.hover",
         "color.inverse.text.brand",
+        "color.inverse.text.link.hover",
         "color.text.brand",
         "color.text.link.default",
-        "color.text.link.focused"
+        "color.text.link.focused",
+        "color.text.link.hover"
       ]
     },
     "core.palette.primary.300": {
@@ -8518,7 +8534,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.hover",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.icon.hover",
@@ -8529,7 +8544,6 @@
         "color.inverse.foreground.brand",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
-        "color.inverse.icon.link.hover",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.hover",
@@ -8538,9 +8552,7 @@
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
-        "color.inverse.text.link.focused",
-        "color.inverse.text.link.hover",
-        "color.text.link.hover"
+        "color.inverse.text.link.focused"
       ]
     },
     "core.palette.primary.350": {
@@ -8551,8 +8563,16 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.brand-subtle",
+        "color.icon.link.default",
+        "color.icon.link.focused",
         "color.interactive.primary.fill.hover",
-        "color.text.brand-subtle"
+        "color.inverse.icon.link.default",
+        "color.inverse.icon.link.focused",
+        "color.inverse.text.link.default",
+        "color.inverse.text.link.focused",
+        "color.text.brand-subtle",
+        "color.text.link.default",
+        "color.text.link.focused"
       ]
     },
     "core.palette.primary.400": {
@@ -8565,8 +8585,6 @@
         "color.border.brand",
         "color.border.focus",
         "color.icon.brand",
-        "color.icon.link.default",
-        "color.icon.link.focused",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.rest",
@@ -8574,18 +8592,12 @@
         "color.inverse.border.focus",
         "color.inverse.icon.brand",
         "color.inverse.icon.brand-subtle",
-        "color.inverse.icon.link.default",
-        "color.inverse.icon.link.focused",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.rest",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand",
         "color.inverse.text.brand-subtle",
-        "color.inverse.text.link.default",
-        "color.inverse.text.link.focused",
-        "color.text.brand",
-        "color.text.link.default",
-        "color.text.link.focused"
+        "color.text.brand"
       ]
     },
     "core.palette.primary.450": {
@@ -8619,14 +8631,10 @@
         "color.inverse.border.focus",
         "color.inverse.foreground.brand",
         "color.inverse.icon.brand-subtle",
-        "color.inverse.icon.link.default",
-        "color.inverse.icon.link.focused",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.rest",
         "color.inverse.interactive.primary.text.rest",
-        "color.inverse.text.brand-subtle",
-        "color.inverse.text.link.default",
-        "color.inverse.text.link.focused"
+        "color.inverse.text.brand-subtle"
       ]
     },
     "core.palette.primary.550": {
@@ -8643,7 +8651,11 @@
         "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.rest",
         "color.inverse.icon.brand",
+        "color.inverse.icon.link.default",
+        "color.inverse.icon.link.focused",
         "color.inverse.text.brand",
+        "color.inverse.text.link.default",
+        "color.inverse.text.link.focused",
         "color.text.brand",
         "color.text.link.default",
         "color.text.link.focused"
@@ -8664,7 +8676,6 @@
         "color.inverse.foreground.brand",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
-        "color.inverse.icon.link.hover",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.hover",
@@ -8673,8 +8684,7 @@
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
-        "color.inverse.text.link.focused",
-        "color.inverse.text.link.hover"
+        "color.inverse.text.link.focused"
       ]
     },
     "core.palette.primary.650": {
@@ -8696,7 +8706,9 @@
         "color.interactive.primary.icon.hover",
         "color.interactive.primary.text.hover",
         "color.inverse.icon.brand-subtle",
+        "color.inverse.icon.link.hover",
         "color.inverse.text.brand-subtle",
+        "color.inverse.text.link.hover",
         "color.text.link.default",
         "color.text.link.focused",
         "color.text.link.hover"
@@ -8716,7 +8728,6 @@
         "color.interactive.primary.text.hover",
         "color.inverse.icon.brand",
         "color.inverse.icon.link.hover",
-        "color.inverse.icon.link.pressed",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.hover",
@@ -8725,7 +8736,6 @@
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.brand",
         "color.inverse.text.link.hover",
-        "color.inverse.text.link.pressed",
         "color.text.brand"
       ]
     },
@@ -8742,6 +8752,8 @@
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.pressed",
+        "color.inverse.icon.link.pressed",
+        "color.inverse.text.link.pressed",
         "color.text.link.hover",
         "color.text.link.pressed"
       ]
@@ -8757,12 +8769,10 @@
         "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.pressed",
         "color.inverse.icon.link.pressed",
-        "color.inverse.icon.link.visited",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.pressed",
-        "color.inverse.text.link.pressed",
-        "color.inverse.text.link.visited"
+        "color.inverse.text.link.pressed"
       ]
     },
     "core.palette.primary.850": {
@@ -8775,6 +8785,8 @@
         "color.icon.link.pressed",
         "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
+        "color.inverse.icon.link.visited",
+        "color.inverse.text.link.visited",
         "color.text.link.pressed",
         "color.text.link.visited"
       ]
@@ -8824,8 +8836,12 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.pressed",
+        "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
-        "color.text.link.pressed"
+        "color.inverse.icon.link.visited",
+        "color.inverse.text.link.visited",
+        "color.text.link.pressed",
+        "color.text.link.visited"
       ]
     },
     "core.palette.neutral.100": {

@@ -139,27 +139,27 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.450}",
+            "$value": "{hds.core.palette.primary.400}",
             "$description": "Link text — default, 4.5:1 on background.secondary"
           },
           "hover": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.350}",
+            "$value": "{hds.core.palette.primary.300}",
             "$description": "Link text — hover, 4.5:1 on background.secondary"
           },
           "visited": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.150}",
+            "$value": "{hds.core.palette.primary.100}",
             "$description": "Link text — visited, 4.5:1 on background.secondary"
           },
           "focused": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.450}",
+            "$value": "{hds.core.palette.primary.400}",
             "$description": "Link text — focused, 4.5:1 on background.secondary"
           },
           "pressed": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.250}",
+            "$value": "{hds.core.palette.primary.200}",
             "$description": "Link text — pressed, 4.5:1 on background.secondary"
           }
         }
@@ -275,27 +275,27 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.450}",
+            "$value": "{hds.core.palette.primary.400}",
             "$description": "Link icon — default, 4.5:1 on background.secondary"
           },
           "hover": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.350}",
+            "$value": "{hds.core.palette.primary.300}",
             "$description": "Link icon — hover, 4.5:1 on background.secondary"
           },
           "visited": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.150}",
+            "$value": "{hds.core.palette.primary.100}",
             "$description": "Link icon — visited, 4.5:1 on background.secondary"
           },
           "focused": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.450}",
+            "$value": "{hds.core.palette.primary.400}",
             "$description": "Link icon — focused, 4.5:1 on background.secondary"
           },
           "pressed": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.250}",
+            "$value": "{hds.core.palette.primary.200}",
             "$description": "Link icon — pressed, 4.5:1 on background.secondary"
           }
         }

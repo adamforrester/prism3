@@ -12959,9 +12959,9 @@
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.550}",
-                      "aliasOf": "ads.core.palette.accent.550",
-                      "contrast": 4.69,
+                      "$value": "{ads.core.palette.accent.600}",
+                      "aliasOf": "ads.core.palette.accent.600",
+                      "contrast": 5.65,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -13007,9 +13007,9 @@
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.650}",
-                      "aliasOf": "ads.core.palette.accent.650",
-                      "contrast": 6.84,
+                      "$value": "{ads.core.palette.accent.700}",
+                      "aliasOf": "ads.core.palette.accent.700",
+                      "contrast": 8.27,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -13055,9 +13055,9 @@
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.850}",
-                      "aliasOf": "ads.core.palette.accent.850",
-                      "contrast": 13.26,
+                      "$value": "{ads.core.palette.accent.900}",
+                      "aliasOf": "ads.core.palette.accent.900",
+                      "contrast": 14.8,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -13103,9 +13103,9 @@
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.550}",
-                      "aliasOf": "ads.core.palette.accent.550",
-                      "contrast": 4.69,
+                      "$value": "{ads.core.palette.accent.600}",
+                      "aliasOf": "ads.core.palette.accent.600",
+                      "contrast": 5.65,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -13151,9 +13151,9 @@
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.750}",
-                      "aliasOf": "ads.core.palette.accent.750",
-                      "contrast": 9.85,
+                      "$value": "{ads.core.palette.accent.800}",
+                      "aliasOf": "ads.core.palette.accent.800",
+                      "contrast": 11.47,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },

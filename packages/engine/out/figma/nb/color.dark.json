@@ -638,14 +638,14 @@
       ],
       "description": "Link text, default — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
+        "name": "nbds/core/palette/red/400"
       }
     },
     {
@@ -656,14 +656,14 @@
       ],
       "description": "Link text, hover — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8823529481887817,
-        "g": 0.49803921580314636,
-        "b": 0.48235294222831726,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/350"
+        "name": "nbds/core/palette/red/300"
       }
     },
     {
@@ -674,14 +674,14 @@
       ],
       "description": "Link text, visited — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.9372549057006836,
-        "g": 0.772549033164978,
-        "b": 0.7607843279838562,
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8274509906768799,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/150"
+        "name": "nbds/core/palette/red/100"
       }
     },
     {
@@ -692,14 +692,14 @@
       ],
       "description": "Link text, focused — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
+        "name": "nbds/core/palette/red/400"
       }
     },
     {
@@ -710,14 +710,14 @@
       ],
       "description": "Link text, pressed — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.9098039269447327,
-        "g": 0.6392157077789307,
-        "b": 0.6235294342041016,
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/250"
+        "name": "nbds/core/palette/red/200"
       }
     },
     {
@@ -1233,14 +1233,14 @@
       ],
       "description": "Link icon, default — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
+        "name": "nbds/core/palette/red/400"
       }
     },
     {
@@ -1252,14 +1252,14 @@
       ],
       "description": "Link icon, hover — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8823529481887817,
-        "g": 0.49803921580314636,
-        "b": 0.48235294222831726,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/350"
+        "name": "nbds/core/palette/red/300"
       }
     },
     {
@@ -1271,14 +1271,14 @@
       ],
       "description": "Link icon, visited — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.9372549057006836,
-        "g": 0.772549033164978,
-        "b": 0.7607843279838562,
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8274509906768799,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/150"
+        "name": "nbds/core/palette/red/100"
       }
     },
     {
@@ -1290,14 +1290,14 @@
       ],
       "description": "Link icon, focused — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
+        "name": "nbds/core/palette/red/400"
       }
     },
     {
@@ -1309,14 +1309,14 @@
       ],
       "description": "Link icon, pressed — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.9098039269447327,
-        "g": 0.6392157077789307,
-        "b": 0.6235294342041016,
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/250"
+        "name": "nbds/core/palette/red/200"
       }
     },
     {
@@ -3237,14 +3237,14 @@
       ],
       "description": "Link text, default — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -3255,14 +3255,14 @@
       ],
       "description": "Link text, hover — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.5411764979362488,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/700"
       }
     },
     {
@@ -3273,14 +3273,14 @@
       ],
       "description": "Link text, visited — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.2862745225429535,
+        "r": 0.2078431397676468,
         "g": 0,
-        "b": 0.0313725508749485,
+        "b": 0.01568627543747425,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/850"
+        "name": "nbds/core/palette/red/900"
       }
     },
     {
@@ -3291,14 +3291,14 @@
       ],
       "description": "Link text, focused — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -3309,14 +3309,14 @@
       ],
       "description": "Link text, pressed — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.3686274588108063,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/800"
       }
     },
     {
@@ -3737,14 +3737,14 @@
       ],
       "description": "Link icon, default — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -3756,14 +3756,14 @@
       ],
       "description": "Link icon, hover — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.5411764979362488,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/700"
       }
     },
     {
@@ -3775,14 +3775,14 @@
       ],
       "description": "Link icon, visited — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.2862745225429535,
+        "r": 0.2078431397676468,
         "g": 0,
-        "b": 0.0313725508749485,
+        "b": 0.01568627543747425,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/850"
+        "name": "nbds/core/palette/red/900"
       }
     },
     {
@@ -3794,14 +3794,14 @@
       ],
       "description": "Link icon, focused — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -3813,14 +3813,14 @@
       ],
       "description": "Link icon, pressed — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.3686274588108063,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/800"
       }
     },
     {

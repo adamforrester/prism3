@@ -3237,14 +3237,14 @@
       ],
       "description": "Link text, default — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8313725590705872,
-        "g": 0.3450980484485626,
-        "b": 0.3490196168422699,
+        "r": 0.8509804010391235,
+        "g": 0.43529412150382996,
+        "b": 0.4274509847164154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/400"
+        "name": "wds/core/palette/primary/350"
       }
     },
     {
@@ -3255,14 +3255,14 @@
       ],
       "description": "Link text, hover — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8705882430076599,
-        "g": 0.5176470875740051,
-        "b": 0.5058823823928833,
+        "r": 0.8901960849761963,
+        "g": 0.5960784554481506,
+        "b": 0.5843137502670288,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/300"
+        "name": "wds/core/palette/primary/250"
       }
     },
     {
@@ -3273,14 +3273,14 @@
       ],
       "description": "Link text, visited — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.9411764740943909,
-        "g": 0.8196078538894653,
-        "b": 0.8117647171020508,
+        "r": 0.9607843160629272,
+        "g": 0.8901960849761963,
+        "b": 0.886274516582489,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/100"
+        "name": "wds/core/palette/primary/050"
       }
     },
     {
@@ -3291,14 +3291,14 @@
       ],
       "description": "Link text, focused — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8313725590705872,
-        "g": 0.3450980484485626,
-        "b": 0.3490196168422699,
+        "r": 0.8509804010391235,
+        "g": 0.43529412150382996,
+        "b": 0.4274509847164154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/400"
+        "name": "wds/core/palette/primary/350"
       }
     },
     {
@@ -3309,14 +3309,14 @@
       ],
       "description": "Link text, pressed — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.9058823585510254,
-        "g": 0.6745098233222961,
-        "b": 0.658823549747467,
+        "r": 0.9215686321258545,
+        "g": 0.7490196228027344,
+        "b": 0.7372549176216125,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/200"
+        "name": "wds/core/palette/primary/150"
       }
     },
     {
@@ -3737,14 +3737,14 @@
       ],
       "description": "Link icon, default — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8313725590705872,
-        "g": 0.3450980484485626,
-        "b": 0.3490196168422699,
+        "r": 0.8509804010391235,
+        "g": 0.43529412150382996,
+        "b": 0.4274509847164154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/400"
+        "name": "wds/core/palette/primary/350"
       }
     },
     {
@@ -3756,14 +3756,14 @@
       ],
       "description": "Link icon, hover — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8705882430076599,
-        "g": 0.5176470875740051,
-        "b": 0.5058823823928833,
+        "r": 0.8901960849761963,
+        "g": 0.5960784554481506,
+        "b": 0.5843137502670288,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/300"
+        "name": "wds/core/palette/primary/250"
       }
     },
     {
@@ -3775,14 +3775,14 @@
       ],
       "description": "Link icon, visited — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.9411764740943909,
-        "g": 0.8196078538894653,
-        "b": 0.8117647171020508,
+        "r": 0.9607843160629272,
+        "g": 0.8901960849761963,
+        "b": 0.886274516582489,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/100"
+        "name": "wds/core/palette/primary/050"
       }
     },
     {
@@ -3794,14 +3794,14 @@
       ],
       "description": "Link icon, focused — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8313725590705872,
-        "g": 0.3450980484485626,
-        "b": 0.3490196168422699,
+        "r": 0.8509804010391235,
+        "g": 0.43529412150382996,
+        "b": 0.4274509847164154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/400"
+        "name": "wds/core/palette/primary/350"
       }
     },
     {
@@ -3813,14 +3813,14 @@
       ],
       "description": "Link icon, pressed — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.9058823585510254,
-        "g": 0.6745098233222961,
-        "b": 0.658823549747467,
+        "r": 0.9215686321258545,
+        "g": 0.7490196228027344,
+        "b": 0.7372549176216125,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/200"
+        "name": "wds/core/palette/primary/150"
       }
     },
     {
