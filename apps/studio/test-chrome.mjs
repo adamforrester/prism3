@@ -1671,8 +1671,10 @@ for (const host of ['web', 'figma']) {
           `rail ${where}: each tile is named in full (${rl.names.join(', ')})`);
         ok(rl.labels.length === 7 && rl.labels.every(Boolean), `rail ${where}: every tile shows its label, at this width too (Q2909.16 A) (${JSON.stringify(rl.labels)})`);
         ok(rl.current === 'rail-theme' && hexOfRgb(rl.curBg) === RAIL_SELECTED[theme], `rail ${where}: Theme is the current area, its tile filled with the inset role (${RAIL_SELECTED[theme]}) (${rl.current}, ${rl.curBg})`);
-        ok(rl.mark.shown && rl.mark.role === 'img' && rl.mark.label === 'Prism3' && rl.mark.logoHidden && !rl.mark.control && rl.barMark === 0,
-          `product mark ${where}: the rail's mark is the logo, named "Prism3", not a control, and the top bar draws none (${JSON.stringify(rl.mark)}, ${rl.barMark} in the bar)`);
+        // Q2995.2 A (#2909): at the plugin's least height (420) the logo hides so every tile keeps its label; elsewhere it shows.
+        const logoWanted = h > 420;
+        ok(rl.mark.shown === logoWanted && rl.mark.role === 'img' && rl.mark.label === 'Prism3' && rl.mark.logoHidden && !rl.mark.control && rl.barMark === 0,
+          `product mark ${where}: the rail's mark is the logo, named "Prism3", not a control, ${logoWanted ? 'drawn' : 'hidden at this height (Q2995.2 A)'}, and the top bar draws none (${JSON.stringify(rl.mark)}, ${rl.barMark} in the bar)`);
         // aria-current follows the area across clicks, and back.
         const seen = [];
         const RAIL_SEL = { theme: '[data-p3="rail-theme"]', components: '[data-p3="rail-components"]', documentation: '[data-p3="rail-documentation"]', export: '[data-p3="rail-export"]' };
