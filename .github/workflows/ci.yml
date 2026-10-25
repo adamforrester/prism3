@@ -796,6 +796,14 @@ jobs:
       - name: The CLAUDE.md-freshness detector still flags a stale checkout
         run: sh tools/claude-md-freshness/mutations.sh
 
+      # #2981 — the test for `.github/scripts/install-chromium.sh`, which all four browser jobs run. Until
+      # this step nothing ran it, so a change to the install script was gated by whoever remembered to.
+      # It runs here because it needs no browser and no network: a stand-in install, a stand-in dpkg lock,
+      # and `$TMPDIR`. Its `stall/…` cases read a zombie holder as one that has released the lock, so they
+      # hold on a runner and in a container whose PID 1 does not reap orphans alike.
+      - name: The Chromium install script retries cleanly after a stall (#2981)
+        run: bash .github/scripts/test-install-chromium.sh
+
   studio:
     runs-on: ubuntu-latest
     steps:
