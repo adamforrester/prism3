@@ -21,6 +21,7 @@
  *   · Q2909.23 A: a saved record is restored on open; Update file draws the saved selection and options, by literal.
  *   · Q668 A, Q412 A: Clean up lists the retired tables and removes them only on its confirm.
  *   · Q667 A, #2977: the Usage panels and Cover switches save the whole record with that switch flipped.
+ *   · #2995: two switches flipped before the host answers the first both stick.
  *   · Q2909.21 A: at 380 the tabs are a select.
  * RETIRED with the run UI (#2909, Q2909.23 A): P1, P6, P7, P9, P11 (the page's run, Draw it again, Cancel, the pinned
  * Draw bar), Close, #2211's disabled Draw skin, #2313 (an agent's run beside the page's list) and #2508 (a quiet run's
@@ -427,6 +428,39 @@ console.log('\nthe Usage panels and Cover switches (Q667 A, #2977)');
   await hooks.click(page.locator('[data-p3="docs-tab-specs"]'));
   const specs = await page.evaluate(() => document.querySelector('[data-p3="docs-specs"]')?.textContent ?? null);
   ok(specs === 'Spec sheetsMeasured specs for each component, drawn into the file. Coming later.', `#2830: Specs is a placeholder (${JSON.stringify(specs)})`);
+  ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── #2995 (nit 6): two switches flipped before the host answers the first ────────────────────────
+// Each save is built from the page's own unanswered save, not the host's last echo. EXPECTED is typed here: both off,
+// in the second save and on screen through both answers. MUTATION: `saveWith` built from `lend.read()` again
+// (`documentation.ts`) → `#2995: the second save keeps the first switch's change`.
+console.log('\ntwo switches before the host answers (#2995)');
+{
+  const record = { panels: true, cover: true, styleGuide: SAVED };
+  const { page, errors } = await openPage(1280, 820, record);
+  await hooks.click(page.locator('[data-p3="docs-tab-panels"]'));
+  await hooks.need(page, '[data-p3="docs-panels-switch"]');
+  await hooks.click(page.locator('[data-p3="docs-panels-switch"]'));
+  await posted(page, 'doc-settings-save', 1);
+  await hooks.click(page.locator('[data-p3="docs-tab-cover"]'));
+  await hooks.need(page, '[data-p3="docs-cover-switch"]');
+  await hooks.click(page.locator('[data-p3="docs-cover-switch"]'));
+  await posted(page, 'doc-settings-save', 2);
+  const st = await read(page);
+  ok(canon(lastSave(st)) === canon({ panels: false, cover: false, styleGuide: SAVED }),
+    `#2995: the second save keeps the first switch's change, panels and cover both off (${JSON.stringify(lastSave(st))})`);
+  // The first answer lands: the cover switch the designer just turned off stays off.
+  await post(page, { type: 'doc-settings', settings: { panels: false, cover: true, styleGuide: SAVED } });
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const mid = await page.evaluate(() => document.querySelector('[data-p3="docs-cover-switch"]')?.getAttribute('aria-checked'));
+  ok(mid === 'false', `#2995: the first save's answer does not turn the cover back on (cover switch ${mid})`);
+  await post(page, { type: 'doc-settings', settings: { panels: false, cover: false, styleGuide: SAVED } });
+  await hooks.click(page.locator('[data-p3="docs-tab-panels"]'));
+  await hooks.need(page, '[data-p3="docs-panels-switch"]');
+  const end = await page.evaluate(() => document.querySelector('[data-p3="docs-panels-switch"]')?.getAttribute('aria-checked'));
+  ok(end === 'false', `#2995: once both are answered, both switches stick off (panels switch ${end})`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }

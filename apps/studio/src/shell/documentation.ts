@@ -34,7 +34,7 @@ export type DocumentationLend = {
 export const DOCS_COPY = {
   heading: 'Documentation',
   panels: 'Usage panels',
-  panelsDesc: 'A panel beside each component set, with its overview, anatomy, usage and accessibility notes. Update file draws one for each set it adds or changes. A panel edited by hand keeps its edits.',
+  panelsDesc: 'A panel beside each component set, with its overview, anatomy, usage and accessibility notes. Update file draws one beside each set it adds. A panel edited by hand keeps its edits.',
   panelsOff: 'Off: Update file draws no new panels. Panels already in the file stay.',
   cover: 'Cover',
   coverDesc: 'The library cover, with the brand’s name and the Prism3 version, on the Cover page. Update file draws it and keeps it current, and sets it as the file thumbnail while Figma’s default is in place.',
@@ -90,10 +90,24 @@ export const mountDocumentation = (root: HTMLElement, lend: DocumentationLend, n
   const release = (): void => { for (const c of tabCleanups) c(); tabCleanups = []; body.replaceChildren(); };
   cleanups.push(release, () => page.remove());
 
-  /** The whole record, with one field changed. */
-  const saveWith = (patch: Partial<{ panels: boolean; cover: boolean; styleGuide: unknown }>): void => {
+  /** The last record this page saved, while the host has yet to answer every save (#2995, nit 6). Each save is
+   *  answered once (`doc-settings`); until the last answer lands, the record is built and painted from this, not the
+   *  host's echo of an earlier save, so a second switch flipped before the first is answered keeps the first. */
+  type DocRecord = { readonly panels: boolean; readonly cover: boolean; readonly styleGuide: unknown };
+  let pending: { record: DocRecord; unanswered: number } | null = null;
+  cleanups.push(subscribe('host:docs', () => { if (pending && --pending.unanswered <= 0) pending = null; }));
+  /** The record as this page last knew it: its own unanswered save, else what the host last said. */
+  const known = (): DocRecord => {
+    if (pending) return pending.record;
     const d = lend.read();
-    lend.save({ panels: d?.panels ?? true, cover: d?.cover ?? true, styleGuide: d?.styleGuide ?? null, ...patch });
+    return { panels: d?.panels ?? true, cover: d?.cover ?? true, styleGuide: d?.styleGuide ?? null };
+  };
+
+  /** The whole record, with one field changed. */
+  const saveWith = (patch: Partial<DocRecord>): void => {
+    const record = { ...known(), ...patch };
+    pending = { record, unanswered: (pending?.unanswered ?? 0) + 1 };
+    lend.save(record);
   };
 
   /** A switch card: its title and switch on one row, its description, and the line for off. */
@@ -125,12 +139,12 @@ export const mountDocumentation = (root: HTMLElement, lend: DocumentationLend, n
       return;
     }
     if (id === 'panels') {
-      const paint = switchCard('panels', DOCS_COPY.panels, DOCS_COPY.panelsDesc, DOCS_COPY.panelsOff, () => lend.read()?.panels ?? true, (v) => saveWith({ panels: v }));
+      const paint = switchCard('panels', DOCS_COPY.panels, DOCS_COPY.panelsDesc, DOCS_COPY.panelsOff, () => known().panels, (v) => saveWith({ panels: v }));
       tabCleanups.push(subscribe('host:docs', paint));
       return;
     }
     if (id === 'cover') {
-      const paint = switchCard('cover', DOCS_COPY.cover, DOCS_COPY.coverDesc, DOCS_COPY.coverOff, () => lend.read()?.cover ?? true, (v) => saveWith({ cover: v }));
+      const paint = switchCard('cover', DOCS_COPY.cover, DOCS_COPY.coverDesc, DOCS_COPY.coverOff, () => known().cover, (v) => saveWith({ cover: v }));
       tabCleanups.push(subscribe('host:docs', paint));
       return;
     }
