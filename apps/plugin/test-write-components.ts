@@ -5385,7 +5385,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
   const f = fullFor(all);
   const page: Page = { children: [] };
-  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true });
+  // `space/0` at its value in every brand (#2928): the list's inset binds it on three sides since the baseline is pinned
+  // across its foot, and the shim's hash would make it 20px.
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, varPx: { 'space/0': 0 } });
   const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
   await prebuildDependencies(tabsDef, { defs: componentDefs, project, host: shim as any, build });
   await build(tabsDef);

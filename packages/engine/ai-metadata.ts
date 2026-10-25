@@ -125,6 +125,9 @@ type Ctx = {
    *  role must name one that exists: an overlay-neutral brand carries the page's selected subtle fill but no
    *  band twin (owner, 2026-09-29). */
   has: (role: string) => boolean;
+  /** The ladder surfaces deeper than `ink`'s contrast floor in some mode — farther from the page than the
+   *  floor is. Empty for an ink gated on the page itself. Page spelling, like every name here. */
+  belowFloor: (ink: string) => string[];
 };
 
 /** The large-text-only sentence (AI/C-2), or nothing when the ink's floor meets the body-text floor in
@@ -154,6 +157,15 @@ const surfaceClause = (ctx: Ctx, ink: string, min: number, alt?: string): { text
   return { text, ok };
 };
 
+/** Q689 A: the contrast floor is the one text promise. A surface deeper than it carries none by design, and a
+ *  brand that needs text there moves the floor, which re-derives every floor-gated ink. Measured per role,
+ *  so a brand whose floor sits on another tier names its own surfaces. The band's floor is its own second
+ *  tier, so `onInverseGround` names that lever instead; test.ts (Q689) gates both. */
+const floorClause = (ctx: Ctx, self: string): { floor_note?: string } => {
+  const deep = ctx.belowFloor(self);
+  return deep.length ? { floor_note: `No contrast promise on ${list(deep)} — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.` } : {};
+};
+
 // Intent-keyed examples (AI/A-21): the example names the intent's own situation, and an icon role is
 // described as an icon.
 const EXAMPLE: Record<string, string> = {
@@ -163,7 +175,7 @@ const EXAMPLE: Record<string, string> = {
 const modeList = (ms: string[]) => (ms.length === 1 ? `${ms[0]} mode` : `${ms.slice(0, -1).join(', ')} and ${ms[ms.length - 1]} modes`);
 const inkNoun = (k: string) => (k === 'icon' ? 'icons' : 'text');
 
-type Described = { when_to_use: string; avoid_when: string; page_note?: string; limit?: { alt?: string } } & Relations;
+type Described = { when_to_use: string; avoid_when: string; page_note?: string; floor_note?: string; limit?: { alt?: string } } & Relations;
 
 /** Generate the prose + relationship fields for one semantic role. The key splits
  *  as [group, variant, state]; nested ladders (background.secondary, text.link.hover)
@@ -207,12 +219,12 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
       const lim = variant === 'tertiary' ? limitClause(ctx, self, ctx.floorMin('text.secondary') >= BODY_FLOOR ? 'text.secondary' : 'text.primary') : undefined;
       // The on-* redirect is a `page_note`: the on-* inks are measured on the page fills only, so on an
       // inverse band it would be the wrong-ground pairing AI/A-7 removed from the relations.
-      return { when_to_use: `${cap(variant)} ${k}. ${c.text}`, avoid_when: `${lim ? `${lim.text} ` : ''}Do not use on solid or vivid fills.`, page_note: `Use the ${q(`${k}.on-*`)} ink paired with the fill.`, ...(lim ? { limit: { alt: lim.alt } } : {}), ...(c.ok.length ? { sits_on: c.ok } : {}) };
+      return { when_to_use: `${cap(variant)} ${k}. ${c.text}`, avoid_when: `${lim ? `${lim.text} ` : ''}Do not use on solid or vivid fills.`, page_note: `Use the ${q(`${k}.on-*`)} ink paired with the fill.`, ...floorClause(ctx, self), ...(lim ? { limit: { alt: lim.alt } } : {}), ...(c.ok.length ? { sits_on: c.ok } : {}) };
     }
     // (disabled ink is the cross-cutting disabled.text / disabled.icon, group === 'disabled' below.)
     if (variant === 'link') {
       const c = surfaceClause(ctx, self, floor(4.5));
-      return { when_to_use: `Hyperlinks and interactive ${k}${sc(state)}. ${c.text}`, avoid_when: `Do not use for non-interactive ${k} (use ${q(`${k}.primary`)}).`, ...(c.ok.length ? { sits_on: c.ok } : {}) };
+      return { when_to_use: `Hyperlinks and interactive ${k}${sc(state)}. ${c.text}`, avoid_when: `Do not use for non-interactive ${k} (use ${q(`${k}.primary`)}).`, ...floorClause(ctx, self), ...(c.ok.length ? { sits_on: c.ok } : {}) };
     }
     if (variant.endsWith('-subtle')) {
       const i = variant.replace('-subtle', '');
@@ -224,7 +236,7 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
     if (variant.startsWith('on-')) { const x = variant.slice(3); return { when_to_use: `${cap(k)} placed on the ${x} fill it is paired with.`, avoid_when: `Do not use on standard surfaces — use ${q(`${k}.primary`)} or ${q(`${k}.secondary`)}.`, sits_on: [onTarget(x)] }; }
     if (intent) {
       const c = surfaceClause(ctx, self, floor(4.5));
-      return { when_to_use: `${cap(variant)} ${inkNoun(k)} — e.g. ${k === 'icon' ? 'the icon beside ' : ''}${EXAMPLE[variant]}. ${c.text}`, avoid_when: `Do not use on a solid ${variant} fill.`, page_note: `Use ${q(`${k}.on-${variant}`)} there.`, ...(c.ok.length ? { sits_on: c.ok } : {}) };
+      return { when_to_use: `${cap(variant)} ${inkNoun(k)} — e.g. ${k === 'icon' ? 'the icon beside ' : ''}${EXAMPLE[variant]}. ${c.text}`, avoid_when: `Do not use on a solid ${variant} fill.`, page_note: `Use ${q(`${k}.on-${variant}`)} there.`, ...floorClause(ctx, self), ...(c.ok.length ? { sits_on: c.ok } : {}) };
     }
   }
 
@@ -432,7 +444,7 @@ const onInverseGround = (d: Described, pageKey: string, known: (role: string) =>
   return {
     // AI/C-3: the ground is named as the path family it is, not in capitals.
     when_to_use: `${remap(d.when_to_use)} Only on an \`${INVERSE_GROUP}.*\` ground — a dark band on a light page, or the reverse.${note}`,
-    avoid_when: `Do not use on the page ground; that is \`${pageKey}\`. ${remap(d.avoid_when)}`,
+    avoid_when: `Do not use on the page ground; that is \`${pageKey}\`. ${remap(d.avoid_when)}${d.floor_note ? ` ${remap(d.floor_note).replace('floorStep setting', 'inverseSecondary setting')}` : ''}`,
     ...(d.limit ? { limit: alt?.startsWith(`${INVERSE_GROUP}.`) ? { alt } : {} } : {}),
     ...rel,
   };
@@ -610,6 +622,14 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
         return floors.length ? Math.min(...floors) : 0;
       },
       has: (r) => r in byRole,
+      belowFloor: (ink) => LADDER.filter((s) => modeNames.some((m) => {
+        const i = byRole[real(ink)]?.[m], page = byRole[real('background.primary')]?.[m], g = byRole[real(s)]?.[m];
+        if (!i || !page || !g) return false;
+        // The floor is a role (the inverse floor) or a bare palette step a page tier stands on.
+        const fl = byRole[i.against]?.[m] ?? FLOOR_ROLES.map(real).map((f) => byRole[f]?.[m]).find((x) => x?.path.endsWith(`.palette.${i.against}`));
+        if (!fl || fl.path === page.path) return false;
+        return contrast(hexToRgb(page.hex), hexToRgb(g.hex)) > contrast(hexToRgb(page.hex), hexToRgb(fl.hex)) + 1e-9;
+      })),
     };
     // interactive.<color>.<slot>.<state?> carries a 4th segment — describe it whole.
     const base = group === 'interactive'
@@ -617,7 +637,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
       : describe(group, variant, state, ctx);
     const d = inverse
       ? onInverseGround(base, pageKey, known)
-      : { ...base, avoid_when: base.page_note ? `${base.avoid_when} ${base.page_note}` : base.avoid_when };
+      : { ...base, avoid_when: [base.avoid_when, base.page_note, base.floor_note].filter(Boolean).join(' ') };
     const mode_overrides: AiToken['mode_overrides'] = {};
     // A TINTED WASH (#1614) is its fill at an opacity step: `r.path` is the OPAQUE fill's palette step, so naming it
     // alone would hand an agent the wrong color. State the tint the way the token tree does (`$extensions.prism3.tint`):

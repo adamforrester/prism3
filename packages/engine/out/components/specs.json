@@ -26441,6 +26441,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.thick"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "height": {
                   "token": "size.md.height"
                 }
@@ -26503,6 +26515,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.thick"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "height": {
                   "token": "size.sm.height"
                 }
@@ -26565,6 +26589,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.thick"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "height": {
                   "token": "size.lg.height"
                 }
@@ -27081,6 +27117,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 }
@@ -27113,6 +27161,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 }
@@ -27145,6 +27205,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 }
@@ -27177,6 +27249,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 },
@@ -27213,6 +27297,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 },
@@ -27249,6 +27345,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 },

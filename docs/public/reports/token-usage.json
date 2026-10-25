@@ -269,6 +269,10 @@
             "baseline": {
               "members": 6,
               "where": {}
+            },
+            "container": {
+              "members": 6,
+              "where": {}
             }
           }
         },
@@ -603,6 +607,10 @@
             "indicator-height"
           ],
           "parts": {
+            "container": {
+              "members": 30,
+              "where": {}
+            },
             "indicator": {
               "members": 30,
               "where": {}
@@ -21953,6 +21961,10 @@
             "reserve-height"
           ],
           "parts": {
+            "container": {
+              "members": 30,
+              "where": {}
+            },
             "content": {
               "members": 30,
               "where": {}

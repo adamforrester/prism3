@@ -108,6 +108,35 @@ consistent.
 `icon.*` mirrors `text.*`, diverging only when `iconContrast: '3:1'` lets
 secondary/semantic icons resolve against the WCAG 1.4.11 non-text floor.
 
+#### The contrast floor is the one text promise (Q689 A, 2026-10-25)
+
+Every floor-gated ink (the secondary, tertiary, status and link inks, text and icon, and their
+`inverse.` twins) is picked as the least step that clears its bar on the **contrast floor
+surface**, and is promised that bar on the floor and on every surface nearer the page. Nothing
+deeper carries a text promise, by design.
+
+| Ground | Floor surface (default) | Deeper, no text promise |
+|---|---|---|
+| page | `background.secondary` (= `foreground.primary`): `neutral.050` light, `neutral.900` dark | `background.tertiary` (= `foreground.secondary`), `foreground.tertiary` |
+| inverse band | `inverse.background.secondary` | `inverse.background.tertiary`, `inverse.foreground.secondary`, `inverse.foreground.tertiary` |
+
+- **The floor is a lever.** `surfaces.<mode>.floorStep` names it on the page; the band's floor is
+  its own second tier, moved by `surfaces.<mode>.inverseSecondary`. A brand that needs text on a
+  deeper surface moves the floor there, and every floor-gated ink re-derives to clear it. HC
+  modes keep their family's standard floor (§4).
+- **Why the least step.** An ink that just clears the floor leaves the brand the most room to
+  run light. Holding every ink on the deepest tier would darken links and secondary text in
+  every brand for surfaces most layouts never put text on.
+- **No ink moves for this decision.** It replaces Q2991.1 A, which stepped links darker to clear
+  `background.tertiary`. Q419 A stands as narrowed: the primary and link inks also clear the
+  surfaces components place them on (`background.primary`, `foreground.primary` and the five
+  `foreground.<status>-subtle` tints).
+- **Where it is stated and gated.** Each floor-gated ink's `.ai.json` `avoid_when` names the
+  deeper surfaces for its brand, computed from the resolved values. `test.ts` (Q689) measures
+  every corpus brand and mode: each floor-gated ink clears its bar on the floor and on every
+  surface nearer the page, and with the floor one step deeper (`floorStep`, and
+  `inverseSecondary` on the band) every ink re-derives to clear the new floor.
+
 ### `interactive.<color>.*` — interactive
 
 > **Superseded naming:** this section originally specified a top-level `action.*`
