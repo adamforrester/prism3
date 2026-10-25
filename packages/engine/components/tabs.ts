@@ -64,6 +64,9 @@ export const tabs: ComponentDef = {
         children: ['items', 'baseline'],
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'gap',
+        // THE BASELINE'S ROW (#2928): the baseline is pinned across the foot (`foot`), out of the flow, so this bottom
+        // inset keeps its 1px clear under the tabs, where it sat when it took a cell.
+        padding: { block: 'gap', inlineLabel: 'gap', blockEnd: 'baseline-height' },
         // CENTERED (#2518): at `alignment=center` the list fills its placement and centers the row of tabs; the Figma
         // member is built 480 wide, room for six large tabs (DRAFT, held for the owner on #2518).
         center: { axis: 'alignment', value: 'center', placementWidth: 480 },
@@ -91,8 +94,10 @@ export const tabs: ComponentDef = {
         role: 'presentation',
         paintSlots: ['fill'],
         height: 'baseline-height',
-        crossAxisFill: true,
-        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
+        // PINNED ACROSS THE FOOT, NOT STRETCHED (#2928): a stretch under the hugging list turned its width FIXED at the
+        // three default tabs, so a fourth tab added in the slot ran past the baseline. Out of the flow and constrained
+        // `STRETCH`, the baseline follows the list's width at either alignment.
+        foot: true,
         note: 'The 1px line under the tabs, which the selected underline sits on.',
       },
     },

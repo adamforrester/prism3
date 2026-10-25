@@ -44,6 +44,7 @@ Type: dimension. Bound by 22 component(s).
 |  |  | control | every member (84 of 84) |
 | select | `border-width` | control | every member (84 of 84) |
 | tabs | `baseline-height` | baseline | every member (6 of 6) |
+|  |  | container | every member (6 of 6) |
 | tag | `unselected.border-width` | container | selection: unselected (30 of 45) |
 | text-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
@@ -90,7 +91,8 @@ Type: dimension. Bound by 8 component(s).
 |  |  | spaceStart | size: small · type: range (5 of 30) |
 |  |  | track | size: small (10 of 30) |
 | switch-control | `border-width` | track | every member (40 of 40) |
-| tab-item | `indicator-height` | indicator | every member (30 of 30) |
+| tab-item | `indicator-height` | container | every member (30 of 30) |
+|  |  | indicator | every member (30 of 30) |
 | tag | `selected.border-width` | container | selection: selected · type: select (15 of 45) |
 
 ### `border-width.x-heavy`
@@ -2833,7 +2835,8 @@ Type: dimension. Bound by 22 component(s).
 |  |  | reserve | every member (30 of 30) |
 | slider | `header-gap` | field | every member (30 of 30) |
 | switch-row | `pad-x` | row | every member (4 of 4) |
-| tab-item | `pad-y`, `reserve-height` | content | every member (30 of 30) |
+| tab-item | `pad-y`, `reserve-height` | container | every member (30 of 30) |
+|  |  | content | every member (30 of 30) |
 |  |  | reserve | every member (30 of 30) |
 | tabs | `gap` | container | every member (6 of 6) |
 |  |  | items | every member (6 of 6) |

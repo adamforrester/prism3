@@ -34564,7 +34564,8 @@ arm: {
 
 // ---- centered Tabs (#2518, owner decision Q222 A) ----
 // At `alignment=center` the root projects as a bar built 480 wide (DRAFT, typed here from the decision), centering
-// its children across; the row of tabs keeps hugging and the baseline stretches across the bar. At `alignment=start`
+// its children across; the row of tabs keeps hugging and the baseline is pinned across the bar's foot (#2928: a foot pin,
+// not a stretch, which would freeze a hugging list at its first width). At `alignment=start`
 // every member is BYTE-IDENTICAL to the approved Tabs (#2416), read against the same def with the axis taken out, so
 // "everything else matches" is held rather than assumed. Mutation: the root's `center` field dropped → `#2518 tabs`.
 {
@@ -34582,13 +34583,13 @@ arm: {
   const bad: string[] = [];
   let centered = 0, started = 0;
   for (const size of ['small', 'medium', 'large']) {
-    const c = figmaAnatomyPlan(tabsDef, size, { alignment: 'center' }) as unknown as { root: { counterAxisAlignItems?: string; counterAxisSizingMode?: string; placementWidth?: number; children: { name: string; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutAlign?: string }[] } };
+    const c = figmaAnatomyPlan(tabsDef, size, { alignment: 'center' }) as unknown as { root: { counterAxisAlignItems?: string; counterAxisSizingMode?: string; placementWidth?: number; children: { name: string; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutAlign?: string; footPin?: boolean }[] } };
     // The row of tabs is the `items` slot since #2649.
     const list = c.root.children.find((k) => k.name === 'items');
     const base = c.root.children.find((k) => k.name === 'baseline');
     if (c.root.counterAxisAlignItems === 'CENTER' && c.root.counterAxisSizingMode === 'FIXED' && c.root.placementWidth === 480
-      && list?.primaryAxisSizingMode === 'AUTO' && list?.counterAxisSizingMode === 'AUTO' && base?.layoutAlign === 'STRETCH') centered++;
-    else bad.push(`${size}/center: root ${c.root.counterAxisAlignItems} ${c.root.counterAxisSizingMode} ${c.root.placementWidth}, list ${list?.primaryAxisSizingMode}/${list?.counterAxisSizingMode}, baseline ${base?.layoutAlign}`);
+      && list?.primaryAxisSizingMode === 'AUTO' && list?.counterAxisSizingMode === 'AUTO' && base?.footPin === true && base?.layoutAlign === undefined) centered++;
+    else bad.push(`${size}/center: root ${c.root.counterAxisAlignItems} ${c.root.counterAxisSizingMode} ${c.root.placementWidth}, list ${list?.primaryAxisSizingMode}/${list?.counterAxisSizingMode}, baseline ${base?.footPin ? 'foot pin' : base?.layoutAlign}`);
     const st = figmaAnatomyPlan(tabsDef, size, { alignment: 'start' });
     if (strip(st) === strip(figmaAnatomyPlan(approved, size, {}))) started++;
     else bad.push(`${size}/start: differs from the approved Tabs`);
