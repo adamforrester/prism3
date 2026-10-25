@@ -366,9 +366,10 @@ export const DOMAINS = [
   },
 ] as const satisfies readonly Domain[];
 
-/** Pages a menu opens that no tab shows and that are not legacy (UI redesign S11.2): the Figma menu's Build style
- *  guides, drawn by the shell (`shell/style-guides.ts`) in its own full-width layout, with no tab selected. */
-export const MENU_PAGES = ['styleGuides'] as const;
+/** Pages no tab shows, each drawn by the shell in its own full-width layout with no tab selected. Since IA v2 phase 1
+ *  (#2909, owner decisions of 2026-10-24) these are the plugin rail's two areas of their own: Documentation (Q667 A;
+ *  `shell/documentation.ts`, which took in the Figma menu's old Build style guides page) and Export. */
+export const MENU_PAGES = ['documentation', 'export'] as const;
 export type MenuPageKey = (typeof MENU_PAGES)[number];
 export const isMenuPage = (k: string): k is MenuPageKey => (MENU_PAGES as readonly string[]).includes(k);
 
@@ -444,3 +445,30 @@ export const homeOf = (p: Place): ViewId => pageOf(p)!.home;
 /** A view's or an Inspect view's title. */
 export const viewLabel = (v: ViewId | InspectId): string =>
   ([...VIEWS, ...INSPECT] as readonly (readonly [string, string])[]).find(([id]) => id === v)![1];
+
+// ── the plugin's rail (#2909 IA v2 phase 1) ─────────────────────────────────────────────────────────────────────────────
+/** The rail's areas, in order (owner decision of 2026-10-24): Theme · Components · Documentation · Export. Labels are the
+ *  owner's (Q2909.20 A, Chunk 2, 2026-10-24): one word under each icon, so
+ *  Documentation is "Docs" on the rail and "Documentation" in its own header. */
+export const RAIL_AREAS = [
+  { id: 'theme', label: 'Theme', name: 'Theme', glyph: 'swatches' },
+  // A hyphen, so the word breaks as "Compo-nents" in the 60px column (the wireframe's own break): the face has no soft hyphen, and the word never fits one line there. The tile's name stays whole.
+  { id: 'components', label: 'Compo-nents', name: 'Components', glyph: 'diamonds' },
+  { id: 'documentation', label: 'Docs', name: 'Documentation', glyph: 'page' },
+  { id: 'export', label: 'Export', name: 'Export', glyph: 'send' },
+] as const;
+export type AreaId = (typeof RAIL_AREAS)[number]['id'];
+/** The area a page belongs to: Components' own page, a menu page by its name, and every other page Theme's. */
+export const areaOfPage = (page: PageKey): AreaId => (page === 'components' ? 'components' : isMenuPage(page) ? page : 'theme');
+/** Theme's pages as a tab row in the plugin (Q2909.1 A, Q2909.21 A): every tab but Components, which is a rail area. */
+export const THEME_TABS = TABS.filter((t) => t.id !== 'components');
+
+/** Documentation's tabs (Q2909.21 A), in order; a select at the narrow tier, as Theme's are. Specs is a placeholder for
+ *  #2830. Labels are the round-4 drafts (Q2909.10 A). */
+export const DOC_TABS = [
+  { id: 'guides', label: 'Style guides' },
+  { id: 'panels', label: 'Usage panels' },
+  { id: 'cover', label: 'Cover' },
+  { id: 'specs', label: 'Specs' },
+] as const;
+export type DocTabId = (typeof DOC_TABS)[number]['id'];

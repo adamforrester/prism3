@@ -998,7 +998,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   const TAB_SWEEP = [
     ['[data-p3="tab-color"]', '[data-p3="palettes-levers"]', 'Color'], ['[data-p3="tab-type"]', '[data-p3="type-levers"]', 'Type'],
     ['[data-p3="tab-shape"]', '[data-p3="shape-levers"]', 'Shape'], ['[data-p3="tab-depth"]', '[data-p3="depth-levers"]', 'Depth & motion'],
-    ['[data-p3="tab-layout"]', '[data-p3="layout-levers"]', 'Layout'], ['[data-p3="tab-components"]', '[data-p3="components-levers"]', 'Components'],
+    ['[data-p3="tab-layout"]', '[data-p3="layout-levers"]', 'Layout'], ['[data-p3="rail-components"]', '[data-p3="components-levers"]', 'Components'],
   ];
   const measure = async (page, where) => {
     await settle(page, where);
@@ -1076,6 +1076,8 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   // Brand (S3): Identity's two fields BY IDENTITY, typed into, with the Style guide in the preview beside them.
   const BRAND_CONTROLS = ['[data-p3="brand-name"]', '[data-p3="brand-namespace"]'].map(hooks.role);
   const measureBrand = async (page, where) => {
+    // #2909: Brand is a Theme page; from the Components area the tab row holds no tabs, so the rail goes back first.
+    await hooks.click(page.locator('[data-p3="rail-theme"]'));
     await hooks.click(page.locator('[data-p3="tab-brand"]'));
     await hooks.need(page, '[data-p3="brand-levers"] [data-p3="brand-name"]');
     await hooks.need(page, '[data-p3="brand-style-guide"] [data-p3="specimen"]');
@@ -1110,18 +1112,18 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         await hooks.click(page.locator('[data-p3="start-example"]').first());
         await waitStart(page, false);
         await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
-        // The plugin's one page outside the tabs, Build style guides (S11.2), opened from the Figma menu as a designer
-        // opens it and given a small file, so its tree and every option group draw. It replaced the old Style guide page
-        // the Pages menu opened, which went in H12 (#2289, owner PG1 A).
-        await hooks.click(page.locator('[data-p3="figma-open"]'));
-        await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'));
+        // Documentation › Style guides (#2909 IA v2 phase 1, Q667 A, Q2909.23 A): the old Build style guides page, now the
+        // rail's Documentation area in its settings-only mode, opened from the rail as a designer opens it and given a
+        // small file, so its tree and every option group draw.
+        await hooks.click(page.locator('[data-p3="rail-documentation"]'));
         await hooks.need(page, '[data-p3="style-guides"]');
         await page.evaluate((c) => window.postMessage({ pluginMessage: { type: 'style-guide-catalog', catalog: c } }, '*'), SG_CATALOG);
         await hooks.need(page, '[data-p3="sg-collection"]');
         await page.evaluate(() => document.fonts.ready);
         pagesSeen.add('style-guides');
-        await measure(page, `${tag} / Build style guides`);
-        await hooks.click(page.locator('[data-p3="sg-close"]'));
+        await measure(page, `${tag} / Documentation › Style guides`);
+        // Back to the Theme area, whose tab row the sweep walks (#2909: a full-width page draws no tab row).
+        await hooks.click(page.locator('[data-p3="rail-theme"]'));
         // The tabs, each by its tab hook and its levers' hook (UI redesign S8.2): Components moved off the Pages menu to
         // its own tab, so the plugin-only build controls are measured there, and every other moved tab with it, since
         // the menu now holds the Style guide alone.
@@ -1163,8 +1165,8 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   // REPRESENTED, not counted: the build controls only this bundle has must be among those measured. Since S8.2 they are
   // the Components TAB's (its Build button and set choices); the plugin's one page outside the tabs, Build style guides,
   // must be measured too (the old Style guide page, the Pages menu's, until H12).
-  ok(tabsSeen.has(hooks.role('[data-p3="tab-components"]')), `the Components tab, with the plugin-only build controls, was measured (saw ${[...tabsSeen].join(', ') || 'no tabs'})`);
-  ok(pagesSeen.has('style-guides'), `the plugin's one page outside the tabs, Build style guides, was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
+  ok(tabsSeen.has(hooks.role('[data-p3="rail-components"]')), `the Components area (#2909: a rail area of its own) was measured (saw ${[...tabsSeen].join(', ') || 'no tabs'})`);
+  ok(pagesSeen.has('style-guides'), `Documentation › Style guides, the plugin's page outside the Theme tabs, was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
   ok(textTotal >= SWEEP_TEXT_FLOOR, `measured ${textTotal} text nodes across the panel sweep (floor ${SWEEP_TEXT_FLOOR})`);
   ok(fieldTotal >= SWEEP_FIELD_FLOOR, `measured ${fieldTotal} form controls across the panel sweep (floor ${SWEEP_FIELD_FLOOR})`);
   // F1 A, counted: Layout's first breakpoint field is disabled by design (D13), so every Layout tab measured must exempt it.
@@ -1199,7 +1201,8 @@ const readHome = (page) => page.evaluate(() => {
     start: !!q('[data-p3="start-screen"]'),
     editorTabs: [...document.querySelectorAll('[data-p3="tab-row"] [role="tab"]')].filter((t) => t.getClientRects().length > 0).length,
     brandSel: q('[data-p3="brand-switcher"]')?.isConnected ? q('[data-p3="brand-switcher"]').textContent : null,
-    apply: !!q('[data-p3="apply-to-figma"]')?.isConnected,
+    // #2909: the plugin's one write is Update file (it replaced Apply Theme on the bar).
+    apply: !!q('[data-p3="update-file"]')?.isConnected,
     title: q('[data-p3="home-title"]')?.textContent ?? null,
   };
 });
@@ -1222,7 +1225,7 @@ const BRAND_WRITES = ['apply-theme', 'build-components', 'prune', 'file-setup', 
   r = await readHome(page);
   ok(r.layout === 'home' && r.kind === 'library' && !r.start, `library file opens to the library home, no start window — ${JSON.stringify(r)}`);
   ok(r.editorTabs === 0 && r.brandSel === null && !r.apply && r.title === 'Product Library',
-    `the library home shows no editor, no brand switcher and no Apply Theme, and names the library — ${JSON.stringify(r)}`);
+    `the library home shows no editor, no brand switcher and no Update file, and names the library — ${JSON.stringify(r)}`);
   ok(!(await waitStart(page, true)), 'and the start window does not open behind it');
   ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
   await page.close();

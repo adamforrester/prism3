@@ -127,7 +127,7 @@ const familyDetail = (row: GroupRow, o: { catalog: Catalog; plugin: boolean; len
     list.append(item);
   }
   sets.append(list);
-  if (!o.plugin) sets.append(hook(el('p', 'cset-note', SETS_COPY.web), 'components-web-line'));
+  if (!o.plugin) sets.append(hook(el('p', 'cset-note', PRISM3_HOST === 'figma' ? SETS_COPY.plugin : SETS_COPY.web), 'components-web-line'));
   secs.push(sets);
   // Q24: each section's container on the levers panel's gray, as the other previews' are.
   for (const s of secs) s.classList.add('p3-sgsec');
@@ -137,7 +137,8 @@ const familyDetail = (row: GroupRow, o: { catalog: Catalog; plugin: boolean; len
 
 /** Mount the Components preview into `hostEl`. Subscriptions are released through `cleanups`. */
 export const mountComponentsPreview = (hostEl: HTMLElement, cleanups: (() => void)[], lend: PageLends): void => {
-  const plugin = PRISM3_HOST === 'figma';
+  // #2909 (Q2909.5 A): no per-set build verdicts here in the plugin either; Update file adds sets, Activity reports them.
+  const plugin = false;
   const stack = hook(h('div', 'p3-stack p3-preview-stack'), 'components-preview');
   hostEl.replaceChildren(stack);
   let shown: string | null = null;
