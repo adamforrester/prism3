@@ -63,6 +63,8 @@ export type AgentActions = {
   updateComponents(def: string | undefined, previewHash: string | null, choices: UpdateChoiceArgs | undefined, sink: ActionSink): Promise<void>;
   captureBaseline(def: string | undefined, sink: ActionSink): Promise<void>;
   adoptMembers(def: string | undefined, sink: ActionSink): Promise<void>;
+  /** #2830 phase 2: the spec panels, on request only. */
+  drawSpecs(def: string | undefined, sink: ActionSink): Promise<void>;
 };
 
 /** The slice of a page node the census reads. */
@@ -165,6 +167,7 @@ export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   },
   'capture-baseline': (c, a, sink) => a.captureBaseline((c as Extract<ValidCommand, { cmd: 'capture-baseline' }>).args.def, sink),
   'adopt-members': (c, a, sink) => a.adoptMembers((c as Extract<ValidCommand, { cmd: 'adopt-members' }>).args.def, sink),
+  'draw-specs': (c, a, sink) => a.drawSpecs((c as Extract<ValidCommand, { cmd: 'draw-specs' }>).args.def, sink),
   readback: async (_c, a, sink, d) => {
     await a.seedFromFile(sink);
     sink.data({ components: await d.census() });

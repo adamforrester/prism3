@@ -52,6 +52,7 @@ import { makeShim, varValue } from './component-shim';
 import { materializeForBrand } from './src/brand-def';
 import { planTargets, prebuildDependencies } from './src/build-deps';
 import { reactionMap } from './src/reactions';
+import { readSpecTag } from './src/spec-tag';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { validateComponentDef } from '@prism3/engine/component-schema';
 import type { Node, Page, ShimOpts } from './component-shim';
@@ -177,7 +178,7 @@ const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<Shi
   };
 
   const members = (set?.children ?? []) as unknown as HostNode[];
-  return { plans, divergences: diffAnatomy(plans, members, planComponentName, ports, EXERCISED), members: members.length, hostMembers: members, set: set as unknown as HostNode | undefined, ports };
+  return { plans, divergences: diffAnatomy(plans, members, planComponentName, ports, EXERCISED), members: members.length, hostMembers: members, set: set as unknown as HostNode | undefined, ports, page };
 };
 
 console.log(`component round-trip (#874) — ${INVENTORY ? 'INVENTORY' : 'GATE'} mode\n`);
@@ -444,6 +445,8 @@ console.log(`\n  NOT round-tripped (no figmaProperties — the projection is opt
 
 console.log(`\nround-tripping ${PROJECTED.length} projected defs…\n`);
 const inventory: { def: string; divergences: Divergence[]; members: number; plans: number }[] = [];
+/** Every page a def was built on, read after the corpus for a spec panel the build must never draw (Q2830.3 A). */
+const builtPages: Page[] = [];
 // …plus every def the `solid-tint` lever MATERIALIZES differently (#1614): its outline/text hover binds the
 // tinted-wash variable (`interactive.<c>.subtle-fill.<state>`, #1646) where the default binds the neutral
 // overlay, so these rows are the ones that read a wash binding back off the host.
@@ -481,11 +484,22 @@ for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...SLOT_CONSTRAINED,
     const prefersNest = Object.values(def.anatomy?.parts ?? {}).some((p) => (p.preferred ?? []).length > 0);
     const r = await roundTrip(def, SLOT_CONSTRAINED.includes(def as (typeof SLOT_CONSTRAINED)[number]) ? SLOT_FILE : prefersNest ? { identities: true } : {});
     inventory.push({ def: def.id, divergences: r.divergences, members: r.members, plans: r.plans.length });
+    builtPages.push(r.page);
     // #2830 — the spec model of the def AS BUILT HERE (no brand materialization, as `roundTrip` builds it).
     specChecks.push({ def: def.id, ...specReadback(componentSpec(def, { def }), r.hostMembers, r.set, r.ports) });
   } catch (e) {
     inventory.push({ def: def.id, divergences: [{ member: '(build)', path: '', field: 'THREW', expected: 'a built set', actual: (e as Error).message }], members: 0, plans: 0 });
   }
+}
+// Q2830.3 A: specs are drawn on request only, so building every def leaves no node tagged as a spec panel, anywhere.
+{
+  type Walked = { name?: unknown; children?: readonly Walked[] };
+  const tagged: string[] = [];
+  let seen = 0;
+  const walk = (n: Walked, path: string): void => { seen++; if (readSpecTag(n)) tagged.push(`${path}/${String(n.name)}`); for (const c of n.children ?? []) walk(c, `${path}/${String(n.name)}`); };
+  for (const [i, pg] of builtPages.entries()) for (const c of pg.children as readonly Walked[]) walk(c, `page ${i + 1}`);
+  ok(builtPages.length === inventory.filter((i) => i.members > 0).length && seen > 1000 && !tagged.length,
+    `specs/never on build: building ${builtPages.length} defs draws no spec panel (${seen} nodes walked${tagged.length ? `; tagged: ${tagged.slice(0, 3).join(', ')}` : ''})`);
 }
 const washPaints = TINTED.flatMap((d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET })).reduce((n, p) => n + planPaintVars(p.root).filter((v) => v.includes('/subtle-fill/')).length, 0);
 ok(TINTED.length > 0 && washPaints > 0,
