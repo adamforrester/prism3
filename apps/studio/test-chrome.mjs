@@ -8078,7 +8078,7 @@ for (const host of ['web', 'figma']) {
     const missing = SHAPE_LEVERS.filter((k) => count(k) !== 1).map((k) => `${k} ×${count(k)}`);
     const extra = [...new Set(r.levers.filter((k) => !SHAPE_LEVERS.includes(k)))];
     ok(missing.length === 0 && extra.length === 0, `Shape: every lever pages.ts places renders once (${SHAPE_LEVERS.length}, ${host})${missing.length ? ` — missing ${missing.join(', ')}` : ''}${extra.length ? ` — also drawn ${extra.join(', ')}` : ''}`);
-    hooks.absent(ok, { seen: count('lever-control-shape') === 1, state: 'Shape\'s levers' }, r.hairline.block === 0 && r.hairline.switches === 0 && !r.hairline.words,
+    hooks.absent(ok, { seen: count('lever-radius-scale') === 1, state: 'Shape\'s levers' }, r.hairline.block === 0 && r.hairline.switches === 0 && !r.hairline.words,
       `#2053: ${host}: Shape draws no Hairline radius switch (hairline lever blocks ${r.hairline.block}, switches ${r.hairline.switches}, words ${r.hairline.words})`);
     ok(r.intro === SHAPE_COPY.intro, `${host}: Shape's intro reads "${SHAPE_COPY.intro}" ("${r.intro}")`);
     ok(JSON.stringify(r.lsec.map(([t]) => t)) === JSON.stringify(SHAPE_PAIRS.map(([t]) => t)), `${host}: Shape's lever sections, in order: ${SHAPE_PAIRS.map(([t]) => t).join(', ')} — drew ${r.lsec.map(([t]) => t).join(', ')}`);
@@ -12569,8 +12569,9 @@ const RO_EXCEPTIONS = [
 ];
 /** The studio's boxed note (RX2 A), by its classes. */
 const RO_NOTE_CLASSES = ['p3-sg-note', 'p3-sg-warn'];
-/** At least this many controls the tree reports disabled under the pane, per page (Components, the fewest, holds 9). */
-const RO_AX_DISABLED_FLOOR = 5;
+/** At least this many controls the tree reports disabled under the pane, per page (Shape, the fewest since Control shape
+ *  moved to Components in #2909 Q2909.3 A, holds 4). */
+const RO_AX_DISABLED_FLOOR = 4;
 const RO_OPERABLE = DERIVED_CONTROL_QUERY;
 /** Roles the accessibility tree gives a control. */
 const RO_AX_CONTROLS = new Set(['button', 'checkbox', 'combobox', 'ComboBoxMenuButton', 'ComboBoxSelect', 'PopUpButton', 'listbox', 'link', 'menuitem', 'menuitemcheckbox',
@@ -15522,7 +15523,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
       await hooks.need(page, '[data-p3="danger-hue-note"]');
       const dn = await page.evaluate(() => [...document.querySelectorAll('[data-p3="danger-hue-note"]')].map((n) => ({ text: n.textContent, lever: n.closest('[data-p3^="lever-"]')?.getAttribute('data-p3') ?? null })));
-      ok(dn.length >= 1 && dn.every((d) => d.lever === 'lever-status.danger') && dn.some((d) => /is not red, so danger gets its own red/.test(d.text)),
+      ok(dn.length >= 1 && dn.every((d) => d.lever === 'lever-status-danger') && dn.some((d) => /is not red, so danger gets its own red/.test(d.text)),
         `${where}: Q2909.7 A: Danger carries the hue the engine chose, in its words (${JSON.stringify(dn)})`);
     } else {
       // What is due (Q2909.8 A), planted as the main thread answers: two sets due, one hand-edited, one not recorded.

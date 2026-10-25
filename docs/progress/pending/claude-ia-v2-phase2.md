@@ -43,7 +43,21 @@ unchanged, so `EXECUTOR_REVISION` stays (`lint-executor-revision.ts`: "unchanged
 
 ### Gates and mutations
 
-Mutations: in progress.
+Each mutation was made on a committed tree and failed by name:
+
+| Mutation | Fails |
+|---|---|
+| `tierOf` puts every section in Components | `test-component-groups.ts`: "Icon, on its Foundations page, lists under Subcomponents" |
+| Control shape's chips back under Shape › Radius | `test-pages.ts`: "no manifest lever has two homes … controlShape" |
+| The Decisions log back in `INSPECT` | `test-pages.ts`: "Q2909.7 A: Inspect holds Contrast and Tokens" |
+| `railAreas` keeps Documentation on the web | `test-pages.ts`: "Q2909.9 A: the web's rail holds Theme, Components and Export only" |
+| The gamut matcher reads another word | `test-engine-warnings.ts`: "gamut: the out-of-gamut primary …" |
+| `dueCount` returns 0 | `test-update-file.ts`: "Q2909.8 A badge: it counts the due sets …" |
+| The hand-edit default Overwrite | `test-update-file.ts`: "Q2909.8 A ticks: … hand edits are kept …" |
+| Build records no ledger entry | `test-build-completed.ts`: "ledger/build" |
+| The in-place update records no entry | `test-build-completed.ts`: "ledger/update" |
+| The scoped check reads every present set | `test-build-completed.ts`: "update-check: the check reads the sets asked for …" |
+| `dueOf` ignores the engine's revision | `test-as-built-ledger.ts`: "engine: a revision bump flags every set for the engine" |
 
 ### Gaps
 
