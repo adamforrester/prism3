@@ -1113,7 +1113,6 @@ const mountView = (view: RootView): void => {
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
         activity: { read: activityReading, closeDetail: closeOpenDetail },
         // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
-        applyTheme: null,
         updateFile: commit.isFigma ? updateFileLend : null,
         documentation: commit.isFigma ? documentationLend : null,
         // #2637 Q384: the bar's Docs. In the plugin the main thread opens the docs in the browser; on the web it is a link.
@@ -1413,17 +1412,10 @@ const barRead = (): BarView => ({
   confirm: pendingLoad && (pendingLoad.origin.kind === 'example' || pendingLoad.origin.kind === 'import')
     ? { at: pendingLoad.origin.kind, text: overwriteText(pendingLoad) } : null,
   importOpen, importText, importErr,
-  // #2909: in the plugin Export is an area, so its content shows for as long as the area is open, whatever else
-  // (the brand menu, a download) closes the web's dialog. The one mechanism that holds it open (#2995, nit 4).
-  exportOpen: exportMenuOpen || (commit.isFigma && page === 'export'),
+  // #2909: Export is an area, so its content shows for as long as the area is open, whatever else (the brand menu, a
+  // download) closes. The one mechanism that holds it open (#2995, nit 4).
+  exportOpen: exportMenuOpen || page === 'export',
   home: homeBar(homeShown()),
-  // #2909: on the rail the prune's preview is Update file's Clean up tab, never this dialog.
-  prune: host.prunePreview && !commit.isFigma ? {
-    summary: host.prunePreview.summary,
-    deleteLabel: `Delete ${host.prunePreview.count} item${host.prunePreview.count === 1 ? '' : 's'}`,
-    // #1989: a preview the host sends opens this dialog whatever the Prune button's state, so Delete is off too.
-    off: restoreFailure ? RESTORE_OFF_HINT : null,
-  } : null,
 });
 
 /** The export dialog's content (#723, implementing #720), from `export-settings.ts`, which is pure and tested under
@@ -1507,8 +1499,6 @@ const barActions: BarActions = {
   cancelReplace: () => { pendingLoad = null; barChanged(); },
   toggleExport: () => { exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; barChanged(); },
   closeExport: () => { exportMenuOpen = false; barChanged(); },
-  // Escape closes the dialog and its import box with it, as it always has.
-  escapeExport: () => { exportMenuOpen = false; importOpen = false; barChanged(); },
   artifact: (id) => { exportArtifact = id as ArtifactId; barChanged(); },
   setting: (key, value) => {
     if (key === METADATA_OPTION.key) exportMetadata = value === 'on';
@@ -1516,17 +1506,17 @@ const barActions: BarActions = {
     barChanged();
   },
   download: () => {
-    // The dialog closes; in the plugin the Export area stays drawn (`exportOpen` in `barRead`, #2909).
+    // The Export area stays drawn (`exportOpen` in `barRead`, #2909).
     exportMenuOpen = false; barChanged();
     if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
   },
-  // Cancel deletes nothing: a review is not a commitment. Only Delete's `postPrune(…, true)` does, and the main thread
-  // recomputes the plan from a fresh read before it acts.
-  closePrune: () => { setHost({ prunePreview: null }); barChanged(); },
-  deletePrune: () => {
-    if (restoreFailure) return;
-    setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true);
-  },
+};
+
+/** Clean up's Delete (#2909; the bar's prune review until #2998): only its `postPrune(…, true)` deletes, and the main
+ *  thread recomputes the plan from a fresh read before it acts. Its preview's Cancel deletes nothing. */
+const deletePrune = (): void => {
+  if (restoreFailure) return;
+  setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true);
 };
 
 
@@ -1912,7 +1902,7 @@ const updateFileLend: UpdateFileLend = {
     updateChanged();
   },
   pruneCheck: () => runPrune(),
-  pruneDelete: () => barActions.deletePrune(),
+  pruneDelete: deletePrune,
   cleanUp: (ids) => styleGuidesLend.cleanUp(ids),
 };
 

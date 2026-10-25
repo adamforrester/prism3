@@ -446,7 +446,7 @@ export const homeOf = (p: Place): ViewId => pageOf(p)!.home;
 export const viewLabel = (v: ViewId | InspectId): string =>
   ([...VIEWS, ...INSPECT] as readonly (readonly [string, string])[]).find(([id]) => id === v)![1];
 
-// ── the plugin's rail (#2909 IA v2 phase 1) ─────────────────────────────────────────────────────────────────────────────
+// ── the rail (#2909 IA v2; both hosts since phase 2, Q2909.9 A) ─────────────────────────────────────────────────────────────────────────────
 /** The rail's areas, in order (owner decision of 2026-10-24): Theme · Components · Documentation · Export. Labels are the
  *  owner's (Q2909.20 A, Chunk 2, 2026-10-24): one word under each icon, so
  *  Documentation is "Docs" on the rail and "Documentation" in its own header. */
@@ -458,9 +458,13 @@ export const RAIL_AREAS = [
   { id: 'export', label: 'Export', name: 'Export', glyph: 'send' },
 ] as const;
 export type AreaId = (typeof RAIL_AREAS)[number]['id'];
+export type RailArea = (typeof RAIL_AREAS)[number];
+/** The areas a host's rail shows (Q2909.9 A): every one in the plugin; Theme, Components and Export on the web, which has
+ *  no Figma file to document. */
+export const railAreas = (host: Host): readonly RailArea[] => (host === 'figma' ? RAIL_AREAS : RAIL_AREAS.filter((a) => a.id !== 'documentation'));
 /** The area a page belongs to: Components' own page, a menu page by its name, and every other page Theme's. */
 export const areaOfPage = (page: PageKey): AreaId => (page === 'components' ? 'components' : isMenuPage(page) ? page : 'theme');
-/** Theme's pages as a tab row in the plugin (Q2909.1 A, Q2909.21 A): every tab but Components, which is a rail area. */
+/** Theme's pages as a tab row on the rail (Q2909.1 A, Q2909.21 A): every tab but Components, which is a rail area. */
 export const THEME_TABS = TABS.filter((t) => t.id !== 'components');
 
 /** Documentation's tabs (Q2909.21 A), in order; a select at the narrow tier, as Theme's are. Specs is a placeholder for

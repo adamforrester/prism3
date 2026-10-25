@@ -51,13 +51,6 @@
 .p3-bar-slot { display: contents; }
 .p3-bar-main { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); position: relative; }
 .p3-spacer { flex: 1 1 auto; }
-/* The product mark (studio only, owner 2026-10-04): the logo, then the name, ahead of the brand switcher. Not a
-   control, so no edge. The logo is `styles.css`'s `.logo`, a fixed gradient no rule here may draw. */
-.p3-mark {
-  display: inline-flex; align-items: center; gap: var(--p3-space-100); flex: none; padding-right: var(--p3-space-200);
-  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong);
-  letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); white-space: nowrap;
-}
 
 /* Buttons: a page-colored fill and an edge that clears 3:1 on the bar (B1). */
 /* No hover on a disabled control (owner decision Q28 a, 2026-10-05): a control that is `:disabled` or
@@ -157,8 +150,6 @@
 }
 .p3-tile-start > .p3-tile-tip { left: 0; right: auto; }
 .p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip { display: block; }
-/* The plugin's second row at the narrow tier: a break and a spacer that draw nothing above it. */
-.p3-bar-break, .p3-bar-spacer2 { display: none; }
 .p3-verdict:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-field-edge-hover); }
 /* A status dot. Never the only cue: the verdict's line, a mode's name and count, Health's sentence say it. */
 .p3-dot { display: inline-block; flex: none; width: var(--p3-dot); height: var(--p3-dot); border-radius: var(--p3-radius-pill); }
@@ -503,12 +494,10 @@
 }
 .p3-frame[data-w="narrow"] .p3-bar-main { flex-wrap: wrap; gap: var(--p3-space-075); }
 /* Narrow keeps the logo and drops the name; the mark's accessible name still says it. */
-.p3-frame[data-w="narrow"] .p3-mark { padding-right: var(--p3-space-050); }
 /* The narrow tier's rules for the tile labels, the product name and the two rows also serve the wide bar's fit steps
    (#2214, BL1 A+B): `frame.ts` (`fitBar`) sets `data-bar-fit` when the full bar would not fit on one row. `glyphs`
    drops the labels, `logo` the name too, `rows` takes the two rows as well, and `trim` (Q83 A) also cuts the brand
    switcher's name short, below. The narrow tier takes `trim` too (#2262), when its own first row would not fit. */
-.p3-frame:is([data-w="narrow"], [data-bar-fit="logo"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-mark-name { display: none; }
 .p3-frame[data-w="narrow"] :is(.p3-btn, .p3-brand) { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-frame[data-w="narrow"] .p3-brand { padding: 0 var(--p3-space-100); }
 .p3-frame[data-w="narrow"] .p3-btn-icon { min-width: var(--p3-ctl-h-xs); }
@@ -549,8 +538,6 @@
 /* At 380 the Contrast tooltip hangs from the bar's left edge, so a long line stays inside the window. */
 .p3-frame[data-w="narrow"] .p3-tile-start { position: static; }
 .p3-frame[data-w="narrow"] .p3-tile-start > .p3-tile-tip { left: 0; top: 100%; }
-.p3-frame:is([data-w="narrow"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-bar-break { display: block; flex: 0 0 100%; height: 0; }
-.p3-frame:is([data-w="narrow"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-bar-spacer2 { display: block; flex: 1 1 auto; }
 /* `trim` (#2214, the owner's Q83 A): the first row still does not fit, so the brand switcher takes what is left of it and
    cuts its name short with the ellipsis `.p3-brand-name` already draws; the spacer before Theme gives up its share. */
 .p3-frame[data-bar-fit="trim"] .p3-brandwrap { flex: 1 1 0; min-width: 0; }
@@ -679,8 +666,6 @@
 .p3-frame[data-layout="panes"][data-w="wide"] .p3-drawer[data-sized="true"] { grid-row: 4 / -1; align-self: end; }
 
 /* The Figma menu (S1.4, plugin only). At 380 it spans the top row, under it, like the Agent popover. */
-.p3-frame[data-w="narrow"] .p3-figma-wrap { position: static; }
-.p3-frame[data-w="narrow"] .p3-figma-menu { left: 0; right: 0; }
 
 /* ── the Agent tile (S1.4, IA-3; T7 A, 2026-10-05; plugin only) ───────────────────────────── */
 .p3-agent-slot { display: inline-flex; }
