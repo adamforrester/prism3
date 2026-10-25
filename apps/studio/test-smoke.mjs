@@ -980,7 +980,7 @@ async function tabClick(page, id) {
   if (id === 'components') { await hooks.click(page.locator('[data-p3="rail-components"]')); return; }
   const away = await page.evaluate(() => { const f = document.querySelector('[data-p3="frame"]'); return f?.dataset.place === 'components' || f?.dataset.layout === 'page'; });
   if (away) await hooks.click(page.locator('[data-p3="rail-theme"]'));
-  await hooks.click(page.locator(`[data-p3="tab-${id}"]`));
+  await hooks.click(page.locator(`[data-p3="${`tab-${id}`}"]`));
 }
 /** Go to a place by its clicks, and wait for the frame to say it shows that place: a real condition, never a duration.
  *  #2909: Theme's tab row comes back with the Theme area, so from Components or an area drawn as a page (Export) the
