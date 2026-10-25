@@ -101,8 +101,9 @@ export const VIEWS = [
   ['guide', 'Style guide'], ['palettes', 'Palettes'], ['surfaces', 'Surfaces & fills'], ['interactive', 'Interactive'],
   ['type', 'Type'], ['shape', 'Size & shape'], ['depth', 'Depth & motion'], ['layout', 'Layout'], ['comps', 'Components'],
 ] as const;
-/** The views behind Inspect (F1). They open over any page's preview and are never a page's home. */
-export const INSPECT = [['contrast', 'Contrast'], ['tokens', 'Tokens'], ['log', 'Decisions log']] as const;
+/** The views behind Inspect (F1). They open over any page's preview and are never a page's home. The Decisions log, the
+ *  third, was cut (#2909 Q2909.7 A). */
+export const INSPECT = [['contrast', 'Contrast'], ['tokens', 'Tokens']] as const;
 /** Where the web bar's Docs link points: the docs landing page (#2637, owner decision Q384 A), which replaced Inspect's
  *  Docs item and its target, the guides' index (#2662). The site serves the repo's `docs/public/` at `/docs`, so this is
  *  `docs/public/index.html`; the site build requires it. The trailing slash keeps the page's relative links inside

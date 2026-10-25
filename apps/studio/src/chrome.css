@@ -466,10 +466,8 @@
 .p3-vpill .p3-ico { color: var(--p3-ok-icon); }
 .p3-vpill-bad { color: var(--p3-bad-text); }
 .p3-vpill-bad .p3-ico { color: var(--p3-bad-icon); }
-.p3-health-modes, .p3-log { display: grid; gap: var(--p3-space-100); margin: 0; padding: 0; list-style: none; }
+.p3-health-modes { display: grid; gap: var(--p3-space-100); margin: 0; padding: 0; list-style: none; }
 .p3-health-mode { display: flex; align-items: center; gap: var(--p3-space-100); }
-.p3-log-item { padding-bottom: var(--p3-space-100); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
-.p3-log-item:last-child { padding-bottom: 0; border-bottom: 0; }
 /* A legacy view inside Inspect: pinned light (D2), on its own page-colored container, inset like the
    chrome's own cards (Health, the Decisions log) so its toolbar does not sit on the container's edge. */
 .p3-legacy-card { min-width: 0; padding: var(--p3-space-300); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page); }
