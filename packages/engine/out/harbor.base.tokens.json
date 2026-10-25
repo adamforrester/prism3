@@ -1511,27 +1511,27 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.650}",
+            "$value": "{hds.core.palette.primary.600}",
             "$description": "Link text — default, 4.5:1 on background.secondary"
           },
           "hover": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.750}",
+            "$value": "{hds.core.palette.primary.700}",
             "$description": "Link text — hover, 4.5:1 on background.secondary"
           },
           "visited": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.950}",
+            "$value": "{hds.core.palette.primary.900}",
             "$description": "Link text — visited, 4.5:1 on background.secondary"
           },
           "focused": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.650}",
+            "$value": "{hds.core.palette.primary.600}",
             "$description": "Link text — focused, 4.5:1 on background.secondary"
           },
           "pressed": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.850}",
+            "$value": "{hds.core.palette.primary.800}",
             "$description": "Link text — pressed, 4.5:1 on background.secondary"
           }
         }
@@ -1677,27 +1677,27 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.650}",
+            "$value": "{hds.core.palette.primary.600}",
             "$description": "Link icon — default, 4.5:1 on background.secondary"
           },
           "hover": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.750}",
+            "$value": "{hds.core.palette.primary.700}",
             "$description": "Link icon — hover, 4.5:1 on background.secondary"
           },
           "visited": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.950}",
+            "$value": "{hds.core.palette.primary.900}",
             "$description": "Link icon — visited, 4.5:1 on background.secondary"
           },
           "focused": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.650}",
+            "$value": "{hds.core.palette.primary.600}",
             "$description": "Link icon — focused, 4.5:1 on background.secondary"
           },
           "pressed": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.850}",
+            "$value": "{hds.core.palette.primary.800}",
             "$description": "Link icon — pressed, 4.5:1 on background.secondary"
           }
         }
@@ -2275,27 +2275,27 @@
           "link": {
             "default": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.400}",
+              "$value": "{hds.core.palette.primary.450}",
               "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary"
             },
             "hover": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.300}",
+              "$value": "{hds.core.palette.primary.350}",
               "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary"
             },
             "visited": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.100}",
+              "$value": "{hds.core.palette.primary.150}",
               "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary"
             },
             "focused": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.400}",
+              "$value": "{hds.core.palette.primary.450}",
               "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary"
             },
             "pressed": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.200}",
+              "$value": "{hds.core.palette.primary.250}",
               "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary"
             }
           }
@@ -2416,27 +2416,27 @@
           "link": {
             "default": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.400}",
+              "$value": "{hds.core.palette.primary.450}",
               "$description": "Link icon on an inverse surface — default, 4.5:1 on inverse.background.secondary"
             },
             "hover": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.300}",
+              "$value": "{hds.core.palette.primary.350}",
               "$description": "Link icon on an inverse surface — hover, 4.5:1 on inverse.background.secondary"
             },
             "visited": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.100}",
+              "$value": "{hds.core.palette.primary.150}",
               "$description": "Link icon on an inverse surface — visited, 4.5:1 on inverse.background.secondary"
             },
             "focused": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.400}",
+              "$value": "{hds.core.palette.primary.450}",
               "$description": "Link icon on an inverse surface — focused, 4.5:1 on inverse.background.secondary"
             },
             "pressed": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.200}",
+              "$value": "{hds.core.palette.primary.250}",
               "$description": "Link icon on an inverse surface — pressed, 4.5:1 on inverse.background.secondary"
             }
           }

@@ -6405,9 +6405,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.primary.400}",
-                    "aliasOf": "pds3.core.palette.primary.400",
-                    "contrast": 5.51,
+                    "$value": "{pds3.core.palette.primary.450}",
+                    "aliasOf": "pds3.core.palette.primary.450",
+                    "contrast": 4.65,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6453,9 +6453,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.primary.300}",
-                    "aliasOf": "pds3.core.palette.primary.300",
-                    "contrast": 7.58,
+                    "$value": "{pds3.core.palette.primary.350}",
+                    "aliasOf": "pds3.core.palette.primary.350",
+                    "contrast": 6.46,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6501,9 +6501,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.primary.100}",
-                    "aliasOf": "pds3.core.palette.primary.100",
-                    "contrast": 13.04,
+                    "$value": "{pds3.core.palette.primary.150}",
+                    "aliasOf": "pds3.core.palette.primary.150",
+                    "contrast": 11.48,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6549,9 +6549,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.primary.400}",
-                    "aliasOf": "pds3.core.palette.primary.400",
-                    "contrast": 5.51,
+                    "$value": "{pds3.core.palette.primary.450}",
+                    "aliasOf": "pds3.core.palette.primary.450",
+                    "contrast": 4.65,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6597,9 +6597,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.primary.200}",
-                    "aliasOf": "pds3.core.palette.primary.200",
-                    "contrast": 10.06,
+                    "$value": "{pds3.core.palette.primary.250}",
+                    "aliasOf": "pds3.core.palette.primary.250",
+                    "contrast": 8.72,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7929,9 +7929,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.primary.400}",
-                    "aliasOf": "pds3.core.palette.primary.400",
-                    "contrast": 5.51,
+                    "$value": "{pds3.core.palette.primary.450}",
+                    "aliasOf": "pds3.core.palette.primary.450",
+                    "contrast": 4.65,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7977,9 +7977,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.primary.300}",
-                    "aliasOf": "pds3.core.palette.primary.300",
-                    "contrast": 7.58,
+                    "$value": "{pds3.core.palette.primary.350}",
+                    "aliasOf": "pds3.core.palette.primary.350",
+                    "contrast": 6.46,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -8025,9 +8025,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.primary.100}",
-                    "aliasOf": "pds3.core.palette.primary.100",
-                    "contrast": 13.04,
+                    "$value": "{pds3.core.palette.primary.150}",
+                    "aliasOf": "pds3.core.palette.primary.150",
+                    "contrast": 11.48,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -8073,9 +8073,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.primary.400}",
-                    "aliasOf": "pds3.core.palette.primary.400",
-                    "contrast": 5.51,
+                    "$value": "{pds3.core.palette.primary.450}",
+                    "aliasOf": "pds3.core.palette.primary.450",
+                    "contrast": 4.65,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -8121,9 +8121,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.primary.200}",
-                    "aliasOf": "pds3.core.palette.primary.200",
-                    "contrast": 10.06,
+                    "$value": "{pds3.core.palette.primary.250}",
+                    "aliasOf": "pds3.core.palette.primary.250",
+                    "contrast": 8.72,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -12962,13 +12962,13 @@
           "link": {
             "default": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.400}",
+              "$value": "{pds3.core.palette.primary.450}",
               "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.400",
-                  "contrast": 5.51,
+                  "aliasOf": "pds3.core.palette.primary.450",
+                  "contrast": 4.65,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
@@ -13010,13 +13010,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.300}",
+              "$value": "{pds3.core.palette.primary.350}",
               "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.300",
-                  "contrast": 7.58,
+                  "aliasOf": "pds3.core.palette.primary.350",
+                  "contrast": 6.46,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
@@ -13058,13 +13058,13 @@
             },
             "visited": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.100}",
+              "$value": "{pds3.core.palette.primary.150}",
               "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.100",
-                  "contrast": 13.04,
+                  "aliasOf": "pds3.core.palette.primary.150",
+                  "contrast": 11.48,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
@@ -13106,13 +13106,13 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.400}",
+              "$value": "{pds3.core.palette.primary.450}",
               "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.400",
-                  "contrast": 5.51,
+                  "aliasOf": "pds3.core.palette.primary.450",
+                  "contrast": 4.65,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
@@ -13154,13 +13154,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.200}",
+              "$value": "{pds3.core.palette.primary.250}",
               "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.200",
-                  "contrast": 10.06,
+                  "aliasOf": "pds3.core.palette.primary.250",
+                  "contrast": 8.72,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
@@ -14247,13 +14247,13 @@
           "link": {
             "default": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.400}",
+              "$value": "{pds3.core.palette.primary.450}",
               "$description": "Link icon on an inverse surface — default, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.400",
-                  "contrast": 5.51,
+                  "aliasOf": "pds3.core.palette.primary.450",
+                  "contrast": 4.65,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
@@ -14295,13 +14295,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.300}",
+              "$value": "{pds3.core.palette.primary.350}",
               "$description": "Link icon on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.300",
-                  "contrast": 7.58,
+                  "aliasOf": "pds3.core.palette.primary.350",
+                  "contrast": 6.46,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
@@ -14343,13 +14343,13 @@
             },
             "visited": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.100}",
+              "$value": "{pds3.core.palette.primary.150}",
               "$description": "Link icon on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.100",
-                  "contrast": 13.04,
+                  "aliasOf": "pds3.core.palette.primary.150",
+                  "contrast": 11.48,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
@@ -14391,13 +14391,13 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.400}",
+              "$value": "{pds3.core.palette.primary.450}",
               "$description": "Link icon on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.400",
-                  "contrast": 5.51,
+                  "aliasOf": "pds3.core.palette.primary.450",
+                  "contrast": 4.65,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
@@ -14439,13 +14439,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.200}",
+              "$value": "{pds3.core.palette.primary.250}",
               "$description": "Link icon on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.200",
-                  "contrast": 10.06,
+                  "aliasOf": "pds3.core.palette.primary.250",
+                  "contrast": 8.72,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {

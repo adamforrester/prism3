@@ -1230,9 +1230,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
 
   let modeChecks = 0, modePass = 0;
   for (const mr of modes) for (const r of Object.values(mr.roles)) if (r.min > 0) { modeChecks++; if (r.ratio >= r.min) modePass++; }
-  // A role's second ground (#1773): the page interactive fill against `background.tertiary`, and every link
-  // role against its third tier (#2991). Counted like a role, so a pinned anchor that misses the tier fails the
-  // mode contract the way a missed override does.
+  // A role's second ground (#1773): the page interactive fill against `background.tertiary`. Counted like a
+  // role, so a pinned anchor that misses the tier fails the mode contract the way a missed override does.
   for (const mr of modes) for (const c of mr.tierChecks ?? []) { modeChecks++; if (c.ratio >= c.min) modePass++; }
   // A role's SECOND pair (`alsoAgainst`, #1745) is a contract too, so it counts here — this count is what
   // `cli.ts` and `emit-dtcg.ts` exit on and what the fidelity report prints. Measured from the two final hex

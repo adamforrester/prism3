@@ -5542,20 +5542,18 @@
     "inverse.text.link.default": {
       "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
-      "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary` and `inverse.foreground.secondary`. Below 4.5:1 on `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use `inverse.text.primary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.400}",
-        "dark": "{ads.core.palette.accent.600}",
+        "dark": "{ads.core.palette.accent.550}",
         "hc-light": "{ads.core.palette.accent.350}",
         "hc-dark": "{ads.core.palette.accent.650}"
       },
       "sits_on": [
         "inverse.background.primary",
         "inverse.background.secondary",
-        "inverse.background.tertiary",
-        "inverse.foreground.primary",
-        "inverse.foreground.secondary"
+        "inverse.foreground.primary"
       ],
       "contrast_with": [
         {
@@ -5573,7 +5571,7 @@
       "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use `inverse.text.primary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.300}",
-        "dark": "{ads.core.palette.accent.700}",
+        "dark": "{ads.core.palette.accent.650}",
         "hc-light": "{ads.core.palette.accent.250}",
         "hc-dark": "{ads.core.palette.accent.750}"
       },
@@ -5601,7 +5599,7 @@
       "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use `inverse.text.primary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.100}",
-        "dark": "{ads.core.palette.accent.900}",
+        "dark": "{ads.core.palette.accent.850}",
         "hc-light": "{ads.core.palette.accent.050}",
         "hc-dark": "{ads.core.palette.accent.950}"
       },
@@ -5625,20 +5623,18 @@
     "inverse.text.link.focused": {
       "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
-      "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary` and `inverse.foreground.secondary`. Below 4.5:1 on `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.focused`. Do not use for non-interactive text (use `inverse.text.primary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.400}",
-        "dark": "{ads.core.palette.accent.600}",
+        "dark": "{ads.core.palette.accent.550}",
         "hc-light": "{ads.core.palette.accent.350}",
         "hc-dark": "{ads.core.palette.accent.650}"
       },
       "sits_on": [
         "inverse.background.primary",
         "inverse.background.secondary",
-        "inverse.background.tertiary",
-        "inverse.foreground.primary",
-        "inverse.foreground.secondary"
+        "inverse.foreground.primary"
       ],
       "contrast_with": [
         {
@@ -5656,7 +5652,7 @@
       "avoid_when": "Do not use on the page ground; that is `text.link.pressed`. Do not use for non-interactive text (use `inverse.text.primary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.200}",
-        "dark": "{ads.core.palette.accent.800}",
+        "dark": "{ads.core.palette.accent.750}",
         "hc-light": "{ads.core.palette.accent.150}",
         "hc-dark": "{ads.core.palette.accent.850}"
       },
@@ -9251,7 +9247,9 @@
         "color.inverse.border.focus",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.rest",
-        "color.inverse.interactive.primary.text.rest"
+        "color.inverse.interactive.primary.text.rest",
+        "color.inverse.text.link.default",
+        "color.inverse.text.link.focused"
       ]
     },
     "core.palette.accent.600": {
@@ -9269,8 +9267,6 @@
         "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.rest",
         "color.inverse.icon.link.hover",
-        "color.inverse.text.link.default",
-        "color.inverse.text.link.focused",
         "color.text.link.default",
         "color.text.link.focused"
       ]
@@ -9294,7 +9290,8 @@
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
-        "color.inverse.text.link.focused"
+        "color.inverse.text.link.focused",
+        "color.inverse.text.link.hover"
       ]
     },
     "core.palette.accent.700": {
@@ -9315,7 +9312,6 @@
         "color.interactive.primary.icon.hover",
         "color.interactive.primary.text.hover",
         "color.inverse.icon.link.pressed",
-        "color.inverse.text.link.hover",
         "color.text.link.default",
         "color.text.link.focused",
         "color.text.link.hover",
@@ -9338,7 +9334,8 @@
         "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.pressed",
-        "color.inverse.text.link.hover"
+        "color.inverse.text.link.hover",
+        "color.inverse.text.link.pressed"
       ]
     },
     "core.palette.accent.800": {
@@ -9355,7 +9352,6 @@
         "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.pressed",
         "color.inverse.icon.link.visited",
-        "color.inverse.text.link.pressed",
         "color.text.link.hover",
         "color.text.link.pressed"
       ]
@@ -9373,7 +9369,8 @@
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.pressed",
-        "color.inverse.text.link.pressed"
+        "color.inverse.text.link.pressed",
+        "color.inverse.text.link.visited"
       ]
     },
     "core.palette.accent.900": {
@@ -9385,7 +9382,6 @@
       "aliased_by": [
         "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
-        "color.inverse.text.link.visited",
         "color.text.link.pressed",
         "color.text.link.visited"
       ]

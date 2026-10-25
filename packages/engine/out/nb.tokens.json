@@ -5553,9 +5553,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.red.400}",
-                    "aliasOf": "nbds.core.palette.red.400",
-                    "contrast": 5.52,
+                    "$value": "{nbds.core.palette.red.450}",
+                    "aliasOf": "nbds.core.palette.red.450",
+                    "contrast": 4.66,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -5601,9 +5601,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.red.300}",
-                    "aliasOf": "nbds.core.palette.red.300",
-                    "contrast": 7.5,
+                    "$value": "{nbds.core.palette.red.350}",
+                    "aliasOf": "nbds.core.palette.red.350",
+                    "contrast": 6.44,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -5649,9 +5649,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.red.100}",
-                    "aliasOf": "nbds.core.palette.red.100",
-                    "contrast": 13.04,
+                    "$value": "{nbds.core.palette.red.150}",
+                    "aliasOf": "nbds.core.palette.red.150",
+                    "contrast": 11.5,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -5697,9 +5697,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.red.400}",
-                    "aliasOf": "nbds.core.palette.red.400",
-                    "contrast": 5.52,
+                    "$value": "{nbds.core.palette.red.450}",
+                    "aliasOf": "nbds.core.palette.red.450",
+                    "contrast": 4.66,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -5745,9 +5745,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.red.200}",
-                    "aliasOf": "nbds.core.palette.red.200",
-                    "contrast": 10.01,
+                    "$value": "{nbds.core.palette.red.250}",
+                    "aliasOf": "nbds.core.palette.red.250",
+                    "contrast": 8.7,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7077,9 +7077,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.red.400}",
-                    "aliasOf": "nbds.core.palette.red.400",
-                    "contrast": 5.52,
+                    "$value": "{nbds.core.palette.red.450}",
+                    "aliasOf": "nbds.core.palette.red.450",
+                    "contrast": 4.66,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7125,9 +7125,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.red.300}",
-                    "aliasOf": "nbds.core.palette.red.300",
-                    "contrast": 7.5,
+                    "$value": "{nbds.core.palette.red.350}",
+                    "aliasOf": "nbds.core.palette.red.350",
+                    "contrast": 6.44,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7173,9 +7173,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.red.100}",
-                    "aliasOf": "nbds.core.palette.red.100",
-                    "contrast": 13.04,
+                    "$value": "{nbds.core.palette.red.150}",
+                    "aliasOf": "nbds.core.palette.red.150",
+                    "contrast": 11.5,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7221,9 +7221,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.red.400}",
-                    "aliasOf": "nbds.core.palette.red.400",
-                    "contrast": 5.52,
+                    "$value": "{nbds.core.palette.red.450}",
+                    "aliasOf": "nbds.core.palette.red.450",
+                    "contrast": 4.66,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7269,9 +7269,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.red.200}",
-                    "aliasOf": "nbds.core.palette.red.200",
-                    "contrast": 10.01,
+                    "$value": "{nbds.core.palette.red.250}",
+                    "aliasOf": "nbds.core.palette.red.250",
+                    "contrast": 8.7,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -12110,20 +12110,20 @@
           "link": {
             "default": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.400}",
+              "$value": "{nbds.core.palette.red.450}",
               "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.400",
-                  "contrast": 5.52,
+                  "aliasOf": "nbds.core.palette.red.450",
+                  "contrast": 4.66,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.600}",
-                      "aliasOf": "nbds.core.palette.red.600",
-                      "contrast": 5.64,
+                      "$value": "{nbds.core.palette.red.550}",
+                      "aliasOf": "nbds.core.palette.red.550",
+                      "contrast": 4.62,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -12158,20 +12158,20 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.300}",
+              "$value": "{nbds.core.palette.red.350}",
               "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.300",
-                  "contrast": 7.5,
+                  "aliasOf": "nbds.core.palette.red.350",
+                  "contrast": 6.44,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.700}",
-                      "aliasOf": "nbds.core.palette.red.700",
-                      "contrast": 8.25,
+                      "$value": "{nbds.core.palette.red.650}",
+                      "aliasOf": "nbds.core.palette.red.650",
+                      "contrast": 6.82,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -12206,20 +12206,20 @@
             },
             "visited": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.100}",
+              "$value": "{nbds.core.palette.red.150}",
               "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.100",
-                  "contrast": 13.04,
+                  "aliasOf": "nbds.core.palette.red.150",
+                  "contrast": 11.5,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.900}",
-                      "aliasOf": "nbds.core.palette.red.900",
-                      "contrast": 14.98,
+                      "$value": "{nbds.core.palette.red.850}",
+                      "aliasOf": "nbds.core.palette.red.850",
+                      "contrast": 13.42,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -12254,20 +12254,20 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.400}",
+              "$value": "{nbds.core.palette.red.450}",
               "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.400",
-                  "contrast": 5.52,
+                  "aliasOf": "nbds.core.palette.red.450",
+                  "contrast": 4.66,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.600}",
-                      "aliasOf": "nbds.core.palette.red.600",
-                      "contrast": 5.64,
+                      "$value": "{nbds.core.palette.red.550}",
+                      "aliasOf": "nbds.core.palette.red.550",
+                      "contrast": 4.62,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -12302,20 +12302,20 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.200}",
+              "$value": "{nbds.core.palette.red.250}",
               "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.200",
-                  "contrast": 10.01,
+                  "aliasOf": "nbds.core.palette.red.250",
+                  "contrast": 8.7,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.800}",
-                      "aliasOf": "nbds.core.palette.red.800",
-                      "contrast": 11.66,
+                      "$value": "{nbds.core.palette.red.750}",
+                      "aliasOf": "nbds.core.palette.red.750",
+                      "contrast": 9.94,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -13395,20 +13395,20 @@
           "link": {
             "default": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.400}",
+              "$value": "{nbds.core.palette.red.450}",
               "$description": "Link icon on an inverse surface — default, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.400",
-                  "contrast": 5.52,
+                  "aliasOf": "nbds.core.palette.red.450",
+                  "contrast": 4.66,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.600}",
-                      "aliasOf": "nbds.core.palette.red.600",
-                      "contrast": 5.64,
+                      "$value": "{nbds.core.palette.red.550}",
+                      "aliasOf": "nbds.core.palette.red.550",
+                      "contrast": 4.62,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -13443,20 +13443,20 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.300}",
+              "$value": "{nbds.core.palette.red.350}",
               "$description": "Link icon on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.300",
-                  "contrast": 7.5,
+                  "aliasOf": "nbds.core.palette.red.350",
+                  "contrast": 6.44,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.700}",
-                      "aliasOf": "nbds.core.palette.red.700",
-                      "contrast": 8.25,
+                      "$value": "{nbds.core.palette.red.650}",
+                      "aliasOf": "nbds.core.palette.red.650",
+                      "contrast": 6.82,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -13491,20 +13491,20 @@
             },
             "visited": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.100}",
+              "$value": "{nbds.core.palette.red.150}",
               "$description": "Link icon on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.100",
-                  "contrast": 13.04,
+                  "aliasOf": "nbds.core.palette.red.150",
+                  "contrast": 11.5,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.900}",
-                      "aliasOf": "nbds.core.palette.red.900",
-                      "contrast": 14.98,
+                      "$value": "{nbds.core.palette.red.850}",
+                      "aliasOf": "nbds.core.palette.red.850",
+                      "contrast": 13.42,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -13539,20 +13539,20 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.400}",
+              "$value": "{nbds.core.palette.red.450}",
               "$description": "Link icon on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.400",
-                  "contrast": 5.52,
+                  "aliasOf": "nbds.core.palette.red.450",
+                  "contrast": 4.66,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.600}",
-                      "aliasOf": "nbds.core.palette.red.600",
-                      "contrast": 5.64,
+                      "$value": "{nbds.core.palette.red.550}",
+                      "aliasOf": "nbds.core.palette.red.550",
+                      "contrast": 4.62,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },
@@ -13587,20 +13587,20 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.200}",
+              "$value": "{nbds.core.palette.red.250}",
               "$description": "Link icon on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.200",
-                  "contrast": 10.01,
+                  "aliasOf": "nbds.core.palette.red.250",
+                  "contrast": 8.7,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.800}",
-                      "aliasOf": "nbds.core.palette.red.800",
-                      "contrast": 11.66,
+                      "$value": "{nbds.core.palette.red.750}",
+                      "aliasOf": "nbds.core.palette.red.750",
+                      "contrast": 9.94,
                       "against": "inverse.background.secondary",
                       "min": 4.5
                     },

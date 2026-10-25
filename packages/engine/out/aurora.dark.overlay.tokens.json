@@ -715,27 +715,27 @@
           "link": {
             "default": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.600}",
+              "$value": "{ads.core.palette.accent.550}",
               "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary"
             },
             "hover": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.700}",
+              "$value": "{ads.core.palette.accent.650}",
               "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary"
             },
             "visited": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.900}",
+              "$value": "{ads.core.palette.accent.850}",
               "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary"
             },
             "focused": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.600}",
+              "$value": "{ads.core.palette.accent.550}",
               "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary"
             },
             "pressed": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.800}",
+              "$value": "{ads.core.palette.accent.750}",
               "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary"
             }
           }

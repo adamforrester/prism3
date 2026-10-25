@@ -110,8 +110,7 @@ reset();
 // The derived walk, from the ENGINE: what the expected pins below are worked out from.
 const walk = (prefix: string, mode: string): string => ['default', 'hover', 'pressed', 'visited', 'focused'].map((s) => resolvedStep(`${prefix}.link.${s}`, mode)).join(' ');
 ok(walk('text', 'light') === '600 700 800 900 600', `prism3's Light text link walks 600 700 800 900, focused 600 (${walk('text', 'light')})`);
-// Dark sits one step deeper than its anchor since #2991: the link also clears background.tertiary.
-ok(walk('text', 'dark') === '400 300 200 100 400', `prism3's Dark text link walks 400 300 200 100, focused 400 (${walk('text', 'dark')})`);
+ok(walk('text', 'dark') === '450 350 250 150 450', `prism3's Dark text link walks 450 350 250 150, focused 450 (${walk('text', 'dark')})`);
 const pins = (prefix: string, mode: string): string =>
   ['default', 'hover', 'pressed', 'visited', 'focused'].map((s) => { const o = store.brandState.overrides?.[mode]?.[`${prefix}.link.${s}`]; return o ? `${o.palette} ${o.step}` : '-'; }).join(', ');
 I.setLinkFamilyOverride('light', 'text', '500');

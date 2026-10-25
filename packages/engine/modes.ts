@@ -246,7 +246,7 @@ export type ModeOverrides = Record<string, PrimitiveRef>;   // rolePath -> primi
 // role's OWN ground, so the warning carries no `against`.
 export type OverrideWarning = { role: string; ratio: number; min: number; against?: string; unresolved?: string };
 // A contract a role carries beyond its own `against` (#1773): the page interactive fill's second ground,
-// `background.tertiary`, and every link role's third tier, page or inverse (#2991). `tree.ts` counts each into `modeChecks` / `modePass` beside the per-role checks.
+// `background.tertiary`. `tree.ts` counts each into `modeChecks` / `modePass` beside the per-role checks.
 export type TierCheck = { role: string; against: string; ratio: number; min: number };
 export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, ResolvedRole>; tierChecks?: TierCheck[]; warnings?: OverrideWarning[] };
 
@@ -914,7 +914,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const LINK_STATE_DE = 7.0;
   // `d` overrides the walk direction — the page dir by default; the inverse-context text walks the OTHER
   // way (toward MORE contrast with the dark band, i.e. lighter in a light mode) so its ink comes forward.
-  const walk = (palette: string, fromNum: number, steps: number, d: number = dir, guard?: { surf: RGB; min: number; also?: { surf: RGB; min: number }[] }, percept?: number): Cand => {
+  const walk = (palette: string, fromNum: number, steps: number, d: number = dir, guard?: { surf: RGB; min: number }, percept?: number): Cand => {
     const pal = palOf(palette);
     const ramp = ramps.get(pal)!;
     const near = (n: number) => ramp.reduce((a, b) => (Math.abs(b.num - n) < Math.abs(a.num - n) ? b : a));
@@ -955,8 +955,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // reasons that have nothing to do with this bug. Same arithmetic ⇒ when every step qualifies,
     // the nth qualifying step IS the nth step, so a monotonic ramp is byte-identical and only the
     // non-monotonic region moves.
-    // `also` (links only, #2991) adds further grounds a qualifying step must clear: the context's third tier.
-    const clears = (r: RGB) => !guard || (contrast(r, guard.surf) >= guard.min && (guard.also ?? []).every((a) => contrast(r, a.surf) >= a.min));
+    const clears = (r: RGB) => !guard || contrast(r, guard.surf) >= guard.min;
     // ---- PERCEPTIBILITY QUALIFIER (#1486) ---------------------------------------------------------
     // `percept` (link states only) tightens "a qualifying step" from "clears the floor" to "clears the
     // floor AND is at least `percept` ΔE (CIEDE2000) from the PREVIOUS qualifying state". `prev` starts
@@ -1039,7 +1038,6 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     tint: (r: Role) => Cand;          // the subtle tint a status ink is ALSO gated against
     mutedStep: number;                // the muted-ink palette step
     page: boolean;                    // the `on-*` pairs exist only on the page — see the call site
-    tier: RGB;                        // this context's third tier, a ground the link also clears (#2991)
   };
   // Bold semantic ink, gated against BOTH grounds it is placed on, here against an arbitrary ground (#892). `buildContent` runs twice — once for the page
   // and once for the inverse band — and the SECOND ground is the whole reason this is parameterised
@@ -1306,8 +1304,6 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // silently. `tierGated` records each family whose rest came through here, so the check covers exactly
   // the fills this gate governs.
   const fillTierRgb = asGround('background.tertiary', cfg.bg.tertiary.rgb);
-  // The inverse band's third tier, which every inverse link clears too (#2991).
-  const invTierRgb = asGround('inverse.background.tertiary', cfg.bgInverse.tertiary.rgb);
   const tierGated: string[] = [];
   const restFill = (name: string, palette: string, anchor: number, exact: boolean): RatedNum => {
     tierGated.push(name);
@@ -1457,9 +1453,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   //
   // NOT every ground (Q419 A): no component places these inks on `background.secondary` / `.tertiary` or
   // `foreground.secondary` / `.tertiary`, and holding them there cost ΔE 8–15 in nearly every brand. A def that
-  // places them on another ground adds it here. The LINK is the exception since #2991 (owner go, 2026-10-25): body
-  // links sit on the third tier, so both link bases also clear `background.tertiary` / `inverse.background.tertiary`
-  // (`Ground.tier`, in `buildContent`), and the floor already holds the second. `test.ts` (#2817 block) derives the grounds from the defs and
+  // places them on another ground adds it here; `test.ts` (#2817 block) derives the grounds from the defs and
   // fails by name if one is missing from its own literal list, and measures every ink × surface cell from the
   // emitted hexes against those literals, never this list, so dropping a ground here fails it by name.
   const INK_SURFACES = [
@@ -2067,20 +2061,13 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const linkPal = theme.linkPalette;
     const linkFollowsAction = linkPal === r2p.action;
     const linkAnchor = linkFollowsAction ? (paAnchor ?? theme.roleAnchorStep.action) : theme.linkAnchorStep;
-    // The page link also clears every surface it is placed on (#2817, `INK_SURFACES` above). Both links, the
-    // page's and the inverse band's, also clear their context's THIRD TIER (#2991, the #1352 / #1773 pattern):
-    // body links sit on `background.tertiary` / `inverse.background.tertiary` as well as on the floor, and on
-    // the floor alone the derived link measured 4.05–4.32:1 there in light and dark. The tier is held to the
-    // 4.5:1 body floor (HC's flat tiers already clear it); the nearest step on the link ramp that clears it is
-    // taken, so the hue holds and only the depth moves. The tier check at the end of `resolveMode` holds a pin.
+    // The page link also clears every surface it is placed on (#2817, `INK_SURFACES` above).
     const linkBase = g.page
-      ? chromatic(linkPal, linkAnchor, g.floor, p.semanticMin, false, [...inkSurfaceRgbs(), g.tier], [], inkSurfaceMin(p.semanticMin))
-      : chromatic(linkPal, linkAnchor, g.floor, p.semanticMin, false, [g.tier], [], inkSurfaceMin(p.semanticMin));
+      ? chromatic(linkPal, linkAnchor, g.floor, p.semanticMin, false, inkSurfaceRgbs(), [], inkSurfaceMin(p.semanticMin))
+      : chromatic(linkPal, linkAnchor, g.floor, p.semanticMin);
     // Guarded (#557) at the profile's OWN semanticMin — so `icon.link.*` under iconContrast '3:1'
     // is verified at 3, and `text.link.*` at the text bar, each against the floor `put` uses.
-    // The engaged states clear the third tier too (#2991), so a state a walk counts is a step that clears both.
-    const linkGuardFloor = guardFrom(contrast(linkBase.rgb, g.floor), g.floor, p.semanticMin);
-    const linkGuard = linkGuardFloor && { ...linkGuardFloor, also: [{ surf: g.tier, min: inkSurfaceMin(p.semanticMin) }] };
+    const linkGuard = guardFrom(contrast(linkBase.rgb, g.floor), g.floor, p.semanticMin);
     // The engaged link states walk the action ramp by PERCEPTUAL interval, not a fixed rung count
     // (#1486): each is the Nth step that clears the floor AND is ≥ `LINK_STATE_DE` from the one before.
     // Depth order default → hover → pressed → visited: hover (1st) and pressed (2nd) are the even
@@ -2150,8 +2137,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   //
   // Both passes run for every brand. The second used to be gated by the `inverse` lever; #895 removed
   // it, so the inverse content set is now as unconditional as the page one.
-  const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, floorLabel: cfg.floorLabel, dir, tint: subtleTint, mutedStep, page: true, tier: fillTierRgb };
-  const inverseGround: Ground = { base: invRgb, baseName: 'inverse.background.primary', floor: invFloorRgb, floorName: 'inverse.background.secondary', floorLabel: 'inverse.background.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false, tier: invTierRgb };
+  const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, floorLabel: cfg.floorLabel, dir, tint: subtleTint, mutedStep, page: true };
+  const inverseGround: Ground = { base: invRgb, baseName: 'inverse.background.primary', floor: invFloorRgb, floorName: 'inverse.background.secondary', floorLabel: 'inverse.background.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
 
   for (const s of buildContent(textProfile, pageGround)) put(`text.${s.key}`, s.r, s.desc, s.against, s.min);
   for (const s of buildContent(iconProfile, pageGround)) put(`icon.${s.key}`, s.r, s.desc, s.against, s.min);
@@ -2402,16 +2389,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       // floor-clearing move the base link walk makes. The pick is honored as far as contrast allows, never
       // dropped and never emitted below contract. A non-link role is untouched (warn-not-block stands).
       // Removing this block emits the raw sub-floor step and fails L-06's guard arm BY NAME.
-      // The clamp also clears the context's THIRD TIER at the 4.5:1 body floor (#2991), the ground the derived
-      // link clears too, so a pin that clears the floor and misses the tier is walked on as well (L-07).
       let outRgb = newRgb, outStep = ref.step;
-      const tierRgb = rolePath.startsWith('inverse.') ? invTierRgb : fillTierRgb;
-      const tierMin = Math.min(existing.min, BODY_TEXT_FLOOR);
-      const clearsLink = (rgb: RGB): boolean => contrast(rgb, againstRgb) >= existing.min && contrast(rgb, tierRgb) >= tierMin;
-      if (isLinkRole(rolePath) && existing.min > 0 && !clearsLink(newRgb)) {
+      if (isLinkRole(rolePath) && existing.min > 0 && contrast(newRgb, againstRgb) < existing.min) {
         const dir = contrast(steps[steps.length - 1].rgb, againstRgb) >= contrast(steps[0].rgb, againstRgb) ? 1 : -1;
         let i = steps.findIndex((s) => s.key === ref.step);
-        while (i >= 0 && i + dir >= 0 && i + dir < steps.length && !clearsLink(steps[i].rgb)) i += dir;
+        while (i >= 0 && i + dir >= 0 && i + dir < steps.length && contrast(steps[i].rgb, againstRgb) < existing.min) i += dir;
         if (i >= 0) { outRgb = steps[i].rgb; outStep = steps[i].key; }
       }
       const ratio = contrast(outRgb, againstRgb);
@@ -2484,21 +2466,6 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const ratio = contrast(rgb, fillTierRgb);
     tierChecks.push({ role, against: 'background.tertiary', ratio, min: r.min });
     if (ratio < r.min) warnings.push({ role, ratio, min: r.min, against: 'background.tertiary' });
-  }
-  // Every LINK role, page and inverse, text and icon, is held to its context's third tier too (#2991): the
-  // derived link clears it by construction (`linkBase`'s `alsoClear`), but a link override is clamped to its
-  // floor alone (#1510), so a pin that clears the floor and misses the tier would otherwise ship silently. The
-  // bar is the role's own min capped at the 4.5:1 body floor, the bar the derivation used.
-  for (const [role, r] of Object.entries(roles)) {
-    if (!isLinkRole(role) || !(r.min > 0)) continue;
-    const rgb = rgbByRole.get(role);
-    if (!rgb) continue;
-    const inv = role.startsWith('inverse.');
-    const against = inv ? 'inverse.background.tertiary' : 'background.tertiary';
-    const min = Math.min(r.min, BODY_TEXT_FLOOR);
-    const ratio = contrast(rgb, inv ? invTierRgb : fillTierRgb);
-    tierChecks.push({ role, against, ratio, min });
-    if (ratio < min) warnings.push({ role, ratio, min, against });
   }
 
   return { mode, surface: baseRgb, roles, ...(tierChecks.length ? { tierChecks } : {}), ...(warnings.length ? { warnings } : {}) };

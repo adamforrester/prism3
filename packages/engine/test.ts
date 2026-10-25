@@ -1198,17 +1198,16 @@ for (const b of brands) {
 // visited, focused × page and inverse), in each editable mode (light, dark), for every brand built from an
 // input (the shipped examples and the minimal brand), and reads all four resolved modes. EXPECTED is
 // recomputed HERE from resolved HEX VALUES with the shared `contrast` primitive: the role's own hex against the
-// resolved hex of each surface the family sits on, named literally below (page primary, secondary and tertiary;
-// inverse primary, secondary and tertiary: Q2990.4 A, and the third tier since #2991). Neither the role's recorded `ratio`, its
+// resolved hex of each surface the family sits on, named literally below (page primary and secondary; inverse
+// primary and secondary, Q2990.4 A, the third tier held as #2991). Neither the role's recorded `ratio`, its
 // `against`, nor any studio code is read (docs/34). The floor is 4.5 written literally, raised to the role's
 // declared `min` where that is higher (HC modes, 7). BY-NAME MUTATION: delete the link floor guard's
-// `if (isLinkRole(rolePath) …)` clamp in modes.ts → this arm fails by name, naming brand, pin and surface. Drop
-// the clamp's third-tier arm (`clearsLink`'s `tierRgb` term, #2991) → it fails by name on a `background.tertiary` pair.
+// `if (isLinkRole(rolePath) …)` clamp in modes.ts → this arm fails by name, naming brand, pin and surface.
 {
   const LINK_ROLES = ['text', 'inverse.text'].flatMap((p) => ['default', 'hover', 'pressed', 'visited', 'focused'].map((s) => `${p}.link.${s}`));
   const SURFACES: Record<string, readonly string[]> = {
-    text: ['background.primary', 'background.secondary', 'background.tertiary'],
-    'inverse.text': ['inverse.background.primary', 'inverse.background.secondary', 'inverse.background.tertiary'],
+    text: ['background.primary', 'background.secondary'],
+    'inverse.text': ['inverse.background.primary', 'inverse.background.secondary'],
   };
   const brands = Object.entries({ ...exampleBrands(), minimal: MINIMAL_BRAND }) as Array<[string, BrandInput]>;
   const misses: string[] = [];
@@ -1782,16 +1781,15 @@ for (const b of brands) {
   // BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts → deep lands on 850 in light
   // and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
   // #2817: from that anchor the link then steps as far as it must to clear every surface it is placed on, so
-  // light deep (550 → 600) sits one notch deeper than the anchor; HC already cleared. #2991: the link also clears
-  // the third tier, so dark pale (450 → 400) sits one notch past its anchor too; the mutation's 050 stays far off.
+  // light deep (550 → 600) sits one notch deeper than the anchor; dark pale and HC already cleared.
   const stepsOf = (t: ReturnType<typeof brandTheme>): Record<string, string | undefined> =>
     Object.fromEntries(linkByMode(t).map((r) => [r.mode, r.link?.path.split('.').slice(-2).join('.')]));
   const deep = stepsOf(build({ brandColors: [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], roleColors: { action: 'deep' } }));
   ok(deep.light === 'deep.600' && deep['hc-light'] === 'deep.700',
     `#1895: a dark rebased action color (deep, l 0.25) anchors the link where the action fill anchors — light deep.600 (anchor 550, #2817), hc-light deep.700 (got ${JSON.stringify(deep)})`);
   const pale = stepsOf(build({ brandColors: [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }], roleColors: { action: 'pale' } }));
-  ok(pale.dark === 'pale.400' && pale['hc-dark'] === 'pale.300',
-    `#1895: a pale rebased action color (pale, l 0.92) anchors the link where the action fill anchors — dark pale.400 (anchor 450, #2991), hc-dark pale.300 (got ${JSON.stringify(pale)})`);
+  ok(pale.dark === 'pale.450' && pale['hc-dark'] === 'pale.300',
+    `#1895: a pale rebased action color (pale, l 0.92) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
 
   // The two link notes compare against the RESOLVED action palette and say "the action color" (owner
   // decision 2026-10-01). Literal note text, never a join of theme.ts's template (docs/34 shape 2). BY-NAME
@@ -11567,12 +11565,12 @@ arm: {
     }
     // 3. Just enough, in the standard modes (HC's page bar is 7:1, so its pick is held by the page, not here). The
     //    anchors are the theme's own inputs: the action anchor for the primary ink; for the link, the action anchor
-    //    when it follows the action palette, else its own. The link's floor ground and its third tier (#2991) count as grounds here.
+    //    when it follows the action palette, else its own. The link's floor ground counts as a ground here.
     if (m.mode !== 'light' && m.mode !== 'dark') continue;
     const linkAnchorNum = theme.linkPalette === theme.roleToPalette.action ? (theme.actionAnchorStep ?? theme.roleAnchorStep.action) : theme.linkAnchorStep;
     for (const [ink, anchorNum, extra] of [
       ['interactive.primary.text.rest', theme.roleAnchorStep.action, [] as string[]],
-      ['text.link.default', linkAnchorNum, ['background.secondary', 'background.tertiary']],
+      ['text.link.default', linkAnchorNum, ['background.secondary']],
     ] as [string, number, string[]][]) {
       const role = m.roles[ink];
       const segs = role?.path.split('.') ?? [];
@@ -11597,82 +11595,6 @@ arm: {
     `#2817 the primary and link inks stay on their own ramp (the hue holds, only the depth moves) in every mode (${hueCells} modes, floor 20)${offHue.length ? ` — ${offHue.join('; ')}` : ''}`);
   ok(overshoot.length === 0 && minimalCells >= 10 && linkMinimalCells >= 10,
     `#2817 the primary ink and the link base move only as far as the worst surface needs: one notch back toward the anchor misses ${BAR_2817}:1 somewhere, in every light and dark mode they moved in (${minimalCells} primary / ${linkMinimalCells} link modes, floor 10 each)${overshoot.length ? ` — ${overshoot.join('; ')}` : ''}`);
-}
-
-// (10g-v) #2991 — EVERY LINK CLEARS 4.5:1 ON EVERY PAGE TIER, THE THIRD INCLUDED (owner go, 2026-10-25; the #1352 /
-// #1773 pattern). Body links sit on `background.secondary` and `background.tertiary` (and the inverse band's twins),
-// and gated on the floor alone the derived resting link measured 4.05–4.32:1 on the third tier in light and dark.
-// Measured HERE from RESOLVED hexes: the role's hex against each tier's hex, the tiers and the 4.5 bar written as
-// literals, and never a role's `ratio`, `min`, `against` or `modes.ts`'s link derivation (`docs/34`). The bar is
-// raised to 7 on HC's flat tiers (the HC page bar, typed here). Three arms:
-//   1. Every derived text link, page and inverse, every state, clears its bar on all three of its context's tiers,
-//      in every mode of every brand — one `ok` per miss, naming brand, mode, role and tier.
-//   2. The tier is IN the contract the engine counts: each mode's `tierChecks` carries the page and inverse
-//      resting link against its third tier, at the ratio the two hexes measure.
-//   3. Non-vacuity: in at least five light/dark contexts the step a notch nearer the page clears the floor and
-//      misses only the third tier, so the tier is what holds the link there. (Page overshoot: #2817's arm 3.)
-// BY-NAME MUTATIONS: drop `g.tier` from `linkBase`'s `alsoClear` in modes.ts → arm 1 fails on a `.tertiary` pair;
-// drop the link loop of the tier check → arm 2 fails by name; drop the tier from the link state walk's guard
-// (`linkGuard`'s `also`) → arm 1 fails on the seed brief's `visited` link.
-{
-  const BAR_2991 = 4.5, HC_BAR_2991 = 7;
-  const TIERS_2991: Record<string, readonly string[]> = {
-    '': ['background.primary', 'background.secondary', 'background.tertiary'],
-    'inverse.': ['inverse.background.primary', 'inverse.background.secondary', 'inverse.background.tertiary'],
-  };
-  const STATES_2991 = ['default', 'hover', 'pressed', 'visited', 'focused'];
-  const rows2991: { id: string; theme: any }[] = [
-    ...corpus(),
-    // Every committed brief, read the way cli.ts reads it (the seed brief whose link sits near black is not in
-    // `exampleBrands()`, and it is the one whose `visited` walks back toward the page).
-    ...loadedRows(readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort().map((f) => [`${f} (brief)`, exampleTheme(f, () => {
-      const text = readFileSync(resolve(HERE, `./examples/${f}`), 'utf8');
-      const std = parseStandardDesignMd(text);
-      return brandTheme(isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input);
-    })])).map(([id, theme]) => ({ id: id as string, theme })),
-  ];
-  let cells = 0, modes = 0, tierRows = 0, moved = 0;
-  const tierBad: string[] = [];
-  for (const { id, theme } of rows2991) for (const m of resolveAllModes(theme)) {
-    modes++;
-    const hexOf = (k: string) => m.roles[k]?.hex;
-    const bar = m.mode.startsWith('hc') ? HC_BAR_2991 : BAR_2991;
-    for (const [pre, tiers] of Object.entries(TIERS_2991)) {
-      for (const st of STATES_2991) for (const g of tiers) {
-        const role = `${pre}text.link.${st}`, ih = hexOf(role), gh = hexOf(g);
-        if (!ih || !gh) { ok(false, `#2991 ${id}/${m.mode}: ${!ih ? role : g} absent, so ${role} on ${g} cannot be measured`); continue; }
-        cells++;
-        const r = contrast(hexToRgb(ih), hexToRgb(gh));
-        if (r < bar) ok(false, `#2991 ${id}/${m.mode} ${role} (${ih}) on ${g} (${gh}): ${r.toFixed(2)}:1, under the ${bar}:1 bar`);
-      }
-      // 2. The engine's own count carries the resting link against its third tier, at the measured ratio.
-      const role = `${pre}text.link.default`, tier = tiers[2];
-      const c = (m.tierChecks ?? []).find((x: any) => x.role === role && x.against === tier);
-      const want = hexOf(role) && hexOf(tier) ? contrast(hexToRgb(hexOf(role)!), hexToRgb(hexOf(tier)!)) : NaN;
-      if (!c || Math.abs(c.ratio - want) > 1e-6) tierBad.push(`${id}/${m.mode}: ${role} on ${tier} ${c ? `counted at ${c.ratio.toFixed(2)}, measured ${want.toFixed(2)}` : 'not in tierChecks'}`);
-      else tierRows++;
-      // 3. Non-vacuity, in the standard modes. The NEARER neighbour is the adjacent ramp step with less contrast on
-      //    the context's own page. Where it clears the floor but misses the third tier, the tier is what holds the
-      //    link. (Overshoot on the page is #2817's arm 3, which counts the tier among the link's grounds now.)
-      if (m.mode !== 'light' && m.mode !== 'dark') continue;
-      const lr = m.roles[role], segs = lr?.path.split('.') ?? [];
-      const steps = [...(theme.palettes.find((p: any) => p.palette === segs[segs.length - 2])?.steps ?? [])].sort((a: any, b: any) => a.num - b.num);
-      const at = steps.findIndex((s: any) => s.key === segs[segs.length - 1]);
-      if (!lr || at < 0) { tierBad.push(`${id}/${m.mode}: ${role} ${lr?.path ?? 'absent'} not found on its ramp`); continue; }
-      const on = (h: string, g: string) => contrast(hexToRgb(h), hexToRgb(hexOf(g)!));
-      for (const nb of [steps[at - 1], steps[at + 1]].filter(Boolean)) {
-        if (on(nb.hex, tiers[0]) >= on(lr.hex, tiers[0])) continue;
-        const floorOk = on(nb.hex, tiers[1]) >= BAR_2991, tierOk = on(nb.hex, tier) >= BAR_2991;
-        if (floorOk && !tierOk) moved++;
-      }
-    }
-  }
-  ok(cells === modes * 2 * STATES_2991.length * 3 && modes >= 30,
-    `#2991 every page and inverse text link was measured on all three of its tiers in every mode of every brand (${cells} cells over ${modes} modes, floor 30 modes; a miss fails above, by name)`);
-  ok(tierBad.length === 0 && tierRows === modes * 2,
-    `#2991 the third tier is in the counted contract: each mode's tierChecks holds the page and inverse resting link on its third tier at the measured ratio (${tierRows} rows)${tierBad.length ? ` — ${tierBad.slice(0, 6).join('; ')}` : ''}`);
-  ok(moved >= 5,
-    `#2991 non-vacuous: in at least 5 light/dark contexts the resting link's nearer neighbour clears the floor but misses the third tier, so the tier is what holds it (${moved})`);
 }
 
 // (10h) #575 — the OUTLINE-METHOD contract: for every `outlineInteraction` value, the role
@@ -11925,11 +11847,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // #2817 (owner Q415 A, narrowed by Q419 A) moved the LIGHT rows one rung further and added the light BASE (`default`,
   // with `focused`, its colour twin): the link now clears 4.5:1 on every surface a component places it on, and the
   // fixture's authored base measured 4.02:1 on the success tint in light. The base steps 550 → 600 and the engaged
-  // states walk from it. HC rows are unchanged: the authored base already cleared there.
-  //
-  // #2991 added the DARK base: the link also clears 4.5:1 on the third page tier (`background.tertiary`), and the
-  // fixture's authored dark base measured 4.15:1 there. The base steps 450 → 400 and the engaged states walk from
-  // it (hover 350 → 300, visited 150 → 100). The light rows are unchanged: the #2817 base already clears the tier.
+  // states walk from it. Dark and HC rows are unchanged: the authored base already cleared there.
   { mode: 'light', name: 'color/text/link/default', nb: 'palette/red/550', engine: 'palette/red/600' },
   { mode: 'light', name: 'color/text/link/focused', nb: 'palette/red/550', engine: 'palette/red/600' },
   { mode: 'light', name: 'color/text/link/hover', nb: 'palette/red/600', engine: 'palette/red/700' },
@@ -11938,14 +11856,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'light', name: 'color/icon/link/focused', nb: 'palette/red/550', engine: 'palette/red/600' },
   { mode: 'light', name: 'color/icon/link/hover', nb: 'palette/red/600', engine: 'palette/red/700' },
   { mode: 'light', name: 'color/icon/link/visited', nb: 'palette/red/650', engine: 'palette/red/900' },
-  { mode: 'dark', name: 'color/text/link/default', nb: 'palette/red/450', engine: 'palette/red/400' },
-  { mode: 'dark', name: 'color/text/link/focused', nb: 'palette/red/450', engine: 'palette/red/400' },
-  { mode: 'dark', name: 'color/text/link/hover', nb: 'palette/red/400', engine: 'palette/red/300' },
-  { mode: 'dark', name: 'color/text/link/visited', nb: 'palette/red/350', engine: 'palette/red/100' },
-  { mode: 'dark', name: 'color/icon/link/default', nb: 'palette/red/450', engine: 'palette/red/400' },
-  { mode: 'dark', name: 'color/icon/link/focused', nb: 'palette/red/450', engine: 'palette/red/400' },
-  { mode: 'dark', name: 'color/icon/link/hover', nb: 'palette/red/400', engine: 'palette/red/300' },
-  { mode: 'dark', name: 'color/icon/link/visited', nb: 'palette/red/350', engine: 'palette/red/100' },
+  { mode: 'dark', name: 'color/text/link/hover', nb: 'palette/red/400', engine: 'palette/red/350' },
+  { mode: 'dark', name: 'color/text/link/visited', nb: 'palette/red/350', engine: 'palette/red/150' },
+  { mode: 'dark', name: 'color/icon/link/hover', nb: 'palette/red/400', engine: 'palette/red/350' },
+  { mode: 'dark', name: 'color/icon/link/visited', nb: 'palette/red/350', engine: 'palette/red/150' },
   { mode: 'hc-light', name: 'color/text/link/hover', nb: 'palette/red/750', engine: 'palette/red/800' },
   { mode: 'hc-light', name: 'color/text/link/visited', nb: 'palette/red/800', engine: 'palette/red/950' },
   { mode: 'hc-light', name: 'color/icon/link/hover', nb: 'palette/red/750', engine: 'palette/red/800' },
