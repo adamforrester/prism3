@@ -1602,6 +1602,10 @@ sh tools/claude-md-freshness/mutations.sh  # the mutation battery for the CLAUDE
                                           # network, no git history), so it runs under CI's depth-1
                                           # checkout — unlike the git-HISTORY gates that need
                                           # fetch-depth: 0. Confirmed from a depth-1 clone before wiring
+bash .github/scripts/test-install-chromium.sh # the test for install-chromium.sh, which all four
+                                          # browser jobs run (#2981). A stand-in install and dpkg
+                                          # lock in $TMPDIR: no browser, no network. Its stall/…
+                                          # cases also pass where PID 1 does not reap orphans
 ```
 
 **Green tests are not the finish line.** The standard here is that the change is

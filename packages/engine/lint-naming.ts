@@ -44,7 +44,10 @@
  *     decides. The arm parses §6's root row, its prefixed set, its slot items and its exempt controls and
  *     asserts each equals its literal
  *     in both directions, so neither copy can move alone. It does not make the skill the oracle for a def:
- *     the defs are still checked against the literals.
+ *     the defs are still checked against the literals. It reads each rule's FIRST match, so it also asserts
+ *     each anchor (and the §6 and §7 headings) appears exactly once in the whole skill: a second copy a clean
+ *     merge leaves further down would otherwise drift unread (#2948). A self-check appends a contradicting
+ *     copy of each rule to the real skill and asserts the count fails by the rule's name.
  *
  * NOT CHECKED, and said so: "main text is `label`". Which text part is a component's main one is a judgment
  * (a dialog has a title and a description), not a field, so it stays with review.
@@ -224,22 +227,53 @@ for (const id of DECIDED_PRIVATE) {
 }
 
 // The literals equal the skill's §6, both ways (each list read with a floor, so a reworded table that parses
-// to nothing fails rather than agreeing with nothing).
+// to nothing fails rather than agreeing with nothing). Each rule is read where it first appears, so a second
+// copy further down (two PRs editing the skill in hunks git merges cleanly, #2948) would never be read: the
+// skill must hold each anchor, and the §6 and §7 headings, exactly once, counted over the WHOLE file.
 const SKILL = 'skills/prism3-build-component/SKILL.md';
 const skill = readFileSync(new URL(`../../${SKILL}`, import.meta.url), 'utf8');
-const s6 = skill.slice(skill.indexOf('\n## 6. '), skill.indexOf('\n## 7. '));
 const ticks = (text: string | undefined): string[] => [...(text ?? '').matchAll(/`([^`]+)`/g)].map((m) => m[1]);
-const fromSkill: [string, readonly string[], string[]][] = [
-  ['ROOT_ROLES', ROOT_ROLES, ticks(/^\| Root part \|([^|]*?)Never/m.exec(s6)?.[1])],
-  ['DECIDED_PRIVATE', DECIDED_PRIVATE, ticks(/The prefixed set is ([^.]*)\./.exec(s6)?.[1])],
-  ['SLOT_ITEMS', SLOT_ITEMS, ticks(/The slot items are ([^.]*)\./.exec(s6)?.[1])],
-  ['STANDALONE', STANDALONE, ticks(/\(([^)]*)\) stay\s+unprefixed/.exec(s6)?.[1])],
+const SKILL_RULES: [string, readonly string[], RegExp][] = [
+  ['ROOT_ROLES', ROOT_ROLES, /^\| Root part \|([^|]*?)Never/m],
+  ['DECIDED_PRIVATE', DECIDED_PRIVATE, /The prefixed set is ([^.]*)\./],
+  ['SLOT_ITEMS', SLOT_ITEMS, /The slot items are ([^.]*)\./],
+  ['STANDALONE', STANDALONE, /\(([^)]*)\) stay\s+unprefixed/],
 ];
-for (const [name, literal, table] of fromSkill) {
-  if (table.length === 0) { fail.push(`skill: ${SKILL} §6 lists no ${name} that the gate can read; the agreement check is reading nothing`); continue; }
-  for (const x of literal) if (!table.includes(x)) fail.push(`skill: ${name} has '${x}', which ${SKILL} §6 does not list`);
-  for (const x of table) if (!literal.includes(x)) fail.push(`skill: ${SKILL} §6 lists '${x}', which ${name} does not have`);
+const HEADINGS: readonly [string, RegExp][] = [['§6', /\n## 6\. /], ['§7', /\n## 7\. /]];
+const count = (text: string, re: RegExp): number => [...text.matchAll(new RegExp(re.source, `${re.flags.replace('g', '')}g`))].length;
+/** The problems one copy of the skill's text has against the literals. Returns them, so the self-check can call it too. */
+const skillProblems = (text: string): string[] => {
+  const out: string[] = [];
+  for (const [label, re] of HEADINGS) {
+    const n = count(text, re);
+    if (n !== 1) out.push(`skill: ${SKILL} has ${n} ${label} headings, expected 1; the gate reads only the first, so a second copy goes unchecked`);
+  }
+  const s6 = text.slice(text.indexOf('\n## 6. '), text.indexOf('\n## 7. '));
+  for (const [name, literal, re] of SKILL_RULES) {
+    const n = count(text, re);
+    if (n > 1) out.push(`skill: ${SKILL} states the ${name} rule ${n} times (anchor ${re.source}), expected once; the gate reads only the first, so a second copy goes unchecked`);
+    const table = ticks(re.exec(s6)?.[1]);
+    if (table.length === 0) { out.push(`skill: ${SKILL} §6 lists no ${name} that the gate can read; the agreement check is reading nothing`); continue; }
+    for (const x of literal) if (!table.includes(x)) out.push(`skill: ${name} has '${x}', which ${SKILL} §6 does not list`);
+    for (const x of table) if (!literal.includes(x)) out.push(`skill: ${SKILL} §6 lists '${x}', which ${name} does not have`);
+  }
+  return out;
+};
+fail.push(...skillProblems(skill));
+
+// Self-check for the copy count (#2948): a second, contradicting copy of each rule, appended after §7, and a
+// second §6 heading, each fail by the rule's name. The copy is made from the real skill's own sentence with a
+// name changed, so the fixture is the merge the issue measured, not a synthetic string the anchor was fitted to.
+for (const [name, , re] of SKILL_RULES) {
+  const first = re.exec(skill)?.[0];
+  if (!first) continue; // the floor above already failed by name
+  const copy = first.replace(/`([^`]+)`/, '`$1-copy`');
+  if (copy === first) { fail.push(`self-check: the ${name} sentence holds no quoted name to change, so the copy fixture is not a contradicting copy`); continue; }
+  if (!skillProblems(`${skill}\n\n${copy}\n`).some((f) => f.includes(`states the ${name} rule ${count(skill, re) + 1} times`)))
+    fail.push(`self-check: a second copy of the ${name} rule in ${SKILL} does not fail the copy count`);
 }
+if (!skillProblems(skill.replace('\n## 7. ', '\n## 6. Naming canon, again\n\n## 7. ')).some((f) => f.includes(`${count(skill, HEADINGS[0][1]) + 1} §6 headings`)))
+  fail.push('self-check: a second §6 heading does not fail the heading count');
 
 // Every breach is in the ledger; every ledger entry is still a breach.
 const key = (b: { arm: string; def: string; name: string }): string => `${b.arm}|${b.def}|${b.name}`;

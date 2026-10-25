@@ -58,6 +58,7 @@ import { ensureFurnitureTemplates } from './furniture-templates';
 import { ensureDocBlock, docBlockNote, type DocBlockApi } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
+import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
 import { clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -73,7 +74,7 @@ import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { materializeForBrand } from './brand-def';
-import { prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
+import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
 import { button } from '@prism3/engine/components/button';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -133,16 +134,17 @@ const clampSize = (w: number, h: number): { width: number; height: number } => (
 let uiSize: { width: number; height: number } = { ...DEFAULT_SIZE };
 
 /**
- * THE LINK STRIP (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A, 2026-10-23). While the agent link is on, the Minimize
- * tile beside the Agent tile shrinks the window to a one-row strip that shows the link's status, with Restore and Turn
- * off (`agent-link-ui.ts` draws it). Here, the window and nothing else:
+ * THE STRIP (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A, 2026-10-23). Minimize, on the top bar, shrinks the window
+ * to a one-row strip with Restore; while the agent link is on, the strip also shows the link's status and Turn off
+ * (`agent-link-ui.ts` draws it). Minimize does not depend on the link (the owner's direction on #2909, 2026-10-24): it
+ * minimizes whether the link is on or off. Here, the window and nothing else:
  *   · the strip's size is its own, under the 380×420 floor (`MIN_SIZE` is ours, not Figma's: `resize` takes 70×0 up),
  *     and is never kept as the window size;
  *   · `beforeStrip` holds the size from before minimizing, and Restore returns to it. The UI stays mounted the whole
  *     time, hidden under the strip, so the page and its state come back as they were;
  *   · it never touches the link or its poll: the poll runs on this thread's own timer (`agent-link.ts`), which the
  *     window's size does not reach. `test-agent-link.ts` (`strip`) holds that;
- *   · it minimizes only while the link is on, and turning the link off restores the full window.
+ *   · turning the link off while minimized (the strip's Turn off) still restores the full window.
  * The strip's width fits the longest listening line the strip can show (`agentStripText`), measured by `test:chrome`.
  */
 const STRIP_SIZE = { width: 480, height: 40 };
@@ -150,7 +152,6 @@ let beforeStrip: { width: number; height: number } | null = null;
 const setMinimized = (minimized: boolean): void => {
   if (minimized === (beforeStrip !== null)) return;
   if (minimized) {
-    if (!agentLink.state().on) return;
     beforeStrip = uiSize;
     figma.ui.resize(STRIP_SIZE.width, STRIP_SIZE.height);
   } else {
@@ -775,7 +776,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // #2723: a set this run created is placed again now its labels are measurable, so the visible gap is the rule's.
       if (drawn && built.placed) await seatSet(built.id, target.id);
       // #846: its usage panel LAST, once the set sits where it stays, so the seating never moves the set past its panel.
-      if (drawn) await panelBeside(drawn, built.id, target.id);
+      // #2909: unless Documentation has the usage panels off for this file.
+      if (drawn && readDocSettings(figma.root).panels) await panelBeside(drawn, built.id, target.id);
       // The real `PageNode` (same #1561 reasoning as `targetPage` above), which satisfies `HeaderPage`.
       if (page) landed(page.name, { page: page as unknown as PageNode, defId: target.id });
       return built;
@@ -986,6 +988,22 @@ const panelBeside = async (f: FurnitureOutcome, setId: string, defId: string): P
   if (set && set.type === 'COMPONENT_SET') withPanel(f, await panelFor(set as unknown as XNode, defId));
 };
 
+/**
+ * WHAT UPDATE FILE'S CHECKLIST READS (#2909): the buildable defs whose set (or, for an `emitAsComponents` def, any of its
+ * components) the file holds, by the name the build gives it (`presentNames`, the dependency walk's own search), and
+ * whether Set up file has run. Never throws to the panel: an unreadable file answers with `error` and nothing present.
+ */
+const fileSets = async (): Promise<void> => {
+  try {
+    await figma.loadAllPagesAsync();
+    const names = presentNames(figma as unknown as Parameters<typeof presentNames>[0]);
+    const present = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]) });
+  } catch (e) {
+    postToUi({ type: 'file-sets', present: [], setUp: false, error: (e as Error)?.message ?? String(e) });
+  }
+};
+
 /** `seatNewSet` on a set by id (#2723), with the room its usage panel will take (#846). CAUGHT, as `furnishSet` is:
  *  the set is built, and this is its placement. */
 const seatSet = async (setId: string, defId: string): Promise<void> => {
@@ -1003,9 +1021,11 @@ const updateTargets = (defId: string | undefined): { targets: UpdateTarget[]; un
   if (defId !== undefined && !defs.length) return { targets: [], unknown: defId, refused: [] };
   const targets: UpdateTarget[] = [];
   const refused: { def: string; reason: string }[] = [];
+  // #2909: a set's usage panel rides its update only while Documentation has the panels on for this file.
+  const panels = readDocSettings(figma.root).panels;
   for (const d of defs) {
     // `single` (#2296): an `emitAsComponents` def (the icons, the spinner) is read as single components, not a set.
-    try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}), ...(leadsPanel(d.id) ? { doc: { def: d, names: defName } } : {}) }); }
+    try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}), ...(panels && leadsPanel(d.id) ? { doc: { def: d, names: defName } } : {}) }); }
     catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${(e as Error)?.message ?? String(e)})` }); }
   }
   return { targets, unknown: null, refused };
@@ -1187,7 +1207,9 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     // saved brand's name, and set as the file thumbnail while that is still Figma's default. Every Update keeps it current.
     // `drawCover` reads the brand the file holds; with none it draws nothing and says so.
     let cover: CoverOutcome;
-    try { cover = await drawCover(figma as unknown as CoverApi, figma.root as unknown as CoverRoot); }
+    // #2977: unless Documentation has the cover off for this file; then nothing is drawn and the thumbnail is left.
+    if (!readDocSettings(figma.root).cover) cover = { did: 'none', skipped: COVER_OFF, fontMisses: [] };
+    else try { cover = await drawCover(figma as unknown as CoverApi, figma.root as unknown as CoverRoot); }
     catch (e) { cover = { did: 'none', skipped: `not drawn, Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] }; }
     const coverNote = coverLine(cover);
     const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}${movesNote}${coverNote ? `\n${coverNote}` : ''}`;
@@ -1503,10 +1525,20 @@ onUiMessage((msg: UiToMain) => {
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
       void sendThemePref();
       void sendActivityHeight();
+      postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root) });
       return;
     case 'set-theme-pref':
       // The Theme menu's choice, kept per person (the owner's top-bar decision, 2026-10-05).
       if (isThemePref(msg.pref)) void figma.clientStorage.setAsync(THEME_PREF_KEY, msg.pref).catch(() => {/* best-effort */});
+      return;
+    case 'file-sets-request':
+      // #2909: Update file's checklist — which sets the file holds, and whether it is set up. A read: never guarded.
+      void fileSets();
+      return;
+    case 'doc-settings-save':
+      // #2909 (Q2909.23 A): Documentation's settings, kept in the file. A read of nothing else; never guarded.
+      try { postToUi({ type: 'doc-settings', settings: writeDocSettings(figma.root, msg.settings) }); }
+      catch (e) { postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root), error: `Couldn't save the settings in this file (${(e as Error)?.message ?? String(e)}).` }); }
       return;
     case 'set-activity-height':
       // The Activity drawer's height, kept per person (#2176).

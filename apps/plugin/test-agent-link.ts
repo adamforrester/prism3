@@ -60,7 +60,8 @@
  *   · strip/<arm> (#2949): minimizing to the link strip resizes the window and nothing else — the link stays on, the
  *     poll stays armed and a command sent while minimized is run; the strip skips the 380×420 floor, is never kept as
  *     the window size, ignores a late drag, and Restore returns to the size from before; Turn off (the link switched
- *     off) restores too; and nothing minimizes while the link is off. EXPECTED sizes are literals here. (mutation:
+ *     off) restores too; and Minimize works with the link off as well (#2909, the owner's direction of 2026-10-24;
+ *     mutation: `if (!agentLink.state().on) return;` back in `setMinimized` → strip/off fails). EXPECTED sizes are literals here. (mutation:
  *     `setMinimized` calling `agentLink.setOn(false)` → strip/link and strip/poll fail, by name). From Minimize to
  *     Restore the link's `since` holds and no `on: false` reaches the panel or the record, so a bounce (off, then on)
  *     shows too (mutation: `setOn(false); setOn(true)` in `setMinimized` → strip/since-min, strip/since-restore and strip/no-bounce fail)
@@ -102,6 +103,8 @@ const root = {
   children: [] as unknown[],
   findAllWithCriteria: () => [],
   getSharedPluginData: (ns: string, key: string) => store.get(k(ns, key)) ?? '',
+  getPluginData: (key: string) => store.get(k('', key)) ?? '',
+  setPluginData: (key: string, v: string) => { if (v === '') store.delete(k('', key)); else store.set(k('', key), v); },
   setSharedPluginData: (ns: string, key: string, v: string) => {
     if (ns === MAILBOX.ns && !agentSide) pluginWrites.push(key);
     if (v === '') store.delete(k(ns, key)); else store.set(k(ns, key), v);
@@ -981,9 +984,13 @@ section('strip — minimizing resizes the window and never touches the link or i
   await toUi({ type: 'agent-link', on: false });
   ok(JSON.stringify(sizes.at(-1)) === '[900,700]' && JSON.stringify(minimizedPosts()) === '[true,false,true,false]' && main.agentLink.state().on === false,
     `strip/turn-off: Turn off switches the link off and restores the full window (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts(), on: main.agentLink.state().on })})`);
-  const n = sizes.length;
+  // The owner's direction on #2909 (2026-10-24): Minimize does not depend on the link.
   await toUi({ type: 'minimize-ui', minimized: true });
-  ok(sizes.length === n && JSON.stringify(minimizedPosts()) === '[true,false,true,false]', 'strip/off: nothing minimizes while the link is off');
+  ok(JSON.stringify(sizes.at(-1)) === '[480,40]' && JSON.stringify(minimizedPosts()) === '[true,false,true,false,true]' && main.agentLink.state().on === false,
+    `strip/off: with the link off, Minimize still resizes to the strip and leaves the link off (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts(), on: main.agentLink.state().on })})`);
+  await toUi({ type: 'minimize-ui', minimized: false });
+  ok(JSON.stringify(sizes.at(-1)) === '[900,700]' && JSON.stringify(minimizedPosts()) === '[true,false,true,false,true,false]',
+    `strip/off-restore: with the link off, Restore returns to 900×700 (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts() })})`);
 
   ui.resize = origResize;
   cs.setAsync = origSet;
@@ -1099,6 +1106,29 @@ section('run-code — a dev build runs code in the main thread and reports in ou
   ok(r.ok === false && r.error?.code === 'unknown-command',
     `run-code release: with PRISM3_DEV false (a release build) the command is unknown-command and nothing runs (${JSON.stringify(r.error)})`);
   g.PRISM3_DEV = true;
+}
+
+section('doc-settings — Documentation\'s settings are kept in the file and read back on ui-ready (#2909)');
+{
+  // The expected side is the literal the panel sent, normalized by hand here; the actual side is the file's record, read
+  // again through a fresh `ui-ready`, which goes through `readDocSettings`, not the save's echo.
+  posted.length = 0;
+  await toUi({ type: 'doc-settings-save', settings: { panels: false, cover: false, styleGuide: { view: 'Theme', options: { rem: true } }, junk: 1 } });
+  const echo = posted.find((m) => m?.type === 'doc-settings');
+  ok(JSON.stringify(echo?.settings) === JSON.stringify({ panels: false, cover: false, styleGuide: { view: 'Theme', options: { rem: true } } }),
+    `doc-settings/save: the save is answered with the record kept, unknown keys dropped — ${JSON.stringify(echo)}`);
+  posted.length = 0;
+  await toUi({ type: 'ui-ready' });
+  const back = posted.find((m) => m?.type === 'doc-settings');
+  ok(back?.settings?.panels === false && back?.settings?.cover === false && back?.settings?.styleGuide?.view === 'Theme',
+    `doc-settings/readback: ui-ready sends the file's record back — ${JSON.stringify(back)}`);
+  // A malformed switch reads as on, the default, never as off.
+  await toUi({ type: 'doc-settings-save', settings: { panels: 'no', cover: null } });
+  posted.length = 0;
+  await toUi({ type: 'ui-ready' });
+  const def = posted.find((m) => m?.type === 'doc-settings');
+  ok(def?.settings?.panels === true && def?.settings?.cover === true && def?.settings?.styleGuide === null,
+    `doc-settings/defaults: a malformed record reads as both switches on — ${JSON.stringify(def)}`);
 }
 
 console.log(`\n${failed === 0 ? '✅ ALL PASS' : `❌ ${failed} FAILED`} — ${executed} assertions executed`);

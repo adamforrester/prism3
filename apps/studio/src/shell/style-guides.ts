@@ -22,7 +22,7 @@ import type { ActionState, SgRunTable } from '../state/host-session';
 import type { StyleGuideCatalog, StyleGuideKind, StyleGuideOptions } from '../../../plugin/src/messages';
 import {
   treesOf, defaultOpen, boxOf, countsOf, summaryText, drawLabel, kindsOf, hasLengths, byTitles, drawOptions, DEFAULT_OPTIONS,
-  keepSelection, type SgNode, type PageOptions,
+  keepSelection, savedOf, readSaved, selectionOf, type SgNode, type PageOptions,
 } from '../state/style-guides';
 import { glyph, h, hook, switchEl, type P3Class } from './dom';
 
@@ -57,6 +57,10 @@ export type StyleGuidesLend = {
   readonly close: () => void;
   /** Open Activity on the style guide's result (the verdict pill). */
   readonly showResult: () => void;
+  /** #2909 (Q2909.23 A): Documentation › Style guides. Present, the page holds settings only: no Draw, no run list, no
+   *  cleanup offer (Clean up has it), no Close; its choices are kept in the file and Update file draws with them.
+   *  `saved` is the file's record as the host last said it, `undefined` until the host has answered. */
+  readonly settings?: { readonly saved: () => unknown; readonly save: (rec: unknown) => void };
 };
 
 // ── the approved words (P12, H4–H10) ──────────────────────────────────────────────────────────────
@@ -64,6 +68,9 @@ const HEADING = 'Build style guides';
 const INTRO = 'Draws a table for each group of tokens in this file. A rerun updates each table in place.';
 const NOTE = 'Needs the pages and cells Set up file adds.';
 const SET_UP = 'Set up file';
+/** #2909, Documentation › Style guides. DRAFT (Q2909.10 A). */
+const DOCS_INTRO = 'Update file draws a table for each group of tokens in this file, with these settings. A rerun updates each table in place.';
+const DOCS_NOT_SET_UP = 'This file isn’t set up yet. The first Update file sets it up, then draws these tables.';
 /** A catalog the host could not read (owner decision SG4). */
 const READ_ERROR = "Couldn't read this file's variables. Close the page and open it again.";
 const KIND_LABEL: Record<StyleGuideKind, string> = { color: 'Color', dimension: 'Spacing and size', font: 'Font variables', text: 'Text styles', effect: 'Effect styles', gradient: 'Gradient styles' };
@@ -85,6 +92,10 @@ const S = {
   pending: 0,
   /** The cleanup's list is open for the designer to confirm (Q412 A). */
   confirmCleanup: false,
+  /** #2909: the file's saved record has been read into the page (Documentation), so a change from here on is saved. */
+  restored: false,
+  /** #2909: the record last saved, as JSON, so a repaint that changes nothing saves nothing. */
+  savedJson: '',
 };
 /** The run line (approved, P12, and #1784's): the table being drawn, counted from 1. */
 const runLine = (at: number, n: number): string => `Drawing table ${at} of ${n}…`;
@@ -93,9 +104,24 @@ const runLine = (at: number, n: number): string => `Drawing table ${at} of ${n}�
 export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narrow: () => boolean, cleanups: (() => void)[]): void => {
   const page = hook(h('div', 'p3-sg'), 'style-guides');
 
+  const settings = lend.settings ?? null;
   /** Adopt the host's catalog: the first one selects every table; a later one keeps the selection by key. */
   const adopt = (): StyleGuideCatalog | null => {
     const c = lend.read().catalog?.catalog ?? null;
+    // #2909: in Documentation the file's record decides the first selection, once the host has said what it holds.
+    const raw = settings?.saved();
+    if (settings && c && !S.restored && raw !== undefined) {
+      const rec = readSaved(raw);
+      S.sel = selectionOf(c, rec);
+      S.view = rec?.view && c.collections.some((x) => x.id === rec.view) ? rec.view : null;
+      S.open = defaultOpen(treesOf(c), S.view === null);
+      S.titles = rec?.titles ?? '';
+      S.opt = { ...(rec?.opt ?? DEFAULT_OPTIONS) };
+      S.catalog = c;
+      S.restored = true;
+      S.savedJson = JSON.stringify(savedOf(c, S.sel, S.view, S.titles, S.opt));
+      return c;
+    }
     if (c && c !== S.catalog) {
       S.sel = S.catalog ? keepSelection(S.catalog, S.sel, c) : new Set(c.tables.map((_, i) => i));
       if (!S.catalog || (S.view && !c.collections.some((x) => x.id === S.view))) { S.view = S.view && c.collections.some((x) => x.id === S.view) ? S.view : null; S.open = defaultOpen(treesOf(c), S.view === null); }
@@ -132,6 +158,12 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     const f = inPage ? keyOf(document.activeElement as HTMLElement) : null;
     const caret = document.activeElement instanceof HTMLTextAreaElement ? document.activeElement.selectionStart : null;
     page.replaceChildren(...compose(cat));
+    // #2909: Documentation keeps every change in the file, once the file's own record has been read in.
+    if (settings && cat && S.restored) {
+      const rec = savedOf(cat, S.sel, S.view, S.titles, S.opt);
+      const json = JSON.stringify(rec);
+      if (json !== S.savedJson) { S.savedJson = json; settings.save(rec); }
+    }
     const line = r.state === 'pending' && (r.run || S.pending) ? runLine(r.progress ? Math.min(r.progress.done + 1, r.progress.total) : 1, r.run?.tables.length || S.pending) : '';
     if (live.textContent !== line) live.textContent = line;
     if (r.state !== 'pending') S.pending = 0;
@@ -228,6 +260,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
 
   // ── the header ──────────────────────────────────────────────────────────────────────────────
   const header = (setUp: boolean): HTMLElement => {
+    if (settings) return docsHeader(setUp);
     const head = hook(h('header', 'p3-sg-head'), 'sg-head');
     const row = h('div', 'p3-sg-hrow');
     const h1 = hook(h('h1', 'p3-sg-title', HEADING), 'sg-heading');
@@ -254,6 +287,20 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
       head.append(n);
     }
     // The host could not read the file (owner decision SG4, 2026-10-05): the approved words, never the host's message.
+    if (lend.read().catalog?.error) head.append(hook(h('p', 'p3-sub p3-sg-error', READ_ERROR), 'sg-read-error'));
+    return head;
+  };
+
+  /** #2909: Documentation's header for the tab: no heading (the tab names it), no Close and no Set up file button. DRAFT
+   *  wording (Q2909.10 A). */
+  const docsHeader = (setUp: boolean): HTMLElement => {
+    const head = hook(h('header', 'p3-sg-head'), 'sg-head');
+    head.append(h('p', 'p3-sg-intro', DOCS_INTRO));
+    if (!setUp) {
+      const n = hook(h('p', 'p3-sg-note p3-sg-warn'), 'sg-setup-warning');
+      n.append(glyph('warn'), h('span', 'p3-sg-warn-text', DOCS_NOT_SET_UP));
+      head.append(n);
+    }
     if (lend.read().catalog?.error) head.append(hook(h('p', 'p3-sub p3-sg-error', READ_ERROR), 'sg-read-error'));
     return head;
   };
@@ -443,6 +490,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
       else s.textContent = 'Nothing selected.';
       bar.append(s);
     }
+    if (settings) return bar;
     const d = hook(h('button', 'p3-btn p3-btn-primary p3-sg-draw'), 'sg-draw');
     d.type = 'button';
     d.dataset.key = 'draw';
@@ -602,8 +650,9 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     const r = lend.read();
     const setUp = cat?.setUp ?? true;
     const busy = r.busy;
-    const prog = progress();
-    const offer = cleanup();
+    // #2909: Documentation shows no run and no offer: Update file draws, Activity shows the run, Clean up holds the offer.
+    const prog = settings ? null : progress();
+    const offer = settings ? null : cleanup();
     if (narrow()) {
       const parts: HTMLElement[] = [header(setUp)];
       if (prog || offer) { const s = hook(h('section', 'p3-sg-sec p3-sg-progsec'), 'sg-run'); s.setAttribute('aria-label', 'Progress'); if (prog) s.append(prog); if (offer) s.append(offer); parts.push(s); }
@@ -630,6 +679,8 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
   lend.request();
   paint();
   for (const t of ['host', 'host:styleguide', 'host:sgpage', 'host:progress', 'host:filesetup'] as const) cleanups.push(subscribe(t, paint));
+  // #2909: in Documentation, the file's record can arrive after the page mounts; the next paint reads it in.
+  if (settings) cleanups.push(subscribe('host:docs', paint));
   // A repaint follows the width tier: the two layouts differ in structure, not only in style.
   const ro = new ResizeObserver(() => { const n = narrow(); if (n !== (page.dataset.narrow === 'true')) { page.dataset.narrow = String(n); paint(); } });
   ro.observe(root);

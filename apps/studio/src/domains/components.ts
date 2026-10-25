@@ -82,7 +82,9 @@ const SECTION_SETTINGS: Record<BlockKey, {
 
 /** Mount the Components list into `hostEl`. Subscriptions are released through `cleanups`. */
 export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void)[], lend: PageLends): void => {
-  const plugin = PRISM3_HOST === 'figma';
+  // #2909 IA v2 phase 1 (Q2909.5 A): the plugin's one write is Update file, whose checklist adds the sets the file
+  // lacks. So this page draws no boxes and no Build bar on either host: the list, its sections and their settings.
+  const plugin = false;
   const root = hook(h('div', 'p3-levers-body p3-cp'), 'components-levers');
   const list = hook(h('div', 'p3-cp-list'), 'components-list');
   const bar = plugin ? hook(h('div', 'p3-cp-bar'), 'components-bar') : null;
@@ -329,7 +331,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       if (q && !hits) parts.push(hook(h('p', 'p3-sub p3-cp-empty', GROUPS_COPY.noMatch), 'components-no-match'));
       setSearchHits(q ? hits : null);
       // The web's one line, a hint line as it always was (the Studio's `stateLine`).
-      if (!plugin) parts.push(hook(stateLine(SETS_COPY.web), 'components-web-line'));
+      if (!plugin) parts.push(hook(stateLine(PRISM3_HOST === 'figma' ? SETS_COPY.plugin : SETS_COPY.web), 'components-web-line'));
     }
     list.replaceChildren(...parts);
     dropSettings(shownHere);

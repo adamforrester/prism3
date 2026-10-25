@@ -37,8 +37,11 @@
  * build's post (`main.ts`, `withTemplateWarning({ type: 'component-result', … })`) → `templates/build warns`; from the
  * Update's → `templates/update warns`; a warning with every template present → `templates/build clean`,
  * `templates/update clean`. `updateTargets` (`main.ts`) giving no target its `doc` → `panel/update due`; the per-def
- * `furnish` hook without `panelFor` → `panel/update drawn`. `panelFor` drawing the spec panel after the usage panel (Q2830.3 A:
- * specs are drawn on request only) → `specs/never on build`, `specs/never on update`.
+ * `furnish` hook without `panelFor` → `panel/update drawn`. Documentation's switches (#2995, the file's
+ * `prism3:docSettings`): Build ignoring Usage panels off (`main.ts`, the `readDocSettings(figma.root).panels` before
+ * `panelBeside` read as `true`) → `docs/panels off`; Set up file ignoring Cover off (`main.ts` `fileSetup`, its
+ * `readDocSettings(figma.root).cover` test never taken) → `docs/cover off`. `panelFor` drawing the spec panel after
+ * the usage panel (Q2830.3 A: specs are drawn on request only) → `specs/never on build`, `specs/never on update`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -82,6 +85,7 @@ const shim = makeShim({
   effects: [...new Set(badgePlans.flatMap((p) => planEffectStyles(p.root)))],
 }) as Record<string, any>;
 const root = shim.root as Record<string, unknown>;
+const pluginData = new Map<string, string>();
 Object.defineProperty(root, 'children', { get: () => pages });
 Object.assign(root, {
   name: 'build-completed test file',
@@ -93,8 +97,9 @@ Object.assign(root, {
   appendChild: (child: ShimPage) => { const i = pages.indexOf(child); if (i >= 0) pages.splice(i, 1); pages.push(child); },
   getSharedPluginData: () => '',
   setSharedPluginData: () => undefined,
-  getPluginData: () => '',
-  setPluginData: () => undefined,
+  // The file's own plugin data, so Documentation's settings (`prism3:docSettings`, #2909) can be set per arm.
+  getPluginData: (k: string) => pluginData.get(k) ?? '',
+  setPluginData: (k: string, v: string) => { pluginData.set(k, v); },
 });
 // A search for sets finds the ones on the pages, as Figma's does: the Update reads its targets this way. So does a
 // search for the usage panels (#846): top-level frames on the pages carrying the shared plugin data asked for.
@@ -231,6 +236,20 @@ await runAction((sink) => ACTIONS.updateComponents('badge', pre3?.previewHash ??
 ok(livePanel().length === 1 && Number((livePanel()[0] as any).x) === spotX, `panel/update drawn: the Update redraws it on its spot, ${spotX} (${livePanel().map((c) => (c as any).x).join(', ')})`);
 ok(!specPanels().length, `specs/never on update: the Update that redrew the usage panel draws no spec panel (${specPanels().join(', ') || 'none tagged'})`);
 
+// #2995 (should-fix 2): Documentation's Usage panels switch, read by Build on the main thread (`main.ts`, the
+// `readDocSettings(figma.root).panels` before `panelBeside`). The panel is removed and Badge rebuilt with the file's
+// `prism3:docSettings` at `{"panels":false}`: no panel. Then the switch back on, the same rebuild: the panel again, so
+// the first arm measures the switch, not a rebuild that never draws one.
+for (const n of livePanel()) badgePage!.children.splice(badgePage!.children.indexOf(n as Node), 1);
+ok(livePanel().length === 0, `fixture: the usage panel is gone before the rebuild (${livePanel().length})`);
+pluginData.set('prism3:docSettings', '{"panels":false}');
+const panelsOff = await build('badge');
+ok(!!panelsOff && livePanel().length === 0,
+  `docs/panels off: with Usage panels off in Documentation, Build draws no usage panel (${livePanel().length} drawn; "${panelsOff?.headline}")`);
+pluginData.delete('prism3:docSettings');
+await build('badge');
+ok(livePanel().length === 1, `docs/panels on (control): the same rebuild with the switch on draws the panel again (${livePanel().length})`);
+
 // 2. The same set, its members renamed onto a smaller axis list: refused, nothing built.
 const members = (set?.children ?? []) as Node[];
 const firstName = String(members[0]?.name ?? '');
@@ -271,6 +290,23 @@ for (const [name, r, min] of [['the fresh build', first, 3], ['the refused rebui
 // The set's own facts stay one line; the misses and the build note are lines of their own.
 ok(!!first && /^set '.*refs across \d+ members$/.test(String(first.lines?.[0])) && /^Built from /.test(String(first.lines?.at(-1))),
   `#2177 the fresh build: the set's facts are its first line, the build note its last (${JSON.stringify(first?.lines?.[0])} … ${JSON.stringify(first?.lines?.at(-1))})`);
+
+// 5. #2995 (should-fix 2): Documentation's Cover switch, read by Set up file on the main thread (`main.ts` `fileSetup`).
+//    With the file's `prism3:docSettings` at `{"cover":false}` Set up file draws no cover and reports it off; the
+//    expected words are typed here, from #2977. Then the switch on: the cover is attempted, so the arm reads the switch.
+const COVER_OFF_WORDS = 'not drawn, the cover is off in Documentation';
+const coverFrames = () => pages.flatMap((p) => p.children).filter((n) => { try { return !!(n as any).getSharedPluginData?.('prism3', 'cover'); } catch { return false; } });
+// Figma's `createComponent`, as the template builder above was given it: Set up file builds the file's components.
+shim.createComponent = () => shim.createComponentFromNode(shim.createFrame());
+pluginData.set('prism3:docSettings', '{"cover":false}');
+const setupOff = await runAction((sink) => ACTIONS.fileSetup(sink as never));
+const coverOff = (setupOff.data.find((d) => d.fileSetup)?.fileSetup as { cover?: { did?: string; skipped?: string } } | undefined)?.cover;
+ok(coverOff?.did === 'none' && coverOff.skipped === COVER_OFF_WORDS && coverFrames().length === 0,
+  `docs/cover off: with Cover off in Documentation, Set up file draws no cover (${JSON.stringify(coverOff)}; ${coverFrames().length} cover frames)`);
+pluginData.delete('prism3:docSettings');
+const setupOn = await runAction((sink) => ACTIONS.fileSetup(sink as never));
+const coverOn = (setupOn.data.find((d) => d.fileSetup)?.fileSetup as { cover?: { did?: string; skipped?: string } } | undefined)?.cover;
+ok(!!coverOn && coverOn.skipped !== COVER_OFF_WORDS, `docs/cover on (control): with the switch on, Set up file goes to the cover (${JSON.stringify(coverOn)})`);
 
 console.log(`\n${executed - failed}/${executed} build-completed assertions passed.`);
 process.exit(failed ? 1 : 0);
