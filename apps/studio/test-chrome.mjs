@@ -1657,6 +1657,7 @@ for (const host of ['web', 'figma']) {
             rail: vis(rail), width: r ? Math.round(r.width) : 0, left: r ? Math.round(r.left) : -1, frameLeft: Math.round(frame.left),
             order: tiles.map((t) => t.getAttribute('data-p3')), names: tiles.map((t) => t.getAttribute('aria-label')),
             labels: tiles.map((t) => vis(t.querySelector('.p3-tile-label'))),
+            icons: tiles.map((t) => [...t.querySelectorAll('.p3-tile-mark svg')].map((g) => g.dataset.glyph ?? '?').join('+')),
             current: cur?.getAttribute('data-p3') ?? null,
             curBg: cur ? getComputedStyle(cur.querySelector('.p3-tile-mark')).backgroundColor : null,
             mark: { shown: vis(mark), role: mark?.getAttribute('role') ?? null, label: mark?.getAttribute('aria-label') ?? null,
@@ -1669,6 +1670,14 @@ for (const host of ['web', 'figma']) {
         ok(JSON.stringify(rl.order) === JSON.stringify(ORDER), `rail ${where}: Theme, Components, Documentation, Export, then Agent, Help and Appearance, in that order (${rl.order.join(', ')})`);
         ok(JSON.stringify(rl.names.slice(0, 6)) === JSON.stringify(['Theme', 'Components', 'Documentation', 'Export', 'Agent', 'Help']) && /^Appearance: /.test(rl.names[6] ?? ''),
           `rail ${where}: each tile is named in full (${rl.names.join(', ')})`);
+        // #2995 (should-fix 1): each tile draws the icon the owner chose in Q2909.19 A, written here from the decision's own
+        // words, not read from `pages.ts` or `dom.ts`: three swatches, four diamonds, a ruled page, an arrow up out of a tray,
+        // a chain link, a question mark in a circle, and for Appearance a FIXED half-filled circle, whatever the choice
+        // (the choice is in its name and tooltip). MUTATION: the Appearance tile drawing the current choice's glyph again
+        // (`fixed ?? cur.glyph` → `cur.glyph` in `frame.ts` `themeToggle`) → this arm, by name, at every width and theme.
+        const Q2909_19_A = ['swatches', 'diamonds', 'page', 'send', 'link', 'help', 'halfmoon'];
+        ok(JSON.stringify(rl.icons) === JSON.stringify(Q2909_19_A),
+          `rail ${where}: each tile draws its Q2909.19 A icon by name, Appearance a fixed half-filled circle (${rl.order.map((o, i) => `${o}=${rl.icons[i]}`).join(', ')})`);
         ok(rl.labels.length === 7 && rl.labels.every(Boolean), `rail ${where}: every tile shows its label, at this width too (Q2909.16 A) (${JSON.stringify(rl.labels)})`);
         ok(rl.current === 'rail-theme' && hexOfRgb(rl.curBg) === RAIL_SELECTED[theme], `rail ${where}: Theme is the current area, its tile filled with the inset role (${RAIL_SELECTED[theme]}) (${rl.current}, ${rl.curBg})`);
         // Q2995.2 A (#2909): at the plugin's least height (420) the logo hides so every tile keeps its label; elsewhere it shows.

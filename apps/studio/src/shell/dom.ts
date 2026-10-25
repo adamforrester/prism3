@@ -99,6 +99,8 @@ export const glyph = (name: Glyph): SVGSVGElement => {
   svg.setAttribute('class', 'p3-ico');
   svg.setAttribute('viewBox', '0 0 16 16');
   svg.setAttribute('aria-hidden', 'true');
+  // Its name, so a test can say which glyph a control draws (#2995: the rail's icons, read against Q2909.19 A).
+  svg.dataset.glyph = name;
   svg.innerHTML = GLYPHS[name];
   return svg;
 };

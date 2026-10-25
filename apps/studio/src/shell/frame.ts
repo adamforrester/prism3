@@ -54,7 +54,7 @@
 import { currentMode, page, rp, searchHits, searchQuery, setCurrentMode, setPage, setSearch, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { INSPECT, TABS, THEME_TABS, areaOfPage, homeOf, isMenuPage, newPageOf, pageOfTab, placeId, placeOfPage, placeOfTab, viewLabel, type AreaId, type Host, type InspectId, type NewPageKey, type PageKey, type Place, type TabId } from './pages';
-import { glyph, h, hook, linkTile, menuButton, tile } from './dom';
+import { glyph, h, hook, linkTile, menuButton, tile, type Glyph } from './dom';
 import { mountRail } from './rail';
 import { mountDocumentation, type DocumentationLend } from './documentation';
 import { mountUpdateFile, type UpdateFileLend } from './update-file';
@@ -262,7 +262,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   // The theme menu (F3; on the plugin too since the owner's top-bar decision of 2026-10-05, with Match Figma first).
   // The bar places it, before Activity and Export.
   // On the rail it is Appearance (round 4), so it does not collide with the Theme area.
-  const theme = themeToggle(cleanups, railShell ? 'Appearance' : 'Theme');
+  const theme = themeToggle(cleanups, railShell ? 'Appearance' : 'Theme', railShell ? 'halfmoon' : null);
 
   // ── the tab row and Color's sub-row ─────────────────────────────────────────────────────────────
   const nav = hook(h('div', 'p3-nav'), 'tab-row');
@@ -896,9 +896,10 @@ export const mountFrame = (app: HTMLElement, opts: {
 };
 
 /** The theme menu: a bar tile, "Theme", that opens a menu of radio items (concept v6): Light, Dark and System on the
- *  studio, Match Figma, Light and Dark on the plugin (`theme.ts`). The tile shows the current choice's glyph; its
- *  name and tooltip say the choice ("Theme: System"). */
-const themeToggle = (cleanups: (() => void)[], label: string): HTMLElement => {
+ *  studio, Match Figma, Light and Dark on the plugin (`theme.ts`). The tile shows the current choice's glyph, or
+ *  `fixed` when it is given (the rail's Appearance tile is a half-filled circle, Q2909.19 A); its name and tooltip
+ *  say the choice ("Theme: System"). */
+const themeToggle = (cleanups: (() => void)[], label: string, fixed: Glyph | null): HTMLElement => {
   const wrap = h('div', 'p3-popwrap');
   const { btn, mark, tip } = tile('theme-toggle', label);
   btn.setAttribute('aria-haspopup', 'menu');
@@ -923,7 +924,7 @@ const themeToggle = (cleanups: (() => void)[], label: string): HTMLElement => {
 
   const paint = (): void => {
     const cur = themeChoice();
-    mark.replaceChildren(glyph(cur.glyph));
+    mark.replaceChildren(glyph(fixed ?? cur.glyph));
     btn.setAttribute('aria-label', `${label}: ${cur.label}`);
     tip.textContent = `${label}: ${cur.label}`;
     for (const [i, c] of THEME_CHOICES.entries()) items[i].setAttribute('aria-checked', String(c.pref === cur.pref));
