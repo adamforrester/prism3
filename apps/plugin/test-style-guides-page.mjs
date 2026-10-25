@@ -1,37 +1,34 @@
 /**
- * Plugin panel — THE BUILD STYLE GUIDES PAGE (UI redesign S11.2), through the BUILT `dist/ui.html`.
+ * Plugin panel — DOCUMENTATION › STYLE GUIDES (#2909 IA v2 phase 1), through the BUILT `dist/ui.html`.
  *
  *   npm run -w @prism3/plugin build && npm run -w @prism3/plugin test:verdict
  *
  * Run by `test:verdict` after `test-build-verdict.mjs`, with that suite's harness: the panel loaded top-level, the main
  * thread's replies injected with `window.postMessage`, and every message the panel posts caught on the same window. So
  * the page is driven through `write-adapter.ts`'s real validation and the host session's real reducer, and what is
- * asserted is the rendered DOM. No Figma and no main thread: `test-style-guide-page.ts` drives that side.
+ * asserted is the rendered DOM and the wire. No Figma and no main thread: `test-style-guide-page.ts` drives that side.
  *
- * ONE ARM PER OWNER DECISION (2026-10-05), each named by it:
- *   · H10/H11: the Figma menu's "Build style guides…" opens the page, headed "Build style guides"; H12: the legacy Style
- *     guide page stays in the Pages menu.
- *   · P8: before Set up file, a warning with a Set up file button, and Draw off; the setup's verdict asks for the catalog
- *     again.
- *   · P2: the tree is the one selection: a kind box clears its tables and the tree follows; a tree box makes the kind
- *     box mixed; the title box selects exactly the tables it names, and a click in the tree clears it.
- *   · P3: whole tables: a variable inside a table has no box of its own.
- *   · P4: Mode is "Every mode", fixed.
- *   · P5: a later-phase group is grayed out, tagged "Later phase", and its box cannot be checked.
- *   · H4–H9: the options, their values and defaults, and each group shown only for its kind in the selection.
- *   · P1 (variant 1): the run on the page, table by table; Activity records it, and does not open by itself while the
- *     page is open (control: away from the page, a failed style guide opens it).
- *   · P6: a failed table is listed first with its reason; Draw it again draws that table alone, by key.
- *   · P7: Cancel asks the main thread to stop; a stopped run says where, and the rest read "Not drawn".
- *   · P9 (layout): at 380, one column, the run first, Draw pinned at the bottom.
- *   · P11: the Activity row is titled "Style guides".
- *   · Close returns to the page the Figma menu was opened from.
- *   · #2211 (X4 A, F1 A): the disabled Draw takes Prism3's disabled filled button, the fixed Mode select the disabled
- *     field; no dashed edge.
+ * WHAT MOVED (#2909, owner decisions Q667 A, Q668 A, Q2909.21 A, Q2909.23 A). The Build style guides page the Figma menu
+ * opened (S11.2) is now the rail's Documentation area, tab Style guides, in a SETTINGS-ONLY mode: no Draw, no run list,
+ * no Cancel, no Close, no cleanup offer. Its choices are kept in the file (`doc-settings-save` / `doc-settings`), and
+ * Update file draws the tables with them. The retired-table offer (Q412 A) is Update file's Clean up tab.
  *
- * INDEPENDENCE (docs/34): every expected value is typed here, in the words a designer reads; the catalog is a literal,
- * and nothing imports the page's model or reads its state. Mutations that fail here by name are in the S11.2 page PR's
- * progress entry.
+ * ONE ARM PER DECISION, each named by it:
+ *   · Q667 A, Q2909.21 A: the rail opens Documentation, its four tabs, Style guides first; the page asks for the catalog.
+ *   · P8 (re-hosted): before Set up file, a warning with no button: the first Update file sets the file up.
+ *   · SG4: a catalog the host could not read says the approved words.
+ *   · P2–P5, H4–H9: the tree, kinds, title box, Mode and the options, and every change kept in the file by key.
+ *   · Q2909.23 A: a saved record is restored on open; Update file draws the saved selection and options, by literal.
+ *   · Q668 A, Q412 A: Clean up lists the retired tables and removes them only on its confirm.
+ *   · Q667 A, #2977: the Usage panels and Cover switches save the whole record with that switch flipped.
+ *   · #2995: two switches flipped before the host answers the first both stick.
+ *   · Q2909.21 A: at 380 the tabs are a select.
+ * RETIRED with the run UI (#2909, Q2909.23 A): P1, P6, P7, P9, P11 (the page's run, Draw it again, Cancel, the pinned
+ * Draw bar), Close, #2211's disabled Draw skin, #2313 (an agent's run beside the page's list) and #2508 (a quiet run's
+ * finish heard once). The page shows no run any more; Activity's own suites hold the run's announcements.
+ *
+ * INDEPENDENCE (docs/34): every expected value is typed here, in the words a designer reads and the payload the wire
+ * carries; the catalog is a literal, and nothing imports the page's model or reads its state.
  */
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -102,27 +99,26 @@ const CAT = {
 };
 const ALL_KEYS = CAT.tables.map((t) => t.key);
 
+
 // ── reading the page ──────────────────────────────────────────────────────────────────────────────
 const read = (page) => page.evaluate(() => {
   const q = (s) => document.querySelector(s);
   const text = (s) => q(s)?.textContent ?? null;
   const box = (n) => n?.getAttribute('aria-checked') ?? null;
-  const draw = q('[data-p3="sg-draw"]');
-  const drawer = q('[data-p3="activity-drawer"]');
-  const sgRow = q('[data-p3="activity-op"][data-op="styleguide"]');
   return {
-    heading: text('[data-p3="sg-heading"]'),
+    heading: text('[data-p3="docs-heading"]'),
+    docTabs: [...document.querySelectorAll('[data-p3="docs-tabs"] [role="tab"]')].map((t) => `${t.textContent}${t.getAttribute('aria-selected') === 'true' ? '*' : ''}`),
     warning: !!q('[data-p3="sg-setup-warning"]'),
     warningText: text('[data-p3="sg-setup-warning"]'),
-    draw: draw ? { label: draw.textContent, disabled: draw.disabled, describedBy: draw.getAttribute('aria-describedby') } : null,
+    warningButton: !!q('[data-p3="sg-setup-warning"] button'),
     summary: text('[data-p3="sg-summary"]'),
+    pageButtons: [...(q('[data-p3="style-guides"]')?.querySelectorAll('.p3-btn-primary') ?? [])].length,
     kinds: { color: box(q('[data-p3="sg-kind-color"]')), dimension: box(q('[data-p3="sg-kind-dimension"]')), font: box(q('[data-p3="sg-kind-font"]')), text: box(q('[data-p3="sg-kind-text"]')) },
     mode: (() => { const s = q('[data-p3="sg-mode"]'); return s ? { disabled: s.disabled, options: [...s.options].map((o) => o.textContent) } : null; })(),
     collections: [...(q('[data-p3="sg-collection"]')?.options ?? [])].map((o) => o.textContent),
     groups: [...document.querySelectorAll('[data-p3="sg-group"]')].map((r) => ({
       id: r.dataset.id, name: r.querySelector('.p3-sg-name')?.textContent, box: box(r.querySelector('[data-p3="sg-box"]')),
       disabled: r.querySelector('[data-p3="sg-box"]')?.getAttribute('aria-disabled') === 'true', later: r.querySelector('[data-p3="sg-later"]')?.textContent ?? null,
-      meta: r.querySelector('.p3-sg-meta')?.textContent ?? null,
     })),
     leaves: [...document.querySelectorAll('[data-p3="sg-leaf"]')].map((r) => ({ id: r.dataset.id, boxed: !!r.querySelector('[data-p3="sg-box"]') })),
     titles: q('[data-p3="sg-titles-input"]')?.value ?? null,
@@ -132,31 +128,25 @@ const read = (page) => page.evaluate(() => {
     tokenNames: [...document.querySelectorAll('[data-p3="sg-opt-token-names"] [role="radio"]')].map((b) => `${b.textContent}${b.getAttribute('aria-checked') === 'true' ? '*' : ''}`),
     nameCell: q('[data-p3="sg-opt-name-cell"]') ? q('[data-p3="sg-opt-name-cell"]').getAttribute('aria-checked') === 'true' : null,
     switchRoles: [...document.querySelectorAll('[data-p3="sg-opt-rem"], [data-p3="sg-opt-name-cell"], [data-p3="sg-opt-aliases"]')].map((n) => n.getAttribute('role')),
-    focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName.toLowerCase() ?? null,
-    live: (() => { const l = q('[data-p3="sg-live"]'); return l ? { text: l.textContent, children: l.childElementCount, live: l.getAttribute('aria-live'), nested: document.querySelectorAll('[data-p3="style-guides"] [aria-live], [data-p3="style-guides"] [role="status"]').length } : null; })(),
     valueFormat: (() => { const s = q('[data-p3="sg-opt-value-format"]'); return s ? { value: s.value, options: [...s.options].map((o) => o.textContent) } : null; })(),
     colorSample: (() => { const s = q('[data-p3="sg-opt-color-sample"]'); return s ? { value: s.value, options: [...s.options].map((o) => o.textContent) } : null; })(),
     fontSample: (() => { const s = q('[data-p3="sg-opt-font-sample"]'); return s ? { value: s.value, options: [...s.options].map((o) => o.textContent) } : null; })(),
-    runLine: text('[data-p3="sg-run-line"]'),
-    tables: [...document.querySelectorAll('[data-p3="sg-table"]')].map((li) => `${li.querySelector('b')?.textContent}:${li.querySelector('[data-p3="sg-table-status"]')?.textContent}${li.querySelector('[data-p3="sg-table-reason"]') ? `(${li.querySelector('[data-p3="sg-table-reason"]').textContent})` : ''}`),
-    stopped: text('[data-p3="sg-stopped"]'),
-    verdict: text('[data-p3="sg-verdict"]'),
-    cancel: !!q('[data-p3="sg-cancel"]'),
-    drawerOpen: drawer?.dataset.open === 'true',
-    dot: q('[data-p3="activity-open"] .p3-status-dot')?.dataset.state ?? null,
-    sgRowTitle: sgRow?.querySelector('[data-p3="op-head"] b')?.textContent ?? null,
-    sgRowExpanded: sgRow?.querySelector('[data-p3="op-head"]')?.getAttribute('aria-expanded') ?? null,
-    sgRowSummary: sgRow?.querySelector('[data-p3="op-summary"]')?.textContent ?? null,
-    actbar: !!q('[data-p3="sg-actbar"] [data-p3="sg-draw"]'),
-    runBeforeCols: (() => { const run = q('[data-p3="sg-run"]'); const what = q('[data-p3="sg-what"]'); return !!run && !!what && !!(run.compareDocumentPosition(what) & Node.DOCUMENT_POSITION_FOLLOWING); })(),
     layout: q('[data-p3="frame"]')?.dataset.layout ?? null,
     sent: window.__sent,
   };
 });
 const sentOf = (st, type) => st.sent.filter((m) => m.type === type);
+/** The last Documentation record the panel saved, or null. */
+const lastSave = (st) => sentOf(st, 'doc-settings-save').at(-1)?.settings ?? null;
+/** Plain JSON with sorted keys, so a payload compares by content, not by its keys' order. */
+const canon = (v) => JSON.stringify(v, (_k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, x[k]])) : x));
 
-/** A panel on the page, Figma menu → Build style guides…, at the given width. */
-const openPage = async (width = 1280, height = 820) => {
+/** The file's Documentation record as the host answers it on open (`doc-settings`). Both switches on, nothing saved. */
+const RECORD = { panels: true, cover: true, styleGuide: null };
+
+/** A panel on Documentation › Style guides, from the rail, at the given width. The host's record is posted first, as the
+ *  main thread posts it on `ui-ready`, so the page can restore from it and save from then on. */
+const openPage = async (width = 1280, height = 820, record = RECORD) => {
   const page = await browser.newPage({ viewport: { width, height } });
   await hooks.watch(page);
   const errors = [];
@@ -166,16 +156,13 @@ const openPage = async (width = 1280, height = 820) => {
   await hooks.need(page, '[data-p3="frame"]');
   await page.evaluate(() => {
     window.__sent = [];
-    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && /^(style-guide|file-setup)/.test(m.type)) window.__sent.push(m); });
+    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && /^(style-guide|file-setup|doc-settings-save|file-sets|apply-theme|build-components)/.test(m.type)) window.__sent.push(m); });
   });
-  // From Brand, so Close has a page to return to (at 380 the tab row is a select, and the opening page serves).
-  if (width > 560) await hooks.click(page.locator('[data-p3="tab-brand"]'));
-  await hooks.click(page.locator('[data-p3="figma-open"]'));
-  await hooks.need(page, '[data-p3="figma-menu"]');
-  const item = await page.locator('[data-p3="figma-option-style-guide"] [data-p3="label-idle"]').textContent();
-  await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'));
+  await post(page, { type: 'doc-settings', settings: record });
+  await hooks.click(page.locator('[data-p3="rail-documentation"]'));
+  await hooks.need(page, '[data-p3="documentation"]');
   await hooks.need(page, '[data-p3="style-guides"]');
-  return { page, errors, item };
+  return { page, errors };
 };
 /**
  * WAIT ON THE CONDITION, NEVER ON THE CLOCK (#2171's CI round). The page hears the main thread through `postMessage`,
@@ -211,47 +198,33 @@ const skinOf = (page, hook) => page.evaluate((k) => {
 }, hook);
 /** The page has drawn the catalog's tree. */
 const treeDrawn = (page) => until(page, 'the catalog drawn as a tree', () => document.querySelectorAll('[data-p3="sg-group"]').length > 0);
-/** Table `i` of the run list shows `status`. */
-const tableIs = (page, i, status) => until(page, `table ${i} reads ${status}`, ([k, st]) => !!document.querySelector(`[data-p3="sg-table"][data-index="${k}"][data-status="${st}"]`), [i, status]);
 const groupBox = (id) => `[data-p3="sg-group"][data-id="${id}"] [data-p3="sg-box"]`;
+/** H4–H9's defaults, as the page saves them: typed here. */
+const DEFAULT_OPT = { header: 'dark', aliases: true, description: true, nameCell: false, rem: false, valueFormat: 'hex', colorSample: 'auto',
+  dimensionDisplay: 'filled', fontSample: 'auto', paragraphSpacing: false, textDecoration: false, tokenNames: 'full' };
 
-// ── H10/H11/H12, P8 ──────────────────────────────────────────────────────────────────────────────
-console.log('\nopening the page, and Set up file (H10–H12, P8)');
+// ── Q667 A, Q2909.21 A, P8 ───────────────────────────────────────────────────────────────────────
+console.log('\nopening Documentation, and a file not set up (Q667 A, Q2909.21 A, P8)');
 {
-  const { page, errors, item } = await openPage();
-  // The page's open request crosses `postMessage`, a task after it mounts (CI on e3c624b2 read it as 0): wait for it.
-  // "Once" stays held by the later arm's exact 2.
+  const { page, errors } = await openPage();
   await posted(page, 'style-guide-catalog-request', 1);
   let st = await read(page);
-  ok(item?.trim() === 'Build style guides…' && st.heading === 'Build style guides' && st.layout === 'page',
-    `H11: the Figma menu's "Build style guides…" opens the page, headed "Build style guides" (item "${item}", heading "${st.heading}", layout ${st.layout})`);
+  ok(st.heading === 'Documentation' && st.layout === 'page' && JSON.stringify(st.docTabs) === JSON.stringify(['Style guides*', 'Usage panels', 'Cover', 'Specs']),
+    `Q667 A, Q2909.21 A: the rail opens Documentation, full width, tabs Style guides · Usage panels · Cover · Specs, Style guides first (${JSON.stringify({ heading: st.heading, layout: st.layout, tabs: st.docTabs })})`);
   ok(sentOf(st, 'style-guide-catalog-request').length === 1, `the page asks the main thread for the file's catalog once, on open (${sentOf(st, 'style-guide-catalog-request').length})`);
   await post(page, { type: 'style-guide-catalog', catalog: { ...CAT, setUp: false } });
-  await until(page, 'the Set up file warning drawn', () => !!document.querySelector('[data-p3="sg-setup-warning"]'));
+  await until(page, 'the not-set-up warning drawn', () => !!document.querySelector('[data-p3="sg-setup-warning"]'));
   st = await read(page);
-  ok(st.warning && /Needs the pages and cells Set up file adds\./.test(st.warningText ?? '') && st.draw?.disabled === true && st.draw.describedBy === 'p3-sg-setup-note',
-    `P8: Set up file not run: a warning with its button, and Draw off, described by the warning (${JSON.stringify({ w: st.warningText, draw: st.draw })})`);
-  const drawSkin = await skinOf(page, 'sg-draw');
-  ok(drawSkin && drawSkin.bg === drawSkin.roles.fill && drawSkin.ink === drawSkin.roles.ink && drawSkin.dashed.length === 0 && drawSkin.edges.every((c) => c === 'rgba(0, 0, 0, 0)'),
-    `#2211 X4 A: the disabled Draw takes Prism3's disabled filled button: the disabled fill and ink, no edge (${JSON.stringify(drawSkin)})`);
-  await hooks.click(page.locator('[data-p3="sg-setup"]'));
-  await posted(page, 'file-setup', 1);
-  st = await read(page);
-  ok(sentOf(st, 'file-setup').length === 1, `P8: the warning's Set up file runs Set up file (${sentOf(st, 'file-setup').length} posted)`);
-  await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages created' });
-  await posted(page, 'style-guide-catalog-request', 2);
-  st = await read(page);
-  ok(sentOf(st, 'style-guide-catalog-request').length === 2, `P8: Set up file's verdict makes the page ask for the catalog again (${sentOf(st, 'style-guide-catalog-request').length})`);
+  ok(st.warning && st.warningText === 'This file isn’t set up yet. The first Update file sets it up, then draws these tables.' && !st.warningButton,
+    `P8 (#2909): not set up: the warning says the first Update file sets the file up, and carries no button of its own (${JSON.stringify({ w: st.warningText, button: st.warningButton })})`);
+  ok(st.pageButtons === 0, `Q2909.23 A: the page draws no filled action (no Draw): settings only (${st.pageButtons})`);
   await post(page, { type: 'style-guide-catalog', catalog: CAT });
   await until(page, 'the set-up catalog adopted: no warning', () => !document.querySelector('[data-p3="sg-setup-warning"]'));
   st = await read(page);
-  ok(!st.warning && st.draw?.disabled === false && st.draw.label === 'Draw 7 tables' && st.summary === '7 tables · 10 variables, 1 text style',
-    `P8, P12: once set up, Draw is on, "Draw 7 tables", "7 tables · 10 variables, 1 text style" (${JSON.stringify({ draw: st.draw, summary: st.summary })})`);
-  // H12 (#2289, owner PG1 A): the Pages menu and the old Style guide page it opened are gone, so the Figma menu's Build
-  // style guides is the only way in. Read by the accessible name, since the menu's hook went with it.
-  const pagesBtn = await page.evaluate(() => ({ bar: !!document.querySelector('[data-p3="top-bar"] [data-p3="figma-open"]'),
-    n: [...document.querySelectorAll('[data-p3="top-bar"] button')].filter((b) => b.getAttribute('aria-label') === 'Pages' || b.textContent.trim() === 'Pages').length }));
-  ok(pagesBtn.bar && pagesBtn.n === 0, `H12: the top bar has its Figma menu and no Pages menu (Figma menu ${pagesBtn.bar}, Pages buttons ${pagesBtn.n})`);
+  ok(!st.warning && st.summary === '7 tables · 10 variables, 1 text style', `P12: once set up, the summary reads "7 tables · 10 variables, 1 text style" (${JSON.stringify(st.summary)})`);
+  ok(sentOf(st, 'doc-settings-save').length === 0, `Q2909.23 A: opening and reading the file saves nothing (${sentOf(st, 'doc-settings-save').length} saves)`);
+  const bar = await page.evaluate(() => ({ figma: [...document.querySelectorAll('[data-p3="top-bar"] button')].filter((b) => b.textContent.trim() === 'Figma').length, update: !!document.querySelector('[data-p3="top-bar"] [data-p3="update-file"]') }));
+  ok(bar.figma === 0 && bar.update, `Q668 A: the top bar has no Figma menu, and Update file (${JSON.stringify(bar)})`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
@@ -269,8 +242,8 @@ console.log('\na file the host could not read (SG4)');
   await page.close();
 }
 
-// ── P2, P3, P4, P5, H4–H9 ────────────────────────────────────────────────────────────────────────
-console.log('\nselection and options (P2–P5, H4–H9)');
+// ── P2, P3, P4, P5, H4–H9, and every change kept in the file (Q2909.23 A) ──────────────────────────
+console.log('\nselection and options, saved in the file (P2–P5, H4–H9, Q2909.23 A)');
 {
   const { page, errors } = await openPage();
   await post(page, { type: 'style-guide-catalog', catalog: CAT });
@@ -283,12 +256,10 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   ok(JSON.stringify(st.collections) === JSON.stringify(['Every collection', 'core', 'color', 'border-width', 'Text styles']), `the Collection list: every collection, then each, the text styles as "Text styles" (${st.collections})`);
   const bw = st.groups.find((g) => g.name === 'border-width');
   ok(bw?.later === 'Later phase' && bw.disabled && bw.box === 'false', `P5: a later-phase group is tagged "Later phase", and its box is off and cannot be checked (${JSON.stringify(bw)})`);
-  // `force`: Playwright will not click an `aria-disabled` control on its own; a person still can.
   await hooks.click(page.locator(groupBox('C:border-width:border-width/pds3/border-width')), { force: true });
   st = await read(page);
-  ok(st.groups.find((g) => g.name === 'border-width')?.box === 'false' && st.draw.label === 'Draw 7 tables', 'P5: clicking it checks nothing');
+  ok(st.groups.find((g) => g.name === 'border-width')?.box === 'false' && st.summary?.startsWith('7 tables') && sentOf(st, 'doc-settings-save').length === 0, 'P5: clicking it checks nothing, and saves nothing');
   ok(JSON.stringify(st.kinds) === JSON.stringify({ color: 'true', dimension: 'true', font: 'true', text: 'true' }), `P2: every kind box starts checked (${JSON.stringify(st.kinds)})`);
-  // H4–H9: values and defaults; every group shown while every kind is selected.
   ok(JSON.stringify(st.groupsShown) === JSON.stringify(['all', 'color', 'dimension', 'font', 'text']), `options: a group per kind in the selection (${st.groupsShown})`);
   ok(st.valueFormat?.value === 'hex' && JSON.stringify(st.valueFormat.options) === JSON.stringify(['Hex', 'RGB-A', 'HSL', 'HSB']), `H4: all four value formats, Hex by default (${JSON.stringify(st.valueFormat)})`);
   ok(st.colorSample?.value === 'auto' && JSON.stringify(st.colorSample.options) === JSON.stringify(['From each token’s role', 'Generic', 'Text', 'Border', 'Icon', 'Transparency']),
@@ -299,44 +270,35 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   ok(st.nameCell === false, `H9: the Name cell is off by default (${st.nameCell})`);
   ok(JSON.stringify(st.tokenNames) === JSON.stringify(['Full path*', 'Short']), `#2372: Token names offers Full path and Short, Full path by default (${JSON.stringify(st.tokenNames)})`);
   ok(JSON.stringify(st.switchRoles) === JSON.stringify(['switch', 'switch', 'switch']), `SG5 A: each option switch is a switch to assistive technology, role="switch" (${JSON.stringify(st.switchRoles)})`);
-  // Draw with everything selected sends the defaults and no tables filter.
-  await hooks.click(page.locator('[data-p3="sg-draw"]'));
-  await posted(page, 'style-guide', 1);
-  st = await read(page);
-  const first = sentOf(st, 'style-guide')[0]?.options;
-  ok(first && !('tables' in first) && first.rem === false && first.titleCell === false && first.valueFormat === 'hex' && first.display === 'auto' && first.fontDisplay === 'auto' && first.tokenNames === 'full',
-    `Draw, everything selected: the defaults, and no tables filter, so the run judges superseded tables (${JSON.stringify(first)})`);
-  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 7 tables', summary: '7 tables created' });
-  await until(page, 'the run ended: Draw on again', () => document.querySelector('[data-p3="sg-draw"]')?.disabled === false);
 
-  // P2: the color kind box clears every color table; the tree follows.
+  // P2: the color kind box clears every color table; the tree follows; the file keeps the rest by key.
   await hooks.click(page.locator('[data-p3="sg-kind-color"]'));
+  await posted(page, 'doc-settings-save', 1);
   st = await read(page);
-  ok(st.kinds.color === 'false' && st.groups.find((g) => g.name === 'color')?.box === 'false' && st.groups.find((g) => g.name === 'core')?.box === 'mixed' && st.draw.label === 'Draw 3 tables',
-    `P2: the color kind box clears every color table: the color collection unchecks, core goes mixed, Draw counts 3 (${JSON.stringify({ kinds: st.kinds, draw: st.draw.label })})`);
+  ok(st.kinds.color === 'false' && st.groups.find((g) => g.name === 'color')?.box === 'false' && st.groups.find((g) => g.name === 'core')?.box === 'mixed' && st.summary?.startsWith('3 tables'),
+    `P2: the color kind box clears every color table: the color collection unchecks, core goes mixed, the summary counts 3 (${JSON.stringify({ kinds: st.kinds, summary: st.summary })})`);
+  ok(canon(lastSave(st)) === canon({ panels: true, cover: true, styleGuide: { tables: [ALL_KEYS[2], ALL_KEYS[5], ALL_KEYS[6]], view: null, titles: '', opt: DEFAULT_OPT } }),
+    `Q2909.23 A: the change is kept in the file, the whole record: both switches as the file had them, the tables by key, the defaults (${JSON.stringify(lastSave(st))})`);
   ok(JSON.stringify(st.groupsShown) === JSON.stringify(['all', 'dimension', 'font', 'text']) && st.rem === false,
     `options: with no color selected, no Color group; REM shows for the lengths (${st.groupsShown})`);
-  // A tree box makes its kind box mixed.
   await hooks.click(page.locator(groupBox('C:color:color/pds3/color')));
-  // core is mixed: a click checks all of it, a second clears it.
   await hooks.click(page.locator(groupBox('C:core:core/pds3/core')));
   await hooks.click(page.locator(groupBox('C:core:core/pds3/core')));
   st = await read(page);
-  ok(st.kinds.color === 'mixed' && st.kinds.dimension === 'false' && st.draw.label === 'Draw 3 tables',
-    `P2: checking the color collection in the tree and clearing core leaves the color kind mixed (${JSON.stringify(st.kinds)}, ${st.draw.label})`);
-  // Title box: exactly the tables it names; an unknown name is said.
+  ok(st.kinds.color === 'mixed' && st.kinds.dimension === 'false' && st.summary?.startsWith('3 tables'),
+    `P2: checking the color collection in the tree and clearing core leaves the color kind mixed (${JSON.stringify(st.kinds)}, ${st.summary})`);
   await hooks.click(page.locator('[data-p3="sg-titles"] summary'));
   await page.locator('[data-p3="sg-titles-input"]').fill('Text\nNope');
   await until(page, 'the title box read', () => (document.querySelector('[data-p3="sg-titles-error"]')?.textContent ?? '') !== '');
   st = await read(page);
-  ok(st.draw.label === 'Draw 1 table' && st.summary === '1 table · 2 variables' && st.titlesError === 'No table is titled “Nope”.' && st.kinds.color === 'mixed',
-    `P2, H8: the title box selects exactly the tables it names, and names the one that matches none (${JSON.stringify({ draw: st.draw.label, summary: st.summary, err: st.titlesError })})`);
+  ok(st.summary === '1 table · 2 variables' && st.titlesError === 'No table is titled “Nope”.' && st.kinds.color === 'mixed',
+    `P2, H8: the title box selects exactly the tables it names, and names the one that matches none (${JSON.stringify({ summary: st.summary, err: st.titlesError })})`);
+  ok(lastSave(st)?.styleGuide?.titles === 'Text\nNope' && JSON.stringify(lastSave(st)?.styleGuide?.tables) === JSON.stringify([ALL_KEYS[3]]),
+    `Q2909.23 A: the title box and the one table it names are kept in the file (${JSON.stringify(lastSave(st)?.styleGuide)})`);
   ok(JSON.stringify(st.groupsShown) === JSON.stringify(['all', 'color']) && st.rem === null, `H1, H6: a color-only selection shows the Color options and no REM (${st.groupsShown}, rem ${st.rem})`);
   await hooks.click(page.locator(groupBox('C:core:core/pds3/core')));
   st = await read(page);
   ok(st.titles === '', `P2: a click in the tree clears the title box (${JSON.stringify(st.titles)})`);
-  // P3: inside a table, a variable has no box of its own; a variable that is its own table's only row in a group of
-  // several tables does.
   await hooks.click(page.locator('[data-p3="sg-group"][data-id="C:core:core/pds3/core"] [data-p3="sg-fold"]'));
   await hooks.click(page.locator('[data-p3="sg-group"][data-id="C:color:color/pds3/color"] [data-p3="sg-fold"]'));
   await hooks.click(page.locator('[data-p3="sg-group"][data-id="C:color:color/pds3/color/text"] [data-p3="sg-fold"]'));
@@ -345,286 +307,178 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   ok(inText.length === 2 && inText.every((l) => !l.boxed), `P3: whole tables: Text's variables show, with no box of their own (${JSON.stringify(inText)})`);
   const palette = st.leaves.filter((l) => /palette\/(white|black)$/.test(l.id));
   ok(palette.length === 2 && palette.every((l) => l.boxed), `P3: white and black sit in a group spanning two tables, so each carries its table's box (${JSON.stringify(palette)})`);
-  // Draw of a part selection sends its tables by key; Token names set to Short goes with it (#2372).
+  const before = sentOf(st, 'doc-settings-save').length;
   await hooks.click(page.locator('[data-p3="sg-opt-token-names-short"]'));
-  await hooks.click(page.locator('[data-p3="sg-draw"]'));
-  await posted(page, 'style-guide', 2);
+  await posted(page, 'doc-settings-save', before + 1);
   st = await read(page);
-  const part = sentOf(st, 'style-guide')[1]?.options;
-  ok(part && JSON.stringify(part.tables) === JSON.stringify([ALL_KEYS[0], ALL_KEYS[1], ALL_KEYS[2], ALL_KEYS[3], ALL_KEYS[5]]),
-    `Draw, part selected: the tables go by key (${JSON.stringify(part?.tables)})`);
-  ok(part?.tokenNames === 'short', `#2372: Token names set to Short sends tokenNames short (${part?.tokenNames})`);
+  ok(JSON.stringify(lastSave(st)?.styleGuide?.tables) === JSON.stringify([ALL_KEYS[0], ALL_KEYS[1], ALL_KEYS[2], ALL_KEYS[3], ALL_KEYS[5]]) && lastSave(st)?.styleGuide?.opt?.tokenNames === 'short',
+    `#2372, Q2909.23 A: a part selection is kept by key, and Token names set to Short with it (${JSON.stringify(lastSave(st)?.styleGuide)})`);
+  ok(sentOf(st, 'style-guide').length === 0, `Q2909.23 A: no change on the page draws anything (${sentOf(st, 'style-guide').length} style-guide posted)`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
 
-// ── P1, P6, P7, P11 ──────────────────────────────────────────────────────────────────────────────
-console.log('\nthe run (P1, P6, P7, P11)');
-const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, page: t.page }));
+// ── Q2909.23 A: a saved record is restored, and Update file draws with it ─────────────────────────
+// The record is typed here: Primary and Text by key, Token names Short, REM on. Update file's style guides post is
+// asserted whole, by literal: the options a run takes, not the page's own spelling of them.
+console.log('\na saved record restored, and Update file draws with it (Q2909.23 A)');
+const SAVED = { tables: [ALL_KEYS[1], ALL_KEYS[3]], view: null, titles: '', opt: { ...DEFAULT_OPT, tokenNames: 'short', rem: true } };
+/** Open Update file on a set-up file holding every set, and run its Style guides item alone. */
+const runGuides = async (page) => {
+  await hooks.click(page.locator('[data-p3="update-file"]'));
+  await posted(page, 'file-sets-request', 1);
+  await post(page, { type: 'file-sets', present: [], setUp: true });
+  await until(page, 'the checklist drawn', () => !!document.querySelector('[data-p3="update-check-guides"]'));
+  const ticks = await page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'), guides: document.querySelector('[data-p3="update-check-guides"]')?.getAttribute('aria-checked') }));
+  await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+  await hooks.click(page.locator('[data-p3="update-check-guides"]'));
+  await hooks.click(page.locator('[data-p3="update-go"]'));
+  await posted(page, 'style-guide-catalog-request', 2);
+  await post(page, { type: 'style-guide-catalog', catalog: CAT });
+  await posted(page, 'style-guide', 1);
+  return ticks;
+};
 {
-  const { page, errors } = await openPage();
+  const { page, errors } = await openPage(1280, 820, { panels: true, cover: false, styleGuide: SAVED });
   await post(page, { type: 'style-guide-catalog', catalog: CAT });
   await treeDrawn(page);
-  // By keyboard (review of #2171): Draw goes off as the run starts, so focus must move, to Cancel, not fall to <body>.
-  await page.locator('[data-p3="sg-draw"]').focus();
-  await page.keyboard.press('Enter');
-  await posted(page, 'style-guide', 1);
-  await until(page, 'Cancel drawn', () => !!document.querySelector('[data-p3="sg-cancel"]'));
-  let st0 = await read(page);
-  ok(st0.focus === 'sg-cancel', `focus: a keyboard Draw moves focus to Cancel as the run starts (focus on ${st0.focus})`);
-  // THE ONE LIVE REGION: the same node for the whole run, holding the run line and nothing else.
-  await page.evaluate(() => { window.__live = document.querySelector('[data-p3="sg-live"]'); });
-  await post(page, { type: 'style-guide-tables', tables: LIST });
-  await post(page, { type: 'style-guide-progress', done: 0, total: 4, tableMs: 0 });
-  await post(page, { type: 'style-guide-table', index: 0, status: 'drawing' });
-  await post(page, { type: 'style-guide-table', index: 0, status: 'done' });
-  await post(page, { type: 'style-guide-progress', done: 1, total: 4, tableMs: 9 });
-  await post(page, { type: 'style-guide-table', index: 1, status: 'drawing' });
-  await tableIs(page, 1, 'drawing');
-  await until(page, 'the second progress reading handled', () => /2 of 4/.test(document.querySelector('[data-p3="sg-run-line"]')?.textContent ?? ''));
   let st = await read(page);
-  ok(st.runLine === 'Drawing table 2 of 4…' && JSON.stringify(st.tables) === JSON.stringify(['Core — base:Done', 'Primary:Drawing', 'Dimension:Waiting', 'Text:Waiting']) && st.cancel,
-    `P1: the run on the page, table by table: "Drawing table 2 of 4…", Done, Drawing, Waiting, and Cancel (${JSON.stringify({ line: st.runLine, tables: st.tables })})`);
-  ok(st.drawerOpen === false && st.dot === 'run' && st.sgRowTitle === 'Style guides',
-    `P1, P11: Activity records the run in its "Style guides" row and does not open by itself while the page shows it (open ${st.drawerOpen}, dot ${st.dot}, row "${st.sgRowTitle}")`);
-  ok(st.draw.disabled === true, 'Draw is off while the run draws');
-  const same = await page.evaluate(() => window.__live === document.querySelector('[data-p3="sg-live"]') && window.__live.isConnected);
-  ok(same && st.live?.live === 'polite' && st.live.text === 'Drawing table 2 of 4…' && st.live.children === 0 && st.live.nested === 0,
-    `progress: one polite live region, the same node through the run's events, holding the run line alone, and no live or status region inside the page (${JSON.stringify({ same, live: st.live })})`);
-  await hooks.click(page.locator('[data-p3="sg-cancel"]'));
-  await posted(page, 'style-guide-cancel', 1);
+  ok(st.summary?.startsWith('2 tables') && st.kinds.color === 'mixed' && st.kinds.dimension === 'false' && JSON.stringify(st.tokenNames) === JSON.stringify(['Full path', 'Short*']),
+    `Q2909.23 A: on open the page restores the file's record: Primary and Text, color mixed, Token names Short (${JSON.stringify({ summary: st.summary, kinds: st.kinds, tokenNames: st.tokenNames })})`);
+  ok(sentOf(st, 'doc-settings-save').length === 0, `Q2909.23 A: restoring saves nothing (${sentOf(st, 'doc-settings-save').length})`);
+  const ticks = await runGuides(page);
+  ok(ticks.theme === 'true' && ticks.guides === 'false', `Q2909.2 A, Q2909.5 A: on a set-up file the checklist opens with the theme ticked and the style guides not (${JSON.stringify(ticks)})`);
   st = await read(page);
-  ok(sentOf(st, 'style-guide-cancel').length === 1, `P7: Cancel asks the main thread to stop after the current table (${sentOf(st, 'style-guide-cancel').length})`);
-  await post(page, { type: 'style-guide-table', index: 1, status: 'failed', reason: 'Primary refused' });
-  await post(page, { type: 'style-guide-result', ok: false, headline: '⚠ 1 drawn, 1 failed', summary: 'Primary: Primary refused. Stopped after table 2 of 4. The tables already drawn stay', stopped: { done: 2, total: 4 } });
-  await until(page, 'the stopped run drawn', () => !!document.querySelector('[data-p3="sg-stopped"]'));
-  st = await read(page);
-  ok(st.stopped === 'Stopped after table 2 of 4. The tables already drawn stay' && JSON.stringify(st.tables) === JSON.stringify(['Primary:Not drawn(Primary refused)', 'Core — base:Done', 'Dimension:Not drawn', 'Text:Not drawn']),
-    `P7, P6: stopped: where it stopped, the failed table first with its reason, the rest "Not drawn" (${JSON.stringify({ stopped: st.stopped, tables: st.tables })})`);
-  ok(st.focus === 'sg-draw' || st.focus === 'sg-run-line', `focus: when the run ends, focus moves from Cancel to Draw or the run line, never <body> (focus on ${st.focus})`);
-  ok(st.live?.text === '', `progress: the live region is emptied when the run ends (${JSON.stringify(st.live?.text)})`);
-  ok(st.drawerOpen === false && st.dot === 'bad' && st.verdict === '⚠ 1 drawn, 1 failed',
-    `P1 (call 11): a failure the page shows marks Activity, and the drawer stays closed (open ${st.drawerOpen}, dot ${st.dot}, verdict "${st.verdict}")`);
-  // #2507 (Q194's finish line): a "⚠" verdict on a run with a failed table is a failure, so the status line says
-  // "failed", told apart from a warning the way the Activity button's dot is (D-RED A). The words are literals.
-  const finishNow = () => page.evaluate(() => document.querySelector('[data-p3="activity-status"]')?.textContent ?? null);
-  const failedLine = await finishNow();
-  ok(failedLine === 'Style guides failed: Primary: Primary refused. Stopped after table 2 of 4. The tables already drawn stay.',
-    `#2507 a "⚠" run with a failed table is announced as failed, not as a warning — read ${JSON.stringify(failedLine)}`);
-  // P6: Draw it again draws that table alone, by its key.
-  await hooks.click(page.locator('[data-p3="sg-again"]'));
-  await posted(page, 'style-guide', 2);
-  await until(page, 'the redraw under way: Cancel drawn', () => !!document.querySelector('[data-p3="sg-cancel"]'));
-  st = await read(page);
-  ok(st.focus === 'sg-cancel', `focus: Draw it again moves focus to Cancel as its run starts, not to <body> (focus on ${st.focus})`);
-  const again = sentOf(st, 'style-guide').pop()?.options;
-  ok(JSON.stringify(again?.tables) === JSON.stringify([ALL_KEYS[1]]) && st.titles === 'Primary' && st.draw.label === 'Draw 1 table',
-    `P6: Draw it again draws Primary alone, by key, and the title box names it (${JSON.stringify(again?.tables)}, "${st.titles}")`);
-  await post(page, { type: 'style-guide-tables', tables: [LIST[1]] });
-  await post(page, { type: 'style-guide-table', index: 0, status: 'drawing' });
-  await post(page, { type: 'style-guide-table', index: 0, status: 'done' });
-  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '1 table updated in place — no token changes' });
-  await until(page, "the redraw's verdict drawn", () => document.querySelector('[data-p3="sg-verdict"]')?.textContent === '✓ style guide: 1 table');
-  st = await read(page);
-  ok(JSON.stringify(st.tables) === JSON.stringify(['Primary:Done']) && st.verdict === '✓ style guide: 1 table', `P6: the redraw's run lists Primary alone, done (${JSON.stringify(st.tables)})`);
-  // D-RED A, decision (a) (#2124): a run stopped with NOTHING failed is not a failure, so Activity's dot stays green
-  // ('warn'), where call 11's run, with a failed table, is red ('bad'). The rule keys on the failed tables, not on
-  // `stopped` and not on ok:false.
-  await hooks.click(page.locator('[data-p3="sg-draw"]'));
-  await posted(page, 'style-guide', 3);
-  await post(page, { type: 'style-guide-tables', tables: [LIST[1]] });
-  await post(page, { type: 'style-guide-table', index: 0, status: 'drawing' });
-  await post(page, { type: 'style-guide-result', ok: false, headline: '⚠ 0 drawn, stopped', summary: 'Stopped after table 0 of 1. The tables already drawn stay', stopped: { done: 0, total: 1 } });
-  await until(page, 'the stopped run with nothing failed drawn', () => !!document.querySelector('[data-p3="sg-stopped"]'));
-  st = await read(page);
-  ok(st.dot === 'warn' && st.verdict === '⚠ 0 drawn, stopped',
-    `D-RED A: a stopped run with no failed table marks Activity green, not red (dot ${st.dot}, verdict "${st.verdict}")`);
-  // #2507, the control: the same "⚠" with no table failed finished, with a warning.
-  const warnLine = await finishNow();
-  ok(warnLine === 'Style guides finished with a warning: Stopped after table 0 of 1. The tables already drawn stay.',
-    `#2507 a "⚠" run with nothing failed is announced as finished with a warning — read ${JSON.stringify(warnLine)}`);
-  // The verdict pill opens Activity on the result, by hand.
-  await hooks.click(page.locator('[data-p3="sg-verdict"]'));
-  await until(page, 'Activity opened from the verdict pill', () => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true');
-  st = await read(page);
-  // F2, re-hosted from test:chrome in H12 (#2289): the old page's row verdict was its other host, and went with the page.
-  ok(st.drawerOpen === true && st.sgRowExpanded === 'true' && !!st.sgRowSummary,
-    `the page's verdict pill opens Activity on its Style guide row, expanded, with its summary (open ${st.drawerOpen}, expanded ${st.sgRowExpanded}, summary "${st.sgRowSummary}")`);
-  await hooks.click(page.locator('[data-p3="activity-toggle"]'));
-  // Close returns to where the menu was opened from (Brand).
-  await hooks.click(page.locator('[data-p3="sg-close"]'));
-  await until(page, 'the page closed', () => document.querySelector('[data-p3="frame"]')?.dataset.layout !== 'page');
-  const back = await page.evaluate(() => ({ tab: document.querySelector('[data-p3="tab-brand"]')?.getAttribute('aria-selected'), layout: document.querySelector('[data-p3="frame"]')?.dataset.layout, page: !!document.querySelector('[data-p3="style-guides"]') }));
-  ok(back.tab === 'true' && back.layout === 'panes' && !back.page, `Close returns to the page the menu was opened from (${JSON.stringify(back)})`);
-  // CONTROL for the quiet drawer: away from the page, a failed style guide opens Activity, as F2 says.
-  await post(page, { type: 'agent-started', id: 'a1', cmd: 'style-guide' });
-  await post(page, { type: 'style-guide-result', ok: false, headline: '⚠ 3 drawn, 1 failed', summary: 'Text: x' });
-  await post(page, { type: 'agent-finished', id: 'a1', cmd: 'style-guide' });
-  await until(page, "the agent's failed verdict recorded in Activity", () => document.querySelector('[data-p3="activity-op"][data-op="styleguide"] [data-p3="op-verdict"]')?.textContent === '⚠ 3 drawn, 1 failed');
-  await until(page, 'Activity opened by itself', () => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true');
-  st = await read(page);
-  ok(st.drawerOpen === true, `control: away from the page, a failed style guide opens Activity by itself (open ${st.drawerOpen})`);
+  const drawn = sentOf(st, 'style-guide')[0]?.options;
+  const WANT = { header: 'dark', aliases: true, description: true, titleCell: false, rem: true, valueFormat: 'hex', display: 'auto', dimensionDisplay: 'filled',
+    fontDisplay: 'auto', paragraphSpacing: false, textDecoration: false, tokenNames: 'short', tables: [ALL_KEYS[1], ALL_KEYS[3]] };
+  ok(canon(drawn) === canon(WANT), `Q2909.23 A: Update file draws the saved selection by key, with the saved options (${JSON.stringify(drawn)})`);
+  ok(sentOf(st, 'apply-theme').length === 0 && sentOf(st, 'build-components').length === 0, `an unticked item is not run: no theme, no sets (${sentOf(st, 'apply-theme').length}, ${sentOf(st, 'build-components').length})`);
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables updated in place' });
+  await until(page, "Update file idle after the run's verdict", () => document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-busy') !== 'true');
+  const busy = await page.evaluate(() => document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-busy'));
+  ok(busy !== 'true', `the run ends with the style guide's verdict: Update file is idle again (aria-busy ${busy})`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
-
-// ── #2313: an agent's run after a panel run ──────────────────────────────────────────────────────
-// The page lists the PANEL's run, table by table. An agent's `style-guide` run posts no tables (the main thread sends
-// them to the panel's sink only) but its verdict is forwarded to the panel, bracketed by `agent-started` and
-// `agent-finished` exactly as the plugin's agent dispatch posts them. Before #2313 that verdict replaced the panel's
-// headline and kept the panel's table list, so the page read as if the agent's run had drawn the panel's two tables.
-// The page now drops the panel's list when an agent's run ends, so no headline sits beside tables it did not draw; the
-// agent's verdict is Activity's, as it was with no earlier panel run. Expected values are typed here.
-// Mutation (the reducer keeping `styleGuideRun` on an agent's verdict) → `#2313: after an agent's run, the page shows
-// no verdict beside the panel's earlier tables …`.
-console.log("\nan agent's run after a panel run (#2313)");
 {
+  // CONTROL: nothing saved draws every table with the defaults, and no tables filter, so the run judges superseded tables.
   const { page, errors } = await openPage();
   await post(page, { type: 'style-guide-catalog', catalog: CAT });
   await treeDrawn(page);
-  await hooks.click(page.locator('[data-p3="sg-draw"]'));
-  await posted(page, 'style-guide', 1);
-  await post(page, { type: 'style-guide-tables', tables: LIST.slice(0, 2) });
-  await post(page, { type: 'style-guide-table', index: 0, status: 'done' });
-  await post(page, { type: 'style-guide-table', index: 1, status: 'done' });
-  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables drawn' });
-  await until(page, "the panel run's verdict drawn", () => document.querySelector('[data-p3="sg-verdict"]')?.textContent === '✓ style guide: 2 tables');
-  let st = await read(page);
-  ok(st.verdict === '✓ style guide: 2 tables' && JSON.stringify(st.tables) === JSON.stringify(['Core — base:Done', 'Primary:Done']),
-    `#2313 control: the panel's own run shows its verdict beside its two tables (${JSON.stringify({ verdict: st.verdict, tables: st.tables })})`);
-  await post(page, { type: 'agent-started', id: 'sg-agent-1', cmd: 'style-guide' });
-  await post(page, { type: 'style-guide-progress', done: 0, total: 5, tableMs: 0 });
-  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 5 tables', summary: '5 tables drawn' });
-  await post(page, { type: 'agent-finished', id: 'sg-agent-1', cmd: 'style-guide' });
-  await until(page, "the agent's run handled: the panel's headline gone", () => document.querySelector('[data-p3="sg-verdict"]')?.textContent !== '✓ style guide: 2 tables');
-  st = await read(page);
-  ok(!(st.verdict === '✓ style guide: 5 tables' && st.tables.length > 0),
-    `#2313: after an agent's run, the page shows no verdict beside the panel's earlier tables (verdict "${st.verdict}", tables ${JSON.stringify(st.tables)})`);
-  ok(st.verdict === null && st.tables.length === 0 && st.summary !== null,
-    `#2313: the page drops the panel's earlier run and shows its selection summary again (verdict "${st.verdict}", tables ${JSON.stringify(st.tables)}, summary "${st.summary}")`);
-  ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
-  await page.close();
-}
-
-// ── #2508 (owner Q217.5): a quiet run's finish is announced once ─────────────────────────────────────
-// The page's run is quiet (it opens no drawer), yet Activity's status line announces its finish (Q194). The rule: when a
-// page announces a run's result itself, Activity stays silent for it. Measured here, the page does NOT announce the
-// result: its one live region holds the run line and is emptied at the finish. So the finish is heard once, from
-// Activity. Every live region in the document is watched (aria-live, and the status, alert and log roles, which are live
-// by role), by a MutationObserver the TEST installs just before the verdict lands, and every non-empty text a region
-// takes is one announcement. Expected, typed here: exactly one, and it is Activity's status line.
-console.log('\na quiet run\'s finish is announced once (#2508)');
-{
-  const { page, errors } = await openPage();
-  await post(page, { type: 'style-guide-catalog', catalog: CAT });
-  await treeDrawn(page);
-  await hooks.click(page.locator('[data-p3="sg-draw"]'));
-  await posted(page, 'style-guide', 1);
-  await post(page, { type: 'style-guide-tables', tables: LIST.slice(0, 2) });
-  await post(page, { type: 'style-guide-progress', done: 0, total: 2, tableMs: 0 });
-  await post(page, { type: 'style-guide-table', index: 0, status: 'done' });
-  await post(page, { type: 'style-guide-table', index: 1, status: 'done' });
-  await until(page, 'the run line drawn', () => /of 2/.test(document.querySelector('[data-p3="sg-live"]')?.textContent ?? ''));
-  await page.evaluate(() => {
-    const LIVE = '[aria-live], [role="status"], [role="alert"], [role="log"]';
-    window.__said = [];
-    const seen = new Map();
-    const take = () => {
-      for (const n of document.querySelectorAll(LIVE)) {
-        if (n.getAttribute('aria-live') === 'off') continue;
-        const t = (n.textContent ?? '').trim();
-        if (t && seen.get(n) !== t) window.__said.push({ region: n.getAttribute('data-p3') ?? n.tagName, text: t });
-        seen.set(n, t);
-      }
-    };
-    for (const n of document.querySelectorAll(LIVE)) seen.set(n, (n.textContent ?? '').trim());
-    new MutationObserver(take).observe(document.body, { subtree: true, childList: true, characterData: true });
-  });
-  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables drawn' });
-  await until(page, "the run's verdict drawn", () => document.querySelector('[data-p3="sg-verdict"]')?.textContent === '✓ style guide: 2 tables');
-  await page.waitForTimeout(300);
-  const said = await page.evaluate(() => window.__said);
+  await runGuides(page);
   const st = await read(page);
-  ok(said.length === 1 && said[0].region === 'activity-status' && st.drawerOpen === false,
-    `#2508: a quiet run's finish is announced exactly once, by Activity's status line, and the drawer stays closed (${JSON.stringify(said)}, drawer open ${st.drawerOpen})`);
+  const drawn = sentOf(st, 'style-guide')[0]?.options;
+  const WANT = { header: 'dark', aliases: true, description: true, titleCell: false, rem: false, valueFormat: 'hex', display: 'auto', dimensionDisplay: 'filled',
+    fontDisplay: 'auto', paragraphSpacing: false, textDecoration: false, tokenNames: 'full' };
+  ok(canon(drawn) === canon(WANT), `Q2909.23 A, control: with nothing saved, Update file draws every table with the defaults and no tables filter (${JSON.stringify(drawn)})`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
 
-// ── the cleanup offer (Q412 A, #2816) ────────────────────────────────────────────────────────────
-console.log('\nthe cleanup offer: listed, removed only on confirm (Q412 A)');
+// ── Q668 A, Q412 A: the retired tables are offered in Clean up ───────────────────────────────────
+console.log('\nthe retired tables, in Update file › Clean up (Q668 A, Q412 A)');
 {
   const { page, errors } = await openPage();
-  await post(page, { type: 'style-guide-catalog', catalog: CAT });
-  await treeDrawn(page);
-  await hooks.click(page.locator('[data-p3="sg-draw"]'));
-  await posted(page, 'style-guide', 1);
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 7 tables', summary: '7 tables updated in place',
     retired: [{ id: '12:34', name: 'Style guide — Inverse' }, { id: '12:99', name: 'Style guide — Legacy' }] });
-  await until(page, 'the cleanup offer drawn', () => !!document.querySelector('[data-p3="sg-cleanup-review"]'));
-  const offer = await page.evaluate(() => document.querySelector('[data-p3="sg-cleanup"]')?.textContent ?? '');
-  ok(offer.includes('2 tables the generator no longer draws were left in place.') && await page.locator('[data-p3="sg-cleanup-list"]').count() === 0,
-    `Q412 A: the run's result offers its retired tables, the list closed until asked for ("${offer}")`);
-  await hooks.click(page.locator('[data-p3="sg-cleanup-review"]'));
-  await until(page, 'the cleanup list opened', () => !!document.querySelector('[data-p3="sg-cleanup-list"]'));
-  const names = await page.evaluate(() => [...document.querySelectorAll('[data-p3="sg-cleanup-list"] li')].map((li) => li.textContent));
+  await hooks.click(page.locator('[data-p3="update-file"]'));
+  await hooks.click(page.locator('[data-p3="update-tab-clean"]'));
+  await until(page, 'the retired tables listed', () => !!document.querySelector('[data-p3="clean-tables"]'));
+  const offer = await page.evaluate(() => ({ text: document.querySelector('[data-p3="clean-tables"]')?.textContent ?? '', names: [...document.querySelectorAll('[data-p3="clean-tables"] li')].map((li) => li.textContent),
+    label: document.querySelector('[data-p3="clean-tables-confirm"]')?.textContent ?? null }));
   let st = await read(page);
-  ok(JSON.stringify(names) === JSON.stringify(['Style guide — Inverse', 'Style guide — Legacy']) && sentOf(st, 'style-guide-cleanup').length === 0,
-    `Q412 A: Review lists each table by name, and removes nothing (${JSON.stringify(names)}; ${sentOf(st, 'style-guide-cleanup').length} cleanup posted)`);
-  await hooks.click(page.locator('[data-p3="sg-cleanup-cancel"]'));
-  await until(page, 'the cleanup list closed', () => !document.querySelector('[data-p3="sg-cleanup-list"]') && !!document.querySelector('[data-p3="sg-cleanup-review"]'));
-  st = await read(page);
-  ok(sentOf(st, 'style-guide-cleanup').length === 0, 'Q412 A: Cancel closes the list and removes nothing');
-  await hooks.click(page.locator('[data-p3="sg-cleanup-review"]'));
-  await until(page, 'the cleanup list opened again', () => !!document.querySelector('[data-p3="sg-cleanup-confirm"]'));
-  const label = await page.locator('[data-p3="sg-cleanup-confirm"]').textContent();
-  await hooks.click(page.locator('[data-p3="sg-cleanup-confirm"]'));
+  ok(offer.text.includes('2 style-guide tables the generator no longer draws.') && JSON.stringify(offer.names) === JSON.stringify(['Style guide — Inverse', 'Style guide — Legacy']) && sentOf(st, 'style-guide-cleanup').length === 0,
+    `Q668 A, Q412 A: Clean up lists each retired table by name, and removes nothing (${JSON.stringify(offer)})`);
+  await hooks.click(page.locator('[data-p3="clean-tables-confirm"]'));
   await posted(page, 'style-guide-cleanup', 1);
   st = await read(page);
-  ok(label === 'Remove 2 tables' && JSON.stringify(sentOf(st, 'style-guide-cleanup')[0]?.ids) === JSON.stringify(['12:34', '12:99']),
-    `Q412 A: "${label}" asks the main thread to remove exactly the listed tables, by id (${JSON.stringify(sentOf(st, 'style-guide-cleanup')[0])})`);
+  ok(offer.label === 'Remove 2 tables' && JSON.stringify(sentOf(st, 'style-guide-cleanup')[0]?.ids) === JSON.stringify(['12:34', '12:99']),
+    `Q412 A: "${offer.label}" asks the main thread to remove exactly the listed tables, by id (${JSON.stringify(sentOf(st, 'style-guide-cleanup')[0])})`);
   await post(page, { type: 'style-guide-cleanup-result', ok: true, removed: ['12:34', '12:99'], summary: '2 tables removed: Style guide — Inverse, Style guide — Legacy' });
-  await until(page, "the cleanup's sentence drawn", () => !!document.querySelector('[data-p3="sg-cleanup-result"]'));
-  const after = await page.evaluate(() => ({ said: document.querySelector('[data-p3="sg-cleanup-result"]')?.textContent, review: !!document.querySelector('[data-p3="sg-cleanup-review"]') }));
-  ok(after.said === '2 tables removed: Style guide — Inverse, Style guide — Legacy' && !after.review,
-    `Q412 A: the host's sentence replaces the offer once the tables are removed (${JSON.stringify(after)})`);
+  await until(page, 'the retired tables gone from Clean up', () => !document.querySelector('[data-p3="clean-tables"]'));
+  ok(await page.locator('[data-p3="clean-tables"]').count() === 0, 'Q412 A: once removed, Clean up no longer offers them');
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
 
-// ── 380 (P9) ─────────────────────────────────────────────────────────────────────────────────────
-console.log('\nat 380 (P9)');
+// ── Q667 A, #2977: the Usage panels and Cover switches ────────────────────────────────────────────
+console.log('\nthe Usage panels and Cover switches (Q667 A, #2977)');
+{
+  const record = { panels: true, cover: true, styleGuide: SAVED };
+  const { page, errors } = await openPage(1280, 820, record);
+  await hooks.click(page.locator('[data-p3="docs-tab-panels"]'));
+  await hooks.need(page, '[data-p3="docs-panels-switch"]');
+  const on = await page.evaluate(() => ({ sw: document.querySelector('[data-p3="docs-panels-switch"]')?.getAttribute('aria-checked'), off: document.querySelector('[data-p3="docs-panels-off"]')?.hidden }));
+  ok(on.sw === 'true' && on.off === true, `Q667 A: Usage panels reads the file's switch, on, and no off line (${JSON.stringify(on)})`);
+  await hooks.click(page.locator('[data-p3="docs-panels-switch"]'));
+  await posted(page, 'doc-settings-save', 1);
+  let st = await read(page);
+  ok(canon(lastSave(st)) === canon({ panels: false, cover: true, styleGuide: SAVED }), `Q667 A: the switch saves the whole record, panels off, the rest as the file had it (${JSON.stringify(lastSave(st))})`);
+  await post(page, { type: 'doc-settings', settings: { panels: false, cover: true, styleGuide: SAVED } });
+  await until(page, 'the panels switch off', () => document.querySelector('[data-p3="docs-panels-switch"]')?.getAttribute('aria-checked') === 'false');
+  const offLine = await page.evaluate(() => { const n = document.querySelector('[data-p3="docs-panels-off"]'); return n && !n.hidden ? n.textContent : null; });
+  ok(offLine === 'Off: Update file draws no new panels. Panels already in the file stay.', `Q667 A: off, the line says what Update file does (${JSON.stringify(offLine)})`);
+  await hooks.click(page.locator('[data-p3="docs-tab-cover"]'));
+  await hooks.need(page, '[data-p3="docs-cover-switch"]');
+  await hooks.click(page.locator('[data-p3="docs-cover-switch"]'));
+  await posted(page, 'doc-settings-save', 2);
+  st = await read(page);
+  ok(canon(lastSave(st)) === canon({ panels: false, cover: false, styleGuide: SAVED }), `#2977: the cover switch saves the whole record, cover off, panels as the file now has them (${JSON.stringify(lastSave(st))})`);
+  await hooks.click(page.locator('[data-p3="docs-tab-specs"]'));
+  const specs = await page.evaluate(() => document.querySelector('[data-p3="docs-specs"]')?.textContent ?? null);
+  ok(specs === 'Spec sheetsMeasured specs for each component, drawn into the file. Coming later.', `#2830: Specs is a placeholder (${JSON.stringify(specs)})`);
+  ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── #2995 (nit 6): two switches flipped before the host answers the first ────────────────────────
+// Each save is built from the page's own unanswered save, not the host's last echo. EXPECTED is typed here: both off,
+// in the second save and on screen through both answers. MUTATION: `saveWith` built from `lend.read()` again
+// (`documentation.ts`) → `#2995: the second save keeps the first switch's change`.
+console.log('\ntwo switches before the host answers (#2995)');
+{
+  const record = { panels: true, cover: true, styleGuide: SAVED };
+  const { page, errors } = await openPage(1280, 820, record);
+  await hooks.click(page.locator('[data-p3="docs-tab-panels"]'));
+  await hooks.need(page, '[data-p3="docs-panels-switch"]');
+  await hooks.click(page.locator('[data-p3="docs-panels-switch"]'));
+  await posted(page, 'doc-settings-save', 1);
+  await hooks.click(page.locator('[data-p3="docs-tab-cover"]'));
+  await hooks.need(page, '[data-p3="docs-cover-switch"]');
+  await hooks.click(page.locator('[data-p3="docs-cover-switch"]'));
+  await posted(page, 'doc-settings-save', 2);
+  const st = await read(page);
+  ok(canon(lastSave(st)) === canon({ panels: false, cover: false, styleGuide: SAVED }),
+    `#2995: the second save keeps the first switch's change, panels and cover both off (${JSON.stringify(lastSave(st))})`);
+  // The first answer lands: the cover switch the designer just turned off stays off.
+  await post(page, { type: 'doc-settings', settings: { panels: false, cover: true, styleGuide: SAVED } });
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const mid = await page.evaluate(() => document.querySelector('[data-p3="docs-cover-switch"]')?.getAttribute('aria-checked'));
+  ok(mid === 'false', `#2995: the first save's answer does not turn the cover back on (cover switch ${mid})`);
+  await post(page, { type: 'doc-settings', settings: { panels: false, cover: false, styleGuide: SAVED } });
+  await hooks.click(page.locator('[data-p3="docs-tab-panels"]'));
+  await hooks.need(page, '[data-p3="docs-panels-switch"]');
+  const end = await page.evaluate(() => document.querySelector('[data-p3="docs-panels-switch"]')?.getAttribute('aria-checked'));
+  ok(end === 'false', `#2995: once both are answered, both switches stick off (panels switch ${end})`);
+  ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── 380 (Q2909.21 A) ─────────────────────────────────────────────────────────────────────────────
+console.log('\nat 380 (Q2909.21 A)');
 {
   const { page, errors } = await openPage(380, 620);
   await post(page, { type: 'style-guide-catalog', catalog: CAT });
   await treeDrawn(page);
-  await hooks.click(page.locator('[data-p3="sg-draw"]'));
-  await posted(page, 'style-guide', 1);
-  await post(page, { type: 'style-guide-tables', tables: LIST });
-  await post(page, { type: 'style-guide-table', index: 0, status: 'drawing' });
-  await tableIs(page, 0, 'drawing');
-  await until(page, "Activity's strip shown", () => document.querySelector('[data-p3="activity-drawer"]')?.dataset.ever === 'true');
-  const st = await read(page);
-  // Q47 A (owner, 2026-10-06; as Components', #2180): the bar stands at least space.300 above the Activity drawer's strip,
-  // at the top and at the end of the page's scroll. THE ORACLE is space.300 resolved from the committed emission.
-  const GAP = parseFloat(String(resolveToken(loadModes().light, P('space.300')).value));
-  const pinned = await page.evaluate(() => {
-    const bar = document.querySelector('[data-p3="sg-actbar"]');
-    const pg = document.querySelector('[data-p3="menu-page"]');
-    const strip = document.querySelector('[data-p3="activity-drawer"]');
-    if (!bar || !pg || !strip) return null;
-    pg.scrollTop = 0;
-    const top = strip.getBoundingClientRect().top - bar.getBoundingClientRect().bottom;
-    pg.scrollTop = pg.scrollHeight;
-    const end = strip.getBoundingClientRect().top - bar.getBoundingClientRect().bottom;
-    return { top: Math.round(top), end: Math.round(end), sticky: getComputedStyle(bar).position, stripShown: strip.dataset.ever === 'true' };
+  const narrow = await page.evaluate(() => {
+    const shown = (s) => { const n = document.querySelector(s); return !!n && n.getClientRects().length > 0; };
+    return { tabs: shown('[data-p3="docs-tabs"]'), select: shown('[data-p3="docs-select"]') };
   });
-  ok(GAP > 0 && st.actbar && st.runBeforeCols && pinned?.sticky === 'sticky' && pinned.stripShown && pinned.top >= GAP && pinned.end >= GAP,
-    `P9, Q47 A: at 380 the run comes first, and Draw sits in a pinned bar at least space.300 (${GAP}px) above the Activity drawer's strip, scrolled or not (${JSON.stringify({ actbar: st.actbar, runFirst: st.runBeforeCols, pinned })})`);
-  const strip = await page.locator('[data-p3="activity-strip-progress"]').count();
-  await post(page, { type: 'style-guide-progress', done: 1, total: 4, tableMs: 1 });
-  await until(page, "the strip's progress drawn", () => !!document.querySelector('[data-p3="activity-strip-progress"]'));
-  ok(await page.locator('[data-p3="activity-strip-progress"]').count() === 1, `at 380 Activity's strip carries the run's progress (before the first reading ${strip})`);
+  ok(!narrow.tabs && narrow.select, `Q2909.21 A: at 380 Documentation's tabs are a select (${JSON.stringify(narrow)})`);
+  await page.selectOption('[data-p3="docs-select"]', 'cover');
+  await hooks.need(page, '[data-p3="docs-cover"]');
+  ok(await page.locator('[data-p3="docs-cover"]').count() === 1, 'Q2909.21 A: choosing Cover in the select shows the Cover tab');
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
@@ -632,6 +486,6 @@ console.log('\nat 380 (P9)');
 await browser.close();
 server.close();
 hooks.report(ok);
-console.log(`\n${failed === 0 ? '✅' : '❌'} ${executed - failed} of ${executed} Build style guides assertions pass`);
+console.log(`\n${failed === 0 ? '✅' : '❌'} ${executed - failed} of ${executed} Documentation › Style guides assertions pass`);
 if (failed) { console.error(`\n${failed} failing:`); for (const f of failures) console.error(`  · ${f}`); }
 process.exit(failed === 0 ? 0 : 1);

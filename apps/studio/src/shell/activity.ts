@@ -54,11 +54,14 @@ export const setAgentLinkOn = (on: boolean): void => {
  *  quiet; `null` draws none. `full` is the link's whole status line (`agentLinkStatusText`), the open drawer's first line
  *  and the short status's tooltip and accessible name; `null` draws none. The plugin's Agent tile reports it with each
  *  published state; the studio never sets it, so on the web there is none. */
-export type AgentLinkStatus = { readonly short: string | null; readonly error: boolean; readonly full: string | null };
-let agentLinkStatus: AgentLinkStatus = { short: null, error: false, full: null };
+export type AgentLinkStatus = { readonly short: string | null; readonly error: boolean; readonly full: string | null;
+  /** #2909 (Q2995.1 A): the narrow tier's words, the short status alone ("Agent listening", "Agent error", …), without the
+   *  last command. Absent, the narrow tier shows `short`. */
+  readonly brief?: string | null };
+let agentLinkStatus: AgentLinkStatus = { short: null, error: false, full: null, brief: null };
 export const setAgentLinkStatus = (st: AgentLinkStatus): void => {
-  if (st.short === agentLinkStatus.short && st.error === agentLinkStatus.error && st.full === agentLinkStatus.full) return;
-  agentLinkStatus = { short: st.short, error: st.error, full: st.full };
+  if (st.short === agentLinkStatus.short && st.error === agentLinkStatus.error && st.full === agentLinkStatus.full && (st.brief ?? null) === (agentLinkStatus.brief ?? null)) return;
+  agentLinkStatus = { short: st.short, error: st.error, full: st.full, brief: st.brief ?? null };
   for (const f of linkWatchers) f();
 };
 
@@ -494,7 +497,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     // row has no room for it. Its tooltip is the link's full status line, and so is the rest of its accessible name,
     // after its visible words.
     if (agentLinkStatus.short) {
-      const ln = hook(h('span', 'p3-drawer-link', agentLinkStatus.short), 'activity-agent-link');
+      // #2909: the full words above the narrow tier; at 380 the short status alone (the owner's Q2995.1 A), whole, and the
+      // summary gives way to it. The full line is the tooltip and the rest of the accessible name either way.
+      const ln = hook(h('span', 'p3-drawer-link', opts.narrow() ? agentLinkStatus.brief ?? agentLinkStatus.short : agentLinkStatus.short), 'activity-agent-link');
       ln.dataset.error = String(agentLinkStatus.error);
       if (agentLinkStatus.full) { ln.title = agentLinkStatus.full; ln.append(h('span', 'p3-sr', agentLinkStatus.full)); }
       parts.push(ln);
@@ -727,17 +732,26 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
 
   button.onclick = () => show(!open, true);
   toggle.onclick = () => show(!open, true);
-  close.onclick = () => { show(false, true); button.focus(); };
+  // Focus back on the bar's Activity button; on the plugin's rail shell (#2909), which draws no Activity tile (the drawer is
+  // Activity, Q2909.15 A), on the drawer's own row, so a closed sheet never leaves focus on BODY.
+  const focusBack = (): void => (button.isConnected ? button : toggle).focus();
+  close.onclick = () => { show(false, true); focusBack(); };
   // The full-pane sheet at 380 closes on Escape, as its Close does, focus back on the bar's Activity button (#2487 A8).
   drawer.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !open || !narrow()) return;
     e.preventDefault();
     e.stopPropagation();
     show(false, true);
-    button.focus();
+    focusBack();
   });
   cleanups.push(subscribe('host', onHost), subscribe('host:detail', onHost), subscribe('host:progress', onProgress), clear);
   linkWatchers.add(paint);
+  // #2909: the agent status's words follow the width tier, which the frame sets on itself.
+  if (opts.room) {
+    const tierWatch = new MutationObserver(() => paint());
+    tierWatch.observe(opts.room.frame, { attributes: true, attributeFilter: ['data-w'] });
+    cleanups.push(() => tierWatch.disconnect());
+  }
   cleanups.push(() => linkWatchers.delete(paint));
   paint();
   return { button, drawer, live };

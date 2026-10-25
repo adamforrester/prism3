@@ -169,3 +169,49 @@ export const drawOptions = (cat: StyleGuideCatalog, sel: ReadonlySet<number>, o:
     ...(all ? {} : { tables: [...sel].sort((a, b) => a - b).map((i) => cat.tables[i].key) }),
   };
 };
+
+// ── the saved record (#2909, owner decision Q2909.23 A) ───────────────────────────────────────────────
+// Documentation › Style guides holds settings only, and Update file draws with them, so they are kept in the file
+// (`apps/plugin/src/doc-settings.ts`, whose `styleGuide` field is this record, stored as sent). The selection is kept by
+// table KEY, as `keepSelection` maps one across catalogs, so a later catalog with more or fewer tables reads it the same
+// way; `tables: null` means every table, so a table the file gains later is drawn too.
+export type SavedStyleGuide = { readonly tables: readonly string[] | null; readonly view: string | null; readonly titles: string; readonly opt: PageOptions };
+
+/** The record for a selection, a collection view, the title box and the options. */
+export const savedOf = (cat: StyleGuideCatalog, sel: ReadonlySet<number>, view: string | null, titles: string, opt: PageOptions): SavedStyleGuide => {
+  const all = cat.tables.length > 0 && cat.tables.every((_, i) => sel.has(i));
+  return { tables: all ? null : [...sel].sort((a, b) => a - b).map((i) => cat.tables[i]?.key).filter((k): k is string => !!k), view, titles, opt: { ...opt } };
+};
+
+const OPTION_VALUES: { readonly [K in keyof PageOptions]: readonly PageOptions[K][] } = {
+  header: ['dark', 'light'], aliases: [true, false], description: [true, false], nameCell: [true, false], rem: [true, false],
+  valueFormat: ['hex', 'rgba', 'hsl', 'hsb'], colorSample: ['auto', 'default', 'text', 'border', 'icon', 'transparency'],
+  dimensionDisplay: ['filled', 'line'], fontSample: ['auto', 'generic', 'family', 'size', 'weight', 'letterSpacing', 'lineHeight'],
+  paragraphSpacing: [true, false], textDecoration: [true, false], tokenNames: ['full', 'short'],
+};
+
+/** A stored record read back: each field that holds an allowed value, the default for every other. Never throws: the
+ *  record is file data any plugin can write. `null` for no record (nothing saved yet). */
+export const readSaved = (v: unknown): SavedStyleGuide | null => {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const o = v as Record<string, unknown>;
+  const raw = (o.opt && typeof o.opt === 'object' ? o.opt : {}) as Record<string, unknown>;
+  const opt = { ...DEFAULT_OPTIONS } as Record<string, unknown>;
+  for (const k of Object.keys(OPTION_VALUES) as (keyof PageOptions)[]) if ((OPTION_VALUES[k] as readonly unknown[]).includes(raw[k])) opt[k] = raw[k];
+  return {
+    tables: Array.isArray(o.tables) ? o.tables.filter((t): t is string => typeof t === 'string') : null,
+    view: typeof o.view === 'string' && o.view ? o.view : null,
+    titles: typeof o.titles === 'string' ? o.titles : '',
+    opt: opt as PageOptions,
+  };
+};
+
+/** The selection a record names in `cat`: every table for `tables: null` (or no record), else the tables whose key it
+ *  lists, in catalog order. */
+export const selectionOf = (cat: StyleGuideCatalog, rec: SavedStyleGuide | null): Set<number> =>
+  new Set(cat.tables.flatMap((t, i) => (!rec || rec.tables === null || rec.tables.includes(t.key) ? [i] : [])));
+
+/** What Update file posts for the style guides (Q2909.23 A): the saved selection and options, or, with nothing saved,
+ *  every table with the defaults, as the page draws on its first open. */
+export const savedDrawOptions = (cat: StyleGuideCatalog, rec: SavedStyleGuide | null): StyleGuideOptions =>
+  drawOptions(cat, selectionOf(cat, rec), rec?.opt ?? DEFAULT_OPTIONS);

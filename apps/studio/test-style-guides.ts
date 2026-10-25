@@ -13,7 +13,7 @@
  * `tree: below the table level nothing carries a box`; REM on by default → `draw: the defaults (H4–H9) …`; the
  * selection always sent as keys → `draw: every table selected sends no tables filter …`.
  */
-import { treesOf, defaultOpen, boxOf, countsOf, summaryText, drawLabel, kindsOf, hasLengths, byTitles, drawOptions, DEFAULT_OPTIONS, keepSelection, tablesInView, type SgNode } from './src/state/style-guides';
+import { savedOf, readSaved, selectionOf, savedDrawOptions, treesOf, defaultOpen, boxOf, countsOf, summaryText, drawLabel, kindsOf, hasLengths, byTitles, drawOptions, DEFAULT_OPTIONS, keepSelection, tablesInView, type SgNode } from './src/state/style-guides';
 import type { StyleGuideCatalog } from '../plugin/src/messages';
 
 let failed = 0;
@@ -123,6 +123,24 @@ ok(drawOptions(CAT, every, { ...DEFAULT_OPTIONS, tokenNames: 'short' }).tokenNam
   'draw: Token names set to Short sends tokenNames short (#2372)');
 const newer: StyleGuideCatalog = { ...CAT, tables: [CAT.tables[3], { ...CAT.tables[0], key: 'color|C:core|gone' }, CAT.tables[5]] };
 ok(same([...keepSelection(CAT, new Set([0, 3]), newer)], [0]), 'selection: a newer catalog keeps the selected tables still in the file, by key');
+
+// #2909 (Q2909.23 A): the record Documentation keeps in the file, and what Update file draws from it. Expected values are
+// literals: the keys this test's own catalog names, and H4–H9's defaults.
+{
+  const every = new Set(CAT.tables.map((_, i) => i));
+  ok(savedOf(CAT, every, null, '', DEFAULT_OPTIONS).tables === null, 'saved: every table selected is kept as tables: null, so a table the file gains later is drawn too');
+  const two = savedOf(CAT, new Set([3, 0]), null, '', { ...DEFAULT_OPTIONS, rem: true });
+  ok(same(two.tables, [CAT.tables[0].key, CAT.tables[3].key]), 'saved: a part selection is kept by table key, in catalog order');
+  const back = readSaved(JSON.parse(JSON.stringify(two)));
+  ok(same([...selectionOf(CAT, back)], [0, 3]) && back?.opt.rem === true, 'saved: a record read back selects the same tables and keeps its options');
+  ok(readSaved(null) === null && same([...selectionOf(CAT, null)], [...every]), 'saved: no record selects every table');
+  const junk = readSaved({ tables: 'all', opt: { header: 'plaid', rem: 'yes', valueFormat: 'hsl' } });
+  ok(junk?.tables === null && junk?.opt.header === 'dark' && junk?.opt.rem === false && junk?.opt.valueFormat === 'hsl',
+    'saved: a field outside its allowed values reads as its default; an allowed one is kept');
+  ok(same(savedDrawOptions(CAT, null), drawOptions(CAT, every, DEFAULT_OPTIONS)) && savedDrawOptions(CAT, null).rem === false && !('tables' in savedDrawOptions(CAT, null)),
+    'saved: with nothing saved, Update file draws every table with the defaults, REM off and no tables filter');
+  ok(same(savedDrawOptions(CAT, back).tables, [CAT.tables[0].key, CAT.tables[3].key]), 'saved: with a part selection saved, Update file draws those tables by key');
+}
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

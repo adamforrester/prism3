@@ -30,6 +30,16 @@
  * session"), told apart by the posted verdict's `ok` and `completed`. Every arm below reads those two places. The verdict LITERALS are unchanged: they are the copy under test.
  * Set up file's one control is the Figma menu's item now (G8 A), and its arm drives that.
  *
+ * ── #2909 IA v2 phase 1: where the build lives now ─────────────────────────────────────────────────
+ *
+ * The plugin's one write is Update file, the top bar's filled button (owner decisions Q668 A, Q2909.2 A, Q2909.5 A). It
+ * opens a checklist: Set up file on a file that is not set up, the theme, each set the file lacks (unticked, "Not in
+ * file · add"), the style guides; its action runs the ticked steps in order, each on the last one's verdict, and is busy
+ * while the run is out. So every arm below builds by ticking sets in that checklist, the harness answering its
+ * `file-sets` read as the main thread would, and reads the build's two surfaces: Update file (busy, then free) and the
+ * Activity drawer's row (the fraction, then the verdict). The Components page lost its Build bar, its boxes and its
+ * per-set result lines with it (Q2909.5 A); the arms that held those retired, each saying so where it stood.
+ *
  * ── why this suite is a BROWSER suite, and why it lives here rather than in apps/studio ──────────
  *
  * `apps/studio/src/main.ts` touches `document` at import time, so it has no unit granularity at all
@@ -130,13 +140,12 @@ const SG_CATALOG = {
   ],
   notes: [],
 };
-/** The plugin's one page outside the tabs, Build style guides (S11.2), opened from the Figma menu as a designer opens it,
- *  with `SG_CATALOG` posted, waiting on its Collection select: a real condition, not a sleep. It replaced the old Style
- *  guide page the Pages menu opened (`gotoRail`, which went with both in H12, #2289). */
+/** Documentation › Style guides (#2909, Q667 A): a full-width page no tab shows, opened by the rail's Docs tile, with
+ *  `SG_CATALOG` posted, waiting on its Collection select: a real condition, not a sleep. Until #2909 this was the Build
+ *  style guides page the Figma menu opened (S11.2), which took the old Style guide page's place in H12 (#2289). */
 const openStyleGuides = async (page) => {
-  await hooks.click(page.locator('[data-p3="figma-open"]'));
-  await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'));
-  await hooks.need(page, '[data-p3="style-guides"]');
+  await hooks.click(page.locator('[data-p3="rail-documentation"]'));
+  await hooks.need(page, '[data-p3="documentation"]');
   await page.evaluate((c) => window.postMessage({ pluginMessage: { type: 'style-guide-catalog', catalog: c } }, '*'), SG_CATALOG);
   await hooks.need(page, '[data-p3="sg-collection"]');
 };
@@ -180,23 +189,21 @@ const browser = await chromium.launch();
 /** Post a main-thread → UI message in the wire shape `bridge-main.ts` puts on the bus. */
 const post = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), msg);
 
-/** The Build button's labels and each set's result line, as approved (S8.2; owner decisions G2, G9 and C1, copy approved
- *  2026-10-05). Typed here, never read from the source: they are the words a designer reads. */
-// #2700: the one action bar builds the selection, so with Button selected it reads "Build 1 set" and, while that run is
-// out, "Building 1 of 1…" (the approved wireframe's draft copy, calls 16 and 17 A). Nothing is selected on open (call 13).
-const BUILD_LABEL = 'Build 1 set';
-const BUSY_LABEL = 'Building 1 of 1…';
-const NOTHING_LABEL = 'Build';
-const LAST = { ok: 'Built just now', bad: 'Built with problems', failed: 'Build failed', none: 'Not built in this session' };
+/** Update file's labels (#2909 IA v2 phase 1, owner decisions Q668 A and Q2909.5 A; DRAFT words, Q2909.10 A). Typed here,
+ *  never read from the source: they are the words a designer reads. Since #2909 the plugin's one write is Update file,
+ *  the top bar's filled button, whose checklist lists the sets the file lacks (unticked) and builds the ticked ones; it
+ *  is busy, not disabled, while a run is out (#1956 decision 4), and its label reads "Updating…" in the same cell. */
+const BUILD_LABEL = 'Update file';
+const BUSY_LABEL = 'Updating…';
 
 /** Everything a designer can read about a build, from the rendered DOM only.
  *
  *  Both places are read, separately and by their own selectors, because the whole of #870 was one of them being right
- *  while the other was stale. Since UI redesign S8.2 they are the Components tab (its Build button, the chosen set, and
- *  each set's result line in this session) and the build's row in the Activity drawer, which carries the verdict and
- *  the live fraction; the page draws no fraction and no verdict pill of its own. */
-const readSurfaces = (page, set = 'button') => page.evaluate((id) => {
-  const btn = document.querySelector('[data-p3="components-build"]');
+ *  while the other was stale. Since #2909 they are Update file (the control that started the build, busy while the run
+ *  is out) and the build's row in the Activity drawer, which carries the verdict and the live fraction; the Components
+ *  page draws no fraction, no verdict and no per-set result line of its own (Q2909.5 A). */
+const readSurfaces = (page) => page.evaluate(() => {
+  const btn = document.querySelector('[data-p3="update-file"]');
   const busy = btn ? btn.getAttribute('aria-busy') === 'true' : null;
   const label = btn ? (busy ? btn.querySelector('[data-p3="label-busy"]') : btn.querySelector('[data-p3="label-idle"]'))?.textContent.replace(/^…\s*/, '').trim() ?? null : null;
   const row = document.querySelector('[data-p3="activity-op"][data-op="components"]');
@@ -207,14 +214,8 @@ const readSurfaces = (page, set = 'button') => page.evaluate((id) => {
   return {
     button: label,
     busy,
-    // #2700: the sets selected, by their boxes (the radio picker is gone), joined in list order.
-    picker: [...document.querySelectorAll('[data-p3="cp-box"][data-key^="set="][aria-checked="true"]')].map((b) => b.dataset.key.slice(4)).join(',') || null,
     disabled: btn ? btn.disabled : null,
-    // The set's line: in the preview pane when its family is the one shown, else on its own row in the list (#2700: the
-    // list says how a set's last build went once it has one).
-    setLine: preview?.querySelector(`[data-p3="component-set"][data-set="${id}"] [data-p3="component-set-last"]`)?.textContent
-      ?? document.querySelector(`[data-set="${id}"] [data-p3="cp-last"]`)?.textContent ?? null,
-    setLines: preview ? preview.querySelectorAll(`[data-p3="component-set"][data-set="${id}"] [data-p3="component-set-last"]`).length : 0,
+    previewShown: !!preview,
     pageFraction: /\d+ of \d+/.test(preview?.textContent ?? ''),
     barVerdict: row && row.dataset.state !== 'running' && pill && !pill.hidden ? [pill.textContent] : [],
     barPending: row ? [...row.querySelectorAll('[data-p3="op-progress"]')].map((n) => n.textContent) : [],
@@ -222,9 +223,9 @@ const readSurfaces = (page, set = 'button') => page.evaluate((id) => {
     detail: detail && detail.checkVisibility() ? detail.textContent : null,
     drawerOpen: drawer?.dataset.open === 'true',
   };
-}, set);
+});
 
-/** A panel on the Components tab, one fresh context per scenario.
+/** A panel on the Components area, one fresh context per scenario.
  *
  *  A shared context would carry the previous scenario's `componentState` — and its localStorage brand —
  *  into the next, so a verdict left over from scenario 1 could satisfy scenario 2's assertion. Every build message the
@@ -241,56 +242,81 @@ const openPanel = async () => {
   await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
   await page.evaluate(() => {
     window.__builds = [];
-    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'build-components') window.__builds.push(m.def ?? null); });
+    window.__sets = 0;
+    window.addEventListener('message', (e) => {
+      const m = e.data && e.data.pluginMessage;
+      if (m && m.type === 'build-components') window.__builds.push(m.def ?? null);
+      if (m && m.type === 'file-sets-request') window.__sets++;
+    });
   });
   await gotoComponents(page);
   return { page, errors };
 };
-/** The Components tab, by its tab hook: its levers, and the Build button its preview draws (S8.2). */
+/** The Components area, by its rail tile (#2909): its levers and its preview. */
 const gotoComponents = async (page) => {
-  await hooks.click(page.locator('[data-p3="tab-components"]'));
+  await hooks.click(page.locator('[data-p3="rail-components"]'));
   await hooks.need(page, '[data-p3="components-levers"]');
-  await hooks.need(page, '[data-p3="components-build"]');
+};
+/** A Theme page, by the rail's Theme tile and then its tab, named by its hook (#2909: the tab row holds Theme's pages). */
+const gotoTheme = async (page, tab) => {
+  await hooks.click(page.locator('[data-p3="rail-theme"]'));
+  if (tab) await hooks.click(page.locator(tab));
 };
 const builds = (page) => page.evaluate(() => window.__builds);
-const idleAgain = (page) => page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.getAttribute('aria-busy') !== 'true', null, { timeout: 5000 }).catch(() => {});
+const idleAgain = (page) => page.waitForFunction(() => document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-busy') !== 'true', null, { timeout: 5000 }).catch(() => {});
+
+/** Open Update file and answer its read the way the main thread does (`file-sets`): the sets the file holds, and
+ *  whether it is set up. Waits on the checklist itself, not on time. */
+const openUpdate = async (page, answer = { present: [], setUp: true }) => {
+  const asked = await page.evaluate(() => window.__sets);
+  await hooks.click(page.locator('[data-p3="update-file"]'));
+  await hooks.need(page, '[data-p3="update-dialog"]');
+  await page.waitForFunction((n) => window.__sets > n, asked, { timeout: 3000 }).catch(() => {});
+  await post(page, { type: 'file-sets', ...answer });
+  await hooks.need(page, '[data-p3="update-go"]');
+};
+/** Reopen Update file while its run is out, to read the step or Stop it. The busy control is `aria-busy` and, unlike
+ *  #1956's other busy controls, not `aria-disabled`, since its click opens the overlay (`shell/update-file.ts`). The
+ *  click stays forced so this arm reads the overlay, not Playwright's actionability rules. */
+const reopen = async (page) => {
+  await hooks.click(page.locator('[data-p3="update-file"]'), { force: true });
+  await hooks.need(page, '[data-p3="update-dialog"]');
+};
+/** On the open checklist: set a box to `on`. */
+const setBox = async (page, locator, on) => {
+  if ((await locator.getAttribute('aria-checked')) !== String(on)) await hooks.click(locator);
+};
+/** Build these sets through Update file (#2909, Q2909.5 A): the sets ticked, the theme unticked, so the run is the sets
+ *  step alone. Returns false if the checklist could not be driven. */
+const runSets = async (page, ids, label = 'build') => {
+  try {
+    await openUpdate(page);
+    await setBox(page, page.locator('[data-p3="update-check-theme"]'), false);
+    for (const id of ids) await setBox(page, page.locator(`[data-p3="update-set"][data-id="${id}"]`), true);
+    await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
+    return true;
+  } catch (e) {
+    ok(false, `${label}: Update file's checklist could not be driven — ${String(e).split('\n')[0]}`);
+    return false;
+  }
+};
 
 /**
- * Choose a set (when one is named), click Build, and let the first chunk boundary report, so the run is mid-flight in
- * the same way a real one is when the terminal message lands. Returns false if the control could not be clicked.
+ * Tick a set (Button when none is named) in Update file's checklist, run it, and let the first chunk boundary report,
+ * so the run is mid-flight in the same way a real one is when the terminal message lands. Returns false if the control
+ * could not be driven.
  *
  * A STUCK CONTROL IS AN ASSERTION HERE, NOT AN EXCEPTION, and that is worth the extra lines. This
- * suite's whole subject is a button that stays busy, so the defect it exists to catch is EXACTLY
+ * suite's whole subject is a control that stays busy, so the defect it exists to catch is EXACTLY
  * what makes `locator.click()` throw — and an uncaught throw takes the process down mid-run: measured
  * under the mutation that reverts half the fix, the table printed 27 correct named failures and then
  * died on a `TimeoutError` stack, losing the remaining cases and the summary count. A gate that
- * crashes on the bug it is for reports less than one that fails on it. So the click is bounded, and a
+ * crashes on the bug it is for reports less than one that fails on it. So the drive is bounded, and a
  * refusal becomes a named failure that the run survives.
  */
-/** Select one set by its box (#2700), opening every family first, since a family's sets are drawn only while it is
- *  open (call 15 A). Selecting replaces the selection: any other set selected is cleared. */
-const selectOnly = async (page, id) => {
-  for (let i = 0; i < 40; i++) {
-    const closed = page.locator('[data-p3="cp-fold"][aria-expanded="false"]').first();
-    if (!(await closed.count())) break;
-    await hooks.click(closed);
-  }
-  for (const other of await page.evaluate(() => [...document.querySelectorAll('[data-p3="cp-box"][data-key^="set="][aria-checked="true"]')].map((b) => b.dataset.key.slice(4)))) {
-    if (other !== id) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${other}"]`));
-  }
-  const box = page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`);
-  if (await box.getAttribute('aria-checked') !== 'true') await hooks.click(box);
-};
 const startBuild = async (page, def, label = 'build') => {
-  await selectOnly(page, def ?? 'button');
-  const clicked = await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 })
-    .then(() => true, () => false);
-  if (!clicked) {
-    const state = await readSurfaces(page, def ?? 'button');
-    ok(false, `${label}: the Build control could not be clicked — it reads "${state.button}", busy ${state.busy}`);
-    return false;
-  }
-  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.getAttribute('aria-busy') === 'true', null, { timeout: 4000 }).catch(() => {});
+  if (!(await runSets(page, [def ?? 'button'], label))) return false;
+  await page.waitForFunction(() => document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-busy') === 'true', null, { timeout: 4000 }).catch(() => {});
   await post(page, { type: 'component-progress', phase: 'build', done: 24, total: 648, chunkMs: 40 });
   await page.waitForFunction(() => /24 of 648/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
   return true;
@@ -307,14 +333,12 @@ const CONDITIONS = [
     name: 'clean build',
     why: 'the case the field report observed',
     msg: { type: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: "set 'Button': 648 variants (+648 built, 0 already present), 0 refs missing" },
-    line: LAST.ok,
     verdictOpens: false,
   },
   {
     name: 'build with misses',
     why: "#866's four DISCARDED refs — the reason this surface matters at all",
     msg: { type: 'component-result', ok: false, completed: true, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠ 4 misses (focus/ring/offset; icon/size; …)" },
-    line: LAST.bad,
     verdictOpens: true,
   },
   {
@@ -327,21 +351,18 @@ const CONDITIONS = [
     name: 'errored build',
     why: 'the catch arm, with the file untouched — planSetLayout throws before anything is created',
     msg: { type: 'component-result', ok: false, completed: false, headline: '✗ apply failed', summary: 'component build failed: planSetLayout: no coherent set' },
-    line: LAST.failed,
     verdictOpens: true,
   },
   {
     name: 'already-built (idempotent re-run)',
     why: 'every member skipped by name, so misses === skipped and the build is a SUCCESS',
     msg: { type: 'component-result', ok: true, completed: true, headline: '✓ 0 new, 648 present', summary: "set 'Button': 648 variants (+0 built, 648 already present)" },
-    line: LAST.ok,
     verdictOpens: false,
   },
   {
     name: 'unknown def',
     why: 'the early return — the UI and the plugin disagree about the catalogue',
     msg: { type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: "no component def with id 'nope' — this build knows button, icon-button" },
-    line: LAST.failed,
     verdictOpens: true,
   },
   {
@@ -361,7 +382,6 @@ const CONDITIONS = [
       type: 'component-result', ok: false, completed: false, headline: '✗ not buildable on its own',
       summary: 'focus-ring: a ring is sized by the control it surrounds, so it projects members that bind no width or height of their own — built alone it is a 100×100 default frame with the focus color at 1px. Build it as part of a host instead: Button nests it and supplies the geometry.',
     },
-    line: LAST.failed,
     verdictOpens: true,
   },
   {
@@ -381,7 +401,6 @@ const CONDITIONS = [
       type: 'component-result', ok: false, completed: false, headline: '✗ failed, 2 parked',
       summary: "component build failed: in setTextStyleIdAsync: unloaded font \"Clash Display Semi Bold\" — 2 nodes had already reached the file; they are parked in the frame '⚠ Prism3 partial build — button (2 nodes; undo to remove)' on this page. One undo removes the whole build.",
     },
-    line: LAST.failed,
     verdictOpens: true,
   },
 ];
@@ -400,25 +419,32 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
 // ── the control a designer meets before any build ─────────────────────────────────────────────
 //
 // The zeroth terminating condition is "nothing has terminated yet", and it needs its own assertion: a control that
-// mounted blank, or busy, or naming no set, would sail past every check below, which read the button only after a
-// build. Since S8.2 the button names the chosen set (Button, by default), and each set says it was not built in this
-// session (G9). The proving build after it shows this probe CAN see a busy label and a result, so the fresh reading is
-// a measurement.
+// mounted blank or busy would sail past every check below, which read the control only after a build. Since #2909 the
+// control is Update file, and the checklist it opens lists every set the file lacks, unticked (Q2909.5 A). The proving
+// build after it shows this probe CAN see a busy label and a result, so the fresh reading is a measurement.
 {
   const { page, errors } = await openPanel();
   const fresh = await readSurfaces(page);
-  ok(fresh.button === NOTHING_LABEL && fresh.busy === false && fresh.disabled === true, `a freshly opened panel offers "${NOTHING_LABEL}", unavailable until a set is selected, not busy — read "${fresh.button}", disabled ${fresh.disabled}, busy ${fresh.busy}`);
-  ok(fresh.picker === null, `call 13: a freshly opened panel has nothing selected — read ${fresh.picker}`);
-  ok(fresh.setLine === LAST.none, `before any build, Button reads "${LAST.none}" — read ${JSON.stringify(fresh.setLine)}`);
+  ok(fresh.button === BUILD_LABEL && fresh.busy === false && fresh.disabled === false, `a freshly opened panel offers "${BUILD_LABEL}", not busy — read "${fresh.button}", disabled ${fresh.disabled}, busy ${fresh.busy}`);
   ok(errors.length === 0, `opening the panel logs no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await openUpdate(page);
+  const list = await page.evaluate(() => ({
+    sets: [...document.querySelectorAll('[data-p3="update-set"]')].map((b) => [b.dataset.id, b.getAttribute('aria-checked')]),
+    tag: document.querySelector('[data-p3="update-set-new"]')?.textContent ?? null,
+    theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
+  }));
+  ok(list.sets.length >= 20 && list.sets.every(([, c]) => c === 'false') && list.sets.some(([id]) => id === 'button') && list.tag === 'Not in file · add',
+    `Q2909.5 A: on a set-up file the checklist lists each set the file lacks, unticked, "Not in file · add" — ${list.sets.length} sets, ticked ${list.sets.filter(([, c]) => c === 'true').length}, tag ${JSON.stringify(list.tag)}`);
+  ok(list.theme === 'true', `Q2909.2 A: the checklist always shows the theme, ticked — read ${list.theme}`);
+  await hooks.click(page.locator('[data-p3="update-cancel"]'));
   await startBuild(page, undefined, 'the fresh panel\'s proving build');
   const during = await readSurfaces(page);
   await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
   await idleAgain(page);
   const after = await readSurfaces(page);
-  ok(during.button === BUSY_LABEL && during.busy && after.setLine === LAST.ok,
-    `the proving build: the probe sees the busy label, then the result — read "${during.button}" (busy ${during.busy}), then ${JSON.stringify(after.setLine)}`);
-  ok(JSON.stringify(await builds(page)) === '["button"]', `the build posts the chosen set — posted ${JSON.stringify(await builds(page))}`);
+  ok(during.button === BUSY_LABEL && during.busy && after.barVerdict.some((t) => (t ?? '').includes('✓ built 648')),
+    `the proving build: the probe sees the busy label, then the result — read "${during.button}" (busy ${during.busy}), then ${JSON.stringify(after.barVerdict)}`);
+  ok(JSON.stringify(await builds(page)) === '["button"]', `the build posts the set ticked — posted ${JSON.stringify(await builds(page))}`);
   await page.close();
 }
 
@@ -427,29 +453,25 @@ for (const c of CONDITIONS) {
   await startBuild(page, undefined, c.name);
 
   const during = await readSurfaces(page);
-  ok(during.button === BUSY_LABEL, `${c.name}: the button reads "${BUSY_LABEL}" while in flight — read "${during.button}"`);
-  ok(during.busy === true, `${c.name}: the button is busy while in flight (aria-busy), so a second click posts no concurrent build`);
+  ok(during.button === BUSY_LABEL, `${c.name}: Update file reads "${BUSY_LABEL}" while in flight — read "${during.button}"`);
+  ok(during.busy === true, `${c.name}: Update file is busy while in flight (aria-busy), so no second run starts under it`);
   ok(during.barPending.some((t) => /24 of 648/.test(t ?? '')), `${c.name}: the Activity row shows the live fraction (was frozen at the placeholder)`);
   // RETIRED, HELD (S8.2): the page's own pending pill, the second surface #870's second defect froze, went with the
-  // legacy row. The drawer row above is the one live fraction; the page shows none, rather than a stale one.
-  hooks.absent(ok, { seen: during.barPending.some((t) => /24 of 648/.test(t ?? '')), state: 'the live fraction in the Activity row' },
+  // legacy row. The drawer row above is the one live fraction; the Components page shows none, rather than a stale one.
+  hooks.absent(ok, { seen: during.previewShown && during.barPending.some((t) => /24 of 648/.test(t ?? '')), state: 'the Components preview, and the live fraction in the Activity row' },
     !during.pageFraction, `${c.name}: the Components page shows no fraction of its own beside the drawer's`);
 
   await post(page, c.msg);
-  // Wait on the real condition — the button leaving the busy state — with a bounded timeout, so a
+  // Wait on the real condition — the control leaving the busy state — with a bounded timeout, so a
   // regression fails here as a timeout naming this condition rather than as a bare assertion diff.
   await idleAgain(page);
   const after = await readSurfaces(page);
 
   // THE ASSERTION #870 IS ABOUT. Stated as the label and the state a designer reads.
-  ok(after.button === BUILD_LABEL, `${c.name}: the button returns to "${BUILD_LABEL}" — read "${after.button}"`);
-  ok(after.busy === false, `${c.name}: the button is no longer busy, so another build can be started`);
-  ok(after.picker === 'button', `${c.name}: the chosen set holds — read ${after.picker}`);
+  ok(after.button === BUILD_LABEL, `${c.name}: Update file returns to "${BUILD_LABEL}" — read "${after.button}"`);
+  ok(after.busy === false, `${c.name}: Update file is no longer busy, so another run can be started`);
 
-  // The verdict is VISIBLE: the drawer carries the host's own headline, and the set says how its build went (G9).
-  // C1 A: three results, told apart by the build's own verdict (ok, and whether the build ran to the end), never by a
-  // hand-set state. Each condition's line is typed beside its message above.
-  ok(after.setLine === c.line, `${c.name}: the set's line on the page reads "${c.line}" — read ${JSON.stringify(after.setLine)}`);
+  // The verdict is VISIBLE: the drawer carries the host's own headline.
   ok(after.barVerdict.some((t) => (t ?? '').includes(c.msg.headline)), `${c.name}: the Activity row carries the verdict "${c.msg.headline}"`);
 
   // No pending text survives the verdict. ABSENCE, judged against what the same probe saw during this build (#1831).
@@ -485,8 +507,8 @@ for (const c of CONDITIONS) {
 // prevent. So both are driven here rather than one being padded into `CONDITIONS`: what is asserted is that
 // the two verdicts differ ONLY in their number.
 //
-// WHERE THE NUMBER IS (S8.2): the Activity row's verdict and its open detail. The page's per-set line says only how the
-// build went ("Build failed" here, since the build stopped: G9, C1); the count it used to carry was the legacy row's pill, retired with the row.
+// WHERE THE NUMBER IS: the Activity row's verdict and its open detail. Since #2909 the Components page carries no
+// per-set line (Q2909.5 A); the count it once carried was the legacy row's pill, retired with the row in S8.2.
 //
 // WHAT IS *NOT* ASSERTED HERE, AND WHY: whether the count is clipped out of the pill. #483's finding was a verdict
 // clipped by `text-overflow: ellipsis` at 220px, but the pill grows with its text now (measured: `overflow: visible`,
@@ -504,7 +526,6 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const after = await readSurfaces(page);
   ok(after.barVerdict.some((t) => (t ?? '').includes(String(n))),
     `${label}: the Activity row states how many nodes were left, and it survives navigating away — read ${JSON.stringify(after.barVerdict)}`);
-  ok(after.setLine === LAST.failed, `${label}: the set's line on the page says the build failed (it stopped before the set, C1) — read ${JSON.stringify(after.setLine)}`);
   ok(after.detail !== null && (after.detail ?? '').includes('parked in the frame'), `${label}: the open detail says where the leftovers are`);
   ok((after.detail ?? '').includes('⚠ Prism3 partial build'), `${label}: ...and names the frame, which is the only pointer the panel can give`);
   ok((after.detail ?? '').includes('One undo'), `${label}: ...and names the way out, which is one undo because the run is one undo entry`);
@@ -513,48 +534,37 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
-// ── the picker's selection survives its own verdict ───────────────────────────────────────────
+// ── the set ticked is the set posted ──────────────────────────────────────────────────────────
 //
-// Not a nicety — it is why the legacy fix was a SYNC rather than a re-render (#870): a full render rebuilt the picker,
-// whose default was Button, so reporting a verdict would silently reset the selection and the designer's next click
-// would build the wrong set. Since S8.2 the chosen set lives in the Components preview's own state and the verdict
-// touches only the button and the result lines in place; held here: the set chosen is the set posted, the result lands
-// on THAT set's line, and the choice holds through the verdict.
+// RE-HOSTED in #2909. Until then this arm held the Components picker's selection through its own verdict (#870's SYNC
+// rather than re-render: a rebuilt picker reset to Button, and the next click built the wrong set). The picker went with
+// the Build bar (Q2909.5 A); what still holds is its point: the set the designer ticks in Update file's checklist is the
+// set posted, not Button, and its build reaches a verdict.
 {
   const { page } = await openPanel();
-  await selectOnly(page, 'button');
-  const options = await page.locator('[data-p3="cp-box"][data-key^="set="]').evaluateAll((ns) => ns.map((n) => n.dataset.key.slice(4)));
-  const other = options.find((v) => v === 'tag') ?? options.find((v) => v !== 'button');
-  ok(other !== undefined && options.length >= 20, `the set list offers sets other than Button, so this check can mean something (${options.length} offered)`);
-  if (other) {
-    await startBuild(page, other, `the non-default set '${other}'`);
-    const posted = await builds(page);
-    ok(JSON.stringify(posted) === JSON.stringify([other]), `the picker's selection is the set posted: '${other}' — posted ${JSON.stringify(posted)}`);
-    await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${other}'` });
-    await idleAgain(page);
-    const after = await readSurfaces(page, other);
-    const button = await readSurfaces(page, 'button');
-    ok(after.picker === other, `the picker still holds '${other}' after its verdict — read '${after.picker}' (a full re-render would reset it to 'button')`);
-    ok(after.setLine === LAST.ok && button.setLine === LAST.none, `the verdict lands on '${other}', not on Button — ${other} ${JSON.stringify(after.setLine)}, button ${JSON.stringify(button.setLine)}`);
-    ok(after.busy === false && after.button === BUILD_LABEL, `the non-default set's build also reaches a verdict, and the bar still offers its selection, one set — read "${after.button}"`);
-  }
+  await startBuild(page, 'tag', "the non-default set 'tag'");
+  const posted = await builds(page);
+  ok(JSON.stringify(posted) === '["tag"]', `the set ticked is the set posted: 'tag' — posted ${JSON.stringify(posted)}`);
+  await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: "set 'tag'" });
+  await idleAgain(page);
+  const after = await readSurfaces(page);
+  ok(after.busy === false && after.button === BUILD_LABEL, `the non-default set's build also reaches a verdict, and Update file is free again — read "${after.button}"`);
   await page.close();
 }
 
 // ── a verdict that arrives while the designer is on another page ───────────────────────────────
 //
 // #483's division of labour, asserted rather than assumed: the build's STATUS lives in the chrome (the Activity
-// drawer) so it survives navigation, while the control is page content. The Components page is released when the
-// designer leaves it, so returning must show a control that is not busy and the set's result, not the "Building…"
-// it left.
+// drawer) so it survives navigation. Since #2909 the control that started it (Update file) is chrome too, on the top
+// bar in every area, so returning to Components must show it free, not the "Updating…" it was left on.
 {
   const { page } = await openPanel();
   await startBuild(page, undefined, 'a verdict arriving off-page');
-  // Color › Palettes, by its tab: it left the Pages menu in UI redesign S2 and draws the two panes.
-  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  // Color › Palettes, by the rail's Theme tile and its tab: it left the Pages menu in UI redesign S2 and draws the two panes.
+  await gotoTheme(page, '[data-p3="tab-color"]');
   await hooks.click(page.locator('[data-p3="color-sub-palettes"]'));
   await hooks.need(page, '[data-p3="palettes-levers"]');
-  await page.waitForFunction(() => !document.querySelector('[data-p3="components-build"]'));
+  await page.waitForFunction(() => !document.querySelector('[data-p3="components-levers"]'));
   await post(page, { type: 'component-progress', phase: 'wire', done: 600, total: 648, chunkMs: 40 });
   await page.waitForFunction(() => /600 of 648/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
   const away = await readSurfaces(page);
@@ -576,8 +586,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 
   await gotoComponents(page);
   const back = await readSurfaces(page);
-  ok(back.button === BUILD_LABEL && back.busy === false, `returning to the page shows a control that is not busy, not the "Building…" it was left on — read "${back.button}", busy ${back.busy}`);
-  ok(back.setLine === LAST.ok, `returning to the page shows the set's result it missed — read ${JSON.stringify(back.setLine)}`);
+  ok(back.button === BUILD_LABEL && back.busy === false, `returning to Components shows Update file free, not the "Updating…" it was left on — read "${back.button}", busy ${back.busy}`);
   await page.close();
 }
 
@@ -599,77 +608,77 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ 0 new, 648 present', summary: 'second run — idempotent' });
   await idleAgain(page);
   const done = await readSurfaces(page);
-  ok(first.setLine === LAST.bad && done.setLine === LAST.ok, `the second build's result replaces the first on the set's line — first ${JSON.stringify(first.setLine)}, then ${JSON.stringify(done.setLine)}`);
-  ok(done.setLines === 1, `exactly one result line for the set, not one per build — found ${done.setLines}`);
-  ok(done.barVerdict.some((t) => (t ?? '').includes('✓ 0 new, 648 present')), "the drawer's verdict is the second build's");
+  ok(first.barVerdict.some((t) => (t ?? '').includes('⚠ 648, 4 missed')) && done.barVerdict.some((t) => (t ?? '').includes('✓ 0 new, 648 present')),
+    `the second build's verdict replaces the first on the Activity row — first ${JSON.stringify(first.barVerdict)}, then ${JSON.stringify(done.barVerdict)}`);
   ok(JSON.stringify(await builds(page)) === '["button","button"]', `each build posts once — posted ${JSON.stringify(await builds(page))}`);
   await page.close();
 }
 
-// ── #1663: an agent's prune preview is a pill, never the confirm dialog ─────────────────────────
+// ── #1663: an agent's prune preview is a pill, never the panel's Delete ─────────────────────────
 //
 // #1660 lets an agent ask the main thread for a prune preview. The main thread marks that preview
 // `pillOnly` (`apps/plugin/src/main.ts`, the agent link's `forward`), and `test-agent-link.ts` proves the
 // flag is SET. Nothing proved the panel HONORS it: `write-adapter.ts` has to carry the flag across the
 // bridge, and the `prune-result` handler in `apps/studio/src/main.ts` has to take the pill branch. With
-// either gone, an agent's preview opens the confirm dialog on the owner's screen — and that dialog's
-// Delete prunes against the PANEL's knobs (`lastGoodInput`), not the input the agent previewed, so the
-// count the owner confirms is not the count that gets deleted.
+// either gone, an agent's preview lands as the panel's own, and its Delete prunes against the PANEL's knobs
+// (`lastGoodInput`), not the input the agent previewed, so the count the owner confirms is not the count deleted.
 //
-// Both arms post the SAME preview through the real bridge, differing only in `pillOnly`. The control arm
-// is not decoration: it proves this probe can see a prune dialog at all, so "no dialog" in the agent arm
-// is a measurement rather than a selector that matches nothing. EXPECTED is authored here in the words
-// on screen — the dialog found by its accessible name, the pill by its text — and nothing reads
+// RE-HOSTED in #2909 (Q668 A): the panel's own preview, and its Delete, live in Update file's Clean up tab now, never in
+// a dialog of their own. The control arm opens Clean up as a designer does (the tab asks for the preview) and posts the
+// preview through the real bridge; the agent arm posts the SAME preview marked `pillOnly`. The control is not
+// decoration: it proves this probe can see a Delete at all, so "no Delete" in the agent arm is a measurement rather than
+// a selector that matches nothing. EXPECTED is authored here in the words on screen; nothing reads
 // `prunePreview`/`pruneVerdict` (docs/34 shape 16, same reasoning as the header above).
 {
   const PRUNE_SUMMARY = 'Would remove 4 items: 2 layout modes, 2 grid styles.';
   const preview = { type: 'prune-result', ok: true, applied: false, count: 4, summary: PRUNE_SUMMARY };
   const readPrune = (page) => page.evaluate(() => ({
-    dialog: !!document.querySelector('[data-p3="prune-dialog"]'),
-    deleteCta: [...document.querySelectorAll('[data-p3="dialog-confirm"]')].map((n) => n.textContent),
+    overlay: !!document.querySelector('[data-p3="update-dialog"]'),
+    summary: document.querySelector('[data-p3="clean-prune-summary"]')?.textContent ?? null,
+    deleteCta: [...document.querySelectorAll('[data-p3="clean-prune-confirm"]')].map((n) => n.textContent),
     pills: [...document.querySelectorAll('[data-p3="activity-op"][data-op="prune"] [data-p3="op-verdict"]')].map((n) => n.textContent),
     // The row's details carry the host's sentence under the short verdict (owner decision #3 on #1956).
     // Read whether or not the row is expanded: a clean result's row is collapsed (#483).
     summaries: [...document.querySelectorAll('[data-p3="activity-op"][data-op="prune"] [data-p3="op-summary"]')].map((n) => n.textContent),
   }));
-  // #1830 — the dialog used to be FOUND by its role and accessible name, which asserted both for free.
-  // F1 moved the lookup to its hook, so they are asserted here instead, by what the accessibility tree
-  // computes: the one dialog named "Prune stale items" must be the hooked prune dialog.
-  const namedDialog = (page) => page.getByRole('dialog', { name: 'Prune stale items', exact: true })
-    .evaluateAll((ns) => ns.map((n) => n.getAttribute('data-p3')));
-  const settle = (page) => page
-    .waitForFunction(() => !!document.querySelector('[data-p3="prune-dialog"]')
-      || [...document.querySelectorAll('[data-p3="activity-op"][data-op="prune"] [data-p3="op-summary"]')].some((n) => (n.textContent ?? '').includes('Would remove')), null, { timeout: 5000 })
-    .catch(() => {});
 
-  // CONTROL: the panel's own preview (no `pillOnly`) opens the dialog. Its readings are kept, because they
-  // are the proof the arm below needs: an absence of the dialog means something only once this probe has
-  // been shown one (#1831).
-  let control = { dialog: false, deleteCta: [] };
+  // CONTROL: the panel's own preview, asked for by opening Clean up, shows its summary and its Delete there. Its readings
+  // are kept, because they are the proof the arm below needs (#1831).
+  let control = { summary: null, deleteCta: [] };
   {
     const { page, errors } = await openPanel();
+    await page.evaluate(() => {
+      window.__prunes = [];
+      window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'prune') window.__prunes.push(m.confirm); });
+    });
+    await openUpdate(page);
+    await hooks.click(page.locator('[data-p3="update-tab-clean"]'));
+    await page.waitForFunction(() => window.__prunes.length > 0, null, { timeout: 3000 }).catch(() => {});
+    const asked = await page.evaluate(() => window.__prunes.slice());
+    ok(JSON.stringify(asked) === '[false]', `#1663 control: opening Clean up asks for a preview, never a delete (Q668 A) — posted confirm ${JSON.stringify(asked)}`);
+    // While the dry run is out the tab says so (#2909): it draws from the state read after it asked, not before.
+    // MUTATION: drawing from the reading taken before `pruneCheck` → this arm, by name.
+    const checking = await page.locator('[data-p3="clean-checking"]').textContent({ timeout: 2000 }).catch(() => null);
+    ok(checking === 'Checking for stale items…', `#2909 while the dry run is out, Clean up reads "Checking for stale items…" — read ${JSON.stringify(checking)}`);
     await post(page, preview);
-    await settle(page);
+    await hooks.need(page, '[data-p3="clean-prune-summary"]', { timeout: 5000 });
     const s = await readPrune(page);
-    ok(s.dialog, '#1663 control: a panel prune preview (no pillOnly) opens the "Prune stale items" dialog, so this probe can see one');
-    ok(s.deleteCta.includes('Delete 4 items'), `#1663 control: the dialog's CTA reads "Delete 4 items" — read ${JSON.stringify(s.deleteCta)}`);
-    const named = await namedDialog(page);
-    ok(named.length === 1 && named[0] === 'prune-dialog',
-      `#1830 the prune dialog is a role="dialog" whose accessible name is "Prune stale items" — dialogs by that name: ${JSON.stringify(named)}`);
+    ok(s.summary === PRUNE_SUMMARY, `#1663 control: the panel's preview shows in Clean up, in the host's words — read ${JSON.stringify(s.summary)}`);
+    ok(s.deleteCta.includes('Delete 4 items'), `#1663 control: Clean up's Delete reads "Delete 4 items" — read ${JSON.stringify(s.deleteCta)}`);
     control = s;
-    // #2124 review (findings 1 and 2): the dialog is modal. Focus is inside it as it opens, Tab and Shift+Tab stay
-    // inside, and Cancel returns focus to its opener, the Figma menu button.
+    // #2124 review (findings 1 and 2), re-hosted: the overlay is modal. Focus is inside it, Tab and Shift+Tab stay
+    // inside, and Close returns focus to its opener, Update file.
     const at = () => page.evaluate(() => ({ hook: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
-      inside: !!document.activeElement?.closest('[data-p3="prune-dialog"]') }));
+      inside: !!document.activeElement?.closest('[data-p3="update-dialog"]') }));
     const f0 = await at();
-    ok(f0.inside, `#2124 prune: focus moves into the dialog as it opens (on ${f0.hook})`);
+    ok(f0.inside, `#2124 Clean up: focus is inside the overlay (on ${f0.hook})`);
     const walk = [];
     for (let i = 0; i < 6; i++) { await page.keyboard.press('Tab'); walk.push(await at()); }
     for (let i = 0; i < 3; i++) { await page.keyboard.press('Shift+Tab'); walk.push(await at()); }
-    ok(walk.every((x) => x.inside), `#2124 prune: Tab and Shift+Tab stay inside the dialog (${walk.map((x) => `${x.hook}${x.inside ? '' : ' OUTSIDE'}`).join(', ')})`);
-    await hooks.click(page.locator('[data-p3="prune-dialog"] [data-p3="dialog-cancel"]'), { timeout: 4000 });
+    ok(walk.every((x) => x.inside), `#2124 Clean up: Tab and Shift+Tab stay inside the overlay (${walk.map((x) => `${x.hook}${x.inside ? '' : ' OUTSIDE'}`).join(', ')})`);
+    await hooks.click(page.locator('[data-p3="update-cancel"]'), { timeout: 4000 });
     const f1 = await at();
-    ok(f1.hook === 'figma-open', `#2124 prune: Cancel returns focus to the Figma menu, its opener (on ${f1.hook})`);
+    ok(f1.hook === 'update-file', `#2124 Clean up: Close returns focus to Update file, its opener (on ${f1.hook})`);
     ok(errors.length === 0, `#1663 control: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
@@ -678,14 +687,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   {
     const { page, errors } = await openPanel();
     await post(page, { ...preview, pillOnly: true });
-    await settle(page);
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="prune"] [data-p3="op-summary"]')].some((n) => (n.textContent ?? '').includes('Would remove')), null, { timeout: 5000 }).catch(() => {});
     const s = await readPrune(page);
     const landed = s.summaries.includes(`Agent preview: ${PRUNE_SUMMARY}`);
-    hooks.absent(ok, { seen: control.dialog && landed, state: 'the dialog in the control arm, and the agent preview landing in this one' },
-      !s.dialog, '#1663 an agent prune preview (pillOnly) opens NO confirm dialog on the owner\'s screen');
+    hooks.absent(ok, { seen: control.summary === PRUNE_SUMMARY && landed, state: 'the preview in Clean up in the control arm, and the agent preview landing in this one' },
+      !s.overlay && s.summary === null, '#1663 an agent prune preview opens nothing on the owner\'s screen and is not the panel\'s preview');
     hooks.absent(ok, { seen: control.deleteCta.includes('Delete 4 items') && landed, state: 'the Delete CTA in the control arm, and the agent preview landing in this one' },
-      s.deleteCta.length === 0, `#1663 an agent prune preview offers no Delete CTA — found ${JSON.stringify(s.deleteCta)}`);
-    ok(s.pills.includes('4 stale') && s.summaries.includes(`Agent preview: ${PRUNE_SUMMARY}`),
+      s.deleteCta.length === 0, `#1663 an agent prune preview offers no Delete — found ${JSON.stringify(s.deleteCta)}`);
+    ok(s.pills.includes('4 stale') && landed,
       `#1663 an agent prune preview reads "4 stale" in the Activity drawer, "Agent preview: ${PRUNE_SUMMARY}" in its details — read ${JSON.stringify(s.pills)}, ${JSON.stringify(s.summaries)}`);
     ok(errors.length === 0, `#1663 agent preview: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
@@ -702,59 +711,111 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //   · the Tables field's comma lists and key matching (#1778): accepted lost (Q107 A, item 2), the new page's "Draw by
 //     table title" box takes one title a line.
 
-// ── #1845: File setup reaches its verdict (RE-HOSTED in S8.2: the Figma menu is its one control) ──────────────
+// ── #1845: File setup reaches its verdict (RE-HOSTED in #2909: the first checklist on a file not set up) ─────────
 //
-// The same #870 shape on a third control. Before UI redesign P2 a host verdict became a `Repaint` tag and a switch in
+// The same #870 shape on a third write. Before UI redesign P2 a host verdict became a `Repaint` tag and a switch in
 // `apps/studio/src/main.ts` turned the tag into a call; changing `case 'fileSetupRow': syncFileSetupRow()` to a bare
-// `break` put #870 back for this button and passed every gate, because no browser suite sent `file-setup-result`
-// (#1845). Since S8.2 (owner decision G8 A) Set up file has no page row: its one control is the Figma menu's item, whose
-// busy state reads the host session (`figmaActions`), and its result is the Activity drawer's row. This arm drives the
-// item and posts the verdict through the real bridge, and reads both back. EXPECTED is authored in the words on screen;
-// nothing reads `fileSetupState` (docs/34 shape 16). It also holds G8 on the page: the Components tab draws no Set up
-// file control, read by its words (the page's own hooks are what the proof below names).
+// `break` put #870 back for this control and passed every gate, because no browser suite sent `file-setup-result`
+// (#1845). Since #2909 (Q668 A) Set up file is the first item of Update file's checklist on a file that is not set up, and
+// that checklist runs its steps in order, each on the last one's verdict: setup, then the theme, then the sets. This arm
+// answers the checklist's read with a file not set up, runs it, plays the main thread for each step, and Stops in the sets
+// step. EXPECTED is authored in the words on screen and the messages posted; nothing reads `fileSetupState` (docs/34
+// shape 16). It also holds that the Components page draws no Set up file control, read by its words.
+//
+// MUTATIONS, each failing here by name: `advanceUpdate` not called (the run never moves past its first step) →
+// `#2909 the setup's verdict starts the theme step …`; Stop not reaching the build queue → `#2909 Stop in the sets step …`.
 {
   const { page, errors } = await openPanel();
   const onPage = await page.evaluate(() => {
     const scope = [document.querySelector('[data-p3="components-levers"]'), document.querySelector('[data-p3="components-style-guide"]')];
     return { measured: scope.every(Boolean), words: scope.some((n) => /set up file/i.test(n?.textContent ?? '')) };
   });
-  hooks.absent(ok, { seen: onPage.measured, state: 'the Components levers and preview' }, !onPage.words, 'G8: the Components page draws no Set up file control or words; the Figma menu is its one control');
+  hooks.absent(ok, { seen: onPage.measured, state: 'the Components levers and preview' }, !onPage.words, 'G8: the Components page draws no Set up file control or words; Update file is its one control');
   await page.evaluate(() => {
-    window.__setup = 0;
-    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'file-setup') window.__setup++; });
+    window.__posts = [];
+    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && ['file-setup', 'apply-theme', 'build-components', 'style-guide', 'style-guide-catalog-request'].includes(m.type)) window.__posts.push(m.type); });
   });
+  const posts = () => page.evaluate(() => window.__posts.slice());
   const readFs = () => page.evaluate(() => {
-    const it = document.querySelector('[data-p3="figma-option-file-setup"]');
-    const busy = it ? it.getAttribute('aria-busy') === 'true' : null;
     const row = document.querySelector('[data-p3="activity-op"][data-op="filesetup"]');
+    const btn = document.querySelector('[data-p3="update-file"]');
     return {
-      item: it ? (busy ? it.querySelector('[data-p3="label-busy"]') : it.querySelector('[data-p3="label-idle"]'))?.textContent.replace(/^…\s*/, '').trim() ?? null : null,
-      busy,
+      busy: btn ? btn.getAttribute('aria-busy') === 'true' : null,
       state: row?.dataset.state ?? null,
       verdict: row && row.dataset.state !== 'running' ? [...row.querySelectorAll('[data-p3="op-verdict"]')].map((n) => n.textContent) : [],
       pending: row ? [...row.querySelectorAll('[data-p3="op-progress"]')].map((n) => n.textContent) : [],
-      posted: window.__setup,
     };
   });
-  const openMenu = async () => { await hooks.click(page.locator('[data-p3="figma-open"]')); await hooks.need(page, '[data-p3="figma-menu"]'); };
-  await openMenu();
-  const before = await readFs();
-  ok(before.item === 'Set up file' && before.busy === false, `#1845 the Figma menu offers "Set up file", not busy — read "${before.item}", busy ${before.busy}`);
-  const clicked = await hooks.click(page.locator('[data-p3="figma-option-file-setup"]'), { timeout: 4000 }).then(() => true, () => false);
-  ok(clicked, '#1845 the Set up file item can be clicked');
-  await page.waitForFunction(() => window.__setup > 0, null, { timeout: 3000 }).catch(() => {});
-  await openMenu();
+  await openUpdate(page, { present: [], setUp: false });
+  const first = await page.evaluate(() => ({
+    setup: document.querySelector('[data-p3="update-check-setup"]')?.getAttribute('aria-checked') ?? null,
+    theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
+    guides: document.querySelector('[data-p3="update-check-guides"]')?.getAttribute('aria-checked') ?? null,
+    sets: [...document.querySelectorAll('[data-p3="update-set"]')].map((b) => b.getAttribute('aria-checked')),
+    go: document.querySelector('[data-p3="update-go"]')?.textContent ?? null,
+  }));
+  ok(first.setup === 'true' && first.theme === 'true' && first.guides === 'true' && first.sets.length > 0 && first.sets.every((c) => c === 'true') && first.go === 'Set up and update',
+    `Q668 A, Q2909.5 A: on a file not set up the first checklist is the setup, everything ticked, its action "Set up and update" — read ${JSON.stringify({ ...first, sets: `${first.sets.filter((c) => c === 'true').length} of ${first.sets.length} ticked` })}`);
+  await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
+  await page.waitForFunction(() => window.__posts.length > 0, null, { timeout: 3000 }).catch(() => {});
   const pending = await readFs();
-  ok(pending.item === 'Setting up…' && pending.busy === true && pending.posted === 1 && pending.state === 'running',
-    `#1845 a file setup in flight reads "Setting up…" in the menu, busy, with its row running — read "${pending.item}", busy ${pending.busy}, posted ${pending.posted}, row ${pending.state}`);
+  ok(JSON.stringify(await posts()) === '["file-setup"]' && pending.busy === true && pending.state === 'running',
+    `#1845 the run starts with Set up file alone, Update file busy and the setup row running — posted ${JSON.stringify(await posts())}, busy ${pending.busy}, row ${pending.state}`);
+  await reopen(page);
+  const line = await page.locator('[data-p3="update-running"]').textContent().catch(() => null);
+  ok(line === 'Step 1 of 4 · Set up file', `#2909 reopened while it runs, Update file says the step it is on — read ${JSON.stringify(line)}`);
+  await hooks.click(page.locator('[data-p3="update-close"]'));
   await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: '6 pages added, 2 template assets built' });
-  await page.waitForFunction(() => document.querySelector('[data-p3="figma-option-file-setup"]')?.getAttribute('aria-busy') !== 'true', null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => window.__posts.includes('apply-theme'), null, { timeout: 4000 }).catch(() => {});
   const done = await readFs();
-  ok(done.item === 'Set up file' && done.busy === false, `a file-setup verdict frees the Set up file item — read "${done.item}", busy ${done.busy}`);
   ok(done.verdict.length === 1 && done.verdict[0].includes('✓ file set up'), `#1845 exactly one verdict on the Set up file row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
   hooks.absent(ok, { seen: pending.state === 'running', state: 'the Set up file row running' },
     done.pending.length === 0, `#1845 no pending text is left on the Set up file row beside the verdict — found ${JSON.stringify(done.pending)}`);
+  ok(JSON.stringify(await posts()) === '["file-setup","apply-theme"]', `#2909 the setup's verdict starts the theme step, and nothing else — posted ${JSON.stringify(await posts())}`);
+  await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
+  await page.waitForFunction(() => window.__posts.includes('build-components'), null, { timeout: 4000 }).catch(() => {});
+  ok(JSON.stringify(await posts()) === '["file-setup","apply-theme","build-components"]', `#2909 the theme's verdict starts the sets step with one set — posted ${JSON.stringify(await posts())}`);
+  // Stop, in the sets step: the set being built finishes, and nothing is posted after it.
+  await reopen(page);
+  await hooks.click(page.locator('[data-p3="update-stop"]'));
+  await hooks.click(page.locator('[data-p3="update-close"]'));
+  await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: 'set' });
+  await idleAgain(page);
+  await page.waitForTimeout(200);
+  const after = await readSurfaces(page);
+  ok(JSON.stringify(await posts()) === '["file-setup","apply-theme","build-components"]' && after.busy === false,
+    `#2909 Stop in the sets step lets the set being built finish, posts nothing after it, and frees Update file — posted ${JSON.stringify(await posts())}, busy ${after.busy}`);
   ok(errors.length === 0, `#1845 file setup: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── #2909: a step that fails ends the run ──────────────────────────────────────────────────────────
+//
+// The run moves to the next step only on a verdict that is ok; a failed one ends it, so a theme that did not write is
+// never followed by sets built against it. EXPECTED: one apply-theme posted, no build after its failed verdict, Update
+// file free. MUTATION: `stepDone` ignoring `ok` → this arm, by name.
+{
+  const { page, errors } = await openPanel();
+  await page.evaluate(() => {
+    window.__posts = [];
+    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && ['apply-theme', 'build-components'].includes(m.type)) window.__posts.push(m.type); });
+  });
+  await openUpdate(page);
+  await setBox(page, page.locator('[data-p3="update-set"][data-id="tag"]'), true);
+  await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
+  await page.waitForFunction(() => window.__posts.length > 0, null, { timeout: 3000 }).catch(() => {});
+  await post(page, { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'write failed' });
+  await idleAgain(page);
+  await page.waitForTimeout(200);
+  const after = await readSurfaces(page);
+  ok(JSON.stringify(await page.evaluate(() => window.__posts)) === '["apply-theme"]' && after.busy === false,
+    `#2909 a failed theme step ends the run: no set is built after it, and Update file is free — posted ${JSON.stringify(await page.evaluate(() => window.__posts))}, busy ${after.busy}`);
+  // The run is never silent about stopping: reopened, the checklist names the step and its verdict (literal, DRAFT copy).
+  await openUpdate(page);
+  const stopped = await page.locator('[data-p3="update-stopped"]').textContent().catch(() => null);
+  ok(stopped === 'The last update stopped at Theme: ✗ write failed',
+    `#2909 reopened after a failed step, the checklist says where the last update stopped — read ${JSON.stringify(stopped)}`);
+  ok(errors.length === 0, `#2909 failed step: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
 
@@ -780,8 +841,9 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //   · `opReading` tagging no run as the agent's → `S11 the running row is tagged Agent …` and the build arm.
 //   · the reveal branch removed, or the pill's click without `hostChanged()` → `S11 clicking it opens the drawer …`.
 //   · the success collapse never scheduled → `clean build: a clean verdict does not pin the drawer open …`.
-//   · `applyBusy` ignoring the agent's run → `S11 during an agent's Apply the panel's Apply Theme is busy …`.
-//   · `runApply`'s busy guard removed → `S11 clicking the busy Apply Theme posts nothing …`.
+//   · `runApply`'s busy guard removed → `S11 an Update file run started during an agent's Apply posts no apply-theme …`.
+//   · Update file's start check removed (`startStep` not ending a step whose write refused to start) → the same arm, by
+//     its "is free again" half.
 //   · the status line's start announcement removed → `S11 the start is announced once …`.
 //   · a clean result after a run leaving its row expanded → `S11 a clean result collapses its row …`; one that
 //     lands with no run (a later read-back) → `S11 a clean read-back reads "Clean" and collapses the row …`.
@@ -801,7 +863,6 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     const row = document.querySelector(`[data-p3="activity-op"][data-op="${key}"]`);
     const drawer = document.querySelector('[data-p3="activity-drawer"]');
     const agent = row?.querySelector('.p3-op-agent');
-    const apply = document.querySelector('[data-p3="apply-to-figma"]');
     return {
       state: row?.dataset.state ?? null,
       verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
@@ -810,8 +871,6 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       expanded: row?.querySelector('[data-p3="op-head"]')?.getAttribute('aria-expanded') ?? null,
       history: row?.querySelector('[data-p3="op-history"] summary')?.textContent ?? null,
       drawerOpen: drawer?.dataset.open === 'true',
-      applyDisabled: apply ? apply.disabled : null,
-      applyBusy: apply ? apply.getAttribute('aria-busy') === 'true' && apply.getAttribute('aria-disabled') === 'true' : null,
       status: document.querySelector('[data-p3="activity-status"]')?.textContent ?? null,
       statusRole: document.querySelector('[data-p3="activity-status"]')?.getAttribute('role') ?? null,
     };
@@ -825,17 +884,17 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `S11 an agent's Apply Theme run opens the Activity drawer on the Apply Theme row — state ${running.state}, drawer open ${running.drawerOpen}`);
   ok(running.agent && running.verdict === 'Running' && running.phase.some((t) => (t ?? '').includes('Writing to Figma…')),
     `S11 the running row is tagged Agent, reads "Running", phase "Writing to Figma…" — agent ${running.agent}, verdict ${JSON.stringify(running.verdict)}, phase ${JSON.stringify(running.phase)}`);
-  ok(running.applyBusy === true && running.applyDisabled === false,
-    `S11 during an agent's Apply the panel's Apply Theme is busy (aria-busy + aria-disabled), not natively disabled — busy ${running.applyBusy}, disabled ${running.applyDisabled}`);
   ok(running.statusRole === 'status' && running.status === 'Apply Theme, Writing to Figma…',
     `S11 the start is announced once through the drawer's polite status line — role ${running.statusRole}, read ${JSON.stringify(running.status)}`);
-  // `force`: Playwright's actionability check reads aria-disabled as disabled and would never click, which
-  // would pass this check with the guard gone. A designer's click is not so polite.
-  const clickedBusy = await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000, force: true }).then(() => true, () => false);
-  ok(clickedBusy, 'S11 the busy Apply Theme takes a click (it is aria-disabled, not natively disabled)');
+  // #2909: the panel's theme write is Update file's Theme step. Started while the agent's Apply runs, it posts nothing,
+  // and the run ends rather than waiting on a verdict that is not coming.
+  await openUpdate(page);
+  await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
   await page.waitForTimeout(200);
   const firedBusy = await sentApply();
-  ok(firedBusy === 0, `S11 clicking the busy Apply Theme posts nothing to the plugin — apply-theme messages ${firedBusy}`);
+  const freed = await readSurfaces(page);
+  ok(firedBusy === 0 && freed.busy === false,
+    `S11 an Update file run started during an agent's Apply posts no apply-theme, and Update file is free again — apply-theme messages ${firedBusy}, busy ${freed.busy}`);
 
   await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
   await settle('apply', 'ok');
@@ -887,11 +946,12 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const build = await readOp('components');
   ok(build.state === 'running' && build.agent && build.phase.some((t) => /Building members… 24 of 648/.test(t ?? '')),
     `S11 an agent's build shows its live progress on the Build set row — state ${build.state}, agent ${build.agent}, phase ${JSON.stringify(build.phase)}`);
-  // Positive control for the no-post check: nothing runs Apply now, so the same click does post.
-  await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
+  // Positive control for the no-post check: nothing runs Apply now, so the same run does post.
+  await openUpdate(page);
+  await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 }).catch(() => {});
   await page.waitForFunction(() => window.__sent.length > 0, null, { timeout: 3000 }).catch(() => {});
   const firedIdle = await sentApply();
-  ok(firedIdle === 1, `S11 control: with no Apply running, the same click posts one apply-theme — messages ${firedIdle}`);
+  ok(firedIdle === 1, `S11 control: with no Apply running, the same Update file run posts one apply-theme — messages ${firedIdle}`);
   ok(errors.length === 0, `S11 agent run: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
@@ -1000,8 +1060,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const running = () => page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="components"]')?.dataset.state === 'running', null, { timeout: 5000 }).catch(() => {});
 
   for (const [id, name, sent] of [['button', 'Button', '["button"]'], ['tag', 'Tag', '["button","tag"]']]) {
-    await selectOnly(page, id);
-    await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 }).catch(() => {});
+    await runSets(page, [id], `#2088 ${name}`);
     await running();
     await page.waitForFunction((n) => window.__builds.length >= n, sent === '["button"]' ? 1 : 2, { timeout: 3000 }).catch(() => {});
     const own = await phaseOf();
@@ -1022,14 +1081,19 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
-// ── #2700: a build of several sets, Stop, and Subcomponents' Build all ─────────────────────────────────
+// ── #2700: a build of several sets, and Stop (RE-HOSTED in #2909 on Update file's checklist) ─────────────────────
 //
-// The plugin builds one set per request and its result names no set, so the panel posts a selection's sets ONE AFTER
+// The plugin builds one set per request and its result names no set, so the panel posts the sets ticked ONE AFTER
 // ANOTHER, each when the last one's result lands (`state/build-queue.ts`). Held here through the real UI, with this
 // suite playing the plugin: what is posted, and when; that Activity reads one running build between the sets and ONE
-// result at the end (idea 13 A), with no Earlier results from the sets in between; Stop (call 16 A) letting the set being
-// built finish and posting nothing after it; and Build all (call 10 A) posting the nine subcomponents (since #2989) in the list's
-// order without touching the selection. EXPECTED is typed here: the ids, the order and the words.
+// result at the end (idea 13 A), with no Earlier results from the sets in between; and Stop (call 16 A; since #2909 the
+// checklist's "Stop after this step") letting the set being built finish and posting nothing after it. The sets run in
+// the checklist's order, which is the catalog's: typed here as the order this run posts. EXPECTED is typed here: the ids,
+// the order and the words.
+//
+// RETIRED in #2909 (Q2909.5 A): the Components bar's own surfaces (its "Build 3 sets" and "Building 1 of 3…" labels,
+// its run summary page by page with the way to Activity, its "waiting for the agent's build" line) and Subcomponents'
+// Build all went with the bar; the checklist lists the subcomponents with every other set the file lacks.
 //
 // MUTATIONS, each failing here by name:
 //   · `runAfterResult` not posting the next set → `#2700 a run of three posts each set after the last one's result`.
@@ -1043,144 +1107,55 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const history = () => page.evaluate(() => document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-history-entry"]').length);
   const verdict = () => page.evaluate(() => document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? null);
   const result = (id) => post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${id}'`, lines: [] });
-  // Three sets: Tag, Badge, Divider, in the list's order, so the run posts them so (#2931 Q579 A: Tag is in the Tag
-  // section, above Other components).
-  await selectOnly(page, 'badge');
-  for (const id of ['divider', 'tag']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
-  const bar = await readSurfaces(page);
-  ok(bar.button === 'Build 3 sets' && bar.picker === 'tag,badge,divider', `#2700 the bar offers the selection, "Build 3 sets" — read "${bar.button}", selected ${bar.picker}`);
-  await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 });
+  const ORDER = ['badge', 'tag', 'divider'];
+  await runSets(page, ['tag', 'badge', 'divider'], '#2700 a run of three');
   await waitPosts(1);
   const first = JSON.stringify(await posted());
   const busy1 = await readSurfaces(page);
-  await result('tag');
+  await result(ORDER[0]);
   await waitPosts(2);
   const running2 = await opState();
-  await result('badge');
+  await result(ORDER[1]);
   await waitPosts(3);
   const third = JSON.stringify(await posted());
   const hist2 = await history();
-  await result('divider');
+  await result(ORDER[2]);
   await idleAgain(page);
-  ok(first === '["tag"]' && busy1.busy === true && busy1.button === 'Building 1 of 3…',
-    `#2700 a run of three posts its first set alone, and the bar reads "Building 1 of 3…" — posted ${first}, read "${busy1.button}" (busy ${busy1.busy})`);
-  ok(third === '["tag","badge","divider"]' && running2 === 'running',
-    `#2700 a run of three posts each set after the last one's result, in the list's order, and Activity reads it as one running build between them — posted ${third}, Activity ${running2}`);
+  ok(first === JSON.stringify(ORDER.slice(0, 1)) && busy1.busy === true && busy1.button === BUSY_LABEL,
+    `#2700 a run of three posts its first set alone, and Update file reads "${BUSY_LABEL}" — posted ${first}, read "${busy1.button}" (busy ${busy1.busy})`);
+  ok(third === JSON.stringify(ORDER) && running2 === 'running',
+    `#2700 a run of three posts each set after the last one's result, in the checklist's order, and Activity reads it as one running build between them — posted ${third}, Activity ${running2}`);
   const v = await verdict();
-  const summary = await page.evaluate(() => [...document.querySelectorAll('[data-p3="components-run-summary"] li')].map((n) => n.textContent));
   ok(v === 'Built 3 sets' && hist2 === 0 && (await history()) === 0,
     `#2700 the run ends with one Activity result, "Built 3 sets", and no Earlier results from the sets in between — read ${JSON.stringify(v)}, ${await history()} earlier`);
-  ok(JSON.stringify(summary) === JSON.stringify(['Built Tag on ↳ Tag.', 'Built Badge on ↳ Badge.', 'Built Divider on ↳ Divider.'])
-    && !!(await page.locator('[data-p3="components-show-activity"]').count()),
-    `#2700 idea 13: the bar summarizes the run, page by page, with the way to Activity — read ${JSON.stringify(summary)}`);
 
   // Stop: the set being built finishes, and the run posts nothing after it.
   const before = (await posted()).length;
-  await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 });
+  await runSets(page, ['tag', 'badge', 'divider'], '#2700 Stop');
   await waitPosts(before + 1);
-  await hooks.click(page.locator('[data-p3="components-stop"]'));
-  await result('tag');
+  await reopen(page);
+  await hooks.click(page.locator('[data-p3="update-stop"]'));
+  await hooks.click(page.locator('[data-p3="update-close"]'));
+  await result(ORDER[0]);
   await idleAgain(page);
   await page.waitForTimeout(150);
   const afterStop = (await posted()).slice(before);
-  ok(JSON.stringify(afterStop) === '["tag"]' && (await verdict()) === 'Stopped after 1 of 3 sets',
+  ok(JSON.stringify(afterStop) === JSON.stringify(ORDER.slice(0, 1)) && (await verdict()) === 'Stopped after 1 of 3 sets',
     `#2700 Stop lets the set being built finish and posts nothing after it — posted ${JSON.stringify(afterStop)}, Activity ${JSON.stringify(await verdict())}`);
-
-  // Build all: the nine subcomponents in the list's order, the selection left alone. The breadcrumb pair and the Code cell
-  // left Subcomponents for their consumers' pages (#2989, owner decision Q656 A).
-  const pre = (await posted()).length;
-  await hooks.click(page.locator('[data-p3="cp-build-all"]'));
-  const SUBS = ['field-label', 'field-message', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'icon', 'image-placeholder', 'spinner'];
-  for (let i = 0; i < SUBS.length; i++) { await waitPosts(pre + i + 1); await result(SUBS[i]); }
-  await idleAgain(page);
-  const all = (await posted()).slice(pre);
-  const still = await readSurfaces(page);
-  ok(JSON.stringify(all) === JSON.stringify(SUBS) && still.picker === 'tag,badge,divider',
-    `#2700 call 10: Build all posts the nine subcomponents in the list's order and leaves the selection alone — posted ${JSON.stringify(all)}, selected ${still.picker}`);
-
-  // An agent's build: the bar waits, and says so.
-  await post(page, { type: 'agent-started', id: 'q1', cmd: 'build-components' });
-  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.getAttribute('aria-busy') === 'true', null, { timeout: 4000 }).catch(() => {});
-  const waiting = await page.evaluate(() => ({ busy: document.querySelector('[data-p3="components-build"]')?.getAttribute('aria-busy'), says: document.querySelector('[data-p3="components-summary"]')?.textContent }));
-  ok(waiting.busy === 'true' && waiting.says === "Waiting for the agent's build to finish.",
-    `#2700 while an agent's build runs, the bar is busy and says it waits — read busy ${waiting.busy}, ${JSON.stringify(waiting.says)}`);
-  await post(page, { type: 'agent-finished', id: 'q1', cmd: 'build-components' });
   ok(errors.length === 0, `#2700: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
 
-// ── #2812's fix round: the boxes as rendered, the run's order, search, the counts' line, "Also builds" ─────────────
+// ── #2812's fix round: the boxes, the run's order, the counts' line, "Also builds": RETIRED in #2909 (Q2909.5 A) ────────
 //
-// The review on #2812 found the model's tri-state held (`test-component-groups.ts`) but nothing reading `aria-checked`
-// on the rendered boxes, and a run that went in click order. The owner's decisions on #2812 add: a search opens the
-// family a match sits in (call 7), a section box under a search acts on the rows shown (Q391 A), the counts keep one
-// line at 380 (5), and "Also builds" names sets as the list does (Q392 A). EXPECTED is typed here.
-//
-// MUTATIONS, each failing here by name:
-//   · a mixed box drawn as unchecked (`aria-checked` "mixed" → "false") → `#2812 S1 one set cleared from a selected family…`.
-//   · the run in click order (`inListOrder` dropped from `paintBar`) → `#2812 N1 Badge ticked before Tag…`.
-//   · the section box over every row again (`shown` → `ids`) → `#2812 Q391 under a search for "badge"…`.
-//   · the search not opening families (`onSearch` → `paintList`) → `#2812 call 7 a search for "neutral"…`.
-//   · the bar's row kept from wrapping (`flex-wrap: wrap` → `nowrap` on `.p3-cp-bar-row`), so the counts squeeze in
-//     beside the button at 380 → `#2812 (5) at 380 the bar keeps both counts on one line, inside the panel`.
+// The Components page's boxes, its section box under a search, its counts line and "Also builds" went with its Build
+// bar: the sets to add are ticked in Update file's checklist, and the run's order is the checklist's (the #2700 arm
+// above). What stays is the list's own behavior, call 7: a search opens the families a match sits in.
 {
-  const { page, errors } = await openPanel();
-  const aria = (key) => page.locator(`[data-p3="cp-box"][data-key="${key}"]`).getAttribute('aria-checked');
-  // S1: a section box, then one of its sets cleared. #2905 (Q8 A): the Buttons section's title stands in for the family
-  // row, so its box is the family's; Other components ('sec=components') holds none of its sets and stays clear.
-  await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=buttons"]'));
-  const allOn = [await aria('sec=buttons'), await aria('sec=components')];
-  await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=button-neutral"]'));
-  const mixed = [await aria('sec=buttons'), await aria('set=button-neutral'), await aria('sec=components')];
-  ok(allOn[0] === 'true' && allOn[1] === 'false' && JSON.stringify(mixed) === '["mixed","false","false"]',
-    `#2812 S1 one set cleared from a selected section draws the section's box as mixed, and Other components' stays clear — read Buttons ${allOn[0]}, Other components ${allOn[1]}, then Buttons/set/Other components ${JSON.stringify(mixed)}`);
-  // Q392 A, and the counts' line (5): Icon with the three Button family sets left (Button.Group joined it, #2661), at 380.
-  await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=icon"]'));
-  await page.setViewportSize({ width: 380, height: 640 });
-  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 }).catch(() => {});
-  const line = await page.evaluate(() => {
-    const s = document.querySelector('[data-p3="components-summary"]');
-    return { text: s?.textContent ?? null, lines: s ? Math.round(s.getBoundingClientRect().height / parseFloat(getComputedStyle(s).lineHeight)) : 0,
-      fits: s ? s.getBoundingClientRect().right <= document.documentElement.clientWidth : false,
-      also: document.querySelector('[data-p3="components-also-builds"]')?.textContent ?? null };
-  });
-  ok(line.text === '4 sets · 1,155 variants · 46 components' && line.lines === 1 && line.fits,
-    `#2812 (5) at 380 the bar keeps both counts on one line, inside the panel — read ${JSON.stringify(line.text)}, ${line.lines} line(s), fits ${line.fits}`);
-  ok(line.also === 'Also builds, when the file lacks them: Spinner, Focus ring.',
-    `#2812 Q392 "Also builds" names the sets as the list does — read ${JSON.stringify(line.also)}`);
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'wide', null, { timeout: 5000 }).catch(() => {});
-  // N1: clear, then Badge ticked before Tag; the run posts Tag first, as the list reads (the Tag section is above Other components).
-  for (const k of ['sec=buttons', 'set=icon']) while ((await aria(k)) !== 'false') await hooks.click(page.locator(`[data-p3="cp-box"][data-key="${k}"]`));
-  for (const id of ['badge', 'tag']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
-  await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 });
-  await page.waitForFunction(() => window.__builds.length >= 1, null, { timeout: 4000 }).catch(() => {});
-  const firstPost = JSON.stringify(await builds(page));
-  for (const id of ['tag', 'badge']) {
-    await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${id}'`, lines: [] });
-    await page.waitForTimeout(50);
-  }
-  await idleAgain(page);
-  ok(firstPost === '["tag"]' && JSON.stringify(await builds(page)) === '["tag","badge"]',
-    `#2812 N1 Badge ticked before Tag still runs in the list's order, Tag first — posted ${firstPost}, then ${JSON.stringify(await builds(page))}`);
-  for (const id of ['tag', 'badge']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
-  // Q391 A: under a search, the section's box acts on the rows shown. "badge" matches Badge, and Tag, whose summary says
-  // "A static label is a badge."; Tag is in the Tag section now (#2931 Q579 A), so Other components shows Badge alone,
-  // and its box reaches neither its other 27 sets nor Tag.
-  await hooks.click(page.locator('[data-p3="search-open"]'));
-  await page.locator('[data-p3="search-input"]').fill('badge');
-  await page.waitForFunction(() => document.querySelectorAll('[data-p3="cp-section"][data-kind="components"] [data-p3="cp-row"]').length === 1, null, { timeout: 4000 }).catch(() => {});
-  await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
-  const scoped = await readSurfaces(page);
-  ok(scoped.picker === 'badge' && scoped.button === 'Build 1 set' && (await aria('sec=components')) === 'true',
-    `#2812 Q391 under a search for "badge" the Components box selects the one row shown, not the section's 28 sets nor Tag in its own section, and reads checked over it — selected ${scoped.picker}, read "${scoped.button}", box ${await aria('sec=components')}`);
-  await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
-  // Call 7: a search opens the families a match sits in. A fresh page, so every family starts closed.
-  await page.close();
   const fresh = await openPanel();
   await hooks.click(fresh.page.locator('[data-p3="search-open"]'));
   await fresh.page.locator('[data-p3="search-input"]').fill('neutral');
-  await fresh.page.waitForFunction(() => !!document.querySelector('[data-p3="cp-box"][data-key="set=button-neutral"]'), null, { timeout: 4000 }).catch(() => {});
+  await fresh.page.waitForFunction(() => document.querySelectorAll('[data-p3="cp-member"]').length >= 3, null, { timeout: 4000 }).catch(() => {});
   const opened = await fresh.page.evaluate(() => ({
     folds: [...document.querySelectorAll('[data-p3="cp-fold"]')].map((f) => `${f.dataset.key.slice(5)}:${f.getAttribute('aria-expanded')}`),
     shown: ['button-neutral', 'icon-button-neutral', 'flush-icon-button-neutral'].filter((id) => !!document.querySelector(`[data-p3="cp-member"][data-set="${id}"]`)),
@@ -1188,7 +1163,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   // #2905 (Q8 A): Button.Neutral's family is the Buttons section, which has no fold, so its match is always shown.
   ok(JSON.stringify(opened.folds) === JSON.stringify(['components|Icon button:true', 'subcomponents|Flush Icon Button:true']) && opened.shown.length === 3,
     `#2812 call 7 a search for "neutral" opens the two folded families its matches sit in, and shows each of the three matches — read ${JSON.stringify(opened)}`);
-  ok(errors.length === 0 && fresh.errors.length === 0, `#2812: no console errors (${[...errors, ...fresh.errors].slice(0, 2).join(' · ')})`);
+  ok(fresh.errors.length === 0, `#2812: no console errors (${fresh.errors.slice(0, 2).join(' · ')})`);
   await fresh.page.close();
 }
 
@@ -1487,8 +1462,8 @@ for (const how of ['pointer', 'focus']) {
 // The spinner is CSS only (`chrome.css` `.p3-spin`): the "…" holds for three of the fast duration, then the
 // arc fades in, so a quick write never flashes a spinner. Both halves are pinned: the computed delay (and
 // that it sits inside the engine spinner's 200 to 500 ms anti-flash wait), and what is drawn before and
-// after it, read off the busy Apply during an agent's run (no host message arrives in between, so
-// `renderBar` does not re-mint the control and restart the delay).
+// after it, read off Update file while its run is out (since #2909 the plugin's one write; no host message arrives in
+// between, and `setBusy` toggles the control's state in place rather than re-minting it).
 //
 // MUTATIONS: the delay removed from `.p3-spin::before` → `#1990 the spinner's arc waits …`; the arc drawn
 // before its fade (base `opacity: 1`) → `#1990 the arc is not drawn at once …`; the arc never shown →
@@ -1505,7 +1480,7 @@ for (const how of ['pointer', 'focus']) {
 // → `#1990 the arc is not drawn at once — opacity at start 1`.
 {
   const { page, errors } = await openPanel();
-  const ctl = '[data-p3="apply-to-figma"]';
+  const ctl = '[data-p3="update-file"]';
   const sel = `${ctl} .p3-spin`;
   await page.waitForFunction((q) => {
     const n = document.querySelector(q);
@@ -1520,7 +1495,8 @@ for (const how of ['pointer', 'focus']) {
     });
     mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-busy'] });
   }, [ctl, sel]);
-  await post(page, { type: 'agent-started', id: 'sp1', cmd: 'apply-theme' });
+  await openUpdate(page);
+  await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
   await page.waitForFunction(() => !!window.__p3SpinAtStart, null, { timeout: 5000 }).catch(() => {});
   const early = await page.evaluate(() => window.__p3SpinAtStart ?? null);
   const drawn = (q) => { const n = document.querySelector(q); return !!n && Number(getComputedStyle(n, '::before').opacity) === 1; };
@@ -1627,7 +1603,7 @@ for (const how of ['pointer', 'focus']) {
 // Figma's own (docs/34 shape 16); and Add face becomes a type-ahead over the families the host listed (#113).
 {
   const { page, errors } = await openPanel();
-  await hooks.click(page.locator('[data-p3="tab-type"]'));
+  await gotoTheme(page, '[data-p3="tab-type"]');
   await hooks.need(page, '[data-p3="type-levers"] [data-p3="typeface-source"]', { timeout: 5000 });
   const source = () => page.evaluate(() => document.querySelector('[data-p3="typeface-source"]')?.textContent ?? null);
   const before = await source();
@@ -1647,7 +1623,7 @@ for (const how of ['pointer', 'focus']) {
   await page.close();
 }
 
-// ── #1989: a restored brand the engine refuses in resolution turns Apply Theme and Prune stale off ──────
+// ── #1989: a restored brand the engine refuses in resolution turns the writes off ─────────────────────────
 //
 // The host's restore check only asks `brandTheme` to accept the blob, so a brand with a ground override
 // (refused in resolution since #956) still loads: the rebuild fails and `lastGoodInput` stays on the boot
@@ -1655,21 +1631,29 @@ for (const how of ['pointer', 'focus']) {
 // brand. EXPECTED is written here: the refused role, the words on screen, and the two brand ids. ACTUAL is
 // the built panel's DOM and the UI → plugin messages caught on this window.
 //
-// The positive control at the end restores a brand that resolves and clicks Apply again: it must post once,
+// RE-HOSTED in #2909: the writes are Update file (its action, `update-go`, off with the one approved tooltip) and Clean
+// up (its preview never asked for, its Delete off). The Figma menu and its #2178 item list went with the menu.
+//
+// The positive control at the end restores a brand that resolves and runs Update file again: it must post once,
 // and post THAT brand. Without it, a listener that caught nothing would read as "posts nothing".
 //
 // MUTATIONS, each run against the built bundle and each failing here by name:
-//   · the restore dispatch never setting `restoreRefusal` → `#1989 after a refused restore, Apply Theme and
-//     Prune stale post nothing …` (and the disabled and bar arms).
-//   · the disabled state dropped (the bar's Apply and the menu's Prune) → `#1989 after a refused restore, Apply Theme
-//     (the bar's) and Prune stale (the Figma menu's) are disabled …`.
-//   · the `apply` item put back into the Figma menu (#2178) → `#2178 the Figma menu lists no Apply Theme …` and
-//     `#2178 the Figma menu's items read Prune stale, Set up file, …`.
-//   · the confirm dialog's Delete left enabled → `#1989 a host prune preview … its Delete is disabled` and
-//     `#1989 … post nothing to the plugin, the confirm dialog's Delete included`.
-//   There is no guard in `runApply`/`runPrune` to mutate: their only callers are the disabled controls, so a
-//   guard there could never fire (measured: removing one left this arm green), and it was not kept.
+//   · the restore dispatch never setting `restoreRefusal` → `#1989 after a refused restore, … post nothing …` (and the
+//     disabled and bar arms).
+//   · Update file's action left enabled → `#1989 after a refused restore, Update file's action is off …`.
+//   · Clean up's Delete left enabled → `#1989 a host prune preview … its Delete is off`.
 //   · the bar's restore copy reverted to "That change didn't apply" → `#1989 the error bar says the file's brand …`.
+/** Update file's action as a designer meets it: the checklist opened and answered, its action read, then closed. */
+const readGo = async (page) => {
+  await openUpdate(page);
+  const r = await page.evaluate(() => {
+    const go = document.querySelector('[data-p3="update-go"]');
+    return { disabled: go ? go.disabled : null, title: go?.title ?? null };
+  });
+  await hooks.click(page.locator('[data-p3="update-cancel"]'));
+  return r;
+};
+const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it.";
 {
   const base = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
   const REFUSED = { ...base, id: 'refused-brand', overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
@@ -1685,71 +1669,61 @@ for (const how of ['pointer', 'focus']) {
   const writes = () => page.evaluate(() => window.__writes.slice());
   const read = () => page.evaluate(() => {
     const bar = document.querySelector('[data-p3="error-bar"]');
-    return {
-      brand: document.querySelector('[data-p3="brand-switcher"]')?.textContent ?? null,
-      bar: bar && !bar.hidden ? bar.textContent : null,
-      applyDisabled: document.querySelector('[data-p3="apply-to-figma"]')?.disabled ?? null,
-      menuPrune: document.querySelector('[data-p3="figma-option-prune"]')?.disabled ?? null,
-      // #2178: every item the open Figma menu lists, by hook and label.
-      menuItems: [...document.querySelectorAll('[data-p3="figma-menu"] [role="menuitem"]')].map((n) => [n.getAttribute('data-p3'), (n.querySelector('[data-p3="label-idle"]') ?? n).textContent.replace(/^…\s*/, '').trim()]),
-    };
+    return { brand: document.querySelector('[data-p3="brand-switcher"]')?.textContent ?? null, bar: bar && !bar.hidden ? bar.textContent : null };
   });
 
   await post(page, { type: 'restore-input', input: REFUSED });
   await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
-  await hooks.click(page.locator('[data-p3="figma-open"]'), { timeout: 4000 }).catch(() => {});
   const off = await read();
   ok((off.brand ?? '').includes('refused-brand'),
     `#1989 the refused brand is the one loaded (the restore was not dropped) — brand switcher reads ${JSON.stringify(off.brand)}`);
   ok((off.bar ?? '').includes("This file's saved brand didn't resolve") && (off.bar ?? '').includes("'background.secondary'")
-    && (off.bar ?? '').includes('Apply Theme and Prune stale are off'),
+    && (off.bar ?? '').includes('Update file and Clean up are off'),
     `#1989 the error bar says the file's brand did not resolve, names the refused role, and says why the writes are off — read ${JSON.stringify((off.bar ?? '').slice(0, 160))}`);
-  ok(off.applyDisabled === true && off.menuPrune === true,
-    `#1989 after a refused restore, Apply Theme (the bar's) and Prune stale (the Figma menu's) are disabled — bar ${off.applyDisabled}, menu prune ${off.menuPrune}`);
-  // #2178 (owner decision, 2026-10-05): the Figma menu does not list Apply Theme; the bar's filled button is its one
-  // control. EXPECTED is the four labels, literal; the proof the probe can see the menu is Prune stale among them.
-  hooks.absent(ok, { seen: off.menuItems.some(([hk]) => hk === 'figma-option-prune'), state: 'the Figma menu open with Prune stale listed' },
-    !off.menuItems.some(([hk, l]) => /apply/i.test(`${hk} ${l}`)),
-    `#2178 the Figma menu lists no Apply Theme — items ${JSON.stringify(off.menuItems)}`);
-  ok(JSON.stringify(off.menuItems.map(([, l]) => l)) === JSON.stringify(['Prune stale', 'Set up file', 'Build sets…', 'Build style guides…']),
-    `#2178 the Figma menu's items read Prune stale, Set up file, Build sets…, Build style guides… — read ${JSON.stringify(off.menuItems.map(([, l]) => l))}`);
+  const go = await readGo(page);
+  ok(go.disabled === true && go.title === OFF_HINT,
+    `#1989 after a refused restore, Update file's action is off, with the one approved tooltip — disabled ${go.disabled}, tooltip ${JSON.stringify(go.title)}`);
 
-  // Every way a designer reaches the two writes, forced past the disabled state, so the guard behind it is measured too.
-  await hooks.click(page.locator('[data-p3="figma-option-prune"]'), { force: true, timeout: 4000 }).catch(() => {});
-  await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { force: true, timeout: 4000 }).catch(() => {});
-  // The prune dialog is the one route the disabled state does not cover: a preview from the host opens it
-  // whatever the Prune button's state. So one is sent, and its Delete is clicked.
+  // Clean up opened as a designer opens it: its preview would read the demo brand, so it must not be asked for.
+  await openUpdate(page);
+  await hooks.click(page.locator('[data-p3="update-tab-clean"]'));
+  await page.waitForTimeout(300);
+  const asked = await writes();
+  ok(asked.length === 0, `#1989 after a refused restore, opening Clean up asks for no prune preview of the demo brand — posted ${JSON.stringify(asked)}`);
+  // A preview from the host lands in Clean up whatever its state: its Delete is off, and forced, posts nothing.
   await post(page, { type: 'prune-result', ok: true, applied: false, count: 3, summary: 'Would remove 3 items: 3 variables.' });
-  await page.waitForFunction(() => !!document.querySelector('[data-p3="prune-dialog"]'), null, { timeout: 5000 }).catch(() => {});
-  const dlg = await page.evaluate(() => ({
-    open: !!document.querySelector('[data-p3="prune-dialog"]'),
-    deleteDisabled: document.querySelector('[data-p3="dialog-confirm"]')?.disabled ?? null,
-  }));
-  ok(dlg.open && dlg.deleteDisabled === true,
-    `#1989 a host prune preview still opens the confirm dialog after a refused restore, and its Delete is disabled — open ${dlg.open}, delete disabled ${dlg.deleteDisabled}`);
-  await hooks.click(page.locator('[data-p3="dialog-confirm"]'), { force: true, timeout: 4000 }).catch(() => {});
+  await hooks.need(page, '[data-p3="clean-prune-confirm"]', { timeout: 5000 });
+  const del = await page.evaluate(() => document.querySelector('[data-p3="clean-prune-confirm"]')?.disabled ?? null);
+  ok(del === true, `#1989 a host prune preview shows in Clean up after a refused restore, and its Delete is off — disabled ${del}`);
+  await hooks.click(page.locator('[data-p3="clean-prune-confirm"]'), { force: true, timeout: 4000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="update-cancel"]'));
+  // Update file's action, forced past its disabled state.
+  await openUpdate(page);
+  await hooks.click(page.locator('[data-p3="update-go"]'), { force: true, timeout: 4000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="update-cancel"]')).catch(() => {});
   await page.waitForTimeout(500);
-  const none = await writes();
-  ok(none.length === 0, `#1989 after a refused restore, Apply Theme and Prune stale post nothing to the plugin, the confirm dialog's Delete included — posted ${JSON.stringify(none)}`);
-  // Closed by its own Cancel, so the control below clicks Apply rather than an open modal.
-  await hooks.click(page.locator('[data-p3="prune-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 });
+  const none = (await writes()).filter((w) => !(w.type === 'prune' && asked.length));
+  ok(none.length === 0, `#1989 after a refused restore, Update file and Clean up post nothing to the plugin, Delete included — posted ${JSON.stringify(none)}`);
 
-  // CONTROL: a brand that resolves turns both back on, and Apply posts that brand, once.
+  // CONTROL: a brand that resolves turns them back on, and Update file posts that brand, once.
   await post(page, { type: 'restore-input', input: GOOD });
-  await page.waitForFunction(() => document.querySelector('[data-p3="apply-to-figma"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => !/didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
   const on = await read();
-  ok(on.bar === null && on.applyDisabled === false,
-    `#1989 control: a restore that resolves clears the bar and turns Apply Theme back on — bar ${JSON.stringify(on.bar)}, disabled ${on.applyDisabled}`);
-  await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
+  const goOn = await readGo(page);
+  ok(on.bar === null && goOn.disabled === false,
+    `#1989 control: a restore that resolves clears the bar and turns Update file back on — bar ${JSON.stringify(on.bar)}, disabled ${goOn.disabled}`);
+  await page.evaluate(() => { window.__writes = []; });
+  await openUpdate(page);
+  await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 }).catch(() => {});
   await page.waitForFunction(() => window.__writes.length > 0, null, { timeout: 3000 }).catch(() => {});
   const posted = await writes();
   ok(posted.length === 1 && posted[0].type === 'apply-theme' && posted[0].id === 'good-brand',
-    `#1989 control: Apply Theme then posts once, and posts the restored brand rather than the demo — posted ${JSON.stringify(posted)}`);
+    `#1989 control: Update file then posts once, and posts the restored brand rather than the demo — posted ${JSON.stringify(posted)}`);
   ok(errors.length === 0, `#1989 refused restore: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
 
-// ── A4 (#2487): an EDIT that fixes a refused restore clears the strip and turns Apply back on, in the same tick ──
+// ── A4 (#2487): an EDIT that fixes a refused restore clears the strip in the same tick, and turns the write back on ──
 //
 // #1989's control fixes the restore by loading another brand, which goes through `loadBrand` and `build()`. An edit goes
 // through `rebuild()` and the `brand` topic alone, and there the order of the subscribers decides what the strip paints:
@@ -1772,13 +1746,10 @@ for (const how of ['pointer', 'focus']) {
   const { page, errors } = await openPanel();
   await post(page, { type: 'restore-input', input: REFUSED });
   await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
-  await hooks.click(page.locator('[data-p3="tab-brand"]'), { timeout: 4000 }).catch(() => {});
-  const before = await page.evaluate(() => ({
-    bar: !(document.querySelector('[data-p3="error-bar"]')?.hidden ?? true),
-    applyDisabled: document.querySelector('[data-p3="apply-to-figma"]')?.disabled ?? null,
-  }));
+  await gotoTheme(page, '[data-p3="tab-brand"]');
+  const before = { bar: await page.evaluate(() => !(document.querySelector('[data-p3="error-bar"]')?.hidden ?? true)), applyDisabled: (await readGo(page)).disabled };
   ok(before.bar && before.applyDisabled === true,
-    `A4 precondition: the refused restore shows the strip and turns Apply Theme off — strip ${before.bar}, disabled ${before.applyDisabled}`);
+    `A4 precondition: the refused restore shows the strip and turns Update file's action off — strip ${before.bar}, disabled ${before.applyDisabled}`);
   // Remove custom-1: it carries an override, so the page asks first, and its Remove is the edit.
   await hooks.click(page.locator('[data-p3="custom-mode-remove"]'), { timeout: 4000 }).catch(() => {});
   await page.waitForSelector('[data-p3="custom-mode-confirm-go"]', { timeout: 4000 }).catch(() => {});
@@ -1791,14 +1762,16 @@ for (const how of ['pointer', 'focus']) {
     return {
       clicked: true,
       bar: bar && !bar.hidden ? bar.textContent : null,
-      applyDisabled: document.querySelector('[data-p3="apply-to-figma"]')?.disabled ?? null,
       rows: document.querySelectorAll('[data-p3="custom-mode-row"]').length,
     };
   });
+  // Update file's action is read in its overlay, which a designer opens after the edit (it is modal: no edit happens
+  // with it open), so it is read next, not in the same task.
+  const goAfter = await readGo(page);
   ok(same.clicked && same.rows === 0,
     `A4 the edit ran: the Brand page's Remove custom-1 was confirmed and the mode is gone — clicked ${same.clicked}, custom mode rows ${same.rows}`);
-  ok(same.clicked && same.bar === null && same.applyDisabled === false,
-    `A4 an edit that fixes a refused restore clears the error strip and turns Apply Theme back on in the same tick — strip ${JSON.stringify((same.bar ?? '').slice(0, 120) || null)}, Apply disabled ${same.applyDisabled}`);
+  ok(same.clicked && same.bar === null && goAfter.disabled === false,
+    `A4 an edit that fixes a refused restore clears the error strip in the same tick, and Update file's action is on — strip ${JSON.stringify((same.bar ?? '').slice(0, 120) || null)}, action disabled ${goAfter.disabled}`);
   ok(errors.length === 0, `A4 edit fixes a refused restore: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
@@ -1841,72 +1814,66 @@ for (const how of ['pointer', 'focus']) {
     });
   });
   const writes = (page) => page.evaluate(() => window.__writes.slice());
+  // #2909: the writes are Update file's action and Clean up's Delete; `read` reads the action in its overlay.
   const read = async (page) => {
-    await hooks.click(page.locator('[data-p3="figma-open"]'), { timeout: 4000 }).catch(() => {});
     const r = await page.evaluate(() => {
       const bar = document.querySelector('[data-p3="error-bar"]');
-      return {
-        bar: bar && !bar.hidden ? bar.textContent : null,
-        apply: document.querySelector('[data-p3="apply-to-figma"]')?.disabled ?? null,
-        menuPrune: document.querySelector('[data-p3="figma-option-prune"]')?.disabled ?? null,
-      };
+      return { bar: bar && !bar.hidden ? bar.textContent : null };
     });
-    await page.keyboard.press('Escape');
-    return r;
+    const go = await readGo(page);
+    return { ...r, apply: go.disabled, hint: go.title };
   };
-  const allOff = (r) => r.apply === true && r.menuPrune === true;
-  const allOn = (r) => r.apply === false && r.menuPrune === false;
+  const allOff = (r) => r.apply === true;
+  const allOn = (r) => r.apply === false;
   /** Every way to the two writes, forced, plus a host prune preview's Delete; returns what was posted. */
   const tryWrites = async (page) => {
     await post(page, { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'Would remove 2 items: 2 variables.' });
-    await page.waitForFunction(() => !!document.querySelector('[data-p3="prune-dialog"]'), null, { timeout: 5000 }).catch(() => {});
-    const deleteOff = await page.evaluate(() => document.querySelector('[data-p3="dialog-confirm"]')?.disabled ?? null);
-    await hooks.click(page.locator('[data-p3="dialog-confirm"]'), { force: true, timeout: 4000 }).catch(() => {});
-    await hooks.click(page.locator('[data-p3="prune-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 });
-    await hooks.click(page.locator('[data-p3="figma-open"]'), { timeout: 4000 }).catch(() => {});
-    await hooks.click(page.locator('[data-p3="figma-option-prune"]'), { force: true, timeout: 4000 }).catch(() => {});
-    await page.keyboard.press('Escape');
-    await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { force: true, timeout: 4000 }).catch(() => {});
+    await openUpdate(page);
+    await hooks.click(page.locator('[data-p3="update-tab-clean"]'));
+    await hooks.need(page, '[data-p3="clean-prune-confirm"]', { timeout: 5000 }).catch(() => {});
+    const deleteOff = await page.evaluate(() => document.querySelector('[data-p3="clean-prune-confirm"]')?.disabled ?? null);
+    await hooks.click(page.locator('[data-p3="clean-prune-confirm"]'), { force: true, timeout: 4000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="update-tab-update"]'));
+    await hooks.click(page.locator('[data-p3="update-go"]'), { force: true, timeout: 4000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="update-cancel"]')).catch(() => {});
     await page.waitForTimeout(500);
     return { deleteOff, posted: await writes(page) };
   };
-  /** Open Export on Brand brief: the Download button's state, the note, and (if enabled) the file. */
-  const exportBrief = async (page) => {
-    await hooks.click(page.locator('[data-p3="export-open"]'), { timeout: 4000 }).catch(() => {});
-    // Anchored: the dialog's import slot reads "↑ Brand brief…" too, and a loose match is refused as ambiguous.
-    await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Brand brief$/ }), { timeout: 4000 }).catch(() => {});
-    const st = await page.evaluate(() => ({
-      off: document.querySelector('[data-p3="export-dialog"] [data-p3="dialog-confirm"]')?.disabled ?? null,
+  /** Export, an area of its own since #2909: the rail's Export tile, then Brand brief: the Download button's state, the
+   *  note, and (if enabled) the file. The area is a page: no scrim, no Cancel. */
+  const toExport = async (page, artifact) => {
+    await hooks.click(page.locator('[data-p3="rail-export"]'), { timeout: 4000 }).catch(() => {});
+    await hooks.need(page, '[data-p3="export-page"]', { timeout: 4000 }).catch(() => {});
+    // Anchored: the import slot reads "↑ Brand brief…" too, and a loose match is refused as ambiguous.
+    await hooks.click(page.locator('[data-p3="export-page"] button', { hasText: artifact }), { timeout: 4000 }).catch(() => {});
+    return page.evaluate(() => ({
+      off: document.querySelector('[data-p3="export-page"] [data-p3="dialog-confirm"]')?.disabled ?? null,
       note: document.querySelector('[data-p3="export-restore-note"]')?.textContent ?? null,
     }));
+  };
+  const exportBrief = async (page) => {
+    const st = await toExport(page, /^Brand brief$/);
     let file = null;
     if (st.off === false) {
       const [dl] = await Promise.all([
         page.waitForEvent('download', { timeout: 5000 }).catch(() => null),
-        hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'), { timeout: 4000 }).catch(() => {}),
+        hooks.click(page.locator('[data-p3="export-page"] [data-p3="dialog-confirm"]'), { timeout: 4000 }).catch(() => {}),
       ]);
       file = dl ? { name: dl.suggestedFilename(), text: await readFile(await dl.path(), 'utf8').catch(() => '') } : null;
-    } else {
-      // Closed by its Cancel. (Escape used to come first, so this click found no dialog, and a `.catch` hid that: the
-      // #2124 review's finding 3b.)
-      await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 });
+      // #2909: Export is an area now, not a dialog that closes on its action: after a download it still shows its content.
+      const still = await page.evaluate(() => !!document.querySelector('[data-p3="export-page"] [data-p3="dialog-confirm"]'));
+      ok(!!file && still, `#2909 after a Download the Export area still shows its content — downloaded ${JSON.stringify(file?.name ?? null)}, content shown ${still}`);
     }
     return { ...st, file };
   };
-  /** Open Export on Design tokens and FORCE its Download: its state, the note, and whether a file arrived.
+  /** Export on Design tokens, its Download FORCED: its state, the note, and whether a file arrived.
    *  Forced, so a disabled button that still downloaded would be caught rather than skipped. */
   const exportTokensTry = async (page) => {
-    await hooks.click(page.locator('[data-p3="export-open"]'), { timeout: 4000 }).catch(() => {});
-    await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Design tokens$/ }), { timeout: 4000 }).catch(() => {});
-    const st = await page.evaluate(() => ({
-      off: document.querySelector('[data-p3="export-dialog"] [data-p3="dialog-confirm"]')?.disabled ?? null,
-      note: document.querySelector('[data-p3="export-restore-note"]')?.textContent ?? null,
-    }));
+    const st = await toExport(page, /^Design tokens$/);
     const [dl] = await Promise.all([
       page.waitForEvent('download', { timeout: 2500 }).catch(() => null),
-      hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'), { force: true, timeout: 4000 }).catch(() => {}),
+      hooks.click(page.locator('[data-p3="export-page"] [data-p3="dialog-confirm"]'), { force: true, timeout: 4000 }).catch(() => {}),
     ]);
-    if (await page.locator('[data-p3="export-dialog"]').count()) await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Cancel$/ }), { timeout: 4000 });
     return { ...st, file: dl ? dl.suggestedFilename() : null };
   };
   const tokensOff = (t) => t.off === true && t.file === null && (t.note ?? '').includes("these tokens would be the demo brand's");
@@ -1917,8 +1884,14 @@ for (const how of ['pointer', 'focus']) {
     await hooks.click(page.locator('[data-p3="brand-menu-example"]').first(), { timeout: 4000 }).catch(() => {});
     // After a demo edit there are edits to lose, so the choice asks first (#1033); answering it is the load.
     if (await page.locator('[data-p3="overwrite-replace"]').count()) await hooks.click(page.locator('[data-p3="overwrite-replace"]'), { timeout: 4000 }).catch(() => {});
-    await page.waitForFunction(() => document.querySelector('[data-p3="apply-to-figma"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+    await page.waitForFunction(() => document.querySelector('[data-p3="error-bar"]')?.hidden !== false, null, { timeout: 5000 }).catch(() => {});
     return (name ?? '').trim();
+  };
+  /** Run Update file with its defaults (the theme), and wait for the post. */
+  const applyNow = async (page) => {
+    await openUpdate(page);
+    await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 }).catch(() => {});
+    await page.waitForFunction(() => window.__writes.length > 0, null, { timeout: 3000 }).catch(() => {});
   };
 
   // 1. A brand refused in resolution (#1989's case), turned back on by an EXAMPLE CHOICE, menu Prune included.
@@ -1928,7 +1901,7 @@ for (const how of ['pointer', 'focus']) {
     await post(page, { type: 'restore-input', input: { ...base, id: 'refused-brand', overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } } });
     await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
     const off = await read(page);
-    ok(allOff(off), `#1994 unresolved: Apply Theme and menu Prune are off after the refused restore — ${JSON.stringify(off)}`);
+    ok(allOff(off), `#1994 unresolved: Update file's action is off after the refused restore — ${JSON.stringify(off)}`);
     const ex = await exportBrief(page);
     ok(ex.off === false && !!ex.file && ex.file.name === 'refused-brand.design.md' && ex.file.text.includes('background.secondary'),
       `#1994 unresolved: Export design.md writes the file's brand that failed, not the demo — file ${JSON.stringify(ex.file?.name ?? null)}, keeps the override ${!!ex.file?.text.includes('background.secondary')}`);
@@ -1937,12 +1910,11 @@ for (const how of ['pointer', 'focus']) {
     const example = await chooseExample(page);
     const on = await read(page);
     ok(on.bar === null && allOn(on),
-      `#1994 unresolved: choosing an example from the brand menu turns Apply Theme and menu Prune back on, and clears the bar — ${JSON.stringify(on)}`);
-    await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
-    await page.waitForFunction(() => window.__writes.length > 0, null, { timeout: 3000 }).catch(() => {});
+      `#1994 unresolved: choosing an example from the brand menu turns Update file back on, and clears the bar — ${JSON.stringify(on)}`);
+    await applyNow(page);
     const posted = await writes(page);
     ok(posted.length === 1 && posted[0].type === 'apply-theme' && posted[0].id === example,
-      `#1994 unresolved: after the example choice, Apply posts that example once — chose ${JSON.stringify(example)}, posted ${JSON.stringify(posted)}`);
+      `#1994 unresolved: after the example choice, Update file posts that example once — chose ${JSON.stringify(example)}, posted ${JSON.stringify(posted)}`);
     ok(errors.length === 0, `#1994 unresolved: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
@@ -1957,16 +1929,16 @@ for (const how of ['pointer', 'focus']) {
     ok((off.bar ?? '').includes("This file's saved brand didn't resolve") && (off.bar ?? '').includes("'bogus'"),
       `#1994 rejected: the error bar says the file's brand did not resolve and names the refused mode — read ${JSON.stringify((off.bar ?? '').slice(0, 140))}`);
     // Owner copy by kind: only a LOAD ends this one, so the bar says "loads", and the tooltip is the one wording.
-    const hint = await page.evaluate(() => document.querySelector('[data-p3="apply-to-figma"]')?.title ?? null);
+    const hint = off.hint;
     ok((off.bar ?? '').includes('are off until a brand loads.') && hint === "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it.",
       `#2007 rejected: the bar says the writes are off "until a brand loads", and the tooltip is the one approved wording — bar ${JSON.stringify((off.bar ?? '').slice(-110))}, tooltip ${JSON.stringify(hint)}`);
-    ok(allOff(off), `#1994 rejected: Apply Theme, Prune stale and Delete are off — ${JSON.stringify(off)}`);
+    ok(allOff(off), `#1994 rejected: Update file's action and Clean up's Delete are off — ${JSON.stringify(off)}`);
     const t = await tryWrites(page);
     ok(t.deleteOff === true && t.posted.length === 0,
-      `#1994 rejected: nothing reaches the plugin, the prune dialog's Delete included — Delete off ${t.deleteOff}, posted ${JSON.stringify(t.posted)}`);
+      `#1994 rejected: nothing reaches the plugin, Clean up's Delete included — Delete off ${t.deleteOff}, posted ${JSON.stringify(t.posted)}`);
     // A demo EDIT rebuilds cleanly, and must not turn the writes back on: only a brand loading does.
     // The tempo chips moved from the legacy Motion page to the Depth & motion tab in UI redesign S9.2.
-    await hooks.click(page.locator('[data-p3="tab-depth"]'), { timeout: 4000 }).catch(() => {});
+    await gotoTheme(page, '[data-p3="tab-depth"]');
     const tempo = page.locator('[data-p3="lever-motion-personality-tempo"] [role="radio"][aria-checked="false"]').first();
     const edited = await tempo.count() > 0;
     if (edited) await hooks.click(tempo, { force: true, timeout: 4000 }).catch(() => {});
@@ -1985,11 +1957,10 @@ for (const how of ['pointer', 'focus']) {
     const on = await read(page);
     ok(on.bar === null && allOn(on), `#2007 rejected: choosing an example (${JSON.stringify(example)}) turns the writes back on and clears the bar — ${JSON.stringify(on)}`);
     await page.evaluate(() => { window.__writes = []; });
-    await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
-    await page.waitForFunction(() => window.__writes.length > 0, null, { timeout: 3000 }).catch(() => {});
+    await applyNow(page);
     const posted = await writes(page);
     ok(posted.length === 1 && posted[0].type === 'apply-theme' && posted[0].id === example,
-      `#2007 rejected: after the example choice, Apply posts that example once — chose ${JSON.stringify(example)}, posted ${JSON.stringify(posted)}`);
+      `#2007 rejected: after the example choice, Update file posts that example once — chose ${JSON.stringify(example)}, posted ${JSON.stringify(posted)}`);
     ok(errors.length === 0, `#1994 rejected: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
@@ -2003,10 +1974,10 @@ for (const how of ['pointer', 'focus']) {
     const off = await read(page);
     ok((off.bar ?? '').includes("This file's saved brand couldn't be read") && (off.bar ?? '').includes('newer Prism3 (v9)'),
       `#1994 unreadable: the error bar says the file's brand couldn't be read, with the host's reason — read ${JSON.stringify((off.bar ?? '').slice(0, 140))}`);
-    ok(allOff(off), `#1994 unreadable: Apply Theme, Prune stale and Delete are off — ${JSON.stringify(off)}`);
+    ok(allOff(off), `#1994 unreadable: Update file's action and Clean up's Delete are off — ${JSON.stringify(off)}`);
     const t = await tryWrites(page);
     ok(t.deleteOff === true && t.posted.length === 0,
-      `#1994 unreadable: nothing reaches the plugin, the prune dialog's Delete included — Delete off ${t.deleteOff}, posted ${JSON.stringify(t.posted)}`);
+      `#1994 unreadable: nothing reaches the plugin, Clean up's Delete included — Delete off ${t.deleteOff}, posted ${JSON.stringify(t.posted)}`);
     const ex = await exportBrief(page);
     ok(ex.off === true && (ex.note ?? '').includes('Nothing to export'),
       `#1994 unreadable: Export design.md is off, with the reason — Download disabled ${ex.off}, note ${JSON.stringify(ex.note)}`);
@@ -2037,7 +2008,7 @@ for (const how of ['pointer', 'focus']) {
     ok(onStart.start && (onStart.bar ?? '').includes("This file's saved brand didn't resolve"),
       `#2007 New brand: the start screen still says the file's brand did not resolve — "New brand" loads nothing, so the failure stands — start screen ${onStart.start}, bar ${JSON.stringify((onStart.bar ?? '').slice(0, 80))}`);
     await hooks.click(page.locator('[data-p3="start-example"]').first(), { timeout: 4000 }).catch(() => {});
-    await page.waitForFunction(() => document.querySelector('[data-p3="apply-to-figma"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+    await page.waitForFunction(() => document.querySelector('[data-p3="error-bar"]')?.hidden !== false, null, { timeout: 5000 }).catch(() => {});
     const on = await read(page);
     ok(on.bar === null && allOn(on), `#2007 New brand: leaving the start screen with an example is a load, and turns the writes back on — ${JSON.stringify(on)}`);
     ok(errors.length === 0, `#2007 New brand: no console errors (${errors.slice(0, 2).join(' · ')})`);
