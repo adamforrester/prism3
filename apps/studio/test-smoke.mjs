@@ -4007,17 +4007,18 @@ ok(easingTrips === 2, `both easing round trips reached the export (${easingTrips
 // `schema/lever-manifest.json`), exactly one checked and it is the brand's stored value (read from the persisted brand,
 // a store the chip does not paint), each choice writes its value, ArrowRight writes the next, each chip a >= 24px target.
 console.log(`\nLever chips on Shape (S7)\n${'='.repeat(78)}`);
+// #2909 Q2909.3 A: Control shape's one home is Components' shared block, so its chips are read there.
 const SHAPE_CHIPS = [
-  { key: 'density', group: '[data-p3="lever-density"]' },
-  { key: 'controlShape', group: '[data-p3="lever-control-shape"]' },
+  { key: 'density', group: '[data-p3="lever-density"]', go: (page) => gotoShape(page), at: 'Shape' },
+  { key: 'controlShape', group: '[data-p3="lever-control-shape"]', go: (page) => gotoComponents(page), at: 'Components' },
 ];
 let shapeChipGroups = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoShape(page);
   for (const c of SHAPE_CHIPS) {
+    await c.go(page);
     const lever = leverOf(c.key);
-    const where = `${brand} / Shape / ${c.key}`;
+    const where = `${brand} / ${c.at} / ${c.key}`;
     const g = await page.evaluate(readNewChips, c.group);
     if (!g.found) { ok(false, `${where}: renders a chip group`); continue; }
     shapeChipGroups++;
@@ -4048,6 +4049,7 @@ for (const brand of BRANDS) {
   // The Auto-chip rule (#2078), on the first brand: previewing Dark on Auto, Light's density chip is the checked one;
   // choosing it writes nothing.
   if (brand === BRANDS[0]) {
+    await gotoShape(page);
     await chooseMode(page, 'dark');
     const lightDensity = String((await persistedAt(page, 'density')) ?? leverOf('density').default);
     const g = await page.evaluate(readNewChips, SHAPE_CHIPS[0].group);
@@ -4060,7 +4062,7 @@ for (const brand of BRANDS) {
   ok(errs.length === 0, `${brand}: rendering and driving Shape's chips raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
-ok(shapeChipGroups >= SHAPE_CHIPS.length * 2, `${shapeChipGroups} Shape chip groups checked (floor ${SHAPE_CHIPS.length * 2}: both levers on at least two brands)`);
+ok(shapeChipGroups >= SHAPE_CHIPS.length * 2, `${shapeChipGroups} Shape-lever chip groups checked (floor ${SHAPE_CHIPS.length * 2}: both levers on at least two brands)`);
 
 // =============================================================================================
 // 3e. Components (UI redesign S8.2): the Button option chips, the specimen, the slider per step, and #2049's corner
@@ -4104,7 +4106,7 @@ const emittedPx = async (brand) => {
   const px = (leaf, mode) => (mode !== base ? leaf?.$extensions?.prism3?.modes?.[mode]?.px : undefined) ?? leaf?.$extensions?.prism3?.px;
   return { radius: (step, mode) => px(root.radius?.[step], mode), height: (step, mode) => px(root.size?.[step]?.height, mode) };
 };
-const gotoComponents = async (page) => {
+async function gotoComponents(page) {
   await tabClick(page, 'components');
   await hooks.need(page, '[data-p3="components-levers"]');
   // #2844: the Button options are closed when the page opens, behind a disclosure line under the Buttons row: open it, as a designer would.
@@ -4114,7 +4116,7 @@ const gotoComponents = async (page) => {
   await page.waitForFunction(() => !!document.querySelector('[data-p3="button-options-section"]')?.getClientRects().length, null, { timeout: 5000 });
   await hooks.need(page, '[data-p3="components-style-guide"] [data-sg-section="button-layout"]');
   await page.evaluate(() => document.fonts.ready);
-};
+}
 let componentChipGroups = 0, buttonSpecimens = 0, minWidthSteps = 0, cornersChecked = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -4181,7 +4183,7 @@ for (const brand of BRANDS) {
   // #2049: the corner as drawn, per Control shape, in Light and Dark, against the emission.
   const em = await emittedPx(brand);
   for (const [shape, step] of Object.entries(SHAPE_STEP)) {
-    await gotoShape(page);
+    await gotoComponents(page);
     await hooks.click(page.locator(`[data-p3="lever-control-shape"] button[role="radio"][data-value="${shape}"]`));
     await page.waitForFunction((v) => document.querySelector('[data-p3="lever-control-shape"] button[aria-checked="true"]')?.dataset.value === v, shape, { timeout: 5000 }).catch(() => {});
     await gotoComponents(page);
