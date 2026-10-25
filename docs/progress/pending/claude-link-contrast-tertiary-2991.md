@@ -14,3 +14,5 @@
 - **Deeper floor.** `floorStep` moved to the `background.tertiary` step: every floor-gated ink in that family's standard and HC modes clears its bar on the old tertiary hex, and at least one text ink moved. The band's twin moves `inverseSecondary` to the band's tertiary step.
 
 **Mutations, each failing by name:** the resting link pinned one ramp step lighter in `modes.ts` fails the on-floor arm on the link cells; `resolve()` ignoring `cfg.floorStep` fails the deeper-floor arm for every brand and family.
+
+**Ported, not authored here:** `test:chrome` failed twice on this PR's head, each time on a different `#2321 … Shift+Tab from Inspect lands in it false` case at the plugin's 380 width, though this PR's own change touches nothing under `apps/`. That is the race #3005 diagnosed, and #3015's one-function fix to `pmShiftTab` is carried here unchanged. It becomes a no-op once #3015 lands.
