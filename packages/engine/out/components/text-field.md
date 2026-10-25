@@ -74,7 +74,8 @@ Use for free-form, non-enumerable single-line input — names, titles, SKUs, ide
 - 1.3.1 Info and Relationships (label + describedby association)
 - 3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion
 - 1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on background.secondary, the darkest permissible ground) / 2.4.13 Focus Appearance
-- 4.1.2 Name/Role/Value / 2.5.8 Target Size
+- 4.1.2 Name/Role/Value
+- 2.5.8 Target Size (the field, and the clear button when clearable: a hit area of at least 24×24 px around its glyph)
 - 3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste
 
 ### Motion
@@ -125,7 +126,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 | `prefix` | string | — | no | A leading text affix inside the field, before the value — a currency symbol or a unit ("$", "€"). Not part of the value and aria-hidden, so the label or helper text carries what it means. Follows the locale's placement (a symbol before or after the number). A glyph is leadingIcon, not this. |
 | `suffix` | string | — | no | A trailing text affix inside the field, after the value — a unit or a domain ("kg", ".com"). Not part of the value and aria-hidden, so the label or helper text carries what it means. A glyph or a clear / reveal action is trailingIcon / clearable, not this. |
 | `leadingIcon` | slot | — | no | An optional leading glyph before the value (a purpose or category mark, such as search), aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target. Signals the field's purpose; validation never mutates it. |
-| `trailingIcon` | slot | — | no | An optional trailing glyph at the field's trailing edge — a decorative mark (aria-hidden), or the glyph of a clear / reveal action, which in code is a focusable button with its own accessible name. The decorative-vs-interactive split is load-bearing. Hidden by default; the file nominates the swap target. |
+| `trailingIcon` | slot | — | no | An optional trailing glyph at the field's trailing edge — a decorative mark (aria-hidden), or the glyph of a clear / reveal action, which in code is a focusable button with its own accessible name. The decorative-vs-interactive split is load-bearing. As a button, its hit area is at least 24×24 px, drawn around the 20px glyph, and adds no height to the field. Hidden by default; the file nominates the swap target. |
 | `clearable` | boolean | `false` | no | Adds a labeled Clear button that announces the cleared state and returns focus to the input (the recurring trap is stranding focus). |
 | `isPending` | boolean | `false` | no | Async validation/value — a spinner replaces an adornment without reflow; sets aria-busy; does not block typing unless intended. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, from type.body.sm, md and lg), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. small is for fine pointers only: on a coarse pointer (@media (pointer: coarse)) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. The field's edge, outline or underline, is the brand's Field style setting, not a prop. |
