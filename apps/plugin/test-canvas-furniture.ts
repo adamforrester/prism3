@@ -1041,21 +1041,24 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     Checkbox: ['checkbox-control', 'checkbox-row', 'checkbox-group'],
     Radio: ['radio-control', 'radio-row', 'radio-group'],
     Switch: ['switch-control', 'switch-row'],
+    // #2989 Q656 A: the Code cell joins the Code input page, first.
+    'Code input': ['code-input-cell', 'code-input'],
     Tabs: ['tab-item', 'tabs'],
     'Segmented control': ['segmented-control-segment', 'segmented-control'],
     Accordion: ['_accordion-indicator', 'accordion'],
     List: ['list-item', 'list'],
+    // #2666 Q382 A, #2989 Q656 A: the breadcrumb separator and step join the Breadcrumbs page, first, as the Accordion
+    // indicator joins the Accordion's.
+    Breadcrumbs: ['_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs'],
     // #2665: Pagination.Item and the row.
     Pagination: ['pagination-item', 'pagination'],
     // #2669: the Slider's thumb builds first on its page.
     Slider: ['_slider-thumb', 'slider'],
     // #2457 Q295.2 B: the flush icon button's three families share one page, as IconButton's do.
     'Flush Icon Button': ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'],
-    // #2666 Q382 A: the breadcrumb separator shares the item's page, first, as the Accordion indicator does.
-    'Breadcrumb Item': ['_breadcrumb-separator', 'breadcrumb-item'],
   };
   const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
-  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the eleven pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
+  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the thirteen pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
   const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   for (const [name, ids] of Object.entries(SHARED)) {

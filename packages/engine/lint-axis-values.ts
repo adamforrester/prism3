@@ -241,7 +241,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'emphasis',
-    values: ['subtle', 'bold'],
+    values: ['subtle', 'bold', 'surface'],
     defs: ['badge'],
     relation: 'disjoint',
     reason:
@@ -252,8 +252,10 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'purpose, the loud kind of divergence: `primary | secondary` names two TEXT roles a label chooses '
       + 'between, while `subtle | bold` names two paint treatments of a filled pill, and no value would mean '
       + 'the same thing on both defs, so none is shared. `subtle` LEADS because it is the code default and so '
-      + 'Figma\'s default member. Only the status type carries both; the count and dot are bold-only through '
-      + '`figmaProperties.excludeCoordinates`, which leaves this value set unchanged.',
+      + 'Figma\'s default member. Only the status type carries every value; the count and dot are bold-only through '
+      + '`figmaProperties.excludeCoordinates`, which leaves this value set unchanged. `surface` (#2983, owner direction '
+      + '2026-10-24; the name is owner decision Q660 A / Q2983.4 A) is the third level: the page surface under the tone\'s text, no edge, '
+      + 'for a label on a photo or any busy ground. Still disjoint: it names a paint treatment, not a text role.',
   },
   {
     axis: 'type',
@@ -530,8 +532,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
     // Breadcrumbs and its item join it (#2666, owner call 7 A): one line of 14 or 16px body text, and an 18px trail
-    // stops reading as secondary wayfinding.
-    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item', 'progress'],
+    // stops reading as secondary wayfinding. Badge joins it (#2983, owner direction 2026-10-24): the status label's
+    // compact size beside today's, and nothing above it.
+    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item', 'progress', 'badge'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form, led by medium as canonical is (#2752 Q1 B): a switch above medium stops reading '

@@ -61,14 +61,16 @@ export type GroupSection = {
  *  whose `ids` hold every one of its sets. Fields holds the sets Field style draws (`FIELD_FRAME_PARTS` in the engine's
  *  `anatomy-figma.ts`, typed here so no definition reaches the web bundle; `test-component-groups.ts` holds the two
  *  together). Search field (#2888) is in Fields (Q5 A), with its own Search options block (`SECTION_BLOCKS`). Code input
- *  (#2428) is in Fields because Field style draws its cell, a subcomponent the field nests (owner decision Q-2789.3 A).
+ *  (#2428) is in Fields because Field style draws its cell, a part the field nests (owner decision Q-2789.3 A), which shares
+ *  its page since #2989 (Q656 A).
  *  Tag holds the sets Tag style draws (`TAG_STYLE_PARTS`, held the same way). Dialog holds the sets Dialog title size
  *  reaches (`DIALOG_TITLE_TYPE_KEYS`, #2958, held the same way). */
 export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 'tags' | 'dialogs'; readonly pages: readonly string[]; readonly ids: readonly string[] }[] = [
   { kind: 'buttons', pages: ['Buttons'], ids: [] },
   // #2888 shipped Search field; Q5 A on #2905 puts it inside Fields, with its own Search options block (#2952).
-  // #2428: Code input joins Fields, as the component that nests the cell Field style draws (Q-2789.3 A).
-  { kind: 'fields', pages: [], ids: ['code-input', 'password-field', 'search-field', 'select', 'text-field', 'textarea'] },
+  // #2428: Code input joins Fields, as the component that nests the cell Field style draws (Q-2789.3 A). Since #2989 (Q656 A)
+  // the cell shares the Code input page, so the page's row holds both sets and both are listed here.
+  { kind: 'fields', pages: [], ids: ['code-input', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea'] },
   { kind: 'tags', pages: [], ids: ['tag'] },
   // #2958: Dialog title size's home (Q578: component settings live with their components), built as Tag's is (Q579 A).
   { kind: 'dialogs', pages: [], ids: ['dialog'] },

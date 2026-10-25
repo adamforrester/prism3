@@ -42,6 +42,7 @@ import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from 
 import { saveBeforeBuild, saveVersion } from './version-title';
 import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost, type UpdateChoices } from './update-apply';
 import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
+import { emptiedLine, pageMovesDue, pageMovesLine, relocateSets, type RelocateOutcome } from './page-moves';
 import { ensureFileComponents } from './file-components';
 import { ensureStyleGuideCells } from './style-guide-cells';
 import type { CellsApi } from './style-guide-cells';
@@ -1135,6 +1136,20 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
   try {
     await figma.loadAllPagesAsync();
     const scaffold = await scaffoldSkeleton(figma, TAXONOMY);
+    // THE SETS ON A FORMER PAGE (#2989, owner decision Q656 A) move to the page the taxonomy names now, after a named
+    // version, as Update moves them (`page-moves.ts`). No page is deleted: one left empty is named for the owner.
+    let relocated: RelocateOutcome | null = null;
+    let movesNote = '';
+    const due = pageMovesDue(figma.root.children);
+    if (due.length) {
+      let saved = false;
+      try { await saveVersion(figma, { run: 'setup', sets: due.map((m) => ({ set: m.set })) }); saved = true; }
+      catch (e) { movesNote = `\nSets not moved to their pages: the named version could not be saved (${(e as Error)?.message ?? String(e)}).`; }
+      if (saved) {
+        relocated = await relocateSets(figma, TAXONOMY);
+        movesNote = ['', pageMovesLine(relocated.moved, true), emptiedLine(relocated.emptied)].filter((l, i) => i === 0 || l).join('\n');
+      }
+    }
     const page = scaffold.fileComponentsPage;
     let assetNote = '';
     let assets: { built?: string[]; fontMisses?: string[]; skipped?: boolean; styleGuideCells?: unknown; furnitureTemplates?: unknown; docBlock?: unknown } = {};
@@ -1175,8 +1190,8 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     try { cover = await drawCover(figma as unknown as CoverApi, figma.root as unknown as CoverRoot); }
     catch (e) { cover = { did: 'none', skipped: `not drawn, Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] }; }
     const coverNote = coverLine(cover);
-    const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}${coverNote ? `\n${coverNote}` : ''}`;
-    sink.data({ fileSetup: { pagesCreated: scaffold.created, fileComponentsPage: page ? true : false, assets, cover } });
+    const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}${movesNote}${coverNote ? `\n${coverNote}` : ''}`;
+    sink.data({ fileSetup: { pagesCreated: scaffold.created, fileComponentsPage: page ? true : false, assets, cover, ...(relocated ? { relocated } : {}) } });
     sink.post({ type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: appendBuildNote(summary, PRISM3_BUILD) });
   } catch (e) {
     sink.post({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${(e as Error).message}`, PRISM3_BUILD) });

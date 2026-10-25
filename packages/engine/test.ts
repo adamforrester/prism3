@@ -1191,6 +1191,57 @@ for (const b of brands) {
   ok(gStep !== sub.key, `L-06: the clamp moves off the raw sub-floor step (${sub.key} → ${gStep})`);
 }
 
+// L-07 (#2990) — NO PINNED LINK STEP LANDS UNDER 4.5:1 ON A SURFACE IT SITS ON, IN ANY MODE.
+// Theme › Color lets a brand pin its resting link (page and inverse) to any step of its link palette, per
+// editable mode; the UI hatches the steps it judges below floor, but the UI is not the guarantee. This sweeps
+// EVERY step of the link palette, pinned onto all ten text-link roles at once (default, hover, pressed,
+// visited, focused × page and inverse), in each editable mode (light, dark), for every brand built from an
+// input (the shipped examples and the minimal brand), and reads all four resolved modes. EXPECTED is
+// recomputed HERE from resolved HEX VALUES with the shared `contrast` primitive: the role's own hex against the
+// resolved hex of each surface the family sits on, named literally below (page primary and secondary; inverse
+// primary and secondary, Q2990.4 A, the third tier held as #2991). Neither the role's recorded `ratio`, its
+// `against`, nor any studio code is read (docs/34). The floor is 4.5 written literally, raised to the role's
+// declared `min` where that is higher (HC modes, 7). BY-NAME MUTATION: delete the link floor guard's
+// `if (isLinkRole(rolePath) …)` clamp in modes.ts → this arm fails by name, naming brand, pin and surface.
+{
+  const LINK_ROLES = ['text', 'inverse.text'].flatMap((p) => ['default', 'hover', 'pressed', 'visited', 'focused'].map((s) => `${p}.link.${s}`));
+  const SURFACES: Record<string, readonly string[]> = {
+    text: ['background.primary', 'background.secondary'],
+    'inverse.text': ['inverse.background.primary', 'inverse.background.secondary'],
+  };
+  const brands = Object.entries({ ...exampleBrands(), minimal: MINIMAL_BRAND }) as Array<[string, BrandInput]>;
+  const misses: string[] = [];
+  let checked = 0, pins = 0;
+  for (const [id, inp] of brands) {
+    const base = brandTheme(inp);
+    const pal = base.linkPalette;
+    const steps = base.palettes.find((p) => p.palette === pal)?.steps ?? [];
+    for (const mode of ['light', 'dark']) for (const st of steps) {
+      pins++;
+      const own = (inp.overrides as Record<string, Record<string, unknown>> | undefined) ?? {};
+      const pin = Object.fromEntries(LINK_ROLES.map((r) => [r, { palette: pal, step: st.key }]));
+      const t = brandTheme({ ...inp, overrides: { ...own, [mode]: { ...(own[mode] ?? {}), ...pin } } } as BrandInput);
+      for (const m of resolveAllModes(t)) {
+        const R = m.roles as unknown as Record<string, { hex: string; min?: number } | undefined>;
+        for (const role of LINK_ROLES) {
+          const x = R[role];
+          if (!x) { misses.push(`${id}: ${role} missing in ${m.mode}`); continue; }
+          const floor = Math.max(4.5, x.min ?? 0);
+          for (const g of SURFACES[role.startsWith('inverse.') ? 'inverse.text' : 'text']) {
+            const ground = R[g]?.hex;
+            if (!ground) { misses.push(`${id}: surface ${g} missing in ${m.mode}`); continue; }
+            checked++;
+            const c = contrast(hexToRgb(x.hex), hexToRgb(ground));
+            if (c + 1e-9 < floor) misses.push(`${id}: pin ${pal} ${st.key} in ${mode} → ${role} in ${m.mode} is ${x.hex}, ${c.toFixed(2)}:1 on ${g} (floor ${floor})`);
+          }
+        }
+      }
+    }
+  }
+  ok(brands.length >= 4 && pins >= 4 * 2 * 15 && checked > 0, `L-07: the sweep covers ${brands.length} brands, ${pins} pins, ${checked} role-on-surface pairs (non-vacuous)`);
+  ok(misses.length === 0, `L-07 (#2990): no pinned link step lands under its floor on a surface it sits on, in any mode (${misses.length} miss(es)${misses.length ? `: ${misses.slice(0, 3).join('; ')}` : ''})`);
+}
+
 // FO-01 (#2025) — an OVERRIDE is re-rated against its real ground when that ground is a PALETTE STEP.
 // A floor-measured role (`foreground.*`, links, `interactive.<c>.fill.*`) names its ground as a ramp
 // step — `neutral.050`, the contrast floor — not a role. The override pass looked `against` up among
@@ -6212,26 +6263,32 @@ arm: {
   const colorRefs = Object.entries(badgeDef.tokens).filter(([, r]) => r.startsWith('color.'));
   const interactive = Object.entries(badgeDef.tokens).filter(([, r]) => /(^|\.)interactive(\.|$)/.test(r));
   // A surface role, a text role or a semantic border role, on the page or on the inverse ground. Never
-  // interactive. 40 = 5 tones x (subtle status fill + label + edge, bold status fill + label, count fill +
-  // label, dot fill).
+  // interactive. 50 = 5 tones x (subtle status fill + label + edge, bold status fill + label, surface status
+  // fill + label, count fill + label, dot fill). The page surface `background.primary` is admitted for the
+  // surface-emphasis fill keys ONLY (#2983): it is the ground that label brings with it, and no other key binds it.
   const BADGE_COLOR_FAMILIES = ['color.foreground.', 'color.text.', 'color.border.', 'color.inverse.foreground.', 'color.inverse.text.'];
-  const offFamily = colorRefs.filter(([, r]) => !BADGE_COLOR_FAMILIES.some((f) => r.startsWith(f)));
-  ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 40,
-    `badge binds no interactive role: all ${colorRefs.length} of 40 color refs are foreground.*, text.* or border.*, or their inverse twins${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
+  const isSurfaceFill = (k: string, r: string) => /^[a-z]+\.status\.surface\.fill$/.test(k) && r === 'color.background.primary';
+  const offFamily = colorRefs.filter(([k, r]) => !BADGE_COLOR_FAMILIES.some((f) => r.startsWith(f)) && !isSurfaceFill(k, r));
+  ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 50,
+    `badge binds no interactive role: all ${colorRefs.length} of 50 color refs are foreground.*, text.* or border.*, or their inverse twins, or the surface emphasis's page fill${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
 
   // THE PAINT TABLE (owner decisions, 2026-09-28), member by member. SUBTLE status: the tone's tint under the
   // tone's text ink, edged in the tone's border role; neutral is the second surface under the primary text,
   // edged in the TERTIARY border, the first neutral edge contracted at 3:1 on every ground (#2569). BOLD status, count and dot: the solid tone fill under `text.on-<tone>`;
-  // bold neutral is the inverse surface under its ink. The count and dot have no subtle member.
+  // bold neutral is the inverse surface under its ink. SURFACE status (#2983, owner direction 2026-10-24): the page
+  // surface under the tone's text role (neutral: the primary text), no edge. The count and dot have no subtle or
+  // surface member.
   type Paint = { fill: string; label?: string; border?: string };
   const PAINT: Record<string, Paint> = {
     'neutral.status.subtle': { fill: 'foreground.secondary', label: 'text.primary', border: 'border.tertiary' },
     'neutral.status.bold': { fill: 'inverse.foreground.tertiary', label: 'inverse.text.primary' },
+    'neutral.status.surface': { fill: 'background.primary', label: 'text.primary' },
     'neutral.count.bold': { fill: 'inverse.foreground.tertiary', label: 'inverse.text.primary' },
     'neutral.dot.bold': { fill: 'inverse.foreground.tertiary' },
     ...Object.fromEntries(SEMANTIC.flatMap((t) => [
       [`${t}.status.subtle`, { fill: `foreground.${t}-subtle`, label: `text.${t}`, border: `border.${t}` }],
       [`${t}.status.bold`, { fill: `foreground.${t}`, label: `text.on-${t}` }],
+      [`${t}.status.surface`, { fill: 'background.primary', label: `text.${t}` }],
       [`${t}.count.bold`, { fill: `foreground.${t}`, label: `text.on-${t}` }],
       [`${t}.dot.bold`, { fill: `foreground.${t}` }],
     ])),
@@ -6239,8 +6296,8 @@ arm: {
   const bound = (k: string): string | undefined => badgeDef.tokens[k]?.replace(/^color\./, '');
   const wrongPaint = Object.entries(PAINT).flatMap(([m, want]) => (['fill', 'label', 'border'] as const)
     .filter((slot) => bound(`${m}.${slot}`) !== want[slot]).map((slot) => `${m}.${slot} → ${bound(`${m}.${slot}`) ?? 'unbound'} (want ${want[slot] ?? 'unbound'})`));
-  ok(Object.keys(PAINT).length === 20 && wrongPaint.length === 0,
-    `badge: each of the 20 members paints its own fill, ink and edge, and a bold member binds no edge${wrongPaint.length ? ` — ${wrongPaint.join('; ')}` : ''}`);
+  ok(Object.keys(PAINT).length === 25 && wrongPaint.length === 0,
+    `badge: each of the 25 paint members paints its own fill, ink and edge, and a bold member binds no edge${wrongPaint.length ? ` — ${wrongPaint.join('; ')}` : ''}`);
   const surfacePart: any = badgeDef.anatomy!.parts['surface'];
   const slots = Object.values(badgeDef.anatomy!.parts).flatMap((p: any) => p.paintSlots ?? []);
   ok(JSON.stringify(slots) === JSON.stringify(['fill', 'border']) && badgeDef.tokens[surfacePart?.strokeWidth] === 'border-width.hairline',
@@ -6252,9 +6309,15 @@ arm: {
     && JSON.stringify(badgeDef.variants?.type) === JSON.stringify(['status', 'count', 'dot']) && !badgeDef.props.some((p) => p.name === 'genre'),
     `badge type: the prop and the axis are status | count | dot, default status, and no genre prop remains (${JSON.stringify(kind?.values)}, ${kind?.default})`);
   const emphasis = badgeDef.props.find((p) => p.name === 'emphasis');
-  ok(JSON.stringify(emphasis?.values) === JSON.stringify(['subtle', 'bold']) && emphasis?.default === 'subtle'
-    && JSON.stringify(badgeDef.variants?.emphasis) === JSON.stringify(['subtle', 'bold']),
-    `badge emphasis: the values are subtle | bold, default subtle (${JSON.stringify(emphasis?.values)}, ${emphasis?.default})`);
+  ok(JSON.stringify(emphasis?.values) === JSON.stringify(['subtle', 'bold', 'surface']) && emphasis?.default === 'subtle'
+    && JSON.stringify(badgeDef.variants?.emphasis) === JSON.stringify(['subtle', 'bold', 'surface']),
+    `badge emphasis: the values are subtle | bold | surface, default subtle (${JSON.stringify(emphasis?.values)}, ${emphasis?.default})`);
+  // THE SIZE AXIS (#2983, owner direction 2026-10-24): small | medium, default medium, and medium LEADS the axis so
+  // Figma's default member is today's label and every existing member keeps its place. Authoring: the boxes differ.
+  const sizeProp = badgeDef.props.find((p) => p.name === 'size');
+  ok(JSON.stringify(sizeProp?.values) === JSON.stringify(['small', 'medium']) && sizeProp?.default === 'medium'
+    && JSON.stringify(badgeDef.variants?.size) === JSON.stringify(['medium', 'small']) && badgeDef.axisKinds?.size === 'authoring',
+    `badge size: the prop is small | medium, default medium, the axis leads with medium, and it is authoring (${JSON.stringify(sizeProp?.values)}, ${sizeProp?.default}, ${JSON.stringify(badgeDef.variants?.size)}, ${badgeDef.axisKinds?.size})`);
   const aria = badgeDef.accessibility.aria;
   ok(/Status label: not aria-hidden/.test(aria) && /Count and dot: aria-hidden="true"/.test(aria) && /host composes the meaning into its accessible name/.test(aria),
     'badge aria: a status label announces itself; a count or dot is aria-hidden and its meaning is in the host name');
@@ -6276,16 +6339,18 @@ arm: {
   const members = (badgeSet as any[]).map((m) => {
     const name = planComponentName(m);
     return {
-      name, type: /type=(\w+)/.exec(name)?.[1] ?? '(none)', emphasis: /emphasis=(\w+)/.exec(name)?.[1] ?? '(none)',
+      name, type: /type=(\w+)/.exec(name)?.[1] ?? '(none)', emphasis: /emphasis=(\w+)/.exec(name)?.[1] ?? '(none)', size: /size=(\w+)/.exec(name)?.[1] ?? '(none)',
       texts: texts(m.root), parts: partNames(m.root), stroke: m.root.paints?.strokes as string | undefined, weight: m.root.bound?.strokeWeight as string | undefined,
     };
   });
-  const cell = (g: string, e: string) => members.filter((m) => m.type === g && m.emphasis === e);
-  const badSubtle = members.filter((m) => (m.type === 'count' || m.type === 'dot') && m.emphasis === 'subtle');
-  ok(badgeSet.length === 20 && badSubtle.length === 0
-    && cell('status', 'subtle').length === 5 && cell('status', 'bold').length === 5
+  // #2983: 40 members — the status label at both sizes and all three emphases (2 × 3 × 5 = 30), and the count and
+  // the dot at medium and bold only (5 each).
+  const cell = (g: string, e: string, z = 'medium') => members.filter((m) => m.type === g && m.emphasis === e && m.size === z);
+  const badSubtle = members.filter((m) => (m.type === 'count' || m.type === 'dot') && (m.emphasis !== 'bold' || m.size !== 'medium'));
+  ok(badgeSet.length === 40 && badSubtle.length === 0
+    && ['medium', 'small'].every((z) => ['subtle', 'bold', 'surface'].every((e) => cell('status', e, z).length === 5))
     && cell('count', 'bold').length === 5 && cell('dot', 'bold').length === 5,
-    `badge projects to Figma: exactly 20 members — status at subtle and bold, count and dot at bold only — and none at type=count|dot with emphasis=subtle (got ${badgeSet.length}: ${['status', 'count', 'dot'].flatMap((g) => ['subtle', 'bold'].map((e) => `${g}/${e} ${cell(g, e).length}`)).join(', ')}${badSubtle.length ? `; excluded members present: ${badSubtle.map((m) => m.name).join(' | ')}` : ''})`);
+    `badge projects to Figma: exactly 40 members — status at both sizes and every emphasis, count and dot at medium and bold only (got ${badgeSet.length}: ${['medium', 'small'].flatMap((z) => ['status', 'count', 'dot'].flatMap((g) => ['subtle', 'bold', 'surface'].map((e) => `${z}/${g}/${e} ${cell(g, e, z).length}`))).join(', ')}${badSubtle.length ? `; excluded members present: ${badSubtle.map((m) => m.name).join(' | ')}` : ''})`);
   const wrongContent = members.filter((m) => !(
     m.type === 'status' ? JSON.stringify(m.texts) === '["Status"]' && !m.parts.includes('count') && !m.parts.includes('dot')
       : m.type === 'count' ? m.texts.length === 1 && /^[0-9]+\+?$/.test(m.texts[0]) && !m.parts.includes('text') && !m.parts.includes('dot')
@@ -6294,7 +6359,7 @@ arm: {
     `badge type content: each member carries its type's own content${wrongContent.length ? ` — ${wrongContent.map((m) => `${m.name} [${m.texts.join('|') || '-'}]`).join('; ')}` : ''}`);
   const wrongEdge = members.filter((m) => (m.emphasis === 'subtle') !== (m.stroke !== undefined) || (m.stroke !== undefined && m.weight !== 'border-width/hairline'));
   ok(wrongEdge.length === 0,
-    `badge edge: every subtle member strokes at border-width/hairline and no bold member strokes${wrongEdge.length ? ` — ${wrongEdge.map((m) => `${m.name} stroke ${m.stroke ?? 'none'} at ${m.weight ?? 'unbound'}`).join('; ')}` : ''}`);
+    `badge edge: every subtle member strokes at border-width/hairline and no bold or surface member strokes${wrongEdge.length ? ` — ${wrongEdge.map((m) => `${m.name} stroke ${m.stroke ?? 'none'} at ${m.weight ?? 'unbound'}`).join('; ')}` : ''}`);
   // THE RENAME (owner, 2026-09-28): the Figma variant property is `type`, the name Tag's axis carries, and no member
   // is still keyed `genre=`. Read off the projected member names, which are what a designer's panel shows.
   const stillGenre = members.filter((m) => /genre=/.test(m.name) || !/(^|, )type=(status|count|dot)(,|$)/.test(m.name));
@@ -6344,10 +6409,10 @@ arm: {
     }
     return { measured, low };
   };
-  // TEXT ON ITS FILL, 4.5:1, for every emphasis × tone × text-bearing type: 15 members (status subtle 5,
-  // status bold 5, count bold 5), each in 20 cells.
+  // TEXT ON ITS FILL, 4.5:1, for every emphasis × tone × text-bearing type: 20 members (status subtle 5,
+  // status bold 5, status surface 5, count bold 5), each in 20 cells. Size changes no color, so one row each.
   const TEXT_MEMBERS = Object.keys(PAINT).filter((m) => PAINT[m].label);
-  ok(TEXT_MEMBERS.length === 15, `badge contrast covers 15 text-bearing members (got ${TEXT_MEMBERS.length})`);
+  ok(TEXT_MEMBERS.length === 20, `badge contrast covers 20 text-bearing members (got ${TEXT_MEMBERS.length})`);
   for (const m of TEXT_MEMBERS) {
     const ink = bound(`${m}.label`) ?? '(unbound)';
     const fill = bound(`${m}.fill`) ?? '(unbound)';
@@ -6378,6 +6443,59 @@ arm: {
     ok(measured === CELLS && low.length === 0,
       `badge bold fill separates from the page (${m}): ${fill} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
+  // THE SURFACE EMPHASIS (#2983, owner direction 2026-10-24; Q2983.4–6 A). A literal table written from
+  // the issue, not read from the def or from PAINT (docs/34): the page surface under the tone's text role. The label
+  // brings its own ground, so its contrast never depends on the photo or pattern under it. CONTRAST is measured on
+  // THESE literal roles, so a def that rebinds a surface key fails the PAINT pin above and this floor stays put.
+  const SURFACE_FILL = 'background.primary';
+  const SURFACE_INK: Record<string, string> = { neutral: 'text.primary', info: 'text.info', success: 'text.success', warning: 'text.warning', danger: 'text.danger' };
+  for (const t of TONES) {
+    const { measured, low } = measure(SURFACE_INK[t], SURFACE_FILL, 4.5);
+    ok(measured === CELLS && low.length === 0,
+      `badge surface contrast (${t}): ${SURFACE_INK[t]} on ${SURFACE_FILL} clears 4.5:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+  }
+  // PROJECTION, per size: every surface member in the Figma set paints that fill and ink and draws no edge; and every
+  // status member pads and sets its text at its size's literal rungs (owner decision Q2983.5 A for small). A surface key that went
+  // missing, or a size key that fell through to the other size, fails here by member name.
+  const figVar = (role: string) => `color/${role.replace(/\./g, '/')}`;
+  const SIZE_BOX: Record<string, { pad: string; style: string }> = {
+    medium: { pad: 'space/100 space/100 space/150 space/150', style: 'label/sm/emphasis' },
+    small: { pad: 'space/025 space/025 space/100 space/100', style: 'caption/md/strong' },
+  };
+  const statusPlans = (badgeSet as any[]).filter((m) => /type=status/.test(planComponentName(m)));
+  const wrongStatus = statusPlans.flatMap((m) => {
+    const name = planComponentName(m);
+    const tone = /tone=(\w+)/.exec(name)?.[1] ?? '(none)', size = /size=(\w+)/.exec(name)?.[1] ?? '(none)';
+    const label = (m.root.children ?? []).find((c: any) => c.name === 'label');
+    const box = { pad: [m.root.bound?.paddingTop, m.root.bound?.paddingBottom, m.root.bound?.paddingLeft, m.root.bound?.paddingRight].join(' '), style: planTextStyles(m.root).join(' ') };
+    const bad: string[] = [];
+    if (JSON.stringify(box) !== JSON.stringify(SIZE_BOX[size])) bad.push(`${name}: box ${JSON.stringify(box)}, want ${JSON.stringify(SIZE_BOX[size])}`);
+    if (/emphasis=surface/.test(name)) {
+      const got = { fill: m.root.paints?.fills, stroke: m.root.paints?.strokes, ink: label?.paints?.fills };
+      const want = { fill: figVar(SURFACE_FILL), stroke: undefined, ink: SURFACE_INK[tone] && figVar(SURFACE_INK[tone]) };
+      if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(`${name}: paint ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
+    }
+    return bad;
+  });
+  ok(statusPlans.length === 30 && wrongStatus.length === 0,
+    `badge status members by size: all 30 pad and set text at their size's rungs, and the 10 surface members paint ${figVar(SURFACE_FILL)} under their tone's text ink with no edge (got ${statusPlans.length}${wrongStatus.length ? ` — ${wrongStatus.slice(0, 4).join(' | ')}` : ''})`);
+  // NEUTRAL + BOLD (owner direction, 2026-10-24: "near-black badges = tone=neutral + emphasis=bold"). Measured, it is
+  // the page's INVERSE: near-black on the light and hc-light pages, near-white on dark and hc-dark (owner decision
+  // Q2983.6 A, 2026-10-24, keeps it). Held per mode from literal luminance bands, so a fill that stopped inverting, or a near-black
+  // that drifted grey, fails by cell; the ink on it is held at 4.5:1 by the contrast loop above.
+  const NEAR: Record<string, 'black' | 'white'> = { light: 'black', 'hc-light': 'black', dark: 'white', 'hc-dark': 'white' };
+  const offNeutral: string[] = [];
+  let neutralCells = 0;
+  for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
+    const hex = m.roles['inverse.foreground.tertiary']?.hex;
+    const want = NEAR[m.mode];
+    if (!hex || !want) { offNeutral.push(`${brand}/${m.mode}: ${hex ?? 'missing'}`); continue; }
+    neutralCells++;
+    const y = luminance(hexToRgb(hex));
+    if (want === 'black' ? y > 0.05 : y < 0.5) offNeutral.push(`${brand}/${m.mode} ${hex} (Y ${y.toFixed(3)}, want near-${want})`);
+  }
+  ok(neutralCells === CELLS && offNeutral.length === 0,
+    `badge neutral bold is the page's inverse: near-black (Y ≤ 0.05) on light and hc-light, near-white (Y ≥ 0.5) on dark and hc-dark, in all ${neutralCells} of ${CELLS} cells${offNeutral.length ? ` — ${offNeutral.join('; ')}` : ''}`);
 }
 
 // ---- BANNER — the owner's decisions on #2579 (Q327, 2026-10-16), held here with literal expectations ---------------
@@ -6974,7 +7092,7 @@ arm: {
   // Caught, not thrown: a badge whose axis is no longer `type` (the 2026-09-28 rename reverted) makes the projector
   // refuse this coordinate, and a throw here would end the suite with no summary instead of failing the arms below.
   const badgeAt = (emphasis: string, tone: string) => {
-    try { return paintsOf(figmaAnatomyPlan(badgeDef, undefined, { type: 'status', emphasis, tone } as never)); }
+    try { return paintsOf(figmaAnatomyPlan(badgeDef, 'medium', { type: 'status', emphasis, tone } as never)); }
     catch (e) { return { fill: `(refused: ${(e as Error).message.slice(0, 80)})`, stroke: undefined, radius: undefined, refs: [] as string[], names: [] as string[] }; }
   };
   const TAG_KINDS: [string, string][] = [['select', 'unselected'], ['select', 'selected'], ['dismissible', 'unselected']];
@@ -15875,7 +15993,7 @@ arm: {
           `#2945 Control label weight: a ${style} tag at Emphasis (${content}) is the same def back`);
       }
       const OTHERS: [ComponentDef, [string, string][]][] = [
-        [badge, [['type', 'type.label.sm.emphasis']]],
+        [badge, [['size.medium.type', 'type.label.sm.emphasis'], ['size.small.type', 'type.caption.md.strong']]],
         [select, Object.entries(select.tokens).filter(([, r]) => r.startsWith('type.'))],
       ];
       const moved = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' }, () => 44))
@@ -20147,6 +20265,9 @@ arm: {
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'previousText', axes: { size: 3 }, at: { type: 'previous', labeled: 'true' } },
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'nextText', axes: { size: 3 }, at: { type: 'next', labeled: 'true' } },
       { def: componentDefs.find((d) => d.id === 'pagination')!, part: 'status', axes: { size: 3 }, at: { type: 'compact' } },
+      // BADGE (#2983): the status label binds one rung per size, 12px label at medium and the 11px caption at small. The
+      // count is medium only, so its key is fixed and not in this grid.
+      { def: componentDefs.find((d) => d.id === 'badge')!, part: 'label', axes: { size: 2 } },
       // CODE INPUT (#2428, Q330 A): the cell's character binds four rungs, 16 / 20 / 24 / 40. It exists only where the
       // cell holds a character.
       { def: componentDefs.find((d) => d.id === 'code-input-cell')!, part: 'digit', axes: { size: 4 }, at: { state: 'filled' } },
@@ -29145,8 +29266,12 @@ arm: {
       const rest: Record<string, string> = {};
       if (statesOf(def).includes('rest') && !onState) rest.state = 'rest';
       for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
+      // A SIZE-SPARSE GRID (#2983): badge's count and dot have no small member, and `size` above is the def's SECOND
+      // size. A coordinate the set lacks at that size is read at the first size where it exists.
+      const excludedAt = (c: Record<string, string>, z: string | undefined) => isExcludedCoordinate(def, { ...c, ...(z === undefined ? {} : { size: z }) });
+      const sizeFor = (c: Record<string, string>) => (excludedAt(c, size) ? sizes.find((z) => !excludedAt(c, z)) ?? size : size);
       const has = (coord: Record<string, string>): boolean =>
-        planPartNames(figmaAnatomyPlan(def, size, coord as never).root).includes(name);
+        planPartNames(figmaAnatomyPlan(def, sizeFor(coord), coord as never).root).includes(name);
       // A SPARSE GRID (`excludeCoordinates`, 2026-09-28) may not have the pinned coordinate at every value of
       // the gated axis — badge has no `type=count, emphasis=subtle` — and the projector refuses a coordinate
       // the set does not have. So each value is read at the FIRST coordinate the set does have, walking the
@@ -29156,7 +29281,7 @@ arm: {
       let pins: Record<string, string>[] = [{ ...rest }];
       for (const [a, vs] of others) pins = pins.flatMap((c) => vs.map((x) => ({ ...c, [a]: x })));
       const at = (v: string): Record<string, string> =>
-        ({ ...(pins.find((c) => !isExcludedCoordinate(def, { ...c, [axis]: v, ...(size === undefined ? {} : { size }) })) ?? rest), [axis]: v });
+        ({ ...(pins.find((c) => !excludedAt({ ...c, [axis]: v }, size)) ?? pins.find((c) => sizes.some((z) => !excludedAt({ ...c, [axis]: v }, z))) ?? rest), [axis]: v });
       const declared = onState ? statesOf(def) : def.variants?.[axis] ?? [];
       // A GATE NAMING A VALUE THE AXIS DOES NOT DECLARE IS `anatomyErrors`' ERROR, NOT THIS BLOCK'S, and
       // it has to be handed over rather than projected. `figmaAnatomyPlan` THROWS on an undeclared axis

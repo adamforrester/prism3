@@ -25,12 +25,13 @@
  */
 import { scaffoldSkeleton, resolveComponentPage, pagesOutOfOrder, reorderPages } from './src/file-setup';
 import type { PagesApi, PageLike } from './src/file-setup';
-import { TAXONOMY, NEST_PREFIX, assertCoverage, EXCLUDED_DEFS } from './src/file-taxonomy';
+import { TAXONOMY, NEST_PREFIX, assertCoverage, assertPartPages, consumersOf, EXCLUDED_DEFS } from './src/file-taxonomy';
 import { applyComponentPlan } from './src/write-components';
 import type { CompPageTarget, CompNode } from './src/write-components';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { fieldLabel } from '@prism3/engine/components/field-label';
 import { componentDefs } from '@prism3/engine/components/index';
+import { emptiedLine, pageMovesDue, relocateSets } from './src/page-moves';
 import { makeShim } from './component-shim';
 
 let failures = 0;
@@ -51,9 +52,12 @@ const isSolidWhite = (p: PageLike): boolean => {
 // ── The page shim ────────────────────────────────────────────────────────────────────────────────
 // Models `figma.root`'s page list. `insertChild` is REMOVE-THEN-SPLICE (the contract `file-setup.ts`
 // documents and Figma's reposition primitive follows); `createPage`/`createPageDivider` append at the end.
-interface ShimPage extends PageLike { _kids: unknown[]; }
-const makePagesShim = (): { api: PagesApi; children: ShimPage[]; names: () => string[] } => {
+// A page's `remove()` does what Figma's `PageNode.remove` does, drops it from the list, and records the call, so an
+// arm that holds "the plugin never deletes a page" can fail (#2989): a shim without it made the call a silent no-op.
+interface ShimPage extends PageLike { _kids: unknown[]; remove(): void; }
+const makePagesShim = (): { api: PagesApi; children: ShimPage[]; names: () => string[]; removed: string[] } => {
   const children: ShimPage[] = [];
+  const removed: string[] = [];
   const mk = (divider: boolean): ShimPage => ({
     name: divider ? '---' : '',
     isPageDivider: divider,
@@ -64,6 +68,7 @@ const makePagesShim = (): { api: PagesApi; children: ShimPage[]; names: () => st
     _kids: [],
     appendChild(c: unknown) { this._kids.push(c); },
     findOne(pred: (n: unknown) => boolean) { return this._kids.find(pred) ?? null; },
+    remove() { removed.push(this.name); const i = children.indexOf(this); if (i >= 0) children.splice(i, 1); },
   });
   const api: PagesApi = {
     root: {
@@ -86,7 +91,7 @@ const makePagesShim = (): { api: PagesApi; children: ShimPage[]; names: () => st
   };
   // Render the page list as names, dividers shown as `---`, for order assertions.
   const names = (): string[] => children.map((p) => (p.isPageDivider ? '---' : p.name));
-  return { api, children, names };
+  return { api, children, names, removed };
 };
 
 // ── 1. Fresh scaffold lays the spine in order ────────────────────────────────────────────────────
@@ -543,6 +548,21 @@ console.log('4. taxonomy coverage of componentDefs');
   ok(assertCoverage(['badge', 'tag'], leaf()).some((p) => p.includes("'Pair'") && p.includes('lead')), 'lead/missing: a page of two defs with no lead is reported by name');
   ok(assertCoverage(['badge', 'tag'], leaf('veil')).some((p) => p.includes("'Pair'") && p.includes("'veil'")), 'lead/foreign: a lead that is not one of the page\'s defs is reported by name');
   ok(assertCoverage(['badge', 'tag'], leaf('tag')).length === 0, 'lead/named: a page whose lead is one of its defs is clean');
+
+  // #2989 (owner decision Q656 A): a part only one def nests sits on that def's page. "Nested by" is read off the real
+  // defs' `nests` (the oracle), never off the taxonomy (the subject).
+  const parts = assertPartPages(componentDefs);
+  ok(parts.length === 0, `parts/real: every part one def nests sits on its consumer's page, bar the standalone exemptions (problems: ${JSON.stringify(parts)})`);
+  const by = consumersOf(componentDefs);
+  ok([...(by.get('breadcrumb-item') ?? [])].join() === 'breadcrumbs' && [...(by.get('code-input-cell') ?? [])].join() === 'code-input',
+    'parts/oracle: the step is nested by Breadcrumbs alone and the cell by Code input alone, read off the defs');
+  // Two synthetic defs: a part on its own page is reported by name, and an exemption with no reason left is stale.
+  const two = [{ id: 'host', anatomy: { parts: [{ kind: 'nest', nests: 'part' }] } }, { id: 'part' }];
+  const apart = { ...TAXONOMY, sections: [{ header: 'Components', leaves: [{ page: 'Host', defs: ['host'] }, { page: 'Part', defs: ['part'] }] }] };
+  ok(assertPartPages(two, apart, {}).some((p) => p.includes("'part'") && p.includes("'Part'") && p.includes("'Host'")), 'parts/apart: a single-consumer part on another page is reported by name, with both pages');
+  ok(assertPartPages(two, apart, { part: 'test' }).length === 0, 'parts/exempt: a listed standalone def is not reported');
+  const together = { ...TAXONOMY, sections: [{ header: 'Components', leaves: [{ page: 'Host', defs: ['part', 'host'], lead: 'host' }] }] };
+  ok(assertPartPages(two, together, { part: 'test' }).some((p) => p.includes('stale') && p.includes("'part'")), 'parts/stale: an exemption for a part already on its consumer\'s page is reported by name');
 }
 
 // ── 5. targetPage routes placement off currentPage ───────────────────────────────────────────────
@@ -578,6 +598,57 @@ console.log('5. applyComponentPlan targetPage routing');
   catch (e) { hostErr = (e as Error).message; }
   ok(/combineAsVariants: Expected node id to be a string/.test(hostErr),
     `an id-less target page fails combineAsVariants by name (#1561) — got: ${hostErr || '(no throw)'}`);
+}
+
+// ── 7. Sets on a former page move to the page the taxonomy names now (#2989, owner decision Q656 A) ─────────
+console.log('7. relocateSets: a part\'s set leaves its former page, and no page is deleted');
+{
+  const { api, children, removed } = makePagesShim();
+  // Nodes with plugin data, written by the literal keys the plugin stores ('prism3' / 'memberStamp', 'furniture',
+  // 'docPanel'), so the arm fails if the module stops recognizing a set or its furniture by them.
+  type N = { id: string; name: string; type: string; x: number; y: number; width: number; height: number; children?: N[]; data: Record<string, string>; getSharedPluginData(ns: string, k: string): string };
+  const node = (id: string, name: string, type: string, x: number, y: number, data: Record<string, string> = {}, kids?: N[]): N =>
+    ({ id, name, type, x, y, width: 100, height: 50, ...(kids ? { children: kids } : {}), data, getSharedPluginData(ns, k) { return ns === 'prism3' ? this.data[k] ?? '' : ''; } });
+  const stamped = (id: string) => node(id, 'state=rest', 'COMPONENT', 0, 0, { memberStamp: '9.9.9|0123456789abcdef|1' });
+  const pageOf = (name: string): ShimPage & { children: N[] } => {
+    const p = api.createPage() as ShimPage & { children: N[] };
+    p.name = name;
+    Object.defineProperty(p, 'children', { get() { return p._kids; } });
+    p.appendChild = (c: unknown) => { for (const q of children) { const k = q._kids.indexOf(c); if (k >= 0) q._kids.splice(k, 1); } p._kids.push(c); };
+    return p;
+  };
+  await scaffoldSkeleton(api, TAXONOMY);
+  const old = pageOf(`${NEST_PREFIX}Breadcrumb Item`);
+  const cell = pageOf(`${NEST_PREFIX}Code Cell`);
+  const crumbs = pageOf(`${NEST_PREFIX}Breadcrumbs`);
+  const host = node('s3', 'breadcrumbs', 'COMPONENT_SET', 0, 40, {}, [stamped('m3')]);
+  crumbs.appendChild(host);
+  const sep = node('s1', '_breadcrumb-separator', 'COMPONENT_SET', 0, 0, {}, [stamped('m1')]);
+  const item = node('s2', 'breadcrumb-item', 'COMPONENT_SET', 300, 0, {}, [stamped('m2')]);
+  const label = node('f2', 'label', 'INSTANCE', 300, -30, { furniture: JSON.stringify({ v: 1, def: 'breadcrumb-item', set: 's2', kind: 'label' }) });
+  const panel = node('p2', 'usage', 'FRAME', 500, 0, { docPanel: JSON.stringify({ v: 1, def: 'breadcrumb-item', set: 's2', state: 'live' }) });
+  for (const n of [sep, item, label, panel]) old.appendChild(n);
+  // A designer's own set by the same name, unstamped, on the cell's page, and a note of theirs: neither is Prism3's.
+  const theirs = node('s9', 'code-input-cell', 'COMPONENT_SET', 0, 0, {}, [node('m9', 'state=rest', 'COMPONENT', 0, 0)]);
+  cell.appendChild(theirs);
+  const due = pageMovesDue(children);
+  ok(JSON.stringify(due.map((m) => [m.set, m.from, m.to])) === JSON.stringify([
+    ['_breadcrumb-separator', `${NEST_PREFIX}Breadcrumb Item`, `${NEST_PREFIX}Breadcrumbs`],
+    ['breadcrumb-item', `${NEST_PREFIX}Breadcrumb Item`, `${NEST_PREFIX}Breadcrumbs`],
+  ]), `moves/due: the two Prism3 sets on Breadcrumb Item move to Breadcrumbs, part first; a designer's set does not (${JSON.stringify(due)})`);
+  const before = children.length;
+  const r = await relocateSets(api, TAXONOMY);
+  ok(r.moved.length === 2 && crumbs.children.includes(sep) && crumbs.children.includes(item), 'moves/made: both sets now sit on the Breadcrumbs page');
+  ok(crumbs.children.includes(label) && crumbs.children.includes(panel), 'moves/furniture: the step\'s label and its live usage panel go with it');
+  ok(item.id === 's2' && item.children![0].id === 'm2' && item.children![0].data.memberStamp.startsWith('9.9.9|'), 'moves/kept: the set is the same node, members and stamps as they were (moved, never rebuilt)');
+  ok(label.x - item.x === -0 && label.y - item.y === -30 && panel.x - item.x === 200, 'moves/places: the set\'s own nodes keep their places around it');
+  ok(sep.x >= host.x + host.width + 160 && item.x >= host.x + host.width + 160, 'moves/clear: the moved sets land past what the page already held, a set gap away');
+  ok(removed.length === 0 && children.length === before && children.includes(old),
+    `moves/never-delete: no page is removed, the emptied one included${removed.length ? ` — REMOVED: ${removed.join(', ')}` : ''}`);
+  ok(JSON.stringify(r.emptied) === JSON.stringify([`${NEST_PREFIX}Breadcrumb Item`]) && emptiedLine(r.emptied) === 'Breadcrumb Item is now empty, safe to delete.',
+    `moves/emptied: the page left empty is reported as safe to delete (${JSON.stringify(r.emptied)})`);
+  ok(cell.children.includes(theirs) && !r.emptied.includes(`${NEST_PREFIX}Code Cell`), 'moves/theirs: a designer\'s set stays, and its page is not reported');
+  ok(pageMovesDue(children).length === 0 && (await relocateSets(api, TAXONOMY)).moved.length === 0, 'moves/idempotent: a second run has nothing to move');
 }
 
 console.log(failures === 0 ? '\nfile-setup: all assertions pass' : `\nfile-setup: ${failures} FAILED`);

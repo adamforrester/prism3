@@ -100,8 +100,9 @@ export const TAXONOMY: Taxonomy = {
         // Password field (#2317, owner decision Q301.9 B) — its own page under Components, as Counter's is. It nests
         // Button, whose page is earlier in this list, so the nest resolves when the file is built in order.
         { page: 'Password field', defs: ['password-field'] },
-        // Code input (#2428, owner decision Q321.14 A) — its own page under Components, as Password field's is.
-        { page: 'Code input', defs: ['code-input'] },
+        // Code input (#2428, owner decision Q321.14 A) — its own page under Components, as Password field's is. The Code cell
+        // shares it (#2989, Q656 A), built first so the field's `items` slot resolves against it on the same page.
+        { page: 'Code input', defs: ['code-input-cell', 'code-input'], lead: 'code-input' },
         // Search field (#2888) — its own page under Components, as the Password field's is.
         { page: 'Search field', defs: ['search-field'] },
         { page: 'Textarea', defs: ['textarea'] },
@@ -135,9 +136,10 @@ export const TAXONOMY: Taxonomy = {
         // Banner (#2579, Q327) — its own page under Components. The proposal named a feedback section; none exists, so the
         // section is held as an owner item in the PR, as Link's was. It nests Button.Neutral and FlushIconButton.Neutral.
         { page: 'Banner', defs: ['banner'] },
-        // Breadcrumbs (#2666, owner call 15 A) — its own page under Components. It nests BreadcrumbItem in its items slot
-        // and Link, which the build places first wherever their pages sort.
-        { page: 'Breadcrumbs', defs: ['breadcrumbs'] },
+        // Breadcrumbs (#2666, owner call 15 A) — its own page under Components. Its step and the step's separator share it
+        // (#2989, owner decision Q656 A: a part only one component nests sits on that component's page); they build first,
+        // so the items slot resolves against them on the same page, as Tabs' does. Link builds wherever its page sorts.
+        { page: 'Breadcrumbs', defs: ['_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs'], lead: 'breadcrumbs' },
         // Toast (#2668, owner call 12 A) — its own page under Components, sorted alphabetically (Q260 A). It nests the
         // Button and the FlushIconButton.Neutral, which the build places first wherever their pages sort.
         { page: 'Toast', defs: ['toast'] },
@@ -173,14 +175,6 @@ export const TAXONOMY: Taxonomy = {
         // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },
-        // #2666 (owner call 15 A) — the breadcrumb step, on its own page under Subcomponents: it is placed inside
-        // Breadcrumbs, never on its own. It nests Link, the neutral flush icon button and, since Q382 A, the separator,
-        // which shares its page, first, as the Accordion indicator shares the Accordion's. The public step leads the
-        // page's usage panel over its private building block, as the Accordion does (#2932; owner Q pending).
-        { page: 'Breadcrumb Item', defs: ['_breadcrumb-separator', 'breadcrumb-item'], lead: 'breadcrumb-item' },
-        // #2428 (owner decision Q329 A) — the Code cell on its own Subcomponents page: a part used only inside Code input,
-        // nested in the field's `items` slot.
-        { page: 'Code Cell', defs: ['code-input-cell'] },
       ],
     },
     {
@@ -196,6 +190,82 @@ export const TAXONOMY: Taxonomy = {
  *  A control that is only ever nested and never built standalone would be listed here with a reason,
  *  rather than silently dropped (`assertCoverage` treats an unmapped, unexcluded id as a failure). */
 export const EXCLUDED_DEFS: readonly string[] = [];
+
+/**
+ * A PART ONE COMPONENT NESTS SITS ON THAT COMPONENT'S PAGE (#2989, owner decision Q656 A). The Subcomponents section
+ * keeps the parts several components nest (Spinner, the flush icon buttons); a part only one component nests shares
+ * its consumer's page, as Tabs, Pagination, Accordion, Segmented control and List already did.
+ *
+ * The defs listed here are nested by exactly one other def and still keep a page of their own, because a designer
+ * places them on their own too: they are components that happen to have one host today, not parts. Each names the
+ * owner decision that placed it. `assertPartPages` fails by name on a single-consumer def on another page that is
+ * not listed, and on a listed def that no longer is one (a stale entry).
+ */
+export const STANDALONE_NESTED: Readonly<Record<string, string>> = {
+  // Badge: under Components, owner-decided 2026-10-04 (S8 scope, O1). Tab.Item nests it; a designer places it anywhere.
+  badge: 'S8 scope, O1',
+  // Button.Group: on the Buttons page (#2661, owner decision Q363). Dialog nests it; a designer places it in any footer.
+  'button-group': '#2661, Q363',
+  // Text field: its own page under Components. Slider (#2669) nests it for the value input; a designer places it anywhere.
+  'text-field': 'Text field page; nested by Slider since #2669',
+};
+
+/**
+ * WHERE A SET USED TO BUILD (#2989) — the pages an earlier taxonomy placed a def on, which an existing file can still
+ * hold. Update and Set up file move a Prism3 set found on one of these pages onto the page the taxonomy names now
+ * (`page-moves.ts`); a set on any other page is where a designer put it, and stays. Pages are never deleted: one left
+ * empty is reported as safe to delete.
+ */
+export const FORMER_PAGES: readonly { readonly page: string; readonly defs: readonly string[]; readonly by: string }[] = [
+  { page: 'Breadcrumb Item', defs: ['_breadcrumb-separator', 'breadcrumb-item'], by: '#2989' },
+  { page: 'Code Cell', defs: ['code-input-cell'], by: '#2989' },
+];
+
+/**
+ * EVERY DEF THAT NESTS EACH DEF, read off the defs themselves: any `nests` naming another def, at any depth (an anatomy
+ * part, a slot's default items). Never off this file (`docs/34`): the defs are the oracle, the pages the subject.
+ * `prefers` (a soft preference, never a requirement) is not `nests`, so it does not count.
+ */
+export const consumersOf = (defs: readonly { readonly id: string }[]): Map<string, Set<string>> => {
+  const out = new Map<string, Set<string>>();
+  const walk = (v: unknown, owner: string): void => {
+    if (Array.isArray(v)) { for (const x of v) walk(x, owner); return; }
+    if (!v || typeof v !== 'object') return;
+    for (const [k, x] of Object.entries(v)) {
+      if (k === 'nests' && typeof x === 'string') { if (x !== owner) out.set(x, (out.get(x) ?? new Set()).add(owner)); }
+      else walk(x, owner);
+    }
+  };
+  for (const d of defs) walk(d, d.id);
+  return out;
+};
+
+/**
+ * ASSERT EVERY SINGLE-CONSUMER PART SITS ON ITS CONSUMER'S PAGE (#2989). Returns the problems as strings (empty =
+ * clean), each naming the part, its page, its consumer and the consumer's page; `test-file-setup.ts` fails by name on
+ * any. A def in `STANDALONE_NESTED` is exempt, and a listed def that is no longer nested by exactly one def on another
+ * page is reported as stale, so the exemption cannot outlive its reason.
+ */
+export const assertPartPages = (defs: readonly { readonly id: string }[], t: Taxonomy = TAXONOMY, standalone: Readonly<Record<string, string>> = STANDALONE_NESTED): string[] => {
+  const problems: string[] = [];
+  const consumers = consumersOf(defs);
+  const ids = new Set(defs.map((d) => d.id));
+  const away = new Set<string>();
+  for (const [part, by] of consumers) {
+    if (by.size !== 1 || !ids.has(part)) continue;
+    const consumer = [...by][0];
+    const here = leafForDef(part, t)?.leaf.page;
+    const there = leafForDef(consumer, t)?.leaf.page;
+    if (!here || !there || here === there) continue;
+    away.add(part);
+    if (!(part in standalone))
+      problems.push(`part '${part}' is nested only by '${consumer}' but sits on page '${here}', not on '${there}' with it — a part one component nests shares that component's page (#2989)`);
+  }
+  for (const id of Object.keys(standalone))
+    if (!away.has(id))
+      problems.push(`STANDALONE_NESTED names '${id}', which is not nested by exactly one def on another page — a stale exemption`);
+  return problems;
+};
 
 /** The def that leads a leaf's usage panel: its `lead`, or its one def. Undefined for a leaf with no def. */
 export const leadOf = (leaf: TaxonomyLeaf): string | undefined => leaf.lead ?? (leaf.defs.length === 1 ? leaf.defs[0] : undefined);

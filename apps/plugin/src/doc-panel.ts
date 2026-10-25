@@ -559,7 +559,7 @@ export const docPanelDue = (api: Pick<PanelApi, 'root'>, set: PNode, plan: Panel
 };
 
 /** Whether a node is a set Prism3 built: one of its members is, by the shared member test (`builtByPrism3`, #2510). */
-const prism3Set = (n: PNode | undefined): boolean => {
+export const prism3Set = (n: PNode | undefined): boolean => {
   if (!n || n.type !== 'COMPONENT_SET') return false;
   const reads = (n.children ?? []).map((m) => ({ id: m.id === undefined ? undefined : String(m.id), stamp: m.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(m as never)?.id }));
   return reads.some(builtByPrism3(reads));

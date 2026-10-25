@@ -1617,6 +1617,7 @@
       "relation": "nest-fixed",
       "variant": {
         "type": "count",
+        "size": "medium",
         "emphasis": "bold",
         "tone": "neutral"
       }

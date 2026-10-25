@@ -287,6 +287,12 @@ const PINNED_LADDER_DEFS: Record<string, { families: string[]; why: string }> = 
     families: ['type.title.*.strong', 'icon.size.*', 'radius.*'],
     why: 'Q330 A sets the medium cell\'s character at 20px, one title step below md, with a caret as tall and the fields\' 2px corner',
   },
+  // #2983: the status label's text has been 12px (`label.sm`) since Badge shipped (owner decisions 2026-09-27/28). The
+  // size axis keeps it as medium, today's label, and adds the 11px small below it, so medium stays one rung below md.
+  badge: {
+    families: ['type.label.*.emphasis'],
+    why: 'the status label\'s 12px text predates the size axis (2026-09-28), and medium is today\'s label unchanged (#2983)',
+  },
 };
 
 /**
@@ -317,7 +323,6 @@ const expectedDefaultRung = (defId: string, family: string): string =>
  * fails too. Silent skipping is how a gate's scope shrinks without a decision.
  */
 const NO_SIZE_AXIS: Record<string, string> = {
-  'badge': 'one type role, and one padding pair PER TYPE rather than per size — its axes are `type`, `emphasis` and `tone`, and the dot binds a single fixed rung (`control.size.sm.dot`) under a non-`size.*` key, so there is no ladder here to compare. A size ladder is recorded in `notes.evolution` for when a host needs more than one',
   'focus-ring': 'a ring is sized by the control it surrounds, not by its own axis — its offset and width are bound, never enumerated',
   'field-message': 'validation copy takes one type role; its axis is `status`, and size follows the field it belongs to',
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
@@ -440,6 +445,9 @@ const DEFAULT_FIRST: Record<string, string> = {
   // #2669: owner Q550 e ("medium first") agrees with Q1 B.
   slider: Q1B,
   '_slider-thumb': Q1B,
+  // #2983 (owner direction 2026-10-24): medium is today's status label, so it leads and every existing member lands
+  // on it in place.
+  badge: Q1B,
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -478,6 +486,7 @@ const MUST_COVER = [
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter', 'slider', '_slider-thumb',
+  'badge',
   'tab-item', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',
