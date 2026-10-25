@@ -80,8 +80,22 @@ export type HostMessage =
   // #2909 — the file's Documentation settings (`apps/plugin/src/doc-settings.ts`): the usage-panel and cover switches,
   // and the Style guides tab's choices as the panel last saved them (`null` until it has). `error` when a save was refused.
   | { kind: 'doc-settings'; panels: boolean; cover: boolean; styleGuide: Record<string, unknown> | null; error: string | null }
-  // #2909 — Update file's checklist: the def ids whose set the file holds, and whether Set up file has run.
-  | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null };
+  // #2909 — Update file's checklist: the def ids whose set the file holds, whether Set up file has run, and (Q2909.8 A)
+  // what the as-built ledger says each present set is: current, due and why, or not recorded.
+  | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null; due: Readonly<Record<string, SetDueView>> }
+  // #2909 Q2909.8 A — one set's hand edits from the background pass after load, or its end.
+  | { kind: 'hand-edits'; def: string; members: number; edited: number }
+  | { kind: 'hand-edits-done' }
+  // #2909 Q2909.8 A — the full check scoped to the flagged sets: each set's counts and the hash its update must echo.
+  | { kind: 'update-check'; previewHash: string; sets: readonly CheckedSetView[]; missing: readonly string[]; error: string | null };
+
+/** A set as the as-built ledger reads it (#2909 Q2909.8 A, `apps/plugin/src/as-built-ledger.ts`). */
+export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readonly state: 'due'; readonly reason: 'definition' | 'engine' };
+/** A set as the scoped check reads it (#2909, `CheckedSet` in `apps/plugin/src/messages.ts`). */
+export type CheckedSetView = {
+  readonly def: string; readonly members: number; readonly update: number; readonly add: number; readonly drop: number;
+  readonly handEdited: number; readonly noBaseline: number; readonly blocked: boolean; readonly upToDate: boolean;
+};
 
 /** What the library home states about the library a file uses (#2879), as the host found it on the current page. */
 export type LibraryFileView = {
@@ -148,6 +162,12 @@ export interface HostCommit {
   saveDocSettings(settings: unknown): void;
   /** #2909: ask which sets the file holds (`file-sets-request`). Figma only; inert on the web. */
   requestFileSets(): void;
+  /** #2909 Q2909.8 A: start the background hand-edit pass (`hand-edits-request`). Figma only; inert on the web. */
+  requestHandEdits(): void;
+  /** #2909 Q2909.8 A: the full check, scoped to `defs` (`update-check-request`). Figma only; inert on the web. */
+  requestUpdateCheck(defs: readonly string[]): void;
+  /** #2909: update `defs` in place under the check's hash (`update-sets`). Figma only; inert on the web. */
+  postUpdateSets(defs: readonly string[], previewHash: string, handEdits: 'keep' | 'overwrite' | 'accept'): void;
   /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
    *  read-back seed summary, the #131 knob-rehydration (the persisted `BrandInput`, typed `unknown`
    *  here to keep this DOM layer free of the engine type import) or its #480 loud refusal when the
@@ -232,6 +252,28 @@ const tableReading = (m: { done?: unknown; total?: unknown }): { done: number; t
 };
 const isId = (x: unknown): x is string => typeof x === 'string' && x.length > 0;
 const str = (x: unknown): x is string => typeof x === 'string';
+/** #2909 Q2909.8 A: the ledger's reading of each set; an entry of the wrong shape is left out, so the set reads as not
+ *  known rather than as a state nobody sent. */
+const dueOf = (x: unknown): Record<string, SetDueView> => {
+  const out: Record<string, SetDueView> = {};
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return out;
+  for (const [id, v] of Object.entries(x as Record<string, unknown>)) {
+    const d = v as { state?: unknown; reason?: unknown } | null;
+    if (!d || typeof d !== 'object') continue;
+    if (d.state === 'current' || d.state === 'unrecorded') out[id] = { state: d.state };
+    else if (d.state === 'due' && (d.reason === 'definition' || d.reason === 'engine')) out[id] = { state: 'due', reason: d.reason };
+  }
+  return out;
+};
+/** #2909: one checked set, or none when a count or a flag is malformed. */
+const checkedSet = (x: unknown): CheckedSetView[] => {
+  const c = x as Record<string, unknown> | null;
+  if (!c || typeof c !== 'object' || !isId(c.def) || typeof c.blocked !== 'boolean' || typeof c.upToDate !== 'boolean') return [];
+  const n = (['members', 'update', 'add', 'drop', 'handEdited', 'noBaseline'] as const).map((k) => count(c[k]));
+  if (n.some((v) => v === null)) return [];
+  const [members, update, add, drop, handEdited, noBaseline] = n as number[];
+  return [{ def: c.def, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate }];
+};
 const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient'];
 /** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and
  *  an item whose table index points at no table reads as one no phase draws (-1), so the page never offers a table
@@ -394,7 +436,16 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   },
   // #2909. Ids that are not strings are dropped; a malformed `setUp` reads as not set up, the claim that asks for more.
   'file-sets': (m) => ({ kind: 'file-sets', present: Array.isArray(m.present) ? (m.present as unknown[]).filter(str) : [], setUp: m.setUp === true,
-    error: str(m.error) && m.error ? m.error : null }),
+    error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due) }),
+  // #2909 Q2909.8 A. A reading with a field of the wrong type is dropped: a guessed count would be a status nobody read.
+  'hand-edits': (m) => {
+    if ('done' in m && m.done === true) return { kind: 'hand-edits-done' };
+    const x = m as Record<string, unknown>;
+    const members = count(x.members), edited = count(x.edited);
+    return isId(x.def) && members !== null && edited !== null ? { kind: 'hand-edits', def: x.def, members, edited } : null;
+  },
+  'update-check': (m) => ({ kind: 'update-check', previewHash: str(m.previewHash) ? m.previewHash : '', missing: Array.isArray(m.missing) ? (m.missing as unknown[]).filter(str) : [],
+    sets: Array.isArray(m.sets) ? (m.sets as unknown[]).flatMap(checkedSet) : [], error: str(m.error) && m.error ? m.error : null }),
   'agent-result': null,
   'agent-progress': (m) => {
     const raw = m.progress && typeof m.progress === 'object' ? m.progress as Record<string, unknown> : null;
@@ -467,6 +518,15 @@ const figmaCommit = (): HostCommit => ({
   requestFileSets() {
     post({ type: 'file-sets-request' });
   },
+  requestHandEdits() {
+    post({ type: 'hand-edits-request' });
+  },
+  requestUpdateCheck(defs) {
+    post({ type: 'update-check-request', defs: [...defs] });
+  },
+  postUpdateSets(defs, previewHash, handEdits) {
+    post({ type: 'update-sets', defs: [...defs], previewHash, handEdits });
+  },
   saveDocSettings(settings) {
     post({ type: 'doc-settings-save', settings });
   },
@@ -498,6 +558,9 @@ const webCommit = (): HostCommit => ({
   postPrune() {/* no figma.variables on web — CSS custom properties have no stale-item problem (#1521) */},
   saveDocSettings() {/* no file on web (#2909) */},
   requestFileSets() {/* no file on web (#2909) */},
+  requestHandEdits() {/* no file on web (#2909) */},
+  requestUpdateCheck() {/* no file on web (#2909) */},
+  postUpdateSets() {/* no file on web (#2909) */},
   onHostMessage() {/* no host messages on web */},
   requestResize() {/* the browser window is the user's to size on web */},
 });

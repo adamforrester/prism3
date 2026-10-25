@@ -20,7 +20,7 @@
  */
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
-import type { HostMessage } from '../write-adapter';
+import type { CheckedSetView, HostMessage, SetDueView } from '../write-adapter';
 import type { StyleGuideCatalog, StyleGuideTableStatus } from '../../../plugin/src/messages';
 import { joinSeed, withRecovered, type SeedOutcome } from '../provenance';
 import type { HostTopic } from './store';
@@ -206,7 +206,16 @@ export interface HostSession {
   readonly docSettings: DocSettingsView | null;
   /** What Update file's checklist read when it opened (#2909): the def ids whose set the file holds, and whether Set up
    *  file has run. `null` until the first answer; `error` is the host's words when it could not read the file. */
-  readonly fileSets: { readonly present: readonly string[]; readonly setUp: boolean; readonly error: string | null } | null;
+  readonly fileSets: { readonly present: readonly string[]; readonly setUp: boolean; readonly error: string | null;
+    /** Q2909.8 A: each present set as the as-built ledger reads it. */
+    readonly due: Readonly<Record<string, SetDueView>> } | null;
+  /** #2909 Q2909.8 A: the background hand-edit pass after load, each set's answer as it lands, and whether it is out
+   *  (`running`, set by the panel as it asks), `done`, or not asked yet (`idle`). */
+  readonly handEdits: ReadonlyMap<string, { readonly members: number; readonly edited: number }>;
+  readonly handPass: 'idle' | 'running' | 'done';
+  /** #2909 Q2909.8 A: the full check scoped to the flagged sets, as the host last answered it; `pending` while one is
+   *  out (set by the panel as it asks); `null` before the first. */
+  readonly updateCheck: { readonly previewHash: string; readonly sets: readonly CheckedSetView[]; readonly missing: readonly string[]; readonly error: string | null } | 'pending' | null;
 }
 
 /** Documentation's settings as the panel holds them (#2909). */
@@ -241,6 +250,9 @@ export const initialHostSession = (): HostSession => ({
   refused: null,
   docSettings: null,
   fileSets: null,
+  handEdits: new Map(),
+  handPass: 'idle',
+  updateCheck: null,
 });
 
 /** The panel's own slot for `op`, out of `pending` (#1957). The slot's last verdict was replaced by
@@ -377,7 +389,13 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'doc-settings':
       return { ...s, docSettings: { panels: m.panels, cover: m.cover, styleGuide: m.styleGuide, error: m.error } };
     case 'file-sets':
-      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error } };
+      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due } };
+    case 'hand-edits':
+      return { ...s, handEdits: new Map([...s.handEdits, [m.def, { members: m.members, edited: m.edited }]]) };
+    case 'hand-edits-done':
+      return { ...s, handPass: 'done' };
+    case 'update-check':
+      return { ...s, updateCheck: { previewHash: m.previewHash, sets: m.sets, missing: m.missing, error: m.error } };
     case 'seed-info':
       // Joins the two independent boot reads into one outcome (#721); `restore-input` repairs it if it lands later.
       return { ...s, seedOutcome: joinSeed({ present: m.present, ok: m.ok, detail: m.summary, failed: m.failed }, s.inputRecovered) };
@@ -443,7 +461,11 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'prune-result': return ['host'];
     case 'seed-info': return ['host'];
     case 'doc-settings': return ['host:docs'];
-    case 'file-sets': return ['host:update'];
+    case 'file-sets': return ['host:update', 'host:components'];
+    // Q2909.8 A: the statuses fill in on Components' list and in the checklist as each set's answer lands.
+    case 'hand-edits': return ['host:update', 'host:components'];
+    case 'hand-edits-done': return ['host:update', 'host:components'];
+    case 'update-check': return ['host:update'];
     // UI redesign S11: the Activity drawer's agent rows. A start or an end it does not show moves nothing.
     case 'agent-started': return next === prev ? [] : ['host'];
     case 'agent-finished': return next === prev ? [] : ['host'];

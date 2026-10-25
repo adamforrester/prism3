@@ -60,7 +60,8 @@ export type AgentActions = {
   seedFromFile(sink: ActionSink): Promise<void>;
   /** #2265: the in-place update's dry run (writes nothing) and the one-time baseline capture. */
   /** `previewHash` is `null` for a check and the check's hash for an apply (#2265 PR 2); `choices`, an apply's. */
-  updateComponents(def: string | undefined, previewHash: string | null, choices: UpdateChoiceArgs | undefined, sink: ActionSink): Promise<void>;
+  /** `def`: one def, every def (`undefined`), or, from the panel's Update file (#2909), the sets its checklist ticked. */
+  updateComponents(def: string | readonly string[] | undefined, previewHash: string | null, choices: UpdateChoiceArgs | undefined, sink: ActionSink): Promise<void>;
   captureBaseline(def: string | undefined, sink: ActionSink): Promise<void>;
   adoptMembers(def: string | undefined, sink: ActionSink): Promise<void>;
 };
