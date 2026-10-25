@@ -4233,7 +4233,7 @@ for (const brand of BRANDS) {
     }
     await chooseMode(page, 'light');
   }
-  await gotoShape(page);
+  await gotoComponents(page);   // #2909 Q2909.3 A: Control shape's home
   await hooks.click(page.locator('[data-p3="control-shape-choice-rounded"]'));
   const errs = drain();
   ok(errs.length === 0, `${brand}: driving the Components page raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
