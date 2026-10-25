@@ -69,6 +69,7 @@ import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node } from './component-shim';
 import { anatomyMarks, clearOrphanPanels, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, type PanelApi, type PNode } from './src/doc-panel';
 import { TAXONOMY } from './src/file-taxonomy';
+import { readSpecTag } from './src/spec-tag';
 import { fingerprintOf } from './src/style-guide';
 import { ensureDocBlock, type DocBlockApi } from './src/doc-block';
 import { drawFurniture, furnishUpdate, furnitureLayout, seatNewSet, templatesLine, withPanel, type FurnitureApi, type XNode } from './src/canvas-furniture';
@@ -939,6 +940,9 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
   const specEdge = pa2 ? Number(pa2.x) + Number(pa2.width) + 40 + 880 : NaN;
   ok(!!pa2 && !!pb2 && Number(pa2.x) === Number(a.x) + Number(a.width) + 40 && Math.round(visibleLeft - specEdge) === 160 && !clashes.length,
     `room/apply: ONE Update draws Badge's panel and spaces Divider 160 past its spec column (${Math.round(visibleLeft - specEdge)}), no panel on anything (${clashes.join('; ')})`);
+  // Q2830.3 A: specs are drawn on request only, so the Update's apply, panels redrawn and all, tags no spec panel.
+  const specTagged = p.children.flatMap(walk).filter((n) => readSpecTag(n)).map((n) => String(n.name));
+  ok(p.children.flatMap(walk).length > 100 && !specTagged.length, `specs/never on update: the Update's apply draws no spec panel (${specTagged.join(', ') || 'none tagged'})`);
   const next = await previewUpdate(uh, targets);
   ok(next.sets.every((x) => !x.setMove && !x.furniture), `room/settled: the next dry run lists no move and no panel (${JSON.stringify(next.sets.map((x) => [x.set, x.setMove ?? null, x.furniture ?? null]))})`);
 }

@@ -37,13 +37,15 @@
  * build's post (`main.ts`, `withTemplateWarning({ type: 'component-result', … })`) → `templates/build warns`; from the
  * Update's → `templates/update warns`; a warning with every template present → `templates/build clean`,
  * `templates/update clean`. `updateTargets` (`main.ts`) giving no target its `doc` → `panel/update due`; the per-def
- * `furnish` hook without `panelFor` → `panel/update drawn`.
+ * `furnish` hook without `panelFor` → `panel/update drawn`. `panelFor` drawing the spec panel after the usage panel (Q2830.3 A:
+ * specs are drawn on request only) → `specs/never on build`, `specs/never on update`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
 import { SWAP_TARGET } from './src/build-deps';
 import { componentDefs } from '@prism3/engine/components/index';
+import { readSpecTag } from './src/spec-tag';
 
 let failed = 0;
 let executed = 0;
@@ -208,6 +210,9 @@ ok(!!withTemplates && withTemplates.ok === true && String(withTemplates.headline
 const livePanels = (badgePage?.children ?? []).filter((c) => { try { return JSON.parse(String((c as any).getSharedPluginData?.('prism3', 'docPanel') || 'null'))?.state === 'live'; } catch { return false; } });
 ok(livePanels.length === 1 && (livePanels[0] as any).x >= Number(set?.x ?? 0) + Number(set?.width ?? 0),
   `panel/build: the build drew one usage panel right of the Badge set (${livePanels.length})`);
+// Q2830.3 A: specs are drawn on request only ("Draw specs"), so the build that drew the usage panel tagged no spec panel.
+const specPanels = (): string[] => { const walk = (n: any): any[] => [n, ...((n.children ?? []) as any[]).flatMap(walk)]; return pages.flatMap((p) => p.children.flatMap(walk)).filter((n) => readSpecTag(n)).map((n) => String(n.name)); };
+ok(!specPanels().length, `specs/never on build: the build draws no spec panel (${specPanels().join(', ') || 'none tagged'})`);
 const check2 = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, sink as never));
 const hash2 = (check2.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string })?.previewHash;
 const applied2 = (await runAction((sink) => ACTIONS.updateComponents('badge', hash2 ?? null, undefined, sink as never))).posts
@@ -224,6 +229,7 @@ const pre3 = check3.data.find((d) => (d.update as { mode?: string })?.mode === '
 ok(pre3?.sets?.[0]?.furniture?.panels === 1, `panel/update due: the Update's dry run lists the moved usage panel as 1 to draw (${JSON.stringify(pre3?.sets?.[0]?.furniture)})`);
 await runAction((sink) => ACTIONS.updateComponents('badge', pre3?.previewHash ?? null, undefined, sink as never));
 ok(livePanel().length === 1 && Number((livePanel()[0] as any).x) === spotX, `panel/update drawn: the Update redraws it on its spot, ${spotX} (${livePanel().map((c) => (c as any).x).join(', ')})`);
+ok(!specPanels().length, `specs/never on update: the Update that redrew the usage panel draws no spec panel (${specPanels().join(', ') || 'none tagged'})`);
 
 // 2. The same set, its members renamed onto a smaller axis list: refused, nothing built.
 const members = (set?.children ?? []) as Node[];
