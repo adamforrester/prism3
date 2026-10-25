@@ -113,6 +113,14 @@ that hold across brands:
   `foreground.primary`/`secondary`/`tertiary`); `text.secondary` is measured only on
   `background.primary`, `background.secondary` and `foreground.primary` (its `sits_on`). Neither
   goes on a solid vivid fill such as `foreground.danger`.
+- **The contrast floor is the one text promise.** The secondary, tertiary, status and link inks
+  (text and icon) clear their bar on the floor surface, `background.secondary` by default
+  (`inverse.background.secondary` on a band), and on every surface nearer the page. A surface
+  deeper than the floor (`background.tertiary`, `foreground.secondary` and `foreground.tertiary`
+  by default, and their inverse twins) carries no text promise by design; each ink's `avoid_when`
+  names those surfaces for its brand. A brand that needs text there moves the floor
+  (`surfaces.<mode>.floorStep`, or `inverseSecondary` on the band), and every floor-gated ink
+  re-derives to clear it.
 - **Disabled inks clear 3:1, not 4.5:1.** WCAG 1.4.3 exempts disabled controls, but Prism3 does not
   use that exemption: `disabled.text` (on `background.secondary`) and `disabled.on-fill` (on
   `disabled.fill`) each carry a 3:1 contract (4.5:1 in the high-contrast modes). Score a disabled
@@ -168,8 +176,9 @@ List every **ink-on-surface color pairing** your component renders, each as
 Resolve `fg` and `bg` **per mode** and confirm the ratio clears the floor **in every mode**.
 Only pair colors where a real contrast contract applies — a **decorative** border
 (`border.primary`) and pure decoration are exempt; don't score them as if they were text or a
-3:1 UI edge. A **disabled** label is not exempt: score it as `ui` (3:1). If a pair fails, you reached for the wrong role — the
-system has a role that passes (that's what the generation-time contracts guarantee).
+3:1 UI edge. A **disabled** label is not exempt: score it as `ui` (3:1). If a pair fails on the floor surface or nearer the page, you reached for the wrong role — the
+system has a role that passes there (that's what the generation-time contracts guarantee). Below
+the floor there is no promise: move the content to a shallower surface, or move the brand's floor.
 
 ## Two worked edges (where the raw name isn't enough)
 

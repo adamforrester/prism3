@@ -756,6 +756,122 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
   }
 }
 
+// ── #2991 / Q689 A — THE CONTRAST FLOOR IS THE ONE TEXT PROMISE ─────────────────────────────────────────
+// Every floor-gated ink (text and icon, secondary / tertiary / status / link, and their inverse twins) is
+// promised its bar on the floor surface and on every neutral surface on the page side of it. A surface deeper
+// than the floor (`background.tertiary`, `foreground.secondary` / `.tertiary` by default) carries no text
+// promise; a brand that needs one there moves `surfaces.<mode>.floorStep`, and every floor-gated ink re-derives.
+// ORACLE, independent of the subject: the ink names and the bars are literals here, never read off a role's
+// `against` or `min`; the floor surface is the one the lever names (`floorStep`'s tier, else
+// `background.secondary`; the inverse floor is `inverse.background.secondary`), and every ratio is measured
+// from the emitted hexes. HC keeps its family's standard floor (`docs/06` §4), so it is read from that mode.
+// Arm 1, per corpus brand × mode × ink: clears its bar on the floor and on each surface nearer the page.
+// Arm 2, per corpus brand × light/dark: `floorStep` one step deeper (the `background.tertiary` step) and
+// every floor-gated ink, in that family's standard and HC modes, clears its bar on the new floor. The band's
+// twin moves `inverseSecondary` to the band's tertiary step, and every inverse ink clears that.
+// BY-NAME MUTATIONS: pin the resting link one ramp step lighter in `modes.ts` → arm 1 names the link cells
+// that miss; make `resolve()` ignore `cfg.floorStep` → arm 2 names every brand × family whose inks stay put.
+{
+  const INKS = ['secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info',
+    'link.default', 'link.hover', 'link.pressed', 'link.visited', 'link.focused'] as const;
+  // The bars, by tier: body (4.5:1, 7:1 in HC), large (3:1, 4.5:1 in HC). `iconContrast: '3:1'` puts every
+  // non-primary icon at the non-text bar (3:1, 4.5:1 in HC).
+  const MODE_OF: Record<string, { family: 'light' | 'dark'; hc: boolean }> = {
+    light: { family: 'light', hc: false }, dark: { family: 'dark', hc: false }, 'hc-light': { family: 'light', hc: true }, 'hc-dark': { family: 'dark', hc: true },
+  };
+  const barOf = (fam: 'text' | 'icon', ink: string, hc: boolean, icon31: boolean): number =>
+    (fam === 'icon' && icon31) || ink === 'tertiary' ? (hc ? 4.5 : 3) : (hc ? 7 : 4.5);
+  type Roles = Record<string, { hex: string; path: string }>;
+  const SIDES = [['', 'background.secondary'], ['inverse.', 'inverse.background.secondary']] as const;
+  const TIERS = ['background.primary', 'background.secondary', 'background.tertiary', 'foreground.primary', 'foreground.secondary', 'foreground.tertiary'];
+  // One brand's misses: every mode × side × ink × surface on the page side of the floor. `floorHex(mode, side)`
+  // is the floor surface. Unmapped modes and missing inks fail by name, so a scope cannot quietly shrink.
+  const missesOf = (theme: Theme, floorHex: (all: ReturnType<typeof resolveAllModes>, mode: string, side: string) => string | null, modes: Array<string>): { misses: string[]; cells: number } => {
+    const all = resolveAllModes(theme);
+    const misses: string[] = []; let cells = 0;
+    const icon31 = theme.iconContrast === '3:1';
+    for (const m of all.filter((x) => modes.includes(x.mode))) {
+      const mo = MODE_OF[m.mode];
+      if (!mo) { misses.push(`${m.mode}: a mode the gate has no bar for`); continue; }
+      const roles = m.roles as Roles;
+      for (const [side] of SIDES) {
+        const fl = floorHex(all, m.mode, side);
+        if (!fl) { misses.push(`${m.mode} ${side || 'page'}: no floor surface`); continue; }
+        const page = roles[`${side}background.primary`].hex;
+        const pageToFloor = contrast(hexToRgb(page), hexToRgb(fl));
+        // The floor itself, plus every neutral tier no farther from the page than it is.
+        const grounds: Array<[string, string]> = [['floor', fl], ...TIERS.map((t) => [`${side}${t}`, roles[`${side}${t}`]?.hex] as [string, string])
+          .filter(([, h]) => h && contrast(hexToRgb(page), hexToRgb(h)) <= pageToFloor + 1e-9)];
+        for (const fam of ['text', 'icon'] as const) for (const ink of INKS) {
+          const name = `${side}${fam}.${ink}`;
+          const r = roles[name];
+          if (!r) { misses.push(`${m.mode} ${name}: not emitted`); continue; }
+          const bar = barOf(fam, ink, mo.hc, icon31);
+          for (const [g, h] of grounds) {
+            cells++;
+            const ratio = contrast(hexToRgb(r.hex), hexToRgb(h));
+            if (ratio < bar - 1e-9) misses.push(`${m.mode} ${name} ${r.hex} ${ratio.toFixed(2)}:1 on ${g} ${h} (bar ${bar})`);
+          }
+        }
+      }
+    }
+    return { misses, cells };
+  };
+  const stdMode = (all: ReturnType<typeof resolveAllModes>, mode: string) => all.find((x) => x.mode === MODE_OF[mode]?.family);
+  // The floor the lever names: the tier on `floorStep`'s neutral step, else `background.secondary`, read in the
+  // family's standard mode; the inverse floor is the mode's own `inverse.background.secondary`.
+  const leverFloor = (theme: Theme) => (all: ReturnType<typeof resolveAllModes>, mode: string, side: string): string | null => {
+    if (side) return (all.find((x) => x.mode === mode)!.roles as Roles)['inverse.background.secondary']?.hex ?? null;
+    const std = stdMode(all, mode); const fam = MODE_OF[mode]?.family;
+    if (!std || !fam) return null;
+    const roles = std.roles as Roles;
+    const step = theme.surfaces?.[fam]?.floorStep;
+    if (step == null) return roles['background.secondary']?.hex ?? null;
+    const pal = theme.palettes.find((p) => p.role === 'neutral')!.palette;
+    const t = ['background.secondary', 'background.primary', 'background.tertiary'].find((k) => roles[k]?.path.endsWith(`.${pal}.${step}`));
+    return t ? roles[t].hex : null;
+  };
+  const brands = [...contractCorpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })), { id: 'prism3', theme: brandTheme(exampleBrands()['prism3'] as BrandInput) }];
+  ok(brands.length >= 11, `Q689 floor promise: the corpus and the default example are all swept (found ${brands.length})`);
+  for (const { id, theme } of brands) {
+    const modes = resolveAllModes(theme).map((m) => m.mode);
+    const { misses, cells } = missesOf(theme, leverFloor(theme), modes);
+    ok(misses.length === 0 && cells > 0,
+      `Q689 floor promise: ${id} — every floor-gated ink clears its bar on the floor and every surface nearer the page, in ${modes.join(', ')} (${cells} cells; misses: ${misses.slice(0, 4).join('; ') || 'none'}${misses.length > 4 ? ` … ${misses.length} in all` : ''})`);
+    // Arm 2: the floor one step deeper. The tertiary tier's step is read off the plain build (a floor does not
+    // move a ground); a family with no neutral tertiary step has nothing deeper to move to and fails by name.
+    const pal = theme.palettes.find((p) => p.role === 'neutral')!.palette;
+    for (const fam of ['light', 'dark'] as const) {
+      const std = resolveAllModes(theme).find((m) => m.mode === fam);
+      if (!std) continue;
+      const before = std.roles as Roles;
+      const step = new RegExp(`\\.${pal}\\.(\\d+)$`).exec(before['background.tertiary'].path)?.[1];
+      if (!step) { ok(false, `Q689 deeper floor: ${id} ${fam} — background.tertiary sits on no neutral step (${before['background.tertiary'].path})`); continue; }
+      const deeper: Theme = { ...theme, surfaces: { ...(theme.surfaces ?? {}), [fam]: { ...(theme.surfaces?.[fam] ?? {}), floorStep: Number(step) } } as Theme['surfaces'] };
+      const tertiary = before['background.tertiary'].hex;
+      const famModes = modes.filter((m) => MODE_OF[m]?.family === fam);
+      const r = missesOf(deeper, (all, mode, side) => side ? leverFloor(deeper)(all, mode, side) : tertiary, famModes);
+      const after = resolveAllModes(deeper).find((m) => m.mode === fam)!.roles as Roles;
+      const moved = INKS.filter((ink) => after[`text.${ink}`]?.hex !== before[`text.${ink}`]?.hex).length;
+      ok(r.misses.length === 0 && r.cells > 0 && moved > 0,
+        `Q689 deeper floor: ${id} ${fam}.floorStep ${step} (background.tertiary) — every floor-gated ink re-derives to clear it in ${famModes.join(', ')} (${r.cells} cells, ${moved} text inks moved; misses: ${r.misses.slice(0, 4).join('; ') || 'none'}${r.misses.length > 4 ? ` … ${r.misses.length} in all` : ''})`);
+      // The band's twin: its floor is its own second tier, moved by `inverseSecondary`. One step deeper is the
+      // band's tertiary step, on whatever palette the band sits on; the standard (HC-flat bands aside) inverse
+      // inks must clear the old `inverse.background.tertiary`.
+      const inv = /\.palette\.([a-z0-9-]+)\.(\d+)$/.exec(before['inverse.background.tertiary'].path);
+      if (!inv) { ok(false, `Q689 deeper band floor: ${id} ${fam} — inverse.background.tertiary sits on no ramp step (${before['inverse.background.tertiary'].path})`); continue; }
+      const spec = inv[1] === pal ? Number(inv[2]) : { palette: inv[1], step: Number(inv[2]) };
+      const deeperBand: Theme = { ...theme, surfaces: { ...(theme.surfaces ?? {}), [fam]: { ...(theme.surfaces?.[fam] ?? {}), inverseSecondary: spec } } as Theme['surfaces'] };
+      const bandTertiary = before['inverse.background.tertiary'].hex;
+      const rb = missesOf(deeperBand, (all, mode, side) => side ? bandTertiary : leverFloor(deeperBand)(all, mode, side), [fam]);
+      const afterBand = resolveAllModes(deeperBand).find((m) => m.mode === fam)!.roles as Roles;
+      const movedBand = INKS.filter((ink) => afterBand[`inverse.text.${ink}`]?.hex !== before[`inverse.text.${ink}`]?.hex).length;
+      ok(rb.misses.length === 0 && rb.cells > 0 && movedBand > 0,
+        `Q689 deeper band floor: ${id} ${fam}.inverseSecondary ${inv[1]}.${inv[2]} (inverse.background.tertiary) — every floor-gated inverse ink re-derives to clear it (${rb.cells} cells, ${movedBand} text inks moved; misses: ${rb.misses.slice(0, 4).join('; ') || 'none'}${rb.misses.length > 4 ? ` … ${rb.misses.length} in all` : ''})`);
+    }
+  }
+}
+
 // ── #1296 — THE CANONICAL DEFAULT THEME IS A COMPLETE REFERENCE ─────────────────────────────────────
 // `prism3` is not a contract corpus member (the corpus spans input VARIATION; see `token-contract.ts`),
 // so nothing forces it to emit the guaranteed surface — a default theme that quietly lacked a promised
