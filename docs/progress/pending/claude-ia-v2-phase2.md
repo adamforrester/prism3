@@ -66,6 +66,6 @@ Each mutation was made on a committed tree and failed by name:
 - A set built before the ledger stays "Not checked yet" until an update writes it; a check alone records nothing.
 - Any `ENGINE_VERSION` bump flags every set due; the scoped check then says "No member changes" for most.
 - With no tiles or mark on either bar, the bar's stepped fit (`fitBar`'s labels, name and rows steps) and the studio's
-  drawer paths are dead code, filed separately.
+  drawer paths are dead code: #3010 (the bar's fit), #3011 (the web's Activity drawer).
 - Theme's own due state (`isDirty`) is not on the badge: whether Apply resets that baseline is still unverified.
 - All new UI words are placeholders (Q2909.10 A; the wording PR follows).
