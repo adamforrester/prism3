@@ -59,6 +59,7 @@ import { reorderPages, stripNestPrefix } from './file-setup';
 import { emptiedLine, pageMovesLine, relocateSets, type PageMove } from './page-moves';
 import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furniture';
 import { docPanelReach, readPanelTag, type PanelApi, type PNode } from './doc-panel';
+import { isLiveSpecPanel, readSpecTag } from './spec-tag';
 import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
@@ -607,7 +608,9 @@ const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], pr
     const node = set as { x?: number; y?: number; parent?: { children?: readonly unknown[] } | null };
     const dx = m.to.x - Number(node.x ?? 0), dy = m.to.y - Number(node.y ?? 0);
     // Its usage panel too (#846), while it is the live one: a panel kept aside after a hand edit stays where it is.
-    const own = (node.parent?.children ?? []).filter((k) => readTag(k as never)?.set === idOf(set) || (readPanelTag(k as PNode)?.state === 'live' && readPanelTag(k as PNode)?.set === idOf(set))) as { x?: number; y?: number }[];
+    // And its live spec panel (#2830), which sits right of the usage panel; an "(edited)" one stays put.
+    const own = (node.parent?.children ?? []).filter((k) => readTag(k as never)?.set === idOf(set) || (readPanelTag(k as PNode)?.state === 'live' && readPanelTag(k as PNode)?.set === idOf(set))
+      || (isLiveSpecPanel(k) && readSpecTag(k)?.set === idOf(set))) as { x?: number; y?: number }[];
     node.x = m.to.x;
     node.y = m.to.y;
     for (const f of own) { f.x = Number(f.x ?? 0) + dx; f.y = Number(f.y ?? 0) + dy; }
