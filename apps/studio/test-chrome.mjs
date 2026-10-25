@@ -1671,13 +1671,30 @@ for (const host of ['web', 'figma']) {
         ok(JSON.stringify(rl.names.slice(0, 6)) === JSON.stringify(['Theme', 'Components', 'Documentation', 'Export', 'Agent', 'Help']) && /^Appearance: /.test(rl.names[6] ?? ''),
           `rail ${where}: each tile is named in full (${rl.names.join(', ')})`);
         // #2995 (should-fix 1): each tile draws the icon the owner chose in Q2909.19 A, written here from the decision's own
-        // words, not read from `pages.ts` or `dom.ts`: three swatches, four diamonds, a ruled page, an arrow up out of a tray,
-        // a chain link, a question mark in a circle, and for Appearance a FIXED half-filled circle, whatever the choice
-        // (the choice is in its name and tooltip). MUTATION: the Appearance tile drawing the current choice's glyph again
-        // (`fixed ?? cur.glyph` → `cur.glyph` in `frame.ts` `themeToggle`) → this arm, by name, at every width and theme.
-        const Q2909_19_A = ['swatches', 'diamonds', 'page', 'send', 'link', 'help', 'halfmoon'];
+        // words, not read from `pages.ts`, `dom.ts` or `theme.ts`: three swatches, four diamonds, a ruled page, an arrow up out
+        // of a tray, a chain link, a question mark in a circle. Appearance, amended by Q2995.3 B, draws the current choice's
+        // glyph: a monitor (`system`) for Match Figma, the default here, a sun for light, a moon for dark; the sweep below
+        // chooses each in turn. MUTATION: the fixed half-filled circle back (`glyph(cur.glyph)` → `glyph('halfmoon')` in
+        // `frame.ts` `themeToggle`) → this arm and the sweep's, by name, at every width and theme.
+        const Q2909_19_A = ['swatches', 'diamonds', 'page', 'send', 'link', 'help', 'system'];
         ok(JSON.stringify(rl.icons) === JSON.stringify(Q2909_19_A),
-          `rail ${where}: each tile draws its Q2909.19 A icon by name, Appearance a fixed half-filled circle (${rl.order.map((o, i) => `${o}=${rl.icons[i]}`).join(', ')})`);
+          `rail ${where}: each tile draws its Q2909.19 A icon by name, Appearance the current choice's (Match Figma, a monitor; Q2995.3 B) (${rl.order.map((o, i) => `${o}=${rl.icons[i]}`).join(', ')})`);
+        const Q2995_3_B = [['[data-p3="theme-option-light"]', 'Light', 'sun'], ['[data-p3="theme-option-dark"]', 'Dark', 'moon'], ['[data-p3="theme-option-figma"]', 'Match Figma', 'system']];
+        const looks = [];
+        for (const [option, name] of Q2995_3_B) {
+          await hooks.click(page.locator('[data-p3="rail"] [data-p3="theme-toggle"]'));
+          await hooks.need(page, '[data-p3="theme-menu"]');
+          await hooks.click(page.locator(option));
+          await page.waitForFunction((n) => document.querySelector('[data-p3="rail"] [data-p3="theme-toggle"]')?.getAttribute('aria-label') === `Appearance: ${n}`, name, { timeout: 4000 }).catch(() => {});
+          looks.push(await page.evaluate(() => {
+            const t = document.querySelector('[data-p3="rail"] [data-p3="theme-toggle"]');
+            return { name: t?.getAttribute('aria-label') ?? null, tip: t?.querySelector('.p3-tile-tip')?.textContent ?? null,
+              icon: t ? [...t.querySelectorAll('.p3-tile-mark svg')].map((g) => g.dataset.glyph ?? '?').join('+') : null };
+          }));
+        }
+        const want = Q2995_3_B.map(([, name, icon]) => ({ name: `Appearance: ${name}`, tip: `Appearance: ${name}`, icon }));
+        ok(JSON.stringify(looks) === JSON.stringify(want),
+          `rail ${where}: Appearance draws the current choice's glyph by name, its name and tooltip the choice (Q2995.3 B): ${Q2995_3_B.map(([, n, g], k) => `${n} wants ${g}, drew ${looks[k]?.icon} ("${looks[k]?.name}")`).join('; ')}`);
         ok(rl.labels.length === 7 && rl.labels.every(Boolean), `rail ${where}: every tile shows its label, at this width too (Q2909.16 A) (${JSON.stringify(rl.labels)})`);
         ok(rl.current === 'rail-theme' && hexOfRgb(rl.curBg) === RAIL_SELECTED[theme], `rail ${where}: Theme is the current area, its tile filled with the inset role (${RAIL_SELECTED[theme]}) (${rl.current}, ${rl.curBg})`);
         // Q2995.2 A (#2909): at the plugin's least height (420) the logo hides so every tile keeps its label; elsewhere it shows.

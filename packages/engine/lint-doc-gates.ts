@@ -319,7 +319,7 @@ export type Step = { name: string; run: string };
  * other side (`docs/34`, shape 11 — a lens both sides go through can hide a difference from both).
  *
  * WHAT COUNTS AS THE INVOCATION, AND WHAT ELSE A STEP MAY HOLD. A line of the step's `run:` that
- * STARTS with `npm run `, `npx … tsx` or `sh ` — the three forms `verify.ts` builds argv in — is the
+ * STARTS with `npm run `, `npx … tsx`, `sh ` or `bash ` — the forms `verify.ts` builds argv in — is the
  * invocation, and a step must yield EXACTLY ONE: zero or two is a finding, because the row runs one
  * command and there is then nothing unambiguous to pair it with. EVERY OTHER LINE is refused unless it
  * is blank, a `#` comment, or on `SETUP_LINES` — a short list, written by hand, of setup `verify.ts`
@@ -357,7 +357,7 @@ export type Step = { name: string; run: string };
  */
 export class ArgvRefusal extends Error {}
 
-const INVOCATION_START = /^(?:npm\s+run\s|npx\s+(?:--yes\s+|-y\s+)?tsx(?:@\S+)?\s|sh\s)/;
+const INVOCATION_START = /^(?:npm\s+run\s|npx\s+(?:--yes\s+|-y\s+)?tsx(?:@\S+)?\s|(?:ba)?sh\s)/;
 const UNSPLITTABLE = /["'`$\\|&;<>()]/;
 
 /** Setup lines a step paired with a runner COMMAND may carry besides its one invocation, verbatim
@@ -427,7 +427,7 @@ export const runnerArgvDiff = (
       continue;
     }
     if (inv.length !== 1) {
-      findings.push({ step: g.ciStep, problem: `ci.yml's step has ${inv.length} invocation line(s) (npm run / npx tsx / sh at the start of a line) — expected exactly 1 to pair with verify.ts's \`${g.cmd.join(' ')}\`` });
+      findings.push({ step: g.ciStep, problem: `ci.yml's step has ${inv.length} invocation line(s) (npm run / npx tsx / sh / bash at the start of a line) — expected exactly 1 to pair with verify.ts's \`${g.cmd.join(' ')}\`` });
       continue;
     }
     const ci = canonicalArgv(inv[0]);
@@ -656,6 +656,9 @@ export const gateTokensOf = (run: string): string[][] => {
     const ws = /-w\s+(\S+)/.exec(m[1] + m[3])?.[1];
     out.push(ws ? [m[2], ws] : [m[2]]);
   }
+  // #2981: a script run by `sh`/`bash` at the start of a line, by its repo path. Before this, the
+  // freshness battery's step was invisible to the prose arm, and so would a new script gate have been.
+  for (const m of run.matchAll(/^\s*(?:ba)?sh\s+(\S+\.sh)\b/gm)) out.push([m[1]]);
   return out;
 };
 
@@ -704,7 +707,7 @@ type Finding = { step: string; doc: string; missing: string[] };
 export const findGaps = (steps: Step[], docs: { label: string; lines: string[] }[]): Finding[] => {
   const findings: Finding[] = [];
   for (const step of steps) {
-    if (NOT_A_DISTINCT_GATE.has(step.name)) continue;
+    if (NOT_A_DISTINCT_GATE.has(step.name) || NOT_A_RUNNABLE_GATE.has(step.name)) continue;
     const tokenSets = gateTokensOf(step.run);
     for (const tokens of tokenSets) {
       for (const doc of docs) {
@@ -789,6 +792,14 @@ if (gateTokensOf(steps.find((s) => s.name === 'Install workspace deps')!.run).le
 if (gateTokensOf(steps.find((s) => s.name === 'Sample gate: has a colon')!.run).length) selfFails.push('a grep-only block script is wrongly treated as a gate step');
 if (!gateTokensOf(steps.find((s) => s.name === 'Sample unit tests')!.run).length) selfFails.push('an `npx tsx` step is no longer detected as a gate step');
 if (!gateTokensOf(steps.find((s) => s.name === 'Typecheck sample')!.run).length) selfFails.push('an `npm run` step is no longer detected as a gate step');
+// #2981: a script a step runs by `sh` or `bash` is a gate step, named by its path; one merely mentioned is not.
+for (const run of ['sh tools/Sample/mutations.sh', 'bash .github/scripts/test-Sample.sh']) {
+  if (JSON.stringify(gateTokensOf(run)) !== JSON.stringify([[run.split(' ')[1]]])) selfFails.push(`a script step is not detected as a gate step by its path: ${run}`);
+}
+if (gateTokensOf('echo see bash .github/scripts/x.sh').length) selfFails.push('a script named mid-line is wrongly treated as a gate step');
+if (findGaps([{ name: 'Install Chromium for the browser gates (#2323)', run: 'bash .github/scripts/install-Sample.sh' }], [{ label: 'D', lines: [] }]).length) {
+  selfFails.push('the prose arm demands documentation for a named install step');
+}
 
 // 3. Token extraction: the `.ts` filename for npx-tsx; script+workspace, ORDER-AGNOSTIC, for npm run.
 const tsTokens = gateTokensOf(steps.find((s) => s.name === 'Sample unit tests')!.run);
@@ -953,6 +964,9 @@ if (!auditStep || !same(ciInvocationsOf(auditStep.run), [['npm', 'run', '-w', '@
 if (!same(ciInvocationsOf('npx --yes tsx@4 packages/engine/Regen.ts --Check'), [['npx', '--yes', 'tsx@4', 'packages/engine/Regen.ts', '--Check']])) {
   selfFails.push('arm 5 splits an `npx tsx` invocation wrong');
 }
+if (!same(ciInvocationsOf('bash .github/scripts/test-Sample.sh'), [['bash', '.github/scripts/test-Sample.sh']])) {
+  selfFails.push('arm 5 does not see a `bash` invocation (#2981)');
+}
 if (!same(ciInvocationsOf('sh tools/Sample/mutations.sh'), [['sh', 'tools/Sample/mutations.sh']])) {
   selfFails.push('arm 5 does not see an `sh` invocation');
 }
@@ -1017,7 +1031,7 @@ for (const prefix of ['GITHUB_EVENT_NAME=push ' + CMD, 'export GITHUB_EVENT_NAME
 for (const extra of [
   'node apps/studio/scripts/extra-gate.mjs',
   'npx playwright test apps/studio/e2e',
-  'bash tools/extra/gate.sh',
+  'zsh tools/extra/gate.sh',
   'npm test -w @prism3/Sample',
   'npm run-script -w @prism3/Sample extra',
   'set +e',
@@ -1173,7 +1187,7 @@ if (emptyRegions.length) {
   process.exit(1);
 }
 
-const candidates = realSteps.filter((s) => !NOT_A_DISTINCT_GATE.has(s.name) && gateTokensOf(s.run).length > 0);
+const candidates = realSteps.filter((s) => !NOT_A_DISTINCT_GATE.has(s.name) && !NOT_A_RUNNABLE_GATE.has(s.name) && gateTokensOf(s.run).length > 0);
 // A parser that silently stopped matching would report "clean" over zero candidates — a floor here
 // is what makes that loud instead of quiet (the same shape as `lint-skills.ts`'s "zero skills found").
 if (candidates.length < 10) {
