@@ -23,6 +23,12 @@
  * a section when it gets a setting, by an entry in `SETTING_SECTIONS`: **Tag** (the set Tag style draws)
  * joined so, by owner decision Q578 part 2 (A on #2931's wireframe).
  *
+ * TIERS (#2909 Q2909.17 A; the owner's four-tier hierarchy, Q659 A, working names): the sections sit under four tiers,
+ * Components / Subcomponents / Content components / Blocks (`TIERS`). A section's tier is its sets' file section, the
+ * plugin's `file-taxonomy.ts` (`CatalogEntry.section`): the Components pages are the Components tier, and everything else
+ * a build places is Subcomponents, Icon included (call 11 A above). No definition is placed in Content components or
+ * Blocks yet, so those two hold nothing; no tier is guessed for a definition that does not name one.
+ *
  * SELECTION is a set of def ids. A family's and a section's box is three-state over the sets it holds that can be built
  * (call 8 A); a set that can't be built is listed with its reason and never selected (G4).
  *
@@ -109,6 +115,9 @@ export const GROUPS_COPY = {
   buildAll: (n: number): string => `Build all ${n}`,
   buildingAll: (at: number, n: number): string => `Building ${at} of ${n}…`,
   noMatch: 'No set matches your search.',
+  /** Q2909.17 A: a tier's caption, and the line for the tiers no definition is in yet (after the round-4 wireframe's). */
+  tier: (title: string, sets: number): string => `${title} · ${plural(sets, 'set')}`,
+  tiersEmpty: (titles: readonly string[]): string => `${titles.join(' and ')}: no component sets yet.`,
   noCatalog: 'No component sets to list. Close the plugin and open it again.',
 } as const;
 
@@ -150,6 +159,25 @@ export const groupsOf = (catalog: Catalog): GroupSection[] => {
   return ([...SETTING_SECTIONS.map((s) => s.kind), 'components', 'subcomponents'] as const)
     .map((kind) => ({ kind, title: GROUPS_COPY.sections[kind], rows: sorted(kind), flat: kind !== 'components' && kind !== 'subcomponents' }))
     .filter((s) => s.rows.length > 0);
+};
+
+/** The four tiers, in order (Q2909.17 A, Q659 A). Titles are the owner's working names. */
+export const TIERS = [
+  { id: 'components', title: 'Components' },
+  { id: 'subcomponents', title: 'Subcomponents' },
+  { id: 'content', title: 'Content components' },
+  { id: 'blocks', title: 'Blocks' },
+] as const;
+export type TierId = (typeof TIERS)[number]['id'];
+
+/** A section's tier: its rows' kind, which is their file section (`kindOf`). Every section a build places today is
+ *  Components or Subcomponents; nothing names Content components or Blocks yet. */
+export const tierOf = (sec: GroupSection): TierId => (sec.rows.every((r) => r.kind === 'subcomponents') ? 'subcomponents' : 'components');
+
+/** The tiers, in order, each with its sections in `groupsOf`'s order, an empty tier included. */
+export const tiersOf = (catalog: Catalog): { readonly id: TierId; readonly title: string; readonly sections: readonly GroupSection[] }[] => {
+  const secs = groupsOf(catalog);
+  return TIERS.map((t) => ({ id: t.id, title: t.title, sections: secs.filter((s) => tierOf(s) === t.id) }));
 };
 
 /** A focus key for one set in a flat section, where the set's family has no row of its own to focus (Q8 A). */

@@ -908,6 +908,13 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-cp-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-300); min-width: 0; }
 /* TY2 A: an L1 section title has space-300 after it, so the title's last line is the head's bottom. */
 .p3-cp-sec { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-300); min-width: 0; }
+/* #2909 Q2909.17 A: a tier holds its sections, after its caption: a small secondary line with a hairline under it, not a
+   heading (the list's three levels are its sections, their settings and those settings' levers, TY2 A). */
+.p3-cp-tier { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-300); min-width: 0; }
+.p3-cp-tier-cap {
+  margin: 0; padding-bottom: var(--p3-space-050); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); color: var(--p3-text-2);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-normal);
+}
 /* A grid, so the title takes what the box and Build all leave and wraps inside itself at any pane width (#1975: the
    levers pane is 268px at 640). */
 .p3-cp-sec-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: var(--p3-space-075) var(--p3-space-100); }

@@ -51,7 +51,7 @@ import { searchQuery, setSearchHits, subscribe } from '../state/store';
 import { componentCatalog, type Catalog } from '../state/component-catalog';
 import { componentsPage, setComponentsPage, watchComponentsPage } from '../state/components-page';
 import {
-  alsoBuilds, boxOfSets, buildableOf, costOf, entryOf, familiesToOpen, fmt, groupsOf, GROUPS_COPY, inListOrder, rowMatches, rowOfFocus,
+  alsoBuilds, boxOfSets, buildableOf, costOf, entryOf, familiesToOpen, fmt, GROUPS_COPY, tiersOf, inListOrder, rowMatches, rowOfFocus,
   SECTION_BLOCKS, setFocusKey, toggleSets, type BlockKey, type BoxState, type GroupRow, type GroupSection,
 } from '../state/component-groups';
 import { currentOf, positionOf, RUN_COPY } from '../state/build-queue';
@@ -323,11 +323,26 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     } else {
       parts.push(hook(h('p', 'p3-intro', GROUPS_COPY.intro(catalog.length)), 'components-intro'));
       let hits = 0;
-      for (const sec of groupsOf(catalog)) {
-        const rows = sec.rows.filter((r) => rowMatches(catalog, r, q));
-        hits += rows.length;
-        if (rows.length) parts.push(sectionEl(catalog, sec, rows));
+      // Q2909.17 A: the sections under their tiers, each tier a group named by its caption. The caption is not a heading:
+      // the list's three heading levels are its sections, their settings and those settings' levers (TY2 A).
+      const empty: string[] = [];
+      for (const tier of tiersOf(catalog)) {
+        if (!tier.sections.length) { empty.push(tier.title); continue; }
+        const group = hook(h('div', 'p3-cp-tier'), 'cp-tier');
+        group.dataset.tier = tier.id;
+        group.setAttribute('role', 'group');
+        const cap = hook(h('p', 'p3-cp-tier-cap', GROUPS_COPY.tier(tier.title, tier.sections.reduce((n, sec) => n + sec.rows.reduce((m, r) => m + r.ids.length, 0), 0))), 'cp-tier-caption');
+        cap.id = `p3-cp-tier-${tier.id}`;
+        group.setAttribute('aria-labelledby', cap.id);
+        group.append(cap);
+        for (const sec of tier.sections) {
+          const rows = sec.rows.filter((r) => rowMatches(catalog, r, q));
+          hits += rows.length;
+          if (rows.length) group.append(sectionEl(catalog, sec, rows));
+        }
+        if (group.children.length > 1) parts.push(group);
       }
+      if (empty.length && !q) parts.push(hook(h('p', 'p3-sub p3-cp-tiers-empty', GROUPS_COPY.tiersEmpty(empty)), 'cp-tiers-empty'));
       if (q && !hits) parts.push(hook(h('p', 'p3-sub p3-cp-empty', GROUPS_COPY.noMatch), 'components-no-match'));
       setSearchHits(q ? hits : null);
       // The web's one line, a hint line as it always was (the Studio's `stateLine`).
