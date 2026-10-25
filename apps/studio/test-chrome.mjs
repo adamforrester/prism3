@@ -15569,10 +15569,12 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const asked = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-check-request'));
       ok(asked.length === 1 && JSON.stringify(asked[0].defs) === JSON.stringify(['button', 'select']), `${where}: Q2909.8 A: the checklist asks the full check for the due sets alone, once (${JSON.stringify(asked.map((m) => m.defs))})`);
       // Q699 A (built on the review's recommendation): the due read and the check measure against the brand the panel
-      // holds, the one the run's Theme step applies, so each carries it whole: here the brand the page loaded.
+      // holds, the one the run's Theme step applies, so each carries it whole: the brand the page loaded, with the Pill
+      // this case chose on the shared block above and no Theme run has applied (the lever not yet applied).
+      const PANEL_BRAND = { ...BOOT_INPUT, controlShape: 'pill' };
       const askedSets = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'file-sets-request'));
-      ok(askedSets.length >= 1 && askedSets.every((m) => canon(m.input) === canon(BOOT_INPUT)) && asked.every((m) => canon(m.input) === canon(BOOT_INPUT)),
-        `${where}: Q699 A: the checklist's due read and its check each send the brand the panel holds (${askedSets.length} file-sets-request; ${[...askedSets, ...asked].map((m) => wireDiff(m.input, BOOT_INPUT)).join(', ')})`);
+      ok(askedSets.length >= 1 && askedSets.every((m) => canon(m.input) === canon(PANEL_BRAND)) && asked.every((m) => canon(m.input) === canon(PANEL_BRAND)),
+        `${where}: Q699 A: the checklist's due read and its check each send the brand the panel holds (${askedSets.length} file-sets-request; ${[...askedSets, ...asked].map((m) => wireDiff(m.input, PANEL_BRAND)).join(', ')})`);
       const waiting = await page.evaluate(() => ({ go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null, line: [...document.querySelectorAll('[data-p3="update-set-check"]')].map((n) => n.textContent) }));
       ok(waiting.go === true && waiting.line.every((l) => l === 'Checking what changes…'), `${where}: Q2909.8 A: until the check answers, each due set says so and the update waits (${JSON.stringify(waiting)})`);
       const sets = [
@@ -15601,8 +15603,8 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await hooks.click(page.locator('[data-p3="update-go"]'));
       await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
       const sent = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-sets'));
-      ok(sent.length === 1 && canon(sent[0]) === canon({ type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep', input: BOOT_INPUT }),
-        `${where}: Q2909.8 A, Q699 A: the update posts the ticked sets with the check's own hash, Keep, and the brand the check measured (${sent.length ? wireDiff(sent[0], { type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep', input: BOOT_INPUT }) : 'nothing posted'})`);
+      ok(sent.length === 1 && canon(sent[0]) === canon({ type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep', input: PANEL_BRAND }),
+        `${where}: Q2909.8 A, Q699 A: the update posts the ticked sets with the check's own hash, Keep, and the brand the check measured (${sent.length ? wireDiff(sent[0], { type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep', input: PANEL_BRAND }) : 'nothing posted'})`);
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
