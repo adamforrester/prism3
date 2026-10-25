@@ -13056,6 +13056,17 @@ const PM_READ = (line) => {
 };
 /** Shift+Tab from Inspect, the control after the mode control in the header: does focus land in the mode control? */
 const pmShiftTab = async (page) => {
+  // #3005: the mode control picks radios or the select in the frame after its header's ResizeObserver reports (preview.ts,
+  // #2383), so for a frame after a place change or the narrow Preview toggle it can still show radios that do not fit. A
+  // walk begun then lands on a radio the fit hides a frame later, and focus falls to the body. Wait for that fit: an
+  // observer made now reports after the control's own, so a frame after it the fit it asked for has run. The header
+  // always reports once when observed, since it is drawn here; one that never reports stops the case by name.
+  await page.evaluate(() => new Promise((resolve, reject) => {
+    const head = document.querySelector('[data-p3="preview-head"]');
+    const ro = new ResizeObserver(() => { ro.disconnect(); requestAnimationFrame(() => { clearTimeout(late); resolve(); }); });
+    const late = setTimeout(() => { ro.disconnect(); reject(new Error('the preview header never reported its size (#3005)')); }, 5000);
+    ro.observe(head);
+  }));
   // #2909: on the plugin's Components area the preview header draws no Inspect (Contrast is off Components), so there
   // the walk starts from the control after the mode control: the mode control's own Tab stop, then Tab out of it.
   if (await page.locator('[data-p3="inspect-open"]').isVisible()) await page.locator('[data-p3="inspect-open"]').focus();
