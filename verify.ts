@@ -1090,6 +1090,13 @@ export const GATES: Gate[] = [
     cmd: ['sh', 'tools/claude-md-freshness/mutations.sh'],
   },
   {
+    // #2981 — the test for the install script the browser jobs run. A stand-in install and lock in
+    // $TMPDIR: no browser, no network, no `after`.
+    id: 'install-chromium',
+    ciStep: 'The Chromium install script retries cleanly after a stall (#2981)',
+    cmd: ['bash', '.github/scripts/test-install-chromium.sh'],
+  },
+  {
     id: 'smoke',
     ciStep: 'Studio headless smoke suite (#775)',
     cmd: ws('@prism3/studio', 'test:smoke'),
