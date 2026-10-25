@@ -1674,7 +1674,8 @@ for (const host of ['web', 'figma']) {
         ok(rl.labels.length === ORDER.length && rl.labels.every(Boolean), `rail ${where}: every tile shows its label, at this width too (Q2909.16 A) (${JSON.stringify(rl.labels)})`);
         ok(rl.current === 'rail-theme' && hexOfRgb(rl.curBg) === RAIL_SELECTED[theme], `rail ${where}: Theme is the current area, its tile filled with the inset role (${RAIL_SELECTED[theme]}) (${rl.current}, ${rl.curBg})`);
         // Q2995.2 A (#2909): at the plugin's least height (420) the logo hides so every tile keeps its label; elsewhere it shows.
-        const logoWanted = h > 420;
+        // The web's rail (five tiles, Q2909.9 A) fits at 420 with its logo, so only the plugin's hides it there.
+        const logoWanted = h > 420 || web;
         ok(rl.mark.shown === logoWanted && rl.mark.role === 'img' && rl.mark.label === 'Prism3' && rl.mark.logoHidden && !rl.mark.control && rl.barMark === 0,
           `product mark ${where}: the rail's mark is the logo, named "Prism3", not a control, ${logoWanted ? 'drawn' : 'hidden at this height (Q2995.2 A)'}, and the top bar draws none (${JSON.stringify(rl.mark)}, ${rl.barMark} in the bar)`);
         // aria-current follows the area across clicks, and back.
@@ -2250,8 +2251,10 @@ const modeState = (page) => page.evaluate(() => ({
 }));
 for (const theme of ['light', 'dark']) {
   // On Surfaces & fills, a page that previews every mode: on Palettes the control is held (PM1 B, #2321; section 36).
-  const where = `web ${theme} 1280 / color-fills`;
-  const { ctx, page, errors } = await open({ host: 'web', theme, w: 1280, h: 900 });
+  // #2909 Q2909.9 A: beside the rail, with Contrast in it, the web's preview header shows the radios from about 1440 (at
+  // 1280 it shows the select of the same modes, the fit rule #2995 measured on the plugin), so the radios are read at 1600.
+  const where = `web ${theme} 1600 / color-fills`;
+  const { ctx, page, errors } = await open({ host: 'web', theme, w: 1600, h: 900 });
   await goPlace(page, 'color-fills');
   // #2321: the control is live here (only Palettes holds it). Held, every click below would wait on it and stop the run.
   const held0 = await modeHeld(page);
@@ -3538,7 +3541,10 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   // The mode does not move it. On Palettes the mode control is held (PM1 B, #2321): a click on Dark changes neither
   // the mode nor the preview's scroll.
   const before = await toBottom();
-  await page.locator('[data-p3="mode-option"][data-mode="dark"]').dispatchEvent('click');
+  // #2909 Q2909.9 A: at 1280 the web's header may show the select (Contrast beside the rail); a click reaches whichever
+  // the header draws, and a held select takes none, as the held radios do.
+  await page.evaluate(() => { const r = document.querySelector('[data-p3="mode-option"][data-mode="dark"]'); if (r?.getClientRects().length) r.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    else document.querySelector('[data-p3="mode-select"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
   const held = await page.evaluate(() => document.querySelector('[data-p3="mode-option"][aria-checked="true"]')?.dataset.mode);
   ok((await state('primary')).top === before && held === 'light', `Q4: a click on the held mode control changes neither the mode nor the preview's scroll (mode ${held}, scrollTop ${(await state('primary')).top}, was ${before})`);
   if (SHOTS) await page.screenshot({ path: join(SHOTS, 's2-q4-after-edit.png') });
@@ -8155,7 +8161,7 @@ for (const host of ['web', 'figma']) {
     // phase 2" holds their writes). The line names the value, and its link is all it offers.
     const csl = await page.evaluate(() => { const b = document.querySelector('[data-p3="levers-pane"] [data-p3="shape-control-shape"]');
       return b ? { readout: b.querySelector('.p3-readout')?.textContent ?? null, link: b.querySelector('[data-p3="shape-control-shape-link"]')?.textContent ?? null,
-        chips: document.querySelectorAll('[data-p3="levers-pane"] [data-p3^="control-shape-choice"]').length } : null; });
+        chips: document.querySelectorAll('[data-p3="levers-pane"] [data-p3^="control-shape-choice-"]').length } : null; });
     ok(!!csl && csl.readout === 'Rounded' && csl.chips === 0 && /Components/.test(csl.link ?? ''), `Q2909.4 A: Shape draws Control shape as a read-only line, "Rounded", whose link names Components, and no chips (${JSON.stringify(csl)})`);
     // Light: Base radius through its picker; its bytes noted, then undone.
     // (Field style's, Tag style's and Search field style's writes are the #2905 arm's, on Components: Q578, #2952.)
