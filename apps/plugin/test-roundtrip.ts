@@ -814,6 +814,46 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       `#2715 _accordion-indicator build: 12 members built with no misses, each one icon instance (chevron-down / chevron-up, plus / minus by expansion) in a frame bound to icon/size/xs, sm or md by size (${members.length} members, ${r.misses.length} misses, ${off.length} off — ${off[0] ?? r.misses[0] ?? 'none'})`);
   }
 
+  // #2878 — THE ACCORDION'S `indicator` REACHES ITS NESTED INDICATOR. Built the way the plugin builds it: the nested
+  // sets first, into the same file, then the Accordion, so each header instance is an instance of a REAL indicator
+  // member. Read off the host, per Accordion member: the one indicator instance its icon position shows, which member
+  // of `_accordion-indicator` it is, and the glyph that member draws. EXPECTED is the Accordion member's own name
+  // (`indicator=…`, `expansion=…`, `size=…`) and the glyph table typed here; a host axis that stops reaching the nested
+  // instance (the `follow` dropped) leaves every plus-minus member on a chevron, and this arm fails by name.
+  {
+    const def = componentDefs.find((d) => d.id === 'accordion')!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor([...plans, ...ALL_PLANS()]), comps: [SWAP_TARGET], liveRoot: true, page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await prebuildDependencies(def, { defs: componentDefs, project: (d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), host: shim as any, build: (d) => applyComponentPlan(figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }) });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    const r = await applyComponentPlan(plans, shim as any, {});
+    const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === 'accordion');
+    const members = (set?.children ?? []) as unknown as HostNode[];
+    const indicatorSet = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === '_accordion-indicator');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a walk over host nodes
+    const findByName = (n: any, name: string): any => (n?.name === name ? n : (n?.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+    const GLYPH: Record<string, string> = { 'chevron/collapsed': 'icon/chevron-down', 'chevron/expanded': 'icon/chevron-up', 'plus-minus/collapsed': 'icon/plus', 'plus-minus/expanded': 'icon/minus' };
+    const seg = (name: string): Record<string, string> => Object.fromEntries(name.split(', ').map((s) => s.split('=') as [string, string]));
+    const off: string[] = [];
+    const seen = new Set<string>();
+    for (const m of members) {
+      const c = seg(String(m.name));
+      const inst = findByName(m, c['icon position'] === 'trailing' ? 'trailingGlyph' : 'leadingGlyph');
+      const main = inst?.mainComponent as { name?: string; parent?: { name?: string } | null } | null | undefined;
+      const nested = seg(String(main?.name ?? ''));
+      // The glyph that member draws, off the indicator set built into this file (the instance's main names its member).
+      const drawn = (indicatorSet?.children ?? []).find((x) => x.name === main?.name) as { children?: { mainComponent?: { name?: string } }[] } | undefined;
+      const got = { set: main?.parent?.name, indicator: nested.indicator, expansion: nested.expansion, size: nested.size, glyph: drawn?.children?.[0]?.mainComponent?.name };
+      const want = { set: '_accordion-indicator', indicator: c.indicator, expansion: c.expansion, size: c.size, glyph: GLYPH[`${c.indicator}/${c.expansion}`] };
+      seen.add(`${c.indicator}/${c.expansion}`);
+      if (JSON.stringify(got) !== JSON.stringify(want)) off.push(`${String(m.name)}: ${JSON.stringify(got)} (want ${JSON.stringify(want)})`);
+    }
+    ok(r.misses.length === 0 && members.length === 48 && seen.size === 4 && off.length === 0,
+      `#2878 accordion indicator: on all 48 members the header's nested _accordion-indicator is the member at the Accordion's own indicator, expansion and size, drawing chevron-down / chevron-up / plus / minus (${members.length} members, ${seen.size} of 4 indicator × expansion pairs, ${r.misses.length} misses, ${off.length} off — ${off[0] ?? r.misses[0] ?? 'none'})`);
+  }
+
   // NON-VACUITY (docs/34) — the pre-fix state, reproduced explicitly: a built text node whose `textStyleId`
   // was detached (exactly what the shim's `paragraphSpacing`/`leadingTrim` setters model, and what shipped
   // before this fix) is reported by the SAME read-back, by name. Without this, a check that only ever sees the

@@ -399,14 +399,14 @@
     },
     "accordion": {
       "set": {
-        "members": 24,
-        "assignments": 36,
-        "sha256": "13a9516fa7461345d1e385d836c4992d2ff55f04750db9ee523f60dcceb0bd42"
+        "members": 48,
+        "assignments": 72,
+        "sha256": "79b4765acbe9f328fe56ff4839f67e29dded84fc669d75855e815d1e2c3bac95"
       },
       "grid": {
-        "members": 24,
-        "assignments": 36,
-        "sha256": "88cf8aa7fe0701bac67a5b532f21e05c004048e63d2eab9d163288cc68743b9b"
+        "members": 48,
+        "assignments": 72,
+        "sha256": "f15d8dcc89705f1668d26675318aa5a748fd1e3102c480b1f1e562af8bc409aa"
       }
     },
     "list-item": {

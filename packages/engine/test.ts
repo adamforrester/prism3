@@ -34631,9 +34631,9 @@ arm: {
 }
 
 // ------------------------------------------------------------------- #2417: the accordion and its indicator
-// Each owner decision held against a literal (Q182, Q183): the 24 members and their axes, start as the default
-// position, no hover, pressed or disabled member, the indicator a nested building block exposed on `indicator` and
-// following `expansion`, the panel a native slot present only when open with page ink and no top inset, the nested
+// Each owner decision held against a literal (Q182, Q183, #2878): the 48 members and their axes, start as the default
+// position, no hover, pressed or disabled member, the indicator a nested building block following the Accordion's
+// `indicator`, `expansion` and `size` (#2878 Q-block A, no longer exposed), the panel a native slot present only when open with page ink and no top inset, the nested
 // Divider stretched across the item with no width binding on its instance, and the 44px header floor at every size.
 // EXPECTED is typed here; ACTUAL is the projected plan, so a def that moved fails the arm by name.
 {
@@ -34645,8 +34645,8 @@ arm: {
   const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
   // The plan's own CODE coordinate (member names carry Figma display names, #2571: `icon position=leading`).
   const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
-  ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], iconPosition: ['leading', 'trailing'], size: ['medium', 'small', 'large'] }),
-    `#2417 accordion: 24 members, expansion × iconPosition × size [medium first, #2752 Q1 B] × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
+  ok(plans.length === 48 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], iconPosition: ['leading', 'trailing'], indicator: ['chevron', 'plus-minus'], size: ['medium', 'small', 'large'] }),
+    `#2417 accordion: 48 members, expansion × iconPosition × indicator [chevron first, #2878] × size [medium first, #2752 Q1 B] × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
   ok(JSON.stringify(acc.states) === JSON.stringify(['rest', 'focus-visible']) && JSON.stringify(acc.figmaProperties?.stateAxis?.values) === JSON.stringify(['rest', 'focus-visible']),
     `#2417 accordion: the states are rest and focus-visible only, with no hover (Q182), pressed or disabled (Q183) (got ${JSON.stringify(acc.states)})`);
   const pos = acc.props.find((p) => p.name === 'iconPosition');
@@ -34654,7 +34654,7 @@ arm: {
   // THE AXIS NAME (owner QA, 2026-10-12): `iconPosition`, never a bare `position`, which read as if it could be the
   // label's. In the def's variants, its Figma axes, its props and every member's name. The old name back fails here.
   const bare = /(^|, )position=/;
-  ok(!('position' in acc.variants) && JSON.stringify(acc.figmaProperties?.variantAxes) === JSON.stringify(['expansion', 'iconPosition', 'size']) && !acc.props.some((p) => p.name === 'position') && plans.every((p) => /(^|, )icon position=(leading|trailing)(,|$)/.test(planComponentName(p)) && !bare.test(planComponentName(p)) && !/iconPosition=/.test(planComponentName(p))),
+  ok(!('position' in acc.variants) && JSON.stringify(acc.figmaProperties?.variantAxes) === JSON.stringify(['expansion', 'iconPosition', 'indicator', 'size']) && !acc.props.some((p) => p.name === 'position') && plans.every((p) => /(^|, )icon position=(leading|trailing)(,|$)/.test(planComponentName(p)) && !bare.test(planComponentName(p)) && !/iconPosition=/.test(planComponentName(p))),
     `#2417 accordion iconPosition (owner QA, #2571): the code axis and prop are iconPosition, and every member's name carries its Figma name "icon position" (got ${JSON.stringify(Object.keys(acc.variants))}; ${planComponentName(plans[0])})`);
   // THE VALUE NAMES (Q242): `leading | trailing`, as Button names its visuals and Switch row its label position, in
   // the def, the prop, every member's name and the indicator parts' layer names. An old name back (`start` / `end`,
@@ -34666,8 +34666,8 @@ arm: {
   const glyphs = plans.map((p) => { const c = coord(p); const start = find(p.root as PN, 'leadingGlyph'), end = find(p.root as PN, 'trailingGlyph'); return { c, start, end }; });
   ok(glyphs.every(({ c, start, end }) => {
     const g = c.iconPosition === 'leading' ? start : end, other = c.iconPosition === 'leading' ? end : start;
-    return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && JSON.stringify(g.nestExpose) === JSON.stringify(['indicator']);
-  }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, exposing indicator and following the member's expansion and size (Q183)`);
+    return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.indicator === c.indicator && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && !g.nestExpose;
+  }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, following the member's indicator (#2878), expansion and size, and not exposed`);
   ok(plans.every((p) => { const c = coord(p); const panel = find(p.root as PN, 'content'); return c.expansion === 'expanded' ? panel?.type === 'CONTENT_SLOT' : !panel; }),
     `#2417 accordion panel: a native slot on every expanded member and on no collapsed one (Q182)`);
   const open = plans.find((p) => coord(p).expansion === 'expanded' && coord(p).size === 'medium')!;
@@ -34711,7 +34711,7 @@ arm: {
   // live: compensated, it covered it by 2px). The control offset back, or the compensation back, fails here by name.
   type PR = PN & { absoluteInset?: string; absoluteStrokeInset?: string };
   const rings = plans.filter((p) => coord(p).state === 'focus-visible').map((p) => find(p.root as PN, 'focusRing') as PR | undefined);
-  ok(acc.tokens['ring-offset'] === 'focus.ring.offset-field' && rings.length === 12 && rings.every((r) => r?.absoluteInset === 'focus/ring/offset-field' && r.absoluteStrokeInset === undefined),
+  ok(acc.tokens['ring-offset'] === 'focus.ring.offset-field' && rings.length === 24 && rings.every((r) => r?.absoluteInset === 'focus/ring/offset-field' && r.absoluteStrokeInset === undefined),
     `#2417 accordion focus ring (Q257): drawn inside the header's edge, focus.ring.offset-field and no stroke compensation on every focus-visible member (got ${acc.tokens['ring-offset']}; ${[...new Set(rings.map((r) => `${r?.absoluteInset} + ${r?.absoluteStrokeInset ?? 'no stroke'}`))].join(', ')})`);
   // `drawnInside` IS VALIDATED ON ITS OWN TERMS (#2417): never beside `strokeInset`, and only on an absolute part. Each
   // refusal is asserted by its own message, so switching one off fails its own arm.
@@ -34764,7 +34764,7 @@ arm: {
       }
     }
   }
-  ok(measured === 30 && off.length === 0,
+  ok(measured === 60 && off.length === 0,
     `#2417 accordion header (Q262): the glyph's row is top-aligned, and on a one- and a two-line title the glyph centers on line one, within 1px, at every size in every brand (${measured} measured${off.length ? `; OFF: ${off.join('; ')}` : ''})`);
   // A SINGLE LINE IS CENTERED IN THE HEADER (owner Q276 A, #2594): the header is top-aligned no more. It centers one
   // row holding the indicator and the title, so the 44px floor's slack falls evenly above and below the content
@@ -34796,7 +34796,7 @@ arm: {
       if (!(floor > 0 && Math.abs(mid - hh / 2) <= 0.5)) offC.push(`${b} ${size} ${side} (header ${header.counterAxisAlignItems} over [${flow.map((c) => c.name).join(', ')}]): content center ${mid.toFixed(2)} vs header middle ${(hh / 2).toFixed(2)} of ${hh.toFixed(2)}`);
     }
   }
-  ok(measuredC === 30 && offC.length === 0,
+  ok(measuredC === 60 && offC.length === 0,
     `#2594 accordion header (Q276): a single-line header's content is vertically centered, within 0.5px, at every size and icon position in every brand (${measuredC} measured${offC.length ? `; OFF: ${offC.join('; ')}` : ''})`);
   // THE FIGMA DISPLAY NAME OF A VARIANT AXIS (#2571): "icon position" in every member name, and in every key that
   // parses one, so the plugin's and the paste's layouts and footprint cohorts read the same string. Mutations: the

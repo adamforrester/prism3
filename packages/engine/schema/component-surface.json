@@ -611,8 +611,8 @@
       "properties": []
     },
     "accordion": {
-      "members": 24,
-      "sha256": "f7859ffb4db44a0e1b070fdd0e8916c74bd31b7189336a6b977b5ea15d46d13e",
+      "members": 48,
+      "sha256": "102b701a97137b8a9960df8aa95831690c4c4a52dcf18dc54f8107eb40573602",
       "properties": [
         "content:SLOT",
         "title:TEXT"

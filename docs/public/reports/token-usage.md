@@ -1009,7 +1009,7 @@ Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `label` | label | every member (24 of 24) |
+| accordion | `label` | label | every member (48 of 48) |
 | button-neutral | `outline.label`, `text.label` | label | appearance: outline, text · state: focus-visible, pending, rest · surface: default (108 of 576) |
 | pagination-item | `selected.page.label`, `unselected.next.label`, `unselected.page.label`, `unselected.previous.label` | label | labeled: false · state: focus-visible, rest · type: page (18 of 87) |
 |  |  | labelReserve | labeled: false · state: focus-visible, rest · type: page (18 of 87) |
@@ -1934,7 +1934,7 @@ Type: color. Bound by 20 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `body` | placeholder | expansion: expanded (12 of 24) |
+| accordion | `body` | placeholder | expansion: expanded (24 of 48) |
 | badge | `neutral.status.subtle.label`, `neutral.status.surface.label` | label | emphasis: subtle, surface · tone: neutral · type: status (4 of 40) |
 | banner | `body`, `label` | placeholder | every member (8 of 8) |
 |  |  | title | every member (8 of 8) |
@@ -2352,7 +2352,7 @@ Type: dimension. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `ring-offset` | focusRing | state: focus-visible (12 of 24) |
+| accordion | `ring-offset` | focusRing | state: focus-visible (24 of 48) |
 | code-input-cell | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (8 of 28) |
 | counter | `outline.ring-offset` | focusRing | appearance: outline · state: focus-visible (3 of 18) |
 | focus-ring | `offset.field` | (not drawn) | — |
@@ -2709,7 +2709,7 @@ Type: dimension. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.min-height` | header | size: large (8 of 24) |
+| accordion | `size.large.min-height` | header | size: large (16 of 48) |
 | button | `size.large.height` | container | size: large (192 of 576) |
 | button-destructive | `size.large.height` | container | size: large (192 of 576) |
 | button-neutral | `size.large.height` | container | size: large (192 of 576) |
@@ -2765,7 +2765,7 @@ Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.medium.min-height`, `size.small.min-height` | header | size: medium, small (16 of 24) |
+| accordion | `size.medium.min-height`, `size.small.min-height` | header | size: medium, small (32 of 48) |
 | password-field | `size.medium.height`, `size.small.height` | control | size: medium, small (56 of 84) |
 | search-field | `size.medium.height`, `size.small.height` | control | size: medium, small (56 of 84) |
 | select | `size.medium.min-height`, `size.small.min-height` | control | size: medium, small (56 of 84) |
@@ -2803,7 +2803,7 @@ Type: dimension. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.panel-pad-top`, `size.medium.panel-pad-top`, `size.small.panel-pad-top` | content | expansion: expanded (12 of 24) |
+| accordion | `size.large.panel-pad-top`, `size.medium.panel-pad-top`, `size.small.panel-pad-top` | content | expansion: expanded (24 of 48) |
 | badge | `size.medium.dot.pad-x`, `size.medium.dot.pad-y`, `size.small.dot.pad-x`, `size.small.dot.pad-y` | surface | emphasis: bold · size: medium · type: dot (5 of 40) |
 | button | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-destructive | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
@@ -2846,7 +2846,7 @@ Type: dimension. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.title-offset`, `size.medium.title-offset`, `size.small.title-offset` | titleBox | every member (24 of 24) |
+| accordion | `size.large.title-offset`, `size.medium.title-offset`, `size.small.title-offset` | titleBox | every member (48 of 48) |
 | badge | `size.medium.count.pad-y`, `size.small.count.pad-y`, `size.small.status.pad-y` | surface | type: count, status (20 of 40) |
 | tag | `size.small.dismissible.gap` | content | selection: unselected · size: small · type: dismissible (5 of 45) |
 
@@ -2906,8 +2906,8 @@ Type: dimension. Bound by 32 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.small.gap`, `size.small.pad-y` | header | size: small (8 of 24) |
-|  |  | titleRow | size: small (8 of 24) |
+| accordion | `size.small.gap`, `size.small.pad-y` | header | size: small (16 of 48) |
+|  |  | titleRow | size: small (16 of 48) |
 | badge | `size.medium.status.pad-y`, `size.small.status.pad-x` | surface | type: status (30 of 40) |
 | breadcrumb-item | `size.medium.gap` | container | size: medium (5 of 10) |
 | breadcrumbs | `size.medium.gap` | items | path: full · size: medium (2 of 6) |
@@ -2967,9 +2967,9 @@ Type: dimension. Bound by 16 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.medium.gap`, `size.medium.pad-y`, `size.small.pad-x`, `size.small.panel-pad-end` | content | expansion: expanded · size: small (4 of 24) |
-|  |  | header | size: medium, small (16 of 24) |
-|  |  | titleRow | size: medium (8 of 24) |
+| accordion | `size.medium.gap`, `size.medium.pad-y`, `size.small.pad-x`, `size.small.panel-pad-end` | content | expansion: expanded · size: small (8 of 48) |
+|  |  | header | size: medium, small (32 of 48) |
+|  |  | titleRow | size: medium (16 of 48) |
 | badge | `size.medium.status.pad-x` | surface | size: medium · type: status (15 of 40) |
 | banner | `actions-gap`, `gap` | actions | every member (8 of 8) |
 |  |  | container | every member (8 of 8) |
@@ -2996,9 +2996,9 @@ Type: dimension. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.gap`, `size.large.pad-y`, `size.medium.pad-x`, `size.medium.panel-pad-end` | content | expansion: expanded · size: medium (4 of 24) |
-|  |  | header | size: large, medium (16 of 24) |
-|  |  | titleRow | size: large (8 of 24) |
+| accordion | `size.large.gap`, `size.large.pad-y`, `size.medium.pad-x`, `size.medium.panel-pad-end` | content | expansion: expanded · size: medium (8 of 48) |
+|  |  | header | size: large, medium (32 of 48) |
+|  |  | titleRow | size: large (16 of 48) |
 | banner | `pad` | container | every member (8 of 8) |
 | button | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
 | button-destructive | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
@@ -3027,8 +3027,8 @@ Type: dimension. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.pad-x` | content | expansion: expanded · size: large (4 of 24) |
-|  |  | header | size: large (8 of 24) |
+| accordion | `size.large.pad-x` | content | expansion: expanded · size: large (8 of 48) |
+|  |  | header | size: large (16 of 48) |
 | list-item | `size.small.ordered.marker-column`, `size.small.unordered.marker-column` | markerBox | size: small · type: ordered, unordered (2 of 9) |
 | segmented-control-segment | `size.large.padding-x` | content | size: large (10 of 30) |
 | tab-item | `size.large.padding-x` | content | size: large (10 of 30) |
@@ -3039,7 +3039,7 @@ Type: dimension. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.panel-pad-end` | content | expansion: expanded · size: large (4 of 24) |
+| accordion | `size.large.panel-pad-end` | content | expansion: expanded · size: large (8 of 48) |
 | button | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
 | button-destructive | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
 | button-neutral | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
@@ -3076,7 +3076,7 @@ Type: typography. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.panel-type` | placeholder | expansion: expanded · size: large (4 of 24) |
+| accordion | `size.large.panel-type` | placeholder | expansion: expanded · size: large (8 of 48) |
 | checkbox-row | `size.large.text` | label | size: large (2 of 6) |
 | counter | `size.large.type` | value | size: large (6 of 18) |
 | link | `size.large.type.default.standalone.selected.focus-visible`, `size.large.type.default.standalone.selected.hover`, `size.large.type.default.standalone.selected.pressed`, `size.large.type.default.standalone.selected.rest`, `size.large.type.default.standalone.unselected.rest` | label | size: large · style: standalone · weight: default (10 of 144) |
@@ -3124,7 +3124,7 @@ Type: typography. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (4 of 24) |
+| accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (8 of 48) |
 | banner | `body-type` | placeholder | every member (8 of 8) |
 | breadcrumb-item | `size.medium.type` | current | kind: current · separator: chevron · size: medium (1 of 10) |
 | checkbox-row | `size.medium.text` | label | size: medium (2 of 6) |
@@ -3183,7 +3183,7 @@ Type: typography. Bound by 16 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.small.panel-type` | placeholder | expansion: expanded · size: small (4 of 24) |
+| accordion | `size.small.panel-type` | placeholder | expansion: expanded · size: small (8 of 48) |
 | breadcrumb-item | `size.small.type` | current | kind: current · separator: chevron · size: small (1 of 10) |
 | checkbox-row | `size.small.text` | label | size: small (2 of 6) |
 | counter | `size.small.type` | value | size: small (6 of 18) |
@@ -3294,7 +3294,7 @@ Type: typography. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.type` | label | size: large (8 of 24) |
+| accordion | `size.large.type` | label | size: large (16 of 48) |
 | button | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
 | button-destructive | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
 | button-neutral | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
@@ -3337,7 +3337,7 @@ Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.medium.type` | label | size: medium (8 of 24) |
+| accordion | `size.medium.type` | label | size: medium (16 of 48) |
 | banner | `title-type` | title | every member (8 of 8) |
 | button | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
 | button-destructive | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
@@ -3381,7 +3381,7 @@ Type: typography. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.small.type` | label | size: small (8 of 24) |
+| accordion | `size.small.type` | label | size: small (16 of 48) |
 | badge | `size.medium.type` | count | emphasis: bold · size: medium · type: count (5 of 40) |
 |  |  | label | size: medium · type: status (15 of 40) |
 | button | `size.small.filled.type`, `size.small.outline.type` | label | appearance: filled, outline · inset: default · size: small (96 of 576) |
@@ -3456,7 +3456,7 @@ Declared, not drawn: `color.border.focus`
 
 ### accordion
 
-18 token(s); 24 design-file member(s).
+18 token(s); 48 design-file member(s).
 
 `color.interactive.neutral.text.rest`, `color.text.primary`, `focus.ring.offset-field`, `size.lg.height`, `size.md.min-height`, `space.0`, `space.025`, `space.100`, `space.150`, `space.200`, `space.250`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
 

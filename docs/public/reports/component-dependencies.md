@@ -108,8 +108,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | _slider-thumb | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | divider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | accordion | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| accordion | leadingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
-| accordion | trailingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
+| accordion | leadingGlyph | nest | _accordion-indicator | nest-fixed | indicator=chevron, expansion=collapsed, size=medium | indicator, expansion, size | — |
+| accordion | trailingGlyph | nest | _accordion-indicator | nest-fixed | indicator=chevron, expansion=collapsed, size=medium | indicator, expansion, size | — |
 | banner | action | nest | button | nest-fixed | appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
 | banner | dismiss | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=default, state=rest | — | — |
 | breadcrumb-item | crumb | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest | size | state |

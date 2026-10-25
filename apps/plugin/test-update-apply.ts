@@ -96,7 +96,7 @@
  *                  def's `icon position`: every member renamed, every key and id the test captured kept (#2592).
  *                  Mutation: the ledger entries dropped → `display rename/position …`, `display rename/iconPosition …`.
  *   accordion pad-x/…  an Accordion built at the old large side padding (space/300, 24px) updates in place to the
- *                  def's 20px (space/250, Q338 A, #2726): the 8 large members updated, the 16 others current, every key
+ *                  def's 20px (space/250, Q338 A, #2726): the 16 large members updated, the 32 others current, every key
  *                  and id kept. Mutation: the def back at space.300 → `accordion pad-x/dry run`, `accordion pad-x/written`.
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
@@ -192,6 +192,7 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
+import type { ComponentDef } from '@prism3/engine/component-schema';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { adoptions, applyComponentPlan, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
@@ -741,7 +742,7 @@ for (const old of ['position', 'iconPosition']) {
   for (const m of membersOf(w.set())) m.name = String(m.name).replace('icon position=', `${old}=`);
   const before = identityOf(w.set());
   const n = before.members.size;
-  ok(n === 24 && [...before.members.keys()].every((k) => k.includes(`${old}=`)), `premise: the set holds ${n} members on ${old}`);
+  ok(n === 48 && [...before.members.keys()].every((k) => k.includes(`${old}=`)), `premise: the set holds ${n} members on ${old}`);
   const { pre, res } = await confirm(w, [{ def: 'accordion', plans: w.plans }]);
   const p = pre.sets[0];
   ok(!!p && !p.blockers.length && p.counts.rename === n && p.counts.add === 0 && p.counts.drop === 0 && previewLine(p).includes(`${n} to rename`),
@@ -899,23 +900,23 @@ section('accordion side padding — a file built at the old large 24px updates i
   });
   const old = await varIdOf(w, 'space/300'), next = await varIdOf(w, 'space/250');
   const large = (m: Node) => /(^|, )size=large(,|$)/.test(String(m.name));
-  ok(membersOf(w.set()).filter(large).length === 8 && membersOf(w.set()).filter(large).every((m) => sidesOf(m).every((id) => id === old)),
-    'premise: the 8 large members are padded at the sides by space/300, the old 24px');
+  ok(membersOf(w.set()).filter(large).length === 16 && membersOf(w.set()).filter(large).every((m) => sidesOf(m).every((id) => id === old)),
+    'premise: the 16 large members are padded at the sides by space/300, the old 24px');
   const before = identityOf(w.set());
   const plans = plansOf('accordion');
   const { pre, res } = await confirm(w, [{ def: 'accordion', plans }]);
   const p = pre.sets[0];
-  ok(!!p && !p.blockers.length && p.counts.update === 8 && p.counts.current === 16 && p.counts.add === 0 && p.counts.drop === 0,
-    `accordion pad-x/dry run: the 8 large members to update, the 16 small and medium current, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  ok(!!p && !p.blockers.length && p.counts.update === 16 && p.counts.current === 32 && p.counts.add === 0 && p.counts.drop === 0,
+    `accordion pad-x/dry run: the 16 large members to update, the 32 small and medium current, nothing added or dropped (${JSON.stringify(p?.counts)})`);
   const after = identityOf(w.set());
   const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
   const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
-  ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 24,
+  ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 48,
     `accordion pad-x/in place: every member and child keeps its key and id (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved)`);
   const wrong = membersOf(w.set()).filter((m) => !sidesOf(m).every((id) => (large(m) ? id === next : id !== old && !!id))).map((m) => String(m.name));
   ok(wrong.length === 0, `accordion pad-x/written: the large header and open panel now bind space/250 (20px) at both sides, and no member still binds space/300 there (${wrong.slice(0, 2).join('; ')})`);
   const post = (await previewUpdate(w.host, [{ def: 'accordion', plans }])).sets[0];
-  ok(post?.counts.current === 24, `accordion pad-x/current: every member reads current after (${JSON.stringify(post?.counts)})`);
+  ok(post?.counts.current === 48, `accordion pad-x/current: every member reads current after (${JSON.stringify(post?.counts)})`);
 }
 
 section('min/max — a member built under one Tag style and updated under the other has a fresh build\'s min and max sizes (#2976)');
@@ -3431,25 +3432,25 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   const w = await world(ACC, oldPlans);
   const header = (m: Node): Node => childNamed(m, 'header');
   const kids = (n: Node | undefined): string[] => ((n?.children as Node[] | undefined) ?? []).map((c) => String(c.name));
-  ok(membersOf(w.set()).length === 24 && membersOf(w.set()).every((m) => !childNamed(header(m), 'titleRow') && kids(header(m)).includes('titleBox') && header(m).counterAxisAlignItems === 'MIN'),
-    `premise: the file holds 24 members built before #2594, each header top-aligned and holding the title directly (${kids(header(membersOf(w.set())[0])).join(', ')}; ${String(header(membersOf(w.set())[0]).counterAxisAlignItems)})`);
+  ok(membersOf(w.set()).length === 48 && membersOf(w.set()).every((m) => !childNamed(header(m), 'titleRow') && kids(header(m)).includes('titleBox') && header(m).counterAxisAlignItems === 'MIN'),
+    `premise: the file holds 48 members built before #2594, each header top-aligned and holding the title directly (${kids(header(membersOf(w.set())[0])).join(', ')}; ${String(header(membersOf(w.set())[0]).counterAxisAlignItems)})`);
   const before = identityOf(w.set());
   const keptIds = (m: Node) => ({ header: String(header(m).id), divider: String(childNamed(m, 'divider')?.id) });
   const beforeKept = new Map(membersOf(w.set()).map((m) => [String(m.name), keptIds(m)] as const));
   const { pre, res } = await confirm(w, [{ def: ACC, plans: newPlans }]);
   const p = pre.sets[0];
-  ok(p.counts.update === 24 && p.counts.add === 0 && p.counts.drop === 0 && p.renames.length === 0 && !p.blockers.length && !p.replacements.length,
-    `acc/dry run: all 24 members read update, none added, dropped, renamed or replaced, and nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'}, ${p.replacements.length} replacements)`);
-  ok(p.changes.some((c) => c.part === 'header' && c.field === 'counterAxisAlignItems' && c.from === 'MIN' && c.to === 'CENTER' && c.members === 24) && p.changes.some((c) => c.part === 'header/titleRow' && c.field === 'children' && c.to === 'present'),
+  ok(p.counts.update === 48 && p.counts.add === 0 && p.counts.drop === 0 && p.renames.length === 0 && !p.blockers.length && !p.replacements.length,
+    `acc/dry run: all 48 members read update, none added, dropped, renamed or replaced, and nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'}, ${p.replacements.length} replacements)`);
+  ok(p.changes.some((c) => c.part === 'header' && c.field === 'counterAxisAlignItems' && c.from === 'MIN' && c.to === 'CENTER' && c.members === 48) && p.changes.some((c) => c.part === 'header/titleRow' && c.field === 'children' && c.to === 'present'),
     `acc/dry run: the header's centering and the added row are named differences (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.members])).slice(0, 240)})`);
   // THE MOVES, as the dry run lists them (#2595): the indicators and the title move into the row and are kept, never
   // listed as removed. Typed here from the def's anatomy (the leading or trailing indicator on half the members each,
-  // the title on all 24) and the issue's option A wording.
+  // the title on all 48) and the issue's option A wording.
   const lines = previewVerdict(pre).lines;
   const moveLines = ['header/leadingIndicator', 'header/titleBox', 'header/trailingIndicator'].map((part) => p.changes.find((c) => c.part === part));
-  ok(JSON.stringify(moveLines.map((c) => [c?.field, c?.to, c?.members])) === JSON.stringify([['moves into', 'header/titleRow', 12], ['moves into', 'header/titleRow', 24], ['moves into', 'header/titleRow', 12]])
-    && lines.includes('accordion · header/titleBox · moves into header/titleRow, kept (24 members).')
-    && lines.includes('accordion · header/leadingIndicator · moves into header/titleRow, kept (12 members).')
+  ok(JSON.stringify(moveLines.map((c) => [c?.field, c?.to, c?.members])) === JSON.stringify([['moves into', 'header/titleRow', 24], ['moves into', 'header/titleRow', 48], ['moves into', 'header/titleRow', 24]])
+    && lines.includes('accordion · header/titleBox · moves into header/titleRow, kept (48 members).')
+    && lines.includes('accordion · header/leadingIndicator · moves into header/titleRow, kept (24 members).')
     && !p.changes.some((c) => /removed/.test(c.to)),
     `acc/dry run moves: the indicators and the title are listed as moving into the row, kept, and nothing as removed (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.to, c.members]))})`);
   const v = applyVerdict(res);
@@ -3457,9 +3458,9 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   const after = identityOf(w.set());
   ok(JSON.stringify(after.set) === JSON.stringify(before.set), 'acc/set kept: the set keeps its key and id');
   const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
-  ok(moved.length === 0 && after.members.size === 24, `acc/members kept: all 24 members keep their keys and ids (${moved.join('; ') || 'none moved'})`);
+  ok(moved.length === 0 && after.members.size === 48, `acc/members kept: all 48 members keep their keys and ids (${moved.join('; ') || 'none moved'})`);
   const lostHost = membersOf(w.set()).filter((m) => JSON.stringify(keptIds(m)) !== JSON.stringify(beforeKept.get(String(m.name)))).map((m) => String(m.name));
-  ok(lostHost.length === 0, `acc/header kept: each member's header and Divider keep their node ids; the row is added inside the header in place (${lostHost.slice(0, 2).join('; ') || 'all 24'})`);
+  ok(lostHost.length === 0, `acc/header kept: each member's header and Divider keep their node ids; the row is added inside the header in place (${lostHost.slice(0, 2).join('; ') || 'all 48'})`);
   // The new structure, read off the shim's nodes: the header centers one row, and the row holds the indicator and
   // the title, top-aligned. Typed here from Q276 A.
   const shape = membersOf(w.set()).map((m) => {
@@ -3468,9 +3469,9 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
     const want = side === 'leadingIndicator' ? ['leadingIndicator', 'titleBox'] : ['titleBox', 'trailingIndicator'];
     return { m: String(m.name), ok: h.counterAxisAlignItems === 'CENTER' && !!row && row.counterAxisAlignItems === 'MIN' && JSON.stringify(kids(row)) === JSON.stringify(want) && !kids(h).includes('titleBox') && !kids(h).includes(side), got: `${String(h.counterAxisAlignItems)} [${kids(h).join(', ')}] / ${String(row?.counterAxisAlignItems)} [${kids(row).join(', ')}]` };
   });
-  ok(shape.every((x) => x.ok), `acc/structure: every header is centered and holds the row, which holds the indicator and the title top-aligned (${shape.filter((x) => !x.ok).slice(0, 2).map((x) => `${x.m}: ${x.got}`).join('; ') || 'all 24'})`);
+  ok(shape.every((x) => x.ok), `acc/structure: every header is centered and holds the row, which holds the indicator and the title top-aligned (${shape.filter((x) => !x.ok).slice(0, 2).map((x) => `${x.m}: ${x.got}`).join('; ') || 'all 48'})`);
   const post = (await previewUpdate(w.host, [{ def: ACC, plans: newPlans }])).sets[0];
-  ok(post.counts.current === 24 && post.handEdits.length === 0, `acc/current: the next dry run reads all 24 current (${JSON.stringify(post.counts)})`);
+  ok(post.counts.current === 48 && post.handEdits.length === 0, `acc/current: the next dry run reads all 48 current (${JSON.stringify(post.counts)})`);
   // MOVED, NOT REBUILT (#2595): the indicators and the title move into the row the update inserts, so every node in
   // them, their nested glyph instances included, keeps its id, now under the row. A placed instance's override on
   // them carries over. Read off the shim's nodes by id. Mutations: the executor offering a new frame no children
@@ -3482,7 +3483,7 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
     const underRow = new Set([...(after.members.get(name)?.kids ?? [])].filter(([path]) => /^header#0\/titleRow#\d+\//.test(path)).map(([, id]) => id));
     if (!was.length || !was.every(([, id]) => underRow.has(id))) lost.push(`${name}: ${was.filter(([, id]) => !underRow.has(id)).map(([path]) => path).slice(0, 2).join(', ') || 'nothing to move'}`);
   }
-  ok(lost.length === 0, `acc/moved children: the indicator and the title, and every node in them, keep their ids under the row (${lost.slice(0, 2).join('; ') || 'all 24'})`);
+  ok(lost.length === 0, `acc/moved children: the indicator and the title, and every node in them, keep their ids under the row (${lost.slice(0, 2).join('; ') || 'all 48'})`);
   // THE DRY RUN SAID SO: no node under a part the dry run listed as moving was removed. Counted off the shim's own
   // removals, by id.
   const movedIds = new Set([...before.members.values()].flatMap((b) => [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path)).map(([, id]) => id)));
@@ -3497,9 +3498,9 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   const rowIds = (m: Node): string => JSON.stringify([...idsUnder(childNamed(header(m), 'titleRow'))]);
   const beforeRow = new Map(membersOf(w.set()).map((m) => [String(m.name), rowIds(m)] as const));
   const again = await confirm(w, [{ def: ACC, plans: newPlans }]);
-  ok(again.pre.sets[0].counts.update === 24 && applyVerdict(again.res).ok, `acc/again: a revision bump reads all 24 out of date and updates them (${JSON.stringify(again.pre.sets[0].counts)}; ${applyVerdict(again.res).headline})`);
+  ok(again.pre.sets[0].counts.update === 48 && applyVerdict(again.res).ok, `acc/again: a revision bump reads all 48 out of date and updates them (${JSON.stringify(again.pre.sets[0].counts)}; ${applyVerdict(again.res).headline})`);
   const reRow = membersOf(w.set()).filter((m) => rowIds(m) !== beforeRow.get(String(m.name))).map((m) => String(m.name));
-  ok(reRow.length === 0, `acc/row adopted: a later update keeps the row and every node under it, by id, on every member (${reRow.slice(0, 2).join('; ') || 'all 24'})`);
+  ok(reRow.length === 0, `acc/row adopted: a later update keeps the row and every node under it, by id, on every member (${reRow.slice(0, 2).join('; ') || 'all 48'})`);
 }
 // A NODE A DESIGNER EDITED IS NOT MOVED (#2595): the move is decided before the hand-edit choice is made, so a node
 // with a hand edit at or under it is left out of the moves whatever the choice. The dry run lists it as removed on that
@@ -3531,15 +3532,15 @@ for (const edit of [
   const edits = p.handEdits.filter((h) => h.member === String(m.name)).map((h) => h.path);
   const move = p.changes.find((c) => c.part === 'header/titleBox' && c.field === 'moves into');
   const removed = p.changes.find((c) => c.part === 'header/titleBox' && /removed/.test(c.to));
-  ok(JSON.stringify(edits) === JSON.stringify([edit.path]) && move?.members === 23 && removed?.members === 1 && removed.sample[0] === String(m.name),
-    `acc/${edit.tag} dry run: with ${edit.path} edited, the title is listed as removed on its member, moved on the other 23 (${JSON.stringify(edits)}; moves ${move?.members}; removed ${removed?.members} on ${removed?.sample.join(', ')})`);
+  ok(JSON.stringify(edits) === JSON.stringify([edit.path]) && move?.members === 47 && removed?.members === 1 && removed.sample[0] === String(m.name),
+    `acc/${edit.tag} dry run: with ${edit.path} edited, the title is listed as removed on its member, moved on the other 47 (${JSON.stringify(edits)}; moves ${move?.members}; removed ${removed?.members} on ${removed?.sample.join(', ')})`);
   const res = await applyUpdate(w.host, w.api as any, [{ def: ACC, plans: plansOf(ACC) }], previewHashOf(pre), { choices: { handEdits: 'keep' } });
   void res;
   const row = (x: Node): Node | undefined => childNamed(childNamed(x, 'header'), 'titleRow');
   const nowBox = String(childNamed(row(m)!, 'titleBox')?.id);
   const kept = membersOf(w.set()).slice(1).map((x) => String(childNamed(row(x)!, 'titleBox')?.id));
   ok(nowBox !== boxId && (w.api._removed as Node[]).some((x) => String(x.id) === boxId) && JSON.stringify(kept) === JSON.stringify(others),
-    `acc/${edit.tag} agree: with ${edit.path} edited, the title is rebuilt in the row on its member, as the dry run listed it, and moved, by id, on the other 23 (${boxId} → ${nowBox}; ${kept.filter((id, i) => id !== others[i]).length} others changed)`);
+    `acc/${edit.tag} agree: with ${edit.path} edited, the title is rebuilt in the row on its member, as the dry run listed it, and moved, by id, on the other 47 (${boxId} → ${nowBox}; ${kept.filter((id, i) => id !== others[i]).length} others changed)`);
 }
 {
   // A MOVED NODE IS STILL COMPARED TO ITS PLAN (#2595 review): the dry run diffs each moved subtree at its new path,
@@ -3551,8 +3552,8 @@ for (const edit of [
   const p = (await previewUpdate(w.host, [{ def: ACC, plans: plansOf(ACC) }])).sets[0];
   const field = p.changes.filter((c) => c.part === 'header/titleRow/titleBox' && /paddingTop/.test(`${c.field} ${c.from} ${c.to}`));
   const move = p.changes.find((c) => c.part === 'header/titleBox' && c.field === 'moves into');
-  ok(field.length > 0 && field.reduce((a, c) => a + c.members, 0) === 24 && move?.members === 24,
-    `acc/moved diffed: the title's missing top padding is listed at its new path on all 24 members, beside its move (${JSON.stringify(field.map((c) => [c.field, c.from, c.to, c.members]))}; moves ${move?.members})`);
+  ok(field.length > 0 && field.reduce((a, c) => a + c.members, 0) === 48 && move?.members === 48,
+    `acc/moved diffed: the title's missing top padding is listed at its new path on all 48 members, beside its move (${JSON.stringify(field.map((c) => [c.field, c.from, c.to, c.members]))}; moves ${move?.members})`);
 }
 {
   // THE MOVE RULE ITSELF (#2595 review), on hand-built inputs whose answers are known in advance (docs/34). Each case
@@ -3682,12 +3683,12 @@ section('stretched mode — an axis the parent stretches: the verify and the dry
   outOfDate();
   const first = await confirm(w, [{ def: ACC, plans: w.plans }]);
   const modes = members.map((m) => `${sizeOf(m)}:${String(indicator(m).counterAxisSizingMode)}:${String(indicator(m).layoutAlign)}`);
-  ok(members.length === 24 && modes.filter((x) => x === 'small:AUTO:STRETCH').length === 8 && modes.filter((x) => /^(medium|large):FIXED:STRETCH$/.test(x)).length === 16,
+  ok(members.length === 48 && modes.filter((x) => x === 'small:AUTO:STRETCH').length === 16 && modes.filter((x) => /^(medium|large):FIXED:STRETCH$/.test(x)).length === 32,
     `premise: after the update the host holds the indicator FIXED at medium and large, AUTO at small, stretched at all three (${[...new Set(modes)].join(', ')})`);
   ok(JSON.stringify([...first.res.outcomes[0].content].sort()) === JSON.stringify(want),
     `stretch/verify: the apply's verify names the controls (a header, a titleRow, an open content) and no indicator (${JSON.stringify(first.res.outcomes[0].content.slice(0, 3))})`);
   const current = (await previewUpdate(w.host, [{ def: ACC, plans: w.plans }])).sets[0];
-  ok(current.counts.current === 24, `stretch/current: the next dry run reads all 24 current (${JSON.stringify(current.counts)})`);
+  ok(current.counts.current === 48, `stretch/current: the next dry run reads all 48 current (${JSON.stringify(current.counts)})`);
   // THE DRY RUN COMPARING: every member out of date, so it diffs each one against its plan, by the same predicate.
   outOfDate();
   const second = await confirm(w, [{ def: ACC, plans: w.plans }]);
@@ -4164,6 +4165,51 @@ section('published — on a set in a team library, what breaks consumer files is
     const lost = [...was.members].filter(([name, m]) => { const to = unsel(name); return !to || after.members.get(to)!.id !== m.id || after.members.get(to)!.key !== m.key; }).map(([n]) => n);
     ok(!res.refusedAll && after.members.size === 144 && lost.length === 0,
       `published/link current in place: applied, the 96 existing members become selection=unselected with their node id and key kept, so consumer instances stay linked (${after.members.size} members, ${lost.length} not kept — ${lost.slice(0, 2).join('; ') || 'none'})`);
+  }
+
+  // ACCORDION GAINS ITS `indicator` AXIS (#2878, Q-block A): a published Accordion built before the axis, its 24 members
+  // nesting `_accordion-indicator` with `indicator` EXPOSED (Q183), updated to the plan where the Accordion carries the
+  // axis and the nested instance follows it. `before` is projected from the pre-#2878 def, rebuilt here from the current
+  // one with the axis taken off and the nests put back to `nest-exposed`, so the old shape is typed, not read off the new
+  // plan. The update gives every existing member `indicator=chevron` in place and adds the 24 plus-minus members; nothing
+  // is dropped or replaced, no property is removed or retyped, so NOTHING breaks library consumers (#2839). Applied, each
+  // of the 24 keeps its node id and key, and its header's nested indicator keeps its node id, so a consumer's override of
+  // the nested indicator (a plus-minus picked through the old exposed property) stays on the instance.
+  {
+    const acc = componentDefs.find((x) => x.id === 'accordion')!;
+    const { indicator: _gone, ...oldVariants } = acc.variants;
+    const { indicator: _goneKind, ...oldKinds } = acc.axisKinds ?? {};
+    const exposed = { kind: 'nest-exposed' as const, variant: { indicator: 'chevron', expansion: 'collapsed', size: 'medium' }, expose: ['indicator'], follow: ['expansion', 'size'] };
+    const oldDef: ComponentDef = {
+      ...acc,
+      variants: oldVariants,
+      axisKinds: oldKinds,
+      figmaProperties: { ...acc.figmaProperties!, variantAxes: ['expansion', 'iconPosition', 'size'] },
+      anatomy: { ...acc.anatomy!, parts: { ...acc.anatomy!.parts, leadingGlyph: { ...acc.anatomy!.parts.leadingGlyph, nesting: exposed }, trailingGlyph: { ...acc.anatomy!.parts.trailingGlyph, nesting: exposed } } },
+    };
+    const before = figmaAnatomySet(oldDef, { swapTarget: SWAP_TARGET });
+    const next = plansOf('accordion');
+    const glyphOf = (p: AnatomyPlan): PlanNode | undefined => { const walk = (n: PlanNode): PlanNode | undefined => (n.name === 'leadingGlyph' || n.name === 'trailingGlyph' ? n : (n.children ?? []).map(walk).find(Boolean)); return walk(p.root); };
+    // The indicator set is in the file as a SET, so each header instance resolves to its member (#2738).
+    const indicatorSet = { name: '_accordion-indicator', variants: plansOf('_accordion-indicator').map(planComponentName) };
+    const w = await world('accordion', before, { fileSets: [indicatorSet], extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))] });
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const was = identityOf(w.set());
+    ok(before.length === 24 && next.length === 48 && [...was.members.keys()].every((n) => !n.includes('indicator=')) && before.every((p) => JSON.stringify(glyphOf(p)?.nestExpose) === '["indicator"]'),
+      `premise: a published Accordion of 24 members with no indicator axis, its nested indicator exposed, and a plan of 48 (${was.members.size} → ${next.length})`);
+    const { pre, res } = await confirm(w, [{ def: 'accordion', plans: next }]);
+    const p = pre.sets[0];
+    const added = p?.adds ?? [];
+    ok(p?.publish === 'CURRENT' && added.length === 24 && added.every((a) => a.includes('indicator=plus-minus'))
+      && p.drops.length === 0 && p.replacements.length === 0 && p.properties.remove.length === 0 && p.properties.retype.length === 0 && (p.breaking ?? []).length === 0,
+      `published/accordion indicator additive: the 24 plus-minus members are added, nothing is dropped, replaced, removed or retyped, and nothing breaks library consumers (adds ${added.length}, drops ${JSON.stringify(p?.drops.slice(0, 2))}, replaced ${JSON.stringify(p?.replacements.slice(0, 2))}, props removed ${JSON.stringify(p?.properties.remove)}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+    const after = identityOf(w.set());
+    const chev = (name: string): string | undefined => [...after.members.keys()].find((n) => n.includes('indicator=chevron')
+      && n.split(', ').filter((seg) => seg !== 'indicator=chevron').sort().join(', ') === name.split(', ').sort().join(', '));
+    const glyphId = (kids: Map<string, string>): string | undefined => [...kids].find(([path]) => /(leading|trailing)Glyph#\d+$/.test(path))?.[1];
+    const lost = [...was.members].filter(([name, m]) => { const to = chev(name); const a = to ? after.members.get(to)! : undefined; return !a || a.id !== m.id || a.key !== m.key || !glyphId(m.kids) || glyphId(a.kids) !== glyphId(m.kids); }).map(([n]) => n);
+    ok(!res.refusedAll && after.members.size === 48 && lost.length === 0,
+      `published/accordion indicator in place: applied, the 24 existing members become indicator=chevron with their node id and key kept, and each header's nested indicator keeps its node id, so consumer instances and their indicator overrides stay (${after.members.size} members, ${lost.length} not kept — ${lost.slice(0, 2).join('; ') || 'none'})`);
   }
 }
 

@@ -5,12 +5,10 @@
  * ── THE BUILDING-BLOCK SHAPE (owner decision Q183, 2026-10-10, #2417) ──────────────────────────────────
  *
  * The four glyphs (chevron down and up, plus and minus) live in this one subcomponent, nested in the Accordion's
- * header, rather than in an `indicator` axis on the Accordion itself. The Accordion's members nest it at their own
- * `expansion` (`follow`), so a collapsed member shows down or plus and an expanded one up or minus. The `indicator`
- * axis is EXPOSED on the nested instance: a designer picks chevron or plus-minus once, on the Accordion instance,
- * and the choice survives switching the Accordion's expansion. Measured on a real host before this was built
- * (the owner asked for that check, as the premise of the shape): an exposed nested override of `indicator` held
- * across an expansion switch both ways, Figma swapping the nested instance to the matching member each time.
+ * header. The Accordion's members nest it at their own `indicator`, `expansion` and `size` (`follow`), so a collapsed
+ * member shows down or plus and an expanded one up or minus. Q183 first EXPOSED `indicator` on the nested instance
+ * instead of giving the Accordion the axis; #2878 (Q-block A) moved the choice onto the Accordion as its own variant
+ * axis, because a designer on a published library had to find the nested glyph inside each accordion to change it.
  *
  * ── THE `_` NAME ──────────────────────────────────────────────────────────────────────────────────────────────
  *
@@ -137,11 +135,8 @@ export const accordionIndicator: ComponentDef = {
 
   notes: {
     contested: [
-      'THE BUILDING-BLOCK SHAPE (owner Q183): four glyphs in one subcomponent, its `indicator` exposed on the Accordion, instead of an `indicator` axis on the Accordion (which would double its set). The name `_accordion-indicator` is the owner\'s; `Accordion.Indicator` as the display name is approved (Q241).',
+      'THE BUILDING-BLOCK SHAPE (owner Q183): four glyphs in one subcomponent. Its `indicator` was exposed on the Accordion until #2878 (Q-block A) made it an Accordion axis the nested instance follows, doubling the Accordion to 48 members. The name `_accordion-indicator` is the owner\'s; `Accordion.Indicator` as the display name is approved (Q241).',
       'THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control\'s, `icon.size.xs`, `sm`, `md` (16/20/24px). The first set, 20/24/32px, as Tab and Tag mapped theirs until #2725, read too large on the live build.',
-    ],
-    unverified: [
-      'That a designer\'s plus-minus choice survives a switch of the Accordion\'s ICON POSITION (leading to trailing). The leading and trailing indicators are two parts, so the exposed override sits on two different nested instances; an expansion switch keeps it (measured), a position switch is expected to drop it.',
     ],
   },
 };
