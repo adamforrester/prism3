@@ -187,6 +187,10 @@ const chk = (await ask({ type: 'update-check-request', defs: ['badge'] }, 'updat
 const cb = chk?.sets?.find((c: any) => c.def === 'badge');
 ok(!!cb && typeof chk.previewHash === 'string' && chk.previewHash.length > 0 && cb.members > 0 && typeof cb.hash === 'string',
   `update-check: the scoped check reads Badge alone and returns its hash (${JSON.stringify(chk)})`);
+// The check reads the sets it is asked for, never the file's: one the file lacks is answered as missing, by name.
+const chk2 = (await ask({ type: 'update-check-request', defs: ['badge', 'button'] }, 'update-check'))[0];
+ok(JSON.stringify(chk2?.missing) === JSON.stringify(['button']) && chk2?.sets?.length === 1,
+  `update-check: the check reads the sets asked for, and names one the file lacks as missing (${JSON.stringify({ missing: chk2?.missing, sets: chk2?.sets?.length })})`);
 
 // 1b. #2598: a file with no `_Label` is told so, in the verdict the build posts and in the Update's summary. The
 //     expected line is typed here, from the issue; the actual is what `main.ts` posted. This host has no `_Label`
