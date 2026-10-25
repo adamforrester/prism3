@@ -2,7 +2,8 @@
  * Shape, the levers panel (UI redesign S7; concept v6's Shape page, with the owner's names, E2).
  *
  * WHAT IT DRAWS: the intro; **Density** (three chips, then the way to Components, where padding is set);
- * **Radius** (the radius softness slider over the manifest's named stops, then the four Control shape chips); behind
+ * **Radius** (the radius softness slider over the manifest's named stops, then Control shape's read-only line: its one
+ * home is Components' shared block since #2909 Q2909.4 A, and the line's link opens it, `ui/home-line.ts`); behind
  * the page's Show advanced (Q69: the manifest flags it advanced), **Base radius** (a value picker over 2 to 12px,
  * Q65's control, owner decision D15); last, the way on to Depth & motion. The retired "Hairline radius" switch is gone
  * with the legacy page: the engine always emits `radius.hairline` (#2053), so there is nothing to switch.
@@ -30,13 +31,14 @@
  */
 import { brandState, currentMode, getPath, lastError, searchQuery, setPage, setSearchHits, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { brandBaseMd, brandControlShape, densityIn, radiusScaleIn, setBaseMd, setControlShape, setDensity, setRadiusScale } from '../state/shape-input';
-import type { ControlShape, Density } from '@prism3/engine/scale';
+import { brandBaseMd, brandControlShape, densityIn, radiusScaleIn, setBaseMd, setDensity, setRadiusScale } from '../state/shape-input';
+import type { Density } from '@prism3/engine/scale';
 import { DOMAINS, pageOfTab, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
 import { choice, leverBlock, leverOf, promoteLever, slider, sliderReadout, stateLine, subLine, type LeverBlock, keepFocus, pageEdit, filterLevers } from '../ui/lever-kit';
 import { valuePicker } from '../ui/value-picker';
+import { homeLine } from '../ui/home-line';
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'shape') as PageData;
@@ -62,6 +64,8 @@ export const SHAPE_COPY = {
   baseLabel: 'Base radius',
   baseTip: 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.',
   baseHint: 'The medium radius at standard softness. The other sizes scale from it.',
+  /** #2909 Q2909.4 A: Control shape's line. DRAFT placeholder (Q2909.10 A). */
+  shapeLink: 'Set it in Components',
 } as const;
 /** The base radius values the picker offers: the manifest's own range and step. */
 const baseValues = (): number[] => {
@@ -156,14 +160,14 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     const stops = Object.keys(L.stops ?? {});
     return { el: b.el, said: `${b.said} ${stops.join(' ')}`.toLowerCase(), key: 'radiusScale', block: b };
   };
-  const controlShape = (): Item => {
+  /** Control shape's read-only line (#2909 Q2909.4 A): its name and value, and the way to its home in Components. */
+  const controlShapeLine = (): Item => {
     const L = leverOf('controlShape');
-    const b = leverBlock('controlShape', { group: true, desc: SHAPE_COPY.shapeTip });
-    const opts = (L?.options ?? []).map((o) => ({ v: String(o.value) as ControlShape, l: o.label }));
-    const c = choice(L?.label ?? 'Control shape', 'control-shape-choice', opts, (v) => edit('controlShape', () => setControlShape(v)));
-    c.set(brandControlShape());
-    b.ctl.append(c.el);
-    return { el: b.el, said: `${b.said} ${opts.map((o) => o.l).join(' ')}`.toLowerCase(), key: 'controlShape', block: b };
+    const v = brandControlShape();
+    const label = L?.label ?? 'Control shape';
+    const value = (L?.options ?? []).find((o) => String(o.value) === v)?.label ?? v;
+    const el = homeLine({ role: 'shape-control-shape', label, value, link: SHAPE_COPY.shapeLink, go: () => setPage(pageOfTab('components')) });
+    return { el, said: `${label} ${value} controlShape`.toLowerCase(), key: 'controlShapeLink' };
   };
 
   // ── Base radius (advanced) ──────────────────────────────────────────────────────────────────────
@@ -207,11 +211,17 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
   };
   /** Each lever key the page data places, drawn by its builder. A key with no builder draws nothing, and
    *  `test:chrome`'s rendered coverage then fails it by name. */
-  const BUILDERS: Record<string, () => Item> = { density, radiusScale: softness, controlShape, baseMd: baseRadius };
+  const BUILDERS: Record<string, () => Item> = { density, radiusScale: softness, baseMd: baseRadius };
+  /** The rows that draw a lever homed elsewhere, by their `ctl`. */
+  const LINES: Record<string, () => Item> = { controlShapeLink: controlShapeLine };
   const section = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {
     const el = sectionShell(s, i);
     const out: Item[] = [];
-    for (const r of s.rows) for (const k of r.keys ?? []) { const b = BUILDERS[k]; if (!b) continue; const it = b(); el.append(it.el); out.push(it); }
+    for (const r of s.rows) {
+      const line = LINES[r.ctl];
+      if (line) { const it = line(); el.append(it.el); out.push(it); continue; }
+      for (const k of r.keys ?? []) { const b = BUILDERS[k]; if (!b) continue; const it = b(); el.append(it.el); out.push(it); }
+    }
     // BG1 A: a lever named as its section (Density, Base radius) says its name once, in the section's title.
     for (const it of out) if (it.block && it.block.label === s.title) promoteLever(el, it.block);
     return { el, items: out };

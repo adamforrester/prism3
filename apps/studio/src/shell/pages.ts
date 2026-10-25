@@ -91,6 +91,8 @@ export const SEARCH_DESC = 'How Search field draws its edge, apart from the othe
 export const TAG_DESC = 'How tags draw their shape.';
 // #2958: DRAFT for the owner (Q1 on #2958), in Tag's pattern.
 export const DIALOG_DESC = 'How dialogs size their title.';
+// #2909 Q2909.4 A: DRAFT for the owner (Q2909.10 A), after the round-4 wireframe's block.
+export const SHARED_DESC = 'Settings every component family follows. Density is set in Theme.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
 
 /** Which host a legacy page list applies to. Components mapped to a different legacy page per host until S8.2 (§4). */
@@ -297,7 +299,9 @@ export const DOMAINS = [
     id: 'shape', label: 'Shape', home: 'shape', intro: 'Control heights and corners. Padding is set per component.',
     sections: [
       { title: 'Density', desc: DENSITY_DESC, rows: [{ ctl: 'chips', keys: ['density'], drive: 'size' }] },
-      { title: 'Radius', desc: RADIUS_DESC, rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'chips', keys: ['controlShape'], drive: 'shape' }] },
+      // #2909 Q2909.4 A: Control shape writes no token, only component geometry, so its one home is Components' shared
+      // block; here it is a read-only line under Radius whose link opens it.
+      { title: 'Radius', desc: RADIUS_DESC, rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'controlShapeLink' }] },
       { title: 'Base radius', desc: BASE_RADIUS_DESC, advanced: true, rows: [{ ctl: 'valuePicker', keys: ['baseMd'], drive: 'radius' }] },
     ],
     // S7: moved. Its levers are `domains/shape.ts`, its preview `preview/shape.ts`.
@@ -341,13 +345,20 @@ export const DOMAINS = [
     // Tag's in the Tag section's (#2905, #2952), the sets by the list.
     id: 'components', label: 'Components', home: 'comps', intro: 'The component sets the engine defines, in families. A build places each on its page in this file.',
     sections: [
+      // #2909 Q2909.4 A (v2's lever-home table): the shared block, first. Control shape's one home; Density shows as its
+      // read-only line, its home Theme › Shape (`domains/shared-options.ts`).
+      { title: 'Shared by every component', desc: SHARED_DESC, rows: [{ ctl: 'densityLink' }, { ctl: 'chips', keys: ['controlShape'], drive: 'shape' }] },
       {
         title: 'Button', desc: BUTTON_DESC, rows: [
           { ctl: 'densityLink' },
           { ctl: 'enum', keys: ['buttonIcons'], drive: 'button' },
           { ctl: 'enum', keys: ['buttonContentSize'], drive: 'button' },
           { ctl: 'enum', keys: ['buttonLabelWeight'], drive: 'button' },
+          // #2909 Q2909.4 A: the weights' read-only line (their home Theme › Type), under Control label weight.
+          { ctl: 'weightsLink' },
           { ctl: 'enum', keys: ['buttonTextHover'], drive: 'button' },
+          // #2909 Q2909.4 A: Outline hover's read-only line (its home Theme › Color › Interactive).
+          { ctl: 'outlineLink' },
           { ctl: 'slider', keys: ['buttonMinWidthMultiplier'], drive: 'button' },
         ],
       },

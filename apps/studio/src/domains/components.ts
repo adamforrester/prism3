@@ -59,13 +59,14 @@ import { glyph, h, hook, pendingLabel, setBusy } from '../shell/dom';
 import { stateLine } from '../ui/lever-kit';
 import { SETS_COPY } from '../preview/sections/component-sets';
 import type { PageLends } from '../preview/brand';
-import { BUTTON_DESC } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { mountButtonOptions, BUTTON_OPTIONS_COPY } from './button-options';
 import { mountFieldOptions, FIELD_OPTIONS_COPY } from './field-options';
 import { mountSearchOptions, SEARCH_OPTIONS_COPY } from './search-options';
 import { mountTagOptions, TAG_OPTIONS_COPY } from './tag-options';
 import { mountDialogOptions, DIALOG_OPTIONS_COPY } from './dialog-options';
+import { mountSharedOptions } from './shared-options';
+import { BUTTON_DESC, DOMAINS, SHARED_DESC, type PageData } from '../shell/pages';
 
 /** Each settings block (#2905): its hook prefix, its title and description (Q10 A: wireframe v2's words), and its
  *  builder. Which blocks a section draws, and in what order, is `SECTION_BLOCKS` (#2952: Fields draws two). */
@@ -306,6 +307,24 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     return el;
   };
 
+  /** #2909 Q2909.4 A: the shared block, first in the list: Density's read-only line and Control shape, mounted once and
+   *  moved, not rebuilt, when the list redraws, as the settings blocks are. Its title is the page data's. */
+  const SHARED = (DOMAINS.find((d) => d.id === 'components') as PageData).sections.find((x) => x.rows.some((r) => r.keys?.includes('controlShape')))!;
+  const shared = hook(h('section', 'p3-lsec p3-cp-sec'), 'cp-shared');
+  {
+    const head = hook(h('div', 'p3-cp-sec-head'), 'cp-section-head');
+    const t = hook(h('h2', 'p3-lsec-title p3-cp-title', SHARED.title), 'cp-section-title');
+    t.dataset.name = SHARED.title;
+    head.append(t);
+    const body = h('div', 'p3-cp-opts');
+    const own: (() => void)[] = [];
+    mountSharedOptions(body, own, modeLabel);
+    cleanups.push(() => { for (const fn of own) fn(); });
+    shared.append(head, h('p', 'p3-lsec-desc', SHARED_DESC), body);
+  }
+  /** Under a search the shared block stays only while its words hold the query. */
+  const sharedMatches = (q: string): boolean => !q || (shared.textContent ?? '').toLowerCase().includes(q.toLowerCase());
+
   /** The blocks this draw placed (a search can hide a section's rows, and its blocks with them). */
   const shownHere = new Set<BlockKey>();
   const paintList = (): void => {
@@ -323,6 +342,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     } else {
       parts.push(hook(h('p', 'p3-intro', GROUPS_COPY.intro(catalog.length)), 'components-intro'));
       let hits = 0;
+      if (sharedMatches(q)) { parts.push(shared); if (q) hits++; }
       // Q2909.17 A: the sections under their tiers, each tier a group named by its caption. The caption is not a heading:
       // the list's three heading levels are its sections, their settings and those settings' levers (TY2 A).
       const empty: string[] = [];
