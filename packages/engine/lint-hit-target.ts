@@ -48,6 +48,12 @@
  * 44×44. FLUSH_SIZES and FLUSH_SMALL_SIZES are checked against each def's own `size` axis, so a new size cannot
  * arrive unscoped, and against literals below (#2443), so widening or narrowing either fails by name.
  *
+ * THE UNDERLINE TAG (#2947). Every arm above reads a def as authored, which for Tag is the pill. Under the brand's
+ * `tagStyle: underline` the tag hugs its content (owner Q585 A): 20 / 26 / 32px, its × slot only as wide as its glyph,
+ * and the 24px target (WCAG 2.5.8) moves to code, as Link's does. An arm materializes it through `applyTagStyle`, walks
+ * each member's plan to the box it draws at every density, and holds each size, body and × slot apart, to 24px as
+ * drawn or to a size `UNDERLINE_CODE_SIDE` names, both ways, with the named sizes stated in `codeOnly` by literal phrases.
+ *
  * `select` binds `size.md.min-height` = `max(size.md.height, 44)` (#1426/#1437); the field/row family
  * otherwise binds the size rung directly, which is 44px at the comfortable `md` and 56px at the spacious
  * `md`, so a control at its default size clears the floor on both densities.
@@ -99,7 +105,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { componentDefs } from './components/index';
 import type { ComponentDef } from './component-schema';
-import { figmaAnatomySet, planComponentName } from './anatomy-figma';
+import { figmaAnatomySet, figmaAnatomyPlan, planComponentName, applyTagStyle, applySpacingDensity } from './anatomy-figma';
 import { buildTree } from './tree';
 import { brandTheme } from './theme';
 import { parseDesignMd } from './design-md';
@@ -766,6 +772,94 @@ if (compactMdPx === undefined) {
   const bad = violation(compactMdPx, 'exception');
   rows.push(`compact density → ${compactMdPath} = ${compactMdPx}px [PERMANENT exception: compact density, exempt from the floor]${bad ? '  ✗' : ''}`);
   if (bad) failures.push(`compact density: the default button measures ${compactMdPx}px >= ${FLOOR_PX} — compact no longer runs below the floor, so the compact-density exception is stale and should be reconsidered.`);
+}
+
+// ── THE UNDERLINE TAG (#2947): the box the brand-level `tagStyle: underline` builds, against the 24px minimum ──
+// Every arm above reads a def as authored, which for Tag is the pill. `applyTagStyle(def, 'underline')` builds a tag
+// that hugs its content (owner Q585 A, #2945): 20 / 26 / 32px tall, its × slot only as wide as its glyph and no longer
+// `innerTarget`, the 24px target moved to code as Link's is. So this arm materializes the underline tag at each
+// density, walks each member's plan to the height it draws (and the × slot's width and height), and holds each size
+// to WCAG 2.5.8's 24px either AS DRAWN or through a named code-side entry, both ways: a size under 24px that
+// UNDERLINE_CODE_SIDE does not name fails, and a named size that now clears 24px is a stale entry. A named size's
+// `codeOnly` must state it in one entry, by the phrases below. EXPECTED is literals here: the 24px floor and the
+// sizes the owner's decision puts in code (Q585 A, `tag.ts` codeOnly "The hit-target expansion, Underline"), never
+// read off the def or the materializer (docs/34 shape 1). ACTUAL is the plan walk below, a second derivation of the
+// hug height from the bound tokens: it shares nothing with `applyTagStyle` but the plan it reads.
+const MIN_TARGET_PX = 24;
+const UNDERLINE_SIZES = ['small', 'medium', 'large'];
+/** The sizes whose underline box is below 24px by decision, each with the code-side phrases its `codeOnly` states. */
+const UNDERLINE_CODE_SIDE: Record<'tag' | 'slot', { sizes: string[]; rule: RegExp[] }> = {
+  // The tag body: a small tag (20px) only. Medium (26) and large (32) clear 24px as drawn.
+  tag: { sizes: ['small'], rule: [/hit-target expansion, Underline/, /a small tag, 20px/, /reaches 24px/] },
+  // The × slot, as wide as its glyph: 16 and 20px at small and medium; large (24) clears as drawn.
+  slot: { sizes: ['small', 'medium'], rule: [/hit-target expansion, Underline/, /× slot is only as wide as its glyph/, /reaches 24px on both axes/] },
+};
+type PlanBox = { name: string; type?: string; layoutMode?: string; textStyle?: string; bound?: Record<string, string>; children?: PlanBox[] };
+/** The height a plan node draws, in px: a bound height, else the hug of its children on its own layout axis plus its
+ *  block padding and floor. A TEXT node is its text style's line box. Pure over a px lookup, so the self-check can drive it. */
+const drawnHeight = (n: PlanBox, px: (name: string) => number): number => {
+  const b = n.bound ?? {};
+  if (b.height) return px(b.height);
+  if (n.type === 'TEXT') { const [group, rung] = (n.textStyle ?? '').split('/'); return group && rung ? px(`type/${group}/${rung}/line-box`) : NaN; }
+  const kids = (n.children ?? []).map((c) => drawnHeight(c, px));
+  const along = n.layoutMode === 'VERTICAL'
+    ? kids.reduce((a, h) => a + h, 0) + (b.itemSpacing ? px(b.itemSpacing) : 0) * Math.max(kids.length - 1, 0)
+    : Math.max(0, ...kids);
+  const pad = (b.paddingTop ? px(b.paddingTop) : 0) + (b.paddingBottom ? px(b.paddingBottom) : 0);
+  return Math.max(along + pad, b.minHeight ? px(b.minHeight) : 0);
+};
+{
+  const SELF: Array<{ why: string; node: PlanBox; want: number }> = [
+    { why: 'a bound height wins', node: { name: 'a', bound: { height: 'h/20' }, children: [{ name: 'b', bound: { height: 'h/40' } }] }, want: 20 },
+    { why: 'a horizontal row hugs its tallest child plus its block padding', node: { name: 'a', layoutMode: 'HORIZONTAL', bound: { paddingBottom: 'h/4' }, children: [{ name: 'b', bound: { height: 'h/16' } }, { name: 't', type: 'TEXT', textStyle: 'label/sm/x' }] }, want: 22 },
+    { why: 'a floor above the content wins', node: { name: 'a', layoutMode: 'HORIZONTAL', bound: { minHeight: 'h/30' }, children: [{ name: 'b', bound: { height: 'h/16' } }] }, want: 30 },
+  ];
+  const fake = (name: string): number => (name === 'type/label/sm/line-box' ? 18 : Number(name.split('/').pop()));
+  for (const c of SELF) if (drawnHeight(c.node, fake) !== c.want) failures.push(`drawnHeight self-check, ${c.why}: got ${drawnHeight(c.node, fake)}, want ${c.want}.`);
+  for (const [what, cs] of Object.entries(UNDERLINE_CODE_SIDE)) {
+    if (ruleGap([], cs.rule).length === 0) failures.push(`UNDERLINE_CODE_SIDE.${what}: an empty codeOnly states the rule — the phrase check cannot fail.`);
+  }
+}
+{
+  const tag = componentDefs.find((d) => d.id === 'tag');
+  const sizes = tag?.variants?.size as string[] | undefined;
+  if (!tag || !sizes) failures.push(`the underline Tag arm (#2947) found no tag def with a size axis — it measures nothing.`);
+  else {
+    if ([...sizes].sort().join() !== [...UNDERLINE_SIZES].sort().join()) failures.push(`tag: its size axis is [${sizes.join(', ')}], and the underline arm (#2947) holds [${UNDERLINE_SIZES.join(', ')}] — a size arrived or left unscoped.`);
+    const under = applyTagStyle(tag, 'underline');
+    if (under === tag) failures.push(`tag: applyTagStyle(tag, 'underline') returns the pill unchanged, so the underline arm (#2947) measures the pill.`);
+    const members = [['select', 'unselected'], ['select', 'selected'], ['dismissible', 'unselected']];
+    const minAt: Record<'tag' | 'slot', Record<string, { px: number; at: string }>> = { tag: {}, slot: {} };
+    for (const b of [...floorBuilds, compactBuild]) {
+      const px = (name: string): number => resolvePx(b.tree, b.root, name.replace(/\//g, '.')) ?? NaN;
+      const def = applySpacingDensity(under, b.density);
+      for (const size of UNDERLINE_SIZES) for (const [type, selection] of members) {
+        const plan = figmaAnatomyPlan(def, size, { type, selection, state: 'rest' } as never);
+        const at = `${b.density} ${type} ${selection}`;
+        const root = plan.root as unknown as PlanBox;
+        const keep = (what: 'tag' | 'slot', v: number) => { if (!(minAt[what][size]?.px <= v)) minAt[what][size] = { px: v, at }; };
+        keep('tag', drawnHeight(root, px));
+        const slot = type === 'dismissible' ? (root.children ?? []).find((c) => c.name === 'dismiss') : undefined;
+        if (type === 'dismissible' && !slot) failures.push(`tag/underline/${size} @ ${at}: no 'dismiss' slot in the plan — the × slot cannot be measured.`);
+        if (slot) keep('slot', Math.min(slot.bound?.width ? px(slot.bound.width) : NaN, drawnHeight(slot, px)));
+      }
+    }
+    const codeOnly = tag.anatomy?.codeOnly ?? [];
+    for (const what of ['tag', 'slot'] as const) {
+      const cs = UNDERLINE_CODE_SIDE[what];
+      for (const size of UNDERLINE_SIZES) {
+        const m = minAt[what][size];
+        const label = `tag/underline/${size} ${what === 'tag' ? 'box' : '× slot'}`;
+        if (!m || !Number.isFinite(m.px)) { failures.push(`${label}: does not resolve to px — a bound token moved, so the underline arm (#2947) measures nothing.`); continue; }
+        const named = cs.sizes.includes(size);
+        rows.push(`${label} = ${m.px}px (min over every density, at ${m.at}) [${named ? `below ${MIN_TARGET_PX}px; code-side hit area, Q585 A` : `≥ ${MIN_TARGET_PX}px as drawn`}]`);
+        if (!named && m.px < MIN_TARGET_PX) failures.push(`${label} is ${m.px}px at ${m.at}, below the ${MIN_TARGET_PX}px minimum (WCAG 2.5.8), and UNDERLINE_CODE_SIDE.${what} does not name ${size} — a sub-24px underline box with no code-side target is a target nobody owns. Name it and state it in codeOnly, or grow the box.`);
+        if (named && m.px >= MIN_TARGET_PX) failures.push(`${label} is ${m.px}px at ${m.at}, which clears ${MIN_TARGET_PX}px as drawn, and UNDERLINE_CODE_SIDE.${what} still names ${size} — a stale code-side entry. Drop it.`);
+      }
+      const gap = ruleGap(codeOnly, cs.rule);
+      if (cs.sizes.length && gap.length) failures.push(`tag: no codeOnly entry states the underline ${what === 'tag' ? 'box' : '× slot'}'s code-side 24px hit area at ${cs.sizes.join(' and ')} (missing: ${gap.join(', ')}) — under Tag style Underline that is the only 24px target it has (owner Q585 A, #2947).`);
+    }
+  }
 }
 
 // ── NON-EMPTY FLOOR: the gate must be holding at least one control TO the floor (docs/34) ──────────

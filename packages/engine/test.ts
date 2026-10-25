@@ -35960,6 +35960,27 @@ arm: {
     ok(hitBad.length === 0,
       `#2912 search-field clear button: a hit area of at least ${FLOOR}×${FLOOR} CSS px around the 20px glyph, adding no height, stated in codeOnly and the trailingIcon description, and the 2.5.8 line names the field and the clear button${hitBad.length ? ` — WRONG: ${hitBad.join('; ')}` : ''}`);
   }
+  // THE SAME FOR TEXT FIELD (#2930): `clearable` draws the same 20px trailing glyph inside the input's own target,
+  // so its button owes the same stated hit area, in the TRAILING AFFIX codeOnly entry, the trailingIcon description
+  // and the 2.5.8 line. The Password field's toggle sits on the label row and states its own (#2804).
+  {
+    const FLOOR = 24;
+    const sized = (t: string | undefined) => [...(t ?? '').matchAll(/at least (\d+)×(\d+)/g)].map((m) => Math.min(Number(m[1]), Number(m[2])));
+    const affix = textField.anatomy!.codeOnly.filter((e) => e.startsWith('the TRAILING AFFIX '));
+    const trailing = textField.props.find((p) => p.name === 'trailingIcon')?.description;
+    const wcag = textField.accessibility.wcag.filter((w) => w.startsWith('2.5.8'));
+    const hitBad: string[] = [];
+    if (affix.length !== 1) hitBad.push(`codeOnly trailing affix entries: ${affix.length}`);
+    for (const [where, t] of [['codeOnly trailing affix entry', affix[0]], ['trailingIcon description', trailing]] as const) {
+      const n = sized(t);
+      if (!n.length || n.some((x) => x < FLOOR)) hitBad.push(`${where}: target ${n.length ? n.join('/') : 'unstated'}`);
+      if (!/around the 20px glyph/.test(t ?? '') || !/adds no height to the field/.test(t ?? '')) hitBad.push(`${where}: not drawn around the 20px glyph with no added height`);
+    }
+    if (wcag.length !== 1 || !/the field/.test(wcag[0]) || !/the clear button/.test(wcag[0]) || !sized(wcag[0]).length || sized(wcag[0]).some((x) => x < FLOOR))
+      hitBad.push(`2.5.8 line names both targets: ${JSON.stringify(wcag)}`);
+    ok(hitBad.length === 0,
+      `#2930 text-field clear button: a hit area of at least ${FLOOR}×${FLOOR} CSS px around the 20px glyph, adding no height, stated in codeOnly and the trailingIcon description, and the 2.5.8 line names the field and the clear button${hitBad.length ? ` — WRONG: ${hitBad.join('; ')}` : ''}`);
+  }
   // THE MESSAGE IS OFF BY DEFAULT (owner decision on #2926, item 1): the boolean, the prop and every built message node
   // agree, and no prose says it is on by default. `false` is the owner's answer, typed here.
   {

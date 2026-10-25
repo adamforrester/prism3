@@ -1,0 +1,15 @@
+## (2026-10-25) — lint-hit-target measures the underline Tag's box and × slot (#2947)
+
+`lint-hit-target.ts` reads each def as authored, which for Tag is the pill: `INTERACTIVE['tag']` and `INNER_TARGETS['tag.dismiss']` both measure `size.{size}.height`, 36 / 44 / 56px. Under `tagStyle: underline`, `applyTagStyle` builds a tag that hugs its content (owner Q585 A, #2945), 20 / 26 / 32px, whose × slot is as wide as its glyph and drops `innerTarget`. The 24px minimum moved to code, as Link's did. No gate saw that box.
+
+**The arm.** It materializes the tag with `applyTagStyle(def, 'underline')` and `applySpacingDensity` at all three densities (WCAG 2.5.8 has no compact exception), plans every select and dismissible member at rest, and walks each plan to the height it draws (`drawnHeight`: a bound height, else the hug of the children plus block padding and floor, a text node at its style's line box). The × slot is measured at the smaller of its bound width and its drawn height. Each size, body and slot apart, must clear 24px as drawn or be named in `UNDERLINE_CODE_SIDE`: the body at small (20px), the slot at small and medium (16 and 20px). It checks both ways: an unnamed sub-24px size fails, and a named size that now clears 24px is stale. A named size needs one `codeOnly` entry carrying the arm's literal phrases (the "hit-target expansion, Underline" entry, which states both).
+
+**Independence.** EXPECTED is two literals: the 24px floor and the owner's named sizes. ACTUAL is a second derivation of the hug height from the plan's bound tokens, sharing nothing with `applyTagStyle` but the plan it reads. It measures 20 / 26 / 32px today, the decision's numbers, which `test.ts` also pins by its own walk. A self-check drives `drawnHeight` on three hand-built plans, and asserts the phrase check fails on an empty `codeOnly`. The arm also fails if `applyTagStyle` returns the pill unchanged, or if the tag's size axis stops being small, medium and large.
+
+**Mutations, each failing by name** (wip commit before each, diff checked non-empty, file restored from `HEAD` with `git show`):
+- **M1.** `size.medium.underline.inset` → `space.0` (medium hugs at 20px) → `tag/underline/medium box is 20px at comfortable select unselected, below the 24px minimum (WCAG 2.5.8), and UNDERLINE_CODE_SIDE.tag does not name medium`. `origin/main`'s gate on the same tree: exit 0.
+- **M2.** `size.small.underline.inset` → `space.100` (small grows to 24px) → `tag/underline/small box is 24px … UNDERLINE_CODE_SIDE.tag still names small — a stale code-side entry`. `origin/main`'s gate: exit 0.
+- **M3.** The `codeOnly` entry "The hit-target expansion, Underline" deleted → `tag: no codeOnly entry states the underline box's code-side 24px hit area at small` and the same for the × slot at small and medium. `origin/main`'s gate: exit 0.
+- **M4.** `drawnHeight` neutralized to return 44 → two `drawnHeight self-check, …` lines and a stale-entry line.
+
+**Not checked.** The code-side expansion itself: no emitted token can carry it, so, as for Link and the flush buttons, the gate requires the def to state it rather than measuring it.
