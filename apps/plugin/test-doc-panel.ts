@@ -1333,6 +1333,18 @@ const specPage = async (name: string) => {
   ok(n === 1 && sp.removed === true, `specs/orphan: the unedited spec panel of a deleted set is cleared (${n})`);
 }
 {
+  // A brand whose body/sm is wider than the columns were measured for: the draw names each string that now wraps.
+  const { p, set, api } = await specPage('↳ Specs wide face');
+  const blocks = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as N[]).find((c) => c.name === '_Doc-block')!;
+  const para = blocks.children.find((c) => c.name === 'Type=Paragraph, Size=sm')!;
+  walk(para).find((c) => c.type === 'TEXT')!.fontSize = 20;
+  const r = await drawSpecPanel(api, set, def('button'));
+  const wraps = r.misses.filter((m) => m.endsWith('so it wraps'));
+  // At 20px the longest Button variable, "color/inverse/interactive/primary/overlay/pressed", runs past 368.
+  ok(r.drawn && !!specPanelsOn(p).length && wraps.some((m) => m.startsWith('"color/inverse/interactive/primary/overlay/pressed" is ') && m.includes('368px variable column')),
+    `specs/wide face wraps: a wider body/sm is measured as drawn, and each string that wraps is named (${wraps.length}: ${wraps.slice(0, 2).join('; ')})`);
+}
+{
   // Without the template's face loaded, the panel draws with no redlines and names why; nothing is left half drawn.
   const { p, set, api } = await specPage('↳ Specs no face');
   const noFace = { ...api, loadFontAsync: async () => { throw new Error('font unavailable'); } } as unknown as SpecApi;

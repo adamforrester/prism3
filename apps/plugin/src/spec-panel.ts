@@ -89,8 +89,9 @@ export const COLOR_GAP = 8;
 const SWATCH = 12;
 const SWATCH_GAP = 6;
 const SIZE: DocBlockSize = 'sm';
-/** Raise when the panel's layout moves without its plan moving, so every drawn panel reads as due again. */
-const SPEC_FORMAT = 1;
+/** Raise when the panel's layout moves without its plan moving, so every drawn panel reads as due again. 2: its own
+ *  column beside the usage panel, and the color table in fixed columns (Q2830.1 B, Q2830.8 A). */
+const SPEC_FORMAT = 2;
 
 /* ── the pure planner ──────────────────────────────────────────────────────────────────────────────────── */
 
@@ -409,15 +410,18 @@ export const drawSpecPanel = async (
   const fits = async (text: string, width: number, col: string): Promise<void> => {
     if (!faceLoaded || !face || !api.createText) return;
     if (!measured.has(text)) {
-      const m = api.createText();
+      let m: PNode | undefined;
       try {
+        m = api.createText();
         (m as { fontName?: unknown }).fontName = face;
+        // The cell's size and tracking, as its text style sets them, so a brand's wider body/sm is measured as drawn.
         if (typeof body?.fontSize === 'number') m.fontSize = body.fontSize;
+        if (body?.letterSpacing && typeof body.letterSpacing === 'object') m.letterSpacing = body.letterSpacing;
         (m as { textAutoResize?: unknown }).textAutoResize = 'WIDTH_AND_HEIGHT';
         m.characters = text;
         measured.set(text, num(m.width));
       } catch { measured.set(text, undefined); }
-      m.remove?.();
+      m?.remove?.();
     }
     const w = measured.get(text);
     if (w !== undefined && w > width) out.misses.push(`"${text}" is ${w}px, wider than its ${width}px ${col} column, so it wraps`);
@@ -546,15 +550,18 @@ export const drawSpecPanel = async (
   parent.appendChild(panel);
   panel.x = at.x;
   panel.y = at.y;
-  for (const h of hexes) {
-    const hex = hexFor(byTail(h.tail), h.swatch);
-    await write(h.text, hex ?? '', 'hex');
-    if (hex) await fits(hex, COLOR_COLUMNS.value - SWATCH - SWATCH_GAP, 'value');
-    else out.misses.push(`no value for ${h.tail}`);
-  }
   // A write the host refuses from here on must not leave an untagged half-panel on the canvas.
-  try { out.redlines = await drawRedlines(api, panel, staged, magenta, faceLoaded ? face : undefined, out); }
-  catch (e) { panel.remove?.(); throw e; }
+  try {
+    // The hex cells, now the swatches resolve in the panel's mode. A variable the file lacks is named once, by `paint`.
+    for (const h of hexes) {
+      const v = byTail(h.tail);
+      const hex = hexFor(v, h.swatch);
+      await write(h.text, hex ?? '', 'hex');
+      if (hex) await fits(hex, COLOR_COLUMNS.value - SWATCH - SWATCH_GAP, 'value');
+      else if (v) out.misses.push(`no value for ${h.tail}`);
+    }
+    out.redlines = await drawRedlines(api, panel, staged, magenta, faceLoaded ? face : undefined, out);
+  } catch (e) { panel.remove?.(); throw e; }
 
   // NOTHING UNDER IT: every node on the parent but the panels this draw replaces or moves and the set's own labels.
   const kids = parent.children as readonly PNode[];
