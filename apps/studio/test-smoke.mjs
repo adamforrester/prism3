@@ -601,12 +601,6 @@ const OUT_DIR = join(ROOT, '..', '..', 'packages', 'engine', 'out');
 /** Export › Download, collecting every file it writes (#2552). The download is the CONSUMER set — the base plus one
  *  overlay per mode, several files — so a test reading one download would see only the base. The count expected is
  *  read off the brand's committed base + overlay files, never from the page. Returns { name → parsed JSON }. */
-/** #2909 Q2909.9 A: Export is a rail area drawn as a page, so after an export the Theme tile brings back the page the
- *  export left (the dialog it replaced closed by itself on its download). */
-const backToTheme = async (page) => {
-  await hooks.click(page.locator('[data-p3="rail-theme"]'));
-  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.layout !== 'page', null, { timeout: 5000 }).catch(() => {});
-};
 const downloadSet = async (page, id, expect) => {
   const count = expect ?? readdirSync(OUT_DIR).filter((f) => f === `${id}.base.tokens.json` || (f.startsWith(`${id}.`) && f.endsWith('.overlay.tokens.json'))).length;
   const got = new Map();
@@ -3918,7 +3912,9 @@ const exportTree = async (page, where, id) => {
   await hooks.click(page.locator('[data-p3="rail-export"]'));
   await hooks.need(page, '[data-p3="export-page"]');
   const set = await downloadSet(page, id, id ? undefined : 1);
-  await backToTheme(page);
+  // #2909 Q2909.9 A: Export is a rail area drawn as a page, not a dialog that closed on its download, so the arm goes
+  // back to the page it exported from (both callers drive Depth).
+  await gotoDepth(page);
   const own = id ?? Object.keys(set).find((n) => n.endsWith('.base.tokens.json'))?.slice(0, -'.base.tokens.json'.length);
   if (!own || !set[`${own}.base.tokens.json`]) { ok(false, `${where}: the export is a parseable token set`); return null; }
   return { light: mergedFromSet(set, own, 'light'), dark: mergedFromSet(set, own, 'dark') };
@@ -5346,7 +5342,7 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
     for (const tree of Object.values(set)) walk(tree);
     emitted = found.length ? found : null;
   } catch { /* reported by the assertions below */ }
-  await backToTheme(page);
+  await gotoType(page);   // back from the Export area, the Type page's disclosures open again
   ok(Array.isArray(emitted) && emitted.length > 0, `${brand}: the exported DTCG carries the pinned cut in $extensions.prism3.facePin (${emitted?.length ?? 0} leaves)`);
   ok(Array.isArray(emitted) && emitted.length > 0 && emitted.every((p) => p.style === STYLE), `${brand}: every emitted facePin bakes fontStyle = "${STYLE}" verbatim`);
   ok(Array.isArray(emitted) && emitted.length > 0 && emitted.every((p) => p.family === boundFace), `${brand}: every emitted facePin binds the bound face "${boundFace}"`);
@@ -5392,7 +5388,7 @@ console.log(`\nItalic chips, through the exported DTCG (S6.3)\n${'='.repeat(78)}
       const walk = (n, path) => { for (const [k, v] of Object.entries(n ?? {})) { if (k.startsWith('$') || !v || typeof v !== 'object') continue; if (v.$type === 'typography') out.push({ key: `${path}.${k}`, italic: v.$value?.fontStyle === 'italic' }); else walk(v, `${path}.${k}`); } };
       walk(root?.type?.[G], `type.${G}`);
       return out;
-    } catch { return null; } finally { await backToTheme(page); }
+    } catch { return null; } finally { await gotoType(page); }
   };
   const RULE = {
     upright: (ls) => ls.length > 0 && ls.every((l) => !l.italic && !/-italic/.test(l.key)),
