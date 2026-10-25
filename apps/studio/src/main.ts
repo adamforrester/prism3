@@ -1414,7 +1414,7 @@ const barRead = (): BarView => ({
     ? { at: pendingLoad.origin.kind, text: overwriteText(pendingLoad) } : null,
   importOpen, importText, importErr,
   // #2909: in the plugin Export is an area, so its content shows for as long as the area is open, whatever else
-  // (the brand menu, a download) closes the web's dialog.
+  // (the brand menu, a download) closes the web's dialog. The one mechanism that holds it open (#2995, nit 4).
   exportOpen: exportMenuOpen || (commit.isFigma && page === 'export'),
   home: homeBar(homeShown()),
   // #2909: on the rail the prune's preview is Update file's Clean up tab, never this dialog.
@@ -1481,8 +1481,8 @@ const exportView = (): ExportView => {
 const barActions: BarActions = {
   // Closing the menu discards a staged load with it (#1033): an unanswered "Replace the current brand?" must not be
   // waiting behind a reopened menu.
-  // The web's export dialog closes as the menu opens; in the plugin Export is an area (#2909), which a menu leaves as it is.
-  toggleMenu: () => { importGen++; brandMenuOpen = !brandMenuOpen; if (!commit.isFigma) exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } barChanged(); },
+  // The export dialog closes as the menu opens; in the plugin the Export area stays drawn (`exportOpen` in `barRead`, #2909).
+  toggleMenu: () => { importGen++; brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } barChanged(); },
   closeMenu: () => { brandMenuOpen = false; importOpen = false; pendingLoad = null; barChanged(); },
   // #1033: through the guard, not straight to `loadBrand`. The confirm fires only when there are edits to lose.
   example: (name) => stageLoad(BRANDS[name], { kind: 'example', id: name }),
@@ -1516,8 +1516,8 @@ const barActions: BarActions = {
     barChanged();
   },
   download: () => {
-    // #2909: in the plugin Export is an area, so a download leaves its page as it is; the web's dialog closes.
-    if (!commit.isFigma) { exportMenuOpen = false; barChanged(); }
+    // The dialog closes; in the plugin the Export area stays drawn (`exportOpen` in `barRead`, #2909).
+    exportMenuOpen = false; barChanged();
     if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
   },
   // Cancel deletes nothing: a review is not a commitment. Only Delete's `postPrune(…, true)` does, and the main thread

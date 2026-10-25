@@ -1690,14 +1690,11 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 
 /* ── Export as an area (#2909): the export dialog's parts as a page, never modal ─────────────────────── */
 .p3-export-host { display: contents; }
-.p3-bardlg.p3-export-page { max-width: none; width: auto; margin: 0; border: 0; border-radius: 0; max-height: none; height: 100%; box-sizing: border-box; }
+.p3-bardlg.p3-export-page { max-width: none; width: auto; margin: 0; border: 0; border-radius: 0; max-height: none; box-sizing: border-box; flex: 1 1 auto; min-height: 0; }
 
 /* ── Update file (#2909): the overlay's tabs, items and sets ─────────────────────────────────────── */
 .p3-upd-tabs { flex: none; padding: 0 var(--p3-space-300); margin: 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-upd-body { flex: 1 1 auto; min-height: 0; padding: var(--p3-space-150) var(--p3-space-300); gap: var(--p3-space-100); overflow: auto; }
-/* The checklist scrolls inside itself at every width, so its foot (the action) stays in the window: the narrow tier's
-   rule for the export dialog's columns (`overflow: visible`, the body scrolls there) would let it run off the bottom. */
-.p3-frame[data-w="narrow"] .p3-bardlg-col.p3-upd-body { overflow-y: auto; }
 .p3-upd-body p { margin: 0; }
 .p3-upd-item { display: grid; gap: var(--p3-space-050); padding: var(--p3-space-100) 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-upd-item:last-child { border-bottom: 0; }
@@ -1708,8 +1705,9 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-line, .p3-upd-summary { color: var(--p3-text); }
 .p3-btn.p3-upd-btn { flex: none; }
 
-/* The rail's narrow tier and dialogs (#2909): at 380 a dialog's columns stop scrolling (`.p3-bardlg-col` above), so
-   Update file's body scrolls itself, and its footer stays in the window. */
+/* The rail's narrow tier and dialogs (#2909): at 380 a dialog's columns stop scrolling (`.p3-bardlg-col` above,
+   `overflow: visible`, the body scrolls there), so Update file's checklist scrolls inside itself, and its foot (the
+   action) stays in the window. */
 .p3-frame[data-w="narrow"] .p3-bardlg-col.p3-upd-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 /* Components' page on the rail has no tab, so the narrow tier's domain select goes with the tab row. */
 .p3-frame[data-shell="rail"][data-place="components"] .p3-nav .p3-domrow { display: none; }
@@ -1718,7 +1716,6 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-frame[data-shell="rail"][data-layout="panes"][data-w="wide"] { grid-template-columns: max(42%, calc(var(--p3-l-col) * 4)) minmax(0, 1fr); }
 /* Export's page fills the area, and its two columns scroll themselves, as they do in the web's dialog (#2523). */
 .p3-frame[data-shell="rail"] .p3-sgpage:has(> .p3-export-host) { display: flex; flex-direction: column; overflow: hidden; }
-.p3-bardlg.p3-export-page { flex: 1 1 auto; min-height: 0; }
 .p3-frame[data-w="narrow"] .p3-bardlg.p3-export-page .p3-bardlg-body { overflow-y: auto; }
 
 /* The Contrast tile in the rail's preview header hangs its tooltip from its right edge, so it stays in the window. */
