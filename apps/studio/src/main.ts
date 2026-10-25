@@ -29,10 +29,13 @@ import { hostCommit, type HostCommit } from './write-adapter';
 import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
-import { isMenuPage, isNewPage, pageOfTab } from './shell/pages';
+import { isNewPage, pageOfTab } from './shell/pages';
 import type { StyleGuidesLend } from './shell/style-guides';
 import type { ActivityReading, OpReading } from './shell/activity';
-import type { FigmaAction } from './shell/figma';
+import type { UpdateFileLend } from './shell/update-file';
+import type { DocumentationLend } from './shell/documentation';
+import { startUpdate, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
+import { readSaved, savedDrawOptions } from './state/style-guides';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
 // The error line's one Layout fix (owner Q189 A, #2146). The write stays in the Layout domain: `main.ts` makes none.
@@ -76,7 +79,7 @@ import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
   firstRun, ensureThemeFresh, loadInput, clearOrigin, setPage,
   subscribe, invalidate,
-  type Mode, type PageKey,
+  type Mode,
 } from './state/store';
 
 // The session starts in `entry.ts` (#896): it reads the web's persisted brand, picks the origin, and
@@ -364,6 +367,8 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   if (home?.kind === 'reading' && (m.kind === 'restore-input' || m.kind === 'restore-input-error' || m.kind === 'restore-input-empty' || m.kind === 'restore-input-library')) home = null;
   // #2700: a set's result while a multi-set run is out posts the next set, before this message's topics fire.
   if (m.kind === 'component-result' && prev.componentState === 'pending') runAfterResult(m, prev.componentDef);
+  // #2909: Update file's run moves to its next step on the verdict of the one out, before this message's topics fire.
+  advanceUpdate(m, prev);
   const effect = brandEffectFor(m, prev, host);
   // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and what
   // dirtiness is measured against (#722).
@@ -943,10 +948,6 @@ let sgGroundCaps = 0;
 // The component catalog's host accessor (`componentCatalog`) moved to `state/component-catalog.ts` in UI redesign S8.2,
 // beside the catalog it reads; the Components page lists it (`preview/components.ts`).
 
-/** The file-setup action's label (#1558), the Figma menu's item: since UI redesign S8.2 the menu is its only control
- *  (owner decision G8 A), and its result shows in the Activity drawer. Shipped UI text: US-English +
- *  `docs/voice-standard.md`. */
-const FILE_SETUP_LABEL = 'Set up file';
 // ---- shell -----------------------------------------------------------------
 /** The root every view mounts into. Handed over by `entry.ts` (`mountApp`) before the first `build()`,
  *  rather than looked up while this module loads (#896). */
@@ -1111,9 +1112,10 @@ const mountView = (view: RootView): void => {
         host: commit.isFigma ? 'figma' : 'web',
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
         activity: { read: activityReading, closeDetail: closeOpenDetail },
-        figma: commit.isFigma ? figmaActions : null,
-        // #2178: the bar's Apply Theme, lent apart from the Figma menu, which no longer lists it.
-        applyTheme: commit.isFigma ? applyAction : null,
+        // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
+        applyTheme: null,
+        updateFile: commit.isFigma ? updateFileLend : null,
+        documentation: commit.isFigma ? documentationLend : null,
         // #2637 Q384: the bar's Docs. In the plugin the main thread opens the docs in the browser; on the web it is a link.
         openDocs: commit.isFigma ? () => commit.openDocs() : null,
         // S3: Brand's preview is the Style guide, lent the same way until a slice replaces it.
@@ -1128,8 +1130,6 @@ const mountView = (view: RootView): void => {
         logo: () => el('span', 'logo'),
         // S13.1: the top bar's brand menu, Export and the plugin's dialogs, drawn by the shell over this file's state.
         bar: { read: barRead, exportView, act: barActions, importAccept: IMPORT_ACCEPT },
-        // S11.2: the Build style guides page's reads and writes, plugin only.
-        styleGuides: commit.isFigma ? styleGuidesLend : null,
         // #2879: a home's start button opens the start window over it.
         startBrand: () => { homeStart = true; syncStart(); },
       });
@@ -1413,9 +1413,12 @@ const barRead = (): BarView => ({
   confirm: pendingLoad && (pendingLoad.origin.kind === 'example' || pendingLoad.origin.kind === 'import')
     ? { at: pendingLoad.origin.kind, text: overwriteText(pendingLoad) } : null,
   importOpen, importText, importErr,
-  exportOpen: exportMenuOpen,
+  // #2909: in the plugin Export is an area, so its content shows for as long as the area is open, whatever else
+  // (the brand menu, a download) closes the web's dialog. The one mechanism that holds it open (#2995, nit 4).
+  exportOpen: exportMenuOpen || (commit.isFigma && page === 'export'),
   home: homeBar(homeShown()),
-  prune: host.prunePreview ? {
+  // #2909: on the rail the prune's preview is Update file's Clean up tab, never this dialog.
+  prune: host.prunePreview && !commit.isFigma ? {
     summary: host.prunePreview.summary,
     deleteLabel: `Delete ${host.prunePreview.count} item${host.prunePreview.count === 1 ? '' : 's'}`,
     // #1989: a preview the host sends opens this dialog whatever the Prune button's state, so Delete is off too.
@@ -1478,6 +1481,7 @@ const exportView = (): ExportView => {
 const barActions: BarActions = {
   // Closing the menu discards a staged load with it (#1033): an unanswered "Replace the current brand?" must not be
   // waiting behind a reopened menu.
+  // The export dialog closes as the menu opens; in the plugin the Export area stays drawn (`exportOpen` in `barRead`, #2909).
   toggleMenu: () => { importGen++; brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } barChanged(); },
   closeMenu: () => { brandMenuOpen = false; importOpen = false; pendingLoad = null; barChanged(); },
   // #1033: through the guard, not straight to `loadBrand`. The confirm fires only when there are edits to lose.
@@ -1512,6 +1516,7 @@ const barActions: BarActions = {
     barChanged();
   },
   download: () => {
+    // The dialog closes; in the plugin the Export area stays drawn (`exportOpen` in `barRead`, #2909).
     exportMenuOpen = false; barChanged();
     if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
   },
@@ -1719,9 +1724,9 @@ const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo 
 /** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
  *  rebuild that resolves also ends it; the other two end only when a brand loads. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {
-  unresolved: (r) => `This file's saved brand didn't resolve: ${r} Apply Theme and Prune stale are off until a brand resolves. Load an example or import a design.md to continue.`,
-  rejected: (r) => `This file's saved brand didn't resolve: ${r} Apply Theme and Prune stale are off until a brand loads. Load an example or import a design.md to continue.`,
-  unreadable: (r) => `This file's saved brand couldn't be read: ${r} Apply Theme and Prune stale are off until a brand loads. Load an example or import a design.md to continue.`,
+  unresolved: (r) => `This file's saved brand didn't resolve: ${r} Update file and Clean up are off until a brand resolves. Load an example or import a design.md to continue.`,
+  rejected: (r) => `This file's saved brand didn't resolve: ${r} Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.`,
+  unreadable: (r) => `This file's saved brand couldn't be read: ${r} Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.`,
 };
 /** The tooltip on every write that is off after a failed restore: one wording for every kind (owner). */
 const RESTORE_OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it.";
@@ -1734,7 +1739,8 @@ const runApply = (): void => {
 };
 /** Prune stale: a dry run first, whose count the confirm dialog shows (#1521). */
 const runPrune = (): void => {
-  if (pruneBlocked()) return;
+  // #2909: never after a failed restore either, when the brand on screen is the demo's, not the file's (#1989).
+  if (pruneBlocked() || restoreFailure) return;
   setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, false);
 };
 /** Set up file (#1558). `openDetail` is cleared for the reason the build clears it: the previous run's
@@ -1793,14 +1799,7 @@ const runAfterResult = (m: Extract<Parameters<typeof reduce>[1], { kind: 'compon
 /** Prune is unavailable while a prune runs AND while a theme apply runs, panel or agent: a prune reads the
  *  same variables an apply writes, so overlapping the two would race a delete against a create. */
 const pruneBlocked = (): boolean => pruneBusy() || applyBusy();
-const PRUNE_HINT = 'Removes the styles, modes and variables this config no longer emits. Shows the count before deleting, and names the modes.';
 
-/** The page the Build style guides page was opened from, which its Close returns to (the mockup's call 10). */
-let styleGuidesBack: PageKey | null = null;
-const openStyleGuides = (): void => {
-  if (!isMenuPage(page)) styleGuidesBack = page;
-  setPage('styleGuides');
-};
 /** The Build style guides page's reads and writes (S11.2), lent to the shell (`shell/style-guides.ts`). */
 const styleGuidesLend: StyleGuidesLend = {
   read: () => ({
@@ -1828,30 +1827,94 @@ const styleGuidesLend: StyleGuidesLend = {
     commit.cleanUpStyleGuide(ids);
   },
   setUp: () => runFileSetup(),
-  close: () => setPage(styleGuidesBack ?? pageOfTab('brand')),
+  // Documentation's tab draws no Close (#2909); kept for the lend's shape.
+  close: () => setPage(pageOfTab('brand')),
   showResult: () => { setHost({ openDetail: 'styleguide' }); hostChanged(); },
 };
 
-/** The bar's Apply Theme (`shell/bar.ts`), plugin only: its busy and off states, its tooltip and its function. Not a
- *  Figma menu item since #2178 (owner decision, 2026-10-05): the bar's filled button is its one control. */
-const applyAction = (): FigmaAction => ({ id: 'apply', label: 'Apply Theme', busy: applyBusy() ? 'Applying…' : null, disabled: !!restoreFailure,
-  ...(restoreFailure ? { hint: RESTORE_OFF_HINT } : {}), run: runApply });
-/** The Figma menu's items (`shell/figma.ts`), plugin only. Labels are today's: Prune stale, Set up file (whose only
- *  control this is since S8.2, G8 A), and the two writes that need options first (concept v6's "Build set…" and
- *  "Style guide…"), which open where those options are: the Components tab, and the Style guide page. Apply Theme is
- *  the bar's alone (#2178). */
-/** The busy labels are the pending labels the panel already used (#1948), without their leading "…",
- *  which `pendingLabel` draws as the spinner's cell. An agent's prune does not say whether it is a dry run,
- *  so its busy label is the item's own. */
-const figmaActions = (): FigmaAction[] => [
-  { id: 'prune', label: 'Prune stale', busy: host.pruneBusy === 'preview' ? 'Checking…' : host.pruneBusy === 'delete' ? 'Removing…' : pruneBusy() ? 'Prune stale' : null,
-    disabled: pruneBlocked() || !!restoreFailure, hint: restoreFailure ? RESTORE_OFF_HINT : PRUNE_HINT, run: runPrune },
-  { id: 'file-setup', label: FILE_SETUP_LABEL, busy: fileSetupBusy() ? 'Setting up…' : null, disabled: false, run: runFileSetup },
-  // S8.2 (owner decision G2 A): Build sets… (#2700, renamed for multi-select) opens the Components tab, where the sets are chosen and built.
-  { id: 'build', label: 'Build sets…', busy: null, disabled: false, run: () => setPage(pageOfTab('components')) },
-  // S11.2 (owner decision H10, H11): "Build style guides…" opens the new page, the only way in since H12 (PG1 A).
-  { id: 'style-guide', label: 'Build style guides…', busy: null, disabled: false, run: openStyleGuides },
-];
+/** #2909: Documentation's reads and writes, plugin only: the file's settings, kept in the file through the host. */
+const documentationLend: DocumentationLend = {
+  read: () => host.docSettings,
+  save: (next) => commit.saveDocSettings(next),
+  styleGuides: styleGuidesLend,
+};
+
+// ---- Update file (#2909 IA v2 phase 1) ------------------------------------------------------------------
+// The plugin's one global write. Its checklist is `shell/update-file.ts` over `state/update-file.ts`; its run is here,
+// because each step is a write this file already makes: Set up file, Apply Theme, the build queue, the style guide.
+// One step at a time, in order; the next starts on the verdict of the one out (`advanceUpdate`, called by
+// `handleHostMessage` after the reduce), and a failed step ends the run.
+/** The run out now, or null. */
+let updateRun: UpdateRun | null = null;
+/** The last run that ended on a failed step, with that step's words, until the next run starts. */
+let updateStopped: { readonly step: StepKey; readonly headline: string } | null = null;
+/** The style-guide step asked for a fresh catalog and waits for it, to draw with Documentation's saved settings. */
+let guidesWait = false;
+const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
+/** The run after the step out ended: record it, then start the next or end the run. */
+const endStep = (ok: boolean, headline: string): void => {
+  if (!updateRun) return;
+  const step = stepOf(updateRun);
+  updateRun = stepDone(updateRun, ok, headline);
+  if (!ok && step) updateStopped = { step, headline };
+  if (updateRun.done) { updateRun = null; updateChanged(); return; }
+  startStep();
+};
+/** Start the step the run is on. A write that refuses to start (its own run is out, the panel's or an agent's) ends the
+ *  step as failed with the reason, so the run never waits on a verdict that is not coming. */
+const startStep = (): void => {
+  const step = updateRun ? stepOf(updateRun) : null;
+  if (!step || !updateRun) return;
+  const busy = 'Another run of this step is out. Try again when it ends.';
+  if (step === 'setup') { runFileSetup(); if (host.fileSetupState !== 'pending') { endStep(false, busy); return; } }
+  else if (step === 'theme') { runApply(); if (host.applyState !== 'pending') { endStep(false, busy); return; } }
+  else if (step === 'sets') { runSets('selection', updateRun.sets); if (!run) { endStep(false, busy); return; } }
+  else if (agentRunning('styleguide') || host.styleGuideState === 'pending') { endStep(false, busy); return; }
+  else { guidesWait = true; commit.requestStyleGuideCatalog(); }
+  updateChanged();
+};
+const STEP_OF_OP: Partial<Record<OpKey, StepKey>> = { filesetup: 'setup', apply: 'theme', components: 'sets', styleguide: 'guides' };
+const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void => {
+  const step = updateRun ? stepOf(updateRun) : null;
+  if (!step) return;
+  if (step === 'setup' && m.kind === 'file-setup-result') { endStep(m.ok, m.headline); return; }
+  if (step === 'theme' && m.kind === 'apply-result') { endStep(m.ok, m.headline); return; }
+  // The build queue posts its sets one after another (`runAfterResult`); the step ends with the queue.
+  if (step === 'sets' && m.kind === 'component-result' && prev.componentState === 'pending' && !run) { endStep(lastRun?.verdict.ok ?? m.ok, lastRun?.verdict.headline ?? m.headline); return; }
+  if (step === 'guides' && guidesWait && m.kind === 'style-guide-catalog') {
+    guidesWait = false;
+    // Documentation's saved selection and options, read against the file's catalog as it is now (Q2909.23 A).
+    styleGuidesLend.draw(savedDrawOptions(m.catalog, readSaved(host.docSettings?.styleGuide)));
+    return;
+  }
+  if (step === 'guides' && !guidesWait && m.kind === 'style-guide-result') { endStep(m.ok, m.headline); return; }
+  // A panel request the host declined behind an agent's run gets no verdict: the step ends with the host's words.
+  if (m.kind === 'refused' && !m.agent && STEP_OF_OP[host.refused?.op ?? 'readback'] === step) endStep(false, m.message);
+};
+/** Update file's reads and writes, lent to the shell (`shell/update-file.ts`). */
+const updateFileLend: UpdateFileLend = {
+  read: () => ({
+    fileSets: host.fileSets, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: restoreFailure ? RESTORE_OFF_HINT : null,
+    prune: { busy: host.pruneBusy, preview: host.prunePreview, verdict: host.pruneVerdict },
+    retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
+  }),
+  check: () => commit.requestFileSets(),
+  run: (steps, sets) => {
+    if (updateRun || restoreFailure) return;
+    updateStopped = null;
+    updateRun = startUpdate(steps, sets);
+    startStep();
+  },
+  stop: () => {
+    if (!updateRun) return;
+    updateRun = stopUpdate(updateRun);
+    if (stepOf(updateRun) === 'sets') stopSets();
+    updateChanged();
+  },
+  pruneCheck: () => runPrune(),
+  pruneDelete: () => barActions.deletePrune(),
+  cleanUp: (ids) => styleGuidesLend.cleanUp(ids),
+};
 
 // ---- the homes (#2879) ---------------------------------------------------------------------------------
 // The plugin, in a file with no brand: the library home when the file uses a Prism3 library (the host's
