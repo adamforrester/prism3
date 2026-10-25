@@ -129,7 +129,7 @@ Keyed by `size`, `alignment`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.0` | — | — | — | — |
+| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | — |
 | `container/items` | — | `space.0` | — | — | — | — |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
 
@@ -137,7 +137,7 @@ Keyed by `size`, `alignment`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.0` | — | — | — | — |
+| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | — |
 | `container/items` | — | `space.0` | — | — | — | — |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
 
@@ -145,7 +145,7 @@ Keyed by `size`, `alignment`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.0` | — | — | — | — |
+| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | — |
 | `container/items` | — | `space.0` | — | — | — | — |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
 
@@ -153,7 +153,7 @@ Keyed by `size`, `alignment`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.0` | — | — | — | build width 480px (literal) |
+| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | build width 480px (literal) |
 | `container/items` | — | `space.0` | — | — | — | — |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
 
@@ -161,7 +161,7 @@ Keyed by `size`, `alignment`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.0` | — | — | — | build width 480px (literal) |
+| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | build width 480px (literal) |
 | `container/items` | — | `space.0` | — | — | — | — |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
 
@@ -169,7 +169,7 @@ Keyed by `size`, `alignment`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.0` | — | — | — | build width 480px (literal) |
+| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | build width 480px (literal) |
 | `container/items` | — | `space.0` | — | — | — | — |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
 

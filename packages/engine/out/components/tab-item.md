@@ -135,7 +135,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | — | — |
+| `container` | `space.0` / `space.0` / `border-width.thick` / `space.0` | — | `size.md.height` | — | — | — |
 | `container/content` | `space.0` / `space.200` / `space.0` / `space.200` | `space.100` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/content/labelBox/reserve` | — | — | `space.0` | — | — | — |
@@ -145,7 +145,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | — | — |
+| `container` | `space.0` / `space.0` / `border-width.thick` / `space.0` | — | `size.sm.height` | — | — | — |
 | `container/content` | `space.0` / `space.150` / `space.0` / `space.150` | `space.075` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/content/labelBox/reserve` | — | — | `space.0` | — | — | — |
@@ -155,7 +155,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | — | — |
+| `container` | `space.0` / `space.0` / `border-width.thick` / `space.0` | — | `size.lg.height` | — | — | — |
 | `container/content` | `space.0` / `space.250` / `space.0` / `space.250` | `space.100` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content/labelBox/reserve` | — | — | `space.0` | — | — | — |
