@@ -343,7 +343,7 @@ export const codeInput: ComponentDef = {
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'root-gap',
         children: ['label', 'items', 'message'],
-        note: 'The field: label, the row of cells and the message, as wide as the cells.',
+        note: 'The field: label, the row of cells and the message, as wide as the widest of the three.',
       },
       label: {
         kind: 'nest',
@@ -351,7 +351,9 @@ export const codeInput: ComponentDef = {
         // One label size at every cell size: FieldLabel has no xlarge, and the label names the field, it does not
         // scale with the cells. Dims with the field (`variantWhen`).
         nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
-        crossAxisFill: true,
+        // NOT STRETCHED (#2928): the host does not let a column hug a child that fills it. The label was the first child
+        // stretched, so the field froze at its 320 and the cells ran past it from medium up (six medium cells are 328).
+        // The label keeps its own width and the field hugs the wider of it and the cells (DRAFT, held on #2928).
         note: 'The accessible name, composed. Its label text, required marker, emphasis and weight surface on the code input; it dims when the field is disabled.',
       },
       // THE ITEMS SLOT (owner decision Q329 A, #2649's pattern): a native slot of cells, six by default, four to eight.
@@ -377,7 +379,7 @@ export const codeInput: ComponentDef = {
         nests: 'field-message',
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
         optional: true,
-        crossAxisFill: true,
+        // NOT STRETCHED (#2928), for the label's reason above.
         note: 'Helper or error text, composed. Its status follows the field\'s. Hidden by default (#2926); the `showMessage` boolean shows it where the field has something to say.',
       },
     },

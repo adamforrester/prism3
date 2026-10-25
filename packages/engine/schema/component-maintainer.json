@@ -4241,7 +4241,9 @@
           "2026-10-16 (#2669): owner decision, every call A on the proposal and wireframe. One Slider with a type axis (single, range) × five states = 10 members, one size, header value text, a 2px rail and 4px fill, a 24px ringed thumb nested as Slider.Thumb, optional end labels, inputs and message.",
           "2026-10-22 (#2669): owner decision Q550, A on Q536 a–f. One track thickness in field.border.rest with the selected part and the thumb in neutral ink; the thumb on the track with no ring; a 0px header gap; labeled milestones in place of the end labels, off by default; a size axis (small, medium, large) for 30 members; a halo at hover and press."
         ],
-        "projection": []
+        "projection": [
+          "The range text key (#2967) — the Figma text property range text is keyed to defaultValue only because a texts key must be a declared prop and the two readouts need different placeholders. It is mechanical, not a prop mapping: range text is the readout of the current range, and defaultValue is only the starting value, so a Code Connect projection does not map defaultValue to it."
+        ]
       },
       "docGaps": [
         {

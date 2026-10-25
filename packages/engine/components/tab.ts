@@ -128,6 +128,9 @@ export const tab: ComponentDef = {
         children: ['content', 'indicator', 'focusRing'],
         layout: { direction: 'column', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'fixed' } },
         height: 'size.{size}.height',
+        // THE BAR'S ROW (#2928): the indicator is pinned across the foot (`foot`), out of the flow, so this bottom inset
+        // keeps its 2px clear and the label row sits where it did when the bar took a cell.
+        padding: { block: 'pad-y', inlineLabel: 'pad-y', blockEnd: 'indicator-height' },
         note: 'The tab body: a fixed-height column holding the label row above the underline. It hugs its label and paints nothing itself: no wash at hover or pressed.',
       },
       content: {
@@ -187,8 +190,11 @@ export const tab: ComponentDef = {
         role: 'presentation',
         paintSlots: ['fill'],
         height: 'indicator-height',
-        crossAxisFill: true,
-        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
+        // PINNED ACROSS THE FOOT, NOT STRETCHED (#2928, the shape Q537 found in Pagination): the host does not let a
+        // column hug a child that fills it, so a stretch here turned the tab's width FIXED at the width it had when the
+        // stretch was written, and a longer label on an instance kept the old width. Out of the flow and constrained
+        // `STRETCH`, the bar follows the tab's width; `lint-fill-under-hug.ts` refuses the old shape in every def.
+        foot: true,
         note: 'The 2px bar along the tab\'s bottom edge. It is always there, so the label sits in the same place in both states. A selected tab paints it in the primary border color; an unselected tab paints it in a neutral border color at hover and pressed only, a preview of where the selected bar would go.',
       },
       focusRing: {

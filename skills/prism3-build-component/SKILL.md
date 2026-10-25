@@ -706,6 +706,11 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 `lint-naming` needs no entry either: its rules (§6) apply to every registered def, so a new def that
 breaks one fails by name.
 
+`lint-fill-under-hug` needs no entry either: it walks every projected member. A part that stretches across
+a column that hugs its width (`crossAxisFill`), or grows along a row that does (`grow`), fails by name,
+because the host turns that width fixed when the fill is written (#2928). A bar across the bottom of a
+hugging frame is a `foot` pin, not a stretched box.
+
 `lint-component-docs` needs no entry: it reads the registry, so after `packages/engine/regen.ts` a
 new def must appear in `components.ai.json`, in its own `<id>.md` page and in the maintainer record, or
 the gate fails by name. Its `DEF_FLOOR` is a floor to raise as the catalog grows. The new page is one

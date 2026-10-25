@@ -17142,6 +17142,20 @@ arm: {
       const panel = planSetProperties(sMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`).sort();
       ok(JSON.stringify(panel) === JSON.stringify(['helper=false', 'inputs=false', 'label=true', 'milestones=false', 'value=true']),
         `#2669 calls 4 A / 7 A, Q550 d, Q345 slider booleans: label and value on, milestones, inputs and helper off, all lowercase (${panel.join(', ')})`);
+      // #2967 (Q550 kept them medium): every nested input is a medium TextField, at every slider size. Without this only
+      // `lint-component-surface`'s plan digest held the size, and `--accept` clears a digest. A literal, never read off
+      // the def: one input in a single member, two in a range, so the floor below is 15 + 30.
+      const inputsOf = (n: any): any[] => [...(n?.nestTarget === 'text-field' ? [n] : []), ...(n?.children ?? []).flatMap(inputsOf)];
+      const inputs = sMembers.flatMap((m) => inputsOf(m.root).map((n) => ({ at: planComponentName(m), size: n.nestVariant?.size })));
+      const inputSizeOff = inputs.filter((x) => x.size !== 'medium').map((x) => `${x.at}: ${String(x.size)}`);
+      ok(inputs.length === 45 && inputSizeOff.length === 0,
+        `#2967 Q550 slider inputs: every nested input is a medium TextField at every slider size, one per single member and two per range (${inputs.length} inputs; ${inputSizeOff.length} not medium — ${inputSizeOff.slice(0, 3).join('; ') || 'none'})`);
+      // #2967: `texts.defaultValue → range text` is forced (a texts key must be a declared prop), and a projector reading
+      // it would map the readout to the starting value. One `notes.projection` entry must say the keying is not a prop mapping. The
+      // phrases are literals here, never read off the def.
+      const keyNote = (sliderDef.notes?.projection ?? []).filter((e) => /range text/.test(e) && /defaultValue/.test(e) && /not a prop mapping/.test(e) && /Code Connect/.test(e));
+      ok(sliderDef.figmaProperties?.texts?.defaultValue?.figmaName === 'range text' && keyNote.length === 1,
+        `#2967 slider: range text is keyed to defaultValue, and one notes.projection entry says the keying is mechanical, not a prop mapping, for a Code Connect projection (${keyNote.length} entries)`);
       const msOff = sMembers.flatMap((m) => {
         const ms = findIn(m.root, 'milestones');
         const kids = (ms?.children ?? []).map((k) => `${k.name}:${String(k.paints?.fills)}`);
@@ -34666,7 +34680,8 @@ arm: {
 
 // ---- centered Tabs (#2518, owner decision Q222 A) ----
 // At `alignment=center` the root projects as a bar built 480 wide (DRAFT, typed here from the decision), centering
-// its children across; the row of tabs keeps hugging and the baseline stretches across the bar. At `alignment=start`
+// its children across; the row of tabs keeps hugging and the baseline is pinned across the bar's foot (#2928: a foot pin,
+// not a stretch, which would freeze a hugging list at its first width). At `alignment=start`
 // every member is BYTE-IDENTICAL to the approved Tabs (#2416), read against the same def with the axis taken out, so
 // "everything else matches" is held rather than assumed. Mutation: the root's `center` field dropped → `#2518 tabs`.
 {
@@ -34684,13 +34699,13 @@ arm: {
   const bad: string[] = [];
   let centered = 0, started = 0;
   for (const size of ['small', 'medium', 'large']) {
-    const c = figmaAnatomyPlan(tabsDef, size, { alignment: 'center' }) as unknown as { root: { counterAxisAlignItems?: string; counterAxisSizingMode?: string; placementWidth?: number; children: { name: string; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutAlign?: string }[] } };
+    const c = figmaAnatomyPlan(tabsDef, size, { alignment: 'center' }) as unknown as { root: { counterAxisAlignItems?: string; counterAxisSizingMode?: string; placementWidth?: number; children: { name: string; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutAlign?: string; footPin?: boolean }[] } };
     // The row of tabs is the `items` slot since #2649.
     const list = c.root.children.find((k) => k.name === 'items');
     const base = c.root.children.find((k) => k.name === 'baseline');
     if (c.root.counterAxisAlignItems === 'CENTER' && c.root.counterAxisSizingMode === 'FIXED' && c.root.placementWidth === 480
-      && list?.primaryAxisSizingMode === 'AUTO' && list?.counterAxisSizingMode === 'AUTO' && base?.layoutAlign === 'STRETCH') centered++;
-    else bad.push(`${size}/center: root ${c.root.counterAxisAlignItems} ${c.root.counterAxisSizingMode} ${c.root.placementWidth}, list ${list?.primaryAxisSizingMode}/${list?.counterAxisSizingMode}, baseline ${base?.layoutAlign}`);
+      && list?.primaryAxisSizingMode === 'AUTO' && list?.counterAxisSizingMode === 'AUTO' && base?.footPin === true && base?.layoutAlign === undefined) centered++;
+    else bad.push(`${size}/center: root ${c.root.counterAxisAlignItems} ${c.root.counterAxisSizingMode} ${c.root.placementWidth}, list ${list?.primaryAxisSizingMode}/${list?.counterAxisSizingMode}, baseline ${base?.footPin ? 'foot pin' : base?.layoutAlign}`);
     const st = figmaAnatomyPlan(tabsDef, size, { alignment: 'start' });
     if (strip(st) === strip(figmaAnatomyPlan(approved, size, {}))) started++;
     else bad.push(`${size}/start: differs from the approved Tabs`);
@@ -36441,6 +36456,51 @@ arm: {
   const tabsLow = tabsCells.filter((x) => !(x.bar > x.base)).map((x) => `${x.cell} bar ${x.bar.toFixed(2)} ≤ baseline ${x.base.toFixed(2)}`);
   ok(tabsCells.length === 16 && tabsMiss.length === 0 && tabsLow.length === 0,
     `#2715 tabs contrast: the selected bar measures above the baseline against the page in all 16 brand × mode cells (${tabsCells.length} measured, ${tabsLow.length} not above — ${tabsLow.slice(0, 2).join('; ') || 'none'}${tabsMiss.length ? `; missing ${tabsMiss.slice(0, 2).join(', ')}` : ''})`);
+}
+
+// #2965 — THE BRAND-INVARIANT STROKE STEPS, IN PIXELS, IN EVERY CORPUS BRAND. No gate asserted a `border-width` step's
+// emitted px: `BORDER_PX` above only feeds the executor stub, and #2792 pinned the Slider's three track rungs only. So
+// `border-width.none` (0px) and `hairline` (1px, the border floor) were unpinned, and so was the focus ring, whose width
+// is the 2px SC 2.4.13 floor and whose two offsets are fixed (2px off a control, 0px on a field edge). None is a brand
+// lever: `tree.ts` writes each as a constant, so every brand's tree must hold the same number. The table is typed from
+// the decisions and the WCAG floor, never read off `tree.ts` (docs/34 shape 1). The walk reads each COMPOSED
+// `out/<brand>.tokens.json` (not the base or the overlays), follows every alias to its `$value`, and also holds any
+// per-mode override of the leaf to the same number. Values are deliberately unversioned (docs/30), so this is a
+// correctness pin, not a contract one. Not here, on purpose: the grid, breakpoint and container steps, which are brand
+// levers (one corpus brand already ships its own), and `container.min`, pinned at 320px by #2971 above.
+{
+  const INVARIANT_PX: ReadonlyArray<[string, string, string]> = [
+    ['border-width.none', '0px', 'no stroke'],
+    ['border-width.hairline', '1px', 'the border floor; no sub-px stroke'],
+    ['border-width.thick', '2px', 'emphasis / selected; the small Slider track (Q550 e)'],
+    ['border-width.heavy', '4px', 'the medium Slider track (Q550 e)'],
+    ['border-width.x-heavy', '6px', 'the large Slider track (Q550 e)'],
+    ['focus.ring.width', '2px', 'SC 2.4.13 focus appearance, the 2px floor'],
+    ['focus.ring.offset', '2px', 'the ring off a control edge'],
+    ['focus.ring.offset-field', '0px', 'the ring on a field edge'],
+  ];
+  const brands = readdirSync(resolve(HERE, 'out')).filter((f) => /^[^.]+\.tokens\.json$/.test(f)).sort();
+  const off: string[] = [];
+  let pinned = 0;
+  for (const f of brands) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8'));
+    const rootKey = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const at = (dotted: string): any => dotted.split('.').reduce((o: any, k) => o?.[k], tree[rootKey]);
+    const deref = (ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').reduce((o: any, k) => o?.[k], tree);
+    const valueOf = (v: any): any => { for (let hop = 0; typeof v === 'string' && v.startsWith('{') && hop < 8; hop++) v = deref(v)?.$value; return v; };
+    for (const [path, px, why] of INVARIANT_PX) {
+      const leaf = at(path);
+      const v = valueOf(leaf?.$value);
+      pinned++;
+      if (v !== px) off.push(`${f} ${path} ${String(v)} (want ${px}: ${why})`);
+      for (const [mode, mv] of Object.entries((leaf?.$extensions?.prism3?.modes ?? {}) as Record<string, any>)) {
+        const m = valueOf(typeof mv === 'object' && mv !== null && '$value' in mv ? mv.$value : mv);
+        if (m !== px) off.push(`${f} ${path} in ${mode} ${String(m)} (want ${px}: ${why})`);
+      }
+    }
+  }
+  ok(brands.length >= 5 && ['aurora', 'harbor', 'prism3'].every((b) => brands.includes(`${b}.tokens.json`)) && pinned === brands.length * INVARIANT_PX.length && off.length === 0,
+    `#2965 brand-invariant steps: border-width none / hairline / thick / heavy / x-heavy resolve to 0 / 1 / 2 / 4 / 6px and focus.ring width / offset / offset-field to 2 / 2 / 0px in every corpus brand's composed tree, in every mode (${brands.length} brands, ${pinned} leaves; ${off.length} off — ${off.slice(0, 3).join('; ') || 'none'})`);
 }
 
 // ------------------------------------------------------------------- report

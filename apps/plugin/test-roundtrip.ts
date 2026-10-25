@@ -2546,5 +2546,111 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #2928 — NO FILL UNDER A HUG: THE TAB'S BAR, THE LIST'S BASELINE AND THE CODE INPUT'S FIELD, BUILT AND MEASURED ──
+//
+// The host does not let a frame hug a child that fills it: a stretch across a column that hugs its width turns that
+// width FIXED at what it measures when the stretch is written (owner QA Q537, Pagination's underline). Tab.Item's
+// indicator and Tabs' baseline were stretched that way, and so were CodeInput's label and message. The shim models
+// the rule here (`fillFreezesHug`), and the measurement is taken AFTER the content grows past what the build saw, the
+// case a frozen frame gets wrong: a longer label on the tab, a fourth tab in the list's slot. EXPECTED is typed here
+// from the design, never read off the def or the plan: the tab's bar spans the tab's label row, edge to edge, at its
+// bottom; the baseline spans the row of tabs; every cell sits inside the code input's field. The bars measure 2px and
+// 1px (`border-width/thick`, `border-width/hairline`), so a bar that took a cell would also move the label row.
+{
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(all), comps: [SWAP_TARGET], liveRoot: true, page, layoutModel: true, fillFreezesHug: true,
+    varPx: { 'space/0': 0, 'border-width/thick': 2, 'border-width/hairline': 1 } });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  const setOf = (id: string): Node[] => ((page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET')?.children ?? []) as Node[]);
+  const kid = (n: Node | undefined, name: string): Node | undefined => ((n?.children ?? []) as Node[]).find((c) => c.name === name);
+  const find = (n: Node | undefined, name: string): Node | undefined => {
+    if (!n) return undefined;
+    if (n.name === name) return n;
+    for (const c of (n.children ?? []) as Node[]) { const f = find(c, name); if (f) return f; }
+    return undefined;
+  };
+  const W = (n: Node | undefined): number => Number(n?.width);
+  const H = (n: Node | undefined): number => Number(n?.height);
+  const X = (n: Node | undefined): number => Number(n?.x);
+  const Y = (n: Node | undefined): number => Number(n?.y);
+  const EPS = 0.5;
+  for (const id of ['tab-item', 'tabs', 'code-input']) {
+    const d = componentDefs.find((x) => x.id === id);
+    ok(!!d, `#2928 ${id}: the def is registered`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+    if (d) await prebuildDependencies(d, { defs: componentDefs, project, host: shim as any, build });
+    if (d && !setOf(id).length) await build(d);
+  }
+
+  // TAB.ITEM — every member, before and after its label grows by 20 characters.
+  const tabs = setOf('tab-item');
+  const tabOff: string[] = [];
+  const measureTab = (m: Node, when: string): void => {
+    const row = kid(m, 'content');
+    const bar = kid(m, 'indicator');
+    if (!row || !bar) { tabOff.push(`${String(m.name)}: no ${row ? 'indicator' : 'content'}`); return; }
+    if (m.counterAxisSizingMode !== 'AUTO') tabOff.push(`${String(m.name)} ${when}: the tab's width is ${String(m.counterAxisSizingMode)}, not hugging its label`);
+    if (Math.abs(W(m) - W(row)) > EPS) tabOff.push(`${String(m.name)} ${when}: the tab is ${W(m)} wide around a ${W(row)} label row`);
+    if (Math.abs(X(bar)) > EPS || Math.abs(W(bar) - W(row)) > EPS) tabOff.push(`${String(m.name)} ${when}: the bar spans ${X(bar)}..${X(bar) + W(bar)}, the label row 0..${W(row)}`);
+    if (Math.abs(H(bar) - 2) > EPS || Math.abs(Y(bar) + H(bar) - H(m)) > EPS) tabOff.push(`${String(m.name)} ${when}: the bar is ${H(bar)}px at y ${Y(bar)}, not 2px at the tab's foot (${H(m)})`);
+    if (Y(row) + H(row) > Y(bar) + EPS) tabOff.push(`${String(m.name)} ${when}: the label row (to ${Y(row) + H(row)}) runs under the bar (from ${Y(bar)})`);
+  };
+  for (const m of tabs) measureTab(m, 'as built');
+
+  // TABS — every member, before and after a fourth tab joins the slot.
+  const lists = setOf('tabs');
+  const listOff: string[] = [];
+  const measureList = (m: Node, when: string): void => {
+    const items = kid(m, 'items');
+    const base = kid(m, 'baseline');
+    if (!items || !base) { listOff.push(`${String(m.name)}: no ${items ? 'baseline' : 'items'}`); return; }
+    const centered = /alignment=center/.test(String(m.name));
+    // At start the list hugs its tabs; at center it spans its placement and centers them (Q222 A).
+    if (!centered && (m.counterAxisSizingMode !== 'AUTO' || Math.abs(W(m) - W(items)) > EPS)) listOff.push(`${String(m.name)} ${when}: the list is ${W(m)} wide (${String(m.counterAxisSizingMode)}) around ${W(items)} of tabs`);
+    if (centered && W(m) + EPS < W(items)) listOff.push(`${String(m.name)} ${when}: ${W(items)} of tabs run past a ${W(m)} list`);
+    if (Math.abs(X(base)) > EPS || Math.abs(W(base) - W(m)) > EPS) listOff.push(`${String(m.name)} ${when}: the baseline spans ${X(base)}..${X(base) + W(base)}, the list 0..${W(m)}`);
+    if (Math.abs(H(base) - 1) > EPS || Math.abs(Y(base) + H(base) - H(m)) > EPS || Y(items) + H(items) > Y(base) + EPS) listOff.push(`${String(m.name)} ${when}: the baseline is ${H(base)}px at y ${Y(base)}, not 1px under the tabs (to ${Y(items) + H(items)}) at the list's foot (${H(m)})`);
+  };
+  for (const m of lists) measureList(m, 'as built');
+  let added = 0;
+  for (const m of lists) {
+    const items = kid(m, 'items');
+    // The fourth tab is an instance of the member the third is, found as the executor finds a component.
+    const want = String((kid(items, 'tab3')?.mainComponent as { name?: string } | undefined)?.name);
+    const refs = (shim as unknown as { root: { findAllWithCriteria: (c: { types: string[] }) => { name: string; createInstance?: () => Node }[] } }).root.findAllWithCriteria({ types: ['COMPONENT'] });
+    const extra = refs.find((r) => r.name === want && r.createInstance)?.createInstance?.();
+    if (items && extra) { (items.appendChild as (n: Node) => void)(extra); added++; }
+  }
+  for (const m of lists) measureList(m, 'with a fourth tab');
+  ok(lists.length === 6 && added === 6 && listOff.length === 0,
+    `#2928 Tabs: in all 6 members the 1px baseline spans the list at its foot, under the tabs, and at start the list hugs them, as built and after a fourth tab joins the slot (${lists.length} members, ${added} tabs added; ${listOff.length} off${listOff.length ? `: ${listOff.slice(0, 3).join(' | ')}` : ''})`);
+
+  // TAB.ITEM, AGAIN — its label grows past what the build saw. After Tabs, whose tabs are instances of these members and
+  // would grow with them. The label and its bold reserve show one set-level TEXT property, so it is set once, outright.
+  const LONG = 'Specifications and reviews';
+  for (const t of ['label', 'labelReserve']) { const n = find(tabs[0], t); if (n) n.characters = LONG; }
+  const grown = tabs.filter((m) => String(find(m, 'label')?.characters) === LONG).length;
+  for (const m of tabs) measureTab(m, 'with a longer label');
+  ok(tabs.length === 30 && grown === 30 && tabOff.length === 0,
+    `#2928 Tab.Item: in all 30 members the tab hugs its label row and the 2px bar spans that row edge to edge at the tab's foot, as built and after the label grows to "${LONG}" (${tabs.length} members, ${grown} grown; ${tabOff.length} off${tabOff.length ? `: ${tabOff.slice(0, 3).join(' | ')}` : ''})`);
+
+  // CODEINPUT — every cell inside the field, at every size, and the field hugging the widest of its three rows.
+  const fields = setOf('code-input');
+  const fieldOff: string[] = [];
+  for (const m of fields) {
+    const items = kid(m, 'items');
+    const rows = ['label', 'items', 'message'].map((n) => kid(m, n)).filter((n): n is Node => !!n && n.visible !== false);
+    if (!items) { fieldOff.push(`${String(m.name)}: no items`); continue; }
+    if (m.counterAxisSizingMode !== 'AUTO') fieldOff.push(`${String(m.name)}: the field's width is ${String(m.counterAxisSizingMode)}, not hugging its rows`);
+    if (W(items) > W(m) + EPS) fieldOff.push(`${String(m.name)}: ${W(items)} of cells run past a ${W(m)} field`);
+    if (Math.abs(W(m) - Math.max(...rows.map(W))) > EPS) fieldOff.push(`${String(m.name)}: the field is ${W(m)} wide, its widest row ${Math.max(...rows.map(W))}`);
+  }
+  ok(fields.length > 0 && fieldOff.length === 0,
+    `#2928 CodeInput: in all ${fields.length} members the field hugs the widest of its label, cells and message, and no cell runs past it (${fieldOff.length} off${fieldOff.length ? `: ${fieldOff.slice(0, 3).join(' | ')}` : ''})`);
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);

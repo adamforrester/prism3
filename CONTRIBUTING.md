@@ -1263,6 +1263,13 @@ npx tsx packages/engine/lint-naming.ts              # the defs follow the build-
                                                     # literals in the gate. Known breaches wait in
                                                     # PENDING, which fails as stale when one clears.
                                                     # NOT checked: "main text is `label`" (a judgment).
+npx tsx packages/engine/lint-fill-under-hug.ts      # no projected member stretches a child across a
+                                                    # column that hugs its width, or grows one along
+                                                    # a row that does (#2928, owner QA Q537): the
+                                                    # host turns that width FIXED when the fill is
+                                                    # written. The rule is typed in the gate; the
+                                                    # subject is the plans the executors build from.
+                                                    # NOT checked: the height twins (unmeasured).
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
