@@ -1000,22 +1000,29 @@ const presentDefs = async (): Promise<string[]> => {
   const names = presentNames(figma as unknown as Parameters<typeof presentNames>[0]);
   return componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
 };
-/** The ledger entry each def would get if it were built now, against the file's brand (#2909 Q2909.8 A). The brand's
- *  theme is built once for every def (`materializerFor`); a def the engine cannot plan has none, and reads unrecorded. */
-const ledgerNow = (): ((def: string) => LedgerEntry | null) => {
-  let brandInput: BrandInput | null = null;
-  try { brandInput = restoreInput(figma.root); } catch { /* untrusted/absent → defaults, as `buildComponents` */ }
-  const mat = materializerFor(brandInput);
+/** The brand a due read, a scoped check or the panel's update measures against (#2909, Q699 A, built on its
+ *  recommendation): the brand the panel holds when it sends one, so the counts shown are what the run writes after its
+ *  Theme step stores that brand, and a lever not yet applied shows its sets as due on the first opening. Absent (the
+ *  read at load, an agent's command), the file's stored brand. */
+const brandOf = (panel: BrandInput | undefined): BrandInput | null => {
+  if (panel) return panel;
+  try { return restoreInput(figma.root); } catch { return null; /* untrusted/absent → defaults, as `buildComponents` */ }
+};
+/** The ledger entry each def would get if it were built now, against `input`'s brand (#2909 Q2909.8 A, `brandOf`). The
+ *  brand's theme is built once for every def (`materializerFor`); a def the engine cannot plan has none, and reads
+ *  unrecorded. */
+const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) => {
+  const mat = materializerFor(brandOf(input));
   return (id) => {
     const d = componentDefs.find((x) => x.id === id);
     try { return d ? entryFor(mat(d)) : null; } catch { return null; }
   };
 };
-const fileSets = async (): Promise<void> => {
+const fileSets = async (input?: BrandInput): Promise<void> => {
   try {
     const present = await presentDefs();
-    // #2909 Q2909.8 A: what is due, from the as-built ledger, one root read (`as-built-ledger.ts`).
-    postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due: dueOf(readLedger(figma.root), present, ledgerNow()) });
+    // #2909 Q2909.8 A: what is due, from the as-built ledger, one root read (`as-built-ledger.ts`), against the panel's brand.
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due: dueOf(readLedger(figma.root), present, ledgerNow(input)) });
   } catch (e) {
     postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, error: (e as Error)?.message ?? String(e) });
   }
@@ -1051,9 +1058,9 @@ const handEditsPass = async (): Promise<void> => {
  * `update-components` check runs it, over only the sets Update file's checklist lists as due, so its counts and the
  * `previewHash` an apply must echo stay exact. A read: never guarded, never a verdict in Activity.
  */
-const checkSets = async (defs: readonly string[]): Promise<void> => {
+const checkSets = async (defs: readonly string[], input?: BrandInput): Promise<void> => {
   try {
-    const { targets, refused } = updateTargets(defs);
+    const { targets, refused } = updateTargets(defs, input);
     await figma.loadAllPagesAsync();
     const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe);
     r.refused.push(...refused);
@@ -1080,9 +1087,8 @@ const seatSet = async (setId: string, defId: string): Promise<void> => {
   } catch { /* the set stays where the executor placed it */ }
 };
 
-const updateTargets = (defId: string | readonly string[] | undefined): { targets: UpdateTarget[]; unknown: string | null; refused: { def: string; reason: string }[] } => {
-  let brandInput: BrandInput | null = null;
-  try { brandInput = restoreInput(figma.root); } catch { /* untrusted/absent → defaults, as `buildComponents` */ }
+const updateTargets = (defId: string | readonly string[] | undefined, input?: BrandInput): { targets: UpdateTarget[]; unknown: string | null; refused: { def: string; reason: string }[] } => {
+  const brandInput = brandOf(input);
   // #2909: the panel's Update file names a list, the sets its checklist ticked, in catalog order.
   const ids = typeof defId === 'string' ? [defId] : defId;
   const defs = ids === undefined ? componentDefs.filter((d) => d.figmaProperties) : componentDefs.filter((d) => ids.includes(d.id));
@@ -1105,9 +1111,9 @@ const unknownDef = (defId: string, sink: ActionSink): void => {
   postVerdict({ type: 'component-update-result', ok: false, headline: '✗ unknown def', summary: why, lines: [why] }, sink);
 };
 
-const updateComponents = async (defId: string | readonly string[] | undefined, previewHash: string | null, choices: UpdateChoices | undefined, sink: ActionSink): Promise<void> => {
+const updateComponents = async (defId: string | readonly string[] | undefined, previewHash: string | null, choices: UpdateChoices | undefined, input: BrandInput | undefined, sink: ActionSink): Promise<void> => {
   try {
-    const { targets, unknown, refused } = updateTargets(defId);
+    const { targets, unknown, refused } = updateTargets(defId, input);
     if (unknown !== null) return unknownDef(unknown, sink);
     await figma.loadAllPagesAsync();
     if (previewHash === null) {
@@ -1130,9 +1136,10 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     const furnish = async (def: string): Promise<void> => { furniture.push(...await furnishUpdate(figma as unknown as FurnitureApi, { outcomes: [{ def }] }, targets, panelFor)); };
     const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, nameOf, breathe, furnish, ...(choices ? { choices } : {}) });
     r.refused.push(...refused);
-    // THE AS-BUILT LEDGER (#2909 Q2909.8 A): each set the apply acted on is recorded as built from today's def. A refused
-    // set, or an apply refused whole (the file moved since the check), records nothing. CAUGHT, as the build's is.
-    const now = ledgerNow();
+    // THE AS-BUILT LEDGER (#2909 Q2909.8 A): each set the apply acted on is recorded as built from today's def, under the
+    // brand its plans were laid from (the panel's, which the run's Theme step applied). A refused set, or an apply
+    // refused whole (the file moved since the check), records nothing. CAUGHT, as the build's is.
+    const now = ledgerNow(input);
     const acted = Object.fromEntries(r.outcomes.filter((o) => !o.refused).flatMap((o) => { const e = now(o.def); return e ? [[o.def, e] as const] : []; }));
     try { recordSets(figma.root, acted); } catch { /* read as due again; the next update records it */ }
     sink.data({ update: { mode: 'apply', ...r, furniture } });
@@ -1573,7 +1580,7 @@ onUiMessage((msg: UiToMain) => {
     case 'file-sets-request':
       // #2909: Update file's checklist — which sets the file holds, whether it is set up, and what is due. A read: never
       // guarded.
-      void fileSets();
+      void fileSets(msg.input);
       return;
     case 'hand-edits-request':
       // #2909 Q2909.8 A: the background pass after load. A read: never guarded; a write starting ends it.
@@ -1581,12 +1588,12 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'update-check-request':
       // #2909 Q2909.8 A: the full check, scoped to the sets the checklist flags. A read: never guarded.
-      void checkSets(msg.defs);
+      void checkSets(msg.defs, msg.input);
       return;
     case 'update-sets':
       // #2909: Update file's in-place update of the sets its checklist ticked, under the check's hash. Guarded, as the
       // agent's confirmed `update-components` is: the same action.
-      void ACTIONS.updateComponents(msg.defs, msg.previewHash, { handEdits: msg.handEdits }, uiSink);
+      void ACTIONS.updateComponents(msg.defs, msg.previewHash, { handEdits: msg.handEdits }, msg.input, uiSink);
       return;
     case 'doc-settings-save':
       // #2909 (Q2909.23 A): Documentation's settings, kept in the file. A read of nothing else; never guarded.

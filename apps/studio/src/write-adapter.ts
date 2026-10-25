@@ -160,14 +160,16 @@ export interface HostCommit {
   postPrune(input: unknown, confirm: boolean): void;
   /** #2909: keep Documentation's settings in the file (`doc-settings-save`). Figma only; inert on the web. */
   saveDocSettings(settings: unknown): void;
-  /** #2909: ask which sets the file holds (`file-sets-request`). Figma only; inert on the web. */
-  requestFileSets(): void;
+  /** #2909: ask which sets the file holds (`file-sets-request`), and what is due against `input`, the brand the panel
+   *  holds (Q699 A; `unknown` for the reason `postTheme`'s is). Figma only; inert on the web. */
+  requestFileSets(input: unknown): void;
   /** #2909 Q2909.8 A: start the background hand-edit pass (`hand-edits-request`). Figma only; inert on the web. */
   requestHandEdits(): void;
-  /** #2909 Q2909.8 A: the full check, scoped to `defs` (`update-check-request`). Figma only; inert on the web. */
-  requestUpdateCheck(defs: readonly string[]): void;
+  /** #2909 Q2909.8 A: the full check, scoped to `defs` (`update-check-request`), against the panel's brand `input`.
+   *  Figma only; inert on the web. */
+  requestUpdateCheck(defs: readonly string[], input: unknown): void;
   /** #2909: update `defs` in place under the check's hash (`update-sets`). Figma only; inert on the web. */
-  postUpdateSets(defs: readonly string[], previewHash: string, handEdits: 'keep' | 'overwrite' | 'accept'): void;
+  postUpdateSets(defs: readonly string[], previewHash: string, handEdits: 'keep' | 'overwrite' | 'accept', input: unknown): void;
   /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
    *  read-back seed summary, the #131 knob-rehydration (the persisted `BrandInput`, typed `unknown`
    *  here to keep this DOM layer free of the engine type import) or its #480 loud refusal when the
@@ -515,17 +517,17 @@ const figmaCommit = (): HostCommit => ({
   postPrune(input, confirm) {
     post({ type: 'prune', input: input as ApplyTheme['input'], confirm });
   },
-  requestFileSets() {
-    post({ type: 'file-sets-request' });
+  requestFileSets(input) {
+    post({ type: 'file-sets-request', input: input as ApplyTheme['input'] });
   },
   requestHandEdits() {
     post({ type: 'hand-edits-request' });
   },
-  requestUpdateCheck(defs) {
-    post({ type: 'update-check-request', defs: [...defs] });
+  requestUpdateCheck(defs, input) {
+    post({ type: 'update-check-request', defs: [...defs], input: input as ApplyTheme['input'] });
   },
-  postUpdateSets(defs, previewHash, handEdits) {
-    post({ type: 'update-sets', defs: [...defs], previewHash, handEdits });
+  postUpdateSets(defs, previewHash, handEdits, input) {
+    post({ type: 'update-sets', defs: [...defs], previewHash, handEdits, input: input as ApplyTheme['input'] });
   },
   saveDocSettings(settings) {
     post({ type: 'doc-settings-save', settings });

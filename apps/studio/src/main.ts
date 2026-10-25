@@ -1847,9 +1847,12 @@ let updateReviewed: readonly CheckedSetView[] = [];
 let updatePhase: 'recheck' | 'apply' | null = null;
 /** The update of fewer sets than were checked, checked again: each set must hash as the person reviewed it. */
 const UPDATE_MOVED = 'A set changed in the file since the check. Open Update file again to see what changes now.';
+/** The brand Update file measures against (Q699 A, built on its recommendation): the one the panel holds, which the run's
+ *  Theme step applies, so the due read, the check and the update agree. Apply's own `lastGoodInput`. */
+const panelBrand = (): BrandInput => lastGoodInput;
 const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): void => {
   updatePhase = 'apply';
-  commit.postUpdateSets(u.defs, previewHash, u.handEdits);
+  commit.postUpdateSets(u.defs, previewHash, u.handEdits, panelBrand());
 };
 const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
 /** The run after the step out ended: record it, then start the next or end the run. */
@@ -1863,7 +1866,7 @@ const endStep = (ok: boolean, headline: string): void => {
     updatePhase = null;
     // Q2909.8 A: what is due now, and the hand edits after it, so the badge and the statuses follow the run.
     setHost({ handPass: 'running', handEdits: new Map(), updateCheck: null });
-    commit.requestFileSets();
+    commit.requestFileSets(panelBrand());
     commit.requestHandEdits();
     updateChanged();
     return;
@@ -1883,7 +1886,7 @@ const startStep = (): void => {
     if (!u || componentBusy()) { endStep(false, busy); return; }
     // The check's own hash when the update covers exactly the sets it read; else those sets are checked again first.
     if (u.previewHash) postUpdate(u, u.previewHash);
-    else { updatePhase = 'recheck'; setHost({ updateCheck: 'pending' }); commit.requestUpdateCheck(u.defs); }
+    else { updatePhase = 'recheck'; setHost({ updateCheck: 'pending' }); commit.requestUpdateCheck(u.defs, panelBrand()); }
   }
   else if (step === 'sets') { runSets('selection', updateRun.sets); if (!run) { endStep(false, busy); return; } }
   else if (agentRunning('styleguide') || host.styleGuideState === 'pending') { endStep(false, busy); return; }
@@ -1925,8 +1928,8 @@ const updateFileLend: UpdateFileLend = {
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
     handEdits: host.handEdits, updateCheck: host.updateCheck,
   }),
-  check: () => commit.requestFileSets(),
-  checkSets: (defs) => { setHost({ updateCheck: 'pending' }); updateChanged(); commit.requestUpdateCheck(defs); },
+  check: () => commit.requestFileSets(panelBrand()),
+  checkSets: (defs) => { setHost({ updateCheck: 'pending' }); updateChanged(); commit.requestUpdateCheck(defs, panelBrand()); },
   run: (steps, sets, update) => {
     if (updateRun || restoreFailure) return;
     updateStopped = null;

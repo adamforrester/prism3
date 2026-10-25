@@ -140,18 +140,22 @@ export type UiToMain =
   | { type: 'doc-settings-save'; settings: unknown }
   /** Update file's checklist opening (#2909): which sets the file holds, whether it is set up, and which are due by the
    *  as-built ledger (Q2909.8 A). Answered with one `file-sets`. A read; never refused by the run guard. Sent after load
-   *  too, so the panel knows what is due at rest. */
-  | { type: 'file-sets-request' }
+   *  too, so the panel knows what is due at rest. `input` is the brand the panel holds, which the due read measures
+   *  against (Q699 A, as built on its recommendation): a lever changed in the panel shows its sets as due before Apply
+   *  Theme writes it. Absent (the main thread's own read at load), the file's stored brand. */
+  | { type: 'file-sets-request'; input?: BrandInput }
   /** #2909 Q2909.8 A: the background hand-edit pass, after load. Answered with one `hand-edits` per set the file holds,
    *  then one with `done`. A read; a later request, or a write starting, ends an earlier pass. */
   | { type: 'hand-edits-request' }
   /** #2909 Q2909.8 A: the full update check, scoped to the sets the checklist flags. Answered with one `update-check`. A
-   *  read; never refused by the run guard. */
-  | { type: 'update-check-request'; defs: string[] }
+   *  read; never refused by the run guard. `input`: the panel's brand, as `file-sets-request`'s, so the counts shown are
+   *  the ones the run's update writes after its Theme step stores that brand. */
+  | { type: 'update-check-request'; defs: string[]; input?: BrandInput }
   /** #2909: Update file's in-place update of the ticked sets, under the check's `previewHash`, with the checklist's
    *  choice for hand edits. The confirmed `update-components`, through the same action; answered with its
-   *  `component-update-result`. */
-  | { type: 'update-sets'; defs: string[]; previewHash: string; handEdits: 'keep' | 'overwrite' | 'accept' };
+   *  `component-update-result`. `input`: the panel's brand, the one the check measured, so the plans the apply lays are
+   *  the plans the check hashed. */
+  | { type: 'update-sets'; defs: string[]; previewHash: string; handEdits: 'keep' | 'overwrite' | 'accept'; input?: BrandInput };
 
 /** One set as the scoped check reads it (#2909): its members, what an update would do to them, and whether it is blocked. */
 export type CheckedSet = {

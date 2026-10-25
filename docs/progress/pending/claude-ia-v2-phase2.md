@@ -36,6 +36,13 @@ unchanged, so `EXECUTOR_REVISION` stays (`lint-executor-revision.ts`: "unchanged
   before it adds new sets; an update of fewer sets than were checked checks them again and refuses if any set's hash
   moved. A set built before the ledger reads "Not checked yet", with a way to check it. Components' rows show each set's
   status: Due, Hand-edited (first class), Not checked yet, Checking, Not in file, Up to date.
+- **Which brand "due" measures against (Q699, built on the review's recommendation A, pending the owner's answer).** The
+  panel sends the brand it holds with `file-sets-request`, `update-check-request` and `update-sets`, and the main thread
+  materializes against it (`brandOf`, `main.ts`). The counts the checklist shows are then the ones the run writes after
+  its Theme step stores that brand, and a lever changed but not yet applied shows its sets as due on the first opening.
+  Before this, the check read the file's stored brand and the update the brand Theme had just stored, so one run with a
+  lever change was refused ("the file changed since the check"). The ledger still records the brand that was applied. An
+  agent's `update-components`, and the read at load, send no brand and read the stored one.
 - **Dead paths (#2998).** `figmaMenu` (`shell/figma.ts`), the bar's `applyTheme` slot and its prune dialog are gone; Clean
   up's prune is held by `test:chrome`'s Clean up arms (`clean-prune-summary`, `clean-prune-confirm`).
 - **A fix found on the way.** On the rail, Continue to Components by keyboard left focus on BODY, as Components has no tab
@@ -63,6 +70,8 @@ Each mutation was made on a committed tree and failed by name:
 | Continue to Components leaves the rail tile out of the focus candidates | `test:chrome`: "§44 … A5: Continue to Components by keyboard keeps focus off BODY" |
 | Primary's gamut line not drawn | `test:chrome`: "IA2 web … Q2909.7 A: Primary carries the engine's gamut warning" |
 | The checklist asks the check over every present set | `test:chrome`: "IA2 figma … Q2909.8 A: the checklist asks the full check for the due sets alone, once" |
+| `brandOf` reads the stored brand whatever the panel sends (Q699 A) | `test-build-completed.ts`: "q699/due: a lever changed in the panel and not yet applied …" and "q699/update: checked under the panel's brand B while the file stored A, then B stored as the Theme step does, the update goes through" ("✗ update refused") |
+| The hand-edit pass's `stale()` cut to `mine !== handPass` | `test-build-completed.ts`: "hand-edits/guard: while a build holds the guard, the pass reports no set before done" |
 
 The chrome rows ran as two mutated builds in a second worktree, never pushed; the second carried only the last two
 mutations, since in the first the missing shared block stopped the IA2 case before its later arms.
@@ -77,3 +86,7 @@ mutations, since in the first the missing shared block stopped the IA2 case befo
   drawer paths are dead code: #3010 (the bar's fit), #3011 (the web's Activity drawer).
 - Theme's own due state (`isDirty`) is not on the badge: whether Apply resets that baseline is still unverified.
 - All new UI words are placeholders (Q2909.10 A; the wording PR follows).
+- The badge at rest is the read at load, against the stored brand; a lever changed in the panel shows as due when Update
+  file opens, not on the badge before it.
+- Each Theme lever's note on the sets it makes due ("Changes N component sets. They redraw on Update file.") is #3020,
+  after Q699 and the wording pass.
