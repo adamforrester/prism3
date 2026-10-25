@@ -363,7 +363,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     const { summary, lines } = fromClauses([
       `palette ${r.paletteTotal} (+${r.paletteCreated})`, `color ${r.colorTotal} (+${r.colorCreated})`,
       `dims/layout ${f.collections.length} collections (+${floatCreated})`,
-      `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
+      `styles ${s.effects.total} effects (+${s.effects.created}, ${s.effects.bound} bound) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
       `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
       `motion ${motionTotal} vars (+${motionCreated})`,
       // #2412 (Q293 A): the one deletion Apply makes, so it is always said (wording: Q302).
@@ -391,7 +391,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
         counts: {
           palette: { total: r.paletteTotal, created: r.paletteCreated }, color: { total: r.colorTotal, created: r.colorCreated },
           floatCollections: f.collections.length, floatCreated,
-          effects: { total: s.effects.total, created: s.effects.created },
+          effects: { total: s.effects.total, created: s.effects.created, bound: s.effects.bound },
           gradients: { total: s.paints.total, created: s.paints.created, stopsBound: s.paints.bound },
           gridStyles: { total: gs.total, created: gs.created, renamed: gs.renamed, skipped: gs.skipped },
           fontsLoaded: pf.loaded, fontVars: { total: fontVarTotal, created: fontVarCreated },

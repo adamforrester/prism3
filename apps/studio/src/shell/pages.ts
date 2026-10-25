@@ -171,7 +171,7 @@ export const DOMAINS = [
         // each against the rendered preview section, so an edit to one side alone fails.
         id: 'fills', label: 'Surfaces & fills', home: 'surfaces', intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
         // `field` and `inverse.field` moved here from Interactive with the Fields section (owner decision Q29).
-        roles: ['text', 'icon', 'background', 'foreground', 'border', 'scrim', 'veil', 'inverse', 'field', 'inverse.field'],
+        roles: ['text', 'icon', 'background', 'foreground', 'border', 'scrim', 'glass', 'veil', 'inverse', 'field', 'inverse.field'],
         sections: [
           // S4f (QA-B10): the scrim left Background fills for its own read-only section, so Background fills' description
           // dropped its scrim clause (the owner's Q26 intro again), as the preview's Background section's did (Q23).

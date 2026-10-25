@@ -174,6 +174,18 @@
         "foreground.primary"
       ]
     },
+    "glass.surface": {
+      "$description": "Glass — the translucent white fill behind the glass background blur; opacity 70%",
+      "meaning": "Frosted band over a photograph",
+      "when_to_use": "The translucent fill of a glass band over a photograph — a caption or footer set over the bottom of an image. Pair it with a background blur of `blur.glass`. Text on it uses the page roles, such as `text.primary`.",
+      "avoid_when": "Do not use without the background blur, as a modal backdrop (use `scrim.default`), or as an opaque surface (use `foreground.primary`).",
+      "mode_overrides": {
+        "light": "{hds.core.palette.white-alpha.70}",
+        "dark": "{hds.core.palette.black-alpha.70}",
+        "hc-light": "{hds.core.palette.white-alpha.90}",
+        "hc-dark": "{hds.core.palette.black-alpha.90}"
+      }
+    },
     "veil.dark.subtle": {
       "$description": "Media veil, dark — a subtle black wash (50%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "meaning": "Text legibility over a photograph",
@@ -7597,6 +7609,12 @@
       "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
       "resolves_to": "21px"
     },
+    "blur.glass": {
+      "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface",
+      "meaning": "Background-blur radius — glass",
+      "when_to_use": "The background blur behind a glass band over a photograph (`backdrop-filter: blur()` in code). Its fill is `color.glass.surface`.",
+      "resolves_to": "32px"
+    },
     "icon.size.xs": {
       "$description": "icon.size.xs — 16px artboard (fixed grid; pairs with size.xs)",
       "meaning": "Icon size step xs",
@@ -10193,6 +10211,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.glass.surface",
         "color.scrim.default",
         "color.veil.dark.strong"
       ]
@@ -10209,7 +10228,10 @@
       "meaning": "Black at 90% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.glass.surface"
+      ]
     },
     "core.palette.white-alpha.0": {
       "$description": "White alpha 0% — clear white, the end a light veil fades to",
@@ -10306,7 +10328,10 @@
       "meaning": "White at 70% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.glass.surface"
+      ]
     },
     "core.palette.white-alpha.80": {
       "$description": "White alpha 80% — alpha, composites over any surface",
@@ -10320,7 +10345,10 @@
       "meaning": "White at 90% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.glass.surface"
+      ]
     },
     "core.dimension.0": {
       "$description": "0px — dimension primitive",

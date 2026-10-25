@@ -36,7 +36,7 @@ import { SEMANTICS } from './modes';
 /** The families in the order they read; `inverse` is last and is handled as a prefix, see `colorRoleRank`. */
 export const COLOR_FAMILY_ORDER = [
   'background', 'foreground', 'text', 'border', 'icon', 'interactive',
-  'disabled', 'scrim', 'veil', 'field', 'inverse',
+  'disabled', 'scrim', 'glass', 'veil', 'field', 'inverse',
 ] as const;
 
 const INK_ROLES = [
@@ -64,6 +64,7 @@ const SEGMENT_ORDER: Record<string, string[][]> = {
   interactive: [['primary', 'destructive', 'neutral'], INTERACTIVE_PARTS, INTERACTIVE_STATES],
   disabled: [['fill', 'on-fill', 'text', 'icon', 'border']],
   scrim: [['default']],
+  glass: [['surface']],
   veil: [['dark', 'light'], ['subtle', 'medium', 'strong', 'clear']],
   field: [['fill', 'border', 'placeholder'], ['rest', 'hover']],
 };

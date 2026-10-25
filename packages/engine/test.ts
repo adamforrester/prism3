@@ -4589,9 +4589,10 @@ arm: {
   // count moves 10 → 9 for that reason and no other.
   // `motion` joined in #2394 as FLOAT milliseconds and left with #2412: TIMING + EASING, so it is
   // `buildMotionVarPlan`'s, not a FLOAT axis. Asserted absent here so it cannot be written twice.
-  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
+  // `blur` joined in #2869: the glass radius, a FLOAT the `glass` Effect Style binds.
+  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'blur', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
-    `float-plan: ten collections present, motion not among them (${names.join(', ')})`);
+    `float-plan: eleven collections present, motion not among them (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
   ok(auroraFloat.find((c) => c.name === 'core')!.modes.join(',') === 'Default',
@@ -4677,7 +4678,10 @@ arm: {
   const nbDark = nbStyles.effects.filter((e) => e.name.startsWith('shadow-dark/')).length;
   ok(nbLight > 0 && nbLight === nbDark, `styles: NB emits N light + N dark effect rows (${nbLight}L / ${nbDark}D)`);
   ok(nbStyles.paints.length === 0, 'styles: NB has no gradients → 0 paint rows');
-  ok(nbStyles.effects.every((e) => e.effects.length > 0 && e.effects.every((fx) => ['DROP_SHADOW', 'INNER_SHADOW'].includes(fx.type))), 'styles: every effect row carries ≥1 drop/inner shadow');
+  // The one non-shadow row is `glass` (#2869), a single background blur; every other row is a shadow step.
+  ok(nbStyles.effects.every((e) => e.effects.length > 0 && (e.name === 'glass'
+    ? e.effects.length === 1 && e.effects[0].type === 'BACKGROUND_BLUR'
+    : e.effects.every((fx) => ['DROP_SHADOW', 'INNER_SHADOW'].includes(fx.type)))), 'styles: every shadow row carries ≥1 drop/inner shadow, and glass one background blur');
 
   // Aurora — opts into gradients → paint rows with valid paintType, baked RGBA stops, finite transform.
   const auroraStylesTheme = exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput));
@@ -12089,6 +12093,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       'color/field/', 'color/inverse/field/',
       'color/inverse/text/', 'color/inverse/icon/',
       'color/veil/',
+      // `color/glass/` (#2869) — NB's export defines no glass var, so the prefix waives nothing real, as for veil.
+      'color/glass/',
     ];
     // Engine-added vars inside a REAL family, allow-listed by EXACT name rather than by prefix.
     // `color/inverse/border/focus` (#573, renamed #891, relocated #1140) is the accessibility fix for a
@@ -12659,6 +12665,61 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   }
   ok(emptyDescs.length === 0, 'figma dims: every variable carries the DTCG $description (namespace-stripped names + rich prose in the Variables sidebar)' + (emptyDescs.length ? ` — ${emptyDescs.slice(0, 3).join(', ')}` : ''));
 }
+// (13b) GLASS (#2869, Q464 A) — the blur token, the Effect Style that binds it, and the fill that carries its own alpha.
+// Read off the COMMITTED emission, every brand, and spelled rather than derived: the variable name the radius must
+// bind is assembled here from the brand root and the literal `blur/glass`, so an emitter that bound the wrong
+// variable — or wrote the radius as a bare literal, the hand-built library's state this replaces — fails by name.
+{
+  const dtcgBrands = readdirSync(resolve(HERE, './out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.') && !f.includes('.overlay.'));
+  ok(dtcgBrands.length >= 5, `glass: every committed DTCG brand is read (${dtcgBrands.length})`);
+  for (const f of dtcgBrands) {
+    const brand = f.replace('.tokens.json', '');
+    const tr = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+    const root = Object.keys(tr).find((k) => !k.startsWith('$'))!;
+    const blur = tr[root].blur?.glass;
+    ok(blur?.$type === 'dimension' && blur?.$value === '32px', `glass ${brand}: blur.glass is a 32px dimension (${blur?.$type} ${blur?.$value})`);
+    const surf = tr[root].color?.glass?.surface;
+    const modes = { light: surf?.$value, ...Object.fromEntries(Object.entries(surf?.$extensions?.prism3?.modes ?? {}).map(([m, e]: [string, any]) => [m, e.$value])) } as Record<string, string>;
+    // Every mode's value is an alias that RESOLVES, and to a translucent primitive: the alpha lives in the value,
+    // because Figma forces a variable-bound paint to opacity 1 (#2869, the 10/21 evidence).
+    const bad: string[] = [];
+    for (const [m, v] of Object.entries(modes)) {
+      const target = /^\{(.+)\}$/.exec(String(v))?.[1];
+      const leaf = target ? target.split('.').reduce((n: any, k) => n?.[k], tr) : undefined;
+      const hex = String(leaf?.$value ?? '');
+      const alpha = /^#[0-9a-f]{8}$/i.test(hex) ? parseInt(hex.slice(7), 16) / 255 : /rgba?\([^)]*,\s*([\d.]+)\)$/.exec(hex)?.[1] ? Number(/,\s*([\d.]+)\)$/.exec(hex)![1]) : 1;
+      if (!leaf) bad.push(`${m}: ${v} does not resolve`);
+      else if (!(alpha > 0.5 && alpha < 1)) bad.push(`${m}: ${v} alpha ${alpha}`);
+    }
+    ok(Object.keys(modes).length >= 1 && bad.length === 0, `glass ${brand}: color.glass.surface resolves in every mode (${Object.keys(modes).join(', ')}) to a translucent primitive${bad.length ? ` — ${bad.join('; ')}` : ''}`);
+  }
+
+  const figmaBrands = readdirSync(resolve(HERE, './out/figma'));
+  ok(figmaBrands.length >= 4, `glass: every committed Figma brand is read (${figmaBrands.length})`);
+  for (const b of figmaBrands) {
+    const dir = resolve(HERE, './out/figma', b);
+    const blurFile = JSON.parse(readFileSync(resolve(dir, 'blur.json'), 'utf8'));
+    const root = String(blurFile.variables[0]?.name ?? '').split('/')[0];
+    const wanted = `${root}/blur/glass`;
+    const v = blurFile.variables.find((x: any) => x.name === wanted);
+    ok(blurFile.$collection === 'blur' && v?.resolvedType === 'FLOAT' && v?.value === 32 && v?.alias === null && JSON.stringify(v?.scopes) === '["EFFECT_FLOAT"]',
+      `glass ${b}: ${wanted} is a 32 FLOAT in the blur collection, scoped to effect radii`);
+    const styles = JSON.parse(readFileSync(resolve(dir, 'shadow-styles.json'), 'utf8')).styles as any[];
+    const glass = styles.filter((s) => s.name === 'glass');
+    const fx = glass[0]?.effects ?? [];
+    ok(glass.length === 1 && fx.length === 1 && fx[0].type === 'BACKGROUND_BLUR' && fx[0].radius === v?.value,
+      `glass ${b}: one 'glass' Effect Style holding one BACKGROUND_BLUR at the variable's radius (${fx.map((e: any) => `${e.type}:${e.radius}`).join(', ')})`);
+    ok(fx[0]?.boundVariables?.radius?.type === 'VARIABLE_ALIAS' && fx[0].boundVariables.radius.name === wanted,
+      `glass ${b}: the effect's radius BINDS ${wanted}, not a literal (got ${JSON.stringify(fx[0]?.boundVariables ?? null)})`);
+    const colorModes = readdirSync(dir).filter((x) => /^color\.[a-z-]+\.json$/.test(x));
+    const unbound = colorModes.filter((x) => {
+      const gv = JSON.parse(readFileSync(resolve(dir, x), 'utf8')).variables.find((y: any) => y.name === `${root}/color/glass/surface`);
+      return !(gv?.alias?.name && /\/core\/palette\/(?:white|black)-alpha\/\d+$/.test(gv.alias.name) && gv.value.a > 0.5 && gv.value.a < 1);
+    });
+    ok(colorModes.length >= 1 && unbound.length === 0, `glass ${b}: color/glass/surface aliases a translucent alpha primitive in every color mode (${colorModes.length})${unbound.length ? ` — NOT IN: ${unbound.join(', ')}` : ''}`);
+  }
+}
+
 // (14) EMIT-FIGMA SHADOW + GRADIENT (docs/10 §7 item 3) — styles, not variables.
 // Figma Effect Styles + Paint Styles ride the Plugin API (docs/08 §5). Shadow
 // is mode-aware via two style sets (light + dark); gradient is opt-in per brand.
@@ -12669,7 +12730,10 @@ arm: {
   const { tree: nbTree } = buildTree(nb);
   const nbRoot = Object.keys(nbTree)[0];
   const nbShadowKeys = Object.keys(nbTree[nbRoot].shadow ?? {});
-  const shadows = buildFigmaShadow(nb);
+  // The Effect Style list also carries `glass` (#2869), a background blur and no shadow — its own arm below.
+  const allEffects = buildFigmaShadow(nb);
+  const shadows = { ...allEffects, styles: allEffects.styles.filter((s) => s.name !== 'glass') };
+  ok(allEffects.styles.length === shadows.styles.length + 1, `figma shadow: the effect list is the shadow sets plus exactly one glass style`);
 
   // (a) One style per shadow step, TWO SETS (light + dark). NB ships 7 steps
   // (xs..2xl + inset) × 2 modes = 14 styles.
@@ -32982,7 +33046,7 @@ arm: {
 {
   const EXPECTED_FAMILY_ORDER = [
     'background', 'foreground', 'text', 'border', 'icon', 'interactive',
-    'disabled', 'scrim', 'veil', 'field', 'inverse',
+    'disabled', 'scrim', 'glass', 'veil', 'field', 'inverse',
   ];
 
   // ---- (a) THE DTCG SIDE: object-key insertion order, read off the committed tree ----
@@ -33123,7 +33187,7 @@ arm: {
     ok(firstDiff < 0 && mirrored.length === inv.size,
       `#2860 ${brand}: inverse mirrors default — same keys in the same order, minus the groups with no inverse${firstDiff >= 0 ? ` — FIRST DIFFERENCE at inverse.${strip(invLeaves)[firstDiff]} (default order puts ${mirrored[firstDiff]} there)` : ''}`);
     const noInverse = Object.keys(roles).filter((g) => !(g in inverse));
-    ok(noInverse.join() === 'scrim,veil', `#2860 ${brand}: the families without an inverse are exactly scrim and veil (got ${noInverse.join(', ')})`);
+    ok(noInverse.join() === 'scrim,glass,veil', `#2860 ${brand}: the families without an inverse are exactly scrim, glass and veil (got ${noInverse.join(', ')})`);
 
     // Design-UX order, not alphabetical: a literal spot-check per axis that an alphabetical sort breaks.
     const at = (k: string): number => def.indexOf(k);

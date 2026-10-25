@@ -103,6 +103,8 @@ export const COLOR_MODES = ['light', 'dark', 'hc-light', 'hc-dark', 'wireframe']
 const COLOR_SCOPES: Record<string, string[]> = {
   background: ['FRAME_FILL', 'SHAPE_FILL'],
   scrim: ['FRAME_FILL', 'SHAPE_FILL'],
+  // The glass fill (#2869) — the translucent frame fill behind the `glass` background blur.
+  glass: ['FRAME_FILL', 'SHAPE_FILL'],
   // The media veil (#1030) — a fill laid over an image frame, never a stroke and never ink.
   veil: ['FRAME_FILL', 'SHAPE_FILL'],
   // `foreground.*` are on-color SURFACE/fill colors — the ground you paint UNDER on-color content,

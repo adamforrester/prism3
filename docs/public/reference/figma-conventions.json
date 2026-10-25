@@ -3288,6 +3288,12 @@
         ]
       },
       {
+        "name": "blur",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
         "name": "core",
         "modes": [
           "Default"
