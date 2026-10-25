@@ -752,7 +752,8 @@ export const mountFrame = (app: HTMLElement, opts: {
     if (root.dataset.layout === 'page') { menuPage.focus({ preventScroll: true }); return; }
     const shown = (n: HTMLElement | undefined): n is HTMLElement => !!n && n.getClientRects().length > 0;
     const sel = (xs: HTMLElement[]): HTMLElement | undefined => xs.find((t) => t.getAttribute('aria-selected') === 'true');
-    [sel(subTabs), sel(tabs), domSelect].find(shown)?.focus({ preventScroll: true });
+    // #2909: on a rail area with no tab row (Components), the area's own tile says where the user is.
+    [sel(subTabs), sel(tabs), domSelect, rail.node.querySelector<HTMLElement>('[aria-current="page"]') ?? undefined].find(shown)?.focus({ preventScroll: true });
   }));
 
   // ── width class and the sticky height ───────────────────────────────────────────────────────────
