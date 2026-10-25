@@ -1491,7 +1491,7 @@
       "lanes": {
         "agent": {
           "status": "partial",
-          "via": "draw-specs, for every family or one: a spec panel below each usage panel",
+          "via": "draw-specs, for every family or one: a spec panel beside each usage panel",
           "sources": [
             "apps/plugin/src/spec-panel.ts"
           ],

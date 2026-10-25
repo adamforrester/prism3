@@ -1,6 +1,7 @@
 /**
- * THE SPEC PANEL BELOW EACH USAGE PANEL (#2830 phase 2; wireframe 2026-10-24, built on its recommendations, Q2830.1–.7
- * A, pending the owner's answers) — the family's spec sheet, drawn on its page from `_Doc-block` instances: anatomy,
+ * THE SPEC PANEL BESIDE EACH USAGE PANEL (#2830 phase 2; owner's answers 2026-10-24: Q2830.1 B, Q2830.2–.7 A; the color
+ * table's layout, Q2830.8 A, and its value column, Q2830.9 A, built on the 2026-10-25 wireframe's recommendations,
+ * pending the owner's answers) — the family's spec sheet, drawn on its page from `_Doc-block` instances: anatomy,
  * redlines per size labeled `variable · px`, colors per state per part, and nesting.
  *
  * ONE SOURCE. The panel reads the engine's spec model (`component-specs.ts` `componentSpec`, phase 1), the same model
@@ -17,31 +18,40 @@
  *     the file (`space/200 · 16`); a value the build writes as a number is labeled derived or literal. The size's other
  *     values (icon sizes, a caret) and its text styles follow as rows.
  *   - Color: one table per value of every axis the colors move on but state (Q2830.5 A): rest in full, each other state
- *     only what changes from rest. Each binding is a swatch bound to the variable it names, so it follows the frame's
- *     mode, and the variable's name.
+ *     only what changes from rest. One row per binding in four fixed columns (Q2830.8 A, `COLOR_COLUMNS`): state, part
+ *     and role, the variable's name whole on one line, and its value, a swatch bound to the variable (so it follows the
+ *     frame's mode) with the hex the file resolves for the panel when it is drawn (Q2830.9 A).
  *   - Nesting and properties: each nested instance, swap slot and placed instance, then the set's properties.
  *
  * PLACED FROM THE HOST, LABELED FROM THE PLAN (the furniture rule). The plan holds bindings, not coordinates, so a
  * redline is drawn where the laid-out specimen puts its part (`absoluteBoundingBox`) and labeled from the model. Its px
  * is read off the specimen in the file, so it is what the file shows in the frame's mode, not the engine's default brand.
  *
- * WHERE (Q2830.1 A): `SPEC_GAP` below the family's live usage panel, in its column and at its width, so the row's
- * spacing does not change. With no live usage panel, at the spot one would take. Never on top of anything: a node
- * where the panel goes keeps it from being drawn, and the run names the node. The set's own labels never block it.
+ * WHERE (Q2830.1 B): its own column, `SPEC_WIDTH` (880) wide, `SPEC_GAP` right of the family's live usage panel and
+ * top-aligned with it. With no live usage panel, where it would go beside the one that will be. Update reserves the
+ * column for every lead set whether or not specs are drawn (`PANEL_REACH`), so every set moved once, on the first Update
+ * after this, and drawing specs never needs the row spaced again. Never on top of anything: a node where the panel goes
+ * keeps it from being drawn, and the run names the node. The set's own labels never block it.
+ *
+ * NO NAME WRAPS. The columns are sized from the widest string any set's panel writes, measured in the default brand's
+ * body/sm (Inter 14): the longest variable, `color/inverse/interactive/destructive/overlay/pressed`, is 351px of the
+ * variable column's 368. A brand's own body/sm can be wider, so the draw measures each string in the template's face as
+ * it writes it, and names any wider than its column in the run's result (`test-doc-panel.ts` `specs/no wrap`).
  *
  * WHEN (Q2830.3 A): only on request, `draw-specs`. Build and Update never draw one. Update never writes into one: a
  * live panel is furniture of its set, so it moves with the set when Update spaces the row (`update-plan.ts`
- * `pageViews`, `update-apply.ts` `respaceLive`), and a usage panel redrawn taller pushes it down (`doc-panel.ts`).
+ * `pageViews`, `update-apply.ts` `respaceLive`), and a usage panel redrawn further right pushes it right (`doc-panel.ts`).
  *
  * HAND EDITS ARE KEPT (#846's Q406.9 A rule, #2956's posture). A panel records what it holds when drawn (the usage
  * panel's print, `panelPrint`) and the plan it was drawn from. A run replaces an earlier panel of the set that still
  * holds what was written; one that does not was edited, so it is kept, renamed "(edited)", moved below everything in
- * its column, and named in the run's result. A kept panel is never touched again, except to move it out of the way.
+ * the spec column (under the fresh panel, never into the usage panel's column), and named in the run's result. A kept
+ * panel is never touched again, except to move it out of the way.
  *
  * NEVER THROWS FOR A MISSING TEMPLATE. A file without `_Doc-block` draws no panel and keeps any it has.
  *
- * HELD FOR THE OWNER: `SPEC_GAP`, the redline geometry, `REDLINE` (the spec magenta, Q from 2026-10-19), the state
- * column's width, and every sentence this file writes (DRAFT wording, Q2830.7).
+ * HELD FOR THE OWNER: `SPEC_GAP`, the redline geometry, `REDLINE` (the spec magenta, Q from 2026-10-19), the color
+ * table (Q2830.8, Q2830.9), and every sentence this file writes (DRAFT wording, Q2830.7).
  */
 import { componentSpec, specMaterialize, type ComponentSpec, type SpecValue } from '@prism3/engine/component-specs';
 import { docSections } from '@prism3/engine/component-doc-sections';
@@ -52,8 +62,8 @@ import { fnv } from './style-guide';
 import { readTag } from './canvas-furniture';
 import { CAPTION, DOC_BLOCK_SET, SPECIMEN, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
 import {
-  PANEL_GAP, PANEL_PAD, PANEL_WIDTH, SECTION_GAP, SECTION_TYPE, TITLE_TYPE, anatomyMarks, findDocBlock, overlaps,
-  panelFamily, panelPrint, panelSpot, readPanelTag, type Box, type PNode, type PanelApi, type PanelParent,
+  PANEL_PAD, PANEL_WIDTH, SECTION_GAP, SECTION_TYPE, SPEC_GAP, SPEC_WIDTH, TITLE_TYPE, anatomyMarks, findDocBlock, overlaps,
+  panelFamily, panelPrint, panelSpot, readPanelTag, type Box, type PNode, type PanelApi, type PanelParent, type PanelVariable,
 } from './doc-panel';
 import { SPEC_PANEL_KEY, SPEC_PANEL_NS, readSpecTag, type SpecTag } from './spec-tag';
 
@@ -62,8 +72,7 @@ export const SPEC_PANEL_PRINT = 'specPanelPrint';
 export const SPEC_PANEL_PLAN = 'specPanelPlan';
 /** On each section frame: the def and the block it draws, `<def>:<section>`. */
 export const SPEC_SECTION_KEY = 'specSection';
-/** Between the usage panel's bottom edge and the spec panel. The usage panel's own gap from its set. */
-export const SPEC_GAP = PANEL_GAP;
+export { SPEC_GAP, SPEC_WIDTH };
 /** The fixed spec magenta of every redline: not a brand color, so it reads apart from the component it measures. */
 export const REDLINE = { r: 216 / 255, g: 27 / 255, b: 96 / 255 } as const;
 /** A redline's label size, in px, and the room a label row takes. */
@@ -72,8 +81,13 @@ const LABEL_ROW = 14;
 /** From the specimen to its first redline, and from a line to its label. */
 const LINE_GAP = 8;
 const TICK = 5;
-/** The state column of a color table. */
-const STATE_COLUMN = 120;
+/** THE COLOR TABLE'S COLUMNS (Q2830.8 A), in px, and the gap between them: they fill the panel's 832 of content. Each is
+ *  the widest string any set's panel puts in it, measured in Inter 14, plus a margin: state "Focus visible filled" 122,
+ *  part and role "Chevron down glyph icon" 170, variable 351, value a swatch and "#000000 10%" 113. */
+export const COLOR_COLUMNS = { state: 128, part: 192, variable: 368, value: 120 } as const;
+export const COLOR_GAP = 8;
+const SWATCH = 12;
+const SWATCH_GAP = 6;
 const SIZE: DocBlockSize = 'sm';
 /** Raise when the panel's layout moves without its plan moving, so every drawn panel reads as due again. */
 const SPEC_FORMAT = 1;
@@ -183,7 +197,8 @@ export const planSpecDef = (authored: ComponentDef, def: ComponentDef = authored
   }
   const bindingsOf = (r: (typeof spec.colors)[number]): SpecBinding[] => r.parts.flatMap((p) => (['fill', 'stroke', 'ink', 'icon'] as const)
     .filter((role) => p[role]).map((role): SpecBinding => ({ part: nameOf(p.part), role, variable: figmaVarName(p[role]!) }))
-    .concat(p.gradient ? [{ part: nameOf(p.part), role: 'gradient', variable: p.gradient.map(figmaVarName).join(' → ') }] : []));
+    // A gradient names a variable per stop: a row each, so every name stays whole on its own line.
+    .concat((p.gradient ?? []).map((t, i): SpecBinding => ({ part: nameOf(p.part), role: `gradient stop ${i + 1}`, variable: figmaVarName(t) }))));
   for (const [k, rows] of groups) {
     const rest = rows.find((r) => r.where.state === 'rest') ?? rows[0];
     const restKeys = new Set(bindingsOf(rest).map((b) => JSON.stringify(b)));
@@ -271,10 +286,13 @@ export const specPanelUnedited = async (n: PNode): Promise<boolean> => {
 const liveUsagePanel = (set: PNode): PNode | undefined =>
   ((set.parent as PanelParent | null | undefined)?.children as readonly PNode[] | undefined ?? [])
     .find((c) => !c.removed && readPanelTag(c)?.state === 'live' && readPanelTag(c)?.set === String(set.id ?? ''));
-/** Where the spec panel goes (Q2830.1 A): `SPEC_GAP` below the set's live usage panel, else where that panel would go. */
+/** Where the spec panel goes (Q2830.1 B): `SPEC_GAP` right of the set's live usage panel and top-aligned with it, else
+ *  beside where that panel would go. */
 export const specSpot = (set: PNode): { x: number; y: number } => {
   const u = liveUsagePanel(set);
-  return u ? { x: u.x ?? 0, y: (u.y ?? 0) + (u.height ?? 0) + SPEC_GAP } : panelSpot(set);
+  if (u) return { x: (u.x ?? 0) + (u.width ?? PANEL_WIDTH) + SPEC_GAP, y: u.y ?? 0 };
+  const at = panelSpot(set);
+  return { x: at.x + PANEL_WIDTH + SPEC_GAP, y: at.y };
 };
 
 const boxOf = (n: PNode): Box => ({ x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0 });
@@ -295,6 +313,17 @@ const locate = (root: PNode, path: readonly string[]): PNode | undefined => { le
 const propKey = (n: PNode, name: string): string | undefined => Object.keys(n.componentProperties ?? {}).find((k) => k === name || k.startsWith(`${name}#`));
 const num = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v * 100) / 100 : undefined);
 
+/** The hex `v` resolves to for `node`, in the node's mode (Q2830.9 A): `#RRGGBB`, and its alpha as a percent when below
+ *  1 (`#FFFFFF 10%`). Undefined when the host cannot resolve it. */
+export const hexFor = (v: PanelVariable | undefined, node: PNode): string | undefined => {
+  let c: { r?: unknown; g?: unknown; b?: unknown; a?: unknown } | undefined;
+  try { c = (v as { resolveForConsumer?(n: unknown): { value?: unknown } } | undefined)?.resolveForConsumer?.(node)?.value as typeof c; } catch { return undefined; }
+  if (!c || typeof c.r !== 'number' || typeof c.g !== 'number' || typeof c.b !== 'number') return undefined;
+  const hex = `#${[c.r, c.g, c.b].map((x) => Math.round(Math.min(1, Math.max(0, x as number)) * 255).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+  const a = typeof c.a === 'number' ? Math.round(c.a * 100) : 100;
+  return a < 100 ? `${hex} ${a}%` : hex;
+};
+
 /** The member of `set` at `where` (code axis → value), read through each axis's Figma name. */
 const memberAt = (set: PNode, where: Record<string, string>, axes: ComponentSpec['axes']): PNode | undefined =>
   (set.children ?? []).find((m) => {
@@ -303,7 +332,7 @@ const memberAt = (set: PNode, where: Record<string, string>, axes: ComponentSpec
   });
 
 /**
- * Draw the spec panel for `def`'s family below its usage panel, fresh: remove the set's earlier unedited spec panels,
+ * Draw the spec panel for `def`'s family beside its usage panel, fresh: remove the set's earlier unedited spec panels,
  * keep aside the edited ones, and place a new one unless something sits there. Only the family's lead draws one; for
  * any other member this returns at once. Never throws for a missing template.
  */
@@ -371,12 +400,35 @@ export const drawSpecPanel = async (
   let faceLoaded = false;
   if (face) { try { await api.loadFontAsync(face); faceLoaded = true; } catch { out.misses.push(`${face.family} ${face.style} unavailable`); } }
 
+  /** The hex cells, filled once the panel is on the page, where the swatch resolves in the panel's mode (Q2830.9 A). */
+  const hexes: { text: PNode | undefined; swatch: PNode; tail: string }[] = [];
+  // NO NAME WRAPS: each string a column holds, measured in the Paragraph block's face and size as the host lays it out,
+  // and any wider than its column named. Once per string; nothing measured without the template's face.
+  const body = findText(variant('Paragraph'), 'text');
+  const measured = new Map<string, number | undefined>();
+  const fits = async (text: string, width: number, col: string): Promise<void> => {
+    if (!faceLoaded || !face || !api.createText) return;
+    if (!measured.has(text)) {
+      const m = api.createText();
+      try {
+        (m as { fontName?: unknown }).fontName = face;
+        if (typeof body?.fontSize === 'number') m.fontSize = body.fontSize;
+        (m as { textAutoResize?: unknown }).textAutoResize = 'WIDTH_AND_HEIGHT';
+        m.characters = text;
+        measured.set(text, num(m.width));
+      } catch { measured.set(text, undefined); }
+      m.remove?.();
+    }
+    const w = measured.get(text);
+    if (w !== undefined && w > width) out.misses.push(`"${text}" is ${w}px, wider than its ${width}px ${col} column, so it wraps`);
+  };
+
   const panel = frame(plan.title, 'VERTICAL', SECTION_GAP);
   panel.paddingTop = PANEL_PAD; panel.paddingRight = PANEL_PAD; panel.paddingBottom = PANEL_PAD; panel.paddingLeft = PANEL_PAD;
   panel.fills = paint('color/background/primary');
   panel.strokes = paint('color/border/secondary');
   panel.strokeWeight = 1;
-  panel.resize?.(PANEL_WIDTH, 1);
+  panel.resize?.(SPEC_WIDTH, 1);
   panel.layoutSizingHorizontal = 'FIXED';
   panel.layoutSizingVertical = 'HUG';
 
@@ -423,36 +475,48 @@ export const drawSpecPanel = async (
         return;
       }
       case 'Colors': {
+        // Q2830.8 A: one row per binding, in fixed columns. Every cell is a Paragraph block, so it takes the file's body/sm.
         const table = frame(b.title, 'VERTICAL', 4);
         into.appendChild?.(table); fill(table);
         const t = block('Paragraph');
         if (t) { table.appendChild?.(t); fill(t); await write(findText(t, 'text'), b.title, 'text'); }
+        const cell = async (row: PNode, col: keyof typeof COLOR_COLUMNS, text: string, width: number = COLOR_COLUMNS[col]): Promise<PNode | undefined> => {
+          const c = block('Paragraph');
+          if (!c) return undefined;
+          c.name = col;
+          row.appendChild?.(c);
+          try { c.layoutSizingHorizontal = 'FIXED'; } catch { /* kept */ }
+          c.resize?.(width, c.height ?? 1);
+          await write(findText(c, 'text'), text, 'text');
+          if (text) await fits(text, width, col);
+          return c;
+        };
+        const header = frame('header', 'HORIZONTAL', COLOR_GAP);
+        table.appendChild?.(header); fill(header);
+        for (const [col, text] of [['state', 'State'], ['part', 'Part'], ['variable', 'Variable'], ['value', 'Value']] as const) await cell(header, col, text);
         for (const r of b.rows) {
-          const row = frame(r.state, 'HORIZONTAL', 12);
-          table.appendChild?.(row); fill(row);
-          const s = block('Paragraph');
-          if (s) { row.appendChild?.(s); try { s.layoutSizingHorizontal = 'FIXED'; } catch { /* kept */ } s.resize?.(STATE_COLUMN, s.height ?? 1); await write(findText(s, 'text'), sentence(r.state), 'text'); }
-          const list = frame('bindings', 'VERTICAL', 2);
-          row.appendChild?.(list);
-          try { list.layoutGrow = 1; } catch { /* kept */ }
-          if (r.same) {
-            const q = block('Paragraph');
-            if (q) { list.appendChild?.(q); fill(q); await write(findText(q, 'text'), 'Same as rest', 'text'); }
-            continue;
-          }
-          for (const bind of r.bindings) {
-            const line = frame(`${bind.part} ${bind.role}`, 'HORIZONTAL', 8);
-            (line as PNode & { counterAxisAlignItems?: unknown }).counterAxisAlignItems = 'CENTER';
-            list.appendChild?.(line); fill(line);
+          const lines = r.same ? [undefined] : r.bindings;
+          for (const [i, bind] of lines.entries()) {
+            const row = frame(bind ? `${r.state} ${bind.part} ${bind.role}` : r.state, 'HORIZONTAL', COLOR_GAP);
+            table.appendChild?.(row); fill(row);
+            // The state names its first row only; the rows under it are its other changes.
+            await cell(row, 'state', i === 0 ? sentence(r.state) : '');
+            if (!bind) { await cell(row, 'part', 'Same as rest', COLOR_COLUMNS.part + COLOR_GAP + COLOR_COLUMNS.variable + COLOR_GAP + COLOR_COLUMNS.value); continue; }
+            await cell(row, 'part', `${bind.part} ${bind.role}`);
+            await cell(row, 'variable', bind.variable);
+            const value = frame('value', 'HORIZONTAL', SWATCH_GAP);
+            (value as PNode & { counterAxisAlignItems?: unknown }).counterAxisAlignItems = 'CENTER';
+            row.appendChild?.(value);
+            try { value.layoutSizingHorizontal = 'FIXED'; } catch { /* kept */ }
+            value.resize?.(COLOR_COLUMNS.value, 1);
             const sw = frame('swatch', 'NONE');
-            sw.resize?.(12, 12);
-            // A gradient names more than one variable: its swatch is its first stop's.
-            sw.fills = paint(bind.variable.split(' → ')[0]);
+            sw.resize?.(SWATCH, SWATCH);
+            sw.fills = paint(bind.variable);
             sw.strokes = paint('color/border/secondary', false);
             sw.strokeWeight = 1;
-            line.appendChild?.(sw);
+            value.appendChild?.(sw);
             const q = block('Paragraph');
-            if (q) { line.appendChild?.(q); try { q.layoutGrow = 1; } catch { /* kept */ } await write(findText(q, 'text'), `${bind.part} ${bind.role} · ${bind.variable}`, 'text'); }
+            if (q) { q.name = 'hex'; value.appendChild?.(q); try { q.layoutGrow = 1; } catch { /* kept */ } hexes.push({ text: findText(q, 'text'), swatch: sw, tail: bind.variable }); }
           }
         }
         return;
@@ -482,6 +546,12 @@ export const drawSpecPanel = async (
   parent.appendChild(panel);
   panel.x = at.x;
   panel.y = at.y;
+  for (const h of hexes) {
+    const hex = hexFor(byTail(h.tail), h.swatch);
+    await write(h.text, hex ?? '', 'hex');
+    if (hex) await fits(hex, COLOR_COLUMNS.value - SWATCH - SWATCH_GAP, 'value');
+    else out.misses.push(`no value for ${h.tail}`);
+  }
   // A write the host refuses from here on must not leave an untagged half-panel on the canvas.
   try { out.redlines = await drawRedlines(api, panel, staged, magenta, faceLoaded ? face : undefined, out); }
   catch (e) { panel.remove?.(); throw e; }
@@ -495,7 +565,7 @@ export const drawSpecPanel = async (
     panel.remove?.();
     delete out.redlines;
     out.sets = [];
-    out.skipped.push(`No spec panel for ${def.id}: "${hits[0].name ?? 'a layer'}" sits where the panel goes, below the usage panel. Move it, then draw specs again`);
+    out.skipped.push(`No spec panel for ${def.id}: "${hits[0].name ?? 'a layer'}" sits where the panel goes, right of the usage panel. Move it, then draw specs again`);
     return out;
   }
 

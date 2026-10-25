@@ -608,7 +608,7 @@ const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], pr
     const node = set as { x?: number; y?: number; parent?: { children?: readonly unknown[] } | null };
     const dx = m.to.x - Number(node.x ?? 0), dy = m.to.y - Number(node.y ?? 0);
     // Its usage panel too (#846), while it is the live one: a panel kept aside after a hand edit stays where it is.
-    // And its live spec panel (#2830), which sits below the usage panel; an "(edited)" one stays put.
+    // And its live spec panel (#2830), which sits right of the usage panel; an "(edited)" one stays put.
     const own = (node.parent?.children ?? []).filter((k) => readTag(k as never)?.set === idOf(set) || (readPanelTag(k as PNode)?.state === 'live' && readPanelTag(k as PNode)?.set === idOf(set))
       || (isLiveSpecPanel(k) && readSpecTag(k)?.set === idOf(set))) as { x?: number; y?: number }[];
     node.x = m.to.x;

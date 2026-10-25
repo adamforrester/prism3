@@ -707,9 +707,9 @@
       {
         "name": "draw-specs",
         "args": "{ def?: string }",
-        "description": "#2830 phase 2: draw the spec panel below each family's usage panel. No `def` means every family whose lead's set is in the file; a `def` draws that def's family.",
+        "description": "#2830 phase 2: draw the spec panel beside each family's usage panel. No `def` means every family whose lead's set is in the file; a `def` draws that def's family.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.draw-specs",
-        "writes": "Canvas frames only: a spec panel below each family's usage panel, replacing its earlier unedited one and keeping an edited one aside as \"(edited)\". Never a component set, a variable or a style.",
+        "writes": "Canvas frames only: a spec panel beside each family's usage panel, replacing its earlier unedited one and keeping an edited one aside as \"(edited)\". Never a component set, a variable or a style.",
         "refuses": [
           {
             "message": "draw-specs takes args.def: a component def id, or no def for every family in the file",

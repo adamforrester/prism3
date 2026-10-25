@@ -74,7 +74,7 @@ import { ensureDocBlock, type DocBlockApi } from './src/doc-block';
 import { drawFurniture, furnishUpdate, furnitureLayout, seatNewSet, templatesLine, withPanel, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { pageSetMoves, previewUpdate, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, previewHashOf } from './src/update-apply';
-import { clearOrphanSpecPanels, drawSpecPanel, planSpecPanel, specItems, type SpecApi } from './src/spec-panel';
+import { COLOR_COLUMNS, COLOR_GAP, clearOrphanSpecPanels, drawSpecPanel, hexFor, planSpecPanel, specItems, type SpecApi } from './src/spec-panel';
 
 let failed = 0;
 const ok = (cond: boolean, label: string, detail = ''): void => {
@@ -115,6 +115,12 @@ const SIZES = ['sm', 'md', 'lg'];
 type N = PNode & Record<string, unknown> & { children: N[] };
 let seq = 0;
 const TEXT_LINE = 16;
+/** THE FONT, measured apart from the subject (#2830 Q2830.8): Inter 400 at 14px (the default brand's body/sm), each
+ *  character's advance in px, read in Chromium with canvas `measureText` on 2026-10-25. Over all 174 variables the spec
+ *  panels name, the sum of advances runs at most 0.91px under the measured run (kerning), so a run's width is its sum
+ *  plus 1. A text set to `WIDTH_AND_HEIGHT` takes this width, scaled to its font size, as Figma lays one out. */
+const INTER_14: Record<string, number> = {"0":8.83,"1":5.69,"2":8.54,"3":8.65,"4":9.04,"5":8.51,"6":8.68,"7":7.92,"8":8.66,"9":8.68," ":3.94,"!":4.03,"\"":6.52,"#":8.87,"$":8.98,"%":13.75,"&":9.02,"'":4.2,"(":5.11,")":5.11,"*":7.01,"+":9.26,",":4.03,"-":6.44,".":4.03,"/":5.04,":":4.03,";":4.22,"<":9.26,"=":9.26,">":9.26,"?":7.16,"@":13.52,"A":9.66,"B":9.16,"C":10.23,"D":10.1,"E":8.41,"F":8.27,"G":10.45,"H":10.4,"I":3.76,"J":7.99,"K":9.41,"L":7.92,"M":12.65,"N":10.55,"O":10.71,"P":8.94,"Q":10.71,"R":9.01,"S":8.98,"T":9.04,"U":10.42,"V":9.66,"W":13.79,"X":9.55,"Y":9.5,"Z":8.8,"[":5.11,"\\":5.04,"]":5.11,"^":6.6,"_":6.38,"`":4.52,"a":7.86,"b":8.57,"c":8,"d":8.57,"e":8.16,"f":5.18,"g":8.59,"h":8.28,"i":3.39,"j":3.39,"k":7.68,"l":3.39,"m":12.26,"n":8.27,"o":8.39,"p":8.57,"q":8.57,"r":5.27,"s":7.39,"t":4.58,"u":8.28,"v":7.87,"w":11.46,"x":7.64,"y":7.87,"z":7.73,"{":5.97,"|":4.66,"}":5.97,"~":9.26,"→":13.36,"·":4.03};
+const runWidth = (text: string, size = 14): number => Math.ceil(([...text].reduce((a, ch) => a + (INTER_14[ch] ?? 14), 0) + 1) * size / 14);
 const mk = (type: string, name: string, children: N[] = [], extra: Record<string, unknown> = {}): N => {
   const data = new Map<string, string>();
   const n = {
@@ -122,6 +128,7 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
     _w: type === 'TEXT' ? 200 : 100, _h: type === 'TEXT' ? TEXT_LINE : 0,
     get width(): number {
       const self = this as unknown as N;
+      if (self.type === 'TEXT' && self.textAutoResize === 'WIDTH_AND_HEIGHT') return runWidth(String(self.characters ?? ''), typeof self.fontSize === 'number' ? self.fontSize : 14);
       const p = self.parent as N | undefined;
       // FILL across a vertical parent: its width less its padding. A `_hug` frame hugs its children, as a specimen does.
       if (self.layoutSizingHorizontal === 'FILL' && p?._mk && p.layoutMode === 'VERTICAL') return p.width! - Number(p.paddingLeft ?? 0) - Number(p.paddingRight ?? 0);
@@ -885,13 +892,14 @@ section('room/… — the update makes room for the panel, and a panel follows i
   a.set.x = 0; a.set.y = 0;
   b.set.x = Number(a.set.width) + 400; b.set.y = 0;
   const found = [{ name: 'badge', set: a.set, blocked: false }, { name: 'divider', set: b.set, blocked: false }] as never;
-  const withRoom = pageSetMoves(found, undefined, 600).get('divider');
-  ok(withRoom?.to.x === Number(a.set.width) + 40 + 560 + 160, `room/with template: Divider moves to ${withRoom?.to.x}, 160 past Badge's panel`, `want ${Number(a.set.width) + 760}`);
+  // The reach (#846, #2830 Q2830.1 B): 40 to the usage panel, its 560, 40 to the spec column, its 880.
+  const withRoom = pageSetMoves(found, undefined, 40 + 560 + 40 + 880).get('divider');
+  ok(withRoom?.to.x === Number(a.set.width) + 40 + 560 + 40 + 880 + 160, `room/with template: Divider moves to ${withRoom?.to.x}, 160 past Badge's spec column`, `want ${Number(a.set.width) + 1680}`);
   ok(pageSetMoves(found, undefined, 0).get('divider')?.to.x === Number(a.set.width) + 160,
     'room/without template: the old spacing closes to 160 from the frame, with no panel to clear');
   // #2927: a set that leads no family carries no panel, so the next set is spaced from its frame.
   const notLead = [{ name: 'badge', set: a.set, blocked: false, lead: false }, { name: 'divider', set: b.set, blocked: false }] as never;
-  ok(pageSetMoves(notLead, undefined, 600).get('divider')?.to.x === Number(a.set.width) + 160,
+  ok(pageSetMoves(notLead, undefined, 40 + 560 + 40 + 880).get('divider')?.to.x === Number(a.set.width) + 160,
     'room/not a lead: no room is made past a set that carries no panel');
 }
 
@@ -919,7 +927,7 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
     `overlap/blocked by a set: a Prism3 set later in the row is the one case the run sends to Update ("${panelItems(ra).join(' ')}")`);
   const pre = await previewUpdate(uh, targets);
   const pa = pre.sets.find((x) => x.set === 'badge'), pb = pre.sets.find((x) => x.set === 'divider');
-  ok(!!JSON.parse(String(p.getSharedPluginData!('prism3', 'docPanelBlocked')) || '{}')[String(a.id)] && pb?.setMove?.to.x === Number(a.width) + 760 && pa?.furniture?.panels === 1,
+  ok(!!JSON.parse(String(p.getSharedPluginData!('prism3', 'docPanelBlocked')) || '{}')[String(a.id)] && pb?.setMove?.to.x === Number(a.width) + 1680 && pa?.furniture?.panels === 1,
     `due/update makes room: the dry run moves Divider to ${pb?.setMove?.to.x} and lists Badge's blocked panel as due, since the move clears it (${JSON.stringify(pa?.furniture)})`);
   // ONE UPDATE, as `main.ts` runs it: each set's furniture redrawn with its panel (`furnishUpdate` with the panel hook).
   const furnish = async (def: string) => { await furnishUpdate(uh, { outcomes: [{ def }] }, targets, (set, id) => drawDocPanel(uh, set as unknown as PNode, componentDefs.find((d) => d.id === id)!, { names })); };
@@ -927,8 +935,10 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
   const pa2 = livePanel(a), pb2 = livePanel(b);
   const visibleLeft = Math.min(Number(b.x), ...p.children.filter((c) => { try { return JSON.parse(c.getSharedPluginData!('prism3', 'furniture') || 'null')?.set === b.id; } catch { return false; } }).map((c) => Number(c.x)));
   const clashes = panelsOn(p).flatMap((pa) => p.children.filter((c) => c !== pa && overlap(pa, c)).map((c) => `${pa.name} on ${c.name}`));
-  ok(!!pa2 && !!pb2 && Number(pa2.x) === Number(a.x) + Number(a.width) + 40 && Math.round(visibleLeft - (Number(pa2.x) + Number(pa2.width))) === 160 && !clashes.length,
-    `room/apply: ONE Update draws Badge's panel and spaces Divider 160 past it (${pa2 ? Math.round(visibleLeft - (Number(pa2.x) + Number(pa2.width))) : 'no panel'}), no panel on anything (${clashes.join('; ')})`);
+  // The spec column is reserved past the usage panel whether or not specs are drawn (Q2830.1 B).
+  const specEdge = pa2 ? Number(pa2.x) + Number(pa2.width) + 40 + 880 : NaN;
+  ok(!!pa2 && !!pb2 && Number(pa2.x) === Number(a.x) + Number(a.width) + 40 && Math.round(visibleLeft - specEdge) === 160 && !clashes.length,
+    `room/apply: ONE Update draws Badge's panel and spaces Divider 160 past its spec column (${Math.round(visibleLeft - specEdge)}), no panel on anything (${clashes.join('; ')})`);
   const next = await previewUpdate(uh, targets);
   ok(next.sets.every((x) => !x.setMove && !x.furniture), `room/settled: the next dry run lists no move and no panel (${JSON.stringify(next.sets.map((x) => [x.set, x.setMove ?? null, x.furniture ?? null]))})`);
 }
@@ -937,8 +947,8 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
   const { a, b, uh, targets, livePanel } = await roomPage('↳ Room follow');
   await applyUpdate(uh as never, uh as never, targets, previewHashOf(await previewUpdate(uh, targets)));
   const pb2 = livePanel(b);
-  ok(Number(b.x) === Number(a.width) + 760 && !!pb2 && Number(pb2.x) === Number(b.x) + Number(b.width) + 40 && Number(pb2.y) === Number(b.y),
-    `room/panel follows: Divider moves to ${Number(b.x)}, ${Number(a.width) + 760} wanted, and its panel with it, to ${pb2?.x}`);
+  ok(Number(b.x) === Number(a.width) + 1680 && !!pb2 && Number(pb2.x) === Number(b.x) + Number(b.width) + 40 && Number(pb2.y) === Number(b.y),
+    `room/panel follows: Divider moves to ${Number(b.x)}, ${Number(a.width) + 1680} wanted, and its panel with it, to ${pb2?.x}`);
 }
 
 {
@@ -1141,9 +1151,13 @@ section('line/… — a file without `_Doc-block`');
 }
 
 
-/* ── specs: the spec panel below the usage panel (#2830 phase 2) ──────────────────────────────────────────── */
+/* ── specs: the spec panel in its column beside the usage panel (#2830 phase 2, Q2830.1 B) ───────────────── */
 // THE ORACLE, written here: Button's numbers as the 2026-10-19 wireframe and the usage panel show them, its slot-aware
-// padding and floor, and Text field's literals, as literals; never read through `spec-panel.ts`.
+// padding and floor, and Text field's literals, as literals; the spec column's place (Q2830.1 B: 40 right of the usage
+// panel, top-aligned, 880 wide) and the color table's measured columns (Q2830.8 A, the 2026-10-25 wireframe), as
+// literals; and the font, `INTER_14`. Never read through `spec-panel.ts`.
+const SPEC_COLUMN = { x: 40, width: 880 };
+const TABLE_COLUMNS = { state: 128, part: 192, variable: 368, value: 120 };
 const specPanelsOn = (p: N): N[] => p.children.filter((c) => c.getSharedPluginData!('prism3', 'specPanel'));
 const specTag = (n: N) => JSON.parse(n.getSharedPluginData!('prism3', 'specPanel')) as { def: string; set: string; state: string };
 const def = (id: string) => componentDefs.find((d) => d.id === id)!;
@@ -1178,11 +1192,46 @@ section('specs/plan — the spec panel\'s content, from the spec model');
     `specs/plan text field: one specimen per size; the control pads space/200; 320 build width and 120 floor are literals (${ctl.map((m) => `${m.path.join('/') || 'root'}.${m.prop}=${m.label}`).join(', ')})`);
 }
 
-section('specs/draw — below the usage panel, redlined, never on anything');
+section('specs/no wrap — every string a color table writes fits its column, in every set (Q2830.8 A)');
+{
+  // Every def that builds a set, as the panel plans it: each variable, state, and part and role, against its column.
+  const over: string[] = [];
+  let n = 0, widest = ['', 0] as [string, number];
+  for (const d of componentDefs.filter((x) => x.figmaProperties)) {
+    for (const sec of planSpecPanel(d).defs.flatMap((x) => x.sections)) for (const b of sec.blocks) {
+      if (b.type !== 'Colors') continue;
+      for (const r of b.rows) {
+        const state = r.state.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
+        if (runWidth(state) > TABLE_COLUMNS.state) over.push(`state "${state}" ${runWidth(state)} > ${TABLE_COLUMNS.state}`);
+        for (const x of r.bindings) {
+          n++;
+          const w = runWidth(x.variable);
+          if (w > widest[1]) widest = [x.variable, w];
+          if (w > TABLE_COLUMNS.variable) over.push(`${d.id}: "${x.variable}" ${w} > ${TABLE_COLUMNS.variable}`);
+          if (runWidth(`${x.part} ${x.role}`) > TABLE_COLUMNS.part) over.push(`${d.id}: "${x.part} ${x.role}" ${runWidth(`${x.part} ${x.role}`)} > ${TABLE_COLUMNS.part}`);
+        }
+      }
+    }
+  }
+  ok(n > 1000 && !over.length, `specs/token fits: ${n} bindings across every set, each variable on one line in Inter 14 (widest "${widest[0]}", ${widest[1]} of ${TABLE_COLUMNS.variable}px)${over.length ? `; wraps: ${over.slice(0, 4).join('; ')}` : ''}`);
+  ok(JSON.stringify(COLOR_COLUMNS) === JSON.stringify(TABLE_COLUMNS) && COLOR_COLUMNS.state + COLOR_COLUMNS.part + COLOR_COLUMNS.variable + COLOR_COLUMNS.value + 3 * COLOR_GAP === 880 - 2 * 24,
+    `specs/columns: the table's columns are the measured ones and fill the panel's 832 of content (${JSON.stringify(COLOR_COLUMNS)}, gap ${COLOR_GAP})`);
+  ok(hexFor({ id: 'V', name: 'v', resolveForConsumer: () => ({ value: { r: 1, g: 1, b: 1, a: 0.1 } }) } as never, {} as never) === '#FFFFFF 10%'
+    && hexFor({ id: 'V', name: 'v', resolveForConsumer: () => ({ value: { r: 30 / 255, g: 30 / 255, b: 1, a: 1 } }) } as never, {} as never) === '#1E1EFF'
+    && hexFor({ id: 'V', name: 'v' } as never, {} as never) === undefined,
+    'specs/hex: a resolved color reads #RRGGBB, with its alpha as a percent below 1; nothing when the host cannot resolve it');
+}
+
+section('specs/draw — beside the usage panel, redlined, never on anything');
+/** Every variable the Button family's color tables name, as the file holds them: each resolves for any node to a fixed
+ *  color, the overlays to white at 10%. */
+const SPEC_VARS = [...new Set(planSpecPanel(def('button')).defs.flatMap((d) => d.sections).flatMap((x) => x.blocks).flatMap((b) => (b.type === 'Colors' ? b.rows.flatMap((r) => r.bindings.map((y) => y.variable)) : [])))]
+  .map((name, i) => ({ id: `SV:${i}`, name: `zz/${name}`, variableCollectionId: 'VC:color', resolveForConsumer: () => ({ value: name.includes('/overlay/') ? { r: 1, g: 1, b: 1, a: 0.1 } : { r: 30 / 255, g: 30 / 255, b: 1, a: 1 } }) }));
 const specPage = async (name: string) => {
   const p = page(name);
   const { set } = await buildOn(p, 'button');
-  const api = host([p]) as unknown as SpecApi;
+  const base = host([p]) as unknown as SpecApi;
+  const api = { ...base, variables: { ...base.variables!, getLocalVariablesAsync: async () => [...VARS, ...SPEC_VARS] } } as unknown as SpecApi;
   const r = await drawDocPanel(api, set, def('button'), { names });
   return { p, set, api, usage: panelsOn(p).find((n) => tagOf(n).state === 'live')!, r };
 };
@@ -1192,8 +1241,18 @@ const specPage = async (name: string) => {
   const sp = specPanelsOn(p)[0];
   ok(r.drawn && !!sp && specTag(sp).state === 'live' && specTag(sp).set === set.id && specTag(sp).def === 'button',
     `specs/draw tagged: a live spec panel for Button's set (${specItems(r).join('; ')})`);
-  ok(!!sp && Number(sp.x) === Number(usage.x) && Number(sp.y) === Number(usage.y) + Number(usage.height) + 40 && Number(sp.width) === 560,
-    `specs/draw place: 40 below the usage panel, in its column, at 560 (${sp?.x},${sp?.y} vs ${usage.x},${Number(usage.y) + Number(usage.height)})`);
+  ok(!!sp && Number(sp.x) === Number(usage.x) + Number(usage.width) + SPEC_COLUMN.x && Number(sp.y) === Number(usage.y) && Number(sp.width) === SPEC_COLUMN.width,
+    `specs/draw place: its own 880 column, 40 right of the usage panel and top-aligned with it (${sp?.x},${sp?.y} at ${sp?.width} vs the usage panel's right edge ${Number(usage.x) + Number(usage.width)},${usage.y})`);
+  // NO NAME WRAPS, as drawn: every cell of every color table holds its text on one line, measured in the host's font.
+  const cells = sp ? walk(sp).filter((c) => ['state', 'part', 'variable', 'hex'].includes(String(c.name)) && c.type === 'INSTANCE') : [];
+  const wrapped = cells.flatMap((c) => { const t = walk(c).find((x) => x.type === 'TEXT'); const tx = String(t?.characters ?? ''); return tx && runWidth(tx) > Number(c.width) ? [`"${tx}" ${runWidth(tx)} > ${c.width}`] : []; });
+  // The table's header row names its columns; the rows under it hold one binding each.
+  const vars = cells.filter((c) => c.name === 'variable' && (c.parent as N | undefined)?.name !== 'header');
+  ok(vars.length > 100 && !wrapped.length && !r.misses.some((m) => m.endsWith('so it wraps')) && vars.every((c) => Number(c.width) === TABLE_COLUMNS.variable),
+    `specs/draw no wrap: ${vars.length} variable cells at ${TABLE_COLUMNS.variable}px and ${cells.length - vars.length} other cells, each text on one line${wrapped.length ? `; wraps: ${wrapped.slice(0, 3).join('; ')}` : ''}${r.misses.filter((m) => m.endsWith('so it wraps')).slice(0, 2).map((m) => `; ${m}`).join('')}`);
+  const hexes = cells.filter((c) => c.name === 'hex').map((c) => String(walk(c).find((x) => x.type === 'TEXT')?.characters ?? ''));
+  ok(hexes.length === vars.length && hexes.every((h) => /^#[0-9A-F]{6}( \d+%)?$/.test(h)) && hexes.includes('#FFFFFF 10%') && !r.misses.some((m) => m.startsWith('no value')),
+    `specs/draw hex: each variable's value is the hex it resolves to for the panel (${hexes.length} of ${vars.length}: ${[...new Set(hexes)].join(', ')}; ${r.misses.filter((m) => m.startsWith('no value')).slice(0, 2).join('; ')})`);
   // Each redline's label is its token and the px the specimen holds: read off the drawn specimen by this walk.
   const reds = sp ? sp.children.filter((c) => String(c.name).startsWith('redline ')) : [];
   const specs = sp ? walk(sp).filter((c) => c.name === 'specimen') : [];
@@ -1217,46 +1276,52 @@ const specPage = async (name: string) => {
   const r3 = await drawSpecPanel(api, set, def('button'));
   const kept = specPanelsOn(p).find((n) => specTag(n).state === 'kept');
   const fresh = specPanelsOn(p).find((n) => specTag(n).state === 'live');
-  ok(r3.drawn && !!kept && !!fresh && String(kept.name).endsWith(' (edited)') && texts(kept).includes('Our team reads part 2 as the label.') && !overlap(kept, fresh) && specItems(r3).some((x) => x.includes('edited by hand')),
-    `specs/hand edit: the edited panel is kept as "${kept?.name}", its edit intact, clear of the fresh one, and named`);
+  ok(r3.drawn && !!kept && !!fresh && String(kept.name).endsWith(' (edited)') && texts(kept).includes('Our team reads part 2 as the label.') && !overlap(kept, fresh) && specItems(r3).some((x) => x.includes('edited by hand'))
+    && Number(kept.x) === Number(fresh.x) && Number(kept.y) >= Number(fresh.y) + Number(fresh.height) && !panelsOn(p).some((u) => overlap(u, kept)),
+    `specs/hand edit: the edited panel is kept as "${kept?.name}", its edit intact, below the fresh one in the spec column (${kept?.x},${kept?.y} vs ${fresh?.x}), and named`);
 }
 {
   const { p, set, api, usage } = await specPage('↳ Specs blocked');
-  p.appendChild!(mk('FRAME', 'Notes', [], { x: Number(usage.x), y: Number(usage.y) + Number(usage.height) + 60, _w: 200, _h: 80 }));
+  p.appendChild!(mk('FRAME', 'Notes', [], { x: Number(usage.x) + Number(usage.width) + 200, y: Number(usage.y) + 60, _w: 200, _h: 80 }));
   const r = await drawSpecPanel(api, set, def('button'));
-  ok(!r.drawn && specPanelsOn(p).length === 0 && specItems(r)[0] === 'No spec panel for button: "Notes" sits where the panel goes, below the usage panel. Move it, then draw specs again',
+  ok(!r.drawn && specPanelsOn(p).length === 0 && specItems(r)[0] === 'No spec panel for button: "Notes" sits where the panel goes, right of the usage panel. Move it, then draw specs again',
     `specs/blocked: a layer where the panel goes keeps it from being drawn ("${specItems(r)[0]}")`);
 }
 {
-  // The usage panel redrawn taller pushes the spec panel down, and the spec panel never blocks it.
+  // The usage panel redrawn further right (its set grew wider) pushes the spec panel right, and the spec panel never
+  // blocks it.
   const { p, set, api } = await specPage('↳ Specs grow');
   await drawSpecPanel(api, set, def('button'));
   const sp = specPanelsOn(p)[0];
-  sp.y = Number(sp.y) - 300;
+  const y0 = Number(sp.y);
+  sp.x = Number(sp.x) - 300;
   const r = await drawDocPanel(api, set, def('button'), { names });
   const u = panelsOn(p).find((n) => tagOf(n).state === 'live')!;
   ok(r.drawn, `specs/usage not blocked: the usage panel draws over its own spec panel's old spot (${panelItems(r).join('; ')})`);
-  ok(!!u && Number(sp.y) === Number(u.y) + Number(u.height) + 40 && !overlap(u, sp), `specs/usage pushes down: the spec panel moves to 40 below the redrawn usage panel (${sp.y} vs ${Number(u?.y) + Number(u?.height) + 40})`);
+  ok(!!u && Number(sp.x) === Number(u.x) + Number(u.width) + 40 && Number(sp.y) === y0 && !overlap(u, sp), `specs/usage pushes right: the spec panel moves to 40 right of the redrawn usage panel (${sp.x} vs ${Number(u?.x) + Number(u?.width) + 40})`);
 }
 {
   // A blocked draw leaves the set's earlier panel as it was: it is removed only once the fresh one lands.
   const { p, set, api, usage } = await specPage('↳ Specs blocked again');
   await drawSpecPanel(api, set, def('button'));
   const old = specPanelsOn(p)[0];
-  p.appendChild!(mk('FRAME', 'Notes', [], { x: Number(usage.x) + 100, y: Number(old.y) + 200, _w: 100, _h: 40 }));
+  void usage;
+  p.appendChild!(mk('FRAME', 'Notes', [], { x: Number(old.x) + 100, y: Number(old.y) + 200, _w: 100, _h: 40 }));
   const r = await drawSpecPanel(api, set, def('button'));
   ok(!r.drawn && r.replaced === 0 && !old.removed && specPanelsOn(p).length === 1, `specs/blocked keeps: a refused redraw keeps the earlier panel (${r.replaced} replaced, ${specPanelsOn(p).length} on the page)`);
 }
 {
-  // An edited usage panel set aside by a taller redraw lands below the spec panel, never under it.
+  // An edited usage panel set aside by a redraw goes below the fresh one in the usage panel's column, never onto the
+  // spec panel beside it.
   const { p, set, api, usage } = await specPage('↳ Specs and an edited usage panel');
   await drawSpecPanel(api, set, def('button'));
   const sp = specPanelsOn(p)[0];
   walk(usage).find((c) => c.type === 'TEXT' && String(c.characters).length > 20)!.characters = 'Our own lede.';
-  sp.y = Number(sp.y) - 300;
   await drawDocPanel(api, set, def('button'), { names });
   const keptUsage = panelsOn(p).find((n) => tagOf(n).state === 'kept');
-  ok(!!keptUsage && !overlap(keptUsage, sp) && Number(keptUsage.y) > Number(sp.y), `specs/edited usage below: the kept usage panel sits below the spec panel, clear of it (${keptUsage?.y} vs ${sp.y})`);
+  const fresh = panelsOn(p).find((n) => tagOf(n).state === 'live');
+  ok(!!keptUsage && !!fresh && !overlap(keptUsage, sp) && Number(keptUsage.x) === Number(fresh.x) && Number(sp.x) === Number(fresh.x) + Number(fresh.width) + 40,
+    `specs/edited usage below: the kept usage panel sits below the fresh one in its own column, clear of the spec panel (${keptUsage?.x},${keptUsage?.y}; spec panel at ${sp.x})`);
 }
 {
   // A deleted set's unedited spec panel comes off before its def is built again; an edited one stays.
@@ -1284,8 +1349,8 @@ const specPage = async (name: string) => {
   const before = { dx: Number(sp.x) - Number(b.x), dy: Number(sp.y) - Number(b.y) };
   await applyUpdate(uh as never, uh as never, targets, previewHashOf(await previewUpdate(uh, targets)));
   const pb2 = livePanel(b);
-  ok(rs.drawn && !!pb2 && Number(sp.x) - Number(b.x) === before.dx && Number(sp.y) - Number(b.y) === before.dy && Number(sp.x) === Number(pb2.x),
-    `specs/follows set: Update moves Divider to ${b.x}, and its spec panel with it, still under its usage panel (${sp.x} vs ${pb2?.x})`);
+  ok(rs.drawn && !!pb2 && Number(sp.x) - Number(b.x) === before.dx && Number(sp.y) - Number(b.y) === before.dy && Number(sp.x) === Number(pb2.x) + Number(pb2.width) + 40 && Number(sp.y) === Number(pb2.y),
+    `specs/follows set: Update moves Divider to ${b.x}, and its spec panel with it, still beside its usage panel (${sp.x} vs ${Number(pb2?.x) + Number(pb2?.width) + 40})`);
 }
 
 if (failed) { console.error(`\n✗ ${failed} doc panel check(s) failed`); process.exit(1); }

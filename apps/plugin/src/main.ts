@@ -1083,7 +1083,7 @@ const adoptMembers = async (defId: string | undefined, sink: ActionSink): Promis
 };
 
 /**
- * DRAW SPECS (#2830 phase 2, Q2830.3 A) — the spec panel below each family's usage panel, on request only: Build and
+ * DRAW SPECS (#2830 phase 2, Q2830.3 A) — the spec panel beside each family's usage panel, on request only: Build and
  * Update never draw one. Every family whose lead's set is in the file, or `defId`'s family. The def each panel names is
  * the def as this file builds it (`materializeForBrand` with the saved brand), so its tokens are the ones the sets bind.
  * A panel's failure is CAUGHT per family and reported: the others still draw.

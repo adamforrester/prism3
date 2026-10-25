@@ -71,7 +71,7 @@ export type AgentArgs = {
   /** #2283: the one-time Adopt (§10 Q4). Records and stamps members Prism3 did not build, so an update can
    *  bring them to the plan in place. No `def` means every set. */
   'adopt-members': { def?: string };
-  /** #2830 phase 2: draw the spec panel below each family's usage panel. No `def` means every family whose lead's set
+  /** #2830 phase 2: draw the spec panel beside each family's usage panel. No `def` means every family whose lead's set
    *  is in the file; a `def` draws that def's family. */
   'draw-specs': { def?: string };
   /** #2530, dev builds only: the body of an async function to run in the main thread (`dev-commands.ts`). */
