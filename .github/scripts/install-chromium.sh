@@ -60,7 +60,7 @@ echo "apt archive $ARCHIVES: $(find "$ARCHIVES" -maxdepth 1 -name '*.deb' | wc -
 for attempt in 1 2 3; do
   if [ "$attempt" -gt 1 ]; then
     echo "Clearing what attempt $((attempt - 1)) left behind: a leftover apt-get, then dpkg --configure -a"
-    timeout 30 sh -c "$CLEAR" || true
+    : # MUTANT (#2981 measurement, reverted in the next commit): no clear before a retry
     timeout 60 sh -c "$REPAIR" || echo "::warning::dpkg --configure -a did not finish before attempt $attempt"
   fi
   # $INSTALL is split into words on purpose: it is a command line, not one argument.
