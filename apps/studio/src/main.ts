@@ -1847,7 +1847,7 @@ let updateReviewed: readonly CheckedSetView[] = [];
 let updatePhase: 'recheck' | 'apply' | null = null;
 /** The update of fewer sets than were checked, checked again: each set must hash as the person reviewed it. */
 const UPDATE_MOVED = 'A set changed in the file since the check. Open Update file again to see what changes now.';
-/** The brand Update file measures against (Q699 A, built on its recommendation): the one the panel holds, which the run's
+/** The brand Update file measures against (Q699 A): the one the panel holds, which the run's
  *  Theme step applies, so the due read, the check and the update agree. Apply's own `lastGoodInput`. */
 const panelBrand = (): BrandInput => lastGoodInput;
 const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): void => {

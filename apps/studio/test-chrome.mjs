@@ -15579,7 +15579,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
       const asked = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-check-request'));
       ok(asked.length === 1 && JSON.stringify(asked[0].defs) === JSON.stringify(['button', 'select']), `${where}: Q2909.8 A: the checklist asks the full check for the due sets alone, once (${JSON.stringify(asked.map((m) => m.defs))})`);
-      // Q699 A (built on the review's recommendation): the due read and the check measure against the brand the panel
+      // Q699 A (the owner's decision of 2026-10-25): the due read and the check measure against the brand the panel
       // holds, the one the run's Theme step applies, so each carries it whole: the brand the page loaded, with the Pill
       // this case chose on the shared block above and no Theme run has applied (the lever not yet applied).
       const PANEL_BRAND = { ...BOOT_INPUT, controlShape: 'pill' };

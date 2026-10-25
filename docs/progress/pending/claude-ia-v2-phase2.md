@@ -36,7 +36,7 @@ unchanged, so `EXECUTOR_REVISION` stays (`lint-executor-revision.ts`: "unchanged
   before it adds new sets; an update of fewer sets than were checked checks them again and refuses if any set's hash
   moved. A set built before the ledger reads "Not checked yet", with a way to check it. Components' rows show each set's
   status: Due, Hand-edited (first class), Not checked yet, Checking, Not in file, Up to date.
-- **Which brand "due" measures against (Q699, built on the review's recommendation A, pending the owner's answer).** The
+- **Which brand "due" measures against (Q699 A, the owner's decision of 2026-10-25).** The
   panel sends the brand it holds with `file-sets-request`, `update-check-request` and `update-sets`, and the main thread
   materializes against it (`brandOf`, `main.ts`). The counts the checklist shows are then the ones the run writes after
   its Theme step stores that brand, and a lever changed but not yet applied shows its sets as due on the first opening.

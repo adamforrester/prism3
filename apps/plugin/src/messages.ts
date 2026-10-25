@@ -141,7 +141,7 @@ export type UiToMain =
   /** Update file's checklist opening (#2909): which sets the file holds, whether it is set up, and which are due by the
    *  as-built ledger (Q2909.8 A). Answered with one `file-sets`. A read; never refused by the run guard. Sent after load
    *  too, so the panel knows what is due at rest. `input` is the brand the panel holds, which the due read measures
-   *  against (Q699 A, as built on its recommendation): a lever changed in the panel shows its sets as due before Apply
+   *  against (Q699 A): a lever changed in the panel shows its sets as due before Apply
    *  Theme writes it. Absent (the main thread's own read at load), the file's stored brand. */
   | { type: 'file-sets-request'; input?: BrandInput }
   /** #2909 Q2909.8 A: the background hand-edit pass, after load. Answered with one `hand-edits` per set the file holds,

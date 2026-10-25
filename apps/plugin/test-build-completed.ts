@@ -381,7 +381,7 @@ const setupOn = await runAction((sink) => ACTIONS.fileSetup(sink as never));
 const coverOn = (setupOn.data.find((d) => d.fileSetup)?.fileSetup as { cover?: { did?: string; skipped?: string } } | undefined)?.cover;
 ok(!!coverOn && coverOn.skipped !== COVER_OFF_WORDS, `docs/cover on (control): with the switch on, Set up file goes to the cover (${JSON.stringify(coverOn)})`);
 
-// 6. Q699 A, built on the review's recommendation pending the owner's answer (#2909 S1): Update file's due read, its
+// 6. Q699 A, the owner's decision of 2026-10-25 (#2909 S1): Update file's due read, its
 //    scoped check and its update all measure against the brand the PANEL holds, which the run's Theme step stores before
 //    the update. The file stores brand A and holds a set built under it; the panel holds brand B, one lever apart, a lever
 //    the set follows. The run is driven as the panel drives it: the checklist opens (`file-sets-request`, then the scoped
