@@ -155,7 +155,9 @@ export type UiToMain =
 
 /** One set as the scoped check reads it (#2909): its members, what an update would do to them, and whether it is blocked. */
 export type CheckedSet = {
-  def: string; members: number; update: number; add: number; drop: number; handEdited: number; noBaseline: number;
+  /** `hash`: the set's own share of the check's hash (`SetPreview.previewHash`), so an update of fewer sets than were
+   *  checked can tell the file moved under one of them since. */
+  def: string; hash: string; members: number; update: number; add: number; drop: number; handEdited: number; noBaseline: number;
   blocked: boolean; upToDate: boolean;
 };
 

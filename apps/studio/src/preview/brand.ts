@@ -18,6 +18,7 @@ import { subscribe } from '../state/store';
 import { h, hook } from '../shell/dom';
 import type { HostFonts } from '../ui/fonts';
 import type { SetBuild } from '../state/host-session';
+import type { SetStatus } from '../state/update-file';
 import type { BuildRun, RunKind } from '../state/build-queue';
 
 /** What `main.ts` lends the moved pages' previews until their slices replace the legacy renderers. */
@@ -46,6 +47,8 @@ export type PageLends = {
     readonly last: () => { readonly run: BuildRun; readonly verdict: { readonly ok: boolean; readonly headline: string; readonly lines: readonly string[] } } | null;
     /** Open the build's result in Activity. */
     readonly showResult: () => void;
+    /** #2909 Q2909.8 A: a set's statuses in this file (`state/update-file.ts` `statusesOf`); empty on the web. */
+    readonly status: (id: string) => readonly SetStatus[];
   };
 };
 

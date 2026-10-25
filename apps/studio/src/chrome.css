@@ -1694,6 +1694,17 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-setname { flex: 1 1 auto; min-width: 0; }
 .p3-upd-line, .p3-upd-summary { color: var(--p3-text); }
 .p3-btn.p3-upd-btn { flex: none; }
+/* #2909 Q2909.8 A: the number of due sets on Update file, in the button's own inverse ink on a hairline ring, so it needs
+   no color of its own; the due sets' rows, each with what the check found under its box; the one hand-edit choice. */
+.p3-upd-badge { display: inline-flex; align-items: center; justify-content: center; min-width: var(--p3-space-200); padding: 0 var(--p3-space-050);
+  border: var(--p3-bw-hairline) solid currentColor; border-radius: var(--p3-radius-pill); font-size: var(--p3-fs-12); line-height: var(--p3-lh-compact); }
+.p3-upd-badge[hidden] { display: none; }
+.p3-upd-setrow { display: grid; gap: 0; }
+.p3-upd-setline { padding-left: var(--p3-space-400); color: var(--p3-text-2); }
+.p3-upd-handrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); padding-left: var(--p3-space-300); }
+.p3-upd-saves { padding-left: var(--p3-space-300); }
+/* #2909 Q2909.8 A: a set's statuses on Components' list, after its meta. */
+.p3-cp-status { display: inline-flex; flex-wrap: wrap; gap: var(--p3-space-025); flex: none; margin-left: var(--p3-space-050); }
 
 /* The rail's narrow tier and dialogs (#2909): at 380 a dialog's columns stop scrolling (`.p3-bardlg-col` above,
    `overflow: visible`, the body scrolls there), so Update file's checklist scrolls inside itself, and its foot (the

@@ -93,7 +93,7 @@ export type HostMessage =
 export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readonly state: 'due'; readonly reason: 'definition' | 'engine' };
 /** A set as the scoped check reads it (#2909, `CheckedSet` in `apps/plugin/src/messages.ts`). */
 export type CheckedSetView = {
-  readonly def: string; readonly members: number; readonly update: number; readonly add: number; readonly drop: number;
+  readonly def: string; readonly hash: string; readonly members: number; readonly update: number; readonly add: number; readonly drop: number;
   readonly handEdited: number; readonly noBaseline: number; readonly blocked: boolean; readonly upToDate: boolean;
 };
 
@@ -268,11 +268,11 @@ const dueOf = (x: unknown): Record<string, SetDueView> => {
 /** #2909: one checked set, or none when a count or a flag is malformed. */
 const checkedSet = (x: unknown): CheckedSetView[] => {
   const c = x as Record<string, unknown> | null;
-  if (!c || typeof c !== 'object' || !isId(c.def) || typeof c.blocked !== 'boolean' || typeof c.upToDate !== 'boolean') return [];
+  if (!c || typeof c !== 'object' || !isId(c.def) || !str(c.hash) || typeof c.blocked !== 'boolean' || typeof c.upToDate !== 'boolean') return [];
   const n = (['members', 'update', 'add', 'drop', 'handEdited', 'noBaseline'] as const).map((k) => count(c[k]));
   if (n.some((v) => v === null)) return [];
   const [members, update, add, drop, handEdited, noBaseline] = n as number[];
-  return [{ def: c.def, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate }];
+  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate }];
 };
 const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient'];
 /** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and

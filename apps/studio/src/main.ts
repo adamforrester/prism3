@@ -25,7 +25,7 @@ import { hex, oklchToRgb } from '@prism3/engine/color';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { toDesignMd } from '@prism3/engine/design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
-import { hostCommit, type HostCommit } from './write-adapter';
+import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
@@ -34,7 +34,7 @@ import type { StyleGuidesLend } from './shell/style-guides';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { DocumentationLend } from './shell/documentation';
-import { startUpdate, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
+import { startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
 import { readSaved, savedDrawOptions } from './state/style-guides';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
@@ -1124,6 +1124,7 @@ const mountView = (view: RootView): void => {
           busy: componentBusy, agentBusy: () => agentRunning('components'), lastOf: (id) => host.setBuilds.get(id),
           run: runSets, stop: stopSets, current: () => run, last: () => lastRun,
           showResult: () => { setHost({ openDetail: 'components' }); hostChanged(); },
+          status: (id) => (commit.isFigma ? statusesOf(id, host.fileSets, host.handEdits, host.handPass) : []),
         } },
         // The product mark's logo, `styles.css`'s fixed gradient, lent like the views above.
         logo: () => el('span', 'logo'),
@@ -1840,6 +1841,16 @@ let updateRun: UpdateRun | null = null;
 let updateStopped: { readonly step: StepKey; readonly headline: string } | null = null;
 /** The style-guide step asked for a fresh catalog and waits for it, to draw with Documentation's saved settings. */
 let guidesWait = false;
+/** Q2909.8 A: what the person reviewed, set by set, and where the `update` step is: checking fewer sets again, or
+ *  waiting on the update's verdict. */
+let updateReviewed: readonly CheckedSetView[] = [];
+let updatePhase: 'recheck' | 'apply' | null = null;
+/** The update of fewer sets than were checked, checked again: each set must hash as the person reviewed it. */
+const UPDATE_MOVED = 'A set changed in the file since the check. Open Update file again to see what changes now.';
+const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): void => {
+  updatePhase = 'apply';
+  commit.postUpdateSets(u.defs, previewHash, u.handEdits);
+};
 const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
 /** The run after the step out ended: record it, then start the next or end the run. */
 const endStep = (ok: boolean, headline: string): void => {
@@ -1847,7 +1858,16 @@ const endStep = (ok: boolean, headline: string): void => {
   const step = stepOf(updateRun);
   updateRun = stepDone(updateRun, ok, headline);
   if (!ok && step) updateStopped = { step, headline };
-  if (updateRun.done) { updateRun = null; updateChanged(); return; }
+  if (updateRun.done) {
+    updateRun = null;
+    updatePhase = null;
+    // Q2909.8 A: what is due now, and the hand edits after it, so the badge and the statuses follow the run.
+    setHost({ handPass: 'running', handEdits: new Map(), updateCheck: null });
+    commit.requestFileSets();
+    commit.requestHandEdits();
+    updateChanged();
+    return;
+  }
   startStep();
 };
 /** Start the step the run is on. A write that refuses to start (its own run is out, the panel's or an agent's) ends the
@@ -1858,6 +1878,13 @@ const startStep = (): void => {
   const busy = 'Another run of this step is out. Try again when it ends.';
   if (step === 'setup') { runFileSetup(); if (host.fileSetupState !== 'pending') { endStep(false, busy); return; } }
   else if (step === 'theme') { runApply(); if (host.applyState !== 'pending') { endStep(false, busy); return; } }
+  else if (step === 'update') {
+    const u = updateRun.update;
+    if (!u || componentBusy()) { endStep(false, busy); return; }
+    // The check's own hash when the update covers exactly the sets it read; else those sets are checked again first.
+    if (u.previewHash) postUpdate(u, u.previewHash);
+    else { updatePhase = 'recheck'; setHost({ updateCheck: 'pending' }); commit.requestUpdateCheck(u.defs); }
+  }
   else if (step === 'sets') { runSets('selection', updateRun.sets); if (!run) { endStep(false, busy); return; } }
   else if (agentRunning('styleguide') || host.styleGuideState === 'pending') { endStep(false, busy); return; }
   else { guidesWait = true; commit.requestStyleGuideCatalog(); }
@@ -1869,6 +1896,14 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   if (!step) return;
   if (step === 'setup' && m.kind === 'file-setup-result') { endStep(m.ok, m.headline); return; }
   if (step === 'theme' && m.kind === 'apply-result') { endStep(m.ok, m.headline); return; }
+  if (step === 'update' && updatePhase === 'recheck' && m.kind === 'update-check') {
+    const u = updateRun!.update!;
+    const same = !m.error && u.defs.every((id) => { const was = updateReviewed.find((c) => c.def === id); const now = m.sets.find((c) => c.def === id); return !!was && !!now && was.hash === now.hash; });
+    if (!same) { updatePhase = null; endStep(false, m.error ?? UPDATE_MOVED); return; }
+    postUpdate(u, m.previewHash);
+    return;
+  }
+  if (step === 'update' && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline); return; }
   // The build queue posts its sets one after another (`runAfterResult`); the step ends with the queue.
   if (step === 'sets' && m.kind === 'component-result' && prev.componentState === 'pending' && !run) { endStep(lastRun?.verdict.ok ?? m.ok, lastRun?.verdict.headline ?? m.headline); return; }
   if (step === 'guides' && guidesWait && m.kind === 'style-guide-catalog') {
@@ -1879,7 +1914,8 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   }
   if (step === 'guides' && !guidesWait && m.kind === 'style-guide-result') { endStep(m.ok, m.headline); return; }
   // A panel request the host declined behind an agent's run gets no verdict: the step ends with the host's words.
-  if (m.kind === 'refused' && !m.agent && STEP_OF_OP[host.refused?.op ?? 'readback'] === step) endStep(false, m.message);
+  const refusedStep = STEP_OF_OP[host.refused?.op ?? 'readback'];
+  if (m.kind === 'refused' && !m.agent && (refusedStep === step || (step === 'update' && refusedStep === 'sets'))) { updatePhase = null; endStep(false, m.message); }
 };
 /** Update file's reads and writes, lent to the shell (`shell/update-file.ts`). */
 const updateFileLend: UpdateFileLend = {
@@ -1887,12 +1923,15 @@ const updateFileLend: UpdateFileLend = {
     fileSets: host.fileSets, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: restoreFailure ? RESTORE_OFF_HINT : null,
     prune: { busy: host.pruneBusy, preview: host.prunePreview, verdict: host.pruneVerdict },
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
+    handEdits: host.handEdits, updateCheck: host.updateCheck,
   }),
   check: () => commit.requestFileSets(),
-  run: (steps, sets) => {
+  checkSets: (defs) => { setHost({ updateCheck: 'pending' }); updateChanged(); commit.requestUpdateCheck(defs); },
+  run: (steps, sets, update) => {
     if (updateRun || restoreFailure) return;
     updateStopped = null;
-    updateRun = startUpdate(steps, sets);
+    updateReviewed = update?.checked ?? [];
+    updateRun = startUpdate(steps, sets, update ? { defs: update.defs, previewHash: update.previewHash, handEdits: update.handEdits } : null);
     startStep();
   },
   stop: () => {

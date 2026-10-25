@@ -1062,7 +1062,7 @@ const checkSets = async (defs: readonly string[]): Promise<void> => {
     const found = targets.filter((t) => !r.missing.includes(t.def) && !r.refused.some((x) => x.def === t.def));
     postToUi({
       type: 'update-check', previewHash: previewHashOf(r), missing: r.missing, refused: r.refused,
-      sets: r.sets.map((p, i) => ({ def: found[i]?.def ?? p.set, members: p.counts.members, update: p.counts.update, add: p.counts.add, drop: p.counts.drop,
+      sets: r.sets.map((p, i) => ({ def: found[i]?.def ?? p.set, hash: p.previewHash, members: p.counts.members, update: p.counts.update, add: p.counts.add, drop: p.counts.drop,
         handEdited: p.counts.handEdited, noBaseline: p.counts.noBaseline, blocked: p.blockers.length > 0, upToDate: setUpToDate(p) })),
     });
   } catch (e) {
@@ -1560,6 +1560,8 @@ onUiMessage((msg: UiToMain) => {
       void sendFonts();
       // The link is off on every launch; the panel's control starts from this.
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
+      // #2909 Q2909.8 A: what is due, from the ledger, then the background hand-edit pass, so the panel knows both at rest.
+      void fileSets().then(() => handEditsPass());
       void sendThemePref();
       void sendActivityHeight();
       postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root) });

@@ -389,7 +389,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'doc-settings':
       return { ...s, docSettings: { panels: m.panels, cover: m.cover, styleGuide: m.styleGuide, error: m.error } };
     case 'file-sets':
-      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due } };
+      // The main thread starts the hand-edit pass after its first answer at load, so the pass is out from here.
+      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass };
     case 'hand-edits':
       return { ...s, handEdits: new Map([...s.handEdits, [m.def, { members: m.members, edited: m.edited }]]) };
     case 'hand-edits-done':

@@ -58,6 +58,7 @@ import { currentOf, positionOf, RUN_COPY } from '../state/build-queue';
 import { glyph, h, hook, pendingLabel, setBusy } from '../shell/dom';
 import { stateLine } from '../ui/lever-kit';
 import { SETS_COPY } from '../preview/sections/component-sets';
+import { UPDATE_COPY, type SetStatus } from '../state/update-file';
 import type { PageLends } from '../preview/brand';
 import { modeLabel } from '../shell/preview';
 import { mountButtonOptions, BUTTON_OPTIONS_COPY } from './button-options';
@@ -143,6 +144,20 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     setComponentsPage({ sel, open: nextOpen });
   };
 
+  /** #2909 Q2909.8 A: a set's statuses in this file, as tags (plugin only; the web has no file). A family shows what its
+   *  sets show, each status once, in the statuses' own order. */
+  const STATUS_ORDER: readonly SetStatus[] = ['due', 'hand', 'unchecked', 'checking', 'new', 'current'];
+  const statusTags = (ids: readonly string[]): HTMLElement | null => {
+    const has = new Set(ids.flatMap((id) => lend.sets.status(id)));
+    // A family whose sets are partly in the file and partly not reads by the ones it holds.
+    if (has.size > 1) has.delete('current');
+    const list = STATUS_ORDER.filter((s) => has.has(s));
+    if (!list.length) return null;
+    const box = hook(h('span', 'p3-cp-status'), 'cp-status');
+    for (const s of list) { const t = hook(h('span', 'p3-sg-tag', UPDATE_COPY.status[s]), 'cp-status-tag'); t.dataset.status = s; box.append(t); }
+    return box;
+  };
+
   /** One set row inside a family, or a set on its own (`single` is its row). `flat`: a family's set listed at a section's
    *  edge (#2905, Q8 A), which focuses as itself, since its family has no row. */
   const setRow = (catalog: Catalog, id: string, row: GroupRow, member: boolean, flat = false): HTMLElement => {
@@ -165,6 +180,8 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       if (last) meta.append(' ', hook(h('span', 'p3-cp-last', last === 'ok' ? SETS_COPY.built : last === 'issues' ? SETS_COPY.problems : SETS_COPY.failed), 'cp-last'));
     }
     r.append(meta);
+    const st = e.buildable ? statusTags([id]) : null;
+    if (st) r.append(st);
     return r;
   };
   /** The name: a button that focuses the row's family in the preview (focus is not selection). A set in a flat section
@@ -209,6 +226,8 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     meta.append(narrow() ? GROUPS_COPY.sets(row.ids.length) : `${GROUPS_COPY.sets(row.ids.length)} · ${fmt(c.variants + c.components)}`);
     if (row.page && !narrow()) meta.append(' ', hook(h('span', 'p3-cp-where', GROUPS_COPY.page(row.page)), 'cp-page'));
     r.append(meta);
+    const st = statusTags(buildableOf(catalog, row.ids));
+    if (st) r.append(st);
     return r;
   };
 
