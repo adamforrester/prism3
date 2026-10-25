@@ -717,14 +717,15 @@ const PLACE_CLICKS = {
   shape: ['[data-p3="tab-shape"]'],
   depth: ['[data-p3="tab-depth"]'],
   layout: ['[data-p3="tab-layout"]'],
-  components: ['[data-p3="tab-components"]'],
+  // #2909: Components is a rail area on both hosts (`goPlace` clicks its tile); this entry is never clicked.
+  components: ['[data-p3="rail-components"]'],
 };
 
 /** Each column's controls, by hook, on the opening page (Color › Palettes). Wide is 1280 and 640; narrow is
  *  380. Away from Color the sub-pages are not drawn (`expectFor`). (D8's Depth & motion switch went with S9.2.) */
-const TABS = ['[data-p3="tab-brand"]', '[data-p3="tab-color"]', '[data-p3="tab-type"]', '[data-p3="tab-shape"]', '[data-p3="tab-depth"]', '[data-p3="tab-layout"]', '[data-p3="tab-components"]'];
+// #2909: Components left the tab row for the rail, on both hosts since Q2909.9 A.
+const TABS = ['[data-p3="tab-brand"]', '[data-p3="tab-color"]', '[data-p3="tab-type"]', '[data-p3="tab-shape"]', '[data-p3="tab-depth"]', '[data-p3="tab-layout"]'];
 const COLOR_SUBS = ['[data-p3="color-sub-palettes"]', '[data-p3="color-sub-fills"]', '[data-p3="color-sub-interactive"]'];
-const BAR = ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="search-open"]'];
 /** The plugin's own top-bar controls (S1.4): the Agent chip (IA-3), the Figma menu, and Apply Theme. (The Pages menu
  *  went with the old Style guide page in H12, #2289, owner PG1 A; section 26 holds its absence on both hosts.) */
 /** #2909 IA v2 phase 1 (the owner's decisions of 2026-10-24, round-4 wireframe): the plugin's shell is the left rail. Its
@@ -744,7 +745,7 @@ const WEB_BAR = ['[data-p3="brand-switcher"]', '[data-p3="search-open"]'];
 // Minimize is on the top bar whether the link is on or off (the owner's direction on #2909, 2026-10-24).
 const FIGMA_BAR = ['[data-p3="brand-switcher"]', '[data-p3="agent-minimize"]', '[data-p3="update-file"]', '[data-p3="search-open"]'];
 /** On the rail the tab row is Theme's pages alone: Components is an area (Q2909.1 A, Q2909.21 A). */
-const FIGMA_TABS = TABS.filter((t) => t !== '[data-p3="tab-components"]');
+const FIGMA_TABS = TABS;
 const EXPECT_CONTROLS = {
   'web wide': [...WEB_BAR, ...WEB_RAIL, ...FIGMA_TABS, ...COLOR_SUBS],
   'web narrow': [...WEB_BAR, ...WEB_RAIL, '[data-p3="tab-select"]', ...COLOR_SUBS],
@@ -1648,7 +1649,8 @@ for (const host of ['web', 'figma']) {
             curBg: cur ? getComputedStyle(cur.querySelector('.p3-tile-mark')).backgroundColor : null,
             mark: { shown: vis(mark), role: mark?.getAttribute('role') ?? null, label: mark?.getAttribute('aria-label') ?? null,
               logoHidden: mark?.querySelector('.logo')?.getAttribute('aria-hidden') === 'true', control: !!mark && (mark.matches('button, a[href], [tabindex]') || !!mark.querySelector('button, a[href], [tabindex]')) },
-            barMark: document.querySelectorAll('[data-p3="top-bar"] [data-p3="product-mark"]').length,
+            // The bar's old mark was an image named "Prism3 Studio"; none is drawn there now, on either host.
+            barMark: document.querySelectorAll('[data-p3="top-bar"] [role="img"]').length,
           };
         });
         // Q2909.9 A: the web's rail is Theme, Components and Export, then Help and Appearance: no Documentation (no file to
@@ -2201,7 +2203,8 @@ for (const host of ['web', 'figma']) {
       if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-inspect-tokens.png`) });
       // #2909 Q2909.7 A: no Decisions log. MUTATION: the log back in `INSPECT` (`pages.ts`) → `… Inspect's views are Contrast,
       // Tokens` above and this arm, by name.
-      const logGone = await page.evaluate(() => !document.querySelector('[data-p3="inspect-tab-log"], [data-p3="decisions-list"]'));
+      // Read by the view's element id and the log's class, as the log's own hooks are gone from the app.
+      const logGone = await page.evaluate(() => !document.querySelector('#p3-inspect-tab-log, .p3-log'));
       ok(logGone, `${where}: Inspect draws no Decisions log, tab or list (Q2909.7 A)`);
       // Back: the legacy page, where it was, with focus on the verdict that opened Inspect.
       await hooks.click(page.locator('[data-p3="inspect-close"]'));
@@ -2450,7 +2453,8 @@ const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimation
 const drawerState = (page) => page.evaluate(() => {
   const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
   const d = document.querySelector('[data-p3="activity-drawer"]');
-  const btn = document.querySelector('[data-p3="activity-open"]');
+  // The bar's old Activity tile, by its name: neither host's rail shell draws one (#2909).
+  const btn = document.querySelector('button[aria-label^="Activity"]');
   const bar = document.querySelector('[data-p3="top-bar"]');
   const dr = d?.getBoundingClientRect(), br = bar?.getBoundingClientRect();
   return {
@@ -7955,7 +7959,8 @@ console.log(`\nShape (S7)\n${'='.repeat(78)}`);
 // options and › Tag options (#2931 Q579 A), so "every lever renders once" fails by name (`also drawn lever-field-style`,
 // `lever-tag-style`) if either is. Search field style (#2888) left the same way, for Fields › Search options (#2952,
 // #2905 Q5 A): drawn on Shape again → `also drawn lever-search-field-style`.
-const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-base-md'];
+// #2909 Q2909.4 A: Control shape's lever block is Components' now (its shared block); Shape draws its read-only line.
+const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-base-md'];
 /** The preview's sections, in order (D1 A). Literal. */
 const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
 /** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
@@ -8366,13 +8371,16 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
   // draws Tag style the same way (#2931 Q579 A), its home Components › Tag, and Search options Search field style (#2952,
   // #2905 Q5 A), its home Components › Search.
   'lever-field-style', 'lever-search-field-style', 'lever-tag-style',
+  // #2909 Q2909.4 A: the shared block draws Control shape, its one home.
+  'lever-control-shape',
   // #2958: Dialog options draws Dialog title size the same way, its home Components › Dialog.
   'lever-dialog-title-size'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
  *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
  *  the move: the levers pane no longer has a section per preview section. */
 // #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
-const COMPONENTS_LIST_SECTIONS = ['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents'];
+// #2909 Q2909.4 A: the shared block is the list's first section.
+const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
@@ -8534,7 +8542,8 @@ for (const host of ['web', 'figma']) {
       await page.waitForFunction((l) => document.querySelector('[data-p3="button-options-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
       const d = await page.evaluate(() => {
         const opts = document.querySelector('[data-p3="button-options"]');
-        const ctls = [...(opts?.querySelectorAll(':is(button, select, input)') ?? [])].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="components-density-link"]'));
+        // #2909: the weights' and Outline hover's lines only navigate too, as the way to Shape does (RX1 A).
+        const ctls = [...(opts?.querySelectorAll(':is(button, select, input)') ?? [])].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="components-density-link"], [data-p3="components-weights-link"], [data-p3="components-outline-hover-link"]'));
         const list = document.querySelector('[data-p3="components-list"]');
         return { n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled')).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
           link: !document.querySelector('[data-p3="components-density-link"]')?.matches(':disabled'),
@@ -8542,8 +8551,10 @@ for (const host of ['web', 'figma']) {
           frameLine: !!document.querySelector('[data-p3="levers-derived-note"]'),
           // #2815 step 1: the Button options sit in the list now, and hold themselves (above); #2905: so do the Field
           // options (below). The list is the rest.
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
-          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"]')).length,
+          // #2909: the shared block holds Control shape's chips itself, as the options do.
+          shared: [...document.querySelectorAll('[data-p3="shared-options"] [data-p3^="control-shape-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="shared-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="shared-options"]')).length,
           search: {
             line: document.querySelector('[data-p3="search-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="search-options"] [data-p3^="search-field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
@@ -8576,6 +8587,7 @@ for (const host of ['web', 'figma']) {
       ok(d.dialog.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.dialog.chips.length === 3 && d.dialog.chips.every(Boolean),
         `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's chips (${JSON.stringify(d.dialog)})`);
       ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
+      ok(d.shared.length === 4 && d.shared.every(Boolean), `#2909 Q59: previewing ${label}, the shared block holds Control shape's four chips (${JSON.stringify(d.shared)})`);
       ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
       // #2096: the write itself is refused, not only the DOM's disabled flag. A scripted `input` on the disabled
       // minimum-width slider (which a disabled flag does not stop) leaves the persisted brand byte-identical. The value
@@ -8862,7 +8874,7 @@ for (const host of ['web', 'figma']) {
       }
       // #2952: the second sentence is approved as drafted (owner decision Q601 A).
       ok(!!r.fo && r.fo.title === 'Field options' && r.fo.desc === 'How Text field, Password field, Select and Textarea draw their edge. Search field has its own setting below.'
-        && r.fo.shape === 'Rounded' && r.fo.link === 'Set it in Shape › Control shape' && !r.fo.density && JSON.stringify(r.fo.chips) === JSON.stringify(['Outline', 'Underline']),
+        && r.fo.shape === 'Rounded' && r.fo.link === 'Set it in Shared by every component' && !r.fo.density && JSON.stringify(r.fo.chips) === JSON.stringify(['Outline', 'Underline']),
         `#2905 Q3 B, Q10 A: ${host} ${w}: Field options: its drafted title and description, the way to Control shape reading Rounded, Field style's chips, and no way to Density (${JSON.stringify(r.fo)})`);
       const S = r.so;
       ok(!!S && S.inFields && S.below && S.lineText === 'Search options' && [S.line, S.block].every((v) => v !== null && Math.abs(v - S.head) <= 0.5),
@@ -9030,7 +9042,8 @@ const S131_REFUSED = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15
 const DARK_GROUND_MAX = 0.2;
 const LIGHT_GROUND_MIN = 0.5;
 const BRAND_MENU_HOOKS = ['[data-p3="brand-menu-example"]', '[data-p3="brand-menu-new"]', '[data-p3="brand-menu-import"]', '[data-p3="import-text"]', '[data-p3="import-load"]'];
-const EXPORT_HOOKS = ['[data-p3="export-artifact"]', '[data-p3="dialog-close"]', '[data-p3="dialog-cancel"]', '[data-p3="dialog-confirm"]'];
+// #2909: the Export area's page has no Close and no Cancel (the dialog's went with it, on both hosts since Q2909.9 A).
+const EXPORT_HOOKS = ['[data-p3="export-artifact"]', '[data-p3="dialog-confirm"]'];
 /** The strip, read directly: its ground (composited), its text and glyph against it, and where it sits. */
 /** One node's text against the ground composited under it, as the strip probe reads it: the ratio, floored to 2 places. */
 const INK_PROBE = (sel) => {
@@ -9516,7 +9529,7 @@ for (const host of ['web', 'figma']) {
       // The S12 start window only (a `p3-dialog` over the app view); the legacy start screen, which replaces the frame
       // and the export dialog with it, carries the same hook and is not the case.
       const col = document.querySelector('.p3-dialog [data-p3="start-column"]');
-      const exp = document.querySelector('[data-p3="export-dialog"] .p3-bardlg-body, [data-p3="export-page"] .p3-bardlg-body');
+      const exp = document.querySelector('[data-p3="export-page"] .p3-bardlg-body');
       const tracks = (n) => (n ? getComputedStyle(n).gridTemplateColumns.split(' ').filter(Boolean).length : null);
       return { start: !!col, startTracks: tracks(col), exportOpen: !!exp, exportTracks: tracks(exp) };
     });
@@ -11726,7 +11739,7 @@ for (const theme of ['light', 'dark']) {
     const { ctx, page } = await open({ host: 'web', theme, w, h });
     try {
       const s = await page.evaluate(LINK_PROBE);
-      const none = await page.evaluate(() => ({ tile: !!document.querySelector('[data-p3="activity-open"]'), shown: !!document.querySelector('[data-p3="activity-drawer"]')?.getClientRects().length,
+      const none = await page.evaluate(() => ({ tile: !!document.querySelector('button[aria-label^="Activity"]'), shown: !!document.querySelector('[data-p3="activity-drawer"]')?.getClientRects().length,
         rail: !!document.querySelector('[data-p3="rail"]')?.getClientRects().length }));
       hooks.absent(ok, { seen: none.rail, state: 'the studio\'s rail' }, !none.tile && !none.shown && s.line === null,
         `${where}: the studio draws no Activity tile, no drawer and no agent status (Q2909.9 A) (${JSON.stringify(none)}, line ${JSON.stringify(s.line)})`);
@@ -12301,7 +12314,7 @@ const openDrawer = async (page) => {
       await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'seed-info', ok: true, present: true, summary: 'Contract holds.', failed: 0 } }, '*'));
     }
     await hooks.click(page.locator('[data-p3="activity-toggle"]'));
-  } else await hooks.click(page.locator('[data-p3="activity-open"]'));
+  } else throw new Error('openDrawer: no rail shell, so no drawer row to open');
   await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 });
 };
 const fx = (n) => (typeof n === 'number' ? Math.round(n * 10) / 10 : n);
@@ -12550,6 +12563,8 @@ const RO_EXCEPTIONS = [
   'scale-advanced', 'type-sections-advanced', 'shape-advanced', 'depth-tint-advanced',
   'fills-jump-link', 'interactive-jump-link',
   'shape-see-components', 'components-density-link', 'type-fluid-layout',
+  // #2909 Q2909.3 A: Control shape's read-only line on Shape only opens its home.
+  'shape-control-shape-link',
   'fills-continue', 'interactive-continue', 'type-continue', 'depth-continue', 'shape-continue', 'layout-continue',
 ];
 /** The studio's boxed note (RX2 A), by its classes. */
@@ -13289,8 +13304,9 @@ for (const host of ['web', 'figma']) {
         const tabs = row.filter((n) => n.role === 'tab');
         // #2909: on the plugin, Components is a rail area: Theme's tab row holds the six Theme domains and is not drawn
         // on Components, where the rail's tile reports the area current (section 1 reads its aria-current).
-        const railArea = host === 'figma' && place === 'components';
-        const wantTabs = host === 'figma' ? CS_TABS.filter((t) => t !== 'Components') : CS_TABS;
+        // (Both hosts since Q2909.9 A.)
+        const railArea = place === 'components';
+        const wantTabs = CS_TABS.filter((t) => t !== 'Components');
         if (railArea) ok(row.length === 0, `${at}: Theme's tab row is not exposed on the Components area (read ${JSON.stringify(row.map((n) => `${n.role} ${n.name}`))})`);
         else if (!narrow) ok(JSON.stringify(tabs.map((n) => n.name)) === JSON.stringify(wantTabs), `${at}: the tab row exposes every domain's tab, in order (read ${JSON.stringify(tabs.map((n) => `${n.role} ${n.name}`))})`);
         else ok(row.some((n) => n.role === 'combobox'), `${at}: the tab row exposes its select (read ${JSON.stringify(row.map((n) => n.role))})`);
@@ -15281,8 +15297,7 @@ for (const host of ['web', 'figma']) {
         await hooks.need(page, EXP);
         const inDlg = await page.evaluate((x) => !!document.activeElement?.closest(x), EXP);
         // A page takes no focus as it opens (it is not a dialog): the walk starts on its first control.
-        if (!inDlg && host === 'figma') await page.evaluate((x) => [...document.querySelector(x).querySelectorAll('button, select, textarea, input, [tabindex="0"]')].find((n) => n.checkVisibility() && !n.disabled)?.focus(), EXP);
-        else if (!inDlg) await page.keyboard.press('Tab');
+        if (!inDlg) await page.evaluate((x) => [...document.querySelector(x).querySelectorAll('button, select, textarea, input, [tabindex="0"]')].find((n) => n.checkVisibility() && !n.disabled)?.focus(), EXP);
         const rings = await pr5Walk(page, EXP, 'Tab');
         const misses = rings.map((r) => ({ r, m: ringMisses(r, 'light') })).filter((x) => x.m.length);
         const miss = misses.filter((x) => !(x.r.hook in PR5_RING_GAPS));
@@ -15497,7 +15512,9 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     if (host === 'web') {
       step = 'the engine warnings';
       await goPlace(page, 'color-palettes');
+      // The example brand sets its own danger hue, so it is cleared to let the engine choose one (and say so).
       await page.evaluate(() => window.__prism3TestEdit('primary', { l: 0.7, c: 0.37, h: 145 }));
+      await page.evaluate(() => window.__prism3TestEdit('status.danger', undefined));
       await page.waitForFunction(() => !!document.querySelector('[data-p3="palettes-levers"] [data-p3="gamut-note"]'), null, { timeout: 5000 }).catch(() => {});
       const gw = await page.evaluate(() => [...document.querySelectorAll('[data-p3="palettes-levers"] [data-p3="gamut-note"]')].map((n) => ({ text: n.textContent, lever: n.closest('[data-p3^="lever-"]')?.getAttribute('data-p3') ?? null })));
       ok(gw.length === 1 && /^Anchor 'primary' \(oklch [^)]*\) is outside the sRGB gamut/.test(gw[0].text) && gw[0].lever === 'lever-primary',
@@ -15552,7 +15569,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       ok(JSON.stringify(ck.hand) === JSON.stringify([['hand=keep', 'true'], ['hand=overwrite', 'false'], ['hand=accept', 'false']]), `${where}: Q2909.8 A: the update keeps hand edits by default (${JSON.stringify(ck.hand)})`);
       ok(/^1 set not checked yet/.test(ck.unrec ?? '') && ck.saves, `${where}: Q2909.8 A: the set never recorded is offered a check, and the update says it saves a version first (${JSON.stringify({ unrec: ck.unrec, saves: ck.saves })})`);
       const dm = await measure(page, `${where} / Update checklist`, host, 1280);
-      check(dm, `${where} / Update checklist`, columnOf(host, 1280), PLACE_FLOOR, { state: 'area', only: ['[data-p3="update-go"]', '[data-p3="update-due-set"]', '[data-p3="update-hand-keep"]'] });
+      check(dm, `${where} / Update checklist`, columnOf(host, 1280), PLACE_FLOOR, { only: ['[data-p3="update-go"]', '[data-p3="update-due-set"]', '[data-p3="update-hand-keep"]'] });
       step = 'the update';
       // The theme unticked, so the update is the run's first step and posts at once.
       await hooks.click(page.locator('[data-p3="update-check-theme"]'));

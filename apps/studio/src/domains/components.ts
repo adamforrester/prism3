@@ -331,15 +331,16 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   const SHARED = (DOMAINS.find((d) => d.id === 'components') as PageData).sections.find((x) => x.rows.some((r) => r.keys?.includes('controlShape')))!;
   const shared = hook(h('section', 'p3-lsec p3-cp-sec'), 'cp-shared');
   {
-    const head = hook(h('div', 'p3-cp-sec-head'), 'cp-section-head');
+    // A levers section's own head (the title, its description under it), as every page's sections draw theirs (TY2 A).
+    const head = hook(h('div', 'p3-lsec-head'), 'cp-section-head');
     const t = hook(h('h2', 'p3-lsec-title p3-cp-title', SHARED.title), 'cp-section-title');
     t.dataset.name = SHARED.title;
-    head.append(t);
+    head.append(t, h('p', 'p3-lsec-desc', SHARED_DESC));
     const body = h('div', 'p3-cp-opts');
     const own: (() => void)[] = [];
     mountSharedOptions(body, own, modeLabel);
     cleanups.push(() => { for (const fn of own) fn(); });
-    shared.append(head, h('p', 'p3-lsec-desc', SHARED_DESC), body);
+    shared.append(head, body);
   }
   /** Under a search the shared block stays only while its words hold the query. */
   const sharedMatches = (q: string): boolean => !q || (shared.textContent ?? '').toLowerCase().includes(q.toLowerCase());
