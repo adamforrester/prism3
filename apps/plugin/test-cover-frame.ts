@@ -27,7 +27,9 @@
  * BY-NAME MUTATIONS (the PR body lists them): the thumbnail set over a designer's frame → `thumb/never replaces a
  * designer's thumbnail`; the cover gains the contract version → `cover/brand and version only`; the ground written as
  * a literal → `cover/ground bound to foreground/brand`; an edited cover's other layer rewritten → `edited/only the
- * version text moves`; the ink bound to another role → `contrast/the cover's ink is contracted against its ground`.
+ * version text moves`; the ink bound to another role → `contrast/the cover's ink is contracted against its ground`. Update
+ * ignoring Documentation's Cover off (`update-plan.ts`, the `readDocSettings(…).cover` test read as `true`) →
+ * `update/cover off` (#2995).
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -428,7 +430,9 @@ section('update — through a real Update in the component shim');
   const cover = pageOf('Cover');
   const pages = [cover, page];
   const blob = new Map<string, string>([['prism3/brandInput', serializeBrandInput({ ...(exampleBrands as Record<string, BrandInput>).harbor })]]);
+  const pluginData = new Map<string, string>();
   const host = { ...api, root: { ...api.root, get children() { return pages; }, getSharedPluginData: (ns: string, k: string) => blob.get(`${ns}/${k}`) ?? '',
+    getPluginData: (k: string) => pluginData.get(k) ?? '',
     findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
   const targets = [{ def: id, plans }];
   // A cover an earlier engine drew, and its own thumbnail.
@@ -475,6 +479,18 @@ section('update — through a real Update in the component shim');
     `update/set change and cover due: the title names the set by its display name (${JSON.stringify(api._versions)}; ${res4.version})`);
   ok(/ Cover\.$/.test(String(api._versionNotes[0])) && part(fr, 'brand')?.characters === 'Harbor Line',
     `update/set change and cover due: the description names the cover (${JSON.stringify(api._versionNotes)}; ${part(fr, 'brand')?.characters})`);
+  // #2995 (should-fix 2): Documentation's Cover switch off for this file (`prism3:docSettings` `{"cover":false}`, #2977):
+  // the brand renamed so the cover is due, yet Update neither lists it nor redraws it. Then the switch on: the same
+  // rename is due, so the arm reads the switch, not a cover that was current anyway.
+  blob.set('prism3/brandInput', serializeBrandInput({ ...(exampleBrands as Record<string, BrandInput>).harbor, name: 'Harbor Quay' }));
+  pluginData.set('prism3:docSettings', '{"cover":false}');
+  const pre5 = await previewUpdate(host, targets);
+  await applyUpdate(host, api as never, targets, previewHashOf(pre5), { today: '2026-10-24' });
+  ok(pre5.cover === undefined && !previewVerdict(pre5).lines.some((l) => l.startsWith('Cover:')) && part(fr, 'brand')?.characters === 'Harbor Line',
+    `update/cover off: with Cover off in Documentation, Update neither lists nor redraws the cover (${JSON.stringify(pre5.cover)}; ${part(fr, 'brand')?.characters})`);
+  pluginData.delete('prism3:docSettings');
+  const pre6 = await previewUpdate(host, targets);
+  ok(pre6.cover?.state === 'stale', `update/cover on (control): the switch on, the same rename is due (${JSON.stringify(pre6.cover)})`);
 }
 
 console.log(failed ? `\n✗ ${failed} of ${executed} failed` : `\n✓ all passed — ${executed} assertions executed`);

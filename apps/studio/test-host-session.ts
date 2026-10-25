@@ -48,7 +48,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 /** Every kind the UI's handler receives, written out here rather than read from the code under test. */
 const KINDS = [
   'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
-  'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-reading', 'restore-input-library', 'restore-input-error', 'font-list',
+  'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-reading', 'restore-input-library', 'restore-input-error', 'font-list', 'doc-settings', 'file-sets',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
   'style-guide-catalog', 'style-guide-tables', 'style-guide-table', 'style-guide-cleanup-result',
 ] as const;
@@ -69,7 +69,7 @@ const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
-  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null,
+  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null, docSettings: null, fileSets: null,
 }), 'initial session: every slot empty');
 
 // ---- the four verdict kinds ------------------------------------------------------------------------------
@@ -364,6 +364,18 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
     'style-guide-cleanup-result: a removed table leaves the offer by id (a copy of the same name stays), its sentence is kept, and the page repaints');
 }
 
+{
+  // #2909: the file's Documentation settings land in their own slot and move only the Documentation area's topic.
+  const d = step(init, { kind: 'doc-settings', panels: false, cover: true, styleGuide: { view: null }, error: null });
+  ok(same(d.next.docSettings, { panels: false, cover: true, styleGuide: { view: null }, error: null }), 'doc-settings: the switches and the style-guide record land in the slot');
+  ok(same(d.topics, ['host:docs']), 'doc-settings: only host:docs is invalidated');
+}
+{
+  // #2909: Update file's checklist read lands in its own slot and moves only the overlay's topic.
+  const f = step(init, { kind: 'file-sets', present: ['button'], setUp: true, error: null });
+  ok(same(f.next.fileSets, { present: ['button'], setUp: true, error: null }), 'file-sets: the sets present and the setup state land in the slot');
+  ok(same(f.topics, ['host:update']), 'file-sets: only host:update is invalidated');
+}
 for (const k of KINDS) ok(exercised.has(k), `coverage: ${k} was exercised`);
 
 console.log(`\n${executed - failed}/${executed} passed`);

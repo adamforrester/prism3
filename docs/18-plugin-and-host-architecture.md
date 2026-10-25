@@ -19,8 +19,16 @@ capabilities**. This split *is* the architecture — it decides where each layer
 | Figma document (`figma.*`, canvas, variables, nodes) | ✅ **only here** | ❌ none |
 | DOM / rendering | ❌ | ✅ |
 | Network (`fetch`/`XHR`) | ❌ **cannot** | ✅ (gated by manifest) |
-| `setTimeout`/`setInterval` | ❌ | ✅ |
+| `setTimeout`/`setInterval` | ✅ Figma's own, not the browser's¹ | ✅ |
 | JS runtime | minimal (QuickJS-class): ES2020+, `Array/Object/Map/Set/Promise/Proxy/Reflect/JSON/Math/Date/RegExp/structuredClone` | full browser |
+
+¹ Figma's [How plugins run](https://developers.figma.com/docs/plugins/how-plugins-run/) says browser APIs
+"like `XMLHttpRequest`, `fetch`, `setTimeout`, and the DOM are not *directly* available from the sandbox":
+the browser's are not, but the sandbox provides its own. [`figma.closePlugin`](https://developers.figma.com/docs/plugins/api/properties/figma-closeplugin/)
+cancels "any `setTimeout` or `setInterval` timers", and `@figma/plugin-typings` declares `setTimeout`,
+`clearTimeout`, `setInterval` and `clearInterval` as globals for the main thread (`index.d.ts`). The main
+thread uses them in `apps/plugin/src/main.ts`: the agent link's mailbox poll (`schedule: (fn, ms) =>
+setTimeout(fn, ms)`), `fileKindApi`'s `after`, and `breathe()` (#2950).
 
 They communicate by **message passing only**: main → UI via `figma.ui.postMessage(msg)`; UI → main
 via `parent.postMessage({ pluginMessage: msg }, '*')`, received on `figma.ui.onmessage`. Because the
@@ -201,9 +209,10 @@ the hope was a larger view. **It is the opposite, and the reasons generalize pas
 2. **A widget's rich UI is the *same modal*.** `figma.showUI` from a widget *"creates a modal dialog with an
    `<iframe>` containing the HTML markup in the html argument"* — the identical window the plugin already
    opens. There is no size gain to have: the plugin opens at **1280×900** (`apps/plugin/src/main.ts`) and
-   persists whatever the designer drags it to (#144). Figma documents plugin-UI *minimums* (width 70,
-   height 0 at instantiation; ~100 on `resize`) and no maximum beyond the window, and docking is not a
-   native feature for either shape.
+   persists whatever the designer drags it to (#144). Figma documents plugin-UI *minimums*, the same at
+   instantiation and on `resize`: width 70 and height 0 for [`showUI`](https://developers.figma.com/docs/plugins/api/properties/figma-showui/),
+   and *"The minimum size is 70x0"* for [`figma.ui.resize`](https://developers.figma.com/docs/plugins/api/figma-ui/)
+   (#2950). It documents no maximum beyond the window, and docking is not a native feature for either shape.
 3. **The execution model forbids reading the document during render.** *"The plugin API can only be used in
    event handlers and hooks."* Render *"runs synchronously and should solely depend on a widget's state"*,
    and *"widget rendering code won't be able to read and access data outside of the particular widget's
