@@ -8,7 +8,8 @@ so `EXECUTOR_REVISION` stays. The web studio's shell is unchanged (Q2909.9 is ph
 - **The rail (owner decisions of 2026-10-24; round-4 wireframe).** `apps/studio/src/shell/rail.ts`: a 60px column, on
   the plugin only, with Theme · Components · Documentation · Export, then Agent (the one-click link toggle, filled with a
   green dot while on), Help (the old Docs) and Appearance (the old Theme menu). Labels and icons are the owner's Chunk 2
-  decisions (Q2909.19 A, .20 A); the rail keeps its labels at 380 (Q2909.16 A); its selected tile is the mapped `fill-2`
+  decisions (Q2909.19 A, .20 A): Appearance draws a fixed half-filled circle, and its name and tooltip say the current
+  choice ("Appearance: Match Figma"). `test:chrome` checks each tile's icon by name; the rail keeps its labels at 380 (Q2909.16 A); its selected tile is the mapped `fill-2`
   (Q2909.24 A). Other UI words stay placeholders until the owner supplies them before merge (Q2909.10 A).
 - **The top bar** holds the brand, Minimize (whether the agent link is on or off, the
   owner's direction of 2026-10-24; the strip shows the link status only while it is on) and Update file. Contrast moved into the Theme
@@ -48,6 +49,14 @@ so `EXECUTOR_REVISION` stays. The web studio's shell is unchanged (Q2909.9 is ph
   keep theirs beside their names.
 - **Two runs of this lane pushed to the branch in parallel** (about 20:30–21:40 UTC). Their commits are merged, not
   replaced, except their copy of `test-chrome.mjs`; the owner chose this run to continue (Q2909.25 A).
+
+- **The independent review's round (#2995, 2026-10-25).** Appearance drew the current choice's glyph, not Q2909.19 A's
+  half-filled circle; it now draws the fixed `halfmoon`. Documentation's switches gained main-thread arms on fakes: Build
+  with panels off (`test-build-completed.ts` `docs/panels off`), Set up file with the cover off (`docs/cover off`), and
+  Update with the cover off (`test-cover-frame.ts` `update/cover off`). Documentation builds each save from its own
+  unanswered save, so two switches flipped before the host answers both stick. Export stays open under the brand menu
+  by one mechanism (`exportOpen` in `barRead`), and two duplicated CSS rules are one each. The dead paths the review
+  found (`figmaMenu`, the bar's null `applyTheme` slot, the unreachable prune dialog) are #2998, for phase 2.
 
 ### Deferred to phase 2
 
