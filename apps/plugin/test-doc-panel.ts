@@ -1184,6 +1184,18 @@ section('specs/plan — the spec panel\'s content, from the spec model');
     `specs/plan colors rest: 8 tables; filled rest in full (${row('rest').join('; ')})`);
   ok(JSON.stringify(row('hover')) === JSON.stringify(['Container fill · color/interactive/primary/fill/hover']),
     `specs/plan colors delta: hover lists only what moves from rest (${row('hover').join('; ')})`);
+  // A (part, role) bound at rest that a state leaves unbound is a change too (Q2994.1 A): a disabled selected tag is a
+  // dimmed outline, so its fill row reads "none", with no swatch, beside what it rebinds.
+  const tagSel = planSpecPanel(def('tag')).defs[0].sections.find((x) => x.id === 'color')!.blocks
+    .flatMap((b) => (b.type === 'Colors' && b.title === 'Type select, selection selected' ? [b] : []))[0];
+  const tagRow = (st: string) => tagSel?.rows.find((r) => r.state === st);
+  const tagDis = tagRow('disabled')?.bindings ?? [];
+  const tagFill = tagDis.filter((x) => x.part === 'Container' && x.role === 'fill');
+  ok(tagRow('rest')?.bindings.some((x) => x.part === 'Container' && x.role === 'fill' && x.variable === 'color/interactive/primary/subtle-fill/selected')
+    && tagFill.length === 1 && tagFill[0].variable === 'none' && tagFill[0].dropped === true
+    && tagDis.some((x) => x.part === 'Container' && x.role === 'stroke' && x.variable === 'color/disabled/border')
+    && !tagRow('hover')?.bindings.some((x) => x.dropped) && !tagRow('rest')?.bindings.some((x) => x.dropped),
+    `specs/plan colors delta: a binding a state drops is a row reading "none" — Tag selected, disabled (${tagDis.map((x) => `${x.part} ${x.role} · ${x.variable}`).join('; ')})`);
   const tf = planSpecPanel(def('text-field')).defs[0];
   const tfReds = tf.sections.find((x) => x.id === 'spacing')!.blocks.flatMap((b) => (b.type === 'Redline' ? [b] : []));
   const ctl = tfReds.find((r) => r.where.size === 'medium')?.marks ?? [];
@@ -1251,8 +1263,13 @@ const specPage = async (name: string) => {
   ok(vars.length > 100 && !wrapped.length && !r.misses.some((m) => m.endsWith('so it wraps')) && vars.every((c) => Number(c.width) === TABLE_COLUMNS.variable),
     `specs/draw no wrap: ${vars.length} variable cells at ${TABLE_COLUMNS.variable}px and ${cells.length - vars.length} other cells, each text on one line${wrapped.length ? `; wraps: ${wrapped.slice(0, 3).join('; ')}` : ''}${r.misses.filter((m) => m.endsWith('so it wraps')).slice(0, 2).map((m) => `; ${m}`).join('')}`);
   const hexes = cells.filter((c) => c.name === 'hex').map((c) => String(walk(c).find((x) => x.type === 'TEXT')?.characters ?? ''));
-  ok(hexes.length === vars.length && hexes.every((h) => /^#[0-9A-F]{6}( \d+%)?$/.test(h)) && hexes.includes('#FFFFFF 10%') && !r.misses.some((m) => m.startsWith('no value')),
-    `specs/draw hex: each variable's value is the hex it resolves to for the panel (${hexes.length} of ${vars.length}: ${[...new Set(hexes)].join(', ')}; ${r.misses.filter((m) => m.startsWith('no value')).slice(0, 2).join('; ')})`);
+  // A binding a state drops reads "none" and has no swatch, so no hex (Q2994.1 A): every other variable has one.
+  const none = vars.filter((c) => String(walk(c).find((x) => x.type === 'TEXT')?.characters ?? '') === 'none');
+  const noneSwatched = none.filter((c) => walk(c.parent as N).some((x) => x.name === 'swatch'));
+  ok(none.length > 0 && !noneSwatched.length,
+    `specs/draw none: a dropped binding's row reads "none", with no swatch (${none.length} rows, ${noneSwatched.length} swatched)`);
+  ok(hexes.length === vars.length - none.length && hexes.every((h) => /^#[0-9A-F]{6}( \d+%)?$/.test(h)) && hexes.includes('#FFFFFF 10%') && !r.misses.some((m) => m.startsWith('no value')),
+    `specs/draw hex: each variable's value is the hex it resolves to for the panel (${hexes.length} of ${vars.length - none.length}: ${[...new Set(hexes)].join(', ')}; ${r.misses.filter((m) => m.startsWith('no value')).slice(0, 2).join('; ')})`);
   // Each redline's label is its token and the px the specimen holds: read off the drawn specimen by this walk.
   const reds = sp ? sp.children.filter((c) => String(c.name).startsWith('redline ')) : [];
   const specs = sp ? walk(sp).filter((c) => c.name === 'specimen') : [];

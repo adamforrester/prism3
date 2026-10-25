@@ -98,8 +98,9 @@ const SPEC_FORMAT = 2;
 /** One redline: the part it measures (its path below the specimen's root), what it measures, and its label before
  *  the px (`space/200`, or `min width 104 · derived`). `px` is set when the label carries its own number. */
 export interface RedlineMark { path: string[]; prop: 'paddingLeft' | 'paddingRight' | 'paddingTop' | 'height' | 'gap' | 'minWidth' | 'buildWidth'; label: string; px?: number }
-/** One color binding: the part's name, its role, and the variable in its Figma spelling. */
-export interface SpecBinding { part: string; role: string; variable: string }
+/** One color binding: the part's name, its role, and the variable in its Figma spelling. `dropped` marks a (part, role)
+ *  bound at rest that this state leaves unbound (Q2994.1 A): its variable reads "none" and it draws no swatch. */
+export interface SpecBinding { part: string; role: string; variable: string; dropped?: true }
 export type SpecBlock =
   | { type: 'Heading'; text: string }
   | { type: 'Paragraph'; text: string }
@@ -202,11 +203,17 @@ export const planSpecDef = (authored: ComponentDef, def: ComponentDef = authored
     .concat((p.gradient ?? []).map((t, i): SpecBinding => ({ part: nameOf(p.part), role: `gradient stop ${i + 1}`, variable: figmaVarName(t) }))));
   for (const [k, rows] of groups) {
     const rest = rows.find((r) => r.where.state === 'rest') ?? rows[0];
-    const restKeys = new Set(bindingsOf(rest).map((b) => JSON.stringify(b)));
+    const restBindings = bindingsOf(rest);
+    const restKeys = new Set(restBindings.map((b) => JSON.stringify(b)));
+    const slot = (b: SpecBinding): string => `${b.part}\u0000${b.role}`;
     const out = rows.map((r) => {
       const all = bindingsOf(r);
       const changed = r === rest ? all : all.filter((b) => !restKeys.has(JSON.stringify(b)));
-      return { state: r.where.state ?? 'every state', bindings: changed, ...(changed.length ? {} : { same: true }) };
+      // A (part, role) bound at rest and unbound here is a change too: a row reading "none" (Q2994.1 A).
+      const held = new Set(all.map(slot));
+      const dropped = r === rest ? [] : restBindings.filter((b) => !held.has(slot(b))).map((b): SpecBinding => ({ part: b.part, role: b.role, variable: 'none', dropped: true }));
+      const bindings = [...changed, ...dropped];
+      return { state: r.where.state ?? 'every state', bindings, ...(bindings.length ? {} : { same: true }) };
     });
     color.push({ type: 'Colors', title: k ? sentence(k) : 'Every member', rows: out });
   }
@@ -508,6 +515,8 @@ export const drawSpecPanel = async (
             if (!bind) { await cell(row, 'part', 'Same as rest', COLOR_COLUMNS.part + COLOR_GAP + COLOR_COLUMNS.variable + COLOR_GAP + COLOR_COLUMNS.value); continue; }
             await cell(row, 'part', `${bind.part} ${bind.role}`);
             await cell(row, 'variable', bind.variable);
+            // A dropped binding has no variable, so nothing to swatch: its value cell stays empty.
+            if (bind.dropped) { await cell(row, 'value', ''); continue; }
             const value = frame('value', 'HORIZONTAL', SWATCH_GAP);
             (value as PNode & { counterAxisAlignItems?: unknown }).counterAxisAlignItems = 'CENTER';
             row.appendChild?.(value);
