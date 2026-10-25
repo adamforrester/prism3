@@ -60,3 +60,8 @@ what it saved before (Apply, #2851).
 
 - **Q2909.24 A:** the dark rail's selected tile uses `fill-2` (mapped, both themes), not the wireframe's unmapped `#2a2a2d`.
 - **Q2909.25 A:** of two runs pushing to this branch, this one continues to Ready.
+- **Q2995.1 A:** at 380 the Activity row shows the agent link's short status alone, whole ("Agent listening", "Agent
+  error", …), and the summary gives way; the full line stays the tooltip, the name and the open drawer's first line.
+- **Q2995.2 A:** below the height the rail needs (the plugin's 420px least), the rail's logo hides and every tile keeps its
+  label. `rail.ts` measures it; `test:chrome` holds it at 380×420 and 1280×420 (mutation: the logo kept at every height →
+  `every rail tile lies inside the window`, by name).
