@@ -57,6 +57,7 @@ import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNo
 import { ensureFurnitureTemplates } from './furniture-templates';
 import { ensureDocBlock, docBlockNote, type DocBlockApi } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
+import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
 import { clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
@@ -737,6 +738,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
           clearFurniture(page as unknown as FurnitureParent, target.id);
           // Its usage panel too, when its set is gone and no one edited it (#846); an edited one stays.
           await clearOrphanPanels(figma as unknown as PanelApi, page, target.id);
+          // And its spec panel (#2830), on the same rule.
+          await clearOrphanSpecPanels(figma as unknown as PanelApi, page, target.id);
         }
       }
       const built = await applyComponentPlan(project(target), figma, {
@@ -1184,6 +1187,42 @@ const adoptMembers = async (defId: string | undefined, sink: ActionSink): Promis
 };
 
 /**
+ * DRAW SPECS (#2830 phase 2, Q2830.3 A) — the spec panel beside each family's usage panel, on request only: Build and
+ * Update never draw one. Every family whose lead's set is in the file, or `defId`'s family. The def each panel names is
+ * the def as this file builds it (`materializeForBrand` with the saved brand), so its tokens are the ones the sets bind.
+ * A panel's failure is CAUGHT per family and reported: the others still draw.
+ */
+const drawSpecs = async (defId: string | undefined, sink: ActionSink): Promise<void> => {
+  try {
+    if (defId !== undefined && !componentDefs.some((d) => d.id === defId)) return unknownDef(defId, sink);
+    let brandInput: BrandInput | null = null;
+    try { brandInput = restoreInput(figma.root); } catch { /* untrusted/absent → defaults, as `buildComponents` */ }
+    await figma.loadAllPagesAsync();
+    const api = figma as unknown as SpecApi;
+    const { targets, skipped } = specTargets(api, defId);
+    const drawn: string[] = [], items: string[] = [...skipped];
+    for (const { def, set } of targets) {
+      let o: SpecOutcome;
+      try { o = await drawSpecPanel(api, set, def, { materialize: (d) => materializeForBrand(d, brandInput) }); }
+      catch (e) { o = { def: def.id, drawn: false, sets: [], replaced: 0, kept: [], skipped: [`No spec panel for ${def.id}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], misses: [] }; }
+      if (o.missing?.length) { items.push(`No spec panels: the file has no ${o.missing.join(', ')}. Run Set up file first`); break; }
+      if (o.drawn) drawn.push(def.id);
+      items.push(...specItems(o));
+      await breathe();
+    }
+    sink.data({ specs: { drawn, items } });
+    // DRAFT wording (Q2830.7).
+    const ok = drawn.length > 0 && drawn.length === targets.length && !skipped.length;
+    const headline = !targets.length ? '✗ no sets to spec' : ok ? `✓ drew ${drawn.length} spec panel${drawn.length === 1 ? '' : 's'}` : `⚠ drew ${drawn.length} of ${targets.length} spec panels`;
+    const summary = !targets.length ? `No family's lead set is in this file${defId ? ` for ${defId}` : ''}.` : [`Drew ${drawn.length} of ${targets.length}.`, ...items].join(' ');
+    postVerdict({ type: 'component-update-result', ok: ok && !items.length, headline, summary, lines: targets.length ? [`Drew ${drawn.length} of ${targets.length}.`, ...items] : [summary] }, sink);
+  } catch (e) {
+    const why = (e as Error)?.message ?? String(e);
+    postVerdict({ type: 'component-update-result', ok: false, headline: '✗ draw specs failed', summary: why, lines: [why] }, sink);
+  }
+};
+
+/**
  * FILE SETUP (#1554) — scaffold the file's PAGE structure, then build the two template assets.
  *
  * THE FIRST PAGE-CREATION ACTION in the plugin. It reconciles the file's page list to the taxonomy
@@ -1501,6 +1540,7 @@ export const ACTIONS: AgentActions = {
   updateComponents: guarded('build-components', updateComponents),
   captureBaseline: guarded('build-components', captureBaseline),
   adoptMembers: guarded('build-components', adoptMembers),
+  drawSpecs: guarded('build-components', drawSpecs),
 };
 
 /**

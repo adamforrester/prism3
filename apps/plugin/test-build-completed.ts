@@ -45,7 +45,8 @@
  * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. Q699 A
  * (section 6): `main.ts`'s `brandOf` reading the stored brand whatever the panel sends → `q699/due` and `q699/update`
  * ("Nothing was updated: the file changed since the check"). The hand-edit pass (section 7): `stale()` cut to
- * `mine !== handPass`, so a write starting no longer ends it → `hand-edits/guard`.
+ * `mine !== handPass`, so a write starting no longer ends it → `hand-edits/guard`. `panelFor` drawing the spec panel
+ * after the usage panel (Q2830.3 A: specs are drawn on request only) → `specs/never on build`, `specs/never on update`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -56,6 +57,7 @@ import type { BrandInput } from '@prism3/engine/theme';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { materializeForBrand, materializerFor } from './src/brand-def';
 import { entryFor } from './src/as-built-ledger';
+import { readSpecTag } from './src/spec-tag';
 
 let failed = 0;
 let executed = 0;
@@ -286,6 +288,9 @@ ok(!!withTemplates && withTemplates.ok === true && String(withTemplates.headline
 const livePanels = (badgePage?.children ?? []).filter((c) => { try { return JSON.parse(String((c as any).getSharedPluginData?.('prism3', 'docPanel') || 'null'))?.state === 'live'; } catch { return false; } });
 ok(livePanels.length === 1 && (livePanels[0] as any).x >= Number(set?.x ?? 0) + Number(set?.width ?? 0),
   `panel/build: the build drew one usage panel right of the Badge set (${livePanels.length})`);
+// Q2830.3 A: specs are drawn on request only ("Draw specs"), so the build that drew the usage panel tagged no spec panel.
+const specPanels = (): string[] => { const walk = (n: any): any[] => [n, ...((n.children ?? []) as any[]).flatMap(walk)]; return pages.flatMap((p) => p.children.flatMap(walk)).filter((n) => readSpecTag(n)).map((n) => String(n.name)); };
+ok(!specPanels().length, `specs/never on build: the build draws no spec panel (${specPanels().join(', ') || 'none tagged'})`);
 const check2 = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, undefined, sink as never));
 const hash2 = (check2.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string })?.previewHash;
 const applied2 = (await runAction((sink) => ACTIONS.updateComponents('badge', hash2 ?? null, undefined, undefined, sink as never))).posts
@@ -302,6 +307,7 @@ const pre3 = check3.data.find((d) => (d.update as { mode?: string })?.mode === '
 ok(pre3?.sets?.[0]?.furniture?.panels === 1, `panel/update due: the Update's dry run lists the moved usage panel as 1 to draw (${JSON.stringify(pre3?.sets?.[0]?.furniture)})`);
 await runAction((sink) => ACTIONS.updateComponents('badge', pre3?.previewHash ?? null, undefined, undefined, sink as never));
 ok(livePanel().length === 1 && Number((livePanel()[0] as any).x) === spotX, `panel/update drawn: the Update redraws it on its spot, ${spotX} (${livePanel().map((c) => (c as any).x).join(', ')})`);
+ok(!specPanels().length, `specs/never on update: the Update that redrew the usage panel draws no spec panel (${specPanels().join(', ') || 'none tagged'})`);
 
 // #2995 (should-fix 2): Documentation's Usage panels switch, read by Build on the main thread (`main.ts`, the
 // `readDocSettings(figma.root).panels` before `panelBeside`). The panel is removed and Badge rebuilt with the file's
