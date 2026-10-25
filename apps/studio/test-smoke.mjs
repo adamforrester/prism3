@@ -2206,9 +2206,14 @@ const settledClick = async (page, selector, label) => {
 };
 const previewMode = async (page, m) => {
   const sel = `[data-p3="mode-option"][data-mode="${m}"]`;
-  if (!await settledClick(page, sel, `previewMode ${m}`)) return false;
+  // #2909 Q2909.9 A: the web's preview header is narrower by the rail, so where the modes do not all fit it draws the
+  // select of the same modes (the mode choice either way, as test:chrome's `pickMode` reads it).
+  const select = page.locator('[data-p3="mode-select"]');
+  if (await select.isVisible()) await select.selectOption(m);
+  else if (!await settledClick(page, sel, `previewMode ${m}`)) return false;
   // Bounded too: unbounded, a click that landed without taking effect was the same bare 30-second throw.
-  const on = await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', sel, { timeout: SETTLE_CLICK_MS })
+  const on = await page.waitForFunction(([s, mode]) => document.querySelector(s)?.getAttribute('aria-checked') === 'true'
+    || document.querySelector('[data-p3="mode-select"]')?.value === mode, [sel, m], { timeout: SETTLE_CLICK_MS })
     .then(() => true, () => false);
   if (!on) ok(false, `previewMode ${m}: the ${m} option was clicked and is still not checked after ${SETTLE_CLICK_MS}ms`);
   return on;
