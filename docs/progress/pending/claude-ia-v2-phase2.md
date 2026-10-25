@@ -58,6 +58,14 @@ Each mutation was made on a committed tree and failed by name:
 | The in-place update records no entry | `test-build-completed.ts`: "ledger/update" |
 | The scoped check reads every present set | `test-build-completed.ts`: "update-check: the check reads the sets asked for …" |
 | `dueOf` ignores the engine's revision | `test-as-built-ledger.ts`: "engine: a revision bump flags every set for the engine" |
+| A tier's caption not drawn | `test:chrome`: "IA2 … Q2909.17 A: Components lists its sections under the tiers, each a group named by its caption" |
+| The shared block's chips not mounted | `test:chrome`: "IA2 … Q2909.4 A: the shared block holds Control shape's chips and Density's read-only line" |
+| Continue to Components leaves the rail tile out of the focus candidates | `test:chrome`: "§44 … A5: Continue to Components by keyboard keeps focus off BODY" |
+| Primary's gamut line not drawn | `test:chrome`: "IA2 web … Q2909.7 A: Primary carries the engine's gamut warning" |
+| The checklist asks the check over every present set | `test:chrome`: "IA2 figma … Q2909.8 A: the checklist asks the full check for the due sets alone, once" |
+
+The chrome rows ran as two mutated builds in a second worktree, never pushed; the second carried only the last two
+mutations, since in the first the missing shared block stopped the IA2 case before its later arms.
 
 ### Gaps
 
