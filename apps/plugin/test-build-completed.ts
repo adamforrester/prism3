@@ -40,7 +40,9 @@
  * `furnish` hook without `panelFor` → `panel/update drawn`. Documentation's switches (#2995, the file's
  * `prism3:docSettings`): Build ignoring Usage panels off (`main.ts`, the `readDocSettings(figma.root).panels` before
  * `panelBeside` read as `true`) → `docs/panels off`; Set up file ignoring Cover off (`main.ts` `fileSetup`, its
- * `readDocSettings(figma.root).cover` test never taken) → `docs/cover off`.
+ * `readDocSettings(figma.root).cover` test never taken) → `docs/cover off`. The as-built ledger (#2909 Q2909.8 A): Build
+ * recording nothing (`main.ts`, its `recordSets` after `applyComponentPlan`) → `ledger/build`; the Update recording
+ * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -157,6 +159,35 @@ const set = badgePage?.children.find((c) => c.type === 'COMPONENT_SET');
 ok(!!set && (set.children as Node[]).length > 1, `a real set reached the file (${set ? `${(set.children as Node[]).length} members on '${badgePage?.name}'` : 'none'})`);
 ok(first?.completed === true, `C1: a build that made its set posts completed: true (ok ${first?.ok}, completed ${first?.completed}, "${first?.headline}")`);
 
+// 1a. #2909 Q2909.8 A, THE AS-BUILT LEDGER, through the real `main.ts`: the build records the set it landed; the
+//     panel's `file-sets` reads it back as current; an entry from another def reads as due for its definition; the
+//     background pass and the scoped check answer for the set. The entry is planted on the file's root plugin data, the
+//     ledger's own store; the expected states are literals.
+const ask = async (msg: Record<string, unknown>, type: string, until: (m: any) => boolean = () => true): Promise<any[]> => {
+  posted.length = 0;
+  (shim.ui as { onmessage: (m: unknown) => void }).onmessage(msg);
+  for (let j = 0; j < 600; j++) {
+    const got = posted.filter((m) => m?.type === type);
+    if (got.some(until)) return got;
+    await new Promise((res) => realTimeout(res, 10));
+  }
+  return posted.filter((m) => m?.type === type);
+};
+const ledger = (): Record<string, { def: string; rev: number; engine: string }> => { try { return JSON.parse(pluginData.get('prism3:asBuilt') ?? '{}').sets ?? {}; } catch { return {}; } };
+ok(typeof ledger().badge?.def === 'string', `ledger/build: the build records the set it landed (${JSON.stringify(ledger().badge)})`);
+const fs1 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(fs1?.present?.includes('badge') && fs1?.due?.badge?.state === 'current', `ledger/due: file-sets reads the set just built as current (${JSON.stringify(fs1?.due)})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...ledger().badge, def: 'another-def' } } }));
+const fs2 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(fs2?.due?.badge?.state === 'due' && fs2?.due?.badge?.reason === 'definition', `ledger/due: an entry for another def reads as due for its definition (${JSON.stringify(fs2?.due)})`);
+const hands = await ask({ type: 'hand-edits-request' }, 'hand-edits', (m) => m.done === true);
+const hb = hands.find((m) => m.def === 'badge');
+ok(!!hb && hb.members > 0 && hb.edited === 0 && hands.some((m) => m.done === true), `hand-edits: the background pass reads Badge's members, none edited by hand, then ends (${JSON.stringify(hands)})`);
+const chk = (await ask({ type: 'update-check-request', defs: ['badge'] }, 'update-check'))[0];
+const cb = chk?.sets?.find((c: any) => c.def === 'badge');
+ok(!!cb && typeof chk.previewHash === 'string' && chk.previewHash.length > 0 && cb.members > 0 && typeof cb.hash === 'string',
+  `update-check: the scoped check reads Badge alone and returns its hash (${JSON.stringify(chk)})`);
+
 // 1b. #2598: a file with no `_Label` is told so, in the verdict the build posts and in the Update's summary. The
 //     expected line is typed here, from the issue; the actual is what `main.ts` posted. This host has no `_Label`
 //     (nothing in it makes one), so the furniture `furnishSet` draws beside Badge finds no template.
@@ -184,6 +215,11 @@ const applied = (await runAction((sink) => ACTIONS.updateComponents('badge', has
 const NO_LABEL_UPDATE = 'No canvas labels or usage panels drawn: this file has no _Label or _Doc-block component. Run Set up file, then update again';
 ok(!!applied && String(applied.summary).includes(NO_LABEL_UPDATE) && (applied.lines as string[]).some((l) => l.startsWith(NO_LABEL_UPDATE)),
   `templates/update verdict: the Update's component-update-result summary carries the missing-template line (${JSON.stringify(applied?.summary)})`);
+// #2909 Q2909.8 A: the scoped check's hash is the agent check's own, for the same sets, so the panel's update can echo it.
+ok(chk?.previewHash === hash, `update-check: the panel's scoped check hashes as the agent's check of the same set (${chk?.previewHash} vs ${hash})`);
+// The apply records the set it acted on, so the ledger reads it current again.
+const fs3 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(fs3?.due?.badge?.state === 'current' && ledger().badge?.def !== 'another-def', `ledger/update: the update records the set it acted on, current again (${JSON.stringify(fs3?.due)})`);
 
 // 1c. Q284.3 A: a run that skipped furniture for a missing template is a WARNING, the state every partial result takes:
 //     `ok: false` and a `⚠` headline, never `✓`. The build still made its set, so it stays `completed`.
