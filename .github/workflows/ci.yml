@@ -36,11 +36,14 @@ jobs:
   #
   # WHY THESE FIVE. The ordering `verify.ts` declares (`after:`) decides the floor: a gate sits in a job
   # that also runs what it is after. The rest is wall time: `chrome` is alone because it is the long
-  # pole, and every other job is sized to finish well inside it.
+  # pole, and every other job is sized to finish well inside it. Since #2898 `chrome` is a matrix of shards, and
+  # the one gate after it that reads its output, `chrome-shards`, is its own job: it needs every shard's record,
+  # and an artifact is the only way one job reads another's (it reads a record, never a bundle).
   #   engine    the engine and doc gates, no build and no browser.
   #   studio    the web workspace: typecheck, unit tests, build, then the smoke suite.
   #   plugin    the plugin workspace: shim tests, both builds, the bundle lints and its three browser suites.
-  #   chrome    the chrome suite, which drives both bundles.
+  #   chrome    the chrome suite, which drives both bundles, in shards (#2898).
+  #   chrome-shards  every chrome section ran in exactly one shard, then the suite's end-of-run checks over them all.
   #   surfaces  what reads both bundles or TokenPress: export parity, the two exporters, and the two
   #             prose gates that scan both built bundles, so they run after both builds (CLAUDE.md, principle 4).
 
@@ -1155,8 +1158,18 @@ jobs:
       - name: The release build carries no dev-only code (#2530)
         run: npx --yes tsx@4 apps/plugin/lint-release-bundle.ts
 
+  # #2898: THE CHROME SUITE IN SHARDS. It was the whole critical path after Q503 A (about 24 minutes, against 12 or
+  # less for every other job), so it runs as one job per shard, side by side: shard n runs the sections
+  # `apps/studio/chrome-shards.mjs` gives it, balanced by measured time. Each shard sets up and builds for itself, as
+  # every job here does (see the comment on `jobs:`). `fail-fast: false`, so one shard failing does not cancel the
+  # others' reports. `gates` needs this job, and a matrix job's result is `success` only when every shard succeeded.
+  # What no result can show, a section in no shard or in two, is `chrome-shards`'s check below.
   chrome:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       # Full history, as in the `engine` job (whose comment says why, #1039): nothing here is known to
       # read history, and a depth that differs per job is a difference nothing would report.
@@ -1206,8 +1219,51 @@ jobs:
       # the IA-2 layer order, the Q2 header line, and the legacy frame map. A separate suite from smoke
       # because its axes are host × theme × width, not page × mode × brand. AFTER BOTH BUILDS: it drives
       # the studio's dist/main.js and the plugin's dist/ui.html. The browser comes from the verdict step.
+      #
+      # #2898: in shard `CHROME_SHARD` (an `env:` value, not an argument, so the command is the one `verify.ts` runs
+      # whole). The shard writes its record, each assertion under its section and what the end-of-run checks read, to
+      # `apps/studio/chrome-record/shard-<n>.json`; the next step hands it to `chrome-shards`.
       - name: New shell chrome suite (UI redesign S1.2)
+        env:
+          CHROME_SHARD: ${{ matrix.shard }}
         run: npm run -w @prism3/studio test:chrome
+      - name: Hand the shard's record to chrome-shards (#2898)
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-record-${{ matrix.shard }}
+          path: apps/studio/chrome-record/
+          if-no-files-found: error
+
+  # #2898: the shards' records, together. Every section the UNSHARDED suite lists (`test-chrome.mjs --list`) ran in
+  # exactly one shard, by name, never read off the shard map; then the end-of-run checks, which read the whole sweep
+  # (#2238's check boxes on each host and theme, every hook the suite names rendered), run once over what every shard saw.
+  chrome-shards:
+    needs: [chrome]
+    runs-on: ubuntu-latest
+    steps:
+      # Full history, as in the `engine` job (whose comment says why, #1039): nothing here is known to
+      # read history, and a depth that differs per job is a difference nothing would report.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install workspace deps
+        run: npm ci
+
+      - name: Collect every shard's record (#2898)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: chrome-record-*
+          path: apps/studio/chrome-record
+          merge-multiple: true
+
+      - name: Every chrome section ran in exactly one shard (#2898)
+        run: npm run -w @prism3/studio test:chrome-shards
 
   surfaces:
     runs-on: ubuntu-latest
@@ -1330,14 +1386,14 @@ jobs:
   # THE ONE CHECK THE MERGE RULE READS, under the name it has always had. Before Q503 A the whole run was
   # one job with the id `gates`, so its check run was named `gates`; this job keeps that id, so branch
   # protection and anything reading the check run named `gates` read this one, and the five jobs above
-  # report beside it as `engine`, `studio`, `plugin`, `chrome` and `surfaces`.
+  # report beside it as `engine`, `studio`, `plugin`, `chrome` (one per shard since #2898), `chrome-shards` and `surfaces`.
   #
   # `if: always()`, because a job whose `needs` failed is SKIPPED, and a required check reading `skipped`
   # lets the PR merge. The step decides instead: anything but `success` from any job fails it, by name
   # (`.github/scripts/all-gates.sh`, tested by `test-all-gates.sh` beside it). `needs` must list every
   # other job in this file; `lint-doc-gates.ts` fails when one is missing.
   gates:
-    needs: [engine, studio, plugin, chrome, surfaces]
+    needs: [engine, studio, plugin, chrome, chrome-shards, surfaces]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
