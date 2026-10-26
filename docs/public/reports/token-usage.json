@@ -12,7 +12,7 @@
     "used": 264,
     "unusedSemantic": 248,
     "unusedPrimitive": 280,
-    "components": 56
+    "components": 57
   },
   "tokens": {
     "border-width.hairline": {
@@ -17727,6 +17727,12 @@
     "icon.size.lg": {
       "type": "dimension",
       "components": {
+        "brand-mark": {
+          "keys": [
+            "size.large"
+          ],
+          "parts": {}
+        },
         "icon": {
           "keys": [
             "size.large"
@@ -17987,6 +17993,12 @@
               }
             }
           }
+        },
+        "brand-mark": {
+          "keys": [
+            "size.medium"
+          ],
+          "parts": {}
         },
         "button": {
           "keys": [
@@ -18659,6 +18671,12 @@
               }
             }
           }
+        },
+        "brand-mark": {
+          "keys": [
+            "size.small"
+          ],
+          "parts": {}
         },
         "button": {
           "keys": [
@@ -27463,6 +27481,43 @@
         "type.label.md.emphasis"
       ],
       "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "brand-mark": {
+      "members": 19,
+      "axes": {
+        "name": [
+          "card/amex",
+          "card/generic",
+          "card/mastercard",
+          "card/visa",
+          "provider/apple",
+          "provider/apple-white",
+          "provider/facebook",
+          "provider/google",
+          "social/facebook",
+          "social/facebook-mono",
+          "social/instagram",
+          "social/instagram-mono",
+          "social/x-mono",
+          "wallet/apple-pay-black",
+          "wallet/apple-pay-white",
+          "wallet/google-pay-black",
+          "wallet/google-pay-white",
+          "wallet/paypal",
+          "wallet/shop-pay"
+        ]
+      },
+      "tokens": [
+        "icon.size.lg",
+        "icon.size.md",
+        "icon.size.sm"
+      ],
+      "declaredNotDrawn": [
+        "icon.size.lg",
+        "icon.size.md",
+        "icon.size.sm"
+      ],
       "drawnNotDeclared": []
     },
     "breadcrumb-item": {

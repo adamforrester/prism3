@@ -93,6 +93,82 @@
         }
       ]
     },
+    "brand-mark": {
+      "codeOnly": [
+        "label routing — the accessibility contract is a DOM shape: with a label, role=\"img\" and aria-label; without one, aria-hidden=\"true\". Figma has no accessibility tree, and the two are pixel-identical, so the Figma leg cannot carry it.",
+        "forced colors — under forced-colors mode the browser would repaint the mark in system colors, which is the retint the provider forbids. The mark sets forced-color-adjust: none on itself only, so the text and focus ring around it still follow the user's colors.",
+        "swapping the artwork in code — the package exports the marks as a name-to-SVG map, and an app may pass its own map with the same names to a BrandMarkProvider, so a brand's licensed artwork replaces the placeholders without forking a component (proposal §1.3, owner decision Q-B3 A).",
+        "gradient ids — a mark with a gradient names it by id inside its own SVG. Two copies inline on one page share the id, and the second resolves to the first, so the code projection makes each instance's ids unique. Figma imports each mark once, where the collision cannot happen.",
+        "width from the proportion — the host binds the height; the width is the height times the mark's artboard ratio. In code the SVG keeps its viewBox and width: auto. In Figma the host's slot is locked to the ratio (#2343 PR 2)."
+      ],
+      "notes": {
+        "contested": [
+          "Which providers ship: the owner will supply about a dozen (Q-B7 amended), and the list is data. Today every mark but card/generic is a neutral placeholder named for the proposal's first set.",
+          "Where the artwork lives if the repository goes public: committed today (Q-B1 B); refactored to placeholders plus recorded terms (Q-B1 A) before any publication. Recorded in marks/NOTICE.md and marks/provenance.json."
+        ],
+        "unverified": [
+          "The social networks' brand-resource terms have not been read; the gates check only what provenance.json records, so the terms arrive with the provider files (PR 3 of #2343)."
+        ],
+        "evolution": [
+          "Proposed on #2343 (2026-10-25) as a second icon type, after #2316 asked for provider marks the core set could not carry. The owner chose two swap routes, by name (Q-B3 A), separate one-color files only where the provider publishes them (Q-B2 A), and committed artwork for internal use (Q-B1 B)."
+        ],
+        "projection": [
+          "In Figma each mark is a standalone brand-mark/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink."
+        ]
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
+    },
     "focus-ring": {
       "codeOnly": [
         "offset — not projected: the offset is consumed by the host's `inset` binding, and Figma's `x`/`y` accept no variable (#795, decided on #801's measurement). It is the context parameter (`control` ≈2px / `field` 0), and this is not a projector limit: the enumeration would carry it happily now that it reads `variantAxes`. The reason is that the offset is consumed by the HOST's `inset` binding and Figma's `x`/`y` accept no variable, so #801 measured the payload resolving it to a NUMBER at paste and writing that — an axis over it would ship two members differing only by a value the platform cannot hold, and a designer switching `offset=field` on an instance would see nothing move. So it stays a paste-time parameter the host supplies: `text-field`'s field-specific offset comes from the PARENT at paste, not from a coordinate on this set. An already-pasted ring does not re-position when a brand changes `focus.ring.offset`, unlike every bound paint, which re-themes.",

@@ -120,6 +120,8 @@ import { figmaAnatomySet, type AnatomyPlan, type FigmaNodePlan } from './anatomy
 import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import type { ComponentDef } from './component-schema';
+import { readFileSync } from 'node:fs';
+import { BRAND_MARK_SOURCES } from './brand-mark-set';
 
 /**
  * The scope floor. `docs/34`: a gate with a scope asserts each promised surface is REPRESENTED, never
@@ -139,6 +141,8 @@ const MUST_COVER = [
   'banner.infoGlyph', 'banner.successGlyph', 'banner.warningGlyph', 'banner.dangerGlyph',
   'toast.checkCircleGlyph',
   '_breadcrumb-separator.chevronGlyph', '_breadcrumb-separator.slashGlyph', 'breadcrumbs.backGlyph',
+  // The brand marks (#2343), measured by the MARK arm against their own artboards.
+  'brand-mark.glyph',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -566,6 +570,73 @@ const inkBox = (d: string): Box => {
   return { x: r(minX), y: r(minY), w: r(maxX - minX), h: r(maxY - minY) };
 };
 
+/**
+ * THE BRAND-MARK ARM'S TABLES (#2343 proposal §1.4) — the second author of each kind's artboard. Typed here, not
+ * imported from `brand-mark-set.ts`, which `emit-marks.ts` reads: the duplicated table is the check. `null` width
+ * is a wallet lockup, whose width is the provider's and stated in its provenance record.
+ */
+const MARK_DEF = 'brand-mark';
+const MARK_ARTBOARD: Record<string, readonly [number | null, number]> = {
+  social: [24, 24], provider: [24, 24], card: [32, 20], wallet: [null, 24],
+};
+const MARKS_DIR = new URL('./marks/', import.meta.url);
+
+/**
+ * The INK BOX of a mark's outline, over the whole SVG path grammar. Provider artwork is exported by whatever tool
+ * the provider used, so unlike the icon set (`inkBox`, `M L H V C Q Z` absolute) a mark may use relative
+ * commands, smooth curves and elliptical arcs. Curves and arcs are SAMPLED, never hull-bounded, for `inkBox`'s
+ * reason: a hull overstates the ink. Anything outside the grammar throws.
+ */
+const markInkBox = (d: string): Box => {
+  const toks = d.match(/[A-Za-z]|-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g) ?? [];
+  let i = 0, x = 0, y = 0, sx = 0, sy = 0, cmd = '', cx2 = 0, cy2 = 0, qx = 0, qy = 0, prev = '';
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const see = (px: number, py: number): void => { minX = Math.min(minX, px); maxX = Math.max(maxX, px); minY = Math.min(minY, py); maxY = Math.max(maxY, py); };
+  const n = (): number => { const v = Number(toks[i++]); if (!Number.isFinite(v)) throw new Error(`path ran out of numbers after '${cmd}'`); return v; };
+  const cubic = (p: Array<[number, number]>): void => {
+    for (let k = 0; k <= 32; k++) { const t = k / 32, u = 1 - t, w = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t]; see(w.reduce((a, c, j) => a + c * p[j][0], 0), w.reduce((a, c, j) => a + c * p[j][1], 0)); }
+  };
+  const arc = (x1: number, y1: number, rx: number, ry: number, phi: number, large: number, sweep: number, x2: number, y2: number): void => {
+    // SVG 1.1 implementation notes F.6.5: endpoint to center parameterization, then sampled.
+    if (rx === 0 || ry === 0) { see(x2, y2); return; }
+    rx = Math.abs(rx); ry = Math.abs(ry);
+    const c = Math.cos((phi * Math.PI) / 180), s = Math.sin((phi * Math.PI) / 180);
+    const dx = (x1 - x2) / 2, dy = (y1 - y2) / 2, x1p = c * dx + s * dy, y1p = -s * dx + c * dy;
+    const lam = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry);
+    if (lam > 1) { rx *= Math.sqrt(lam); ry *= Math.sqrt(lam); }
+    const num = rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p, den = rx * rx * y1p * y1p + ry * ry * x1p * x1p;
+    const co = (large === sweep ? -1 : 1) * Math.sqrt(Math.max(0, num / den));
+    const cxp = (co * rx * y1p) / ry, cyp = (-co * ry * x1p) / rx;
+    const ccx = c * cxp - s * cyp + (x1 + x2) / 2, ccy = s * cxp + c * cyp + (y1 + y2) / 2;
+    const ang = (ux: number, uy: number, vx: number, vy: number): number => Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+    const t1 = ang(1, 0, (x1p - cxp) / rx, (y1p - cyp) / ry);
+    let dt = ang((x1p - cxp) / rx, (y1p - cyp) / ry, (-x1p - cxp) / rx, (-y1p - cyp) / ry);
+    if (!sweep && dt > 0) dt -= 2 * Math.PI; else if (sweep && dt < 0) dt += 2 * Math.PI;
+    for (let k = 0; k <= 64; k++) { const t = t1 + (dt * k) / 64; see(ccx + rx * Math.cos(t) * c - ry * Math.sin(t) * s, ccy + rx * Math.cos(t) * s + ry * Math.sin(t) * c); }
+  };
+  while (i < toks.length) {
+    if (/[A-Za-z]/.test(toks[i])) cmd = toks[i++];
+    const rel = cmd === cmd.toLowerCase() && cmd !== 'z' ? 1 : 0, ox = rel ? x : 0, oy = rel ? y : 0, C = cmd.toUpperCase();
+    if (C === 'M') { x = ox + n(); y = oy + n(); sx = x; sy = y; see(x, y); cmd = rel ? 'l' : 'L'; }
+    else if (C === 'L') { x = ox + n(); y = oy + n(); see(x, y); }
+    else if (C === 'H') { x = ox + n(); see(x, y); }
+    else if (C === 'V') { y = oy + n(); see(x, y); }
+    else if (C === 'C') { const a = ox + n(), b = oy + n(); cx2 = ox + n(); cy2 = oy + n(); const f = ox + n(), g = oy + n(); cubic([[x, y], [a, b], [cx2, cy2], [f, g]]); x = f; y = g; }
+    else if (C === 'S') { const a = /[CS]/.test(prev) ? 2 * x - cx2 : x, b = /[CS]/.test(prev) ? 2 * y - cy2 : y; cx2 = ox + n(); cy2 = oy + n(); const f = ox + n(), g = oy + n(); cubic([[x, y], [a, b], [cx2, cy2], [f, g]]); x = f; y = g; }
+    else if (C === 'Q' || C === 'T') {
+      if (C === 'Q') { qx = ox + n(); qy = oy + n(); } else { qx = /[QT]/.test(prev) ? 2 * x - qx : x; qy = /[QT]/.test(prev) ? 2 * y - qy : y; }
+      const f = ox + n(), g = oy + n();
+      cubic([[x, y], [x + (2 / 3) * (qx - x), y + (2 / 3) * (qy - y)], [f + (2 / 3) * (qx - f), g + (2 / 3) * (qy - g)], [f, g]]); x = f; y = g;
+    } else if (C === 'A') { const rx = n(), ry = n(), phi = n(), la = n(), sw = n(), f = ox + n(), g = oy + n(); arc(x, y, rx, ry, phi, la, sw, f, g); x = f; y = g; }
+    else if (C === 'Z') { x = sx; y = sy; }
+    else throw new Error(`unknown path command '${cmd}'`);
+    prev = C;
+  }
+  const r = (v: number): number => Math.round(v * 1e4) / 1e4;
+  if (!Number.isFinite(minX)) return { x: 0, y: 0, w: 0, h: 0 };
+  return { x: r(minX), y: r(minY), w: r(maxX - minX), h: r(maxY - minY) };
+};
+
 /** Every GLYPH node in a plan, by the part name it was projected from. */
 const glyphNodes = (plan: AnatomyPlan): Array<{ part: string; node: FigmaNodePlan }> => {
   const out: Array<{ part: string; node: FigmaNodePlan }> = [];
@@ -641,6 +712,65 @@ for (const def of componentDefs as ComponentDef[]) {
     // the end of the file, for a part removed entirely). `paddedArtboard` re-derives the box arm D wants.
     // A COMPOSED glyph (#1670) is measured by its own arm and skips the icon-set arms below.
     // PROGRESS'S GLYPHS (#2670), measured by their own arm against the numbers typed in `RING_GLYPH` above.
+    // ---- THE BRAND-MARK ARM (#2343) --------------------------------------------------------------------
+    // A mark is not an icon-set glyph and none of the arms below apply to it: several paths, the provider's
+    // colors, and an artboard its kind decides. What this arm asks is the aspect question the proposal put to it.
+    // Every listed mark projects one member (coverage, against `BRAND_MARK_SOURCES`, the authored list); each
+    // member's document is drawn on its kind's artboard (`MARK_ARTBOARD`, typed here), a wallet lockup at the
+    // width its provenance record states; the artboard is the SOURCE FILE's own (so the proportion survives the
+    // emitter); the plan's `glyphViewBox` is that artboard (so the executors' read-back expects it); and the ink
+    // draws something and stays inside it. The colors are `lint-mark-colors.ts`'s.
+    if (def.id === MARK_DEF && partName === 'glyph') {
+      covered.add(key);
+      let records: Record<string, { width?: number }> = {};
+      try { records = (JSON.parse(readFileSync(new URL('provenance.json', MARKS_DIR), 'utf8')) as { marks: Record<string, { width?: number }> }).marks; }
+      catch (err) { failures.push(`${key}: marks/provenance.json is unreadable — ${(err as Error).message}`); }
+      const listed = new Set(Object.keys(BRAND_MARK_SOURCES));
+      const projected = new Set(set.map((pl) => String(pl.coord.name)));
+      for (const nm of listed) if (!projected.has(nm)) failures.push(`${key}: '${nm}' is listed in brand-mark-set.ts and no member projects it — a listed mark with no component`);
+      for (const nm of projected) if (!listed.has(nm)) failures.push(`${key}: member '${nm}' projects and brand-mark-set.ts does not list it`);
+      const dimsOf = (svg: string): { w: number; h: number; vb: number[] } => {
+        const root = /<svg\b[^>]*>/.exec(svg)?.[0] ?? '';
+        const at = (a: string) => new RegExp(`\\s${a}="([^"]*)"`).exec(root)?.[1];
+        return { w: Number(at('width')), h: Number(at('height')), vb: (at('viewBox') ?? '').trim().split(/\s+/).map(Number) };
+      };
+      for (const plan of set) {
+        const nm = String(plan.coord.name);
+        const kind = nm.split('/')[0];
+        const board = MARK_ARTBOARD[kind];
+        const nodes = glyphNodes(plan);
+        if (nodes.length !== 1) { failures.push(`${MARK_DEF}/${nm}: ${nodes.length} GLYPH node(s), and a mark is one`); continue; }
+        const node = nodes[0].node;
+        if (!board) { failures.push(`${MARK_DEF}/${nm}: kind '${kind}' has no artboard in this gate's MARK_ARTBOARD table`); continue; }
+        const doc = dimsOf(node.glyphSvg ?? '');
+        const source = BRAND_MARK_SOURCES[nm];
+        let src = { w: NaN, h: NaN, vb: [] as number[] };
+        try { src = dimsOf(readFileSync(new URL(`${source}.svg`, MARKS_DIR), 'utf8')); } catch { failures.push(`${MARK_DEF}/${nm}: marks/${source}.svg is unreadable`); continue; }
+        const wantW = board[0] ?? records[`${source}.svg`]?.width;
+        if (doc.h !== board[1] || doc.w !== wantW)
+          failures.push(`${MARK_DEF}/${nm}: the document is ${doc.w}×${doc.h}, and a ${kind} mark is ${wantW ?? '(no width recorded)'}×${board[1]}${board[0] === null ? ' (24 high, at the width its provenance record states)' : ''}`);
+        if (doc.vb.join(' ') !== `0 0 ${doc.w} ${doc.h}`)
+          failures.push(`${MARK_DEF}/${nm}: the document's viewBox '${doc.vb.join(' ')}' is not its own artboard 0 0 ${doc.w} ${doc.h}, so the importer would scale the mark out of proportion`);
+        if (src.w !== doc.w || src.h !== doc.h)
+          failures.push(`${MARK_DEF}/${nm}: the source file is ${src.w}×${src.h} and the document ${doc.w}×${doc.h} — the proportion did not survive the emitter`);
+        if (!node.glyphViewBox || node.glyphViewBox[0] !== doc.w || node.glyphViewBox[1] !== doc.h)
+          failures.push(`${MARK_DEF}/${nm}: the plan expects the frame back at ${JSON.stringify(node.glyphViewBox)}, and the document's artboard is ${doc.w}×${doc.h}`);
+        const ds = [...(node.glyphSvg ?? '').matchAll(/<path\b[^>]*\sd="([^"]*)"/g)].map((m) => m[1]);
+        if (!ds.length) { failures.push(`${MARK_DEF}/${nm}: the document draws no path`); continue; }
+        let area = 0;
+        for (const d of ds) {
+          let b: Box;
+          try { b = markInkBox(d); } catch (err) { failures.push(`${MARK_DEF}/${nm}: an outline could not be measured — ${(err as Error).message}`); continue; }
+          area += b.w * b.h;
+          const eps = 1e-3;
+          if (b.x < -eps || b.y < -eps || b.x + b.w > doc.w + eps || b.y + b.h > doc.h + eps)
+            failures.push(`${MARK_DEF}/${nm}: ink at ${b.x},${b.y} ${b.w}×${b.h} spills outside its ${doc.w}×${doc.h} artboard — the frame would clip it or the host would size it wrong`);
+        }
+        if (!(area > 0)) failures.push(`${MARK_DEF}/${nm}: the outlines have no area — a mark that draws nothing`);
+        glyphChecks++;
+      }
+      continue;
+    }
     const ringRec = RING_GLYPH[key];
     if (ringRec) {
       covered.add(key);

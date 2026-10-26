@@ -48,6 +48,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | accordion | 1 | _accordion-indicator, divider, focus-ring | _accordion-indicator, divider, focus-ring |
 | badge | 0 | — | — |
 | banner | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
+| brand-mark | 0 | — | — |
 | breadcrumb-item | 2 | _breadcrumb-separator, flush-icon-button-neutral, link | _breadcrumb-separator, flush-icon-button-neutral, focus-ring, link |
 | breadcrumbs | 3 | breadcrumb-item, link | _breadcrumb-separator, breadcrumb-item, flush-icon-button-neutral, focus-ring, link |
 | button | 1 | focus-ring, spinner | focus-ring, spinner |

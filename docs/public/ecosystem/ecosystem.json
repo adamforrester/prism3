@@ -274,6 +274,7 @@
         "label": "Definitions",
         "items": [
           "icon",
+          "brand-mark",
           "focus-ring",
           "button",
           "button-destructive",

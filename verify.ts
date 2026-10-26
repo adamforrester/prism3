@@ -509,7 +509,7 @@ export const environmentProblems = async (): Promise<string[]> => {
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 216;
+const EXPECTED_ARTIFACTS = 218;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -979,6 +979,16 @@ export const GATES: Gate[] = [
     id: 'lint-icon-count',
     ciStep: "The icon def's metadata states no stale glyph count",
     cmd: engine('lint-icon-count.ts'),
+  },
+  {
+    id: 'lint-mark-provenance',
+    ciStep: 'Every brand mark has a provenance record and every record a file',
+    cmd: engine('lint-mark-provenance.ts'),
+  },
+  {
+    id: 'lint-mark-colors',
+    ciStep: 'A brand mark keeps its own colors from file to plan',
+    cmd: engine('lint-mark-colors.ts'),
   },
   {
     id: 'lint-nesting',

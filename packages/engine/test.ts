@@ -18112,6 +18112,8 @@ arm: {
       'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'pagination-item': 9, '_slider-thumb': 9,
       // Breadcrumbs (#2666): the trail is placed on its own; its step and separator are parts its host places.
       breadcrumbs: 2, 'breadcrumb-item': 9, '_breadcrumb-separator': 9,
+      // Brand mark (#2343): a glyph other components carry, placed alone only in a row of accepted cards.
+      'brand-mark': 3,
     };
     const prio = (d: ComponentDef) => d.ai.generationPriority;
     const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
@@ -34563,7 +34565,7 @@ arm: {
     'text-field', 'textarea', 'select', 'password-field', 'dialog', 'search-field', 'pagination-item', 'pagination',
   ];
   // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
-  const NO_SET = ['icon', 'spinner'];
+  const NO_SET = ['icon', 'brand-mark', 'spinner'];
   const read = new Map<string, Set<string>>();
   for (const def of componentDefs) {
     const fp = def.figmaProperties;
