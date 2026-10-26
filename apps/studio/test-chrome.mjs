@@ -1709,7 +1709,8 @@ for (const host of ['web', 'figma']) {
         const RAIL_LABEL_PX = 9, RAIL_LABEL_EM = -0.01, RAIL_ICON = 24;
         const badLabel = rl.geo.filter((g) => g.fs !== `${RAIL_LABEL_PX}px`);
         ok(rl.geo.length === ORDER.length && badLabel.length === 0, `rail ${where}: every rail label renders at ${RAIL_LABEL_PX}px (${badLabel.map((g) => `${g.hook} ${g.fs}`).join(', ') || 'all'})`);
-        const badTrack = rl.geo.filter((g) => Math.abs(parseFloat(g.ls) / parseFloat(g.fs) - RAIL_LABEL_EM) > 0.0005);
+        // A computed `normal` reads as NaN, which compares false: so a value that is not a number fails, rather than passes.
+        const badTrack = rl.geo.filter((g) => { const em = parseFloat(g.ls) / parseFloat(g.fs); return !Number.isFinite(em) || Math.abs(em - RAIL_LABEL_EM) > 0.0005; });
         ok(rl.geo.length === ORDER.length && badTrack.length === 0, `rail ${where}: every rail label tracks at ${RAIL_LABEL_EM}em (${badTrack.map((g) => `${g.hook} ${g.ls}`).join(', ') || 'all'})`);
         const badIcon = rl.geo.filter((g) => !g.icon || Math.abs(g.icon.w - RAIL_ICON) > 0.5 || Math.abs(g.icon.h - RAIL_ICON) > 0.5);
         ok(rl.geo.length === ORDER.length && badIcon.length === 0, `rail ${where}: every rail icon renders ${RAIL_ICON} × ${RAIL_ICON} (${badIcon.map((g) => `${g.hook} ${g.icon?.w}×${g.icon?.h}`).join(', ') || 'all'})`);
