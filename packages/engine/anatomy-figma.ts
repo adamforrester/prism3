@@ -2506,7 +2506,8 @@ export const fieldStyleFor = (defId: string, input: { fieldStyle?: FieldStyle; s
  *   · THE EDGES (Q5, Q6, Q10): the inline padding binds `space.0`, so the label, value, message and line share one
  *     start edge and a trailing glyph (Select's chevron) sits flush with the line's end; the corner binds
  *     `radius.none`, whatever Control shape chose, so this runs after `applyControlShape`.
- *   · HOVER (Q4): the overlay wash keys go, so hover changes the line's color only.
+ *   · HOVER (Q4): changes the line's color only. No field binds a wash under either style since #2926, so there
+ *     is no wash key left to drop.
  *   · DISABLED (Q8): the disabled plate goes. With no `disabled.fill`, the projector's disabled ink asks for the
  *     plain-ground form (`disabled.<slot>`), so each `disabled.<slot>.on-fill` is replaced by it: `disabled.text`
  *     for the value, `disabled.icon` for a glyph.
@@ -2521,7 +2522,7 @@ export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): Component
   if (!a || !frame) return def;
   const tokens: Record<string, string> = {};
   for (const [k, ref] of Object.entries(def.tokens)) {
-    if (k.split('.')[0] === 'overlay' || k === 'disabled.fill') continue;
+    if (k === 'disabled.fill') continue;
     const onFill = /^disabled\.([a-z-]+)\.on-fill$/.exec(k);
     if (onFill) { tokens[`disabled.${onFill[1]}`] = onFill[1] === 'icon' ? 'color.disabled.icon' : 'color.disabled.text'; continue; }
     tokens[k] = ref;
@@ -3058,7 +3059,8 @@ export const applyWeightIntent = (authored: ComponentDef, avail: WeightAvailabil
 // `outlineInteraction` decides WHICH family carries an outline/text control's hover fill, and the
 // engine EMITS only that family (`modes.ts`, the `overlay-neutral` / `solid-tint` branches): the
 // translucent `interactive.<c>.overlay.*` wash, the tinted `interactive.<c>.subtle-fill.*` wash, or
-// neither. Four defs (button, icon-button, select, text-field) bind the wash by name, which is right
+// neither. Button and Icon button bind the wash by name (the fields bound it too until #2926 removed
+// every field wash: a field hovers by its border alone, whatever this lever says), which is right
 // for the default and names a variable that does not exist for the other two methods — the owner's
 // NB file, at `solid-tint` or `none`, built `button` with 96 misses on `container.fills`.
 
@@ -3087,7 +3089,7 @@ const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/
  *                         tinted wash lands exactly where the neutral wash did.
  *   · `none`            → the ENTRY IS DROPPED. `paintOf('overlay')` then resolves nothing and the box
  *                         falls through to its `fill` slot — none for outline/text (no hover wash, the
- *                         intended "no hover expression"), the rest fill for a field. Dropping rather
+ *                         intended "no hover expression"). Dropping rather
  *                         than binding transparent is what makes this a non-event on the host: no
  *                         variable is asked for, so there is nothing to miss. A bound SUBTLE FILL (Tag's
  *                         selected tint, 2026-09-29) is dropped the same way: `none` emits none of them.

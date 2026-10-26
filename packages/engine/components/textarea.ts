@@ -198,9 +198,7 @@ export const textarea: ComponentDef = {
   //     the code-side half.
   tokens: {
     'fill': 'color.field.fill',
-    // The hover WASH, text-field's (#1341/#1342): the transparent field fill takes a translucent overlay
-    // on hover (precedence overlay > fill, the control's `paintSlots`) while the border strengthens.
-    'overlay.hover': 'color.interactive.neutral.overlay.hover',
+    // No hover wash (#2926, text-field's): hover is the border alone, `border.hover` below.
     // THE FILLED STATE (owner decision, 2026-09-25), text-field's keys exactly. The projected rest / hover /
     // focus-visible members are the EMPTY field at each interaction, so they show the placeholder in
     // `text.secondary`; `filled` and read-only take the bare `label`, `text.primary`. Before this, the bare
@@ -349,8 +347,8 @@ export const textarea: ComponentDef = {
         crossAxisFill: true,
         children: ['control', 'messageRow'],
       },
-      // THE CONTROL — the bordered, interactive box and the single target. Paints the fill, the hover wash
-      // and the stateful border (text-field's `paintSlots`). NO bound height: it hugs its block padding plus
+      // THE CONTROL — the bordered, interactive box and the single target. Paints the fill and the
+      // stateful border (text-field's `paintSlots`). NO bound height: it hugs its block padding plus
       // the text's reserved rows, so the box is rows × line height + padding and grows past it with longer
       // copy. `align: 'start'` keeps the text at the top of a taller box. Since #2292 the control FILLS `body`,
       // which fills the root built at 320 (`placementWidth`), so a textarea set to fill its column stretches
@@ -359,7 +357,7 @@ export const textarea: ComponentDef = {
       control: {
         kind: 'box',
         role: 'target',
-        paintSlots: ['overlay', 'fill', 'border'],
+        paintSlots: ['fill', 'border'],
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         minWidth: 120,
         radius: 'radius',
@@ -615,7 +613,7 @@ export const textarea: ComponentDef = {
     ],
     // KB textarea brief §13.
     evolution: [
-      'READ-ONLY KEEPS THE EDITABLE FIELD\'S BOUNDARY (owner decision, 2026-09-29, #1710). The read-only member binds `field.border.rest`, the same border as the rest and filled members, in every mode. The earlier `border.secondary` binding measured 2.69–2.81:1 on `background.secondary` in light, below the 1.4.11 floor, and `field.border.rest` is already the quietest neutral step that clears 3:1 there, so no fainter read-only edge can pass. Read-only is carried by its semantics (aria-readonly; still focusable and submitted) and by the affordances its member does not draw (no caret, no hover wash), not by a fainter edge.',
+      'READ-ONLY KEEPS THE EDITABLE FIELD\'S BOUNDARY (owner decision, 2026-09-29, #1710). The read-only member binds `field.border.rest`, the same border as the rest and filled members, in every mode. The earlier `border.secondary` binding measured 2.69–2.81:1 on `background.secondary` in light, below the 1.4.11 floor, and `field.border.rest` is already the quietest neutral step that clears 3:1 there, so no fainter read-only edge can pass. Read-only is carried by its semantics (aria-readonly; still focusable and submitted) and by the affordances its member does not draw (no caret), not by a fainter edge.',
       'AUTO-GROW IS BECOMING THE COMPOSER DEFAULT, with maxRows-plus-scroll as the safety valve, learned after early systems shipped unbounded growth (KB textarea brief §13).',
       'CSS `field-sizing: content` IS RETIRING JAVASCRIPT AUTO-GROW, moving the measurement off the main thread into the browser engine — the largest near-term implementation change, with support still to verify (see `notes.unverified`).',
       'SOFT LIMITS OVER HARD maxlength: allow the overflow, flag it, block submit, rather than truncating silently.',
