@@ -44,7 +44,8 @@
  * recording nothing (`main.ts`, its `recordSets` after `applyComponentPlan`) → `ledger/build`; the Update recording
  * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. Q699 A
  * (section 6): `main.ts`'s `brandOf` reading the stored brand whatever the panel sends → `q699/due` and `q699/update`
- * ("Nothing was updated: the file changed since the check"). The hand-edit pass (section 7): `stale()` cut to
+ * ("Nothing was updated: the file changed since the check"). #3023 Q701 B (section 6b): the panel's `brandFor` sending its own brand with
+ * Theme unticked → `q701/update writes A`, `q701/next load`. The hand-edit pass (section 7): `stale()` cut to
  * `mine !== handPass`, so a write starting no longer ends it → `hand-edits/guard`. `panelFor` drawing the spec panel
  * after the usage panel (Q2830.3 A: specs are drawn on request only) → `specs/never on build`, `specs/never on update`.
  */
@@ -424,6 +425,25 @@ ok(!!after && after.update === 0 && after.upToDate === true, `q699/update wrote 
 const recorded = ledger()[LEVER_DEF]?.def;
 ok(recorded === entryFor(materializerFor(brandB)(componentDefs.find((d) => d.id === LEVER_DEF)!)).def && recorded !== entryFor(materializerFor(brandA)(componentDefs.find((d) => d.id === LEVER_DEF)!)).def,
   `q699/ledger: the ledger records the brand that was applied, B (${recorded})`);
+
+// 6b. #3023, the owner's decision Q701 B (2026-10-25): with Theme unticked, the run leaves the stored brand in the file,
+//    so the check and the update measure against it. The file stores A again; the set is still built under B (the arm
+//    above), so it is due against A. The panel holds B, Theme is unticked, and each message carries the brand the panel's
+//    own `brandFor` (`apps/studio/src/state/update-file.ts`) picks for that run, as `main.ts`'s `panelBrand` posts it. The
+//    update must write A's plan, and the next load (the read with no brand, as at load) must read the set current.
+const { brandFor } = await import('../studio/src/state/update-file');
+persistInput(root as never, brandA);
+const atLoad = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(atLoad?.due?.[LEVER_DEF]?.state === 'due', `fixture: stored A, the set built under B reads due at load (${JSON.stringify(atLoad?.due?.[LEVER_DEF])})`);
+const unticked = brandFor(false, brandB);
+const chkU = (await ask({ type: 'update-check-request', defs: [LEVER_DEF], input: unticked }, 'update-check'))[0];
+const updU = await askRun({ type: 'update-sets', defs: [LEVER_DEF], previewHash: chkU?.previewHash, handEdits: 'keep', input: unticked }, 'component-update-result');
+const recordedU = ledger()[LEVER_DEF]?.def;
+ok(!!updU && !String(updU.headline).startsWith('✗') && recordedU === entryFor(materializerFor(brandA)(componentDefs.find((d) => d.id === LEVER_DEF)!)).def,
+  `q701/update writes A: with Theme unticked, the update lays the stored brand A's plan, not the panel's B ("${updU?.headline}"; ledger ${recordedU})`);
+const nextLoad = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(nextLoad?.due?.[LEVER_DEF]?.state === 'current', `q701/next load: after that update, the next load reads ${LEVER_DEF} current, not due (${JSON.stringify(nextLoad?.due?.[LEVER_DEF])})`);
+ok(brandFor(true, brandB) === brandB, 'q701/control: with Theme ticked, the panel measures against its own brand (Q699 A)');
 
 // 7. #2909 S2: the background hand-edit pass stops when a write starts (`handEditsPass`'s `stale()`, the run guard). A
 //    build is held mid-run (its page switch waits on a promise this test releases), the pass is asked for, and no set's

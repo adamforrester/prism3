@@ -225,7 +225,13 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
     // (disabled ink is the cross-cutting disabled.text / disabled.icon, group === 'disabled' below.)
     if (variant === 'link') {
       const c = surfaceClause(ctx, self, floor(4.5));
-      return { when_to_use: `Hyperlinks and interactive ${k}${sc(state)}. ${c.text}`, avoid_when: `Do not use for non-interactive ${k} (use ${q(`${k}.primary`)}).`, ...floorClause(ctx, self), ...(c.ok.length ? { sits_on: c.ok } : {}) };
+      // #2986 (owner decision, Q690 A): no on-media link role. Over a photograph a link takes the strongest
+      // inverse ink and keeps its underline as the cue, on the media veil when the photo is busy. Text links
+      // only — the underline is the cue, and an icon has none. The inverse twin inherits it through the remap.
+      const media = k === 'text' && ctx.has('inverse.text.primary') && ctx.has('veil.dark.medium')
+        ? ` Over a photograph, set the link in ${q('inverse.text.primary')} instead and keep its underline as the link cue, on a media veil (${q('veil.*')}) when the photo is busy. ${q('inverse.text.primary')} flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo.`
+        : '';
+      return { when_to_use: `Hyperlinks and interactive ${k}${sc(state)}. ${c.text}`, avoid_when: `Do not use for non-interactive ${k} (use ${q(`${k}.primary`)}).${media}`, ...floorClause(ctx, self), ...(c.ok.length ? { sits_on: c.ok } : {}) };
     }
     if (variant.endsWith('-subtle')) {
       const i = variant.replace('-subtle', '');
@@ -282,7 +288,7 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
     if (variant === 'border') {
       // AI/A-10: "gated on the darkest permissible ground" named nothing an agent could resolve, and was
       // false on the darker steps. The clause names the real surfaces.
-      if (state === 'hover') { const c = surfaceClause(ctx, 'field.border.hover', ctx.min('field.border.hover') || 3); return { when_to_use: `The hover boundary of a form field — a subtly stronger perceivable border (SC 1.4.11) on pointer hover. ${c.text}`, avoid_when: `Do not use as the resting border (use \`field.border.rest\`), the focus ring (use \`border.focus\`), or ${validation}.`, ...(c.ok.length ? { sits_on: c.ok } : {}), tracks: ['field.border.rest'] }; }
+      if (state === 'hover') { const c = surfaceClause(ctx, 'field.border.hover', ctx.min('field.border.hover') || 3); return { when_to_use: `The hover boundary of a form field — four ramp steps stronger than the resting border, and the field's only drawn hover cue: a field takes no hover fill. A perceivable border (SC 1.4.11) on pointer hover. ${c.text}`, avoid_when: `Do not use as the resting border (use \`field.border.rest\`), the focus ring (use \`border.focus\`), or ${validation}.`, ...(c.ok.length ? { sits_on: c.ok } : {}), tracks: ['field.border.rest'] }; }
       const c = surfaceClause(ctx, 'field.border.rest', ctx.min('field.border.rest') || 3);
       return { when_to_use: `The resting boundary of a transparent-fill field, before focus (SC 1.4.11). ${c.text}`, avoid_when: `Do not use for the focus ring (use \`border.focus\`) or ${validation}.`, ...(c.ok.length ? { sits_on: c.ok } : {}), tracks: ['field.placeholder'] };
     }
@@ -389,7 +395,7 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
       : `The tinted ${state ?? 'interaction'} wash behind an outline or text ${c} control: the ${c} fill at a set opacity, laid over ${q('background.primary')}. The label on it is ${q(ink)}.`;
     return { when_to_use: use, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)}) or for ${other}.`, ...(ctx.has(`inverse.interactive.${c}.subtle-fill.${state}`) ? { page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.subtle-fill.*`)}, which is measured on the band.` } : {}), tracks: [`interactive.${c}.fill.rest`, ink] };
   }
-  if (slot === 'overlay') return { when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)} or foreground.${c}-subtle) or as a modal backdrop (use ${q('scrim.default')}).`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.overlay.*`)} — the page wash takes the page's polarity.`, carries: ['text.primary'] };
+  if (slot === 'overlay') return { when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)} or foreground.${c}-subtle), as a modal backdrop (use ${q('scrim.default')}), or on a form field, which hovers by its border alone (${q('field.border.hover')}).`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.overlay.*`)} — the page wash takes the page's polarity.`, carries: ['text.primary'] };
   return { when_to_use: `The ${slot} of a ${c} interactive element.`, avoid_when: `Do not use outside the ${c} interactive family.` };
 };
 

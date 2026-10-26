@@ -2096,7 +2096,11 @@ const writeComponentSet = async (
         if (n.glyphViewBox && (fresh.width !== n.glyphViewBox[0] || fresh.height !== n.glyphViewBox[1]))
           misses.push(`${n.name}.glyphViewBox -> ${n.glyphViewBox[0]}x${n.glyphViewBox[1]} (the imported frame reads ${fresh.width}x${fresh.height}; the glyph was sized to its ink rather than to its artboard, so every host binding a square would distort it)`);
         if (fw > 0 && fh > 0 && (fw !== ex.width || fh !== ex.height)) fresh.resize?.(Number(ex.width), Number(ex.height));
-        const sig = (k: Wr): string => (k.children ?? []).map((v) => JSON.stringify([v.type, (v as { vectorPaths?: unknown }).vectorPaths ?? null, Math.round(v.width ?? 0), Math.round(v.height ?? 0)])).join('|');
+        // A GLYPH THAT TAKES NO HOST INK (#2343 PR 2, a brand mark) compares its vectors' FILLS too: its colors are the
+        // document's own, so a mark whose provider changed a color and not a path must take the new import. A glyph a
+        // host inks (`descendantFills`, every icon) does not: its fills are the binding written after, never the import's.
+        const ownPaint = !n.descendantFills;
+        const sig = (k: Wr): string => (k.children ?? []).map((v) => JSON.stringify([v.type, (v as { vectorPaths?: unknown }).vectorPaths ?? null, Math.round(v.width ?? 0), Math.round(v.height ?? 0), ...(ownPaint ? [(v as { fills?: unknown }).fills ?? null] : [])])).join('|');
         if (sig(fresh) !== sig(ex)) {
           for (const old of [...(ex.children ?? [])]) wr(old).remove?.();
           for (const v of [...(fresh.children ?? [])]) ex.appendChild?.(v);
@@ -2288,6 +2292,21 @@ const writeComponentSet = async (
         if (ex) { node.setBoundVariable?.('width', null); node.setBoundVariable?.('height', null); }
         node.resize?.(n.aspectRatio, 1);
         node.lockAspectRatio?.();
+      }
+      // A HOSTED INSTANCE'S OWN PROPORTION (#2343 PR 2, `FigmaNodePlan.aspectLock`): the proportion of the component
+      // the instance is an instance of, read now because it belongs to whatever was swapped in. Resized to it, locked,
+      // and then the bind loop binds the height alone, so Figma derives the width. In place, the dimensions are
+      // unbound first, for the reason the box lock above gives. Lockstep with the paste executor.
+      if (n.aspectLock) {
+        if (ex) { node.setBoundVariable?.('width', null); node.setBoundVariable?.('height', null); }
+        let main: { width?: unknown; height?: unknown } | null = null;
+        try { main = (await (node as { getMainComponentAsync?: () => Promise<{ width?: unknown; height?: unknown } | null> }).getMainComponentAsync?.()) ?? null; }
+        catch { main = null; }
+        // The sync getter is the fallback for the shim, which models it as a plain property (`mainOf`'s order).
+        if (!main) { try { main = ((node as { mainComponent?: { width?: unknown; height?: unknown } | null }).mainComponent) ?? null; } catch { main = null; } }
+        const mw = Number(main?.width ?? 0), mh = Number(main?.height ?? 0);
+        if (mw > 0 && mh > 0) { node.resize?.(mw / mh, 1); node.lockAspectRatio?.(); }
+        else misses.push(`${n.name}.aspectLock -> no main component to read a proportion from; the instance is unlocked`);
       }
 
       // `wrote` is what was ACTUALLY set, not what the plan declared — a name that does not resolve is
@@ -2957,6 +2976,8 @@ const writeComponentSet = async (
       if (!entry.accept) for (const p of entry.keep) if (prior?.nodes[p] !== undefined) now.nodes[p] = prior.nodes[p];
       // Reactions kept as a hand edit keep their recorded hash too (#2466), for the same reason.
       if (!entry.accept && entry.keep.has(REACTIONS_PATH) && prior?.reactions !== undefined) now.reactions = prior.reactions;
+      // So does artwork kept as a hand edit (#2343 PR 2): recording the redraw as built would launder it.
+      if (!entry.accept) for (const p of entry.keep) if (prior?.art?.[p] !== undefined) now.art = { ...(now.art ?? {}), [p]: prior.art[p] };
       m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
     } catch (err) { return `${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`; }
     // THE STAMP, LAST (§7): only now does the member read current. Then the marker comes off.

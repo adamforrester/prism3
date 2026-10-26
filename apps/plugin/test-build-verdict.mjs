@@ -291,7 +291,12 @@ const setBox = async (page, locator, on) => {
 const runSets = async (page, ids, label = 'build') => {
   try {
     await openUpdate(page);
+    // #3023 Q701 B: unticking Theme checks the file again, against the stored brand; it is answered as the first read was.
+    const asked = await page.evaluate(() => window.__sets);
     await setBox(page, page.locator('[data-p3="update-check-theme"]'), false);
+    await page.waitForFunction((n) => window.__sets > n, asked, { timeout: 3000 }).catch(() => {});
+    await post(page, { type: 'file-sets', present: [], setUp: true });
+    await hooks.need(page, '[data-p3="update-go"]');
     for (const id of ids) await setBox(page, page.locator(`[data-p3="update-set"][data-id="${id}"]`), true);
     await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
     return true;

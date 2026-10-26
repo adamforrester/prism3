@@ -1919,13 +1919,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // 2 steps in light/dark but 3 in HC. A fixed offset is the same idiom `iFill` already uses for
   // interactive fill states, and it makes the delta uniform.
   //
-  // TWO is the offset because that is what light and dark already resolved to, so both are
-  // byte-identical to before; only HC changes, tightening 3 steps to 2. One step was the tempting
-  // choice for consistency with `iFill`'s hover, but a field border is a hairline — a single step is
-  // a far weaker cue on 1px of chrome than on a filled button, and this would have been a silent
-  // regression in the affordance.
+  // FOUR is the offset since #2926 (owner decision 2026-10-26, Q2′ A). It was TWO — what light and dark
+  // had resolved to when the offset was fixed — which measured 1.39–1.47:1 rest→hover, under the 1.79
+  // median of the systems surveyed whose border moves on hover, and under the reference brand's
+  // hand-built 500 → 700 (2.19, four 50-unit rungs). The same decision removed the field hover wash
+  // (Q1′ D), so the border is now the field's only drawn hover cue, and four steps gives about
+  // 1.9–2.2:1. Rest does not move. One step was never right: a field border is a hairline, and a single
+  // step is a far weaker cue on 1px of chrome than on a filled button.
+  const FIELD_HOVER_STEPS = 4;
   const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
-  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, 2, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)`, 'background.secondary', cfg.nonTextMin);
+  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, FIELD_HOVER_STEPS, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'background.secondary', cfg.nonTextMin);
   // The placeholder ink sits on the field, whose transparent fill lets the darkest permissible ground
   // (`background.secondary`) through — so it is gated there, not against the (now paint-less) fill. Same
   // rgb the fill used to be, so the pick is byte-identical; only the recorded ground moves off `field.fill`.
@@ -1956,7 +1959,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const fieldInvRest = pickMinPass(ramp, fieldInvGroundRgb, cfg.nonTextMin);
   put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against the darkest permissible inverse ground`, 'inverse.background.secondary', cfg.nonTextMin);
   const fieldInvRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldInvRest.path)!.num;
-  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, 2, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)`, 'inverse.background.secondary', cfg.nonTextMin);
+  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, FIELD_HOVER_STEPS, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'inverse.background.secondary', cfg.nonTextMin);
   put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a readable hint, ${cfg.secondaryMin}:1 on the darkest permissible inverse ground behind the transparent fill`, 'inverse.background.secondary', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)
