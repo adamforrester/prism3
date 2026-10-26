@@ -20061,6 +20061,49 @@ arm: {
       `#1012 control: the real \`icon\` def — the only one that sets emitAsComponents — validates clean, so the arms above reject MISUSE rather than the mode itself (${figmaPropertyErrors(icon).slice(0, 2).join('; ') || 'no errors'})`);
   }
 
+  // #2343 PR 2 — A HOSTED COMPONENT'S OWN PAINT AND PROPORTION (`fixedPaint`, `aspectLock`). No def carries either yet
+  // (the branded buttons and card fields will, nesting a brand mark), so the arms run on a Button clone whose leading
+  // slot is turned into a mark slot. Expected values are literals here, never read from the projector (docs/34).
+  {
+    const cloneOf = (d: ComponentDef) => JSON.parse(JSON.stringify(d)) as any;
+    const markSlot = (extra: Record<string, unknown> = {}) => {
+      const d = cloneOf(button);
+      const lv = d.anatomy.parts.leadingVisual;
+      delete lv.size;
+      Object.assign(lv, { height: 'size.{size}.icon', aspectLock: true, fixedPaint: true }, extra);
+      return d;
+    };
+    const host = markSlot();
+    ok(validateComponentDef(host).errors.length === 0,
+      `#2343 PR 2: a slot that binds its height under aspectLock and keeps its content's paint validates clean (${validateComponentDef(host).errors.slice(0, 2).join('; ') || 'no errors'})`);
+    // At a full coordinate (the set's), where Button's own slot does take its host's ink, so the control can fail.
+    const nodeAt = (d: ComponentDef) => figmaAnatomySet(d, { swapTarget: 'brand-mark/card/visa' }).find((p) => p.slots?.leading)?.root.children?.find((c) => c.name === 'leadingVisual');
+    const slot = nodeAt(host);
+    ok(!!slot && slot.descendantFills === undefined && slot.fixedPaint === true && !slot.paints,
+      `#2343 PR 2 fixedPaint: the mark slot carries no descendantFills and states fixedPaint (descendantFills ${String(slot?.descendantFills)}, fixedPaint ${String(slot?.fixedPaint)})`);
+    ok(!!slot && JSON.stringify(Object.keys(slot.bound)) === JSON.stringify(['height']) && slot.aspectLock === true,
+      `#2343 PR 2 aspectLock: the mark slot binds its height alone and carries the lock (bound ${JSON.stringify(slot?.bound)}, aspectLock ${String(slot?.aspectLock)})`);
+    const control = nodeAt(button);
+    ok(!!control?.descendantFills && control.fixedPaint === undefined && control.aspectLock === undefined && 'width' in (control.bound ?? {}),
+      `#2343 PR 2 control: Button's own leading slot still takes the host's icon ink and its square binding, with neither flag (descendantFills ${String(control?.descendantFills)})`);
+    const errs = (extra: Record<string, unknown>) => validateComponentDef(markSlot(extra)).errors;
+    ok(errs({ height: undefined }).some((e) => /declares 'aspectLock' but binds no 'height'/.test(e)), '#2343 PR 2: aspectLock with no height is refused');
+    ok(errs({ size: 'size.{size}.icon', height: undefined }).some((e) => /declares 'aspectLock' and binds 'size'/.test(e)), '#2343 PR 2: aspectLock beside a size binding is refused (the second binding would evict the lock)');
+    ok(errs({ paintSlot: 'icon' }).some((e) => /declares 'fixedPaint' and paintSlot/.test(e)), '#2343 PR 2: fixedPaint beside a paintSlot is refused');
+    const onText = cloneOf(button); onText.anatomy.parts.label.fixedPaint = true; onText.anatomy.parts.label.aspectLock = true;
+    const textErrs = validateComponentDef(onText).errors;
+    ok(textErrs.some((e) => /kind 'text' but declares 'fixedPaint'/.test(e)) && textErrs.some((e) => /kind 'text' but declares 'aspectLock'/.test(e)),
+      `#2343 PR 2: both flags are refused on a text part (${textErrs.filter((e) => /fixedPaint|aspectLock/.test(e)).length} refusal(s))`);
+    const plainHeight = cloneOf(button); delete plainHeight.anatomy.parts.leadingVisual.size; plainHeight.anatomy.parts.leadingVisual.height = 'size.{size}.icon';
+    ok(validateComponentDef(plainHeight).errors.some((e) => /kind 'slot' but binds 'height'/.test(e)),
+      '#2343 PR 2: a slot that binds a height WITHOUT aspectLock is still refused — it would reach no node');
+    // THE PASTE EXECUTOR reads the main's proportion and locks before the bind loop, in that order.
+    const js = planToPluginJs(figmaAnatomyPlan(host, 'medium', { leading: true, swapTarget: 'brand-mark/card/visa' }));
+    const lockAt = js.indexOf('if(n.aspectLock)'), bindAt = js.indexOf('for(const [prop,varName] of Object.entries(n.bound))');
+    ok(lockAt > 0 && bindAt > lockAt && /if\(n\.aspectLock\)\{const m=await node\.getMainComponentAsync\(\);if\(m&&m\.height\)\{node\.resize\(m\.width\/m\.height,1\);node\.lockAspectRatio\(\);\}/.test(js),
+      `#2343 PR 2 paste executor: an aspect-locked instance is resized to its main's proportion and locked BEFORE the bind loop (lock at ${lockAt}, bind at ${bindAt})`);
+  }
+
   // The three FIELD TYPES, read out of the declaration — the only source available here, for the reason
   // `focus-ring wall 1` records: a def that omits a bad key proves nothing about whether the key WOULD
   // be accepted, and the type layer cannot be invoked from a tsx suite. Parsed rather than grepped whole,
@@ -25618,8 +25661,12 @@ arm: {
       // 1 KB off every chunk's shell, so icon-button packs two chunks tighter. (The vertical-trim lines #2428 first added
       // to the shell went with the trim, Q560 A on #2789.) Re-pinned per the same standing instruction; every chunk stays
       // under budget.
+      //
+      // NOW 17, AS OF #2343 PR 2 — a shell-byte move: the paste script gained the aspect-locked instance (`aspectLock`,
+      // a slot that reads its main's proportion before its height binds), in every chunk's shell. icon-button does not
+      // use it. Re-pinned per the same standing instruction; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 16, `anatomy/icon-button: the set packs into 16 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a

@@ -792,6 +792,25 @@ export type PartDef = {
    *  bound dimension (`width` + `height`), and requires exactly one of `size`/`width`/`height` (with
    *  `size` the projector binds one axis from). See `anatomyErrors`. */
   aspectRatio?: string;
+  /** For `slot` and `nest` parts: the part's width FOLLOWS ITS CONTENT'S OWN PROPORTION (#2343 PR 2). The part
+   *  binds `height` alone, and both executors lock the instance to the proportion of the component it is an
+   *  instance of, so Figma derives the width. The case is a brand mark: a card mark is 8:5 and a wallet lockup
+   *  is as wide as its provider drew it, so a square `size` binding would stretch it. The box form of the same
+   *  lock is `aspectRatio`, whose proportion is a variant axis; a slot's proportion belongs to whatever the
+   *  designer swaps in, so it is read from that component when the instance is built, never stated here.
+   *
+   *  Refused on any other kind, on the root, without a bound `height`, and beside `size` or `width` (a locked node
+   *  keeps only the last of two dimension bindings, so a second would evict the lock). */
+  aspectLock?: true;
+  /** For `slot`, `overlay` and `nest` parts: the content keeps ITS OWN PAINT (#2343 PR 2). A slot or an overlay
+   *  otherwise takes its host's icon ink on every vector inside it (`descendantFills`), which is what lets a
+   *  glyph follow its button's state; on a brand mark it is the retint the provider forbids. With this flag the
+   *  part carries no `descendantFills` and no paint binding, and the plan says so (`FigmaNodePlan.fixedPaint`),
+   *  so a gate can hold the outcome independently of the projector's branch. A `nest` takes no host ink today;
+   *  the flag there is the same promise, kept if that ever changes.
+   *
+   *  Refused on any other kind and beside `paintSlot` (a part cannot both keep its own paint and name an ink). */
+  fixedPaint?: true;
   /** For `vector` parts: WHICH glyph, by its name in the icon vocabulary (#864).
    *
    *  A NAME, resolved against `ICON_PATHS` at projection — never the path data itself. Two reasons, and
@@ -4810,7 +4829,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // why the rule is NOT scoped to the three the filing named: `absolute` already refuses `size` outright
     // (it is sized by its parent's bounds grown by `inset`) and dropped `height` just as silently — the
     // same posture mismatch #1305 records, one kind past where the issue looked.
-    if (p.kind !== 'box' && p.kind !== 'nest' && p.kind !== 'vector' && p.height !== undefined)
+    // A `slot` under `aspectLock` binds its height, and the lock derives its width (#2343 PR 2).
+    if (p.kind !== 'box' && p.kind !== 'nest' && p.kind !== 'vector' && p.height !== undefined && !(p.kind === 'slot' && p.aspectLock))
       e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'height' — only a 'box' (which fixes both axes) or a 'nest' (#1299) projects a bound height; a slot/overlay takes the size of the content swapped into it, a text is sized by its own content, and an absolute by its parent's bounds — so this would resolve, validate, and reach no node`);
     // An `overlay` may name its component too (#1670): the pending spinner swaps in `spinner` rather than
     // the caller's icon placeholder. Its relation stays `swap` — the overlay takes a cell's place, whole.
@@ -5224,6 +5244,24 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // ---- `padding.inlineEnd`, the trailing side's own key (the spacing model, 2026-09-29) ----
     if (p.padding?.inlineEnd !== undefined && p.padding.inlineVisual !== undefined)
       e.push(`anatomy part '${n}' declares both 'padding.inlineVisual' and 'padding.inlineEnd' — the slot-aware rule and the trailing-side key would both claim the trailing inset`);
+    // ---- `aspectLock` and `fixedPaint`, a hosted component's own proportion and paint (#2343 PR 2) ----
+    if (p.aspectLock !== undefined) {
+      if (p.kind !== 'slot' && p.kind !== 'nest')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'aspectLock' — only a 'slot' or a 'nest' is an instance whose width can follow the proportion of the component it instances`);
+      if (n === a.root)
+        e.push(`anatomy part '${n}' is the root and declares 'aspectLock' — the lock follows a hosted instance, and the root is the host`);
+      if (p.height === undefined)
+        e.push(`anatomy part '${n}' declares 'aspectLock' but binds no 'height' — the lock derives the width from the height, so the height must be bound`);
+      if (p.size !== undefined || p.width !== undefined)
+        e.push(`anatomy part '${n}' declares 'aspectLock' and binds '${p.size !== undefined ? 'size' : 'width'}' — a locked node keeps only the last of two dimension bindings, so a locked part binds its height alone`);
+    }
+    if (p.fixedPaint !== undefined) {
+      if (p.kind !== 'slot' && p.kind !== 'overlay' && p.kind !== 'nest')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'fixedPaint' — only a 'slot', an 'overlay' or a 'nest' hosts another component whose paint it could push into`);
+      if (p.paintSlot !== undefined)
+        e.push(`anatomy part '${n}' declares 'fixedPaint' and paintSlot '${p.paintSlot}' — a part that keeps its content's own paint names no ink`);
+    }
+
     // ---- `aspectRatio`, the BOX kind's proportion LOCK (#1316) ----
     // A ratio-locked box binds ONE nominal dimension and lets Figma's aspect lock derive the other. Every
     // rule here is a way the field would validate and then leave a member unlocked or evicted — the

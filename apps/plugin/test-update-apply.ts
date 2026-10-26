@@ -1017,10 +1017,57 @@ const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { 
   ok(applyVerdict(res).ok && dump() === before && res.outcomes[0]?.skipped.some((x) => x.member === 'name=my-logo' && x.reason === 'not built by Prism3'),
     `single/owner: the owner's hand-made icon is left exactly as it is, and named (${JSON.stringify(res.outcomes[0]?.skipped)})`);
 }
+{
+  // A GLYPH THAT KEEPS ITS OWN PAINT, RECOLORED BY THE PLAN (#2343 PR 2): a brand mark whose provider changed a color
+  // and not a path. Its vectors take no host ink, so the in-place glyph must compare their fills too, or the update
+  // keeps the old colors under a current stamp. Built on the icon set with the ink stripped and literal fills written,
+  // the shape a mark's plan has. Mutation: the fills dropped from the in-place signature → `recolor/taken`.
+  const own = (plans: AnatomyPlan[], hex: string, only?: number): AnatomyPlan[] => plans.map((p, i) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const r = q.root as unknown as Record<string, unknown>;
+    delete r.descendantFills;
+    if (only === undefined || only === i) r.glyphSvg = String(r.glyphSvg).replace('fill="currentColor"', `fill="#${hex}"`);
+    return q;
+  });
+  const base = own(plansOf('icon'), '111111');
+  const w = await singleWorld(base);
+  const t = { def: 'icon', plans: own(plansOf('icon'), 'aa0000', 9).map((p, i) => (i === 9 ? p : base[i])), single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const red = w.comps().filter((c) => ((c.children as Node[]) ?? []).some((k) => k.type === 'VECTOR' && Math.abs(((k.fills as { color?: { r: number } }[])?.[0]?.color?.r ?? 0) - 0xaa / 255) < 1e-6));
+  ok(applyVerdict(res).ok && red.length === 1, `recolor/taken: the recolored glyph takes the new import's color, and no other changes (${red.length} red; ${applyVerdict(res).headline})`);
+}
 const pdOf = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
 const putPd = (n: Node, k: string, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, v);
 /** Each icon plan with its ink moved to `color/icon/secondary`, as `single/update` moves it. */
 const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
+{
+  // A MARK OR GLYPH REDRAWN IN ITS MAIN COMPONENT (#2343 PR 2, owner decision Q-B3 A): a brand swaps a mark by editing
+  // the drawing inside `brand-mark/*` in Figma, and a rebuild must keep it. The drawing is the vectors' GEOMETRY, which
+  // no node hash reads; `Baseline.art` does. Built here on the icon set, the same standalone-component path the marks
+  // take. Mutations: the artwork arm of `baselineDiff` dropped → `redraw/listed`, `redraw/kept`; the kept artwork
+  // laundered in `finishUpdated` → `redraw/still listed`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const hit = w.comps()[7];
+  const vec = ((hit.children as Node[]) ?? []).find((k) => k.type === 'VECTOR')!;
+  const REDRAWN = [{ windingRule: 'NONZERO', data: 'M 2 2 L 22 2 L 22 22 L 2 22 Z' }];
+  vec.vectorPaths = REDRAWN;
+  const t = { def: 'icon', plans: reinked(plans), single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  const member = `name=${String(hit.name).split('/').pop()}`;
+  const listed = pre.sets[0].handEdits.filter((h) => h.member === member).map((h) => h.path);
+  ok(JSON.stringify(listed) === JSON.stringify(['.']), `redraw/listed: the dry run reads the redrawn glyph as a hand edit at its frame (${JSON.stringify(listed)}; ${JSON.stringify(pre.sets[0].counts)})`);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const nowVec = ((hit.children as Node[]) ?? []).find((k) => k.type === 'VECTOR');
+  ok(JSON.stringify(nowVec?.vectorPaths) === JSON.stringify(REDRAWN) && applyVerdict(res).ok,
+    `redraw/kept: the update keeps the designer's drawing rather than laying a fresh import over it (${JSON.stringify(nowVec?.vectorPaths)?.slice(0, 80)}; ${applyVerdict(res).headline})`);
+  const post = (await previewUpdate(w.host, [t])).sets[0];
+  ok(post.handEdits.some((h) => h.member === member && h.path === '.') && post.counts.current === 45,
+    `redraw/still listed: the next dry run still reports the redraw, and the other 45 read current (${JSON.stringify(post.handEdits.filter((h) => h.member === member))}; ${JSON.stringify(post.counts)})`);
+  // CONTROL: an untouched glyph's artwork reads the same across a rebuild, so the arm cannot fire on every glyph.
+  ok(!pre.sets[0].handEdits.some((h) => h.member !== member), `redraw/control: no other glyph reads as redrawn (${pre.sets[0].handEdits.filter((h) => h.member !== member).length})`);
+}
 {
   // THE RECORD WRITE FAILS AFTER THE UPDATE (#2373): one icon's host refuses its as-built record. The stamp comes last
   // (§7), so the icon keeps the stamp it had and its in-progress marker, reads out of date in the next dry run, and the

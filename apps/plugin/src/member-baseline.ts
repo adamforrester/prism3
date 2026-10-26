@@ -39,6 +39,14 @@
  * named by the axes it differs from the member on, never by id (`reactions.ts`). A change to them is reported at
  * `REACTIONS_PATH`, as a hand edit like any other.
  *
+ * AND THE ARTWORK (#2343 PR 2), as one hash per node that holds vectors (`Baseline.art`): the geometry of its VECTOR
+ * children, in order. A designer who redraws a mark inside its main component (owner decision Q-B3 A: a brand may swap
+ * a mark by editing it in Figma) changes paths that no node hash above reads, because `vectorPaths` is not in the
+ * signature: the update would read the glyph as untouched and lay a fresh import over the drawing. With this hash the
+ * redraw reads as a hand edit at the frame that holds the vectors, so the update keeps it and reports it (owner
+ * decision Q1, keep and report), exactly as it keeps a recolor. Beside the node hashes rather than in them, for
+ * `reactions`' reason: a record written before it existed makes no claim about artwork, and reads unchanged.
+ *
  * `v` is the format's version. A change to what is hashed changes every hash, so it raises `v`, and a
  * dry run that reads an older `v` reports the member as having no baseline rather than as hand-edited.
  *
@@ -74,7 +82,7 @@ export type SnapNode = Record<string, unknown> & { name: string; type: string; c
  *  beside the node hashes rather than in the root's, so a record written before reactions existed hashes every node
  *  as it did and reads unchanged: a record without the field makes no claim about reactions either way, and the
  *  same `v` reads both. Absent too where the host has no reactions to read. */
-export type Baseline = { v: number; id?: string; nodes: Record<string, string>; reactions?: string };
+export type Baseline = { v: number; id?: string; nodes: Record<string, string>; reactions?: string; art?: Record<string, string> };
 
 /** A stamp Prism3 wrote (#2300): the engine version, a 16-hex plan stamp or `adopted`, and the executor revision
  *  (absent on a stamp from before #1098). Anything else is not Prism3's, however it got there. */
@@ -108,7 +116,7 @@ const SNAP_KEYS = [
   'clipsContent', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight', 'width', 'height', 'x', 'y', 'targetAspectRatio',
   'characters', 'fontSize', 'lineHeight', 'fontName', 'letterSpacing', 'textAutoResize', 'textAlignHorizontal', 'textAlignVertical',
   'textStyleId', 'effectStyleId', 'effects', 'fills', 'strokes', 'boundVariables', 'componentPropertyReferences',
-  'isExposedInstance', 'componentProperties',
+  'isExposedInstance', 'componentProperties', 'vectorPaths',
 ] as const;
 
 /** Plain data out of a host value. `figma.mixed` is a symbol, which JSON drops, so it reads as `'MIXED'`. */
@@ -301,8 +309,21 @@ export const nodesByPath = (root: SnapNode): Map<string, SnapNode> => {
  *  place is the update's own business, through the rename ledger, and must not read as a hand edit. */
 export const baselineOf = (snap: SnapNode): Baseline => {
   const nodes: Record<string, string> = {};
-  for (const [path, n] of nodesByPath(snap)) nodes[path] = fnv(nodeSignature(n));
-  return { v: BASELINE_V, nodes, ...(snap.reactions ? { reactions: fnv(reactionsSignature(snap.reactions)) } : {}) };
+  const art: Record<string, string> = {};
+  for (const [path, n] of nodesByPath(snap)) {
+    nodes[path] = fnv(nodeSignature(n));
+    const sig = artworkSignature(n);
+    if (sig !== null) art[path] = fnv(sig);
+  }
+  return { v: BASELINE_V, nodes, ...(snap.reactions ? { reactions: fnv(reactionsSignature(snap.reactions)) } : {}), ...(Object.keys(art).length ? { art } : {}) };
+};
+
+/** The ARTWORK a node holds (#2343 PR 2): the geometry of its VECTOR children, in order, or `null` for a node that
+ *  holds none. Exported for the tests, which assert a redraw moves it and a recolor or a resize does not. */
+export const artworkSignature = (n: SnapNode): string | null => {
+  const vecs = (n.children ?? []).filter((c) => c.type === 'VECTOR');
+  if (!vecs.length) return null;
+  return JSON.stringify(vecs.map((v) => JSON.stringify(v.vectorPaths ?? null, (_k, x) => round(x))));
 };
 
 type DataNode = { getSharedPluginData?: (ns: string, k: string) => string; setSharedPluginData?: (ns: string, k: string, v: string) => void };
@@ -348,5 +369,9 @@ export const baselineDiff = (stored: Baseline, now: Baseline): { changed: string
   for (const p of Object.keys(now.nodes)) if (!(p in stored.nodes)) added.push(p);
   // The member's reactions (#2466), only where BOTH records hold them: an earlier record makes no claim about them.
   if (stored.reactions !== undefined && now.reactions !== undefined && stored.reactions !== now.reactions) changed.push(REACTIONS_PATH);
+  // The artwork (#2343 PR 2), node by node, only where BOTH records hold it: a redraw reads at the frame holding the
+  // vectors, once, whether or not its own hash moved too.
+  for (const [p, h] of Object.entries(stored.art ?? {}))
+    if (now.art?.[p] !== undefined && now.art[p] !== h && !changed.includes(p)) changed.push(p);
   return { changed, added, removed };
 };
