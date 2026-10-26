@@ -138,7 +138,7 @@ export const DOMAINS = [
   {
     id: 'brand', label: 'Brand', home: 'guide', intro: 'Who the brand is: its name, its namespace, its character and the modes it ships in.',
     sections: [
-      { title: 'Identity', rows: [{ ctl: 'identity', schemaOnly: ['id', 'root'] }] },
+      { title: 'Identity', rows: [{ ctl: 'identity', schemaOnly: ['name', 'root'] }] },
       { title: 'Personality', desc: 'Each word fills settings you have not set yet. Settings you set win.', rows: [{ ctl: 'personality', schemaOnly: ['personality'] }] },
       { title: 'Modes', rows: [{ ctl: 'modes', schemaOnly: ['modes', 'customModes'] }] },
     ],

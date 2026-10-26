@@ -5,7 +5,7 @@
  * Brand name and Token namespace side by side at every width (v5 answer 4) and the namespace notes spanning
  * both; Personality, the engine's words as chips with what each sets; Modes, Light always on, a check per
  * mode the brand can turn on or off, and the custom modes. Each schema input homed here draws its `lever-*`
- * block exactly once (`lever-id`, `lever-root`, `lever-personality`, `lever-modes`, `lever-custom-modes`).
+ * block exactly once (`lever-name`, `lever-root`, `lever-personality`, `lever-modes`, `lever-custom-modes`).
  *
  * THE NAMESPACE (T2, F5, Q9). The field holds a draft. A reserved or placeholder namespace (`prism`, `pds3`)
  * warns before export, whether it is the brand's or the draft's. A draft that differs says what a rename
@@ -24,10 +24,10 @@
  *
  * SEARCH (Q3) filters this panel in place, by each lever's label, description and key.
  */
-import { brandState, currentMode, lastError, rebuild, rp, searchQuery, setCurrentMode, setPage, setSearchHits, subscribe, theme } from '../state/store';
+import { currentMode, lastError, rebuild, rp, searchQuery, setCurrentMode, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import {
   MODE_NAME, MODE_ROWS, PERSONALITY_WORDS, ROOT_RE, addCustomMode, currentRoot, customModes, hcDarkLocked, modesOn, namespaceNote,
-  personality, planModeOff, removeCustomMode, renameCustomMode, renameNamespace, setCustomBase, setModeOff, setModeOn, setName, setPersonality,
+  personality, planModeOff, removeCustomMode, renameCustomMode, renameNamespace, setCustomBase, setModeOff, setModeOn, setName, setPersonality, shownName,
   customModesBasedOn,
   traitLevers, modeDrops,
 } from '../state/brand-input';
@@ -81,8 +81,8 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
 
   // ── Identity: name and namespace side by side, the notes under both ─────────────────────────────
   const identity = (): Built => {
-    const nameB = leverBlock('id', { label: 'Brand name', forId: 'p3-brand-name' });
-    const name = textField('p3-brand-name', 'brand-name', { onInput: (v) => { lastEdited = 'id'; setName(v); } });
+    const nameB = leverBlock('name', { label: 'Brand name', forId: 'p3-brand-name' });
+    const name = textField('p3-brand-name', 'brand-name', { onInput: (v) => { lastEdited = 'name'; setName(v); } });
     nameB.ctl.append(name.el);
     const rootB = leverBlock('root', { label: 'Token namespace', forId: 'p3-brand-namespace', desc: 'Every token path starts with it. Renaming it renames every path.' });
     const ns = textField('p3-brand-namespace', 'brand-namespace', { mono: true, describedBy: 'p3-namespace-note', onInput: (v) => { rootDraft = v; paintNotes(); } });
@@ -133,7 +133,7 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     return {
       nodes: [row, notes],
       drawn: [
-        { block: nameB, keys: ['id'], sync: () => name.set(brandState.id) },
+        { block: nameB, keys: ['name'], sync: () => name.set(shownName()) },
         { block: rootB, keys: ['root'], sync: () => {
           // The brand's namespace moved under the draft (a rename, a brand load): the draft goes.
           if (currentRoot() !== rootSeen) { rootSeen = currentRoot(); if (document.activeElement !== ns.el) rootDraft = null; }

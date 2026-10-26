@@ -3582,7 +3582,7 @@ console.log(`\nBrand — the levers, the namespace, the modes (S3)\n${'='.repeat
 /** The schema inputs v6 homes on Brand, with the hook each lever block must render once. Literal: the
  *  decision (IA-1: Brand holds identity, personality and modes), never read from `pages.ts`. None is a
  *  manifest lever, so the hook rule is `leverHook`'s, applied here by hand. */
-const BRAND_LEVERS = [['id', '[data-p3="lever-id"]'], ['root', '[data-p3="lever-root"]'], ['personality', '[data-p3="lever-personality"]'],
+const BRAND_LEVERS = [['name', '[data-p3="lever-name"]'], ['root', '[data-p3="lever-root"]'], ['personality', '[data-p3="lever-personality"]'],
   ['modes', '[data-p3="lever-modes"]'], ['customModes', '[data-p3="lever-custom-modes"]']];
 /** The engine's personality words, in its order (`TRAITS`, `packages/engine/vocabulary.ts`), typed here. */
 const PERSONALITY = ['energetic', 'calm', 'premium', 'restrained', 'bold', 'generous', 'dense', 'soft', 'sharp'];
@@ -3686,7 +3686,9 @@ for (const host of ['web', 'figma']) {
   await nm.fill('acme-brand');
   const nmState = await page.evaluate(() => ({ bar: document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent, same: document.querySelector('[data-p3="brand-name"]').dataset.cid === 'same', focus: document.activeElement?.getAttribute('data-p3') }));
   ok(nmState.bar === 'acme-brand' && nmState.same && nmState.focus === 'brand-name', `name: typing a name reaches the bar's brand switcher, the field kept and focused (${JSON.stringify(nmState)})`);
-  ok((await persisted(page))?.id === 'acme-brand', `name: the name reaches the persisted brand without a rebuild (#1196) — "${(await persisted(page))?.id}"`);
+  // #2915: the field is the display name; the id, the export slug, does not move with it.
+  const saved = await persisted(page);
+  ok(saved?.name === 'acme-brand' && saved?.id === 'prism3', `name: the name reaches the persisted brand's display name without a rebuild (#1196, #2915), the id kept — name "${saved?.name}", id "${saved?.id}"`);
 
   // Personality: a word turns on, says what it fills, and reaches the brand.
   const soft = page.locator('[data-p3="personality-word"][data-word="soft"]');
@@ -9952,7 +9954,7 @@ for (const { w, h } of START_SIZES) {
         await page.fill('[data-p3="start-hex"]', '#336699');
         await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'harbor' }));
         s = await readStartWindow(page);
-        ok(!s.open && !s.guard && (s.brand ?? '').includes('harbor'), `${where}: on the first run an example loads at once, no guard (brand "${s.brand}")`);
+        ok(!s.open && !s.guard && /harbor/i.test(s.brand ?? ''), `${where}: on the first run an example loads at once, no guard (brand "${s.brand}")`);
 
         // ── three edits, then "+ New brand" (G15, S9, S10) ──────────────────────────────────────────────
         await goPlace(page, 'brand');
@@ -10046,7 +10048,7 @@ for (const { w, h } of START_SIZES) {
         await hooks.click(aurora);
         await hooks.click(page.locator('[data-p3="start-guard-discard"]'));
         s = await readStartWindow(page);
-        ok(!s.open && !s.guard && (s.brand ?? '').includes('aurora'), `${where}: Discard loads the choice and closes both windows (brand "${s.brand}")`);
+        ok(!s.open && !s.guard && /aurora/i.test(s.brand ?? ''), `${where}: Discard loads the choice and closes both windows (brand "${s.brand}")`);
         // A clean brand: a start path loads at once.
         await reopen();
         await hooks.click(page.locator('[data-p3="start-blank"]'));
@@ -10794,7 +10796,7 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
   for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900, query: '?p3-test-hooks' });
     try {
-      if (host === 'web') await page.evaluate((n) => window.__prism3TestEdit('id', n), LONG_NAME);
+      if (host === 'web') await page.evaluate((n) => window.__prism3TestEdit('name', n), LONG_NAME);
       else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LONG_BRAND);
       await page.waitForFunction((n) => document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent === n, LONG_NAME, { timeout: 5000 }).catch(() => {});
       const wrong = [];

@@ -57,7 +57,7 @@ import { LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, BRACKET_PROPERTY, LABEL
 import { SECTION_HEADER_SET, HEADINGS_SET } from '../../apps/plugin/src/file-components';
 import { FURNITURE_NS, FURNITURE_KEY } from '../../apps/plugin/src/canvas-furniture';
 import { ABOUT_NS, ABOUT_KEY, ABOUT_NAME } from '../../apps/plugin/src/about-frame';
-import { COVER_NS, COVER_KEY, COVER_PART_KEY, COVER_NAME, GROUND_VARIABLE, INK_VARIABLE } from '../../apps/plugin/src/cover-frame';
+import { COVER_NS, COVER_KEY, COVER_PART_KEY, COVER_NAME, LOGO_NAME, GROUND_VARIABLE, NAME_INK_VARIABLE, TEXT_INK_VARIABLE } from '../../apps/plugin/src/cover-frame';
 import { DOC_BLOCK_SET, DOC_BLOCK_TYPES, DOC_BLOCK_SIZES, TOP_PADDING, BOTTOM_PADDING, CAPTION, SPECIMEN } from '../../apps/plugin/src/doc-block';
 import { DOC_PANEL_NS, DOC_PANEL_KEY } from '../../apps/plugin/src/doc-panel';
 
@@ -240,11 +240,11 @@ const furniture = () => ({
     source: src(ABOUT_SRC, 'export const ABOUT_KEY'),
   },
   coverFrame: {
-    rule: `The Cover page carries one 1920 × 1080 "${COVER_NAME}" frame, the library cover, set as the file thumbnail while the file has none of its own: the brand's name and the engine version it was last updated with. Its fill binds <root>/${GROUND_VARIABLE} and its text binds <root>/${INK_VARIABLE}. It carries shared plugin data under namespace "${COVER_NS}", key "${COVER_KEY}"; its two texts carry key "${COVER_PART_KEY}", "brand" or "version". Every Update sets the version text while it is there; a cover a designer edited keeps every other layer as they left it.`,
+    rule: `The Cover page carries one 1920 × 1080 "${COVER_NAME}" frame, the library cover, set as the file thumbnail while the file has none of its own: the library's name centered, a subtitle under it, the engine version it was last updated with at bottom-left, and an empty "${LOGO_NAME}" slot at top-right. Its fill binds <root>/${GROUND_VARIABLE}, the name binds <root>/${NAME_INK_VARIABLE}, and the subtitle and version bind <root>/${TEXT_INK_VARIABLE}. It carries shared plugin data under namespace "${COVER_NS}", key "${COVER_KEY}"; its parts carry key "${COVER_PART_KEY}": "brand" (the name), "subtitle", "version" or "logo". Every Update sets the version text while it is there; a cover a designer edited keeps every other layer as they left it, and anything placed in the logo slot is never an edit.`,
     name: COVER_NAME,
     tag: { namespace: COVER_NS, key: COVER_KEY },
-    parts: { key: COVER_PART_KEY, values: ['brand', 'version'] },
-    binds: { ground: `<root>/${GROUND_VARIABLE}`, ink: `<root>/${INK_VARIABLE}` },
+    parts: { key: COVER_PART_KEY, values: ['brand', 'subtitle', 'version', 'logo'] },
+    binds: { ground: `<root>/${GROUND_VARIABLE}`, name: `<root>/${NAME_INK_VARIABLE}`, text: `<root>/${TEXT_INK_VARIABLE}` },
     source: src(COVER_SRC, 'export const COVER_KEY'),
   },
   usagePanel: {

@@ -1273,7 +1273,7 @@ const BRAND_WRITES = ['apply-theme', 'build-components', 'prune', 'file-setup', 
   await post(page, { type: 'restore-input-library', library: LIB });
   await page.waitForTimeout(200);
   const r = await readHome(page);
-  ok(r.layout !== 'home' && r.editorTabs > 0 && (r.brandSel ?? '').includes('aurora'),
+  ok(r.layout !== 'home' && r.editorTabs > 0 && (r.brandSel ?? '').toLowerCase().includes('aurora'),
     `a library answer after a choice keeps the chosen brand, no home — ${JSON.stringify(r)}`);
   await page.close();
 }
