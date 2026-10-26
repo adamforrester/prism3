@@ -12,3 +12,5 @@
 - `test:chrome`: Theme unticked, ticked again, then unticked. Each toggle sends a fresh `file-sets-request` and `update-check-request` with no brand, then with the panel's, then with none again; focus stays in the dialog while it checks; and the update then posts with no brand.
 
 **Scope.** Only the brand selection and the re-check. The consumer-breaking flags in `update-plan.ts` and their checklist line (#2831, #2864) are another lane's.
+
+**A probe race, fixed while here.** CI's `test:chrome` failed twice on this branch with `web light 380 / brand, 4 modes: … none clipped` (`hc-dark` cut off). The PR doesn't touch that page, and the run passed locally. At 380 the probe clicks the preview pane's toggle and measures at once, before the shown pane's header has laid out and the mode control has picked radios or the select. The probe now waits, bounded at 3 s, for every radio to sit inside the control or for the select to show. A radio still clipped at the bound fails the arm as before.

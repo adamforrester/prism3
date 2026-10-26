@@ -3800,6 +3800,16 @@ for (const { w, h } of WIDTHS) {
     // The default theme's four modes first: none clipped at any width (at 640 they did not fit, and the old
     // scroll hid one; the select shows them all).
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    // The pane just shown lays its header out after the click, and the control's fit (radios or the select) follows its
+    // width, so the reading waits (bounded) for every radio to sit inside it or the select to show. A radio still cut
+    // off at the bound fails the arm below, as before.
+    await page.waitForFunction(() => {
+      const g = document.querySelector('[data-p3="mode-control"]'), sel = document.querySelector('[data-p3="mode-select"]');
+      if (sel && sel.getClientRects().length > 0 && getComputedStyle(sel).visibility !== 'hidden') return true;
+      if (!g || !g.getClientRects().length) return false;
+      const b = g.getBoundingClientRect();
+      return [...g.querySelectorAll('[data-p3="mode-option"]')].every((r) => { const x = r.getBoundingClientRect(); return x.left >= b.left - 0.5 && x.right <= b.right + 0.5; });
+    }, null, { timeout: 3000 }).catch(() => {});
     const c4 = await choosable(page);
     ok(c4.clipped.length === 0 && JSON.stringify(c4.modes) === JSON.stringify(want), `web light ${w} / brand, 4 modes: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c4)}`);
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
