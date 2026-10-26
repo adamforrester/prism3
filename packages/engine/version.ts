@@ -669,7 +669,7 @@ export const ENGINE_VERSION = '0.237.0';
  * #2973 took 14.9.0 first.
  */
 /**
- * 14.11.0 (#2869, owner Q464 A; the draft builds on Q2869.1–5 A): MINOR. The glass treatment joins the guaranteed
+ * 14.11.0 (#2869, owner Q464 A; owner decisions Q2869.1–5 A, 2026-10-26): MINOR. The glass treatment joins the guaranteed
  * surface: `blur.glass` (32px, the background-blur radius the `glass` Figma Effect Style binds) and
  * `color.glass.surface` (the translucent fill behind it, its alpha in the value: white 70% on the light family, black
  * 70% on the dark, 90% in high contrast). Two added paths; an added path cannot break a reference. Nothing is removed

@@ -12810,6 +12810,55 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(Object.keys(modes).length >= 1 && bad.length === 0, `glass ${brand}: color.glass.surface resolves in every mode (${Object.keys(modes).join(', ')}) to a translucent primitive${bad.length ? ` — ${bad.join('; ')}` : ''}`);
   }
 
+  // (13b-ii) THE ACCESSIBILITY CLAIM: glass follows the page polarity, so `text.primary` reads on it in every mode.
+  // The roles record glass at `ratio: 1, against: 'self'`, so no mode contract measures text on it — this arm is the
+  // only thing that does. Independent of the subject on three counts: the step each mode must alias is SPELLED
+  // (Q2869.3 A: white 70 light, black 70 dark, 90 in high contrast), the grounds are SPELLED (every gray 0–255, which
+  // holds pure black under a white glass and pure white under a black glass), and the WCAG 2 math is written out here
+  // rather than imported from `./color`. A 32px blur cannot lower the floor: a uniform worst-case ground blurs to itself.
+  {
+    const GLASS_STEP: Record<string, string> = { light: 'white-alpha.70', dark: 'black-alpha.70', 'hc-light': 'white-alpha.90', 'hc-dark': 'black-alpha.90' };
+    const lin = (c: number) => { const s = c / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+    const lum = ([r, g, b]: number[]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    const wcag = (a: number[], b: number[]) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    // Both value spellings the corpus ships: `#rrggbb[aa]` (generated brands) and `rgb[a](r, g, b[, a])` (the NB fixture).
+    const rgba = (h: string) => {
+      const m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(h);
+      if (m) { const n = parseInt(m[1], 16); return { rgb: [n >> 16 & 255, n >> 8 & 255, n & 255], a: m[2] ? parseInt(m[2], 16) / 255 : 1 }; }
+      const f = /^rgba?\(\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\s*\)$/.exec(h);
+      return f ? { rgb: [Number(f[1]), Number(f[2]), Number(f[3])], a: f[4] === undefined ? 1 : Number(f[4]) } : null;
+    };
+    for (const f of dtcgBrands) {
+      const brand = f.replace('.tokens.json', '');
+      const tr = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+      const root = Object.keys(tr).find((k) => !k.startsWith('$'))!;
+      const inMode = (role: any, m: string) => String(m === 'light' ? role?.$value : role?.$extensions?.prism3?.modes?.[m]?.$value ?? role?.$value);
+      const leafOf = (ref: string): any => { let v: any = ref; for (let i = 0; i < 8 && /^\{.+\}$/.test(String(v)); i++) v = String(v).slice(1, -1).split('.').reduce((n: any, k) => n?.[k], tr)?.$value; return v; };
+      const surf = tr[root].color?.glass?.surface, text = tr[root].color?.text?.primary, page = tr[root].color?.background?.primary;
+      const seen = ['light', ...Object.keys(surf?.$extensions?.prism3?.modes ?? {})];
+      ok(seen.length === 4 && seen.every((m) => m in GLASS_STEP), `glass ${brand}: the modes read are exactly light, dark, hc-light, hc-dark (got ${seen.join(', ')})`);
+      const steps: string[] = [], polarity: string[] = [], floor: string[] = [];
+      for (const m of Object.keys(GLASS_STEP)) {
+        const ref = inMode(surf, m);
+        if (ref !== `{${root}.core.palette.${GLASS_STEP[m]}}`) steps.push(`${m}: ${ref}, want ${GLASS_STEP[m]}`);
+        const g = rgba(String(leafOf(ref))), t = rgba(String(leafOf(inMode(text, m)))), p = rgba(String(leafOf(inMode(page, m))));
+        if (!g || !t || !p) { floor.push(`${m}: unresolved (glass ${!!g}, text ${!!t}, page ${!!p})`); continue; }
+        // Polarity follows the PAGE: a light page wears white glass, a dark page black glass.
+        if ((lum(p.rgb) > 0.18) !== (lum(g.rgb) > 0.5)) polarity.push(`${m}: page L ${lum(p.rgb).toFixed(2)}, glass L ${lum(g.rgb).toFixed(2)}`);
+        let worst = Infinity, at = -1;
+        for (let k = 0; k <= 255; k++) {
+          const ground = g.rgb.map((c) => c * g.a + k * (1 - g.a));
+          const r = wcag(t.rgb, ground);
+          if (r < worst) { worst = r; at = k; }
+        }
+        if (!(worst >= 4.5)) floor.push(`${m}: ${worst.toFixed(2)}:1 over gray ${at}`);
+      }
+      ok(steps.length === 0, `glass ${brand}: color.glass.surface aliases white-alpha.70 / black-alpha.70 / white-alpha.90 / black-alpha.90 in light / dark / hc-light / hc-dark (Q2869.3 A)${steps.length ? ` — ${steps.join('; ')}` : ''}`);
+      ok(polarity.length === 0, `glass ${brand}: the glass polarity follows the page in every mode (white glass on a light page, black on a dark)${polarity.length ? ` — ${polarity.join('; ')}` : ''}`);
+      ok(floor.length === 0, `glass ${brand}: text.primary reads ≥ 4.5:1 on color.glass.surface composited over the worst-case ground (every gray 0–255) in every mode${floor.length ? ` — ${floor.join('; ')}` : ''}`);
+    }
+  }
+
   const figmaBrands = readdirSync(resolve(HERE, './out/figma'));
   ok(figmaBrands.length >= 4, `glass: every committed Figma brand is read (${figmaBrands.length})`);
   for (const b of figmaBrands) {

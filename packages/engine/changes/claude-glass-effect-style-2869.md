@@ -1,7 +1,7 @@
 ---
 engine: minor
 ---
-Glass (#2869, owner Q464 A; the open choices drafted on Q2869.1–5 A): a background-blur treatment for text over the
+Glass (#2869, owner Q464 A; owner decisions Q2869.1–5 A, 2026-10-26): a background-blur treatment for text over the
 bottom of a photograph, emitted for every brand. `blur.glass` is a 32px DTCG dimension, so a stock Style Dictionary
 build carries it to CSS as `--<root>-blur-glass` for `backdrop-filter: blur(...)`. In Figma it is a FLOAT variable,
 `blur/glass`, in a new `blur` collection scoped to effect radii. `color.glass.surface` is the fill, with its alpha in
