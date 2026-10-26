@@ -4325,7 +4325,7 @@
       "$description": "Link text — default, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 4.5:1 on `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.600}",
         "dark": "{ads.core.palette.accent.400}",
@@ -4352,7 +4352,7 @@
       "$description": "Link text — hover, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.700}",
         "dark": "{ads.core.palette.accent.300}",
@@ -4380,7 +4380,7 @@
       "$description": "Link text — visited, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.900}",
         "dark": "{ads.core.palette.accent.100}",
@@ -4408,7 +4408,7 @@
       "$description": "Link text — focused, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 4.5:1 on `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.600}",
         "dark": "{ads.core.palette.accent.400}",
@@ -4435,7 +4435,7 @@
       "$description": "Link text — pressed, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.800}",
         "dark": "{ads.core.palette.accent.200}",
@@ -5555,7 +5555,7 @@
       "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use `inverse.text.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.400}",
         "dark": "{ads.core.palette.accent.550}",
@@ -5580,7 +5580,7 @@
       "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use `inverse.text.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.300}",
         "dark": "{ads.core.palette.accent.650}",
@@ -5608,7 +5608,7 @@
       "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use `inverse.text.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.100}",
         "dark": "{ads.core.palette.accent.850}",
@@ -5636,7 +5636,7 @@
       "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.focused`. Do not use for non-interactive text (use `inverse.text.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.focused`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.400}",
         "dark": "{ads.core.palette.accent.550}",
@@ -5661,7 +5661,7 @@
       "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.pressed`. Do not use for non-interactive text (use `inverse.text.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.pressed`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.200}",
         "dark": "{ads.core.palette.accent.750}",
