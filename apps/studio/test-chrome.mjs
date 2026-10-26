@@ -3814,6 +3814,10 @@ for (const { w, h } of WIDTHS) {
     // The default theme's four modes first: none clipped at any width (at 640 they did not fit, and the old
     // scroll hid one; the select shows them all).
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    // The control fits itself one frame after its header resizes (`modeControl`'s observer), and revealing the
+    // preview pane is that resize. Read it once it has settled, or the radios are measured before they give way
+    // to the select (web light 380 flaked on main at d61c9e23, #3033); a fixed two frames is not enough under a
+    // slow frame.
     const c4 = await settled(page);
     ok(c4.clipped.length === 0 && JSON.stringify(c4.modes) === JSON.stringify(want), `web light ${w} / brand, 4 modes: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c4)}`);
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));

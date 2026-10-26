@@ -169,7 +169,7 @@ Keyed by `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | `color.interactive.neutral.overlay.hover` | `color.field.border.hover` | — | — |
+| `container` | `color.field.fill` | `color.field.border.hover` | — | — |
 
 **state=filled**
 

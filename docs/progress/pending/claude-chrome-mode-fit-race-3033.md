@@ -2,7 +2,7 @@
 
 `web light 380 / brand, 4 modes: every mode is choosable in the preview header, none clipped` went red on main and on several PR heads, reading `hc-dark` as clipped. The control's `fit` (`apps/studio/src/shell/preview.ts`) picks radios or the select in a `requestAnimationFrame` scheduled by a `ResizeObserver`. At widths up to 560 the check clicked `pane-toggle-preview` and read the control straight away, so it could land before that frame and see the radios the select was about to replace.
 
-Section 17 of `apps/studio/test-chrome.mjs` now reads through `settled`: it re-reads the control a frame apart until the select shows, or radios show with none clipped, for at most 2 s, then reports what it read. The 5- and 6-mode checks used to wait a fixed two frames; they use `settled` too, because the measurement below showed two frames is not enough under a slow frame.
+Section 17 of `apps/studio/test-chrome.mjs` now reads through `settled`: it re-reads the control a frame apart until the select shows, or radios show with none clipped, for at most 2 s, then reports what it read. The 5- and 6-mode checks used to wait a fixed two frames; they use `settled` too, because the measurement below showed two frames is not enough under a slow frame. While this was in review, #3037 added a fixed two-frame wait before the 4-mode read on main. The merge replaces it with `settled` for the same reason.
 
 ### How it was proved
 

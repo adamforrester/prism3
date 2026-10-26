@@ -109,10 +109,9 @@ export const codeInputCell: ComponentDef = {
     'size.large.caret-height': 'icon.size.md',
     'size.xlarge.caret-height': 'icon.size.xl',
 
-    // ── PAINT — Text field's field chrome. A transparent fill, the neutral wash at hover, the field border stepping
+    // ── PAINT — Text field's field chrome. A transparent fill, no hover wash (#2926), the field border stepping
     // at hover, the focus border at both active states, the danger border in error, the shared disabled skin.
     'fill': 'color.field.fill',
-    'overlay.hover': 'color.interactive.neutral.overlay.hover',
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
@@ -130,7 +129,7 @@ export const codeInputCell: ComponentDef = {
       container: {
         kind: 'box',
         role: 'target',
-        paintSlots: ['overlay', 'fill', 'border'],
+        paintSlots: ['fill', 'border'],
         children: ['content', 'focusRing'],
         layout: { direction: 'column', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         // Each size's cell, built at its literal width and height (owner decision Q330 A); `content` takes the height.
