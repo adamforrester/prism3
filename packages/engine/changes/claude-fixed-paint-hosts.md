@@ -9,5 +9,5 @@ may bind a height only under aspectLock. On Update, a glyph or mark redrawn insi
 hand edit at its frame and is kept and reported (the as-built record gains an artwork hash, Baseline.art; a record
 without it makes no claim), so a brand that edits a brand-mark component in Figma keeps its drawing (owner decision
 Q-B3 A). And an untouched glyph that takes no host ink (a brand mark) compares its vectors' fills as well as their
-paths in place, so a mark whose provider changed only a color takes the new import. EXECUTOR_REVISION 39. No def sets either flag yet; no token or projected surface moves, so CONTRACT is
+paths in place, so a mark whose provider changed only a color takes the new import. EXECUTOR_REVISION 40 (#3019 took 39). No def sets either flag yet; no token or projected surface moves, so CONTRACT is
 unchanged.

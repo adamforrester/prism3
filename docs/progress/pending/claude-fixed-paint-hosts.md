@@ -30,7 +30,7 @@ scoped the change to records written from now on.
 
 **Scope, stated.** The artwork hash applies to every glyph, the icon set's too, not only marks: Q1's rule is the same
 for both, and a redrawn icon was silently overwritten before. No def sets `fixedPaint` or `aspectLock` yet; the first
-hosts are the branded buttons and card fields (#2343 PRs 4–6). EXECUTOR_REVISION 39.
+hosts are the branded buttons and card fields (#2343 PRs 4–6). EXECUTOR_REVISION 40 (#3019 took 39).
 
 **Tests.** `packages/engine/test.ts` (#2343 PR 2 arms, on a Button clone whose leading slot is a mark slot, with the
 real Button as control), `apps/plugin/test-write-components.ts` (`mark slot/…`, the real executor against a live 32×20
