@@ -2467,6 +2467,25 @@
       }
     },
     {
+      "name": "nbds/color/glass/surface",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Glass fill behind the glass blur — 70% (90% in high-contrast modes), white or black by mode",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.8999999761581421
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white-alpha/90"
+      }
+    },
+    {
       "name": "nbds/color/veil/dark/subtle",
       "resolvedType": "COLOR",
       "scopes": [

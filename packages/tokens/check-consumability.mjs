@@ -344,6 +344,19 @@ for (const brand of brands) {
     `${brand}: [#1148] and the retired \`color.appearance.*\` tier reaches the consumer in NO form (${retired.length ? `${retired.length} still do, e.g. ${retired.slice(0, 3).join(', ')}` : 'none'}) — one collection means one name per role, and a consumer choosing between two spellings of the same value is the state the collapse removed`);
 
   ok(src.modes.length >= 3, `${brand}: [#609] the projection covers every declared mode (${src.modes.length})`);
+
+  // ---- #2869: THE GLASS TREATMENT REACHES CSS through the stock build, both halves. `blur.glass` is a plain
+  // length a consumer hands to `backdrop-filter: blur(...)`, so it must arrive as `32px`, not as an object or a
+  // number. `color.glass.surface` keeps its alias to an alpha primitive (the alpha lives in the value, #2869),
+  // and it MOVES in the dark projection, because glass follows the page polarity. The names are assembled from the
+  // brand's own root and spelled here, not read off the emitter.
+  const blurVar = `--${src.root}-blur-glass`;
+  const glassVar = `--${src.root}-color-glass-surface`;
+  ok(css.byName[blurVar] === '32px', `${brand}: [#2869] the glass blur reaches CSS as a length (${blurVar} = ${css.byName[blurVar] ?? 'MISSING'})`);
+  ok(/^var\(--[a-z0-9-]+-core-palette-(?:white|black)-alpha-\d+\)$/.test(css.byName[glassVar] ?? ''),
+    `${brand}: [#2869] the glass fill reaches CSS as a reference to an alpha primitive (${glassVar} = ${css.byName[glassVar] ?? 'MISSING'})`);
+  ok(base.byName[glassVar] !== undefined && dark.byName[glassVar] !== undefined && base.byName[glassVar] !== dark.byName[glassVar],
+    `${brand}: [#2869] the glass fill follows the mode: base and dark differ (${base.byName[glassVar]} vs ${dark.byName[glassVar]})`);
 }
 
 // ---- #1296: ITALIC AND WEIGHT REACH THE CONSUMER AS CSS VALUES, NEVER AS A FIGMA STYLE NAME ----

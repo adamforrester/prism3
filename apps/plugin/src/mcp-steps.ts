@@ -158,6 +158,7 @@ export const hostOf = (ledgerIn: Ledger | undefined): { host: ThemeHost; shared:
       createVariableCollection: (name: string) => wrap(fv.createVariableCollection(name)),
       createVariable: (name: string, c: VarCollection, t: 'COLOR' | 'FLOAT' | 'STRING') => fv.createVariable(name, unwrap(c), t),
       createVariableAlias: (v: Variable) => fv.createVariableAlias(v),
+      setBoundVariableForEffect: (e: never, f: 'radius', v: never) => fv.setBoundVariableForEffect(e, f, v),
     },
     getLocalTextStylesAsync: () => live.getLocalTextStylesAsync(),
     createTextStyle: () => live.createTextStyle(),
@@ -278,7 +279,7 @@ export const runFloat = (raw: unknown) => writeStep(raw, 'float', async (host, d
 /** EFFECT + PAINT styles. */
 export const runStyles = (raw: unknown) => writeStep(raw, 'styles', async (host, d, r) => {
   const res = await applyStylesPlan(d.plan as StylesPlan, host);
-  Object.assign(r, { created: res.effects.created + res.paints.created, total: res.effects.total + res.paints.total, bound: res.paints.bound, misses: res.misses });
+  Object.assign(r, { created: res.effects.created + res.paints.created, total: res.effects.total + res.paints.total, bound: res.paints.bound + res.effects.bound, misses: res.misses });
 });
 
 /** GRID styles (#1480). */

@@ -2260,6 +2260,13 @@
           "$description": "Scrim — black backdrop behind modals and drawers; opacity 40%"
         }
       },
+      "glass": {
+        "surface": {
+          "$type": "color",
+          "$value": "{wds.core.palette.white-alpha.70}",
+          "$description": "Glass — the translucent white fill behind the glass background blur; opacity 70%"
+        }
+      },
       "veil": {
         "dark": {
           "subtle": {
@@ -4145,6 +4152,13 @@
           }
         ],
         "$description": "shadow inset — inner shadow for wells / pressed states / inputs"
+      }
+    },
+    "blur": {
+      "glass": {
+        "$type": "dimension",
+        "$value": "32px",
+        "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface"
       }
     },
     "icon": {

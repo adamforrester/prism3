@@ -629,6 +629,13 @@
           "$description": "Scrim — black backdrop behind modals and drawers; opacity 60%"
         }
       },
+      "glass": {
+        "surface": {
+          "$type": "color",
+          "$value": "{wds.core.palette.black-alpha.70}",
+          "$description": "Glass — the translucent black fill behind the glass background blur; opacity 70%"
+        }
+      },
       "field": {
         "border": {
           "rest": {

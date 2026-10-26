@@ -719,6 +719,13 @@
           "$description": "Scrim — black backdrop behind modals and drawers; opacity 70%"
         }
       },
+      "glass": {
+        "surface": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.black-alpha.90}",
+          "$description": "Glass — the translucent black fill behind the glass background blur; opacity 90%"
+        }
+      },
       "field": {
         "border": {
           "rest": {

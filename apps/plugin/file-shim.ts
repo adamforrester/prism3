@@ -132,6 +132,8 @@ export class FileShim {
     return v;
   }
   createVariableAlias(target: any) { return { type: 'VARIABLE_ALIAS', id: target.id }; }
+  // Figma returns a bound COPY of the effect (#2869, the `glass` blur radius); the alias carries the id, as Figma's does.
+  setBoundVariableForEffect(effect: any, field: string, target: any): any { return { ...effect, boundVariables: { ...(effect.boundVariables ?? {}), [field]: { type: 'VARIABLE_ALIAS', id: target.id } } }; }
 
   async getLocalEffectStylesAsync() { return [...this.styles.effect]; }
   async getLocalPaintStylesAsync() { return [...this.styles.paint]; }

@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 264 of 792 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 264 of 794 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -3833,14 +3833,16 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-248 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+250 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
+- **blur** — `blur.glass`
 - **breakpoint** — `breakpoint.2xl`, `breakpoint.lg`, `breakpoint.md`, `breakpoint.sm`, `breakpoint.xl`
 - **color.border** — `color.border.brand`
 - **color.field** — `color.field.placeholder`
 - **color.foreground** — `color.foreground.brand`, `color.foreground.brand-subtle`, `color.foreground.tertiary`
+- **color.glass** — `color.glass.surface`
 - **color.icon** — `color.icon.brand-subtle`, `color.icon.danger-subtle`, `color.icon.info-subtle`, `color.icon.link.visited`, `color.icon.on-brand`, `color.icon.on-danger`, `color.icon.on-info`, `color.icon.on-success`, `color.icon.on-warning`, `color.icon.success-subtle`, `color.icon.warning-subtle`
 - **color.interactive** — `color.interactive.destructive.fill.focused`, `color.interactive.destructive.fill.selected`, `color.interactive.destructive.overlay.selected`, `color.interactive.neutral.fill.focused`, `color.interactive.neutral.fill.selected`, `color.interactive.neutral.overlay.selected`, `color.interactive.primary.fill.focused`, `color.interactive.primary.overlay.selected`
 - **color.inverse** — `color.inverse.background.secondary`, `color.inverse.background.tertiary`, `color.inverse.border.brand`, `color.inverse.border.danger`, `color.inverse.border.info`, `color.inverse.border.primary`, `color.inverse.border.success`, `color.inverse.border.tertiary`, `color.inverse.border.warning`, `color.inverse.field.border.hover`, `color.inverse.field.border.rest`, `color.inverse.field.fill`, `color.inverse.field.placeholder`, `color.inverse.foreground.brand`, `color.inverse.foreground.brand-subtle`, `color.inverse.foreground.danger`, `color.inverse.foreground.danger-subtle`, `color.inverse.foreground.info`, `color.inverse.foreground.info-subtle`, `color.inverse.foreground.primary`, `color.inverse.foreground.secondary`, `color.inverse.foreground.success`, `color.inverse.foreground.success-subtle`, `color.inverse.foreground.warning`, `color.inverse.foreground.warning-subtle`, `color.inverse.icon.brand`, `color.inverse.icon.brand-subtle`, `color.inverse.icon.danger`, `color.inverse.icon.danger-subtle`, `color.inverse.icon.info`, `color.inverse.icon.info-subtle`, `color.inverse.icon.link.visited`, `color.inverse.icon.primary`, `color.inverse.icon.secondary`, `color.inverse.icon.success-subtle`, `color.inverse.icon.tertiary`, `color.inverse.icon.warning`, `color.inverse.icon.warning-subtle`, `color.inverse.interactive.destructive.fill.focused`, `color.inverse.interactive.destructive.fill.selected`, `color.inverse.interactive.destructive.overlay.selected`, `color.inverse.interactive.neutral.fill.focused`, `color.inverse.interactive.neutral.fill.selected`, `color.inverse.interactive.neutral.overlay.selected`, `color.inverse.interactive.primary.fill.focused`, `color.inverse.interactive.primary.fill.selected`, `color.inverse.interactive.primary.overlay.selected`, `color.inverse.text.brand`, `color.inverse.text.brand-subtle`, `color.inverse.text.danger`, `color.inverse.text.danger-subtle`, `color.inverse.text.info`, `color.inverse.text.info-subtle`, `color.inverse.text.link.visited`, `color.inverse.text.secondary`, `color.inverse.text.success`, `color.inverse.text.success-subtle`, `color.inverse.text.tertiary`, `color.inverse.text.warning`, `color.inverse.text.warning-subtle`

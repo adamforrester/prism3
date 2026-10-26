@@ -250,6 +250,8 @@ const ENGINE_DESCRIPTION: Record<'grid' | 'effect' | 'paint', RegExp> = {
    *  elevation clause would fail to recognize the one style whose shape is different. */
   effect: new RegExp([
     /^(?:Elevation \d+ of \d+|Inner shadow for wells, pressed states and inputs) — (?:light mode|dark mode \(softer; surfaces lift instead\)|\S+ mode)$/.source,
+    // `figmaGlassDescription` (#2869): the one effect style that is a blur, not a shadow.
+    /^Glass — a \d+px background blur, bound to blur\/glass\. Fill the frame with color\/glass\/surface\.$/.source,
     // legacy (before the #1623 sign-off)
     /^shadow \S+ — .+ — (?:light mode|dark mode \(reduced; surface-lift pattern\)|\S+ mode \(per-mode softness\/tint\))$/.source,
   ].join('|')),

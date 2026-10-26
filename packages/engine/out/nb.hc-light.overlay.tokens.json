@@ -511,6 +511,13 @@
           "$description": "Scrim — black backdrop behind modals and drawers; opacity 60%"
         }
       },
+      "glass": {
+        "surface": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.white-alpha.90}",
+          "$description": "Glass — the translucent white fill behind the glass background blur; opacity 90%"
+        }
+      },
       "field": {
         "border": {
           "rest": {

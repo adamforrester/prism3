@@ -21,6 +21,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.secondary | neutral.900 | — | — | · |
 | inverse.background.tertiary | neutral.850 | — | — | · |
 | scrim.default | black-alpha.40 | — | — | · |
+| glass.surface | white-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -294,6 +295,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.secondary | neutral.050 | — | — | · |
 | inverse.background.tertiary | neutral.100 | — | — | · |
 | scrim.default | black-alpha.60 | — | — | · |
+| glass.surface | black-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -567,6 +569,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.secondary | black | — | — | · |
 | inverse.background.tertiary | black | — | — | · |
 | scrim.default | black-alpha.60 | — | — | · |
+| glass.surface | white-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -840,6 +843,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.secondary | white | — | — | · |
 | inverse.background.tertiary | white | — | — | · |
 | scrim.default | black-alpha.70 | — | — | · |
+| glass.surface | black-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -1188,6 +1192,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.background.secondary | neutral.900 | — | — | · |
 | inverse.background.tertiary | neutral.850 | — | — | · |
 | scrim.default | black-alpha.40 | — | — | · |
+| glass.surface | white-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -1461,6 +1466,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.background.secondary | neutral.050 | — | — | · |
 | inverse.background.tertiary | neutral.100 | — | — | · |
 | scrim.default | black-alpha.60 | — | — | · |
+| glass.surface | black-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -1734,6 +1740,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.background.secondary | black | — | — | · |
 | inverse.background.tertiary | black | — | — | · |
 | scrim.default | black-alpha.60 | — | — | · |
+| glass.surface | white-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -2007,6 +2014,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.background.secondary | white | — | — | · |
 | inverse.background.tertiary | white | — | — | · |
 | scrim.default | black-alpha.70 | — | — | · |
+| glass.surface | black-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -2357,6 +2365,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.background.secondary | neutral.900 | — | — | · |
 | inverse.background.tertiary | neutral.850 | — | — | · |
 | scrim.default | black-alpha.40 | — | — | · |
+| glass.surface | white-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -2630,6 +2639,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.background.secondary | neutral.050 | — | — | · |
 | inverse.background.tertiary | neutral.100 | — | — | · |
 | scrim.default | black-alpha.60 | — | — | · |
+| glass.surface | black-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -2903,6 +2913,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.background.secondary | black | — | — | · |
 | inverse.background.tertiary | black | — | — | · |
 | scrim.default | black-alpha.60 | — | — | · |
+| glass.surface | white-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -3176,6 +3187,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.background.secondary | white | — | — | · |
 | inverse.background.tertiary | white | — | — | · |
 | scrim.default | black-alpha.70 | — | — | · |
+| glass.surface | black-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -3525,6 +3537,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.background.secondary | neutral.900 | — | — | · |
 | inverse.background.tertiary | neutral.850 | — | — | · |
 | scrim.default | black-alpha.40 | — | — | · |
+| glass.surface | white-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -3798,6 +3811,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.background.secondary | neutral.050 | — | — | · |
 | inverse.background.tertiary | neutral.100 | — | — | · |
 | scrim.default | black-alpha.60 | — | — | · |
+| glass.surface | black-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -4071,6 +4085,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.background.secondary | black | — | — | · |
 | inverse.background.tertiary | black | — | — | · |
 | scrim.default | black-alpha.60 | — | — | · |
+| glass.surface | white-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
@@ -4344,6 +4359,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.background.secondary | white | — | — | · |
 | inverse.background.tertiary | white | — | — | · |
 | scrim.default | black-alpha.70 | — | — | · |
+| glass.surface | black-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
 | veil.dark.strong | black-alpha.70 | — | — | · |
