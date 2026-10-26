@@ -953,6 +953,64 @@ section('min/max — a member built under one Tag style and updated under the ot
 }
 
 /* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('aspect lock, in place — a square slot rebuilt under aspectLock keeps only its height bound (#2343 PR 2)');
+{
+  // A Button clone whose leading slot was BUILT square (`size`: width and height both bound) and is then UPDATED in
+  // place to the mark slot (`height` alone, `aspectLock`, `fixedPaint`). The slot's main is a live 32×20 component, so
+  // the lock reads 8:5. In place, a bound width wins over the resize, so the executor unbinds both dimensions before it
+  // locks; left bound, the old width would stretch the mark back to square. Expected numbers are literals (docs/34).
+  // Mutation: the in-place unbind in the executor's aspectLock branch dropped → `aspect lock/in place`.
+  const button = componentDefs.find((d) => d.id === 'button')!;
+  const MARK = 'brand-mark/card/visa';
+  const locked = JSON.parse(JSON.stringify(button)) as ComponentDef;
+  const lv = (locked.anatomy as unknown as { parts: Record<string, Record<string, unknown>> }).parts.leadingVisual;
+  delete lv.size;
+  Object.assign(lv, { height: 'size.{size}.icon', aspectLock: true, fixedPaint: true });
+  const pick = (d: ComponentDef): AnatomyPlan[] => figmaAnatomySet(d, { swapTarget: MARK }).filter((p) => p.slots?.leading).slice(0, 4);
+  const square = pick(button);
+  const next = pick(locked);
+  const page: Page = { children: [] };
+  const all = [...square, ...next];
+  const api = makeShim({
+    vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])].filter((c) => c !== MARK),
+    page, liveRoot: true, liveComponents: true, identities: true, scaleConstrained: true,
+  }) as any;
+  const frame = api.createFrame();
+  frame.resize(32, 20);
+  const mark = api.createComponentFromNode(frame);
+  mark.name = MARK;
+  if (!page.children.includes(mark)) page.children.push(mark);
+  const built = await applyComponentPlan(square, api);
+  const set = (): Node => page.children.find((n) => n.type === 'COMPONENT_SET') as Node;
+  const slots = (): Node[] => {
+    const out: Node[] = [];
+    const walk = (n: Node): void => { if (n.name === 'leadingVisual') out.push(n); for (const c of (n.children as Node[] | undefined) ?? []) walk(c); };
+    walk(set());
+    return out;
+  };
+  const bound = (n: Node): string[] => Object.keys((n.boundVariables ?? {}) as object).filter((k) => k === 'width' || k === 'height').sort();
+  ok(built.misses.length === 0 && slots().length === 4 && slots().every((n) => bound(n).join() === 'height,width'),
+    `premise: 4 square slots built, width and height both bound (${slots().map((n) => bound(n).join('+')).join(' ')}; ${built.misses[0] ?? 'no miss'})`);
+  const host = {
+    ...api,
+    root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) },
+  } as unknown as ApplyHost;
+  const ids = slots().map((n) => String(n.id));
+  const t = { def: 'button', plans: next };
+  const pre = await previewUpdate(host, [t]);
+  const res = await applyUpdate(host, api, [t], previewHashOf(pre));
+  const off = slots().filter((n) => {
+    const r = n.targetAspectRatio as { x: number; y: number } | undefined;
+    return bound(n).join() !== 'height' || !r || Math.abs(r.x / r.y - 1.6) > 1e-6;
+  });
+  ok(applyVerdict(res).ok && slots().length === 4 && off.length === 0,
+    `aspect lock/in place: every slot updated in place is locked to its main's 8:5 with only its height bound (${applyVerdict(res).headline}; ${off.length} off${off[0] ? ` — bound ${bound(off[0]).join('+')}, ratio ${JSON.stringify(off[0].targetAspectRatio)}` : ''})`);
+  ok(slots().map((n) => String(n.id)).join() === ids.join(), 'aspect lock/kept: each slot is the node it was, written in place');
+}
+
 section('single — the icons, updated in place as single components (#2296)');
 const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { keyPrefix?: string; styleIdPrefix?: string } = {}) => {
   const page: Page = { children: [] };
