@@ -526,6 +526,24 @@
           "blendMode": "NORMAL"
         }
       ]
+    },
+    {
+      "name": "glass",
+      "description": "Glass — a 32px background blur, bound to blur/glass. Fill the frame with color/glass/surface.",
+      "effects": [
+        {
+          "type": "BACKGROUND_BLUR",
+          "blurType": "NORMAL",
+          "radius": 32,
+          "visible": true,
+          "boundVariables": {
+            "radius": {
+              "type": "VARIABLE_ALIAS",
+              "name": "pds3/blur/glass"
+            }
+          }
+        }
+      ]
     }
   ]
 }

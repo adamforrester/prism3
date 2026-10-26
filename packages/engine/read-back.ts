@@ -144,7 +144,7 @@ export type FloatReadbackVerdict = {
 // grid; the others are always emitted, so their absence is a real miss. `core/dimension` rather than a
 // collection name since #1097: the dimension primitives share the `core` collection with the palette and
 // font ones, so "is the collection present" no longer answers "is this axis present".
-const EXPECTED_FLOAT_AXES = ['core/dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity'];
+const EXPECTED_FLOAT_AXES = ['core/dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'blur'];
 
 /** What the caller knows about the modes the saved brand declares (#1662 follow-up). The declared set is a BRAND
  *  fact and this module is pure, so the caller resolves it — from the `BrandInput` persisted in the file —
