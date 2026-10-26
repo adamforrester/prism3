@@ -166,6 +166,9 @@ export type CheckedSet = {
    *  checked can tell the file moved under one of them since. */
   def: string; hash: string; members: number; update: number; add: number; drop: number; handEdited: number; noBaseline: number;
   blocked: boolean; upToDate: boolean;
+  /** #2831 — on a published set, what this update breaks for library consumers, as one line (`breakingSummary`).
+   *  Absent for a set that is not published, or where nothing breaks. */
+  breaks?: string;
 };
 
 /** A style-guide specimen (#259) — the `type` axis of `_style-guide-swatches` a table row instances. */

@@ -59,6 +59,7 @@ import { NS } from './persist-figma';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
 import { PANEL_GAP, SPEC_GAP, SPEC_WIDTH, docPanelBlockers, docPanelDue, docPanelReaches, ownerSet, type PanelReach, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import type { ComponentDef } from '@prism3/engine/component-schema';
+import type { CheckedSet } from './messages';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
@@ -123,6 +124,10 @@ export const isPublished = (s: PublishStatus | undefined): boolean => s === 'CUR
  *   private     the set renamed to a name starting with `_` or `.`, which Figma hides from publishing: the set leaves
  *               the library for every consumer.
  *   property    a component property removed or retyped: consumer overrides of it are dropped.
+ *   layer       a layer the plan no longer has, which the update removes (#2864). Often it is one the plan renamed, and
+ *               the new name is added beside it: consumer overrides on the removed layer are lost all the same. A
+ *               `part` entry in the renames ledger renames it in place instead, keeping every override, so the line
+ *               names the layer the plan adds under the same parent as the likely new name.
  *
  * Nothing here for a set that is not published: the same changes reach no other file.
  */
@@ -130,7 +135,8 @@ export type Breaking =
   | { kind: 'drop'; member: string }
   | { kind: 'replace'; member: string; path: string; reason: string }
   | { kind: 'private'; from: string; to: string }
-  | { kind: 'property'; name: string; change: 'removed' | 'retyped'; from?: string; to?: string };
+  | { kind: 'property'; name: string; change: 'removed' | 'retyped'; from?: string; to?: string }
+  | { kind: 'layer'; path: string; members: number; added?: string[] };
 
 export type MemberState = 'current' | 'update' | 'handEdited' | 'unstamped' | 'noBaseline' | 'revisionUnknown';
 
@@ -157,6 +163,10 @@ export type SetPreview = {
   /** #2831 — what this update breaks for library consumers (`breakingOf`). Absent for a set that is not published, or
    *  where nothing breaks. */
   breaking?: Breaking[];
+  /** #2864 — each layer the update removes, by path, with how many members it removes it from. Only members the update
+   *  acts on count: one with a layer added or removed by hand is skipped whole, so nothing on it is removed. Absent when
+   *  none. Never capped. */
+  removedLayers?: { path: string; members: number }[];
   blockers: string[];
   axes: { from: string[]; to: string[]; renames: { from: string; to: string }[] };
   properties: { add: Prop[]; edit: Prop[]; rename: Prop[]; retype: Prop[]; remove: Prop[] };
@@ -481,6 +491,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const handEdits: SetPreview['handEdits'] = [];
   const rev = String(EXECUTOR_REVISION);
   const states: SetPreview['states'] = [];
+  const removedLayers = new Map<string, number>();
   const plannedRx = reactionMap(plans.map((p) => planComponentName(p)), plans[0]?.pressState);
   for (const l of matched) {
     const plan = planned.get(l.target)!;
@@ -577,6 +588,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     for (const part of extras.filter((x) => !movedFrom.has(x))) {
       const parent = part.includes('/') ? part.slice(0, part.lastIndexOf('/')) : '.';
       touched.add(parent);
+      if (!structural) removedLayers.set(part, (removedLayers.get(part) ?? 0) + 1);
       const k = `${part}\u0000children\u0000present\u0000removed`;
       const c = changes.get(k) ?? { part, field: 'children', from: 'present', to: 'removed — not in the plan', members: 0, sample: [] };
       c.members++;
@@ -713,6 +725,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     handEdits: cap('handEdits', handEdits),
     states,
     ...(positions.length ? { positions: cap('positions', positions) } : {}),
+    ...(removedLayers.size ? { removedLayers: [...removedLayers].map(([path, members]) => ({ path, members })) } : {}),
     needsChoice,
     ...(adoptClears.length ? { adoptClears } : {}),
     ...(Object.keys(truncated).length ? { truncated } : {}),
@@ -1427,6 +1440,15 @@ const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionU
 /** Whether the dry run calls the set up to date, for the apply's verdict to say the same (#2495, owner Q205 A). */
 export const setUpToDate = upToDate;
 
+/** One set as Update file's scoped check posts it (#2909): its counts, whether it is blocked or up to date, and, on a
+ *  published set, its consumer-breaking line (#2831). `def` is the target's id, which the preview's set name may not
+ *  be. */
+export const checkedSetOf = (p: SetPreview, def: string): CheckedSet => ({
+  def, hash: p.previewHash, members: p.counts.members, update: p.counts.update, add: p.counts.add, drop: p.counts.drop,
+  handEdited: p.counts.handEdited, noBaseline: p.counts.noBaseline, blocked: p.blockers.length > 0, upToDate: upToDate(p),
+  ...(p.breaking?.length ? { breaks: breakingSummary(p.breaking) } : {}),
+});
+
 /** How many named differences each set's lines carry, so a set that differs everywhere stays a few lines long. */
 export const DIFFERENCE_LINES = 8;
 const partName = (part: string): string => (part === '.' ? 'the member' : part);
@@ -1495,7 +1517,22 @@ export const breakingOf = (p: SetPreview): Breaking[] => {
     ...p.properties.retype.map((x) => ({ kind: 'property' as const, name: x.name, change: 'retyped' as const, from: x.from, to: x.to })),
     ...p.drops.map((member) => ({ kind: 'drop' as const, member })),
     ...p.replacements.filter((r) => r.path !== '.').map((r) => ({ kind: 'replace' as const, ...r })),
+    ...removedLayers(p),
   ];
+};
+
+/** The parent of a layer path, `.` for the member itself. */
+const parentOf = (path: string): string => (path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '.');
+/** #2864 — the layers an update removes from members (`SetPreview.removedLayers`), one entry per layer path, each with
+ *  the layers the plan adds under the same parent: a removed layer and an added one under one parent read as a rename
+ *  the ledger does not declare. A layer moved into an inserted frame is a move (`MOVES`), not a removal, so it is not
+ *  here; nor is one on a member the update skips for a layer added by hand. */
+const removedLayers = (p: SetPreview): Breaking[] => {
+  const added = p.changes.filter((c) => c.field === 'children' && c.from.startsWith('ABSENT') && c.to === 'present').map((c) => c.part);
+  return (p.removedLayers ?? []).map(({ path, members }) => {
+    const beside = [...new Set(added.filter((a) => parentOf(a) === parentOf(path)))].map((a) => a.slice(a.lastIndexOf('/') + 1));
+    return { kind: 'layer' as const, path, members, ...(beside.length ? { added: beside } : {}) };
+  });
 };
 
 /** One breaking change, as a line. DRAFT wording for the owner (#2831). */
@@ -1503,8 +1540,28 @@ export const breakingLine = (set: string, b: Breaking): string =>
   b.kind === 'drop' ? `${set} · ${b.member} · dropped — consumer instances of it point at a deprecated member.`
     : b.kind === 'replace' ? `${set} · ${b.member} / ${b.path} · replaced, not updated in place (${b.reason}) — consumer overrides on it are lost.`
       : b.kind === 'private' ? `${set} · renamed ${b.from} → ${b.to} — a name starting with _ or . is not published, so the set leaves the library.`
-        : b.change === 'removed' ? `${set} · property ${b.name} · removed — consumer overrides of it are dropped.`
-          : `${set} · property ${b.name} · ${b.from} → ${b.to} — consumer overrides of it are dropped.`;
+        : b.kind === 'layer' ? `${set} · ${b.path} · removed from ${n(b.members, 'member')} — consumer overrides on it are lost.${b.added ? ` If ${b.added.join(' or ')} is this layer renamed, declare the rename and the update renames it in place.` : ''}`
+          : b.change === 'removed' ? `${set} · property ${b.name} · removed — consumer overrides of it are dropped.`
+            : `${set} · property ${b.name} · ${b.from} → ${b.to} — consumer overrides of it are dropped.`;
+
+/** #2831 — a published set's breaking changes as one line for Update file's checklist, beside the set: how many of
+ *  each, what breaks, and what the update does about it. Empty when nothing breaks. DRAFT wording for the owner. */
+export const breakingSummary = (breaking: readonly Breaking[] | undefined): string => {
+  if (!breaking?.length) return '';
+  const k = (kind: Breaking['kind']): number => breaking.filter((b) => b.kind === kind).length;
+  const props = breaking.filter((b): b is Extract<Breaking, { kind: 'property' }> => b.kind === 'property');
+  const layers = breaking.filter((b): b is Extract<Breaking, { kind: 'layer' }> => b.kind === 'layer');
+  // A replacement is listed per member; the checklist counts the layers.
+  const replaced = new Set(breaking.flatMap((b) => (b.kind === 'replace' ? [b.path] : []))).size;
+  const parts = [
+    k('private') ? 'renamed to a name Figma does not publish, so the set leaves the library' : '',
+    k('drop') ? `${n(k('drop'), 'member')} dropped: kept and marked deprecated, so consumer instances still resolve` : '',
+    props.length ? `${n(props.length, 'property', 'properties')} removed or retyped: consumer overrides of ${props.length === 1 ? 'it' : 'them'} are dropped` : '',
+    replaced ? `${n(replaced, 'layer')} replaced, not updated in place: consumer overrides on ${replaced === 1 ? 'it' : 'them'} are lost` : '',
+    layers.length ? `${n(layers.length, 'layer')} removed: consumer overrides on ${layers.length === 1 ? 'it' : 'them'} are lost${layers.some((l) => l.added) ? '; a declared rename keeps a renamed layer in place' : ''}` : '',
+  ].filter(Boolean);
+  return `Breaks library consumers: ${parts.join('; ')}.`;
+};
 
 /** THE "BREAKS LIBRARY CONSUMERS" SECTION (#2831), for the dry run (`made` false) and the apply (`made` true): a head
  *  line counting the changes, then each set's changes named, capped as its differences are. Empty when nothing breaks.
