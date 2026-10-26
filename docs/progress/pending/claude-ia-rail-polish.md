@@ -1,4 +1,4 @@
-## (2026-10-26) — IA v2 rail polish: 9px labels, 24px icons in square marks, a collapse glyph for Minimize, wider Theme tabs (#2909)
+## (2026-10-26) — IA v2 rail polish: 9px labels, 24px icons in square marks, Agent and Minimize swap places, wider Theme tabs (#2909)
 
 The owner's first hands-on look at the IA v2 chrome, built as stated, on both hosts (the plugin and the web studio share
 the chrome).
@@ -11,12 +11,20 @@ the chrome).
   `--p3-rail-tile` (`core.dimension.32`, new in `spec.mjs`), `flex: none`, so neither the label nor a line height sizes it;
   the icon is `--p3-icon-md` (`icon.size.md`, 24). A 32px mark leaves a 4px inset on the selected fill, and the tile
   stays about as tall as before (32 + one 9px line against 28 + one 12px line), so the plugin's 420px rail keeps fitting.
-- **Minimize** draws a new `collapse` glyph (`dom.ts`: Restore's two arrows turned inward, the same 1.5 stroke) and sits
-  after Update file, at the bar's outer end. The brief named the neighbor "the agent-link control", but Agent lives at the
-  rail's foot since #2909; Minimize's only neighbor is Update file, so the swap is that one (flagged on the PR). One line
-  in `bar.ts` reverts it.
+- **Agent and Minimize swap placements (Q731).** Minimize now sits at the rail's foot, where the Agent tile was. The
+  Agent tile sits on the top bar, after the brand switcher and before Update file, where Minimize was before this PR. A
+  first build read the brief's "swap" as Update file ↔ Minimize; the owner clarified it and that swap is reverted. The
+  change is in where the frame places the two slots (`frame.ts`, `bar.ts`). Minimize's slot hook is now `rail-minimize`,
+  so the old `bar-minimize` name doesn't point at the bar. Both controls behave as before: Minimize works with the link
+  on or off, and the Agent tile keeps its toggle, `aria-pressed`, green dot and Activity status. One thing doesn't carry
+  over. The rail's fill behind an on tile (Q2909.22 A) is a rail rule, so on the bar the on state is the dot alone. That
+  question is with the owner on the PR.
+- **Mirror glyphs.** Minimize draws `collapse` (`dom.ts`), Restore's two arrows turned inward. The strip's Restore keeps
+  the outward pair. `test:chrome` reads both drawn SVG paths, takes each arrowhead's corner as its tip, and checks the
+  direction against the shafts' reach. A glyph name can't satisfy that check.
+- **Whole labels (Q732 A).** "Components" and "Appearance" drop the wireframe's manual break. Each fits one line at 9px.
 - **Theme tabs:** the panes row's gap from `space.150` (12px) to `space.200` (16px), one step on the chrome's scale.
 
-`test:chrome` gains arms for each, every one mutated to fail by name. At 9px every label fits one line inside the 60px
-rail at 380 on both hosts, but "Compo-nents" and "Appear-ance" now show their manual break hyphen mid-word on that one
-line: a copy question left for the owner, not changed here.
+`test:chrome` gains an arm for each change, and each was mutated to fail by name. The arms cover: Minimize first at the
+rail's foot and never on the bar; Agent on the bar between the brand and Update file and never on the rail; `BAR_ORDER`;
+the two glyphs differing and pointing the right ways; and no hyphen in any rail label.
