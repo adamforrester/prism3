@@ -221,7 +221,7 @@ decision for the owner (section 6), and most become component work.
   photo. Bind the link text to `inverse.text.primary`, keep (or add) the underline as the link cue, and
   set a media veil (`veil.*`) behind it when the photo is busy. Measure the ring in each mode:
   `inverse.text.primary` flips in dark mode and the veil does not. A brand that wants a brighter inverse
-  link pins it in Theme › Color › Links; that is a brand item, not a Prism3 gap.
+  link pins it in the Links section of Theme › Color › Interactive; that is a brand item, not a Prism3 gap.
 - **Check `textDecoration` before choosing which text layer carries a value.** A price stack can hold a
   struck-through layer next to the current one.
 

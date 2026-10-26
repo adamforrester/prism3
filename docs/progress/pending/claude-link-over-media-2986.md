@@ -7,7 +7,7 @@ no token is added or renamed, and the derivation is untouched (Q689 A).
 
 - **Owner decision Q690 A (2026-10-25), on #2986:** no on-media link role. Over a photograph a link is set in
   `inverse.text.primary` and keeps its underline as the link cue, on the media veil (#1151) when the photo is busy. A
-  brand that wants a brighter inverse link pins it in Theme › Color › Links (#2992).
+  brand that wants a brighter inverse link pins it in Theme › Color › Interactive, Links (#2992).
 - **`.ai.json`:** written in `ai-metadata.ts`'s link branch, on the text links only (an icon has no underline). The
   inverse twins inherit it through `onInverseGround`'s remap, which leaves `inverse.text.primary` and `veil.*` as they
   are. It sits in `avoid_when`, ahead of the floor note.

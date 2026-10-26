@@ -808,15 +808,18 @@ const COMMAND = '.claude/commands/review-pr.md';
 //
 // WHAT IT CANNOT SEE: whether the advice is right. It checks the rule is stated, not that it is true.
 let ownerSelfRuns = 0;
-type OwnerRule = { id: string; skills: string[]; roles: RegExp; must: RegExp[]; resolve: string[] };
+type OwnerRule = { id: string; skills: string[]; roles: RegExp[]; must: RegExp[]; resolve: string[] };
 const OWNER_RULES: OwnerRule[] = [
   {
     // Q690 A: no on-media link role. Over a photograph a link is `inverse.text.primary`, underlined, on
     // the media veil when the photo is busy.
     id: '#2986 link over photography',
     skills: ['prism3-consume', 'prism3-rebind'],
-    roles: /^(inverse\.)?text\.link\./,
-    must: [/photo/i, /`inverse\.text\.primary`/, /underline/i, /`veil\.\*`/],
+    // Both grounds, each matched on its own, so the inverse twins cannot drop out of scope unnoticed.
+    roles: [/^text\.link\./, /^inverse\.text\.link\./],
+    // The ink and the underline in one sentence: an inverse twin already names `inverse.text.primary` in
+    // "(use `inverse.text.primary`)", so the name alone would match there without the rule.
+    must: [/photo/i, /`inverse\.text\.primary`[^.]*underline/i, /`veil\.\*`/],
     resolve: ['inverse.text.primary', 'veil.dark.medium'],
   },
 ];
@@ -831,8 +834,8 @@ export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => 
     if (text === undefined) { out.push({ file: `skills/${s}/SKILL.md`, kind: 'owner rule', detail: `${rule.id}: the skill is gone` }); continue; }
     if (!blocks(text).some((b) => missing(b).length === 0)) out.push({ file: `skills/${s}/SKILL.md`, kind: 'owner rule', detail: `${rule.id}: no paragraph states it (each must match in one block: ${rule.must.map((r) => r.source).join(', ')})` });
   }
-  const roles = Object.keys(color).filter((k) => rule.roles.test(k));
-  if (!roles.length) out.push({ file: 'packages/engine/ai-metadata.ts', kind: 'owner rule', detail: `${rule.id}: no emitted role matches ${rule.roles.source}; the rule is held over nothing` });
+  for (const re of rule.roles) if (!Object.keys(color).some((k) => re.test(k))) out.push({ file: 'packages/engine/ai-metadata.ts', kind: 'owner rule', detail: `${rule.id}: no emitted role matches ${re.source}; the rule is held over nothing there` });
+  const roles = Object.keys(color).filter((k) => rule.roles.some((re) => re.test(k)));
   for (const r of roles) {
     const gap = missing(color[r].avoid_when ?? '');
     if (gap.length) out.push({ file: 'packages/engine/ai-metadata.ts', kind: 'owner rule', detail: `${rule.id}: \`${r}\` avoid_when lacks ${gap.join(', ')}` });
@@ -843,17 +846,20 @@ export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => 
   const color = (buildAiMetadata(probe, tree) as { color: Record<string, { avoid_when?: string }> }).color;
   const read = (s: string) => (existsSync(join(skillsDir, s, 'SKILL.md')) ? readFileSync(join(skillsDir, s, 'SKILL.md'), 'utf8') : undefined);
   // Self-check, both directions, through the shipping function: the rule in one bullet passes; the same words
-  // split across two bullets, a role that drops the underline, metadata without the role, and a tree without
+  // split across two bullets, a role that drops the underline, a twin that names the ink but not the rule,
+  // metadata without the inverse twins or without any link role, and a tree without
   // the named tokens each fail, by the expected count.
   const r = OWNER_RULES[0];
   const good = '- Over a photo, set it in `inverse.text.primary`, underlined, on `veil.*`.';
   const split = '- Over a photo, set it in `inverse.text.primary`.\n- Keep the underline on `veil.*`.';
-  const ok = { 'text.link.default': { avoid_when: good } };
+  const ok = { 'text.link.default': { avoid_when: good }, 'inverse.text.link.default': { avoid_when: good } };
   const checks: [string, Finding[], number][] = [
     ['one bullet', ownerRuleFindings(r, () => good, ok, TOKEN_PATHS), 0],
     ['split bullets', ownerRuleFindings(r, () => split, ok, TOKEN_PATHS), r.skills.length],
-    ['role without underline', ownerRuleFindings(r, () => good, { 'text.link.default': { avoid_when: good.replace('underlined', 'plain') } }, TOKEN_PATHS), 1],
-    ['no matching role', ownerRuleFindings(r, () => good, { 'text.primary': { avoid_when: good } }, TOKEN_PATHS), 1],
+    ['role without underline', ownerRuleFindings(r, () => good, { ...ok, 'text.link.default': { avoid_when: good.replace('underlined', 'plain') } }, TOKEN_PATHS), 1],
+    ['twin names the ink, not the rule', ownerRuleFindings(r, () => good, { ...ok, 'inverse.text.link.default': { avoid_when: 'Do not use for non-interactive text (use `inverse.text.primary`). Over a photo, keep the underline, on `veil.*`.' } }, TOKEN_PATHS), 1],
+    ['no inverse twin', ownerRuleFindings(r, () => good, { 'text.link.default': { avoid_when: good } }, TOKEN_PATHS), 1],
+    ['no matching role', ownerRuleFindings(r, () => good, { 'text.primary': { avoid_when: good } }, TOKEN_PATHS), r.roles.length],
     ['names not in tree', ownerRuleFindings(r, () => good, ok, new Set()), r.resolve.length],
   ];
   ownerSelfRuns = checks.length;
