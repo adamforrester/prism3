@@ -2865,6 +2865,9 @@ for (const host of ['web', 'figma']) {
         // ticked and the theme not, its run posts no build and ends on the step's refusal.
         await openUpdate({ present: [], setUp: true });
         await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        // #3028 (#3023 Q701 B): a Theme toggle asks the file again, so answer it before the sets step is drawn.
+        await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+        await hooks.need(page, '[data-p3="update-set"]', WAIT);
         await hooks.click(page.locator('[data-p3="update-set"]').first(), WAIT);
         const spT = await page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
           sets: [...document.querySelectorAll('[data-p3="update-set"]')].filter((n) => n.getAttribute('aria-checked') === 'true').length }));
