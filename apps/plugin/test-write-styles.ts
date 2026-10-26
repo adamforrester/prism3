@@ -57,6 +57,7 @@ class VarsShim {
   createVariableAlias(target: { id: string }): { type: 'VARIABLE_ALIAS'; id: string } {
     return { type: 'VARIABLE_ALIAS', id: target.id };
   }
+  setBoundVariableForEffect(effect: any, field: string, target: any): any { return { ...effect, boundVariables: { ...(effect.boundVariables ?? {}), [field]: { type: 'VARIABLE_ALIAS', id: target.id } } }; }
 }
 class StylesShim {
   effectStyles: ShimStyle[] = [];
@@ -74,7 +75,9 @@ const plan = buildStylesPlan(brandTheme(exampleBrands['aurora'] as unknown as Br
 // Seed the shim with exactly the palette names this plan's stops ask for, so the happy path is the
 // realistic one: apply runs AFTER the colour executor has written `palette/*`.
 const planAliases = [...new Set(plan.paints.flatMap((p) => p.stops.map((s) => s.alias).filter((a): a is string => !!a)))];
-const shim = new StylesShim(planAliases);
+// The effect bindings (#2869): the `glass` blur's radius names `<root>/blur/glass`, written by the FLOAT executor.
+const effectAliases = plan.effects.flatMap((e) => e.effects.flatMap((fx) => ('boundVariables' in fx ? [fx.boundVariables.radius.name] : [])));
+const shim = new StylesShim([...planAliases, ...effectAliases]);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies StylesApi
 const run = () => applyStylesPlan(plan, shim as any);
 
@@ -97,6 +100,19 @@ const effectNames = shim.effectStyles.map((s) => s.name);
 ok(effectNames.some((n) => n.startsWith('shadow/')) && effectNames.some((n) => n.startsWith('shadow-dark/')),
   'both shadow sets materialise as Effect Styles (shadow/* + shadow-dark/*)');
 ok(shim.effectStyles.every((s) => Array.isArray(s.effects) && s.effects.length > 0), 'every Effect Style carries ≥1 effect');
+
+// ---- glass (#2869): one background blur whose radius is BOUND, never a by-name alias Figma cannot read ----
+// The alias name is SPELLED (aurora's root is `ads`): an assertion built from the plan would agree with a plan
+// that bound the wrong variable.
+ok(effectAliases.length === 1 && effectAliases[0] === 'ads/blur/glass', `the plan's glass blur names its radius variable (${effectAliases.join(', ')})`);
+const glass = shim.effectStyles.find((s) => s.name === 'glass');
+const glassFx = (glass?.effects ?? []) as any[];
+const blurVar = shim.variables.vars.find((v) => v.name === 'ads/blur/glass');
+ok(!!glass && glassFx.length === 1 && glassFx[0].type === 'BACKGROUND_BLUR' && glassFx[0].radius === 32,
+  `glass: one Effect Style holding one 32px BACKGROUND_BLUR (${glassFx.map((f) => `${f.type}:${f.radius}`).join(', ')})`);
+ok(!!blurVar && glassFx[0]?.boundVariables?.radius?.type === 'VARIABLE_ALIAS' && glassFx[0].boundVariables.radius.id === blurVar.id && !('name' in glassFx[0].boundVariables.radius),
+  'glass: its radius is bound to blur/glass by variable id, through setBoundVariableForEffect, with no by-name alias left on the effect');
+ok(r1.effects.bound === 1 && r2.effects.bound === 1, `glass: the radius binding is counted, and re-apply keeps it (${r1.effects.bound}, ${r2.effects.bound})`);
 
 // gradients as Paint Styles with a GradientPaint (paintType + transform + baked stops)
 ok(shim.paintStyles.length === plan.paints.length && shim.paintStyles.length > 0, `aurora gradients materialise as Paint Styles (${shim.paintStyles.length})`);
@@ -169,7 +185,7 @@ ok(shim.paintStyles.every((s) => ((s.paints as any[])[0].gradientStops as any[])
 // A file whose palette was never written: every named target is a miss, reported not thrown, and the
 // baked colour still lands so the gradient renders correctly rather than not at all.
 const barePlan = buildStylesPlan(brandTheme(exampleBrands['aurora'] as unknown as BrandInput));
-const bareShim = new StylesShim([]);            // no palette variables in this "file"
+const bareShim = new StylesShim(effectAliases); // no palette variables in this "file" (blur only, so the misses are the stops')
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const bare = await applyStylesPlan(barePlan, bareShim as any);
 ok(bare.paints.bound === 0 && bare.misses.length === totalAliasStops,
@@ -180,6 +196,14 @@ ok(bare.misses.every((m) => m.startsWith('ads/core/palette/')), 'each miss names
 ok(bareShim.paintStyles.length === barePlan.paints.length
   && bareShim.paintStyles.every((s) => ((s.paints as any[])[0].gradientStops as any[]).every((st) => st.color && !st.boundVariables?.color)),
   'missing palette still writes every gradient with baked (unbound) stops — degraded, not broken');
+
+// A file with no `blur` collection: the glass radius is a reported miss, and the literal 32px still lands.
+const noBlurShim = new StylesShim(planAliases);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const noBlur = await applyStylesPlan(barePlan, noBlurShim as any);
+const noBlurFx = (noBlurShim.effectStyles.find((s) => s.name === 'glass')?.effects ?? []) as any[];
+ok(noBlur.effects.bound === 0 && noBlur.misses.join() === 'ads/blur/glass' && noBlurFx[0]?.radius === 32 && !noBlurFx[0]?.boundVariables,
+  `missing blur variable: the glass radius is a reported miss and keeps its literal 32px (${noBlur.misses.join(', ')})`);
 
 console.log(`\nplugin STYLES write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

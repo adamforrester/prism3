@@ -13,6 +13,8 @@
 # brand spec, or engine default left in place). Line heights use the engine's prism defaults
 # per the owner's decision — no NB-specific override in this seed.
 id: nb-redesign
+# The display name (#2859, #2915), which the library file's cover shows. Unset, it would show the id made readable.
+name: New Balance
 
 # ROOT NAMESPACE (#1283) — this is a redesign OF New Balance, so it emits under NB's own
 # `nbds.*` namespace, the same <brand>ds convention the hand-built `nb` theme already uses.

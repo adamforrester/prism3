@@ -167,6 +167,8 @@ export const figmaColorDescription = (f: ColorFacts): string => {
     }
     case 'scrim':
       return `Modal and drawer backdrop — black, ${pct}`;
+    case 'glass':
+      return `Glass fill behind the glass blur — ${pct}, white or black by mode`;
     case 'veil': {
       const [, tone, rung] = seg;
       // The clear end of a directional veil (#1318) — 0%, so a wash percentage would describe nothing.
@@ -234,6 +236,8 @@ export const figmaRadiusDescription = (key: string, px: number): string =>
 export const figmaBorderWidthDescription = (px: number): string => (px ? `${px}px stroke` : 'No stroke — 0px');
 export const figmaIconSizeDescription = (px: number, rung: string): string => `${px}px icon artboard — pairs with size/${rung}`;
 export const figmaOpacityDescription = (pct: number): string => `${pct}% opacity`;
+export const figmaBlurDescription = (key: string, px: number): string =>
+  key === 'glass' ? `${px}px background blur — the glass effect style binds it` : `${px}px blur`;
 
 // ── motion (#2394) ───────────────────────────────────────────────────────────────────────────────
 // Figma has no time scope, so a duration is a plain number of milliseconds bound to nothing; the line
@@ -321,6 +325,9 @@ export const figmaGridStyleDescription = (columns: number, bp: string, gutterPx:
 
 /** A shadow effect style. `rank` is the 1-based elevation among `of` drop shadows; `inset` for the inner one.
  *  The recognizer in `apps/plugin/src/prune-figma.ts` keys on this template. */
+/** The `glass` Effect Style (#2869): what it is, and the fill it needs, because an Effect Style cannot carry one. */
+export const figmaGlassDescription = (px: number): string =>
+  `Glass — a ${px}px background blur, bound to blur/glass. Fill the frame with color/glass/surface.`;
 export const figmaShadowDescription = (s: { inset: boolean; rank: number; of: number; mode: string }): string => {
   const what = s.inset ? 'Inner shadow for wells, pressed states and inputs' : `Elevation ${s.rank} of ${s.of}`;
   const mode = s.mode === 'light' ? 'light mode' : s.mode === 'dark' ? 'dark mode (softer; surfaces lift instead)' : `${s.mode} mode`;
