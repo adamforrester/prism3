@@ -2665,12 +2665,10 @@
       ],
       "notes": {
         "contested": [
-          "THE BUILDING-BLOCK SHAPE (owner Q183): four glyphs in one subcomponent, its `indicator` exposed on the Accordion, instead of an `indicator` axis on the Accordion (which would double its set). The name `_accordion-indicator` is the owner's; `Accordion.Indicator` as the display name is approved (Q241).",
+          "THE BUILDING-BLOCK SHAPE (owner Q183): four glyphs in one subcomponent. Its `indicator` was exposed on the Accordion until #2878 (Q-block A) made it an Accordion axis the nested instance follows, doubling the Accordion to 48 members. The name `_accordion-indicator` is the owner's; `Accordion.Indicator` as the display name is approved (Q241).",
           "THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control's, `icon.size.xs`, `sm`, `md` (16/20/24px). The first set, 20/24/32px, as Tab and Tag mapped theirs until #2725, read too large on the live build."
         ],
-        "unverified": [
-          "That a designer's plus-minus choice survives a switch of the Accordion's ICON POSITION (leading to trailing). The leading and trailing indicators are two parts, so the exposed override sits on two different nested instances; an expansion switch keeps it (measured), a position switch is expected to drop it."
-        ],
+        "unverified": [],
         "evolution": [],
         "projection": []
       },
@@ -2770,7 +2768,7 @@
           "That the native slot behaves the same on a designer's instance in every Figma plan: slots were measured in one file; a plan without the feature keeps the panel as a plain frame, and the build says so."
         ],
         "evolution": [
-          "Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header's focus ring on its edge, `focus.ring.offset-field`), and the owner's QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header's edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title's first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size); Q338 A (the large inline padding 24 → 20, `space.250`, so the side padding steps 12/16/20) and Q339 A (no change: the panel keeps its own padding)."
+          "Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header's focus ring on its edge, `focus.ring.offset-field`), and the owner's QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header's edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title's first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size); Q338 A (the large inline padding 24 → 20, `space.250`, so the side padding steps 12/16/20) and Q339 A (no change: the panel keeps its own padding). #2878 (Q-block A, 2026-10-25): the indicator pair is an `indicator` axis on the Accordion, which the nested indicator follows, so the set is 48 members and the nested instance is no longer exposed."
         ],
         "projection": []
       },

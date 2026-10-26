@@ -5,11 +5,19 @@
  * ── THE OWNER'S SHAPE (Q180 as revised by Q182, then Q183, 2026-10-10, #2417) ────────────────────────────────
  *
  * A SINGLE item, no group def: a designer stacks items, and the group's code contract (single or multiple open,
- * heading level, key arrays) lives in `codeOnly`. Twenty-four members: `expansion` × `iconPosition` × `size` × the
- * state axis (rest, focus-visible). No hover (Q182), and no disabled or pressed member (Q183: accordions are not
- * really disabled, and only focus is added). The indicator is a BUILDING BLOCK, `_accordion-indicator`, nested
- * in the header with its `indicator` (chevron or plus-minus) exposed; see that file for why, and for the live
- * check that a designer's choice survives switching `expansion`.
+ * heading level, key arrays) lives in `codeOnly`. Forty-eight members: `expansion` × `iconPosition` × `indicator` ×
+ * `size` × the state axis (rest, focus-visible). No hover (Q182), and no disabled or pressed member (Q183: accordions
+ * are not really disabled, and only focus is added). The indicator is a BUILDING BLOCK, `_accordion-indicator`,
+ * nested in the header (see that file for why).
+ *
+ * ── THE `indicator` AXIS (#2878, Q-block A, reversing Q183's exposed nested property) ────────────────────────
+ *
+ * The pair of glyphs (chevron or plus-minus) is a variant axis on the Accordion, and the nested indicator FOLLOWS it
+ * per member, as it follows `expansion` and `size`. Q183 exposed the nested instance's `indicator` instead, to keep
+ * the set at 24; on a published library a designer had to find the nested glyph inside each accordion to change it
+ * (#2878), and the exposed override did not survive an `iconPosition` switch (two parts, two instances). Additive for
+ * library consumers: `chevron` leads, so Update renames the existing 24 members to `indicator=chevron` in place,
+ * keeping their node ids and keys, and builds the 24 plus-minus members (test-update-apply's published accordion arm).
  *
  * ── WHERE THE INDICATOR SITS (`iconPosition`, Q182: leading the default; the values named by Q242, the axis by the QA) ─
  *
@@ -64,9 +72,12 @@ export const accordion: ComponentDef = {
   variants: {
     expansion: ['collapsed', 'expanded'],
     iconPosition: ['leading', 'trailing'],
+    // #2878 (Q-block A): the pair of glyphs, on the Accordion itself. `chevron` leads, so an Update gives every member a
+    // set built before the axis `indicator=chevron` in place and builds the plus-minus members beside them.
+    indicator: ['chevron', 'plus-minus'],
     size: ['medium', 'small', 'large'],
   },
-  axisKinds: { expansion: 'runtime', iconPosition: 'authoring', size: 'authoring' },
+  axisKinds: { expansion: 'runtime', iconPosition: 'authoring', indicator: 'authoring', size: 'authoring' },
 
   paintKeys: ['{slot}'],
   densitySpacing: ['size.{size}.pad-x', 'size.{size}.pad-y', 'size.{size}.gap', 'size.{size}.panel-pad-end'],
@@ -165,8 +176,8 @@ export const accordion: ComponentDef = {
       leadingGlyph: {
         kind: 'nest',
         nests: '_accordion-indicator',
-        nesting: { kind: 'nest-exposed', variant: { indicator: 'chevron', expansion: 'collapsed', size: 'medium' }, expose: ['indicator'], follow: ['expansion', 'size'] },
-        note: 'The open and closed glyph. Choose chevron or plus-minus on the Accordion; it follows the open state and the size.',
+        nesting: { kind: 'nest-fixed', variant: { indicator: 'chevron', expansion: 'collapsed', size: 'medium' }, follow: ['indicator', 'expansion', 'size'] },
+        note: 'The open and closed glyph. It follows the Accordion\'s indicator, open state and size.',
       },
       titleBox: {
         kind: 'box',
@@ -199,7 +210,7 @@ export const accordion: ComponentDef = {
       trailingGlyph: {
         kind: 'nest',
         nests: '_accordion-indicator',
-        nesting: { kind: 'nest-exposed', variant: { indicator: 'chevron', expansion: 'collapsed', size: 'medium' }, expose: ['indicator'], follow: ['expansion', 'size'] },
+        nesting: { kind: 'nest-fixed', variant: { indicator: 'chevron', expansion: 'collapsed', size: 'medium' }, follow: ['indicator', 'expansion', 'size'] },
         note: 'The open and closed glyph, after the title.',
       },
       focusRing: {
@@ -254,7 +265,7 @@ export const accordion: ComponentDef = {
   },
 
   figmaProperties: {
-    variantAxes: ['expansion', 'iconPosition', 'size'],
+    variantAxes: ['expansion', 'iconPosition', 'indicator', 'size'],
     // The panel reads "icon position" (owner, 2026-10-12; #2571), as Button's `leading` slot axis reads "leading icon".
     variantAxisNames: { iconPosition: 'icon position' },
     stateAxis: { name: 'state', values: ['rest', 'focus-visible'] },
@@ -337,7 +348,7 @@ export const accordion: ComponentDef = {
       'That the native slot behaves the same on a designer\'s instance in every Figma plan: slots were measured in one file; a plan without the feature keeps the panel as a plain frame, and the build says so.',
     ],
     evolution: [
-      'Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header\'s focus ring on its edge, `focus.ring.offset-field`), and the owner\'s QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header\'s edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title\'s first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size); Q338 A (the large inline padding 24 → 20, `space.250`, so the side padding steps 12/16/20) and Q339 A (no change: the panel keeps its own padding).',
+      'Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header\'s focus ring on its edge, `focus.ring.offset-field`), and the owner\'s QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header\'s edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title\'s first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size); Q338 A (the large inline padding 24 → 20, `space.250`, so the side padding steps 12/16/20) and Q339 A (no change: the panel keeps its own padding). #2878 (Q-block A, 2026-10-25): the indicator pair is an `indicator` axis on the Accordion, which the nested indicator follows, so the set is 48 members and the nested instance is no longer exposed.',
     ],
   },
 };

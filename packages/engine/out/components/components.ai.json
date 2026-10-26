@@ -6683,6 +6683,13 @@
           ],
           "kind": "authoring"
         },
+        "indicator": {
+          "values": [
+            "chevron",
+            "plus-minus"
+          ],
+          "kind": "authoring"
+        },
         "size": {
           "values": [
             "medium",

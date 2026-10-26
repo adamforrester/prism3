@@ -8488,7 +8488,7 @@
           ],
           "parts": {
             "label": {
-              "members": 24,
+              "members": 48,
               "where": {}
             }
           }
@@ -14551,7 +14551,7 @@
           ],
           "parts": {
             "placeholder": {
-              "members": 12,
+              "members": 24,
               "where": {
                 "expansion": [
                   "expanded"
@@ -17180,7 +17180,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 12,
+              "members": 24,
               "where": {
                 "state": [
                   "focus-visible"
@@ -20553,7 +20553,7 @@
           ],
           "parts": {
             "header": {
-              "members": 8,
+              "members": 16,
               "where": {
                 "size": [
                   "large"
@@ -21210,7 +21210,7 @@
           ],
           "parts": {
             "header": {
-              "members": 16,
+              "members": 32,
               "where": {
                 "size": [
                   "medium",
@@ -21595,7 +21595,7 @@
           ],
           "parts": {
             "content": {
-              "members": 12,
+              "members": 24,
               "where": {
                 "expansion": [
                   "expanded"
@@ -22025,7 +22025,7 @@
           ],
           "parts": {
             "titleBox": {
-              "members": 24,
+              "members": 48,
               "where": {}
             }
           }
@@ -22573,7 +22573,7 @@
           ],
           "parts": {
             "header": {
-              "members": 8,
+              "members": 16,
               "where": {
                 "size": [
                   "small"
@@ -22581,7 +22581,7 @@
               }
             },
             "titleRow": {
-              "members": 8,
+              "members": 16,
               "where": {
                 "size": [
                   "small"
@@ -23180,7 +23180,7 @@
           ],
           "parts": {
             "content": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "expansion": [
                   "expanded"
@@ -23191,7 +23191,7 @@
               }
             },
             "header": {
-              "members": 16,
+              "members": 32,
               "where": {
                 "size": [
                   "medium",
@@ -23200,7 +23200,7 @@
               }
             },
             "titleRow": {
-              "members": 8,
+              "members": 16,
               "where": {
                 "size": [
                   "medium"
@@ -23474,7 +23474,7 @@
           ],
           "parts": {
             "content": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "expansion": [
                   "expanded"
@@ -23485,7 +23485,7 @@
               }
             },
             "header": {
-              "members": 16,
+              "members": 32,
               "where": {
                 "size": [
                   "large",
@@ -23494,7 +23494,7 @@
               }
             },
             "titleRow": {
-              "members": 8,
+              "members": 16,
               "where": {
                 "size": [
                   "large"
@@ -23827,7 +23827,7 @@
           ],
           "parts": {
             "content": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "expansion": [
                   "expanded"
@@ -23838,7 +23838,7 @@
               }
             },
             "header": {
-              "members": 8,
+              "members": 16,
               "where": {
                 "size": [
                   "large"
@@ -23908,7 +23908,7 @@
           ],
           "parts": {
             "content": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "expansion": [
                   "expanded"
@@ -24173,7 +24173,7 @@
           ],
           "parts": {
             "placeholder": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "expansion": [
                   "expanded"
@@ -24564,7 +24564,7 @@
           ],
           "parts": {
             "placeholder": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "expansion": [
                   "expanded"
@@ -25107,7 +25107,7 @@
           ],
           "parts": {
             "placeholder": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "expansion": [
                   "expanded"
@@ -25958,7 +25958,7 @@
           ],
           "parts": {
             "label": {
-              "members": 8,
+              "members": 16,
               "where": {
                 "size": [
                   "large"
@@ -26391,7 +26391,7 @@
           ],
           "parts": {
             "label": {
-              "members": 8,
+              "members": 16,
               "where": {
                 "size": [
                   "medium"
@@ -26842,7 +26842,7 @@
           ],
           "parts": {
             "label": {
-              "members": 8,
+              "members": 16,
               "where": {
                 "size": [
                   "small"
@@ -27308,7 +27308,7 @@
       "drawnNotDeclared": []
     },
     "accordion": {
-      "members": 24,
+      "members": 48,
       "axes": {
         "expansion": [
           "collapsed",
@@ -27317,6 +27317,10 @@
         "iconPosition": [
           "leading",
           "trailing"
+        ],
+        "indicator": [
+          "chevron",
+          "plus-minus"
         ],
         "size": [
           "large",

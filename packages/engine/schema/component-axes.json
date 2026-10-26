@@ -56,6 +56,10 @@
         "leading",
         "trailing"
       ],
+      "indicator": [
+        "chevron",
+        "plus-minus"
+      ],
       "size": [
         "large",
         "medium",
@@ -66,7 +70,7 @@
         "rest"
       ]
     },
-    "members": 24,
+    "members": 48,
     "properties": {
       "content": "SLOT",
       "title": "TEXT"
