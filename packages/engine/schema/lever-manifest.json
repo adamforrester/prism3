@@ -328,6 +328,25 @@
       "description": "The title of every dialog and sheet: the large, medium or small label style, at Emphasis weight. One dialog can still be changed by hand in Figma."
     },
     {
+      "key": "bannerStyle",
+      "group": "form",
+      "kind": "value",
+      "label": "Banner style",
+      "control": "enum",
+      "default": "tinted",
+      "options": [
+        {
+          "value": "tinted",
+          "label": "Tinted"
+        },
+        {
+          "value": "outlined",
+          "label": "Outlined"
+        }
+      ],
+      "description": "The surface of every banner. Tinted fills it with the tone’s tint; Outlined draws the edge in the tone on the page color. Either way the edge and glyph clear 3:1."
+    },
+    {
       "key": "buttonIcons",
       "group": "form",
       "kind": "structural",

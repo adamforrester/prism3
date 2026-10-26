@@ -39,7 +39,7 @@
  */
 import type { ComponentDef } from './component-schema';
 import {
-  applyButtonLayout, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyMinWidthRatio, applyOutlineInteraction, applySpacingDensity,
+  applyButtonLayout, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyMinWidthRatio, applyOutlineInteraction, applySpacingDensity,
   applyWeightIntent, DEFAULT_BUTTON_LAYOUT, DEFAULT_WEIGHT_AVAILABILITY, figmaAnatomySet, planSetProperties, MIN_WIDTH_DERIVATION,
 } from './anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan } from './anatomy-figma';
@@ -127,7 +127,7 @@ export const GEOMETRY: Readonly<Record<string, SpecProperty>> = {
 export const specMaterialize = (def: ComponentDef): ComponentDef => {
   const px = sizeRefPx(componentSizes('comfortable', SPACE_BASE));
   return applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, 'rounded'), 'outline'), 'pill'), 'large'), DEFAULT_WEIGHT_AVAILABILITY), 'overlay-neutral'), 'comfortable'),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, 'rounded'), 'outline'), 'pill'), 'large'), 'tinted'), DEFAULT_WEIGHT_AVAILABILITY), 'overlay-neutral'), 'comfortable'),
     DEFAULT_BUTTON_LAYOUT, px), px);
 };
 
