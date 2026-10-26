@@ -16,9 +16,11 @@ the chrome).
   first build read the brief's "swap" as Update file ↔ Minimize; the owner clarified it and that swap is reverted. The
   change is in where the frame places the two slots (`frame.ts`, `bar.ts`). Minimize's slot hook is now `rail-minimize`,
   so the old `bar-minimize` name doesn't point at the bar. Both controls behave as before: Minimize works with the link
-  on or off, and the Agent tile keeps its toggle, `aria-pressed`, green dot and Activity status. One thing doesn't carry
-  over. The rail's fill behind an on tile (Q2909.22 A) is a rail rule, so on the bar the on state is the dot alone. That
-  question is with the owner on the PR.
+  on or off, and the Agent tile keeps its toggle, `aria-pressed`, green dot and Activity status.
+- **Agent's on state on the bar (Q738 A).** While the link is on, the bar's Agent tile fills its mark with `fill-2`, the
+  fill the rail drew behind an on tile (Q2909.22 A), and keeps the green dot. The fill comes from the same `chrome.css`
+  rule as the rail's. On the bar the mark is a square around the 16px glyph, and a negative margin takes back its padding,
+  so the tile keeps its size, including the glyph-only 28 x 28 tile at 380.
 - **Mirror glyphs.** Minimize draws `collapse` (`dom.ts`), Restore's two arrows turned inward. The strip's Restore keeps
   the outward pair. `test:chrome` reads both drawn SVG paths, takes each arrowhead's corner as its tip, and checks the
   direction against the shafts' reach. A glyph name can't satisfy that check.
@@ -27,4 +29,5 @@ the chrome).
 
 `test:chrome` gains an arm for each change, and each was mutated to fail by name. The arms cover: Minimize first at the
 rail's foot and never on the bar; Agent on the bar between the brand and Update file and never on the rail; `BAR_ORDER`;
-the two glyphs differing and pointing the right ways; and no hyphen in any rail label.
+the two glyphs differing and pointing the right ways; no hyphen in any rail label; and the bar's Agent tile carrying the
+on fill at 1280 and 380 while the link is on, and not while it is off.

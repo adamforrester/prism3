@@ -9541,7 +9541,7 @@ for (const { w, h } of WIDTHS) {
 }
 
 // =============================================================================================
-// 29b. The owner's "A · Menu bar" (2026-10-05), two behaviors held directly, both hosts, both themes:
+// 29b. The owner's "A · Menu bar" (2026-10-05), three behaviors held directly, both hosts, both themes:
 //   · CONTRAST'S MARK FOLLOWS THE VERDICT: a check and no count while every pair passes; a warning glyph and the
 //     count below floor once an edit puts pairs below it. The web's edit is test-verdict-count.ts's two-mode
 //     fixture, whose count is derived by hand there: 2 of 884, 2 modes. The plugin's is a restore of a one-mode
@@ -9550,6 +9550,11 @@ for (const { w, h } of WIDTHS) {
 //     chrome on Figma's theme; a choice applies, is posted to the main thread as `set-theme-pref`, and, after a
 //     reload, comes back (the main thread's `theme-pref` reply, which `apps/plugin/test-theme-pref.ts` holds) as the
 //     checked choice and the chrome's theme.
+//   · THE AGENT TILE'S ON FILL ON THE BAR (Q738 A, the owner, 2026-10-26), the plugin at 1280 and 380: with the link on,
+//     the top bar's Agent tile fills a square mark with the `fill-2` role, read off a probe, and `aria-pressed` is true;
+//     with the link off, the mark is not that color.
+//   Mutation: the `.p3-agent-tile[data-on="true"]` arm dropped from the on-fill rule in `chrome.css` → `29b … Q738 A: with
+//     the link on, …`.
 // =============================================================================================
 console.log('\n29b. The menu bar: Contrast per verdict, the plugin Theme menu');
 const LOW_FIXTURE = {
@@ -9617,7 +9622,8 @@ for (const host of ['web', 'figma']) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
         // Last, after the console check: a link switched on opens the desktop bridge's socket, which no harness serves.
-        if (host === 'figma' && w === WIDTHS[0].w) {
+        // At 1280 and 380 since Q738 A: the on fill is owed at every width, the glyph-only tile at 380 too.
+        if (host === 'figma') {
           // #2909: the plugin draws no Activity tile, so Activity's "agent link on" name, its tile dot and D-RED A's dot
           // colors are RETIRED for the plugin (the drawer's row says what runs; its right end says the link's status, §31).
           // The Agent tile's dot stays (Q2909.22 A): filled, at its glyph's top right, in the ok green.
@@ -9635,11 +9641,26 @@ for (const host of ['web', 'figma']) {
           });
           ok(ag.shown && ag.filled && ag.color === ag.okColor && ag.dy <= 0 && ag.dx >= 0 && ag.name === 'Agent' && ag.pressed === 'true',
             `${where}: the Agent tile's dot, while the link is on: filled, at its glyph's top right, in the ok green ${ag.okColor} (${JSON.stringify(ag)})`);
-          // RETIRED with Q731 (the owner, 2026-10-26): "the Agent tile is filled while the link is on (Q2909.22 A), with the
-          // inset role" read the rail's tile treatment (`.p3-rail .p3-tile[data-on]`). On the top bar the tile is a bar tile,
-          // whose on state is its dot and `aria-pressed`, read above; whether the fill carries to the bar is with the owner
-          // (#3043, the Q-block "Agent's on state on the bar").
+          // Q738 A (the owner, 2026-10-26): on the top bar since Q731, an on Agent tile's mark carries the fill the rail drew
+          // behind an on tile (Q2909.22 A), the `fill-2` role, as a square behind the glyph. The expected color is the role
+          // itself, read off a probe in the frame, never off the tile's rule; off, the mark is not that color.
+          const FILL_PROBE = () => {
+            const p = document.createElement('div'); p.style.background = 'var(--p3-fill-2)';
+            document.querySelector('[data-p3="frame"]').append(p);
+            const fill = getComputedStyle(p).backgroundColor; p.remove();
+            const b = document.querySelector('[data-p3="top-bar"] [data-p3="agent-toggle"]'), m = b?.querySelector('.p3-tile-mark');
+            const r = m?.getBoundingClientRect();
+            return { fill, mark: m ? getComputedStyle(m).backgroundColor : null, pressed: b?.getAttribute('aria-pressed') ?? null,
+              w: r ? Math.round(r.width * 10) / 10 : null, h: r ? Math.round(r.height * 10) / 10 : null };
+          };
+          const f1 = await page.evaluate(FILL_PROBE);
+          ok(f1.fill !== 'rgba(0, 0, 0, 0)' && f1.mark === f1.fill && f1.pressed === 'true' && f1.w > 0 && f1.w === f1.h,
+            `${where}: Q738 A: with the link on, the bar's Agent tile fills a square mark with the on fill, fill-2 ${f1.fill}, as the rail did, aria-pressed true (${JSON.stringify(f1)})`);
           await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
+          await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'false', null, { timeout: 3000 }).catch(() => {});
+          const f0 = await page.evaluate(FILL_PROBE);
+          ok(f0.mark !== f0.fill && f0.pressed === 'false',
+            `${where}: Q738 A: with the link off, the bar's Agent tile's mark is not the on fill, aria-pressed false (${JSON.stringify(f0)})`);
         }
       } catch (e) {
         ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);

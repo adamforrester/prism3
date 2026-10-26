@@ -150,6 +150,8 @@ export const mountAgentLink = (): void => {
   const { btn: chip, mark, tip } = tile('agent-toggle', 'Agent');
   // A toggle (the owner's Q44 note): one fixed name, and `aria-pressed` says on or off, so the state is announced once.
   chip.setAttribute('aria-label', 'Agent');
+  // Q738 A: the hook for the on fill the rail drew behind an on Agent tile, which the bar draws too (`chrome.css`).
+  chip.classList.add('p3-agent-tile');
   tip.textContent = 'Agent';
   const dot = hook(h('span', 'p3-dot p3-agent-dot'), 'agent-dot');
   dot.setAttribute('aria-hidden', 'true');

@@ -673,6 +673,9 @@
    it is off. */
 .p3-agent-dot { display: none; background: var(--p3-ok-icon); }
 .p3-tile[data-on="true"] .p3-agent-dot { display: block; }
+/* Q738 A: on the bar the Agent tile's mark is a square around its 16px glyph, so the on fill reads as one. The negative
+   margin takes the padding back, so the tile keeps its size whether the link is on or off, and at 380 its 28 × 28. */
+.p3-agent-tile > .p3-tile-mark { padding: var(--p3-space-050); margin: calc(-1 * var(--p3-space-050)); border-radius: var(--p3-radius-xl); }
 /* Minimize (#2949, the owner's Q600 A): a tile at the rail's foot (Q731; on the top bar under #2909), drawn whether the
    agent link is on or off. */
 .p3-btn.p3-tile.p3-agent-min[hidden] { display: none; }
@@ -1652,7 +1655,9 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 /* A full-width page on the rail (Documentation, Export) draws its own header: the tab row and Color's sub-row are Theme's. */
 .p3-frame[data-shell="rail"][data-layout="page"] :is(.p3-nav, .p3-subnav) { display: none; }
 .p3-frame[data-shell="rail"] .p3-rail .p3-btn.p3-tile:where(:not(:disabled, [aria-disabled="true"])):hover > .p3-tile-mark { background: var(--p3-fill-1); }
-.p3-frame[data-shell="rail"] .p3-rail .p3-tile:is([aria-current="page"], [data-on="true"]) > .p3-tile-mark { background: var(--p3-fill-2); }
+/* The on fill, one rule for both places it shows: the rail's current area, and the Agent tile while the link is on, on
+   the top bar since Q731 (Q738 A, the owner, 2026-10-26: the fill the rail drew behind an on Agent tile, at every width). */
+.p3-frame[data-shell="rail"] :is(.p3-rail .p3-tile:is([aria-current="page"], [data-on="true"]), .p3-agent-tile[data-on="true"]) > .p3-tile-mark { background: var(--p3-fill-2); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile[aria-current="page"] .p3-tile-label { font-weight: var(--p3-fw-strong); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile-tip { top: 0; right: auto; left: calc(100% + var(--p3-space-050)); }
 /* A menu a rail tile opens (Appearance, at the rail's foot) opens beside the rail, to the right of its tile and level with
