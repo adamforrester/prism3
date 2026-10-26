@@ -1630,12 +1630,9 @@ const activityReading = (): ActivityReading => {
     ops: {
       apply: opReading('apply', host.applyState === 'pending', verdictOf(host.applyState), fixed(PENDING_TEXT.apply)),
       // #2265: the row shows whichever the operation reported last, a build or an update check.
-      // #2830 Q2830.12 A (awaiting the owner, Q3034.1): Documentation › Specs' Draw specs runs on this row too: running
-      // while it is out, then its verdict, which the host sends as a `component-update-result`.
-      components: opReading('components', host.componentState === 'pending' || host.specsState === 'pending',
+      components: opReading('components', host.componentState === 'pending',
         host.componentLatest === 'update' ? verdictOf(host.componentUpdate) : verdictOf(host.componentState),
         () => {
-          if (host.specsState === 'pending') return { phase: PENDING_TEXT.specs, progress: null };
           const check = host.componentState === 'pending' ? undefined : CHECK_TEXT[host.agentRun?.cmd ?? ''];
           if (check) return { phase: check, progress: null };
           const r = componentPhase(host.componentState === 'pending' ? host.componentProgress : agentBuildReading());
@@ -1655,6 +1652,9 @@ const activityReading = (): ActivityReading => {
           : pp ? { state: 'ok', ref: pp, verdict: pruneShort({ ok: true, applied: false, count: pp.count }), summary: pp.summary } : null,
         fixed(host.pruneBusy === 'delete' ? 'Removing…' : host.pruneBusy === 'preview' ? 'Checking…' : null)),
       readback: opReading('readback', false, readbackOf(), fixed(null)),
+      // #2830 Q713 A: Documentation › Specs' Draw specs has a row of its own, like Style guides: "Drawing specs…" while
+      // it is out, the panel's or an agent's, then its verdict. The Build set row never shows it.
+      specs: opReading('specs', host.specsState === 'pending', verdictOf(host.specsState), fixed(PENDING_TEXT.specs)),
     },
     detail: host.openDetail,
     refused: host.refused,
@@ -1676,7 +1676,7 @@ const activityReading = (): ActivityReading => {
 const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply');
 const pruneBusy = (): boolean => !!host.pruneBusy || agentRunning('prune');
 const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentRunning('filesetup');
-const componentBusy = (): boolean => host.componentState === 'pending' || host.specsState === 'pending' || agentRunning('components');
+const componentBusy = (): boolean => host.componentState === 'pending' || host.specsState === 'pending' || agentRunning('components') || agentRunning('specs');
 
 /**
  * THE FILE'S BRAND DID NOT RESOLVE (#1989), so Apply Theme and Prune stale are off until a brand does.

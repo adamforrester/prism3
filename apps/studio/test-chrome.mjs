@@ -2849,12 +2849,17 @@ for (const host of ['web', 'figma']) {
         const spBusy = await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-busy') ?? null);
         ok(spW.length === 1 && canon(spW[0]) === canon({ type: 'draw-specs' }) && spBusy === 'true',
           `${where}: #2830 Q2830.3 A: Draw specs posts draw-specs alone and reads as drawing (${JSON.stringify(spW)}, busy ${spBusy})`);
-        // Q2830.12 A as written (built ahead of the owner's answer, Q3034.1): while Draw specs is out, Activity's
-        // components row runs, reading "Drawing specs…" (literal); its verdict lands on the same row below.
+        // Q713 A: Draw specs has its own Specs row in Activity, like Style guides: it runs, reading "Drawing specs…"
+        // (literal), while the Build set row neither runs nor carries the words. Its verdict lands on the Specs row below.
         await settle(page);
-        const spA = (await drawerState(page)).ops['components'];
-        ok(spA?.state === 'running' && spA.phase === 'Drawing specs…',
-          `${where}: #2830 Q2830.12 A: while Draw specs is out, Activity's components row runs, reading "Drawing specs…" (row ${JSON.stringify(spA)})`);
+        const spD = await drawerState(page);
+        const spA = spD.ops['specs'];
+        const spTitle = await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="specs"] b')?.textContent ?? null);
+        ok(spA?.state === 'running' && spA.phase === 'Drawing specs…' && spTitle === 'Specs',
+          `${where}: #2830 Q713 A: while Draw specs is out, Activity's own Specs row runs, reading "Drawing specs…" (row ${JSON.stringify(spA)}, title ${JSON.stringify(spTitle)})`);
+        const spC = spD.ops['components'];
+        ok(spC?.state !== 'running' && spC?.phase !== 'Drawing specs…',
+          `${where}: #2830 Q713 A: while Draw specs is out, the Build set row does not run it (row ${JSON.stringify(spC ?? null)})`);
         // The review of #3034 (C3): the verdict is a `component-update-result`, which any components write sends, so no
         // other may start while the specs draw. The plugin builds through Update file's sets step (Q2909.5 A): with one set
         // ticked and the theme not, its run posts no build and ends on the step's refusal.
@@ -2881,9 +2886,13 @@ for (const host of ['web', 'figma']) {
           return { busy: b?.getAttribute('aria-busy') ?? null, result: r && !r.hidden ? r.textContent : null }; });
         ok(sp1.busy === null && sp1.result === '✓ drew 2 spec panels. Drew 2 of 2.', `${where}: #2830 Q2830.3 A: the host's verdict ends the drawing and is Specs' result line (${JSON.stringify(sp1)})`);
         await settle(page);
-        const spV = (await drawerState(page)).ops['components'];
+        const spVD = await drawerState(page);
+        const spV = spVD.ops['specs'];
         ok(spV?.state === 'ok' && spV.verdict === '✓ drew 2 spec panels',
-          `${where}: #2830 Q2830.12 A: the verdict ends the components row's run and is its verdict (row ${JSON.stringify(spV)})`);
+          `${where}: #2830 Q713 A: the verdict ends the Specs row's run and is its verdict (row ${JSON.stringify(spV)})`);
+        const spVC = spVD.ops['components'];
+        ok(spVC?.verdict !== '✓ drew 2 spec panels' && spVC?.state !== 'running',
+          `${where}: #2830 Q713 A: Draw specs' verdict does not land on the Build set row (row ${JSON.stringify(spVC ?? null)})`);
         // The review of #3034 (C2, C4): with an agent's components run out, Draw specs reads unavailable and a click posts
         // nothing; with the control's attribute stripped, as a stale paint would leave it, the draw's own guard still posts
         // nothing. Clicks are activated in the page, as above.
