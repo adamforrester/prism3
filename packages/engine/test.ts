@@ -10020,6 +10020,11 @@ arm: {
   ok(!m12threw, 'M-12: an all-caps PRIMARY no longer throws "no primary"');
   const { input, xApplied } = standardToBrandInput(std);
   ok(input.id === 'wendys', "standardToBrandInput: id derived from name (Wendy's → wendys)");
+  // #2892: the brief's name is also the display name the library cover shows, not only the slug's source; a brief
+  // with none leaves `name` unset rather than the parser's 'brand' default.
+  ok(input.name === "Wendy's", `standardToBrandInput: the brief's name is the display name (#2892) — ${JSON.stringify(input.name)}`);
+  ok(standardToBrandInput(parseStandardDesignMd('---\ncolors:\n  primary: "#3366cc"\n---\n')).input.name === undefined,
+    'standardToBrandInput: a brief with no name sets no display name (#2892)');
   // #1283 gave wendys ONE x-prism3 lever — its root namespace — because a standard-spec brief has no
   // other way to name one, and a shipped brand may not sit on the reserved `prism`. So the arm names
   // exactly what the block applies rather than counting zero: "engine defaults everywhere but the

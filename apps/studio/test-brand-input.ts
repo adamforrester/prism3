@@ -38,17 +38,22 @@ ok(B.namespaceNote('Acme').kind === 'bad' && B.namespaceNote('2x').kind === 'bad
 ok(!B.renameNamespace('Acme') && store.brandState.root === 'pds3', 'a refused rename writes nothing');
 ok(B.renameNamespace('acme') && store.brandState.root === 'acme' && takes(), 'a rename writes the namespace, and the engine takes it');
 
-console.log('\n2. The name (#1196)');
+console.log('\n2. The name (#1196, #2915)');
 reset();
 let identity = 0;
 const off = store.subscribe('identity', () => { identity++; });
 let brand = 0;
 const offB = store.subscribe('brand', () => { brand++; });
-B.setName('acme-brand');
-ok(store.brandState.id === 'acme-brand' && store.lastGoodInput.id === 'acme-brand', 'the name reaches the working brand and the last-good input');
+// #2915: the Brand name field is the display name (`BrandInput.name`, which the library cover shows); the id is the
+// export slug and never moves with it. Mutation: `setName` writing `id` again → this check, by name.
+B.setName('Acme Brand');
+ok(store.brandState.name === 'Acme Brand' && store.lastGoodInput.name === 'Acme Brand' && store.brandState.id === 'prism3' && store.lastGoodInput.id === 'prism3',
+  `the Brand name field writes name, not id (name "${store.brandState.name}", id "${store.brandState.id}"; last-good "${store.lastGoodInput.name}", "${store.lastGoodInput.id}")`);
 ok(identity === 1 && brand === 0, `the name tells \`identity\` and never rebuilds (identity ${identity}, brand ${brand})`);
+ok(B.shownName() === 'Acme Brand', `the field and the bar show the display name (${B.shownName()})`);
 B.setName('   ');
-ok(store.brandState.id === 'untitled', `an empty name is "untitled" (${store.brandState.id})`);
+ok(store.brandState.name === undefined && !('name' in store.lastGoodInput) && store.brandState.id === 'prism3', `an empty name clears it, and the id stays (${JSON.stringify(store.brandState.name)}, ${store.brandState.id})`);
+ok(B.shownName() === 'prism3', `with no display name the field and the bar show the id as written (${B.shownName()})`);
 off(); offB();
 
 console.log('\n3. The modes (Q3)');

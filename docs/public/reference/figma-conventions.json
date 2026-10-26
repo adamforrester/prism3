@@ -3443,7 +3443,7 @@
       "source": "apps/plugin/src/about-frame.ts#export const ABOUT_KEY"
     },
     "coverFrame": {
-      "rule": "The Cover page carries one 1920 × 1080 \"Cover\" frame, the library cover, set as the file thumbnail while the file has none of its own: the brand's name and the engine version it was last updated with. Its fill binds <root>/color/foreground/brand and its text binds <root>/color/text/on-brand. It carries shared plugin data under namespace \"prism3\", key \"cover\"; its two texts carry key \"cover-part\", \"brand\" or \"version\". Every Update sets the version text while it is there; a cover a designer edited keeps every other layer as they left it.",
+      "rule": "The Cover page carries one 1920 × 1080 \"Cover\" frame, the library cover, set as the file thumbnail while the file has none of its own: the library's name centered, a subtitle under it, the engine version it was last updated with at bottom-left, and an empty \"Logo\" slot at top-right. Its fill binds <root>/color/background/primary, the name binds <root>/color/text/brand, and the subtitle and version bind <root>/color/text/secondary. It carries shared plugin data under namespace \"prism3\", key \"cover\"; its parts carry key \"cover-part\": \"brand\" (the name), \"subtitle\", \"version\" or \"logo\". Every Update sets the version text while it is there; a cover a designer edited keeps every other layer as they left it, and anything placed in the logo slot is never an edit.",
       "name": "Cover",
       "tag": {
         "namespace": "prism3",
@@ -3453,12 +3453,15 @@
         "key": "cover-part",
         "values": [
           "brand",
-          "version"
+          "subtitle",
+          "version",
+          "logo"
         ]
       },
       "binds": {
-        "ground": "<root>/color/foreground/brand",
-        "ink": "<root>/color/text/on-brand"
+        "ground": "<root>/color/background/primary",
+        "name": "<root>/color/text/brand",
+        "text": "<root>/color/text/secondary"
       },
       "source": "apps/plugin/src/cover-frame.ts#export const COVER_KEY"
     },
