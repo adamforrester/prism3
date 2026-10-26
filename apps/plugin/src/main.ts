@@ -84,7 +84,7 @@ import { createAgentLink } from './agent-link';
 import { createDispatcher, componentCensus } from './agent-dispatch';
 import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
-import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, setUpToDate } from './update-plan';
+import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
 import type { UpdateHost, UpdateTarget } from './update-plan';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
@@ -1072,8 +1072,7 @@ const checkSets = async (defs: readonly string[], input?: BrandInput): Promise<v
     const found = targets.filter((t) => !r.missing.includes(t.def) && !r.refused.some((x) => x.def === t.def));
     postToUi({
       type: 'update-check', previewHash: previewHashOf(r), missing: r.missing, refused: r.refused,
-      sets: r.sets.map((p, i) => ({ def: found[i]?.def ?? p.set, hash: p.previewHash, members: p.counts.members, update: p.counts.update, add: p.counts.add, drop: p.counts.drop,
-        handEdited: p.counts.handEdited, noBaseline: p.counts.noBaseline, blocked: p.blockers.length > 0, upToDate: setUpToDate(p) })),
+      sets: r.sets.map((p, i) => checkedSetOf(p, found[i]?.def ?? p.set)),
     });
   } catch (e) {
     postToUi({ type: 'update-check', previewHash: '', missing: [], refused: [], sets: [], error: (e as Error)?.message ?? String(e) });
