@@ -35,6 +35,9 @@ export type StandardTypeToken = {
 
 export type StandardDesignMd = {
   name: string;
+  /** The brief's own `name`, when it gives one (#2892): the brand's display name. `name` above defaults to 'brand'
+   *  for the id slug, so this is how a reader tells a given name from that default. */
+  displayName?: string;
   version?: string;
   colors: Record<string, string>;                    // token → hex
   typography: Record<string, StandardTypeToken>;     // token → type object
@@ -86,6 +89,7 @@ export const parseStandardDesignMd = (text: string): StandardDesignMd => {
   }
   return {
     name: raw.name != null ? String(raw.name) : 'brand',
+    ...(raw.name != null && String(raw.name).trim() ? { displayName: String(raw.name).trim() } : {}),
     version: raw.version != null ? String(raw.version) : undefined,
     colors,
     typography: asRecord(raw.typography) as Record<string, StandardTypeToken>,
@@ -197,6 +201,8 @@ export const standardToBrandInput = (std: StandardDesignMd, id?: string): Standa
   const classification = classifyColors(std.colors);
   const input: BrandInput = {
     id: id ?? idFromName(std.name),
+    // #2892: the brief's name is the display name the library cover shows, not only the slug's source.
+    ...(std.displayName ? { name: std.displayName } : {}),
     primary: classification.input.primary,
     neutral: classification.input.neutral,
     brandColors: classification.input.brandColors,

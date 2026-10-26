@@ -10652,6 +10652,53 @@
           }
         }
       },
+      "glass": {
+        "surface": {
+          "$type": "color",
+          "$value": "{hds.core.palette.white-alpha.70}",
+          "$description": "Glass — the translucent white fill behind the glass background blur; opacity 70%",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.core.palette.white-alpha.70",
+              "contrast": 1,
+              "against": "self",
+              "modes": {
+                "dark": {
+                  "$value": "{hds.core.palette.black-alpha.70}",
+                  "aliasOf": "hds.core.palette.black-alpha.70",
+                  "contrast": 1,
+                  "against": "self",
+                  "description": "Glass — the translucent black fill behind the glass background blur; opacity 70%"
+                },
+                "hc-light": {
+                  "$value": "{hds.core.palette.white-alpha.90}",
+                  "aliasOf": "hds.core.palette.white-alpha.90",
+                  "contrast": 1,
+                  "against": "self",
+                  "description": "Glass — the translucent white fill behind the glass background blur; opacity 90%"
+                },
+                "hc-dark": {
+                  "$value": "{hds.core.palette.black-alpha.90}",
+                  "aliasOf": "hds.core.palette.black-alpha.90",
+                  "contrast": 1,
+                  "against": "self",
+                  "description": "Glass — the translucent black fill behind the glass background blur; opacity 90%"
+                }
+              },
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ]
+              }
+            }
+          }
+        }
+      },
       "veil": {
         "dark": {
           "subtle": {
@@ -20413,6 +20460,19 @@
                 "offsetY"
               ]
             }
+          }
+        }
+      }
+    },
+    "blur": {
+      "glass": {
+        "$type": "dimension",
+        "$value": "32px",
+        "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface",
+        "$extensions": {
+          "prism3": {
+            "generated": true,
+            "px": 32
           }
         }
       }

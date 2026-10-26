@@ -93,6 +93,7 @@ const genMeaning = (group: string, variant: string): string => {
   if (group === 'border') return 'Separation / structure';
   if (group === 'scrim') return 'Background dimming / modal focus';
   if (group === 'veil') return 'Text legibility over a photograph';
+  if (group === 'glass') return 'Frosted band over a photograph';
   return `${cap(group)} role`;
 };
 // the on-color target an on-* label sits on. Every `on-<x>` is a STATUS FILL since #1140 — `on-inverse`
@@ -292,6 +293,9 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
   // It used to name `inverse.foreground.primary`, which reads as a dark modal in light mode. A `tracks`
   // relation, not a contrast claim — the scrim is translucent and the modal is opaque over it.
   if (group === 'scrim') return { when_to_use: 'The dimming layer behind a modal, dialog, or drawer. The modal itself uses `foreground.primary`.', avoid_when: 'Do not use as a solid surface or for any opaque element.', tracks: ['foreground.primary'] };
+  // Glass (#2869): the fill half of the glass treatment; the blur half is `blur.glass`. It follows the page
+  // polarity, so the page's own text roles read on it — unlike `veil`, whose ink must hold still.
+  if (group === 'glass') return { when_to_use: 'The translucent fill of a glass band over a photograph — a caption or footer set over the bottom of an image. Pair it with a background blur of `blur.glass`. Text on it uses the page roles, such as `text.primary`.', avoid_when: 'Do not use without the background blur, as a modal backdrop (use `scrim.default`), or as an opaque surface (use `foreground.primary`).' };
 
   // veil — the media wash (#1030, renamed #1317). `variant` is the polarity, `state` the rung. A rung
   // names an INTENSITY (subtle / medium / strong), so the guidance is decision-shaped: pick the polarity
@@ -549,6 +553,8 @@ const thinRole = (path: string): { tier: 'layout' | 'motion' | 'typography'; mea
   const tail = (n: number) => s.slice(n).join('.');
   if (s[0] === 'space') return { tier: 'layout', meaning: `Spacing step ${last}`, when: 'Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.' };
   if (s[0] === 'radius') return { tier: 'layout', meaning: `Corner-radius role — ${last}`, when: 'Corner rounding of surfaces and controls.' };
+  // #2869: the glass blur is a role with a literal value, the background half of the glass treatment.
+  if (s[0] === 'blur') return { tier: 'layout', meaning: `Background-blur radius — ${last}`, when: 'The background blur behind a glass band over a photograph (`backdrop-filter: blur()` in code). Its fill is `color.glass.surface`.' };
   if (s[0] === 'border-width') return { tier: 'layout', meaning: `Border-width role — ${last}`, when: 'Stroke width of borders, dividers and outlines.' };
   if (s[0] === 'focus' && s[1] === 'ring') return { tier: 'layout', meaning: `Focus-ring geometry — ${tail(2)}`, when: 'The keyboard-focus ring drawn around a focused element. Its color is `border.focus`.' };
   if (s[0] === 'size' && s.length === 3) return { tier: 'layout', meaning: `Control size step ${s[1]} — ${s[2]}`, when: `The ${s[2]} of a button, field or other control at the ${s[1]} size step. Take every dimension of one control from the same step.` };

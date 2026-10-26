@@ -226,6 +226,7 @@ export const buildFloatWritePlan = (theme: Theme): FloatCollectionPlan[] => {
     named([dims.borderWidth]),
     named([dims.focus]),
     named([dims.opacity]),
+    named([dims.blur]),   // #2869 — the glass radius; written before the styles plan binds it
     named(layout),
     // `motion` is not a FLOAT axis since #2412: TIMING and EASING, so it is a `VarCollectionPlan`
     // (`buildMotionVarPlan`), written by the mixed-type executor.

@@ -177,6 +177,7 @@ export const COLLECTION_AXIS: Record<string, Axis> = {
   // gains a mode here, like `radius`.
   motion: 'none',
   opacity: 'none',
+  blur: 'none',          // #2869 — one Default mode: the glass radius does not vary
   radius: 'none',
   size: 'none',
   space: 'none',

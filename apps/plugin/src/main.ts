@@ -84,7 +84,7 @@ import { createAgentLink } from './agent-link';
 import { createDispatcher, componentCensus } from './agent-dispatch';
 import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
-import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, setUpToDate } from './update-plan';
+import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
 import type { UpdateHost, UpdateTarget } from './update-plan';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
@@ -365,7 +365,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     const { summary, lines } = fromClauses([
       `palette ${r.paletteTotal} (+${r.paletteCreated})`, `color ${r.colorTotal} (+${r.colorCreated})`,
       `dims/layout ${f.collections.length} collections (+${floatCreated})`,
-      `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
+      `styles ${s.effects.total} effects (+${s.effects.created}, ${s.effects.bound} bound) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
       `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
       `motion ${motionTotal} vars (+${motionCreated})`,
       // #2412 (Q293 A): the one deletion Apply makes, so it is always said (wording: Q302).
@@ -393,7 +393,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
         counts: {
           palette: { total: r.paletteTotal, created: r.paletteCreated }, color: { total: r.colorTotal, created: r.colorCreated },
           floatCollections: f.collections.length, floatCreated,
-          effects: { total: s.effects.total, created: s.effects.created },
+          effects: { total: s.effects.total, created: s.effects.created, bound: s.effects.bound },
           gradients: { total: s.paints.total, created: s.paints.created, stopsBound: s.paints.bound },
           gridStyles: { total: gs.total, created: gs.created, renamed: gs.renamed, skipped: gs.skipped },
           fontsLoaded: pf.loaded, fontVars: { total: fontVarTotal, created: fontVarCreated },
@@ -1072,8 +1072,7 @@ const checkSets = async (defs: readonly string[], input?: BrandInput): Promise<v
     const found = targets.filter((t) => !r.missing.includes(t.def) && !r.refused.some((x) => x.def === t.def));
     postToUi({
       type: 'update-check', previewHash: previewHashOf(r), missing: r.missing, refused: r.refused,
-      sets: r.sets.map((p, i) => ({ def: found[i]?.def ?? p.set, hash: p.previewHash, members: p.counts.members, update: p.counts.update, add: p.counts.add, drop: p.counts.drop,
-        handEdited: p.counts.handEdited, noBaseline: p.counts.noBaseline, blocked: p.blockers.length > 0, upToDate: setUpToDate(p) })),
+      sets: r.sets.map((p, i) => checkedSetOf(p, found[i]?.def ?? p.set)),
     });
   } catch (e) {
     postToUi({ type: 'update-check', previewHash: '', missing: [], refused: [], sets: [], error: (e as Error)?.message ?? String(e) });
