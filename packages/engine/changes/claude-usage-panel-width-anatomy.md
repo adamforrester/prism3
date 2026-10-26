@@ -1,0 +1,4 @@
+---
+engine: minor
+---
+Plugin: usage panels show each specimen at its member's own width (#2970 item 1). A specimen kept the template placeholder's hug after its swap, so Banner's text wrapped one letter per line and Checkbox.Row's label wrapped; a fixed-width member's specimen now takes that width. The panel is as wide as its widest specimen needs and never narrower than 560px, and Theming's two modes stack when side by side would make it 960px or wider. Build's seat, Update's spacing and the apply all read that width, so a wider panel moves the spec column and the next set right. A family's panel is titled with its page's name, and "In this family" lists each part with its own summary and a link to its set (#2970 item 4); Related names a family member by its family, linked to the lead's set. Anatomy markers are checked against their parts by bounding-box containment, Breadcrumbs' slot items included (#2916). Every drawn panel is due once.
