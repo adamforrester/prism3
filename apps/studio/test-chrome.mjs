@@ -15498,7 +15498,13 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
 //   · the badge counting nothing (`dueCount` → 0) → `IA2 figma … Update file carries a badge of 2 …`;
 //   · the scoped check asked over every present set → `IA2 figma … the checklist asks the full check for the due sets
 //     alone …`;
-//   · hand edits defaulting to Overwrite (`defaultTicks`) → `IA2 figma … the update keeps hand edits by default …`.
+//   · hand edits defaulting to Overwrite (`defaultTicks`) → `IA2 figma … the update keeps hand edits by default …`;
+//   · `endStep`'s due read after a run sending `panelBrand(true)` → `IA2 figma … after a run with Theme unticked, the due
+//     read asks against the file's stored brand …` (#3023);
+//   · the run's re-check (`startStep`, no `previewHash`) sending `panelBrand(true)` → `IA2 figma … with Theme unticked,
+//     the run checks the fewer sets again against the file's stored brand …` (#3023);
+//   · the re-tick from a toggle's answer (`if (rechecking && ticks) …`) deleted → `IA2 figma … a Theme toggle ticks the
+//     due sets from its own answer …` (#3023).
 console.log(`\nIA v2 phase 2 (#2909) — tiers, lever homes, engine warnings, what is due\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
   const where = `IA2 ${host} ${theme} 1280`;
@@ -15650,6 +15656,53 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const sent = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-sets'));
       ok(sent.length === 1 && canon(sent[0]) === canon({ type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep' }),
         `${where}: Q2909.8 A, #3023 Q701 B: with Theme unticked, the update posts the ticked sets with the check's own hash, Keep, and no brand, so the host lays the stored one (${sent.length ? wireDiff(sent[0], { type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep' }) : 'nothing posted'})`);
+      // The run ends on the update's verdict, and the due read after it measures against the brand the run left in the
+      // file: with Theme unticked, the stored one, so the badge does not flag the sets the run just wrote (#3023).
+      step = 'the due read after the run';
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      const after = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'file-sets-request'));
+      ok(after.length === 1 && !('input' in after[0]),
+        `${where}: #3023 Q701 B: after a run with Theme unticked, the due read asks against the file's stored brand (no brand sent) (${JSON.stringify(after.map((m) => 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none'))})`);
+      await postMsg(page, FILE);
+      await postMsg(page, { type: 'hand-edits', done: true });
+      // A toggle's answer ticks the due sets afresh: here the stored brand finds Tag due too, and its box is ticked.
+      step = 'the toggle\'s answer';
+      const FILE2 = { ...FILE, due: { ...DUE, tag: { state: 'due', reason: 'definition' } } };
+      const sets2 = [...sets, { def: 'tag', hash: 'ht', members: 24, update: 4, add: 0, drop: 0, handEdited: 3, noBaseline: 0, blocked: false, upToDate: false }];
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE2);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-2', missing: [], refused: [], sets: sets2 });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      const rt = await page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
+        rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => [b.dataset.id, b.getAttribute('aria-checked')]) }));
+      ok(rt.theme === 'false' && JSON.stringify(rt.rows) === JSON.stringify([['button', 'true'], ['select', 'true'], ['tag', 'true']]),
+        `${where}: #3023 Q701 B: a Theme toggle ticks the due sets from its own answer, so Tag, due under the stored brand, is ticked (${JSON.stringify(rt)})`);
+      // An update of fewer sets than were checked is checked again first, against the same brand: the stored one.
+      step = 'the run\'s re-check';
+      await hooks.click(page.locator('[data-p3="update-due-set"][data-id="select"]'));
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-go"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      const re = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-check-request'));
+      ok(re.length === 1 && JSON.stringify(re[0].defs) === JSON.stringify(['button', 'tag']) && !('input' in re[0]),
+        `${where}: #3023 Q701 B: with Theme unticked, the run checks the fewer sets again against the file's stored brand (no brand sent) (${JSON.stringify(re.map((m) => [m.defs, 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none']))})`);
+      await postMsg(page, { type: 'update-check', previewHash: 'H-3', missing: [], refused: [], sets: sets2.filter((c) => c.def !== 'select') });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
+      await postMsg(page, FILE);
+      await postMsg(page, { type: 'hand-edits', done: true });
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
