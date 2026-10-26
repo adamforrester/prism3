@@ -208,7 +208,7 @@ export const rebuild = (): void => {
  *  · Apply posts `lastGoodInput` (a BrandInput the plugin re-resolves), so the fresh `root` reaches
  *    the plugin's emission from here alone;
  *  · web persist writes `lastGoodInput`, so a reopen restores the fresh name/namespace;
- *  · `slug(lastGoodInput.id)` and `toDesignMd(lastGoodInput)` pick up the fresh name.
+ *  · `slug(lastGoodInput.id)` and `toDesignMd(lastGoodInput)` pick up the fresh id and display name.
  *
  * It does NOT touch the resolved `theme`. That was the original fix's mistake: `theme.root` and
  * `theme.namespace` are SEPARATE fields — `buildTree` roots the tree at `theme.root` but resolves every
@@ -223,6 +223,8 @@ export const rebuild = (): void => {
  */
 export const syncIdentity = (): void => {
   lastGoodInput.id = brandState.id;
+  if (brandState.name === undefined) delete lastGoodInput.name;
+  else lastGoodInput.name = brandState.name;
   lastGoodInput.root = brandState.root;
   persist?.(lastGoodInput);   // web reopen reads the fresh identity
   invalidate('identity');     // S3: the bar's brand name follows the Brand page's name field

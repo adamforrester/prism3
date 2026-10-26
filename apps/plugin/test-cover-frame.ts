@@ -1,35 +1,46 @@
 /**
- * THE LIBRARY COVER (#2859, owner decision Q509 A) — drawn by Set up file, kept current by Update, never replacing a
- * designer's thumbnail or their edits.
+ * THE LIBRARY COVER (#2859; redesigned #2915, owner decision Q1–Q5 A) — drawn by Set up file, kept current by Update,
+ * never replacing a designer's thumbnail or their edits.
  *
  *   npx tsx apps/plugin/test-cover-frame.ts
  *
- *   cover/…      a first draw: 1920 × 1080 on the Cover page, the brand name (`name`, else the `id` as written) and
- *                "Prism3 <engine>" and no other text, the ground bound to `foreground/brand`, both inks to
- *                `text/on-brand`, the fonts bound to the display and body variables; placeholders with no theme.
- *   fit/…        a name too wide for one line at 240 px drops to 180 px and wraps inside the inset.
+ *   cover/…      a first draw: 1920 × 1080 on the Cover page; the name, "Design system" and "v<engine>" and no other
+ *                text; the ground bound to `background/primary`, the name's ink to `text/brand`, the subtitle's and the
+ *                version's to `text/secondary`; the fonts bound to the display and body variables; the wireframe's
+ *                geometry (direction A); an empty logo slot top-right; placeholders with no theme.
+ *   bound/…      every paint on a drawn cover is bound to a theme variable, none written as a literal.
+ *   fit/…        a long name wraps inside the 240 px inset, and the block stays centered.
  *   thumb/…      the thumbnail rule: set only while it is Figma's default; a designer's frame is never replaced.
  *   due/…        what the dry run reads: missing, stale for a new engine or name, current, and their lines.
  *   refresh/…    an unedited cover is refreshed in place: the same node, its place kept, the version and name set,
  *                placeholders bound once the theme's variables exist.
+ *   logo/…       a logo pasted into the slot is not a hand edit: the name and the version keep updating, and the
+ *                logo and the name are both kept.
+ *   name/…       the name shown: `name`, else the id made readable (Q5 A), and the lines say no display name is set.
+ *   redraw/…     an unedited cover the first design drew (#2859) is redrawn in this design in the same frame; an
+ *                edited one is kept, "(edited)", and only its version text moves.
  *   edited/…     a cover edited by hand keeps every edit, and only its tagged version text moves (Q?4 B); with that
  *                text deleted nothing is written and the result says so.
  *   page/…       no Cover page, no brand: nothing drawn, and why.
- *   contrast/…   the cover's pair is the engine's contract: for every example brand and mode, the ink the cover binds
- *                is contracted against exactly the ground it binds, at 4.5:1 or more, and measures that here.
+ *   contrast/…   the cover's inks hold 4.5:1 on its ground, measured here, for every example brand and mode.
  *   setup/…      Set up file draws the cover on the Cover page it scaffolds.
+ *   update/…     through a real Update in the component shim: version and name reach an unedited cover, a first-design
+ *                cover is redrawn, Documentation's Cover off is respected.
  *
  * INDEPENDENCE (docs/34): the host below is written here, not derived from `cover-frame.ts`: it measures text from its
  * characters and size, refuses a characters write on an unloaded font as Figma does, and resolves variables by name.
- * Every expected string is a literal from the approved wireframe and Q509 A, never built from the module's helpers.
- * Contrast is computed here from the engine's emitted hex (WCAG 2.x), not read off the engine's own `ratio`.
+ * Every expected string and number is a literal from the approved wireframe (#2915, direction A) and the owner's
+ * Q1–Q5 A, never built from the module's helpers. Contrast is computed here from the engine's emitted hex (WCAG 2.x),
+ * not read off the engine's own `ratio`. The first design's fingerprint is a literal, computed once by #2859's own
+ * `coverPrint` on the fixture below, so a change to how the print reads an old cover fails here.
  *
- * BY-NAME MUTATIONS (the PR body lists them): the thumbnail set over a designer's frame → `thumb/never replaces a
- * designer's thumbnail`; the cover gains the contract version → `cover/brand and version only`; the ground written as
- * a literal → `cover/ground bound to foreground/brand`; an edited cover's other layer rewritten → `edited/only the
- * version text moves`; the ink bound to another role → `contrast/the cover's ink is contracted against its ground`. Update
- * ignoring Documentation's Cover off (`update-plan.ts`, the `readDocSettings(…).cover` test read as `true`) →
- * `update/cover off` (#2995).
+ * BY-NAME MUTATIONS (the PR body lists them): one paint written as a literal (`addText`'s `paint`) → `bound/every paint
+ * on the cover is bound`; the version write skipped on an unedited cover → `update/version refreshed`; `coverPrint`
+ * reading the logo slot → `logo/content in the slot is not a hand edit`; the readable fallback back to the id as
+ * written → `name/the readable fallback`; the thumbnail set over a designer's frame → `thumb/never replaces a
+ * designer's thumbnail`; an edited cover's other layer rewritten → `edited/only the version text moves`; an edited
+ * first-design cover redrawn → `redraw/an edited first-design cover is kept`; the name's ink bound to `text/tertiary` →
+ * `contrast/the cover's inks hold 4.5:1`; Update ignoring Documentation's Cover off → `update/cover off` (#2995).
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -48,7 +59,8 @@ import { ABOUT_KEY } from './src/about-frame';
 import { scaffoldSkeleton, type PagesApi, type PageLike } from './src/file-setup';
 import { TAXONOMY } from './src/file-taxonomy';
 import {
-  COVER_KEY, COVER_NS, GROUND_VARIABLE, INK_VARIABLE, brandNameOf, coverDue, coverDueLine, coverIsWork, coverLine, coverPrint, drawCover, type CoverApi,
+  COVER_KEY, COVER_NS, GROUND_VARIABLE, NAME_INK_VARIABLE, TEXT_INK_VARIABLE, brandNameOf, coverDue, coverDueLine, coverIsWork, coverLine, coverPrint,
+  drawCover, readableId, type CoverApi,
 } from './src/cover-frame';
 
 let failed = 0;
@@ -126,7 +138,11 @@ const host = (o: { vars?: Var[]; refuseFonts?: string[]; thumb?: N | null; thumb
 
 /** A brand's variables as the emission names them, under a root of its own. */
 const themeVars = (root = 'ads'): Var[] => [
-  { id: 'V:ground', name: `${root}/color/foreground/brand` },
+  { id: 'V:ground', name: `${root}/color/background/primary` },
+  { id: 'V:brand', name: `${root}/color/text/brand` },
+  { id: 'V:sec', name: `${root}/color/text/secondary` },
+  { id: 'V:tert', name: `${root}/color/text/tertiary` },
+  { id: 'V:fg', name: `${root}/color/foreground/brand` },
   { id: 'V:ink', name: `${root}/color/text/on-brand` },
   { id: 'V:primary', name: `${root}/color/text/primary` },
   { id: 'V:inv', name: `${root}/color/inverse/foreground/brand` },
@@ -138,10 +154,40 @@ const themeVars = (root = 'ads'): Var[] => [
 const texts = (n: N): N[] => n.type === 'TEXT' ? [n] : (n.children as N[]).flatMap(texts);
 const tagged = (page: N): N[] => page.children.filter((n: N) => n.getSharedPluginData(COVER_NS, COVER_KEY));
 const part = (n: N, p: string): N | undefined => texts(n).find((t) => t.getSharedPluginData(COVER_NS, 'cover-part') === p);
+const slotOf = (n: N): N | undefined => (n.children as N[]).find((c) => c.type === 'FRAME' && c.getSharedPluginData(COVER_NS, 'cover-part') === 'logo');
+const all = (n: N): N[] => [n, ...((n.children ?? []) as N[]).flatMap(all)];
+const chars = (n: N): string[] => texts(n).map((t) => t.characters);
 const fillVar = (n: N): string | undefined => n.fills?.[0]?.boundVariables?.color?.id;
 
+
+/**
+ * A COVER THE FIRST DESIGN DREW (#2859), built here by hand as `drawCover` drew it then: a brand-color ground, the
+ * wordmark at 240 px and "Prism3 <engine>" at 64 px, both bound to `text/on-brand`, and a record with no `design`.
+ * `FIRST_PRINT` is that fixture's fingerprint as #2859's own `coverPrint` read it (computed once from the code at
+ * ae758a99, pasted here), so the record a real file carries still reads as unedited.
+ */
+const FIRST_PRINT = 'deb012876b6738a7';
+const firstDesign = async (f: ReturnType<typeof host>, o: { engine: string; at?: N }): Promise<N> => {
+  await f.api.loadFontAsync({ family: 'Inter', style: 'Semi Bold' });
+  await f.api.loadFontAsync({ family: 'Inter', style: 'Regular' });
+  const bound = (id: string) => [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0.2, g: 0.2, b: 0.8 }, boundVariables: { color: { type: 'VARIABLE_ALIAS', id } } }];
+  const fr = f.node('FRAME');
+  fr.name = 'Cover'; fr.resize(1920, 1080); fr.clipsContent = true; fr.fills = bound('V:fg');
+  (o.at ?? f.cover).appendChild(fr);
+  const text = (part: string, chars: string, face: string, size: number, y: number): N => {
+    const t = f.node('TEXT');
+    t.name = part; t.setSharedPluginData('prism3', 'cover-part', part); fr.appendChild(t);
+    t.fontName = { family: 'Inter', style: face }; t.fills = bound('V:ink'); t.characters = chars; t.fontSize = size; t.textAutoResize = 'WIDTH_AND_HEIGHT'; t.x = 120; t.y = y;
+    return t;
+  };
+  text('brand', 'Harbor', 'Semi Bold', 240, 360);
+  text('version', `Prism3 ${o.engine}`, 'Regular', 64, 906);
+  fr.setSharedPluginData('prism3', 'cover', JSON.stringify({ engine: o.engine, name: 'Harbor', print: FIRST_PRINT }));
+  return fr;
+};
+
 /* ── cover ───────────────────────────────────────────────────────────────────────────────────────────── */
-section('cover — a first draw on a themed file');
+section('cover — a first draw on a themed file (direction A)');
 {
   const f = host({ vars: themeVars() });
   ok(eq(await coverDue(f.root, { brand: 'Aurora', engine: '0.237.0', api: f.api }), { state: 'missing' }), 'cover/due: a Cover page with no cover reads missing');
@@ -149,16 +195,27 @@ section('cover — a first draw on a themed file');
   const fr = tagged(f.cover);
   ok(o.did === 'drawn' && fr.length === 1 && fr[0].name === 'Cover', `cover/one frame, named Cover (${fr.map((n) => n.name)})`);
   ok(fr[0].width === 1920 && fr[0].height === 1080 && fr[0].x === 0 && fr[0].y === 0, `cover/1920 × 1080 at the origin of an empty page (${fr[0].width} × ${fr[0].height} at ${fr[0].x}, ${fr[0].y})`);
-  ok(eq(texts(fr[0]).map((t) => t.characters).sort(), ['Aurora', 'Prism3 0.237.0']), `cover/brand and version only (${JSON.stringify(texts(fr[0]).map((t) => t.characters))})`);
-  ok(fillVar(fr[0]) === 'V:ground', `cover/ground bound to foreground/brand (${JSON.stringify(fr[0].fills)})`);
-  ok(texts(fr[0]).every((t) => fillVar(t) === 'V:ink'), `cover/both inks bound to text/on-brand (${texts(fr[0]).map(fillVar)})`);
-  const wm = part(fr[0], 'brand')!;
+  ok(eq(chars(fr[0]), ['Aurora', 'Design system', 'v0.237.0']), `cover/the name, the subtitle and the version, and no other text (${JSON.stringify(chars(fr[0]))})`);
+  ok(fillVar(fr[0]) === 'V:ground', `cover/ground bound to background/primary (${JSON.stringify(fr[0].fills)})`);
+  const nm = part(fr[0], 'brand')!;
+  const sub = part(fr[0], 'subtitle')!;
   const ver = part(fr[0], 'version')!;
-  ok(wm.boundVariables.fontFamily?.id === 'V:dfam' && wm.boundVariables.fontStyle?.id === 'V:dsty' && eq(wm.fontName, { family: 'Clash Display', style: 'Semibold' }),
-    `cover/wordmark in the display face, bound (${JSON.stringify(wm.boundVariables)}; ${JSON.stringify(wm.fontName)})`);
-  ok(ver.boundVariables.fontFamily?.id === 'V:bfam' && ver.boundVariables.fontStyle?.id === 'V:bsty', `cover/version in the body face, bound (${JSON.stringify(ver.boundVariables)})`);
-  ok(wm.fontSize === 240 && wm.x === 120 && wm.y === 360, `cover/wordmark at 240 px, 120 px in, 360 px down (${wm.fontSize}, ${wm.x}, ${wm.y})`);
-  ok(ver.fontSize === 64 && ver.x === 120 && ver.y === 1080 - 110 - 64, `cover/version at 64 px, 110 px off the bottom (${ver.fontSize}, ${ver.x}, ${ver.y})`);
+  ok(fillVar(nm) === 'V:brand', `cover/the name's ink bound to text/brand (${fillVar(nm)})`);
+  ok(fillVar(sub) === 'V:sec' && fillVar(ver) === 'V:sec', `cover/the subtitle's and the version's ink bound to text/secondary (${fillVar(sub)}, ${fillVar(ver)})`);
+  ok(nm.boundVariables.fontFamily?.id === 'V:dfam' && nm.boundVariables.fontStyle?.id === 'V:dsty' && eq(nm.fontName, { family: 'Clash Display', style: 'Semibold' }),
+    `cover/the name in the display face, bound (${JSON.stringify(nm.boundVariables)}; ${JSON.stringify(nm.fontName)})`);
+  ok([sub, ver].every((t) => t.boundVariables.fontFamily?.id === 'V:bfam' && t.boundVariables.fontStyle?.id === 'V:bsty'), 'cover/the subtitle and the version in the body face, bound');
+  // The wireframe's numbers: the name 120 px, 110 % leading, −1 % tracking, centered inside a 240 px inset; the
+  // subtitle 36 px, 28 px under it; the pair centered on the frame (120 + 28 + 36 = 184 tall here, so 448 down).
+  ok(nm.fontSize === 120 && eq(nm.lineHeight, { value: 110, unit: 'PERCENT' }) && eq(nm.letterSpacing, { value: -1, unit: 'PERCENT' }) && nm.textAlignHorizontal === 'CENTER',
+    `cover/the name at 120 px, 110 % leading, −1 % tracking, centered (${nm.fontSize}, ${JSON.stringify(nm.lineHeight)}, ${JSON.stringify(nm.letterSpacing)}, ${nm.textAlignHorizontal})`);
+  ok(nm.x === 240 && nm.width === 1440 && nm.textAutoResize === 'HEIGHT' && nm.y === 448, `cover/the name wraps inside the 240 px inset, the block centered (${nm.x}, ${nm.width}, ${nm.textAutoResize}, ${nm.y})`);
+  ok(sub.fontSize === 36 && sub.textAlignHorizontal === 'CENTER' && sub.x === 240 && sub.width === 1440 && sub.y === 448 + 120 + 28,
+    `cover/the subtitle at 36 px, 28 px under the name, centered (${sub.fontSize}, ${sub.x}, ${sub.y})`);
+  ok(ver.fontSize === 28 && ver.x === 96 && ver.y === 1080 - 96 - 28, `cover/the version at 28 px, 96 px in from the bottom-left corner (${ver.fontSize}, ${ver.x}, ${ver.y})`);
+  const slot = slotOf(fr[0]);
+  ok(!!slot && slot.name === 'Logo' && slot.x === 1920 - 96 - 200 && slot.y === 96 && slot.width === 200 && slot.height === 72 && slot.children.length === 0 && eq(slot.fills, []),
+    `cover/an empty logo slot, 200 × 72, 96 px in from the top-right corner (${slot?.name} at ${slot?.x}, ${slot?.y}, ${slot?.width} × ${slot?.height}, ${slot?.children.length} children)`);
   ok(o.thumbnail === 'set' && f.api._thumb === fr[0], `cover/set as the file thumbnail while it was the default (${JSON.stringify(o.thumbnail)})`);
   ok(coverLine(o) === 'Cover: drawn and set as the file thumbnail.', `cover/result line (${coverLine(o)})`);
   ok(eq(await coverDue(f.root, { brand: 'Aurora', engine: '0.237.0', api: f.api }), { state: 'current' }), 'cover/current after drawing');
@@ -176,20 +233,31 @@ section('cover — no theme yet: placeholders, bound by a later Update');
   const fr = tagged(f.cover)[0];
   ok(o.did === 'drawn' && !fillVar(fr) && texts(fr).every((t) => !fillVar(t) && !t.boundVariables.fontFamily), 'cover/no variables: drawn on placeholders, unbound');
   ok(eq(part(fr, 'brand')!.fontName, { family: 'Inter', style: 'Semi Bold' }) && eq(part(fr, 'version')!.fontName, { family: 'Inter', style: 'Regular' }), 'cover/no variables: the fallback faces');
-  ok(eq(texts(fr).map((t) => t.characters).sort(), ['Prism3 0.237.0', 'harbor']), 'cover/the id as written when no name is set');
+  ok(eq(chars(fr), ['harbor', 'Design system', 'v0.237.0']), 'cover/a name passed in is shown as given');
+}
+
+/* ── bound ───────────────────────────────────────────────────────────────────────────────────────────── */
+section('bound — every color on the cover is a theme variable');
+{
+  const f = host({ vars: themeVars() });
+  await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.237.0' });
+  const fr = tagged(f.cover)[0];
+  const paints = all(fr).flatMap((n) => [...(n.fills ?? []), ...(n.strokes ?? [])].map((p: N) => [n.name, p] as const));
+  const literal = paints.filter(([, p]) => typeof p.boundVariables?.color?.id !== 'string');
+  ok(paints.length === 4 && literal.length === 0, `bound/every paint on the cover is bound (${paints.length} paints${literal.length ? `; literal on ${literal.map(([n]) => n).join(', ')}` : ''})`);
 }
 
 /* ── fit ─────────────────────────────────────────────────────────────────────────────────────────────── */
 section('fit — a long name');
 {
   const f = host({ vars: themeVars() });
-  await drawCover(f.api, f.root, { brand: 'Harbor Fleet Services', engine: '0.237.0' });
-  const wm = part(tagged(f.cover)[0], 'brand')!;
-  ok(wm.fontSize === 180 && wm.textAutoResize === 'HEIGHT' && wm.width === 1680, `fit/too wide at 240 px: 180 px, wrapping inside the inset (${wm.fontSize}, ${wm.textAutoResize}, ${wm.width})`);
-  const g = host({ vars: themeVars() });
-  await drawCover(g.api, g.root, { brand: 'Harbor', engine: '0.237.0' });
-  const short = part(tagged(g.cover)[0], 'brand')!;
-  ok(short.fontSize === 240 && short.textAutoResize === 'WIDTH_AND_HEIGHT', `fit/a short name stays at 240 px on one line (${short.fontSize})`);
+  await drawCover(f.api, f.root, { brand: 'Harbor Fleet Services International Partners', engine: '0.237.0' });
+  const fr = tagged(f.cover)[0];
+  const nm = part(fr, 'brand')!;
+  const sub = part(fr, 'subtitle')!;
+  // 44 characters at 120 px measure 2904 px in this host: three lines inside 1440, so 360 tall; 360 + 28 + 36 = 424.
+  ok(nm.fontSize === 120 && nm.width === 1440 && nm.x === 240 && nm.height === 360, `fit/a long name wraps inside the inset at 120 px (${nm.fontSize}, ${nm.width}, ${nm.x}, ${nm.height})`);
+  ok(nm.y === 328 && sub.y === 328 + 360 + 28, `fit/the block stays centered (${nm.y}, ${sub.y})`);
 }
 
 /* ── thumb ───────────────────────────────────────────────────────────────────────────────────────────── */
@@ -251,12 +319,101 @@ section('refresh — an unedited cover is kept current in place');
   const o = await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.237.0' });
   const now = tagged(f.cover);
   ok(now.length === 1 && now[0] === fr && !fr.removed && fr.x === 500 && fr.y === -1200, 'refresh/the same node, where the designer put it');
-  ok(eq(texts(fr).map((t) => t.characters).sort(), ['Aurora', 'Prism3 0.237.0']) && fillVar(fr) === 'V:ground' && texts(fr).every((t) => fillVar(t) === 'V:ink' && t.boundVariables.fontFamily),
-    `refresh/version, name and bindings set (${JSON.stringify(texts(fr).map((t) => t.characters))})`);
+  ok(eq(chars(fr), ['Aurora', 'Design system', 'v0.237.0']) && fillVar(fr) === 'V:ground' && fillVar(part(fr, 'brand')!) === 'V:brand'
+    && fillVar(part(fr, 'subtitle')!) === 'V:sec' && fillVar(part(fr, 'version')!) === 'V:sec' && texts(fr).every((t) => t.boundVariables.fontFamily),
+    `refresh/version, name and bindings set (${JSON.stringify(chars(fr))})`);
   ok(coverLine(o) === 'Cover: version set to 0.237.0, brand name set to Aurora, bound to the theme.', `refresh/result line (${coverLine(o)})`);
   ok(eq(await coverDue(f.root, { brand: 'Aurora', engine: '0.237.0', api: f.api }), { state: 'current' }), 'refresh/converges: current, not edited, after the refresh');
   const idle = await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.237.0' });
   ok(idle.did === 'none' && coverLine(idle) === '', 'refresh/nothing to do: nothing said');
+  // A name that now wraps: the block is centered again (three lines, 360 + 28 + 36 = 424 tall, so 328 down).
+  await drawCover(f.api, f.root, { brand: 'Harbor Fleet Services International Partners', engine: '0.237.0' });
+  ok(part(fr, 'brand')!.y === 328 && part(fr, 'subtitle')!.y === 716, `refresh/a longer name: the block centered again (${part(fr, 'brand')!.y}, ${part(fr, 'subtitle')!.y})`);
+}
+
+/* ── logo ────────────────────────────────────────────────────────────────────────────────────────────── */
+section('logo — the slot is the team\'s: a logo in it is not a hand edit (Q4 A)');
+{
+  const f = host({ vars: themeVars() });
+  await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.236.0' });
+  const fr = tagged(f.cover)[0];
+  const slot = slotOf(fr)!;
+  // The designer pastes their logo into the slot and sizes the slot to it.
+  const mark = f.node('RECTANGLE'); mark.name = 'aurora-logo';
+  mark.fills = [{ type: 'IMAGE', visible: true, opacity: 1, scaleMode: 'FIT', imageHash: 'abc' }];
+  slot.appendChild(mark); mark.resize(180, 64); mark.x = 20; mark.y = 4;
+  slot.resize(240, 72); slot.x = 1584;
+  const d = await coverDue(f.root, { brand: 'Aurora Labs', engine: '0.237.0', api: f.api });
+  ok(eq(d, { state: 'stale', shows: '0.236.0', name: { from: 'Aurora', to: 'Aurora Labs' } }), `logo/content in the slot is not a hand edit (${JSON.stringify(d)})`);
+  const o = await drawCover(f.api, f.root, { brand: 'Aurora Labs', engine: '0.237.0' });
+  ok(o.did === 'refreshed' && part(fr, 'brand')!.characters === 'Aurora Labs' && part(fr, 'version')!.characters === 'v0.237.0',
+    `logo/the name and the version keep updating with a logo in the slot (${o.did}; ${JSON.stringify(chars(fr))})`);
+  ok(slot.children.length === 1 && slot.children[0] === mark && mark.x === 20 && mark.fills[0].imageHash === 'abc' && slot.x === 1584 && slot.width === 240,
+    'logo/the logo and the slot are left as the designer put them');
+  ok(part(fr, 'brand')!.visible !== false && !all(fr).some((n) => n.visible === false), 'logo/the name stays visible beside the logo');
+  ok(eq(await coverDue(f.root, { brand: 'Aurora Labs', engine: '0.237.0', api: f.api }), { state: 'current' }), 'logo/converges: current, not edited');
+  // The logo dropped beside the slot instead is an edit, as any other added layer is.
+  const stray = f.node('RECTANGLE'); stray.name = 'aurora-logo copy'; fr.appendChild(stray);
+  ok((await coverDue(f.root, { brand: 'Aurora Labs', engine: '0.237.0', api: f.api }))?.state === 'current' && !!(await coverDue(f.root, { brand: 'Aurora Labs', engine: '0.237.0', api: f.api }) as N).edited,
+    'logo/a layer added outside the slot is still a hand edit (control)');
+}
+
+/* ── name ────────────────────────────────────────────────────────────────────────────────────────────── */
+section('name — `name`, else the id made readable (Q5 A)');
+{
+  ok(readableId('prism3') === 'Prism3' && readableId('nb-redesign') === 'Nb Redesign' && readableId('harbor_fleet') === 'Harbor Fleet' && readableId('aurora') === 'Aurora',
+    `name/readable ids (${['prism3', 'nb-redesign', 'harbor_fleet'].map(readableId).join(', ')})`);
+  ok(brandNameOf({ id: 'aurora', name: ' Aurora Labs ' }) === 'Aurora Labs' && brandNameOf({ id: 'aurora', name: '' }) === 'Aurora' && brandNameOf(null) === null,
+    'name/`name` first, trimmed; an empty one falls back');
+  // The saved brand with no display name: the cover shows the readable id, and both lines say no display name is set.
+  const { name: _drop, ...bare } = (exampleBrands as Record<string, BrandInput>).prism3;
+  const g = host({ vars: themeVars() });
+  const blob = new Map<string, string>([['prism3/brandInput', serializeBrandInput(bare as BrandInput)]]);
+  const root = { children: g.root.children, getSharedPluginData: (ns: string, k: string) => blob.get(`${ns}/${k}`) ?? '' };
+  const d = await coverDue(root, { engine: '0.237.0', api: g.api });
+  ok(eq(d, { state: 'missing', unnamed: 'Prism3' }) && coverDueLine(d) === 'Cover: to draw on the Cover page. No display name is set, so it shows Prism3, from the brand\'s id.',
+    `name/the dry run says no display name is set (${coverDueLine(d)})`);
+  const o = await drawCover(g.api, root, { engine: '0.237.0' });
+  ok(part(tagged(g.cover)[0], 'brand')?.characters === 'Prism3', `name/the readable fallback: no display name set, the cover shows the id made readable (${part(tagged(g.cover)[0], 'brand')?.characters})`);
+  ok(coverLine(o) === 'Cover: drawn and set as the file thumbnail. No display name is set, so it shows Prism3, from the brand\'s id.', `name/the result says no display name is set (${coverLine(o)})`);
+  // The display name set: it is shown, and the sentence goes.
+  blob.set('prism3/brandInput', serializeBrandInput({ ...(bare as BrandInput), name: 'Prism3 Studio' }));
+  const n = await coverDue(root, { engine: '0.237.0', api: g.api });
+  ok(eq(n, { state: 'stale', name: { from: 'Prism3', to: 'Prism3 Studio' } }) && coverDueLine(n) === 'Cover: to set the brand name to Prism3 Studio (shows Prism3).', `name/a display name set: shown, no sentence (${coverDueLine(n)})`);
+}
+
+/* ── redraw ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('redraw — a cover the first design drew');
+{
+  const f = host({ vars: themeVars() });
+  const fr = await firstDesign(f, { engine: '0.236.0' });
+  ok(coverPrint(fr) === FIRST_PRINT, `redraw/premise: the first design's record still reads unedited (${coverPrint(fr)})`);
+  fr.x = 300; fr.y = -500;   // moved: not an edit
+  f.api._thumb = fr;
+  const d = await coverDue(f.root, { brand: 'Harbor', engine: '0.237.0', api: f.api });
+  ok(eq(d, { state: 'stale', redraw: true }) && coverIsWork(d), `redraw/due: an unedited first-design cover is due a redraw (${JSON.stringify(d)})`);
+  ok(coverDueLine(d, '0.237.0') === 'Cover: to redraw in the new design, at 0.237.0.', `redraw/dry-run line (${coverDueLine(d, '0.237.0')})`);
+  const old = texts(fr);
+  const o = await drawCover(f.api, f.root, { brand: 'Harbor', engine: '0.237.0' });
+  ok(tagged(f.cover).length === 1 && tagged(f.cover)[0] === fr && fr.x === 300 && fr.y === -500 && f.api._thumb === fr,
+    'redraw/the same frame, where the designer put it, still the thumbnail');
+  ok(eq(chars(fr), ['Harbor', 'Design system', 'v0.237.0']) && old.every((t) => t.removed) && fillVar(fr) === 'V:ground' && fillVar(part(fr, 'brand')!) === 'V:brand' && !!slotOf(fr),
+    `redraw/an unedited first-design cover is redrawn in the new design (${JSON.stringify(chars(fr))}; ground ${fillVar(fr)})`);
+  ok(coverLine(o) === 'Cover: redrawn in the new design.', `redraw/result line (${coverLine(o)})`);
+  ok(eq(await coverDue(f.root, { brand: 'Harbor', engine: '0.237.0', api: f.api }), { state: 'current' }), 'redraw/converges: current after the redraw');
+}
+{
+  // Edited by hand (a badge added): kept, "(edited)", never redrawn; only its version text moves (Q?4 B, #2956).
+  const f = host({ vars: themeVars() });
+  const fr = await firstDesign(f, { engine: '0.236.0' });
+  const badge = f.node('FRAME'); badge.name = 'Badge'; fr.appendChild(badge); badge.x = 1500; badge.y = 120;
+  const d = await coverDue(f.root, { brand: 'Harbor', engine: '0.237.0', api: f.api });
+  ok(eq(d, { state: 'stale', shows: '0.236.0', edited: true }), `redraw/due: an edited first-design cover is stale for its version only (${JSON.stringify(d)})`);
+  ok(coverDueLine(d, '0.237.0') === 'Cover (edited): to set the version to 0.237.0 (shows 0.236.0). Only its version text changes; every other edit is kept.', `redraw/edited dry-run line (${coverDueLine(d, '0.237.0')})`);
+  const o = await drawCover(f.api, f.root, { brand: 'Harbor', engine: '0.237.0' });
+  ok(fr.children.length === 3 && fr.children.includes(badge) && part(fr, 'brand')!.fontSize === 240 && fillVar(fr) === 'V:fg' && !slotOf(fr) && !part(fr, 'subtitle'),
+    `redraw/an edited first-design cover is kept (${fr.children.map((c: N) => c.name)})`);
+  ok(part(fr, 'version')!.characters === 'v0.237.0' && coverLine(o) === 'Cover (edited): only its version text was set, to 0.237.0; every other edit was kept.', `redraw/edited: only the version text (${coverLine(o)})`);
 }
 
 /* ── edited ──────────────────────────────────────────────────────────────────────────────────────────── */
@@ -265,44 +422,42 @@ section('edited — a hand-edited cover keeps the edit; only the version text mo
   const f = host({ vars: themeVars() });
   await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.236.0' });
   const fr = tagged(f.cover)[0];
-  // The designer adds a logo and restyles the wordmark.
-  const logo = f.node('FRAME'); logo.name = 'Logo'; fr.appendChild(logo); logo.x = 1600; logo.y = 120;
-  const wm = part(fr, 'brand')!;
-  wm.characters = 'AURORA';
+  // The designer adds a badge and restyles the name.
+  const badge = f.node('FRAME'); badge.name = 'Badge'; fr.appendChild(badge); badge.x = 1600; badge.y = 900;
+  const nm = part(fr, 'brand')!;
+  nm.characters = 'AURORA';
   const d = await coverDue(f.root, { brand: 'Aurora Labs', engine: '0.237.0', api: f.api });
   ok(eq(d, { state: 'stale', shows: '0.236.0', edited: true }), `edited/due: stale for its version only, the name not compared (${JSON.stringify(d)})`);
-  ok(coverDueLine(d, '0.237.0') === 'Cover: to set the version to 0.237.0 (shows 0.236.0). It was edited by hand, so only its version text changes.', `edited/dry-run line (${coverDueLine(d, '0.237.0')})`);
+  ok(coverDueLine(d, '0.237.0') === 'Cover (edited): to set the version to 0.237.0 (shows 0.236.0). Only its version text changes; every other edit is kept.', `edited/dry-run line (${coverDueLine(d, '0.237.0')})`);
   const o = await drawCover(f.api, f.root, { brand: 'Aurora Labs', engine: '0.237.0' });
-  ok(tagged(f.cover).length === 1 && tagged(f.cover)[0] === fr && fr.children.includes(logo) && wm.characters === 'AURORA' && wm.fontSize === 240,
-    `edited/only the version text moves (${JSON.stringify(texts(fr).map((t) => t.characters))})`);
-  ok(part(fr, 'version')!.characters === 'Prism3 0.237.0', 'edited/the version text set');
-  ok(coverLine(o) === 'Cover: edited by hand. Only its version text was set, to 0.237.0.', `edited/the wireframe's result line (${coverLine(o)})`);
+  ok(tagged(f.cover).length === 1 && tagged(f.cover)[0] === fr && fr.children.includes(badge) && nm.characters === 'AURORA' && nm.fontSize === 120,
+    `edited/only the version text moves (${JSON.stringify(chars(fr))})`);
+  ok(part(fr, 'version')!.characters === 'v0.237.0', 'edited/the version text set');
+  ok(coverLine(o) === 'Cover (edited): only its version text was set, to 0.237.0; every other edit was kept.', `edited/result line (${coverLine(o)})`);
   ok(eq(await coverDue(f.root, { brand: 'Aurora Labs', engine: '0.237.0', api: f.api }), { state: 'current', edited: true }), 'edited/stays edited, and current');
   // The designer deletes the version text: nothing is written, and the result says so.
   part(fr, 'version')!.remove();
   const gone = await coverDue(f.root, { brand: 'Aurora', engine: '0.238.0', api: f.api });
   ok(eq(gone, { state: 'no-version', edited: true }) && !coverIsWork(gone), `edited/deleted version text: not work (${JSON.stringify(gone)})`);
-  ok(coverDueLine(gone) === 'Cover: edited by hand, and its version text is gone, so Update writes nothing to it.', `edited/deleted version text: the dry run says so (${coverDueLine(gone)})`);
+  ok(coverDueLine(gone) === 'Cover (edited): its version text is gone, so Update writes nothing to it.', `edited/deleted version text: the dry run says so (${coverDueLine(gone)})`);
   const before = JSON.stringify(texts(fr).map((t) => [t.characters, t.fontSize]));
   const r = await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.238.0' });
-  ok(r.did === 'none' && JSON.stringify(texts(fr).map((t) => [t.characters, t.fontSize])) === before && tagged(f.cover).length === 1 && fr.children.length === 2,
+  ok(r.did === 'none' && JSON.stringify(texts(fr).map((t) => [t.characters, t.fontSize])) === before && tagged(f.cover).length === 1 && fr.children.length === 4,
     'edited/deleted version text: nothing written');
   ok(coverLine(r) === 'Cover: edited by hand, and its version text is gone. Nothing was written.', `edited/deleted version text: the result says so (${coverLine(r)})`);
 }
 {
-  // The designer retypes the wordmark and changes nothing else: that alone is an edit, so a renamed brand's Update
+  // The designer retypes the subtitle and changes nothing else: that alone is an edit, so a renamed brand's Update
   // keeps their text and sets only the version.
   const f = host({ vars: themeVars() });
   await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.236.0' });
   const fr = tagged(f.cover)[0];
-  part(fr, 'brand')!.characters = 'Aurora Design';
+  part(fr, 'subtitle')!.characters = 'Component library';
   const d = await coverDue(f.root, { brand: 'Aurora Labs', engine: '0.237.0', api: f.api });
-  ok(eq(d, { state: 'stale', shows: '0.236.0', edited: true }), `edited/a retyped wordmark alone reads as edited (${JSON.stringify(d)})`);
+  ok(eq(d, { state: 'stale', shows: '0.236.0', edited: true }), `edited/a retyped subtitle alone reads as edited (${JSON.stringify(d)})`);
   await drawCover(f.api, f.root, { brand: 'Aurora Labs', engine: '0.237.0' });
-  ok(part(fr, 'brand')!.characters === 'Aurora Design' && part(fr, 'version')!.characters === 'Prism3 0.237.0',
-    `edited/a retyped wordmark is kept (${JSON.stringify(texts(fr).map((t) => t.characters))})`);
+  ok(eq(chars(fr), ['Aurora', 'Component library', 'v0.237.0']), `edited/a retyped subtitle is kept (${JSON.stringify(chars(fr))})`);
 }
-
 {
   // An unedited cover whose version text is gone (a fingerprint recorded after the deletion; no draw leaves one) is
   // not drawn again: one cover stays on the page, and nothing is written.
@@ -310,7 +465,7 @@ section('edited — a hand-edited cover keeps the edit; only the version text mo
   await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.236.0' });
   const fr = tagged(f.cover)[0];
   part(fr, 'version')!.remove();
-  fr.setSharedPluginData(COVER_NS, COVER_KEY, JSON.stringify({ engine: '0.236.0', name: 'Aurora', print: coverPrint(fr) }));
+  fr.setSharedPluginData(COVER_NS, COVER_KEY, JSON.stringify({ engine: '0.236.0', name: 'Aurora', print: coverPrint(fr), design: 2 }));
   const d = await coverDue(f.root, { brand: 'Aurora', engine: '0.237.0', api: f.api });
   ok(eq(d, { state: 'no-version', edited: true }) && !coverIsWork(d), `edited/no version text, unedited print: not work (${JSON.stringify(d)})`);
   const r = await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.237.0' });
@@ -327,8 +482,6 @@ section('page — nothing to draw on, or nothing to draw');
   ok(o.did === 'none' && coverLine(o) === 'Cover: not drawn, the file has no Cover page. Run Set up file, then Update.', `page/no Cover page: why (${coverLine(o)})`);
   const n = await drawCover(f.api, f.root, { brand: null });
   ok(n.did === 'none' && !tagged(f.cover).length && coverLine(n) === 'Cover: not drawn yet, the file has no brand. Apply Theme, then Update draws it.', `page/no brand: why (${coverLine(n)})`);
-  ok(brandNameOf({ id: 'aurora' }) === 'aurora' && brandNameOf({ id: 'aurora', name: ' Aurora ' }) === 'Aurora' && brandNameOf({ id: 'aurora', name: '' }) === 'aurora' && brandNameOf(null) === null,
-    'page/the name: `name`, else the id as written (Q?1 A)');
   // A font the host will not load: the text stays empty and the miss is named, never a throw.
   const g = host({ refuseFonts: ['Inter|Semi Bold'] });
   const m = await drawCover(g.api, g.root, { brand: 'Aurora', engine: '0.237.0' });
@@ -336,7 +489,7 @@ section('page — nothing to draw on, or nothing to draw');
 }
 
 /* ── contrast ────────────────────────────────────────────────────────────────────────────────────────── */
-section('contrast — the cover\'s pair is the engine\'s contract, per brand and mode');
+section('contrast — the cover\'s inks on its ground, per brand and mode');
 {
   // WCAG 2.x relative luminance and ratio, written here: the engine's `ratio` is the claim, not the measure.
   const lum = (hex: string): number => {
@@ -345,26 +498,30 @@ section('contrast — the cover\'s pair is the engine\'s contract, per brand and
     return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
   };
   const ratio = (a: string, b: string): number => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-  // The engine's role path for a Figma variable tail: `color/text/on-brand` → `text.on-brand`.
+  // The engine's role path for a Figma variable tail: `color/text/brand` → `text.brand`.
   const role = (tail: string): string => tail.replace(/^color\//, '').replace(/\//g, '.');
-  const ink = role(INK_VARIABLE);
   const ground = role(GROUND_VARIABLE);
+  const inks = [role(NAME_INK_VARIABLE), role(TEXT_INK_VARIABLE)];
+  ok(ground === 'background.primary' && eq(inks, ['text.brand', 'text.secondary']), `contrast/premise: the wireframe's bindings (${ground} under ${inks.join(', ')})`);
   const brands = Object.entries(exampleBrands as Record<string, BrandInput>);
   ok(brands.length >= 2, `contrast/premise: example brands to measure (${brands.map(([k]) => k).join(', ')})`);
   const bad: string[] = [];
   let measured = 0;
+  let floor = Infinity;
   for (const [id, b] of brands) {
     for (const m of resolveAllModes(brandTheme(b))) {
-      const r = m.roles[ink];
       const g = m.roles[ground];
-      if (!r || !g) { bad.push(`${id} ${m.mode}: no ${!r ? ink : ground}`); continue; }
-      measured++;
-      if (r.against !== ground) bad.push(`${id} ${m.mode}: ${ink} is contracted against ${r.against}, not ${ground}`);
-      else if (r.min < 4.5) bad.push(`${id} ${m.mode}: contract ${r.min} below 4.5`);
-      else if (ratio(r.hex, g.hex) < r.min) bad.push(`${id} ${m.mode}: ${ratio(r.hex, g.hex).toFixed(2)} below ${r.min}`);
+      for (const ink of inks) {
+        const r = m.roles[ink];
+        if (!r || !g) { bad.push(`${id} ${m.mode}: no ${!r ? ink : ground}`); continue; }
+        measured++;
+        const x = ratio(r.hex, g.hex);
+        floor = Math.min(floor, x);
+        if (x < 4.5) bad.push(`${id} ${m.mode}: ${ink} on ${ground} ${x.toFixed(2)} below 4.5`);
+      }
     }
   }
-  ok(bad.length === 0 && measured > 0, `contrast/the cover's ink is contracted against its ground, at 4.5:1 or more, measured here (${measured} brand-modes${bad.length ? `; ${bad.slice(0, 3).join('; ')}` : ''})`);
+  ok(bad.length === 0 && measured > 0, `contrast/the cover's inks hold 4.5:1 on its ground, measured here (${measured} pairs, lowest ${floor.toFixed(2)}:1${bad.length ? `; ${bad.slice(0, 3).join('; ')}` : ''})`);
 }
 
 /* ── setup ───────────────────────────────────────────────────────────────────────────────────────────── */
@@ -388,7 +545,7 @@ section('setup — Set up file draws the cover');
   await scaffoldSkeleton(pagesApi, TAXONOMY);
   const o = await drawCover(f.api, pagesApi.root, { brand: brandNameOf({ id: 'aurora', name: 'Aurora' }), engine: '0.237.0' });
   const cov = pages.find((p) => p.name === 'Cover') as unknown as N;
-  ok(o.did === 'drawn' && tagged(cov).length === 1 && eq(texts(tagged(cov)[0]).map((t) => t.characters).sort(), ['Aurora', 'Prism3 0.237.0']), 'setup/drawn on the scaffolded Cover page');
+  ok(o.did === 'drawn' && tagged(cov).length === 1 && eq(chars(tagged(cov)[0]), ['Aurora', 'Design system', 'v0.237.0']), 'setup/drawn on the scaffolded Cover page');
   // The plugin's Set up file action calls it, with the saved brand, and reports its line.
   const main = readFileSync(resolve(import.meta.dirname, 'src/main.ts'), 'utf8');
   const body = main.slice(main.indexOf('const fileSetup = async'), main.indexOf('\n};', main.indexOf('const fileSetup = async')));
@@ -438,14 +595,14 @@ section('update — through a real Update in the component shim');
   // A cover an earlier engine drew, and its own thumbnail.
   await drawCover(api as unknown as CoverApi, host.root as never, { engine: '0.236.0' });
   const fr = tagged(cover as unknown as N)[0];
-  ok(!!fr && thumb === fr && part(fr, 'version')?.characters === 'Prism3 0.236.0', 'update/premise: a cover drawn by 0.236.0, the thumbnail');
+  ok(!!fr && thumb === fr && part(fr, 'version')?.characters === 'v0.236.0', 'update/premise: a cover drawn by 0.236.0, the thumbnail');
   const pre = await previewUpdate(host, targets);
   const v = previewVerdict(pre);
   ok(pre.cover?.state === 'stale' && v.lines.some((l) => l.startsWith('Cover: to set the version to 0.237.0 (shows 0.236.0).')), `update/dry run lists the cover (${v.lines.join(' | ')})`);
-  ok(part(fr, 'version')?.characters === 'Prism3 0.236.0', 'update/the check wrote nothing');
+  ok(part(fr, 'version')?.characters === 'v0.236.0', 'update/the check wrote nothing');
   const res = await applyUpdate(host, api as never, targets, previewHashOf(pre), { today: '2026-10-21' });
   const now = tagged(cover as unknown as N);
-  ok(now.length === 1 && now[0] === fr && part(fr, 'version')?.characters === 'Prism3 0.237.0', `update/version refreshed, read off the shim (${part(fr, 'version')?.characters})`);
+  ok(now.length === 1 && now[0] === fr && part(fr, 'version')?.characters === 'v0.237.0', `update/version refreshed on an unedited cover, read off the shim (${part(fr, 'version')?.characters})`);
   const about = cover.children.find((n) => (n.getSharedPluginData as (a: string, b: string) => string)?.('prism3', ABOUT_KEY));
   ok(!!about && about.x === (fr.x as number) + 1920 + 40 && about.y === fr.y, `update/the About frame beside the cover, the thumbnail (${about?.x}, ${about?.y})`);
   const verdict = applyVerdict(res);
@@ -491,6 +648,26 @@ section('update — through a real Update in the component shim');
   pluginData.delete('prism3:docSettings');
   const pre6 = await previewUpdate(host, targets);
   ok(pre6.cover?.state === 'stale', `update/cover on (control): the switch on, the same rename is due (${JSON.stringify(pre6.cover)})`);
+  // A COVER THE FIRST DESIGN DREW (#2859), unedited, reaches this design through a real Update: redrawn in its frame.
+  (fr as unknown as N).remove();
+  await api.loadFontAsync({ family: 'Inter', style: 'Semi Bold' });
+  await api.loadFontAsync({ family: 'Inter', style: 'Regular' });
+  const first = api.createFrame() as N;
+  first.name = 'Cover'; first.resize(1920, 1080); cover.appendChild(first as never);
+  first.fills = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0.2, g: 0.2, b: 0.8 } }];
+  for (const [p, s, size, y] of [['brand', 'Harbor', 240, 360], ['version', 'Prism3 0.236.0', 64, 906]] as const) {
+    const t = api.createText() as N;
+    t.name = p; t.setSharedPluginData('prism3', 'cover-part', p); first.appendChild(t);
+    t.fontName = { family: 'Inter', style: p === 'brand' ? 'Semi Bold' : 'Regular' }; t.characters = s; t.fontSize = size; t.x = 120; t.y = y;
+  }
+  first.setSharedPluginData('prism3', 'cover', JSON.stringify({ engine: '0.236.0', name: 'Harbor', print: coverPrint(first) }));
+  thumb = first;
+  const pre7 = await previewUpdate(host, targets);
+  ok(eq(pre7.cover, { state: 'stale', redraw: true }) && previewVerdict(pre7).lines.includes('Cover: to redraw in the new design, at 0.237.0.'), `update/redraw: the dry run lists a first-design cover (${JSON.stringify(pre7.cover)})`);
+  const res7 = await applyUpdate(host, api as never, targets, previewHashOf(pre7), { today: '2026-10-26' });
+  ok(tagged(cover as unknown as N).length === 1 && tagged(cover as unknown as N)[0] === first && eq(chars(first), ['Harbor Quay', 'Design system', 'v0.237.0']) && thumb === first,
+    `update/redraw: a first-design cover is redrawn in the new design through Update (${JSON.stringify(chars(first))})`);
+  ok(applyVerdict(res7).lines.includes('Cover: redrawn in the new design.'), `update/redraw: result line (${applyVerdict(res7).lines.join(' | ')})`);
 }
 
 console.log(failed ? `\n✗ ${failed} of ${executed} failed` : `\n✓ all passed — ${executed} assertions executed`);

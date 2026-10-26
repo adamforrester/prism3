@@ -5,6 +5,8 @@
 # Every lever below is stated rather than defaulted, so the default theme reads as a set of decisions
 # a designer can see and change, not as whatever the engine happened to fall back to.
 id: prism3
+# The display name (#2859, #2915), which the library file's cover shows. Unset, it would show the id made readable.
+name: Prism3
 
 # ROOT NAMESPACE — `pds3`, "Prism3 Design System". This is the brand the #1283 reservation was held
 # for: `test.ts` admits it by name as the one shipped brand at a reserved root. `prism` stays the
