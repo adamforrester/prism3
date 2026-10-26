@@ -18,6 +18,10 @@
  * bindings even where they resolve alike. The title and the body are `color.text.primary` (Q327.4 A): the tone stays
  * on the glyph and the edge. `test.ts` holds every pair to its floor as literals across every example brand × mode.
  *
+ * The brand's Banner style (#2924, owner Q693 A, Q707 A) moves the fill only: Tinted (the default) binds the tint above;
+ * Outlined binds the page color, `color.background.primary`, and keeps the edge, the glyph and the inks. `applyBannerStyle`
+ * rebinds the four `<tone>.fill` keys before projection. Bold, a solid tone fill, is held on #3038.
+ *
  * ── PARTS ─────────────────────────────────────────────────────────────────────────────────────────────────
  *
  * The tone glyph (four `presentWhen` vector parts, FieldMessage's shape and FieldMessage's glyph per status, so a
@@ -77,6 +81,7 @@ export const banner: ComponentDef = {
 
   tokens: {
     // ── PAINT per tone (Q327: subtle only, a full 1px border in the tone). The border is the BORDER role (Q346).
+    // The brand's Banner style (#2924) moves the fills only: `applyBannerStyle` binds `color.background.primary` at Outlined.
     'info.fill': 'color.foreground.info-subtle',
     'info.border': 'color.border.info',
     'info.icon': 'color.icon.info',
@@ -141,7 +146,7 @@ export const banner: ComponentDef = {
         radius: 'width.{width}.radius',
         strokeEdges: { top: 'border-width', right: 'width.{width}.edge-side', bottom: 'border-width', left: 'width.{width}.edge-side' },
         children: ['infoGlyph', 'successGlyph', 'warningGlyph', 'dangerGlyph', 'content', 'dismiss'],
-        note: 'The banner: the tone\'s tinted surface with a 1px edge in the tone\'s border color, drawn inside so it adds no size. Contained: rounded, edged all round. Full width: a square bar, edged top and bottom only.',
+        note: 'The banner: the tone\'s tinted surface (the page color when the brand\'s Banner style is Outlined) with a 1px edge in the tone\'s border color, drawn inside so it adds no size. Contained: rounded, edged all round. Full width: a square bar, edged top and bottom only.',
       },
       // FieldMessage's glyph per status (its header measures the artwork): the exclamation in a triangle for the most
       // serious tone, in a circle for a warning. Held for the owner: the proposal listed the glyph names in tone order.
@@ -231,6 +236,8 @@ export const banner: ComponentDef = {
       'forced colors — the edge is a border, so it stays in the system border color when the browser removes the fill.',
       'the minimum width — `min-inline-size: min(var(--container-min), 100%)`, one floor for both widths: 320px, the narrowest column, so a narrow host does not wrap the body to a sliver. Clamped to the host, so in a host narrower than 320 (a 320px phone\'s 288px column) the banner takes the host\'s width and the page never scrolls sideways (1.4.10 Reflow). Figma binds the same floor as `container/min`, unclamped, since Figma has no min().',
       'the full width — a bar across the page: square corners, and the edge on the top and bottom only (`border-block`, no `border-inline`), spanning its container with no side margin. Figma builds it at 960 so it reads wider than the 480 contained member.',
+      // #2924 (owner Q693 A, Q707 A): one banner style per brand, from the brand's bannerStyle setting.
+      'Banner style (the brand\'s bannerStyle setting) — the fill binds `color.foreground.{tone}-subtle` at Tinted, the default, and `color.background.primary` at Outlined. The edge (`color.border.{tone}`), the glyph (`color.icon.{tone}`) and the inks bind the same tokens in both. One value for every banner the brand ships: emit the one fill, never a prop.',
     ],
   },
 
@@ -270,7 +277,7 @@ export const banner: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one.',
+    usage: 'Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one. The brand\'s Banner style sets the surface for every banner: Tinted fills it with the tone\'s tint, Outlined with the page color, and both keep the edge in the tone. It is a brand setting, not a prop.',
     do: [
       'Match the tone to how serious the message is',
       'Name the issue in the title, and say what to do next in the body',
@@ -322,6 +329,7 @@ export const banner: ComponentDef = {
       'Whether the nested buttons\' Rest, Hover and Pressed prototype reactions fire inside a nested instance (the open nesting item on #2466).',
     ],
     evolution: [
+      '#2924 (owner Q693 A, Q707 A): a brand-wide Banner style, Tinted (the default) or Outlined, which moves the four fill bindings and nothing else. Bold, a solid tone fill, is held on #3038.',
       'Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog\'s close does (Q385), and the action nests the primary Button, preferring Button.Neutral only when the file has it.',
       '#2971 (owner QA 2026-10-23; owner decision 2026-10-23, Q2971.1–3 A): one minimum width for both widths, `container.min` (320, the reflow width), bound as the root\'s `minWidth`; in code clamped to the host.',
       'Owner QA Q533 (2026-10-22): one text action only, with no second action, no outline action and no Button group (Q533.1), which supersedes Q327.6\'s two actions; the full width made visibly different (Q533.4).',

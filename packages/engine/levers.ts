@@ -136,6 +136,12 @@ export const leverManifest: Lever[] = [
   { key: 'dialogTitleSize', group: 'form', kind: 'value', label: 'Dialog title size', control: 'enum', default: 'large',
     options: enumOpts(['large', 'Large'], ['medium', 'Medium'], ['small', 'Small']),
     description: 'The title of every dialog and sheet: the large, medium or small label style, at Emphasis weight. One dialog can still be changed by hand in Figma.' },
+  // #2924 (owner Q693 A, Q707 A: Tinted and Outlined, Bold held on #3038) — label and option labels are the owner's DRAFT
+  // (Q2 on #2924, joins the wording pass); the description is the wireframe's Q2 A draft. Its home in the Studio is
+  // Components › Banner (Q578: component settings live with their components).
+  { key: 'bannerStyle', group: 'form', kind: 'value', label: 'Banner style', control: 'enum', default: 'tinted',
+    options: enumOpts(['tinted', 'Tinted'], ['outlined', 'Outlined']),
+    description: 'The surface of every banner. Tinted fills it with the tone’s tint; Outlined draws the edge in the tone on the page color. Either way the edge and glyph clear 3:1.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', kind: 'structural', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),

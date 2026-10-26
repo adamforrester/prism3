@@ -14,7 +14,7 @@
  *                     / hex; primitives under palette). This is what makes the system white-label.
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
-import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
+import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000, ACHROMATIC_C } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
@@ -620,6 +620,7 @@ export type BrandInput = {
   searchFieldStyle?: SearchFieldStyle; // 'follow' (default) | 'outline' | 'underline' — the search field's own edge (#2888)
   tagStyle?: TagStyle;               // 'pill' (default) | 'underline' — the shape every tag draws (#2887)
   dialogTitleSize?: DialogTitleSize; // 'large' (default) | 'medium' | 'small' — the title size of every dialog (#2958)
+  bannerStyle?: BannerStyle;         // 'tinted' (default) | 'outlined' — the surface every banner draws (#2924)
   /** RETIRED (#2053, owner 2026-10-04). `radius.hairline` (1px) is always emitted, so this changes nothing.
    *  Still ACCEPTED, so brand files that set it keep loading; a note says it is ignored. It was the opt-in
    *  for that rung (#1362): the scaled ramp rides an even 2px sub-grid, so 1px is otherwise unreachable. */
@@ -2555,6 +2556,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'searchFieldStyle', value: input.searchFieldStyle, options: ['follow', 'outline', 'underline'] },
     { path: 'tagStyle', value: input.tagStyle, options: ['pill', 'underline'] },
     { path: 'dialogTitleSize', value: input.dialogTitleSize, options: ['large', 'medium', 'small'] },
+    { path: 'bannerStyle', value: input.bannerStyle, options: ['tinted', 'outlined'] },
     { path: 'buttonIcons', value: input.buttonIcons, options: ['attached', 'edges'] },
     { path: 'buttonContentSize', value: input.buttonContentSize, options: ['match', 'smaller'] },
     { path: 'buttonLabelWeight', value: input.buttonLabelWeight, options: ['default', 'emphasis'] },
