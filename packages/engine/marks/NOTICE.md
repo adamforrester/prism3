@@ -34,7 +34,9 @@ Three data edits, then the steps any new member owes the versioned surface:
 5. after `regen.ts`, `--accept` on `lint-component-surface.ts` and `lint-component-renames.ts`;
 6. a change note for the surface drift.
 
-Replacing a placeholder's artwork under the same name is steps 1 and 3 only.
+Replacing a placeholder's artwork under the same name is steps 1 and 3, then `regen.ts`, `--accept`
+on `lint-component-surface.ts` only (the member count holds and the plans it projects move; the axes
+baseline does not), and a change note (`engine: minor`).
 
 ## Trademarks
 

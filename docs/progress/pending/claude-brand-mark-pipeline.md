@@ -5,7 +5,8 @@
 authored), `emit-marks.ts` → `brand-mark-glyphs.ts` (generated, a regen artifact beside `icon-glyphs.ts`), the
 `brand-mark` def (`emitAsComponents`, so each mark is a `brand-mark/<kind>/<name>` Figma component), and the gates.
 Every mark is a neutral gray placeholder named for the proposal's first set, except `card/generic`, which is Prism3's
-own card and stays. The owner's files are then a data drop (PR 3): SVGs and records change, names do not. A new
+own card and stays. The owner's files are then a data drop (PR 3): SVGs and records change, names do not, and the drop
+still owes `regen.ts`, a `lint-component-surface.ts` `--accept` and an `engine: minor` change note. A new
 provider is more than data: its name joins `lint-axis-values.ts`'s register and the surface baselines are accepted
 (the steps are in `brand-mark-set.ts` and `marks/NOTICE.md`).
 

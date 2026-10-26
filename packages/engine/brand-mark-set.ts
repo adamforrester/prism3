@@ -28,7 +28,9 @@
  *   5. `--accept` on `lint-component-surface.ts` and `lint-component-renames.ts` (`component-axes.json`),
  *      after `regen.ts`;
  *   6. a change note for the surface drift (`packages/engine/changes/`).
- * Steps 4 to 6 are the same for a new core icon. Replacing a placeholder's artwork under its name is 1 and 3.
+ * Steps 4 to 6 are the same for a new core icon. Replacing a placeholder's artwork under its name is steps 1 and
+ * 3, then `regen.ts`, `--accept` on `lint-component-surface.ts` alone (the member count holds and its plans move;
+ * `component-axes.json` does not), and a change note (`engine: minor`).
  *
  * ── NAMES ────────────────────────────────────────────────────────────────────────────────────────────
  *

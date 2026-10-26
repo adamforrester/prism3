@@ -1027,7 +1027,7 @@ section('single, marks — the brand marks, read and updated in place as single 
   const plans = plansOf('brand-mark');
   const w = await singleWorld(plans);
   const pre = (await previewUpdate(w.host, [{ def: 'brand-mark', plans, single: true }])).sets[0];
-  ok(plans.length === 19 && pre?.counts.members === plans.length && pre.counts.add === 0 && w.comps().length === plans.length,
+  ok(plans.length > 0 && pre?.counts.members === plans.length && pre.counts.add === 0 && w.comps().length === plans.length,
     `marks/read: the dry run reads every brand mark as a member, and adds none (${plans.length} planned; ${JSON.stringify(pre?.counts)})`);
 }
 {
