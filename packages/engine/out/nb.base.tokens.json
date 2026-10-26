@@ -2021,8 +2021,8 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{nbds.core.palette.neutral.550}",
-            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)"
+            "$value": "{nbds.core.palette.neutral.650}",
+            "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
           }
         },
         "placeholder": {
@@ -2700,8 +2700,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.neutral.450}",
-              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)"
+              "$value": "{nbds.core.palette.neutral.350}",
+              "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
             }
           },
           "placeholder": {

@@ -3099,11 +3099,11 @@ section('field style — a field set built in one Field style is redrawn in plac
       const after = identityOf(w.set());
       const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
       ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `field style/${tag} in place: the set, every member and every node under it keep their keys and ids (${lost.slice(0, 2).join('; ') || 'all kept'})`);
-      // THE WASH (#2774): every control the plan washes draws it translucent, read off the stored paint.
+      // THE WASH (#2774, then #2926): until #2926 an outline hover washed and had to draw translucent; since #2926 no
+      // field washes under either style, so no plan asks for one in either direction.
       const washed = to.filter((p) => /\/overlay\//.test(String(findPart(p.root as unknown as Node, 'control')?.paints?.fills ?? ''))).map((p) => planComponentName(p));
-      const solid = membersOf(w.set()).filter((m) => washed.includes(String(m.name))).map((m) => ({ m: String(m.name), o: ((findPart(m, 'control')?.fills as { opacity?: number }[] | undefined) ?? [])[0]?.opacity ?? 1 })).filter((x) => !(x.o < 1));
-      ok(toName === 'underline' ? washed.length === 0 : washed.length > 0 && solid.length === 0,
-        `field style/${tag} wash: ${toName === 'underline' ? 'no member asks for the wash' : `all ${washed.length} washed controls draw it translucent`} (${solid.slice(0, 2).map((x) => `${x.m}: opacity ${x.o}`).join('; ') || 'ok'})`);
+      ok(washed.length === 0,
+        `field style/${tag} wash: no member asks for the wash, under either style (#2926) (${washed.slice(0, 2).join('; ') || 'ok'})`);
       // Q346 on the line: a disabled member's edge binds the disabled BORDER role, never an icon or text role.
       const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((x: { id: string; name: string }) => [x.id, x.name.slice(x.name.indexOf('/') + 1)] as [string, string]));
       const edges = membersOf(w.set()).filter((m) => /state=disabled/.test(String(m.name))).map((m) => vars.get(String(((findPart(m, 'control')?.strokes as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id)));
