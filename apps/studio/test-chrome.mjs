@@ -9219,7 +9219,8 @@ const BAR_PROBE = () => {
   const buttons = [...bar.querySelectorAll('button')].filter((b) => shown(b) && !inside(b.parentElement ?? b));
   const filled = buttons.filter((b) => { const c = getComputedStyle(b).backgroundColor; return alpha(c) > 0 && c !== page; }).map((b) => b.getAttribute('data-p3') ?? b.className);
   const ctl = (k) => (k === 'product-mark' ? q(k) : q(k)?.closest('button') ?? q(k));
-  const rowsOf = HOOKS.filter((k) => shown(q(k))).map((k) => ({ k, top: Math.round(ctl(k).getBoundingClientRect().top), mid: Math.round((ctl(k).getBoundingClientRect().top + ctl(k).getBoundingClientRect().bottom) / 2) }));
+  // In document order (`order`), not `HOOKS`' listing order, so a reordered bar is read as drawn (Q716 A moved Minimize).
+  const rowsOf = order.filter((k) => shown(q(k))).map((k) => ({ k, top: Math.round(ctl(k).getBoundingClientRect().top), mid: Math.round((ctl(k).getBoundingClientRect().top + ctl(k).getBoundingClientRect().bottom) / 2) }));
   const firstMid = Math.min(...rowsOf.map((x) => x.mid));
   const row1 = rowsOf.filter((x) => x.mid < firstMid + 8).map((x) => x.k);
   const row2 = rowsOf.filter((x) => x.mid >= firstMid + 8).map((x) => x.k);
@@ -9271,7 +9272,7 @@ for (const { w, h } of WIDTHS) {
         }
         ok(JSON.stringify(bp.filled) === JSON.stringify(host === 'web' ? [] : ['update-file']), `${where}: bar fill: ${host === 'web' ? 'no control' : 'Update file alone (#2909)'} is filled (${bp.filled.join(', ') || 'none'})`);
         // #2909: the bar is one row at every width on both hosts now (round 4; Q2909.9 A for the web).
-        ok(bp.row2.length === 0 && JSON.stringify(bp.row1) === JSON.stringify(BAR_ORDER[host]), `${where}: bar rows: the bar is one row, ${host === 'web' ? 'the brand alone' : 'the brand and Update file'} (${bp.row1.join(', ')} / ${bp.row2.join(', ') || 'none'})`);
+        ok(bp.row2.length === 0 && JSON.stringify(bp.row1) === JSON.stringify(BAR_ORDER[host]), `${where}: bar rows: the bar is one row, ${host === 'web' ? 'the brand alone' : 'the brand, Update file and Minimize'} (${bp.row1.join(', ')} / ${bp.row2.join(', ') || 'none'})`);
         // The plugin's last control, Minimize since Q716 A, ends at the page content's right edge; the web's bar has nothing at its
         // right end now, its switcher sitting at the left.
         if (w !== 640 && host === 'figma') {
