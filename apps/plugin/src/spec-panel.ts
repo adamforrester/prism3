@@ -766,9 +766,17 @@ export const specItems = (o: SpecOutcome | undefined): string[] => {
 /** Whether a live spec panel was drawn from an older plan than `plan`: the run's out-of-date line. */
 export const specPanelStale = (n: PNode, plan: SpecPanelPlan): boolean => (n.getSharedPluginData?.(SPEC_PANEL_NS, SPEC_PANEL_PLAN) ?? '') !== plan.hash;
 
-/** The family leads whose sets are in the file, each with its set: what `draw-specs` with no def draws. */
-export const specTargets = (api: Pick<PanelApi, 'root'>, onlyDef?: string): { targets: { def: ComponentDef; set: PNode }[]; skipped: string[] } => {
-  const sets = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).filter((n) => n.type === 'COMPONENT_SET' && !n.removed);
+/** The page a node sits on, or null when no ancestor is one. */
+const pageOf = (n: PNode): unknown => {
+  let p = n.parent as PNode | null | undefined;
+  while (p && p.type !== 'PAGE') p = p.parent as PNode | null | undefined;
+  return p ?? null;
+};
+
+/** The family leads whose sets are in the file, each with its set: what `draw-specs` with no def draws. `page`, the
+ *  panel's Draw specs (Documentation › Specs, Q2830.3 A): only the sets on that page. */
+export const specTargets = (api: Pick<PanelApi, 'root'>, onlyDef?: string, page?: unknown): { targets: { def: ComponentDef; set: PNode }[]; skipped: string[] } => {
+  const sets = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).filter((n) => n.type === 'COMPONENT_SET' && !n.removed && (page === undefined || pageOf(n) === page));
   const targets: { def: ComponentDef; set: PNode }[] = [], skipped: string[] = [];
   for (const d of componentDefs) {
     if (!d.figmaProperties || panelFamily(d.id)?.lead !== d.id) continue;

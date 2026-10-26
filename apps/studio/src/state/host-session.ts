@@ -110,6 +110,10 @@ export interface HostSession {
   readonly componentUpdate: Verdict | null;
   /** Which of the two the components operation last reported (#2265), so the Activity row shows the newer one. */
   readonly componentLatest: 'build' | 'update' | null;
+  /** Documentation › Specs' Draw specs (#2830 Q2830.3 A): `pending` from its post to its verdict, which the host sends
+   *  as a `component-update-result` (the agent's `draw-specs` verdict, one action), or to a refusal; then that verdict.
+   *  The panel posts no other components write while it is pending (`componentBusy`), so the next one is its own. */
+  readonly specsState: ActionState;
   /** The state of the file-setup scaffold (#1558) — same shape, its own slot, for the same reason
    *  `componentState` is separate from `applyState`: three actions, three buttons, three verdicts. A
    *  file-setup verdict cannot report into the theme or component write's pill without claiming something
@@ -230,6 +234,7 @@ export const initialHostSession = (): HostSession => ({
   componentState: null,
   componentUpdate: null,
   componentLatest: null,
+  specsState: null,
   fileSetupState: null,
   styleGuideState: null,
   componentProgress: null,
@@ -317,7 +322,9 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'refused': {
       const op = AGENT_OP[m.cmd];
       if (!op || op === 'readback') return s;
-      const next = { ...s, refused: { op, message: m.message, agent: m.agent, n: (s.refused?.n ?? 0) + 1 } };
+      // Draw specs, declined: it gets no verdict, so the host's words are its result.
+      const specs = op === 'components' && !m.agent && s.specsState === 'pending' ? { specsState: { ok: false, headline: '✗ not drawn', summary: m.message } } : {};
+      const next = { ...s, ...specs, refused: { op, message: m.message, agent: m.agent, n: (s.refused?.n ?? 0) + 1 } };
       // The panel's own request, declined behind an agent's run: it posted, set `pending`, and will get no
       // verdict. A panel request declined behind the panel's own run leaves `pending` to that run's verdict.
       if (m.agent || s.agentRun?.op !== op) return next;
@@ -341,7 +348,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     }
     case 'component-update-result':
       // The build's slot, its progress and its set record are left alone: a check is not a build.
-      return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, publish: m.publish }, componentLatest: 'update' };
+      return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, publish: m.publish }, componentLatest: 'update',
+        specsState: s.specsState === 'pending' ? { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines } : s.specsState };
     case 'file-setup-result':
       return { ...s, fileSetupState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'filesetup' };
     case 'style-guide-result': {

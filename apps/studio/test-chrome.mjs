@@ -2425,7 +2425,7 @@ const recordPosts = (page) => page.evaluate(() => {
   window.__writes = [];
   window.addEventListener('message', (e) => {
     const m = e.data?.pluginMessage;
-    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link', 'minimize-ui'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
+    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link', 'minimize-ui', 'draw-specs'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
   });
 });
 /** The messages posted since the last call. A post is delivered as a task, so one task is let through first. */
@@ -2833,6 +2833,30 @@ for (const host of ['web', 'figma']) {
           const px = await takePosts(page);
           const landed = area === 'components' ? at.place === 'components' && at.levers && at.build === 0 : at.layout === 'page' && at.docs;
           ok(landed && px.length === 0, `${area} ${where}: the rail opens the ${area} area and writes nothing — ${JSON.stringify(at)}, posted ${JSON.stringify(px)}`);
+        }
+        // #2830 Q2830.3 A: Documentation › Specs is a real control. Draw specs posts the panel's `draw-specs` (for the
+        // current page; the host picks the page) and nothing else, reads as drawing until the host answers, and then shows
+        // the host's verdict as its result line. The verdict is planted as the main thread posts one.
+        if (narrow) await page.locator('[data-p3="docs-select"]').selectOption('specs');
+        else await hooks.click(page.locator('[data-p3="docs-tab-specs"]'), WAIT);
+        await hooks.need(page, '[data-p3="docs-specs-draw"]');
+        const sp0 = await page.evaluate(() => { const b = document.querySelector('[data-p3="docs-specs-draw"]'); const r = document.querySelector('[data-p3="docs-specs-result"]');
+          return { label: b?.querySelector('[data-p3="label-idle"]')?.textContent ?? null, off: b?.getAttribute('aria-disabled') ?? null, result: r && !r.hidden ? r.textContent : null }; });
+        ok(sp0.label === 'Draw specs' && sp0.off === null && sp0.result === null, `${where}: #2830 Q2830.3 A: Specs offers Draw specs, available, with no result yet (${JSON.stringify(sp0)})`);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="docs-specs-draw"]'), WAIT);
+        const spW = await takeWrites(page);
+        const spBusy = await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-busy') ?? null);
+        ok(spW.length === 1 && canon(spW[0]) === canon({ type: 'draw-specs' }) && spBusy === 'true',
+          `${where}: #2830 Q2830.3 A: Draw specs posts draw-specs alone and reads as drawing (${JSON.stringify(spW)}, busy ${spBusy})`);
+        await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ drew 2 spec panels', summary: 'Drew 2 of 2.', lines: ['Drew 2 of 2.'] });
+        await page.waitForFunction(() => { const r = document.querySelector('[data-p3="docs-specs-result"]'); return !!r && !r.hidden; }, null, { timeout: 5000 }).catch(() => {});
+        const sp1 = await page.evaluate(() => { const b = document.querySelector('[data-p3="docs-specs-draw"]'); const r = document.querySelector('[data-p3="docs-specs-result"]');
+          return { busy: b?.getAttribute('aria-busy') ?? null, result: r && !r.hidden ? r.textContent : null }; });
+        ok(sp1.busy === null && sp1.result === '✓ drew 2 spec panels. Drew 2 of 2.', `${where}: #2830 Q2830.3 A: the host's verdict ends the drawing and is Specs' result line (${JSON.stringify(sp1)})`);
+        if (!narrow) {
+          const msp = await measure(page, `${where} / Documentation › Specs`, host, w);
+          check(msp, `${where} / Documentation › Specs`, columnOf(host, w), PLACE_FLOOR, { state: 'area', only: ['[data-p3="docs-specs-draw"]'] });
         }
         const bad2 = errors.filter((e) => !/WebSocket/.test(e));
         ok(bad2.length === 0, `${where} S1.4: 0 console errors (the agent link's bridge socket aside)${bad2.length ? ` — ${bad2.slice(0, 2).join(' | ')}` : ''}`);

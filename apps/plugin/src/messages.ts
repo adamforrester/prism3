@@ -138,6 +138,9 @@ export type UiToMain =
    *  file's root plugin data so they travel with it (`doc-settings.ts`). The main thread normalizes them, keeps them and
    *  answers `doc-settings` with what it kept. */
   | { type: 'doc-settings-save'; settings: unknown }
+  /** #2830 Q2830.3 A: Documentation › Specs' Draw specs: the spec panels for the sets on the current page. A write under
+   *  the build's guard, as the agent's `draw-specs`; answered with one `component-update-result`. */
+  | { type: 'draw-specs' }
   /** Update file's checklist opening (#2909): which sets the file holds, whether it is set up, and which are due by the
    *  as-built ledger (Q2909.8 A). Answered with one `file-sets`. A read; never refused by the run guard. Sent after load
    *  too, so the panel knows what is due at rest. `input` is the brand the panel holds, which the due read measures

@@ -1188,18 +1188,19 @@ const adoptMembers = async (defId: string | undefined, sink: ActionSink): Promis
 
 /**
  * DRAW SPECS (#2830 phase 2, Q2830.3 A) — the spec panel beside each family's usage panel, on request only: Build and
- * Update never draw one. Every family whose lead's set is in the file, or `defId`'s family. The def each panel names is
+ * Update never draw one. Every family whose lead's set is in the file, or `defId`'s family; `scope: 'page'`, the panel's
+ * Draw specs (Documentation › Specs), only the families whose lead's set is on the current page. The def each panel names is
  * the def as this file builds it (`materializeForBrand` with the saved brand), so its tokens are the ones the sets bind.
  * A panel's failure is CAUGHT per family and reported: the others still draw.
  */
-const drawSpecs = async (defId: string | undefined, sink: ActionSink): Promise<void> => {
+const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink: ActionSink): Promise<void> => {
   try {
     if (defId !== undefined && !componentDefs.some((d) => d.id === defId)) return unknownDef(defId, sink);
     let brandInput: BrandInput | null = null;
     try { brandInput = restoreInput(figma.root); } catch { /* untrusted/absent → defaults, as `buildComponents` */ }
     await figma.loadAllPagesAsync();
     const api = figma as unknown as SpecApi;
-    const { targets, skipped } = specTargets(api, defId);
+    const { targets, skipped } = specTargets(api, defId, scope === 'page' ? figma.currentPage : undefined);
     const drawn: string[] = [], items: string[] = [...skipped];
     for (const { def, set } of targets) {
       let o: SpecOutcome;
@@ -1214,7 +1215,7 @@ const drawSpecs = async (defId: string | undefined, sink: ActionSink): Promise<v
     // DRAFT wording (Q2830.7).
     const ok = drawn.length > 0 && drawn.length === targets.length && !skipped.length;
     const headline = !targets.length ? '✗ no sets to spec' : ok ? `✓ drew ${drawn.length} spec panel${drawn.length === 1 ? '' : 's'}` : `⚠ drew ${drawn.length} of ${targets.length} spec panels`;
-    const summary = !targets.length ? `No family's lead set is in this file${defId ? ` for ${defId}` : ''}.` : [`Drew ${drawn.length} of ${targets.length}.`, ...items].join(' ');
+    const summary = !targets.length ? `No family's lead set is ${scope === 'page' ? 'on this page' : 'in this file'}${defId ? ` for ${defId}` : ''}.` : [`Drew ${drawn.length} of ${targets.length}.`, ...items].join(' ');
     postVerdict({ type: 'component-update-result', ok: ok && !items.length, headline, summary, lines: targets.length ? [`Drew ${drawn.length} of ${targets.length}.`, ...items] : [summary] }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
@@ -1634,6 +1635,11 @@ onUiMessage((msg: UiToMain) => {
       // #2909: Update file's in-place update of the sets its checklist ticked, under the check's hash. Guarded, as the
       // agent's confirmed `update-components` is: the same action.
       void ACTIONS.updateComponents(msg.defs, msg.previewHash, { handEdits: msg.handEdits }, msg.input, uiSink);
+      return;
+    case 'draw-specs':
+      // #2830 Q2830.3 A: Documentation › Specs, the panel's Draw specs, for the sets on the current page. The agent's
+      // `draw-specs` through the same action and guard.
+      void ACTIONS.drawSpecs(undefined, 'page', uiSink);
       return;
     case 'doc-settings-save':
       // #2909 (Q2909.23 A): Documentation's settings, kept in the file. A read of nothing else; never guarded.

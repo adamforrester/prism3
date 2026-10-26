@@ -1,15 +1,17 @@
 /**
  * Documentation, the plugin rail's third area (#2909 IA v2 phase 1; owner decisions Q667 A, Q2909.21 A, Q2909.23 A, and
- * #2977 for the cover's switch): everything Prism3 writes into the file for people to read, as settings only. There is
- * no Draw button here: Update file draws the style guides, the usage panels and the cover with these settings, which are
- * kept in the file (`apps/plugin/src/doc-settings.ts`) so they outlast the session and travel with the file.
+ * #2977 for the cover's switch): everything Prism3 writes into the file for people to read, as settings. Update file
+ * draws the style guides, the usage panels and the cover with these settings, which are kept in the file
+ * (`apps/plugin/src/doc-settings.ts`) so they outlast the session and travel with the file. The one Draw here is Specs':
+ * spec panels are drawn on request only, never by Build or Update (Q2830.3 A).
  *
  * Its tabs (`DOC_TABS`, `pages.ts`), a select at the narrow tier as Theme's pages are:
  *   · Style guides: every setting the old Build style guides page had, mounted from `shell/style-guides.ts` in its
  *     settings-only mode;
  *   · Usage panels: one switch, on unless the file says off: a panel beside each set a build or an update writes (#846);
  *   · Cover: one switch, on unless the file says off: the library cover and the file thumbnail (#2977);
- *   · Specs: a placeholder for spec sheets (#2830), so the area's shape holds when they land.
+ *   · Specs: Draw specs (#2830 Q2830.3 A), the spec panel beside each usage panel for the sets on the current page,
+ *     through the agent's `draw-specs` action, with its result line under it.
  *
  * HOW IT TALKS TO THE REST: it reads the file's settings through `lend.read` and saves the whole record through
  * `lend.save`; it repaints on `host:docs`. It names no legacy repaint tier (`test-shell-imports.ts`).
@@ -17,9 +19,9 @@
  * Every string here is a DRAFT placeholder, to be replaced with the owner's wording before merge (Q2909.10 A).
  */
 import { subscribe } from '../state/store';
-import type { DocSettingsView } from '../state/host-session';
+import type { ActionState, DocSettingsView } from '../state/host-session';
 import { DOC_TABS, type DocTabId } from './pages';
-import { glyph, h, hook, switchEl } from './dom';
+import { glyph, h, hook, pendingLabel, setBusy, switchEl } from './dom';
 import { mountStyleGuides, type StyleGuidesLend } from './style-guides';
 
 export type DocumentationLend = {
@@ -29,6 +31,12 @@ export type DocumentationLend = {
   readonly save: (next: { readonly panels: boolean; readonly cover: boolean; readonly styleGuide: unknown }) => void;
   /** The style-guides page's reads and writes (`shell/style-guides.ts`), without its `settings`, which this adds. */
   readonly styleGuides: StyleGuidesLend;
+  /** Specs' Draw specs (Q2830.3 A): its last state, whether another write holds the canvas, why it cannot run now (the
+   *  file's brand did not restore) or null, and the draw itself, for the current page (`draw-specs`). */
+  readonly specs: {
+    readonly read: () => { readonly state: ActionState; readonly busy: boolean; readonly off: string | null };
+    readonly draw: () => void;
+  };
 };
 
 export const DOCS_COPY = {
@@ -40,7 +48,9 @@ export const DOCS_COPY = {
   coverDesc: 'The library cover, with the brand’s name and the Prism3 version, on the Cover page. Update file draws it and keeps it current, and sets it as the file thumbnail while Figma’s default is in place.',
   coverOff: 'Off: Update file leaves the Cover page and the file thumbnail alone.',
   specs: 'Spec sheets',
-  specsDesc: 'Measured specs for each component, drawn into the file. Coming later.',
+  specsDesc: 'Measured specs for each component set on this page, drawn beside its usage panel. Build and Update file never draw them.',
+  specsDraw: 'Draw specs',
+  specsBusy: 'Drawing specs…',
   saveError: 'Couldn’t save the setting in this file.',
 } as const;
 
@@ -148,9 +158,29 @@ export const mountDocumentation = (root: HTMLElement, lend: DocumentationLend, n
       tabCleanups.push(subscribe('host:docs', paint));
       return;
     }
-    const card = hook(h('section', 'p3-docs-card p3-docs-later'), 'docs-specs');
-    card.append(h('h2', 'p3-docs-cardtitle', DOCS_COPY.specs), h('p', 'p3-sub', DOCS_COPY.specsDesc));
+    // Specs (Q2830.3 A): Draw specs for the current page, and its result line under it.
+    const card = hook(h('section', 'p3-docs-card'), 'docs-specs');
+    const draw = hook(h('button', 'p3-btn p3-btn-page'), 'docs-specs-draw');
+    draw.type = 'button';
+    draw.append(pendingLabel(DOCS_COPY.specsDraw, DOCS_COPY.specsBusy));
+    draw.onclick = () => { if (draw.getAttribute('aria-disabled') !== 'true') lend.specs.draw(); };
+    const result = hook(h('p', 'p3-upd-summary', ''), 'docs-specs-result');
+    result.setAttribute('aria-live', 'polite');
+    card.append(h('h2', 'p3-docs-cardtitle', DOCS_COPY.specs), h('p', 'p3-sub', DOCS_COPY.specsDesc), draw, result);
     body.append(card);
+    const paint = (): void => {
+      const { state, busy, off } = lend.specs.read();
+      const pending = state === 'pending';
+      setBusy(draw, pending);
+      // Another write out, or no brand: unavailable, and named so; drawing, it says so in its own label.
+      if (!pending && (busy || off)) draw.setAttribute('aria-disabled', 'true');
+      draw.title = off ?? '';
+      const v = state && state !== 'pending' ? state : null;
+      result.textContent = v ? `${v.headline}. ${v.summary}` : '';
+      result.hidden = !v;
+    };
+    paint();
+    tabCleanups.push(subscribe('host', paint));
   };
 
   const show = (id: DocTabId, focus: boolean): void => {

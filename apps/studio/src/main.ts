@@ -1671,7 +1671,7 @@ const activityReading = (): ActivityReading => {
 const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply');
 const pruneBusy = (): boolean => !!host.pruneBusy || agentRunning('prune');
 const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentRunning('filesetup');
-const componentBusy = (): boolean => host.componentState === 'pending' || agentRunning('components');
+const componentBusy = (): boolean => host.componentState === 'pending' || host.specsState === 'pending' || agentRunning('components');
 
 /**
  * THE FILE'S BRAND DID NOT RESOLVE (#1989), so Apply Theme and Prune stale are off until a brand does.
@@ -1828,6 +1828,16 @@ const documentationLend: DocumentationLend = {
   read: () => host.docSettings,
   save: (next) => commit.saveDocSettings(next),
   styleGuides: styleGuidesLend,
+  // #2830 Q2830.3 A: Draw specs, for the current page, under the build's guard: never beside another components write.
+  specs: {
+    read: () => ({ state: host.specsState, busy: componentBusy() || !!updateRun, off: restoreFailure ? RESTORE_OFF_HINT : null }),
+    draw: () => {
+      if (componentBusy() || updateRun || restoreFailure) return;
+      setHost({ specsState: 'pending' });
+      hostChanged();
+      commit.postDrawSpecs();
+    },
+  },
 };
 
 // ---- Update file (#2909 IA v2 phase 1) ------------------------------------------------------------------

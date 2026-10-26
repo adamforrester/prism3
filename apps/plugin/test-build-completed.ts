@@ -47,6 +47,8 @@
  * ("Nothing was updated: the file changed since the check"). The hand-edit pass (section 7): `stale()` cut to
  * `mine !== handPass`, so a write starting no longer ends it → `hand-edits/guard`. `panelFor` drawing the spec panel
  * after the usage panel (Q2830.3 A: specs are drawn on request only) → `specs/never on build`, `specs/never on update`.
+ * The panel's Draw specs (section 8) scoped to the file, not the current page (`main.ts`'s `draw-specs` case passing
+ * `'file'`, or `specTargets` ignoring `page`) → `specs/this page`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -453,6 +455,22 @@ for (let i = 0; i < 100 && !afterHold.some((m) => typeof m.def === 'string'); i+
   if (!afterHold.some((m) => typeof m.def === 'string')) await new Promise((res) => realTimeout(res, 50));
 }
 ok(afterHold.some((m) => m.def === 'badge') && afterHold.some((m) => m.done === true), `hand-edits/guard control: once the build ends, the same request reads the sets, then ends (${afterHold.length} answers)`);
+
+// 8. #2830 Q2830.3 A: Documentation › Specs' Draw specs, the panel's `draw-specs`, through `main.ts`'s own switch and the
+//    real `drawSpecs`. It draws for the sets on the CURRENT page only: the file holds Badge and Switch row (sections 1 and
+//    6) on pages of their own, the current page is Switch row's, and the panel's message names nothing else. The expected
+//    sets are literals; the actual side is the spec panels tagged in the file after the run.
+const pageOfSet = (id: string): ShimPage | undefined => pages.find((p) => p.children.some((c) => c.type === 'COMPONENT_SET' && c.name === id));
+const rowPage = pageOfSet(LEVER_DEF);
+ok(!!rowPage && !!pageOfSet('badge') && rowPage !== pageOfSet('badge') && !specPanels().length,
+  `fixture: Badge and ${LEVER_DEF} sit on pages of their own, and no spec panel is in the file yet (${pageOfSet('badge')?.id}, ${rowPage?.id}, ${specPanels().length})`);
+const shownPage = shim.currentPage;
+shim.currentPage = rowPage;
+const drew = await askRun({ type: 'draw-specs' }, 'component-update-result');
+shim.currentPage = shownPage;
+const specDefs = (): string[] => { const walk = (n: any): any[] => [n, ...((n.children ?? []) as any[]).flatMap(walk)]; return [...new Set(pages.flatMap((p) => p.children.flatMap(walk)).map((n) => readSpecTag(n)?.def).filter((d): d is string => !!d))].sort(); };
+ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. drew 1 spec panel/.test(String(drew.headline)),
+  `specs/this page: the panel's Draw specs draws the spec panel for the set on the current page alone, ${LEVER_DEF}, not Badge on its own page ("${drew?.headline}": ${String(drew?.summary ?? '').slice(0, 160)}; tagged ${JSON.stringify(specDefs())})`);
 
 console.log(`\n${executed - failed}/${executed} build-completed assertions passed.`);
 process.exit(failed ? 1 : 0);

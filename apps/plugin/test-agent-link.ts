@@ -21,6 +21,8 @@
  *   · off: with the link off nothing in `prism3agent` is read or written by the plugin
  *   · stale: a command already queued at switch-on is answered `stale` and not run
  *   · routes/<cmd>: the UI message and the agent command reach the same `ACTIONS` entry
+ *   · specs/panel, specs/agent: Documentation › Specs' `draw-specs` reaches `ACTIONS.drawSpecs` for the current page, the
+ *     agent's for the whole file (#2830 Q2830.3 A)
  *   · parity/<cmd>: the agent's `result.verdict` is byte-for-byte what the UI path posted, less the panel's `lines`
  *   · #2177 agent/<cmd>, #2177 panel/<cmd>: the Activity drawer's one-line-per-item copy of a summary (`lines`) reaches
  *     the panel, and never the agent: the agent's verdict has exactly the keys, in order, its kind had before #2177 (a
@@ -249,7 +251,8 @@ const CASES: Case[] = [
   { cmd: 'readback', args: {}, ui: { type: 'ui-ready' }, entry: 'seedFromFile', verdictType: 'seed-info' },
 ];
 // The two update commands (#2265) have no panel twin yet (the panel's control is held for the owner), so they
-// have their own section below rather than a parity case.
+// have their own section below rather than a parity case. `draw-specs`' panel twin is scoped to the current page, so it
+// is not one either (`specs/panel`, below).
 const AGENT_ONLY = ['update-components', 'capture-baseline', 'adopt-members', 'draw-specs'];
 ok(new Set(CASES.map((c) => c.cmd)).size + 1 + AGENT_ONLY.length === AGENT_COMMANDS.length && AGENT_ONLY.every((c) => (AGENT_COMMANDS as readonly string[]).includes(c)),
   'every write/read command has a case here (status is covered above, the agent-only commands below)');
@@ -319,6 +322,26 @@ section('update — the dry run and the baseline capture reach their handlers, r
     const at = (type: string): number => posted.findIndex((m) => m.type === type && (type === 'component-update-result' || (m.id === id && m.cmd === cmd)));
     ok(at('agent-started') >= 0 && at('agent-started') < at('component-update-result') && at('component-update-result') < at('agent-finished'),
       `update/${cmd}: the panel gets agent-started, then the verdict, then agent-finished`);
+  }
+  // #2830 Q2830.3 A: Documentation › Specs' Draw specs is the panel's twin of `draw-specs`, for the current page, so it is
+  // no parity case (the agent's draws the whole file, and says so): the same ACTIONS entry, scoped 'page', and its
+  // verdict back to the panel; the agent's command reaches it scoped 'file'. (Mutation: the panel's case calling the bare
+  // handler, or scoped 'file' → `specs/panel` fails.)
+  {
+    const seenS: unknown[][] = [];
+    const origS = actions.drawSpecs;
+    actions.drawSpecs = (...a: unknown[]) => { seenS.push(a); return origS(...a); };
+    posted.length = 0;
+    await toUi({ type: 'draw-specs' });
+    const vS = posted.filter((m) => m.type === 'component-update-result').pop() as { headline?: string; summary?: string } | undefined;
+    ok(seenS.length === 1 && seenS[0][0] === undefined && seenS[0][1] === 'page' && vS?.headline === '✗ no sets to spec' && /on this page/.test(String(vS?.summary)),
+      `specs/panel: the panel's draw-specs reaches ACTIONS.drawSpecs for the current page, and its verdict comes back to the panel (${JSON.stringify(seenS.map((a) => a.slice(0, 2)))}, "${vS?.headline}": ${String(vS?.summary).slice(0, 60)})`);
+    seenS.length = 0;
+    const ds = await send('draw-specs', {});
+    await tick();
+    await read(ds.id);
+    actions.drawSpecs = origS;
+    ok(seenS.length === 1 && seenS[0][1] === 'file', `specs/agent: the agent's draw-specs reaches the same entry for the whole file (${JSON.stringify(seenS.map((a) => a.slice(0, 2)))})`);
   }
   // No def: every set the engine projects, none of which this file holds. (That a check writes nothing is
   // `test-update-components.ts`'s, which has sets to write to.)
