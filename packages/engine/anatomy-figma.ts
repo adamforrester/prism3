@@ -24,7 +24,7 @@
  */
 import type { AxisKind, ComponentDef, NestVariantWhen, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
+import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -2668,6 +2668,42 @@ export const applyDialogTitleSize = (def: ComponentDef, size: DialogTitleSize): 
   if (segs.length !== 4 || segs[0] !== 'type' || segs[1] !== 'label')
     throw new Error(`${def.id}: "Dialog title size" rebinds ${key} to type.label.<rung>.<role>, and the def binds ${def.tokens[key] ?? 'nothing'} there`);
   return { ...def, tokens: { ...def.tokens, [key]: `type.label.${DIALOG_TITLE_RUNG[size]}.${segs[3]}` } };
+};
+
+// ── BANNER STYLE (#2924) ────────────────────────────────────────────────────────────────────────
+//
+// One brand-wide surface for every banner (owner Q693 A, Q707 A): Tinted, today's banner, fills it with the tone's tint;
+// Outlined fills it with the page color and keeps the 1px tone edge. A VALUE setting (#2959's rule): it moves one fill
+// binding per tone, so Banner keeps its 8 members and every axis, property and layer name, and a brand switch reaches an
+// existing file through Update. No token is added: `color.background.primary` is emitted for every brand, and the edge,
+// the glyph and the inks bind what they bound. Bold, a solid tone fill, is held on #3038: it needs the nested action and
+// dismiss re-pointed at the on-color, which no materializer can do.
+
+/** The defs the setting reaches, each with its per-tone fill keys. Banner only (Q4 A on #2924): Toast sits on the inverse
+ *  surface with no tint, and FieldMessage has no surface. */
+export const BANNER_STYLE_FILL_KEYS: Readonly<Record<string, readonly string[]>> = {
+  banner: ['info.fill', 'success.fill', 'warning.fill', 'danger.fill'],
+};
+
+/**
+ * Materialize a def for the brand's `bannerStyle` lever (#2924). The IDENTITY under `tinted` and for any def not in
+ * `BANNER_STYLE_FILL_KEYS`: it returns the same object, so every Tinted plan is byte-identical to before. Under `outlined`
+ * each `<tone>.fill` key binds the page color, `color.background.primary`.
+ * THROWS when a key does not hold its tone's tint, `color.foreground.<tone>-subtle`: rebinding anything else is the
+ * silent-loss shape.
+ */
+export const applyBannerStyle = (def: ComponentDef, style: BannerStyle): ComponentDef => {
+  if (style === 'tinted') return def;
+  const keys = BANNER_STYLE_FILL_KEYS[def.id];
+  if (!keys) return def;
+  const tokens = { ...def.tokens };
+  for (const key of keys) {
+    const tone = key.split('.')[0];
+    if (def.tokens[key] !== `color.foreground.${tone}-subtle`)
+      throw new Error(`${def.id}: "Banner style" rebinds ${key} from color.foreground.${tone}-subtle, and the def binds ${def.tokens[key] ?? 'nothing'} there`);
+    tokens[key] = 'color.background.primary';
+  }
+  return { ...def, tokens };
 };
 
 // ── BUTTON LAYOUT (#1667) ───────────────────────────────────────────────────────────────────────

@@ -91,6 +91,8 @@ export const SEARCH_DESC = 'How Search field draws its edge, apart from the othe
 export const TAG_DESC = 'How tags draw their shape.';
 // #2958: DRAFT for the owner (Q1 on #2958), in Tag's pattern.
 export const DIALOG_DESC = 'How dialogs size their title.';
+// #2924: DRAFT for the owner (Q2 on #2924), the wireframe's section line.
+export const BANNER_DESC = 'How banners draw their surface and edge.';
 // #2909 Q2909.4 A: DRAFT for the owner (Q2909.10 A), after the round-4 wireframe's block.
 export const SHARED_DESC = 'Settings every component family follows. Density is set in Theme.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
@@ -372,6 +374,8 @@ export const DOMAINS = [
       { title: 'Tag', desc: TAG_DESC, rows: [{ ctl: 'chips', keys: ['tagStyle'], drive: 'tag' }] },
       // #2958: Dialog title size's one home, drawn in the Dialog section's Dialog options block (`domains/dialog-options.ts`).
       { title: 'Dialog', desc: DIALOG_DESC, rows: [{ ctl: 'chips', keys: ['dialogTitleSize'], drive: 'dialog' }] },
+      // #2924: Banner style's one home, drawn in the Banner section's Banner options block (`domains/banner-options.ts`).
+      { title: 'Banner', desc: BANNER_DESC, rows: [{ ctl: 'chips', keys: ['bannerStyle'], drive: 'banner' }] },
       { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },
     ],
     status: 'new',

@@ -54,7 +54,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, DIALOG_TITLE_TYPE_KEYS, fieldStyleFor, SEARCH_FIELD_STYLE_DEFS, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, DIALOG_TITLE_TYPE_KEYS, applyBannerStyle, BANNER_STYLE_FILL_KEYS, fieldStyleFor, SEARCH_FIELD_STYLE_DEFS, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -6631,6 +6631,8 @@ arm: {
     const GLYPH: Record<string, string> = { info: 'icon/info-circle', success: 'icon/check-circle', warning: 'icon/error-circle', danger: 'icon/warning-triangle' };
     const CORNER: Record<string, string> = { contained: 'radius/md', full: 'radius/none' };
     const set = figmaAnatomySet(bannerDef) as any[];
+    // #2924: the Banner style's fill per tone, typed from the decision (Q693 A, Q707 A), never read off the materializer.
+    const FILL: Record<string, (tone: string) => string> = { tinted: (t) => `foreground.${t}-subtle`, outlined: () => 'background.primary' };
     const names = set.map(planComponentName);
     const EXPECT_NAMES = TONES.flatMap((t) => ['contained', 'full'].map((w) => `tone=${t}, width=${w}`));
     ok(JSON.stringify(names) === JSON.stringify(EXPECT_NAMES),
@@ -6638,12 +6640,13 @@ arm: {
     const find = (n: any, name: string): any => n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean);
     const glyphs = (n: any): any[] => [...(/^icon\//.test(n.nestTarget ?? '') ? [n] : []), ...(n.children ?? []).flatMap(glyphs)];
     const wrong: string[] = [];
-    for (const m of set) {
-      const name = planComponentName(m);
+    const outlined = figmaAnatomySet(applyBannerStyle(bannerDef, 'outlined')) as any[];
+    for (const [style, m] of [...set.map((m) => ['tinted', m] as const), ...outlined.map((m) => ['outlined', m] as const)]) {
+      const name = `${style} ${planComponentName(m)}`;
       const tone = /tone=(\w+)/.exec(name)?.[1] ?? '';
       const width = /width=(\w+)/.exec(name)?.[1] ?? '';
       const r = m.root;
-      if (r.paints?.fills !== `color/foreground/${tone}-subtle`) wrong.push(`${name} fill ${r.paints?.fills}`);
+      if (r.paints?.fills !== `color/${FILL[style](tone).replace(/\./g, '/')}`) wrong.push(`${name} fill ${r.paints?.fills}`);
       if (r.paints?.strokes !== `color/border/${tone}`) wrong.push(`${name} edge ${r.paints?.strokes}`);
       // The edge per side (Q533.4): hairline top and bottom on both widths; the sides hairline contained, none full.
       const SIDE: Record<string, string> = { contained: 'border-width/hairline', full: 'border-width/none' };
@@ -6670,8 +6673,8 @@ arm: {
       if (row?.visible !== false || d?.visible !== false) wrong.push(`${name} action/dismiss shown by default`);
       if (find(r, 'titleBox')?.visible === false) wrong.push(`${name} title hidden by default`);
     }
-    ok(wrong.length === 0,
-      `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, built 480 contained and 960 full with no side edges at full, and nests ONE primary text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, both off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+    ok(wrong.length === 0 && outlined.length === 8,
+      `banner members, Tinted and Outlined (#2924): each paints foreground.<tone>-subtle at Tinted and background.primary at Outlined, with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, built 480 contained and 960 full with no side edges at full, and nests ONE primary text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, both off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
     // #2971: one width floor on every member, contained and full alike, bound to `container/min` (never a literal).
     const floors = set.map((m) => `${planComponentName(m)}: ${m.root.bound?.minWidth ?? '-'}/${m.root.minWidth ?? '-'}`);
     ok(set.length === 8 && set.every((m) => m.root.bound?.minWidth === 'container/min' && m.root.minWidth === undefined),
@@ -6721,22 +6724,26 @@ arm: {
       }
       return { measured, low, min };
     };
-    const PAIRS: [string, string, number, string][] = TONES.flatMap((t) => [
-      ['text.primary', `foreground.${t}-subtle`, 4.5, `title and body on the ${t} fill`],
-      [`border.${t}`, 'background.primary', 3, `the ${t} edge against the page`],
-      [`icon.${t}`, `foreground.${t}-subtle`, 3, `the ${t} glyph on its fill`],
-      // The nested neutral text action and dismiss paint their rest ink on the banner's fill.
-      ['interactive.neutral.text.rest', `foreground.${t}-subtle`, 4.5, `the action label on the ${t} fill`],
-      // The fallback when the file has no Button.Neutral: the primary Button's text label, held to 4.5:1 by #2820's surface contract (Q419 A).
-      ['interactive.primary.text.rest', `foreground.${t}-subtle`, 4.5, `the primary-Button action label on the ${t} fill`],
-      ['interactive.neutral.icon.rest', `foreground.${t}-subtle`, 3, `the dismiss glyph on the ${t} fill`],
-      // Q533.5: the flush dismiss has no wash, so its hover and pressed states are the glyph ink alone, and its focus is
-      // the shared ring, drawn on the banner's fill. Each is held to the non-text 3:1 on every tint.
-      ['interactive.neutral.icon.hover', `foreground.${t}-subtle`, 3, `the dismiss glyph at hover on the ${t} fill`],
-      ['interactive.neutral.icon.pressed', `foreground.${t}-subtle`, 3, `the dismiss glyph at press on the ${t} fill`],
-      ['border.focus', `foreground.${t}-subtle`, 3, `the dismiss focus ring on the ${t} fill`],
-    ] as [string, string, number, string][]);
-    ok(PAIRS.length === 36, `banner contrast covers 36 pairs, 9 per tone (got ${PAIRS.length})`);
+    // #2924: every part in both Banner styles, each on that style's fill (`FILL`, typed from the decision).
+    const PAIRS: [string, string, number, string][] = (['tinted', 'outlined'] as const).flatMap((style) => TONES.flatMap((t) => {
+      const fill = FILL[style](t);
+      return [
+        ['text.primary', fill, 4.5, `${style}: title and body on the ${t} fill`],
+        [`border.${t}`, 'background.primary', 3, `${style}: the ${t} edge against the page`],
+        [`icon.${t}`, fill, 3, `${style}: the ${t} glyph on its fill`],
+        // The nested neutral text action and dismiss paint their rest ink on the banner's fill.
+        ['interactive.neutral.text.rest', fill, 4.5, `${style}: the action label on the ${t} fill`],
+        // The fallback when the file has no Button.Neutral: the primary Button's text label, held to 4.5:1 by #2820's surface contract (Q419 A).
+        ['interactive.primary.text.rest', fill, 4.5, `${style}: the primary-Button action label on the ${t} fill`],
+        ['interactive.neutral.icon.rest', fill, 3, `${style}: the dismiss glyph on the ${t} fill`],
+        // Q533.5: the flush dismiss has no wash, so its hover and pressed states are the glyph ink alone, and its focus is
+        // the shared ring, drawn on the banner's fill. Each is held to the non-text 3:1 on every fill.
+        ['interactive.neutral.icon.hover', fill, 3, `${style}: the dismiss glyph at hover on the ${t} fill`],
+        ['interactive.neutral.icon.pressed', fill, 3, `${style}: the dismiss glyph at press on the ${t} fill`],
+        ['border.focus', fill, 3, `${style}: the dismiss focus ring on the ${t} fill`],
+      ] as [string, string, number, string][];
+    }));
+    ok(PAIRS.length === 72, `banner contrast covers 72 pairs, 9 per tone in each of the 2 Banner styles (got ${PAIRS.length})`);
     for (const [a, b, floor, what] of PAIRS) {
       const { measured, low, min } = measure(a, b, floor);
       ok(measured === CELLS && low.length === 0,
@@ -10206,6 +10213,8 @@ arm: {
       ['tagStyle', 'underline'],
       // #2958 (Q588b A): "Dialog title size" adds no token; Medium and Small move only the materialized Dialog def.
       ['dialogTitleSize', 'medium'], ['dialogTitleSize', 'small'],
+      // #2924 (Q707 A): "Banner style: Outlined" adds no token; it moves only the materialized Banner def.
+      ['bannerStyle', 'outlined'],
     ];
     const pairName = ([k, v]: [string, unknown]): string => `${k}=${JSON.stringify(v)}`;
     const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
@@ -15509,6 +15518,45 @@ arm: {
         const styles = [...new Set(plans.map((p) => find(p.root)?.textStyle))];
         ok(plans.length === 24 && JSON.stringify(styles) === JSON.stringify([style]),
           `#2958 projection: at ${size}, every one of Dialog's 24 members binds its title to ${style} (${plans.length} members, ${styles.join(', ')})`);
+      }
+    }
+
+    // (#2924) BANNER STYLE — one brand-wide surface for every banner (owner Q693 A, Q707 A: Tinted and Outlined; Bold held
+    // on #3038). SUBJECT = `applyBannerStyle`; ORACLE = refs, var names and copy typed here from the decision (Tinted →
+    // `color.foreground.{tone}-subtle`, Outlined → `color.background.primary`), never read off the materializer (docs/34).
+    {
+      const banner = componentDefs.find((x) => x.id === 'banner')!;
+      const TONES = ['info', 'success', 'warning', 'danger'];
+      const moved = componentDefs.filter((d) => applyBannerStyle(d, 'tinted') !== d || (d.id !== 'banner' && applyBannerStyle(d, 'outlined') !== d)).map((d) => d.id);
+      ok(moved.length === 0, `#2924 identity: Tinted returns every def unchanged, and Outlined every def but Banner (moved: ${moved.join(', ') || 'none'})`);
+      ok(JSON.stringify(BANNER_STYLE_FILL_KEYS) === JSON.stringify({ banner: ['info.fill', 'success.fill', 'warning.fill', 'danger.fill'] })
+        && TONES.every((t) => banner.tokens[`${t}.fill`] === `color.foreground.${t}-subtle`),
+        `#2924 reach (Q4 A, Banner only): the setting reaches Banner's four fills, authored at the tone's tint (${JSON.stringify(BANNER_STYLE_FILL_KEYS)})`);
+      const out = applyBannerStyle(banner, 'outlined');
+      ok(TONES.every((t) => out.tokens[`${t}.fill`] === 'color.background.primary'),
+        `#2924 binding: Outlined binds every tone's fill to color.background.primary (${TONES.map((t) => out.tokens[`${t}.fill`]).join(', ')})`);
+      const others = (d: typeof banner) => JSON.stringify({ ...d, tokens: Object.fromEntries(Object.entries(d.tokens).filter(([k]) => !/^(info|success|warning|danger)\.fill$/.test(k))) });
+      ok(others(out) === others(banner) && TONES.every((t) => out.tokens[`${t}.border`] === `color.border.${t}` && out.tokens[`${t}.icon`] === `color.icon.${t}`),
+        '#2924 a value setting (#2959): Outlined changes the four fill refs and nothing else on the def; the edge, the glyph and the inks keep their tokens');
+      let threw = '';
+      try { applyBannerStyle({ ...banner, tokens: { ...banner.tokens, 'warning.fill': 'color.foreground.warning' } }, 'outlined'); } catch (e) { threw = (e as Error).message; }
+      ok(threw.includes('"Banner style" rebinds warning.fill') && threw.includes('color.foreground.warning there'),
+        `#2924 refusal: a fill that is not its tone's tint throws by name rather than rebinding it (${threw || 'no throw'})`);
+      ok(validateBrandInput({ ...MINIMAL_BRAND, bannerStyle: 'outlined' } as any).length === 0 && validateBrandInput({ ...MINIMAL_BRAND, bannerStyle: 'bold' } as any).length > 0,
+        '#2924 input: bannerStyle accepts outlined and rejects bold, which is held on #3038');
+      const lever = leverManifest.find((l) => l.key === 'bannerStyle');
+      const order = leverManifest.filter((l) => l.group === 'form').map((l) => l.key);
+      ok(lever?.label === 'Banner style' && lever.group === 'form' && lever.kind === 'value' && lever.control === 'enum' && lever.default === 'tinted' && !lever.advanced
+        && JSON.stringify(lever.options?.map((o) => [o.value, o.label])) === JSON.stringify([['tinted', 'Tinted'], ['outlined', 'Outlined']])
+        && lever.description === 'The surface of every banner. Tinted fills it with the tone’s tint; Outlined draws the edge in the tone on the page color. Either way the edge and glyph clear 3:1.'
+        && order.indexOf('bannerStyle') === order.indexOf('dialogTitleSize') + 1,
+        `#2924 lever (DRAFT copy, Q2 on #2924): "Banner style", Tinted / Outlined, default Tinted, a value lever, not advanced, in Form after Dialog title size (form order: ${order.join(', ')})`);
+      // THE PROJECTION: every one of the 8 members' fill and edge, read off the plan as Figma will bind them.
+      for (const [style, fill] of [['tinted', (t: string) => `color/foreground/${t}-subtle`], ['outlined', () => 'color/background/primary']] as const) {
+        const plans = figmaAnatomySet(applyBannerStyle(banner, style)) as any[];
+        const bad = plans.filter((p) => { const t = /tone=(\w+)/.exec(planComponentName(p))?.[1] ?? ''; return p.root.paints?.fills !== fill(t) || p.root.paints?.strokes !== `color/border/${t}`; });
+        ok(plans.length === 8 && bad.length === 0,
+          `#2924 projection: at ${style}, every one of Banner's 8 members fills with ${fill('<tone>')} and keeps the color/border/<tone> edge (${plans.length} members${bad.length ? `; off: ${bad.map((p) => `${planComponentName(p)} ${p.root.paints?.fills}`).join(', ')}` : ''})`);
       }
     }
 

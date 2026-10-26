@@ -89,6 +89,12 @@ export type TagStyle = 'pill' | 'underline';
  *  value, never a per-instance variant: a value setting that moves one text-style binding and no structure. Applied to
  *  a def before projection, like `tagStyle` — see `applyDialogTitleSize`. */
 export type DialogTitleSize = 'large' | 'medium' | 'small';
+/** The `bannerStyle` FORM lever (#2924, owner Q693 A, Q707 A): the surface every banner draws. `tinted` (the default,
+ *  today's banner) fills it with the tone's tint, `color.foreground.{tone}-subtle`; `outlined` fills it with the page
+ *  color, `color.background.primary`, and keeps the 1px tone edge. One brand-wide value, never a per-instance variant: a
+ *  value setting that moves one fill binding per tone and no structure. Bold (#3038) is not offered. Applied to a def
+ *  before projection, like `dialogTitleSize` — see `applyBannerStyle`. */
+export type BannerStyle = 'tinted' | 'outlined';
 /** The button-family FORM levers (#1667, owner-decided 2026-09-25). Brand-level choices applied to a def
  *  before projection — see `applyButtonLayout`. `buttonIcons`: `attached` keeps the icons next to the label
  *  (the default); `edges` pins them to the button's edges, and the label centers in the space between them

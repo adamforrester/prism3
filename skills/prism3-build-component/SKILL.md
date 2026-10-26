@@ -649,6 +649,7 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `searchFieldStyle` | structural | the same two anatomies, for the search field on its own |
 | `tagStyle` | structural | pill outline or underline: two tag anatomies, with a 2px selected line |
 | `dialogTitleSize` | value | one text-style binding moves: the dialog title reads the large, medium or small label style |
+| `bannerStyle` | value | one fill binding per tone moves: the banner fills with the tone's tint or the page color |
 | `buttonIcons` | structural | icons beside the label, or pinned to the edges with the label centered between: two layouts |
 | `buttonContentSize` | value | a medium button reads the small label style and icon size |
 | `buttonLabelWeight` | value |  |
