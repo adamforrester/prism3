@@ -84,6 +84,7 @@ class FileShim {
     return this.addVar(name, collection, resolvedType);
   }
   createVariableAlias(target: any): { type: 'VARIABLE_ALIAS'; id: string } { return { type: 'VARIABLE_ALIAS', id: target.id }; }
+  setBoundVariableForEffect(effect: any, field: string, target: any): any { return { ...effect, boundVariables: { ...(effect.boundVariables ?? {}), [field]: { type: 'VARIABLE_ALIAS', id: target.id } } }; }
 
   // styles
   async getLocalEffectStylesAsync(): Promise<any[]> { return this.styles.effect; }
@@ -332,8 +333,8 @@ for (const [id, theme] of themes) {
 // literals for the `prism3` example brand — names, counts and the verdict text are written out here, not
 // read off the plan, so a plan or summary that moves fails by name instead of agreeing with itself.
 const PRISM3 = (exampleBrands as Record<string, BrandInput>).prism3;
-const STYLE_COUNT = 101;         // prism3: 14 effect + 2 paint + 5 grid + 80 text (63 + body/xs's 8, #2266, + the 3 underlined labels, #2324, + the 6 default-weight labels and their underlined twins, Q226 A)
-const COLLECTION_COUNT = 13;     // core, color, space, radius, size, icon, control, border-width, focus, opacity, layout, motion (#2394), type-sets
+const STYLE_COUNT = 102;         // prism3: 15 effect (14 shadow + glass, #2869) + 2 paint + 5 grid + 80 text (63 + body/xs's 8, #2266, + the 3 underlined labels, #2324, + the 6 default-weight labels and their underlined twins, Q226 A)
+const COLLECTION_COUNT = 14;     // core, color, space, radius, size, icon, control, border-width, focus, opacity, blur (#2869), layout, motion (#2394), type-sets
 const apply = async (f: FileShim) => {
   try { return (await runApplyTheme(PRISM3, f as any)).guarded; }
   catch (e) { return { ok: false as const, conflicts: [], threw: (e as Error).message }; }
