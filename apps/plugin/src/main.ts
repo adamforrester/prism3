@@ -1086,7 +1086,7 @@ const seatSet = async (setId: string, defId: string): Promise<void> => {
   try {
     const set = await figma.getNodeByIdAsync(setId);
     // Only a family's lead carries the family's panel (#2927), so only its set is seated with room for one.
-    if (set && set.type === 'COMPONENT_SET') seatNewSet(set as unknown as XNode, defId, leadsPanel(defId) ? docPanelReach(figma as unknown as PanelApi) : 0);
+    if (set && set.type === 'COMPONENT_SET') seatNewSet(set as unknown as XNode, defId, leadsPanel(defId) ? docPanelReach(figma as unknown as PanelApi, set as unknown as PNode) : 0);
   } catch { /* the set stays where the executor placed it */ }
 };
 

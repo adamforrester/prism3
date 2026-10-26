@@ -56,7 +56,7 @@ export const BLOCK_WIDTH = 512;
 /** HELD FOR THE OWNER: the padding toggles' height, the Field label column and the Specimen stage's padding. */
 const PADDING_HEIGHT = 16;
 const LABEL_COLUMN = 120;
-const STAGE_PAD = 24;
+export const STAGE_PAD = 24;
 
 /** The variant name a type and size select, as Figma writes it. */
 export const docBlockVariant = (type: DocBlockType, size: DocBlockSize = 'sm'): string => `Type=${type}, Size=${size}`;

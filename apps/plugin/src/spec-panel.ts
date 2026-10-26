@@ -62,7 +62,7 @@ import { fnv } from './style-guide';
 import { readTag } from './canvas-furniture';
 import { CAPTION, DOC_BLOCK_SET, SPECIMEN, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
 import {
-  PANEL_PAD, PANEL_WIDTH, SECTION_GAP, SECTION_TYPE, SPEC_GAP, SPEC_WIDTH, TITLE_TYPE, anatomyMarks, findDocBlock, overlaps,
+  PANEL_PAD, PANEL_WIDTH, SECTION_GAP, SECTION_TYPE, SPEC_GAP, SPEC_WIDTH, TITLE_TYPE, anatomyMarks, findDocBlock, overlaps, panelWidthFor,
   panelFamily, panelPrint, panelSpot, readPanelTag, type Box, type PNode, type PanelApi, type PanelParent, type PanelVariable,
 } from './doc-panel';
 import { SPEC_PANEL_KEY, SPEC_PANEL_NS, readSpecTag, type SpecTag } from './spec-tag';
@@ -300,7 +300,7 @@ export const specSpot = (set: PNode): { x: number; y: number } => {
   const u = liveUsagePanel(set);
   if (u) return { x: (u.x ?? 0) + (u.width ?? PANEL_WIDTH) + SPEC_GAP, y: u.y ?? 0 };
   const at = panelSpot(set);
-  return { x: at.x + PANEL_WIDTH + SPEC_GAP, y: at.y };
+  return { x: at.x + panelWidthFor(set) + SPEC_GAP, y: at.y };
 };
 
 const boxOf = (n: PNode): Box => ({ x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0 });
