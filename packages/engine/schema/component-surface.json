@@ -6,6 +6,11 @@
       "sha256": "10ad9afab46142d55db91c664d8f9806e9128069af18a4c8e68652ab71b0fc7a",
       "properties": []
     },
+    "brand-mark": {
+      "members": 19,
+      "sha256": "569d187b9239c7fbf2eda85d6456cc60c3fd24aafa3ee6b4e9b5baad2f78402a",
+      "properties": []
+    },
     "focus-ring": {
       "members": 2,
       "sha256": "90f005db553ee56dab7d4bc724e00c79662655c5475ce11a7288ef60f129e476",
@@ -753,7 +758,7 @@
     },
     "banner": {
       "members": 8,
-      "sha256": "7d839c69bbf5d1165eaf160c70adb26c308b696d8b480a4614e1cb680dbd6092",
+      "sha256": "d335048f7c7fde249944fafed0e0b17feff04751e38b41ba11513ca533033557",
       "properties": [
         "actions:BOOLEAN",
         "body:SLOT",

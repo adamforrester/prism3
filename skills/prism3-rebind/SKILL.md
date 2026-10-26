@@ -191,6 +191,8 @@ decision for the owner (section 6), and most become component work.
 | A FILL child collapses inside a hugging slot | A card whose inner frame fills vertically keeps the height of the card it replaced | Build components that go into slots to hug on both axes, with `minHeight` for a fixed look; test them inside the slot component |
 | `resetOverrides()` renames a nested slot | The slot takes its main's name, and lookups by name break | Rename it back, or look slots up by their property reference |
 | Setting a property to its current value records no override | The value doesn't survive a later update to the main component | Set the other value, then set it back; confirm it in the parent's overrides |
+| There is no single-field override reset | `resetOverrides()` clears every override on the instance, including slot swaps and their content, so it can't remove one stale override | Leave an override that equals the main's current value: it is inert. Report it rather than rebuilding the instance to clear it |
+| A large result doesn't fit through the bridge's reply | Returning a snapshot of hundreds of instances can run to megabytes, far beyond what an agent should read | Keep the data on `globalThis` and return it in one call; if your harness writes an oversized result to a file, process that file with a script instead of reading it |
 | Sticky isn't settable | The plugin can't make a layer Sticky: the pinned typings have no property for it. Fixed is settable, through the parent frame's `numberOfFixedChildren`. | An owner step in the UI: Prototype, then Sticky |
 | Screenshots render the active file only | A second connected file can't be screenshotted | Read its geometry back through the bridge, in that file |
 | A node's screenshot has no background | It renders on transparency, which is useless for contrast | Screenshot the container and crop |
@@ -432,3 +434,35 @@ chose, so each write replaces a decision, and the owner needs to see each one an
    On a mismatch, abort the batch: someone else changed the file since your read.
 4. **A library republish moves heights on its own.** When the owner accepts library updates, re-measure
    before the first write. Measurements taken before the update are stale.
+5. **Around a structural library publish, snapshot first.** A publish that replaces a component's
+   layers (an image area becomes a media component; loose price texts become a price component) resets
+   every per-instance override on the replaced layers. Before the owner accepts it, snapshot every
+   instance, read-only:
+   - **Key each record by its path inside the component, never by layer name.** Names repeat inside one
+     component (several layers are called "label"), and a name-keyed record silently overwrites itself.
+   - **Store values, never node IDs, for anything the publish replaces:** variant and boolean
+     properties, every text (characters and visibility), every nested instance's properties, the image's
+     whole fills array and its marker, each child whose visibility differs from the main, and a
+     fingerprint (the swap check's: path, type, visibility, characters, image hashes, instance key and
+     non-swap properties). Locate each instance by its container and slot index, which survive the
+     publish.
+   - **Validate it** by re-reading a few random instances with independently written code and comparing
+     them field by field against the stored record.
+6. **After the accept, restore by diffing, not by rewriting.**
+   - Prove the snapshot you restore from is the one on disk: hash the copy in memory and the file.
+   - Re-measure positions and heights before the first write.
+   - For each field, map the old path onto the new structure, read the current value, write only where it
+     differs, and read it back. Report every field as **carried** (already right), **restored** (written
+     and read back) or **failed**, per frame. Expect most overrides on surviving layer paths to carry,
+     and the fields the new component defaults differently to need restoring.
+   - Where the owner wants a value to survive a later update, set it as an explicit override (the toggle
+     in section 4).
+   - Verify with a mapped-value fingerprint: the expected values derived from the snapshot alone,
+     against a fresh read of each instance, compared by hash. Positions and container heights must stay
+     within 2px of the post-accept measurement. Then mutate one instance and confirm the check fails on
+     it by name, and revert.
+7. **"Path gone" during a restore is a library regression.** When an old field has nowhere to go in the new
+   structure, the publish dropped something (for example, a state overlay). Report it as failed, with
+   the recorded values ready for when the library restores it. Never rebuild it as a lookalike. After every
+   accept, also screenshot one instance of each state variant: a dropped feature loses no override, so
+   only the picture shows it.

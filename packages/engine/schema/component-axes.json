@@ -129,6 +129,33 @@
       "title text": "TEXT"
     }
   },
+  "brand-mark": {
+    "axes": {
+      "name": [
+        "card/amex",
+        "card/generic",
+        "card/mastercard",
+        "card/visa",
+        "provider/apple",
+        "provider/apple-white",
+        "provider/facebook",
+        "provider/google",
+        "social/facebook",
+        "social/facebook-mono",
+        "social/instagram",
+        "social/instagram-mono",
+        "social/x-mono",
+        "wallet/apple-pay-black",
+        "wallet/apple-pay-white",
+        "wallet/google-pay-black",
+        "wallet/google-pay-white",
+        "wallet/paypal",
+        "wallet/shop-pay"
+      ]
+    },
+    "members": 19,
+    "properties": {}
+  },
   "breadcrumb-item": {
     "axes": {
       "kind": [

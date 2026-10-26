@@ -171,6 +171,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | accordion | navigation | rest, focus-visible | rest, focus-visible |
 | badge | foundations | — | — |
 | banner | feedback | — | — |
+| brand-mark | foundations | — | — |
 | breadcrumb-item | navigation | — | — |
 | breadcrumbs | navigation | — | — |
 | button | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
@@ -519,6 +520,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | — | — |
 |  | tabs | — | — |
 | label | badge | — | — |
+|  | brand-mark | — | — |
 |  | breadcrumb-item | — | — |
 |  | breadcrumbs | Breadcrumb | — |
 |  | button | — | — |
@@ -570,7 +572,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | min | counter | 0 | — |
 |  | progress | 0 | — |
 |  | slider | 0 | — |
-| name | checkbox-group | — | — |
+| name | brand-mark | — | 19 values |
+|  | checkbox-group | — | — |
 |  | code-input | — | — |
 |  | counter | — | — |
 |  | icon | — | 46 values |
@@ -660,6 +663,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | _slider-thumb | medium | small, medium, large |
 |  | accordion | medium | small, medium, large |
 |  | badge | medium | small, medium |
+|  | brand-mark | medium | small, medium, large |
 |  | breadcrumb-item | medium | small, medium |
 |  | breadcrumbs | medium | small, medium |
 |  | button | medium | small, medium, large |

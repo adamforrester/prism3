@@ -24,6 +24,20 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": []
   },
   {
+    "id": "brand-mark",
+    "name": "BrandMark",
+    "category": "foundations",
+    "summary": "A provider's own mark, in its own colors: sign-in, wallet, card and social. Never retinted.",
+    "unit": "components",
+    "spacing": [],
+    "page": "Brand marks",
+    "section": "Foundations",
+    "buildable": true,
+    "reason": null,
+    "members": 19,
+    "nests": []
+  },
+  {
     "id": "focus-ring",
     "name": "FocusRing",
     "category": "foundations",

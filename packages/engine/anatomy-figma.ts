@@ -24,7 +24,7 @@
  */
 import type { AxisKind, ComponentDef, NestVariantWhen, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
+import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -38,6 +38,7 @@ import { outlineFillRole } from './modes';
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
 // plugin sandbox, which has no filesystem — see `emit-icons.ts`'s header.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
+import { BRAND_MARK_BOXES, BRAND_MARK_DOCUMENTS, BRAND_MARK_NAMES } from './brand-mark-glyphs';
 // Geometry a component owns and the icon set deliberately does not hold — the spinner (#1670).
 import { COMPONENT_GLYPHS } from './component-glyphs';
 // The catalogue, read only to name the member an overlay swaps in (`nestedSwapTarget`, #1670).
@@ -896,6 +897,21 @@ const glyphSvgFor = (defId: string, part: string, glyph: string | undefined): st
       '</svg>';
   }
   return glyphDocument(glyphPath(defId, part, glyph), glyph ? ICON_FILL_RULES[glyph as keyof typeof ICON_PATHS] : undefined);
+};
+
+/** The def whose emitted components ARE the brand marks (#2343): `brand-mark`, `emitAsComponents` like `icon`, each
+ *  mark its own `brand-mark/<kind>/<name>` component. Its glyph resolves against the MARK vocabulary, never the icon
+ *  set, and its document carries the provider's literal fills: the part takes no ink (`descendantFills`). */
+export const BRAND_MARK_DEF_ID = 'brand-mark';
+
+/** A brand mark's document and artboard by name (#2343). THROWS on a name the mark vocabulary does not hold, for
+ *  `glyphPath`'s reason: a miss resolved to nothing would build an empty artboard. */
+const brandMarkGlyph = (defId: string, part: string, mark: string | undefined): { svg: string; dims: [number, number] } => {
+  const doc = mark ? BRAND_MARK_DOCUMENTS[mark as keyof typeof BRAND_MARK_DOCUMENTS] : undefined;
+  if (!mark || !doc)
+    throw new Error(`${defId}: anatomy part '${part}' names mark '${String(mark)}', which is not in the brand-mark vocabulary — the vocabulary is BRAND_MARK_SOURCES in brand-mark-set.ts (${BRAND_MARK_NAMES.length} marks); a mark is added by dropping its .svg in marks/<kind>/, mapping it there and recording its provenance`);
+  const box = BRAND_MARK_BOXES[mark as keyof typeof BRAND_MARK_BOXES];
+  return { svg: doc, dims: [box[0], box[1]] };
 };
 
 /** The def whose emitted components ARE the icon set: `icon`, which is `emitAsComponents`, so each glyph is
@@ -1983,7 +1999,10 @@ export const figmaAnatomyPlan = (
       // from the other side. So the ink goes where the ink has always gone: on the VECTOR, found by
       // descendant search. One field, one meaning, whoever is pushing.
       // A vector may name its slot (#2670, Progress's ring track in `fill`); every other glyph takes `icon`.
-      const ink = paintOf(p.paintSlot ?? 'icon');
+      // A BRAND MARK TAKES NO INK (#2343): its document carries the provider's colors, and a fill pushed onto its
+      // vectors would be the retint the provider forbids. Not merely unkeyed: skipped, so a token added to the def
+      // later still cannot reach the artwork.
+      const ink = def.id === BRAND_MARK_DEF_ID ? undefined : paintOf(p.paintSlot ?? 'icon');
       if (ink) descendantFills = ink;
     } else if (p.kind === 'slot' || p.kind === 'overlay') {
       // There is no `color/interactive/{intent}/icon` variable — icon ink routes through `on-fill` /
@@ -2060,9 +2079,11 @@ export const figmaAnatomyPlan = (
     // is deliberately not in the icon set, and the `icon` def's own glyph, which IS the component instanced
     // here. `glyphPath` runs first so a name outside the vocabulary still throws with its own message.
     const glyphName = p.kind === 'vector' ? resolveGlyph(def.id, name, p.glyph, paintCoord) : undefined;
-    const iconTarget = glyphName !== undefined && !COMPONENT_GLYPHS[glyphName] && def.id !== ICON_DEF_ID
+    const iconTarget = glyphName !== undefined && !COMPONENT_GLYPHS[glyphName] && def.id !== ICON_DEF_ID && def.id !== BRAND_MARK_DEF_ID
       ? (glyphPath(def.id, name, glyphName), iconComponentName(glyphName))
       : undefined;
+    // The brand-mark def's own glyph is drawn inline from the MARK vocabulary, on the mark's own artboard (#2343).
+    const markGlyph = p.kind === 'vector' && def.id === BRAND_MARK_DEF_ID ? brandMarkGlyph(def.id, name, glyphName) : undefined;
     // THE INSET (#1346), on an instance. `glyphScale` sits the icon at that fraction of the part's box. The
     // part becomes a FRAME carrying the box binding, and the instance inside it is placed and sized at
     // `glyphInset` of the frame by the executor, with SCALE constraints so a re-themed box scales it along.
@@ -2099,10 +2120,12 @@ export const figmaAnatomyPlan = (
       // but which the field's grammar allows — resolves instead of throwing on an axis that is in fact known.
       // Only on a glyph still drawn inline: an icon-set glyph is an instance and carries no document (#2380).
       ...(p.kind === 'vector' && !iconTarget
-        ? {
-            glyphSvg: glyphSvgFor(def.id, name, glyphName),
-            glyphViewBox: glyphArtboard().dims,
-          }
+        ? markGlyph
+          ? { glyphSvg: markGlyph.svg, glyphViewBox: markGlyph.dims }
+          : {
+              glyphSvg: glyphSvgFor(def.id, name, glyphName),
+              glyphViewBox: glyphArtboard().dims,
+            }
         : {}),
       // THE ASPECT-RATIO LOCK (#1316), carried as the numeric proportion so each executor can resize the
       // frame to it and `lockAspectRatio()`. Only present where a `ratio` coordinate resolved, so no
@@ -2686,6 +2709,42 @@ export const applyDialogTitleSize = (def: ComponentDef, size: DialogTitleSize): 
   if (segs.length !== 4 || segs[0] !== 'type' || segs[1] !== 'label')
     throw new Error(`${def.id}: "Dialog title size" rebinds ${key} to type.label.<rung>.<role>, and the def binds ${def.tokens[key] ?? 'nothing'} there`);
   return { ...def, tokens: { ...def.tokens, [key]: `type.label.${DIALOG_TITLE_RUNG[size]}.${segs[3]}` } };
+};
+
+// ── BANNER STYLE (#2924) ────────────────────────────────────────────────────────────────────────
+//
+// One brand-wide surface for every banner (owner Q693 A, Q707 A): Tinted, today's banner, fills it with the tone's tint;
+// Outlined fills it with the page color and keeps the 1px tone edge. A VALUE setting (#2959's rule): it moves one fill
+// binding per tone, so Banner keeps its 8 members and every axis, property and layer name, and a brand switch reaches an
+// existing file through Update. No token is added: `color.background.primary` is emitted for every brand, and the edge,
+// the glyph and the inks bind what they bound. Bold, a solid tone fill, is held on #3038: it needs the nested action and
+// dismiss re-pointed at the on-color, which no materializer can do.
+
+/** The defs the setting reaches, each with its per-tone fill keys. Banner only (Q4 A on #2924): Toast sits on the inverse
+ *  surface with no tint, and FieldMessage has no surface. */
+export const BANNER_STYLE_FILL_KEYS: Readonly<Record<string, readonly string[]>> = {
+  banner: ['info.fill', 'success.fill', 'warning.fill', 'danger.fill'],
+};
+
+/**
+ * Materialize a def for the brand's `bannerStyle` lever (#2924). The IDENTITY under `tinted` and for any def not in
+ * `BANNER_STYLE_FILL_KEYS`: it returns the same object, so every Tinted plan is byte-identical to before. Under `outlined`
+ * each `<tone>.fill` key binds the page color, `color.background.primary`.
+ * THROWS when a key does not hold its tone's tint, `color.foreground.<tone>-subtle`: rebinding anything else is the
+ * silent-loss shape.
+ */
+export const applyBannerStyle = (def: ComponentDef, style: BannerStyle): ComponentDef => {
+  if (style === 'tinted') return def;
+  const keys = BANNER_STYLE_FILL_KEYS[def.id];
+  if (!keys) return def;
+  const tokens = { ...def.tokens };
+  for (const key of keys) {
+    const tone = key.split('.')[0];
+    if (def.tokens[key] !== `color.foreground.${tone}-subtle`)
+      throw new Error(`${def.id}: "Banner style" rebinds ${key} from color.foreground.${tone}-subtle, and the def binds ${def.tokens[key] ?? 'nothing'} there`);
+    tokens[key] = 'color.background.primary';
+  }
+  return { ...def, tokens };
 };
 
 // ── BUTTON LAYOUT (#1667) ───────────────────────────────────────────────────────────────────────

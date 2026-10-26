@@ -48,6 +48,7 @@ import { button, buttonDestructive, buttonNeutral } from './button';
 import { iconButton, iconButtonDestructive, iconButtonNeutral } from './icon-button';
 import { flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral } from './flush-icon-button';
 import { icon } from './icon';
+import { brandMark } from './brand-mark';
 import { focusRing } from './focus-ring';
 import { fieldLabel } from './field-label';
 import { fieldMessage } from './field-message';
@@ -97,7 +98,7 @@ import { progress } from './progress';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, brandMark, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -107,6 +108,8 @@ export const componentDefs: readonly ComponentDef[] = [
   // these are not preliminary work in front of the interesting components, they are the components
   // whose absence makes the interesting ones unmeasurable.
   icon,
+  // The second icon type (#2343): provider marks in their own colors, standalone components like icon's.
+  brandMark,
   focusRing,
   button,
   // #1223 — the two sibling button components, split from `button`'s former `intent` axis. Same factory,

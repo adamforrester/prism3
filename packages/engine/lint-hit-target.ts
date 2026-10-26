@@ -316,6 +316,7 @@ const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 't
 // ── EXCLUDED: represented, with a stated reason (docs/34 — a hand-enumerated legitimate exclusion) ──
 const EXCLUDED: Record<string, string> = {
   'icon': 'a decorative glyph, not a control — an icon-only ACTION is icon-button, which is gated',
+  'brand-mark': 'a provider mark, not a control — a sign-in or social action is a button or link around it, which carries the target',
   'focus-ring': 'a decorative ring nested by other controls; never a standalone tap target',
   'field-label': 'a field label, not an interactive control',
   'field-message': 'a helper/validation message, not an interactive control',

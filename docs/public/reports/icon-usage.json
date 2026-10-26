@@ -147,6 +147,17 @@
       ],
       "iconSlots": []
     },
+    "brand-mark": {
+      "glyphs": [
+        {
+          "part": "glyph",
+          "glyph": "{name}",
+          "source": "any (prop)",
+          "how": "drawn"
+        }
+      ],
+      "iconSlots": []
+    },
     "breadcrumbs": {
       "glyphs": [
         {

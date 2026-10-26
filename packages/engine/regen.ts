@@ -41,6 +41,8 @@ const STEPS: Array<{ label: string; args: string[] }> = [
   { label: 'emit-preview   (preview-spec)', args: ['packages/engine/emit-preview.ts'] },
   { label: 'emit-brandinput(example-brands)', args: ['packages/engine/emit-brandinput.ts'] },
   { label: 'emit-icons     (icon-glyphs.ts)', args: ['packages/engine/emit-icons.ts'] },
+  // #2343 — the brand marks, the second icon type: same shape of artifact, a module the plugin bundles.
+  { label: 'emit-marks     (brand-mark-glyphs.ts)', args: ['packages/engine/emit-marks.ts'] },
   // #1701 — the component docs projection. Reads the def registry only, so it has no ordering dependency.
   { label: 'emit-component-docs (out/components/** + component-maintainer)', args: ['packages/engine/emit-component-docs.ts'] },
   // #2647 — the Figma conventions file. Reads the def registry, the plugin's taxonomy and the Figma emitter in memory, so
@@ -77,7 +79,7 @@ export const renderOnDemand = (): { files: string[] } | { error: string } => {
 // outside the comparison until now: `modes-report.md` was regenerated (emit-dtcg writes it) but never
 // CHECKED, and `nb-regression-report.md` was neither regenerated nor checked — so this file's own
 // claim to cover "every committed artifact" was an overclaim. Both are gated now.
-export const ENGINE_ARTIFACTS = ['modes-report.md', 'nb-regression-report.md', 'icon-glyphs.ts'];
+export const ENGINE_ARTIFACTS = ['modes-report.md', 'nb-regression-report.md', 'icon-glyphs.ts', 'brand-mark-glyphs.ts'];
 //
 // `icon-glyphs.ts` is a generated MODULE rather than a report, and it belongs here rather than under
 // `out/` for a reason worth stating: `icon.ts` IMPORTS it, and the plugin bundles that import into a

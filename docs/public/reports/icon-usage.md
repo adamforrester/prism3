@@ -18,6 +18,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | infoGlyph | `info-circle` | icon set | drawn | tone: info |
 |  | successGlyph | `check-circle` | icon set | drawn | tone: success |
 |  | warningGlyph | `error-circle` | icon set | drawn | tone: warning |
+| brand-mark | glyph | `{name}` | any (prop) | drawn | always |
 | breadcrumbs | backGlyph | `chevron-left` | icon set | drawn | path: parent |
 | checkbox-control | checkGlyph | `check` | icon set | drawn | selection: checked |
 |  | dashGlyph | `minus` | icon set | drawn | selection: indeterminate |

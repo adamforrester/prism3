@@ -49,6 +49,11 @@
       "why": "The glyph vocabulary and its path data, generated from `icons/*.svg` through `icon-set.ts` (#833). PAYLOAD because any component projection that renders an icon carries this data with it — a client's ejected button needs the caret. It is a generated MODULE rather than an `out/` tree because `components/icon.ts` imports it and the plugin bundles that import into a sandbox with no filesystem, so it could not be read from disk at runtime. The SVGs beside it are authoring input and are outside this manifest, the same way a brand's design brief is. License and provenance: `icons/NOTICE.md` — the set is Remix Icon under its own v1.0 license, held as a swappable placeholder core, which is what keeps our use inside the license's `design systems where Icons are a minor component` clause."
     },
     {
+      "kind": "brand-mark-glyphs",
+      "pattern": "brand-mark-glyphs.ts",
+      "why": "The brand-mark vocabulary and each mark's SVG document, generated from `marks/**/*.svg` through `brand-mark-set.ts`, with `marks/provenance.json` as a build input (#2343). PAYLOAD for `icon-glyphs.ts`'s reason: any component projection that renders a provider mark carries the artwork with it, and the plugin bundles it into a sandbox with no filesystem. Provenance, terms and the trademark line: `marks/NOTICE.md` and `marks/provenance.json`, which also record what happens to the committed marks if the repository goes public (owner decision Q-B1 B)."
+    },
+    {
       "kind": "component-docs-data",
       "pattern": "out/components/components.ai.json",
       "why": "Every registered component's documentation, projected from its def (#1701): usage, props, states, variants, accessibility, content, motion, composition and the `ai` decision surface. PAYLOAD because a client's coded component is built from it, and an ejected repo has no def files to read. It carries the fields the plugin already ships and nothing #1623 ruled maintainer-only. Brand-independent — one file, not one per brand — because a def binds token names and each brand's own sidecar resolves them."
