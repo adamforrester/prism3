@@ -63,6 +63,11 @@ export const defaultTicks = (catalog: Catalog, f: FileSets): Ticks => {
 export const stepsOf = (t: Ticks, f: FileSets): StepKey[] =>
   STEP_ORDER.filter((k) => (k === 'setup' ? !f.setUp && t.setup : k === 'sets' ? t.sets.size > 0 : k === 'update' ? t.update.size > 0 : t[k]));
 
+/** The brand Update file's due read, its check and its update measure against (Q699 A, #3023 Q701 B): the panel's when
+ *  the run's steps include Theme, which stores it before the update; else nothing, and the host reads the file's stored
+ *  brand, the one the run leaves in the file. So the counts shown are the ones written, and the next load agrees. */
+export const brandFor = <B>(theme: boolean, panel: B): B | undefined => (theme ? panel : undefined);
+
 /** What the scoped check says of the ticked sets the update would act on: the ones it read and did not block. */
 export const updatableOf = (t: Ticks, check: { readonly sets: readonly CheckedSetView[] }): string[] =>
   [...t.update].filter((id) => check.sets.some((c) => c.def === id && !c.blocked));

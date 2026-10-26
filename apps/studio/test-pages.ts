@@ -123,6 +123,9 @@ ok(JSON.stringify(tagHome) === JSON.stringify(['Components › Tag']), `#2931 Q5
 // #2952 (#2905 Q5 A, Q578): Search field style the same way, to Components › Search, its Search options block.
 const searchHome = seen.get('searchFieldStyle') ?? [];
 ok(JSON.stringify(searchHome) === JSON.stringify(['Components › Search']), `#2952: searchFieldStyle's one home is Components › Search, not Shape (${searchHome.join(' + ') || 'none'})`);
+// #2924 (Q693 A): Banner style the same way, to Components › Banner, its Banner options block.
+const bannerHome = seen.get('bannerStyle') ?? [];
+ok(JSON.stringify(bannerHome) === JSON.stringify(['Components › Banner']), `#2924: bannerStyle's one home is Components › Banner (${bannerHome.join(' + ') || 'none'})`);
 ok(tierWrong.length === 0, `each lever's tier follows the manifest flag, outside ${FIRST_CLASS.join(', ')}${tierWrong.length ? ` — advanced tier disagrees with the manifest flag: ${tierWrong.join('; ')}` : ''}`);
 for (const k of FIRST_CLASS) ok(PAGES.some((p) => p.key === k), `FIRST_CLASS names a page the data has: ${k}`);
 

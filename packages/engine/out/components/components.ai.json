@@ -10189,7 +10189,7 @@
         "errorPattern": "Say what went wrong, whether anything was lost, and how to fix it. Use danger only for an error that blocks the user."
       },
       "docs": {
-        "usage": "Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one.",
+        "usage": "Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one. The brand's Banner style sets the surface for every banner: Tinted fills it with the tone's tint, Outlined with the page color, and both keep the edge in the tone. It is a brand setting, not a prop.",
         "do": [
           "Match the tone to how serious the message is",
           "Name the issue in the title, and say what to do next in the body",

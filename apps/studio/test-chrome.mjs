@@ -3894,6 +3894,20 @@ for (const { w, h } of WIDTHS) {
     // The default theme's four modes first: none clipped at any width (at 640 they did not fit, and the old
     // scroll hid one; the select shows them all).
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    // The control fits itself one frame after its header resizes (`modeControl`'s observer), and revealing the
+    // preview pane is that resize. Wait the two frames the 5- and 6-mode checks below already wait, or the radios
+    // are measured before they give way to the select (web light 380 flaked on main at d61c9e23).
+    await settle(page);
+    // The pane just shown lays its header out after the click, and the control's fit (radios or the select) follows its
+    // width, so the reading waits (bounded) for every radio to sit inside it or the select to show. A radio still cut
+    // off at the bound fails the arm below, as before.
+    await page.waitForFunction(() => {
+      const g = document.querySelector('[data-p3="mode-control"]'), sel = document.querySelector('[data-p3="mode-select"]');
+      if (sel && sel.getClientRects().length > 0 && getComputedStyle(sel).visibility !== 'hidden') return true;
+      if (!g || !g.getClientRects().length) return false;
+      const b = g.getBoundingClientRect();
+      return [...g.querySelectorAll('[data-p3="mode-option"]')].every((r) => { const x = r.getBoundingClientRect(); return x.left >= b.left - 0.5 && x.right <= b.right + 0.5; });
+    }, null, { timeout: 3000 }).catch(() => {});
     const c4 = await choosable(page);
     ok(c4.clipped.length === 0 && JSON.stringify(c4.modes) === JSON.stringify(want), `web light ${w} / brand, 4 modes: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c4)}`);
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
@@ -8486,13 +8500,15 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
   // #2909 Q2909.4 A: the shared block draws Control shape, its one home.
   'lever-control-shape',
   // #2958: Dialog options draws Dialog title size the same way, its home Components › Dialog.
-  'lever-dialog-title-size'];
+  'lever-dialog-title-size',
+  // #2924: Banner options draws Banner style the same way, its home Components › Banner.
+  'lever-banner-style'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
  *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
  *  the move: the levers pane no longer has a section per preview section. */
 // #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
 // #2909 Q2909.4 A: the shared block is the list's first section.
-const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents'];
+const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
@@ -8647,6 +8663,7 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=tags"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=search"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=banners"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
     await openButtonOptions(page);
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
@@ -8665,8 +8682,8 @@ for (const host of ['web', 'figma']) {
           // options (below). The list is the rest.
           // #2909: the shared block holds Control shape's chips itself, as the options do.
           shared: [...document.querySelectorAll('[data-p3="shared-options"] [data-p3^="control-shape-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="shared-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
-          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="shared-options"]')).length,
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="shared-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="shared-options"]')).length,
           search: {
             line: document.querySelector('[data-p3="search-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="search-options"] [data-p3^="search-field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
@@ -8678,6 +8695,10 @@ for (const host of ['web', 'figma']) {
           dialog: {
             line: document.querySelector('[data-p3="dialog-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="dialog-options"] [data-p3^="dialog-title-size-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
+          },
+          banner: {
+            line: document.querySelector('[data-p3="banner-options-derived"]')?.textContent ?? null,
+            chips: [...document.querySelectorAll('[data-p3="banner-options"] [data-p3^="banner-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           field: {
             line: document.querySelector('[data-p3="field-options-derived"]')?.textContent ?? null,
@@ -8698,6 +8719,8 @@ for (const host of ['web', 'figma']) {
         `#2952 Q59: previewing ${label}, Search options carry the derived line and hold Search field style's chips (${JSON.stringify(d.search)})`);
       ok(d.dialog.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.dialog.chips.length === 3 && d.dialog.chips.every(Boolean),
         `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's chips (${JSON.stringify(d.dialog)})`);
+      ok(d.banner.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.banner.chips.length === 2 && d.banner.chips.every(Boolean),
+        `#2924 Q59: previewing ${label}, Banner options carry the derived line and hold Banner style's chips (${JSON.stringify(d.banner)})`);
       ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
       ok(d.shared.length === 4 && d.shared.every(Boolean), `#2909 Q59: previewing ${label}, the shared block holds Control shape's four chips (${JSON.stringify(d.shared)})`);
       ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
@@ -8802,8 +8825,8 @@ for (const host of ['web', 'figma']) {
         };
       });
       const r0 = await read();
-      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
-        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options" and one "Dialog options" line (#2958), in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options", one "Dialog options" (#2958) and one "Banner options" line (#2924), in the list, and not in the preview (${JSON.stringify(r0)})`);
       ok(r0.expanded === 'false' && !r0.shown,
         `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
       ok(r0.rows === 4 && r0.lineBelowSets,
@@ -8833,7 +8856,7 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
       await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
       const r3 = await read();
-      ok(r3.toggles.length === 5 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
+      ok(r3.toggles.length === 6 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
         `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
       // Opening the line focuses its section's first set (wireframe v2's rule, #2905): with Badge (Other components) in
       // the preview, close and reopen it, and the preview shows Buttons. (Buttons is the preview's default, so the check
@@ -8903,8 +8926,8 @@ for (const host of ['web', 'figma']) {
       await goPlace(page, 'components');
       await hooks.need(page, '[data-p3="components-levers"]');
       // Tag first (#2931 Q579 A): opening a block focuses its section's first set, and the Fields case reads Password field.
-      for (const k of ['tags', 'dialogs', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
-      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section', 'dialog-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
+      for (const k of ['tags', 'dialogs', 'banners', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
+      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section', 'dialog-options-section', 'banner-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
       const r = await page.evaluate(() => {
         const secs = [...document.querySelectorAll('[data-p3="cp-section"]')];
         const by = (name) => secs.find((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name === name);
@@ -8925,6 +8948,7 @@ for (const host of ['web', 'figma']) {
         const fo = document.querySelector('[data-p3="field-options-section"]');
         const to = document.querySelector('[data-p3="tag-options-section"]');
         const dO = document.querySelector('[data-p3="dialog-options-section"]');
+        const bO = document.querySelector('[data-p3="banner-options-section"]');
         const so = document.querySelector('[data-p3="search-options-section"]');
         const soLine = document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=search"]');
         const ro = so?.querySelector('[data-p3="lever-search-field-style"] .p3-readout');
@@ -8932,6 +8956,7 @@ for (const host of ['web', 'figma']) {
           titles: secs.map((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name ?? null),
           buttons: edges('Buttons', 'button-options-section'), fields: edges('Fields', 'field-options-section'), tags: edges('Tag', 'tag-options-section'),
           dialogs: edges('Dialog', 'dialog-options-section'),
+          banners: edges('Banner', 'banner-options-section'),
           other: [...(by('Other components')?.querySelectorAll('[data-p3="cp-name"]') ?? [])].map((n) => n.textContent),
           fo: fo ? {
             title: fo.querySelector('[data-p3="field-options-title"]')?.textContent ?? null, desc: fo.querySelector('[data-p3="field-options-desc"]')?.textContent ?? null,
@@ -8948,6 +8973,10 @@ for (const host of ['web', 'figma']) {
             title: dO.querySelector('[data-p3="dialog-options-title"]')?.textContent ?? null, desc: dO.querySelector('[data-p3="dialog-options-desc"]')?.textContent ?? null,
             chips: [...dO.querySelectorAll('[data-p3^="dialog-title-size-choice-"]')].map((n) => n.textContent),
           } : null,
+          bO: bO ? {
+            title: bO.querySelector('[data-p3="banner-options-title"]')?.textContent ?? null, desc: bO.querySelector('[data-p3="banner-options-desc"]')?.textContent ?? null,
+            chips: [...bO.querySelectorAll('[data-p3^="banner-style-choice-"]')].map((n) => n.textContent),
+          } : null,
           so: so ? {
             title: so.querySelector('[data-p3="search-options-title"]')?.textContent ?? null, desc: so.querySelector('[data-p3="search-options-desc"]')?.textContent ?? null,
             chips: [...so.querySelectorAll('[data-p3^="search-field-style-choice-"]')].map((n) => n.textContent),
@@ -8960,14 +8989,20 @@ for (const host of ['web', 'figma']) {
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
       });
-      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents']),
-        `#2905 Q548, #2931 Q579 A, #2958: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents']),
+        `#2905 Q548, #2931 Q579 A, #2958, #2924: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
       const D = r.dialogs;
       ok(!!D && JSON.stringify(D.ids) === JSON.stringify(['dialog']) && D.folds + D.families === 0,
         `#2958: ${host} ${w}: the Dialog section lists Dialog as a row, with no family row and no fold (${JSON.stringify({ ids: D?.ids, folds: D?.folds, families: D?.families })})`);
       // The copy is the DRAFT posted on #2958 (Q1), held here as literals so a change to it is a decision, not drift.
       ok(!!r.dO && r.dO.title === 'Dialog options' && r.dO.desc === 'How dialogs size their title.' && JSON.stringify(r.dO.chips) === JSON.stringify(['Large', 'Medium', 'Small']),
         `#2958: ${host} ${w}: Dialog options: its drafted title and description, and Dialog title size's chips (${JSON.stringify(r.dO)})`);
+      const BN = r.banners;
+      ok(!!BN && JSON.stringify(BN.ids) === JSON.stringify(['banner']) && BN.folds + BN.families === 0,
+        `#2924: ${host} ${w}: the Banner section lists Banner as a row, with no family row and no fold (${JSON.stringify({ ids: BN?.ids, folds: BN?.folds, families: BN?.families })})`);
+      // The copy is the DRAFT on #2924 (Q2, the wireframe's words; Bold held on #3038), held here as literals.
+      ok(!!r.bO && r.bO.title === 'Banner options' && r.bO.desc === 'How banners draw their surface and edge.' && JSON.stringify(r.bO.chips) === JSON.stringify(['Tinted', 'Outlined']),
+        `#2924: ${host} ${w}: Banner options: its drafted title and description, and Banner style's chips, Tinted and Outlined (${JSON.stringify(r.bO)})`);
       const T = r.tags;
       ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag']) && T.folds + T.families === 0,
         `#2931 Q579 A: ${host} ${w}: the Tag section lists Tag as a row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
@@ -8977,9 +9012,9 @@ for (const host of ['web', 'figma']) {
       ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
         && JSON.stringify(F.ids) === JSON.stringify(['code-input', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
         `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its seven sets (Code input since Q-2789.3 A, its cell beside it since #2989), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
-      ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
+      ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog|Banner)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
         `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
-      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T], ['Dialog', D]]) {
+      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T], ['Dialog', D], ['Banner', BN]]) {
         const xs = e ? [e.head, ...e.rows, e.line, e.block] : [];
         const one = xs.length > 2 && xs.every((v) => v !== null && Math.abs(v - xs[0]) <= 0.5);
         ok(one && e.inBlock && e.after, `#2905 Q1 A: ${host} ${w}: ${name}: rows, line and block start at one edge, the section head's, and the block follows the sets (${JSON.stringify(e)})`);
@@ -9049,6 +9084,15 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-large"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-large"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         ok((await persisted(page))?.dialogTitleSize === 'large', `#2958: Dialog options' Large writes dialogTitleSize: large (${(await persisted(page))?.dialogTitleSize})`);
+        // #2924: Banner style is brand-wide too: Outlined from Dark writes the brand value, Tinted restores it.
+        await hooks.click(page.locator('[data-p3="banner-options"] [data-p3="banner-style-choice-outlined"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="banner-options"] [data-p3="banner-style-choice-outlined"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const bnO = await persisted(page);
+        ok(bnO?.bannerStyle === 'outlined' && JSON.stringify(bnO?.modeLevers) === JSON.stringify(before?.modeLevers),
+          `#2924 Q54: previewing Dark, Banner options' Outlined writes bannerStyle: outlined and no per-mode value (${bnO?.bannerStyle}, ${JSON.stringify(bnO?.modeLevers)})`);
+        await hooks.click(page.locator('[data-p3="banner-options"] [data-p3="banner-style-choice-tinted"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="banner-options"] [data-p3="banner-style-choice-tinted"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        ok((await persisted(page))?.bannerStyle === 'tinted', `#2924: Banner options' Tinted writes bannerStyle: tinted (${(await persisted(page))?.bannerStyle})`);
       }
       ok(errors.length === 0, `#2905 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
@@ -11105,10 +11149,11 @@ const EXPECT_HEADINGS = {
     // #2931 Q579 A: Tag, its Tag options (L2) and Tag style (L3), Field options' way.
     // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
     // #2958: Dialog, its Dialog options (L2) and Dialog title size (L3), Tag options' way.
-    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents'],
+    // #2924: Banner, its Banner options (L2) and Banner style (L3), Dialog options' way.
+    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents'],
     // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
-    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options'],
-    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size'],
+    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options'],
+    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size', 'Banner style'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
@@ -11126,7 +11171,7 @@ const HEADING_ADVANCED = {
   shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
   // #2844: a family's settings are closed behind their line; the audit reads them open.
   components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]',
-    '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]'],
+    '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]', '[data-p3="cp-opts-toggle"][data-key="opts=banners"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
@@ -15582,7 +15627,13 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
 //   · the badge counting nothing (`dueCount` → 0) → `IA2 figma … Update file carries a badge of 2 …`;
 //   · the scoped check asked over every present set → `IA2 figma … the checklist asks the full check for the due sets
 //     alone …`;
-//   · hand edits defaulting to Overwrite (`defaultTicks`) → `IA2 figma … the update keeps hand edits by default …`.
+//   · hand edits defaulting to Overwrite (`defaultTicks`) → `IA2 figma … the update keeps hand edits by default …`;
+//   · `endStep`'s due read after a run sending `panelBrand(true)` → `IA2 figma … after a run with Theme unticked, the due
+//     read asks against the file's stored brand …` (#3023);
+//   · the run's re-check (`startStep`, no `previewHash`) sending `panelBrand(true)` → `IA2 figma … with Theme unticked,
+//     the run checks the fewer sets again against the file's stored brand …` (#3023);
+//   · the re-tick from a toggle's answer (`if (rechecking && ticks) …`) deleted → `IA2 figma … a Theme toggle ticks the
+//     due sets from its own answer …` (#3023).
 console.log(`\nIA v2 phase 2 (#2909) — tiers, lever homes, engine warnings, what is due\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
   const where = `IA2 ${host} ${theme} 1280`;
@@ -15598,7 +15649,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       shared: document.querySelector('[data-p3="components-list"] > [data-p3="cp-shared"]') ? [...document.querySelector('[data-p3="components-list"]').children].indexOf(document.querySelector('[data-p3="cp-shared"]')) : -1,
     }));
     ok(JSON.stringify(tiers.caps.map((c) => c.tier)) === JSON.stringify(['components', 'subcomponents']) && tiers.caps.every((c) => c.role === 'group' && /^(Components|Subcomponents) · \d+ sets$/.test(c.named ?? ''))
-      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
+      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
       `${where}: Q2909.17 A: Components lists its sections under the tiers, each a group named by its caption, Components then Subcomponents (${JSON.stringify(tiers.caps)})`);
     ok(tiers.empty === 'Content components and Blocks: no component sets yet.', `${where}: Q2909.17 A: the two tiers no definition is in yet are named in one line ("${tiers.empty}")`);
     // The shared block, first in the list after the intro: Density's read-only line, then Control shape's chips.
@@ -15703,15 +15754,86 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       ok(/^1 set not checked yet/.test(ck.unrec ?? '') && ck.saves, `${where}: Q2909.8 A: the set never recorded is offered a check, and the update says it saves a version first (${JSON.stringify({ unrec: ck.unrec, saves: ck.saves })})`);
       const dm = await measure(page, `${where} / Update checklist`, host, 1280);
       check(dm, `${where} / Update checklist`, columnOf(host, 1280), PLACE_FLOOR, { only: ['[data-p3="update-go"]', '[data-p3="update-due-set"]', '[data-p3="update-hand-keep"]'] });
+      // #3023 Q701 B: a Theme toggle checks the file again, against the brand the run would leave in it: with Theme
+      // unticked, the file's stored one (no brand on the wire), ticked again, the panel's. Each answer re-asks the check.
+      step = 'the Theme toggle';
+      const toggleTheme = async () => {
+        await page.evaluate(() => { window.__ia2.length = 0; });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+        // While it checks, the checklist says so, and focus stays inside the modal (the Theme box it was on is gone).
+        const checking = await page.evaluate(() => !!document.querySelector('[data-p3="update-checking"]') && !!document.querySelector('[data-p3="update-dialog"]')?.contains(document.activeElement));
+        await postMsg(page, FILE);
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+        const got = await page.evaluate(() => window.__ia2.slice());
+        await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+        const box = await page.evaluate(() => document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null);
+        return { checking, box, got };
+      };
+      const want = (brand) => (m) => (brand === undefined ? !('input' in m) : canon(m.input) === canon(brand));
+      for (const [on, brand, words] of [[false, undefined, 'unticked, the file\'s stored brand (none sent)'], [true, PANEL_BRAND, 'ticked again, the panel\'s brand'], [false, undefined, 'unticked once more, the stored brand']]) {
+        const tg = await toggleTheme();
+        const fs = tg.got.filter((m) => m.type === 'file-sets-request');
+        const uc = tg.got.filter((m) => m.type === 'update-check-request');
+        ok(tg.box === String(on) && tg.checking && fs.length === 1 && fs.every(want(brand)) && uc.length === 1 && JSON.stringify(uc[0].defs) === JSON.stringify(['button', 'select']) && uc.every(want(brand)),
+          `${where}: #3023 Q701 B: Theme ${words}: the checklist checks the file again, then the due sets, against that brand (${JSON.stringify({ box: tg.box, checking: tg.checking, fileSets: fs.map((m) => 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none'), check: uc.map((m) => [m.defs, 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none']) })})`);
+      }
       step = 'the update';
-      // The theme unticked, so the update is the run's first step and posts at once.
-      await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+      // The theme unticked, so the update is the run's first step and posts at once, with no brand: the stored one.
       await page.evaluate(() => { window.__ia2.length = 0; });
       await hooks.click(page.locator('[data-p3="update-go"]'));
       await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
       const sent = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-sets'));
-      ok(sent.length === 1 && canon(sent[0]) === canon({ type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep', input: PANEL_BRAND }),
-        `${where}: Q2909.8 A, Q699 A: the update posts the ticked sets with the check's own hash, Keep, and the brand the check measured (${sent.length ? wireDiff(sent[0], { type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep', input: PANEL_BRAND }) : 'nothing posted'})`);
+      ok(sent.length === 1 && canon(sent[0]) === canon({ type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep' }),
+        `${where}: Q2909.8 A, #3023 Q701 B: with Theme unticked, the update posts the ticked sets with the check's own hash, Keep, and no brand, so the host lays the stored one (${sent.length ? wireDiff(sent[0], { type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep' }) : 'nothing posted'})`);
+      // The run ends on the update's verdict, and the due read after it measures against the brand the run left in the
+      // file: with Theme unticked, the stored one, so the badge does not flag the sets the run just wrote (#3023).
+      step = 'the due read after the run';
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      const after = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'file-sets-request'));
+      ok(after.length === 1 && !('input' in after[0]),
+        `${where}: #3023 Q701 B: after a run with Theme unticked, the due read asks against the file's stored brand (no brand sent) (${JSON.stringify(after.map((m) => 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none'))})`);
+      await postMsg(page, FILE);
+      await postMsg(page, { type: 'hand-edits', done: true });
+      // A toggle's answer ticks the due sets afresh: here the stored brand finds Tag due too, and its box is ticked.
+      step = 'the toggle\'s answer';
+      const FILE2 = { ...FILE, due: { ...DUE, tag: { state: 'due', reason: 'definition' } } };
+      const sets2 = [...sets, { def: 'tag', hash: 'ht', members: 24, update: 4, add: 0, drop: 0, handEdited: 3, noBaseline: 0, blocked: false, upToDate: false }];
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE2);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-2', missing: [], refused: [], sets: sets2 });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      const rt = await page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
+        rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => [b.dataset.id, b.getAttribute('aria-checked')]) }));
+      ok(rt.theme === 'false' && JSON.stringify(rt.rows) === JSON.stringify([['button', 'true'], ['select', 'true'], ['tag', 'true']]),
+        `${where}: #3023 Q701 B: a Theme toggle ticks the due sets from its own answer, so Tag, due under the stored brand, is ticked (${JSON.stringify(rt)})`);
+      // An update of fewer sets than were checked is checked again first, against the same brand: the stored one.
+      step = 'the run\'s re-check';
+      await hooks.click(page.locator('[data-p3="update-due-set"][data-id="select"]'));
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-go"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      const re = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-check-request'));
+      ok(re.length === 1 && JSON.stringify(re[0].defs) === JSON.stringify(['button', 'tag']) && !('input' in re[0]),
+        `${where}: #3023 Q701 B: with Theme unticked, the run checks the fewer sets again against the file's stored brand (no brand sent) (${JSON.stringify(re.map((m) => [m.defs, 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none']))})`);
+      await postMsg(page, { type: 'update-check', previewHash: 'H-3', missing: [], refused: [], sets: sets2.filter((c) => c.def !== 'select') });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
+      await postMsg(page, FILE);
+      await postMsg(page, { type: 'hand-edits', done: true });
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {

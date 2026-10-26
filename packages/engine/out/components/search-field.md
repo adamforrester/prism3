@@ -226,7 +226,7 @@ Keyed by `status`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/control` | `color.interactive.neutral.overlay.hover` | `color.field.border.hover` | — | — |
+| `container/control` | `color.field.fill` | `color.field.border.hover` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
 | `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
@@ -291,7 +291,7 @@ Keyed by `status`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.danger` | — | — |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
 | `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
@@ -356,7 +356,7 @@ Keyed by `status`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.warning` | — | — |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
 | `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
@@ -421,7 +421,7 @@ Keyed by `status`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.success` | — | — |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
 | `container/control/trailingVisual` | — | — | — | `color.icon.primary` |

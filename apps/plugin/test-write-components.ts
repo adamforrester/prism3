@@ -5158,6 +5158,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['tagStyle', 'underline'],
     // #2958 (Q588b A): "Dialog title size" adds no token; Medium and Small move only the materialized Dialog def.
     ['dialogTitleSize', 'medium'], ['dialogTitleSize', 'small'],
+    // #2924 (Q707 A): "Banner style: Outlined" adds no token; it moves only the materialized Banner def.
+    ['bannerStyle', 'outlined'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {
@@ -5310,6 +5312,46 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const got = await titles(size ? { ...aurora, dialogTitleSize: size } as BrandInput : aurora);
     ok(got.read === 24 && JSON.stringify(got.styles) === JSON.stringify([want]) && got.misses.length === 0,
       `#2958 dialog title reads back: at ${size ?? 'unset (Large)'}, all ${got.read} of 24 members bind the title to ${want}, a style the brand emits (${got.styles.join(', ')}; misses: ${got.misses.slice(0, 2).join('; ') || 'none'})`);
+  }
+}
+
+// =============================================================================================
+// #2924 — BANNER STYLE, built through `materializeForBrand` and read back from the host shim
+// =============================================================================================
+// One brand-wide surface for every banner (owner Q693 A, Q707 A). A brand on Outlined builds every one of Banner's 8
+// members with its fill bound to `color/background/primary`, and an unset brand (Tinted) to `color/foreground/<tone>-subtle`;
+// the edge is `color/border/<tone>` in both. The host holds the plans' variables (`fullFor`): that every one is a variable
+// the brand emits is `lint-lever-sweep.ts`'s check, under this setting too. The expected names are typed here from the
+// decision, never read off the materializer's table (docs/34).
+{
+  const aurora = exampleBrands().aurora as BrandInput;
+  const surfaces = async (input: BrandInput): Promise<{ read: number; off: string[]; misses: string[] }> => {
+    const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input), { swapTarget: SWAP });
+    const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+    const f = fullFor(all);
+    const def = componentDefs.find((d) => d.id === 'banner')!;
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page });
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    await prebuildDependencies(def, { defs: componentDefs, project, host: shim as any, build });
+    const run = await build(def);
+    const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === project(def)[0].component) as Node | undefined;
+    const members = (set?.children ?? []) as Node[];
+    const fill = input.bannerStyle === 'outlined' ? () => 'color/background/primary' : (t: string) => `color/foreground/${t}-subtle`;
+    return {
+      read: members.length,
+      off: members.flatMap((m) => {
+        const t = /tone=(\w+)/.exec(String(m.name))?.[1] ?? '';
+        const got = [paintVar(m, 'fills'), paintVar(m, 'strokes')];
+        return got[0] === fill(t) && got[1] === `color/border/${t}` ? [] : [`${m.name}: ${got.join(' / ')}`];
+      }),
+      misses: run.misses,
+    };
+  };
+  for (const style of [undefined, 'outlined'] as const) {
+    const got = await surfaces(style ? { ...aurora, bannerStyle: style } as BrandInput : aurora);
+    ok(got.read === 8 && got.off.length === 0 && got.misses.length === 0,
+      `#2924 banner surface reads back: at ${style ?? 'unset (Tinted)'}, all ${got.read} of 8 members fill with ${style === 'outlined' ? 'color/background/primary' : 'color/foreground/<tone>-subtle'} and edge in color/border/<tone> (${got.off.slice(0, 2).join('; ') || 'all match'}; misses: ${got.misses.slice(0, 2).join('; ') || 'none'})`);
   }
 }
 
@@ -5562,6 +5604,41 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `link bar foot: on all 48 current members the bar is ABSOLUTE, STRETCH/MAX, as wide as the link, flush with its bottom and ${BAR}px high with the height still bound, and no other member has one (${current} current, ${off.length} off — ${off[0] ?? 'none'})`);
   ok(current === 48 && moved.length === 0,
     `link bar footprint: every current member measures what its unselected twin measures, so the bar moves no box (${moved.length} moved — ${moved[0] ?? 'none'})`);
+}
+
+// #2343 PR 2 — AN ASPECT-LOCKED, FIXED-PAINT SLOT, built by the REAL executor. A Button clone whose leading slot carries
+// a brand mark: height bound alone, `aspectLock`, `fixedPaint`. The mark is a live 32×20 component in the file, so the
+// instance's proportion is the main's 8:5, read when it is built. Expected numbers are literals (docs/34). Mutations: the
+// executor's aspectLock branch dropped → `mark slot/locked`; the projector pushing ink into a fixedPaint slot →
+// `mark slot/own paint`.
+{
+  const host = JSON.parse(JSON.stringify(button));
+  const lv = host.anatomy.parts.leadingVisual;
+  delete lv.size;
+  Object.assign(lv, { height: 'size.{size}.icon', aspectLock: true, fixedPaint: true });
+  const MARK = 'brand-mark/card/visa';
+  const plans = figmaAnatomySet(host, { swapTarget: MARK }).filter((p) => p.slots?.leading).slice(0, 4);
+  const page: Page = { children: [] };
+  const f = fullFor(plans);
+  const shim = makeShim({ ...f, comps: (f.comps ?? []).filter((c) => c !== MARK), page, liveRoot: true, liveComponents: true }) as any;
+  const frame = shim.createFrame();
+  frame.resize(32, 20);
+  const mark = shim.createComponentFromNode(frame);
+  mark.name = MARK;
+  if (!page.children.includes(mark)) page.children.push(mark);
+  const res = await applyComponentPlan(plans, shim);
+  const slots: Node[] = [];
+  const walk = (n: Node): void => { if (n.name === 'leadingVisual') slots.push(n); for (const c of (n.children as Node[] | undefined) ?? []) walk(c); };
+  for (const n of page.children) walk(n);
+  const bad = slots.filter((n) => {
+    const t = n.targetAspectRatio as { x: number; y: number } | undefined;
+    const bv = (n.boundVariables ?? {}) as Record<string, unknown>;
+    return !t || Math.abs(t.x / t.y - 1.6) > 1e-6 || !bv.height || bv.width;
+  });
+  ok(slots.length === plans.length && bad.length === 0 && !res.misses.some((m) => m.includes('aspectLock')),
+    `mark slot/locked: every mark slot is locked to its main's 8:5 with only its height bound (${slots.length} slots, ${bad.length} off${bad[0] ? ` — ${JSON.stringify(bad[0].targetAspectRatio)} ${Object.keys((bad[0].boundVariables ?? {}) as object).join(',')}` : ''}; ${res.misses.filter((m) => m.includes('aspectLock'))[0] ?? 'no aspectLock miss'})`);
+  const inked = slots.filter((n) => ((n as { findAll?: () => Node[] }).findAll?.() ?? []).some((v) => ((v.fills as { boundVariables?: unknown }[] | undefined) ?? []).some((p) => p?.boundVariables)));
+  ok(slots.length > 0 && inked.length === 0, `mark slot/own paint: no host ink is bound onto a vector inside any mark slot (${inked.length} of ${slots.length} inked)`);
 }
 
 if (failed) process.exit(1);
