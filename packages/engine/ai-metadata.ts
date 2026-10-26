@@ -224,7 +224,13 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
     // (disabled ink is the cross-cutting disabled.text / disabled.icon, group === 'disabled' below.)
     if (variant === 'link') {
       const c = surfaceClause(ctx, self, floor(4.5));
-      return { when_to_use: `Hyperlinks and interactive ${k}${sc(state)}. ${c.text}`, avoid_when: `Do not use for non-interactive ${k} (use ${q(`${k}.primary`)}).`, ...floorClause(ctx, self), ...(c.ok.length ? { sits_on: c.ok } : {}) };
+      // #2986 (owner decision, Q690 A): no on-media link role. Over a photograph a link takes the strongest
+      // inverse ink and keeps its underline as the cue, on the media veil when the photo is busy. Text links
+      // only — the underline is the cue, and an icon has none. The inverse twin inherits it through the remap.
+      const media = k === 'text' && ctx.has('inverse.text.primary') && ctx.has('veil.dark.medium')
+        ? ` Not over a photograph: set a link there in ${q('inverse.text.primary')} and keep its underline as the link cue, on a media veil (${q('veil.*')}) when the photo is busy. ${q('inverse.text.primary')} flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo.`
+        : '';
+      return { when_to_use: `Hyperlinks and interactive ${k}${sc(state)}. ${c.text}`, avoid_when: `Do not use for non-interactive ${k} (use ${q(`${k}.primary`)}).${media}`, ...floorClause(ctx, self), ...(c.ok.length ? { sits_on: c.ok } : {}) };
     }
     if (variant.endsWith('-subtle')) {
       const i = variant.replace('-subtle', '');

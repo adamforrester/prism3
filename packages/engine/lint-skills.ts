@@ -268,7 +268,7 @@ type Finding = { file: string; kind: string; detail: string };
 
 /** How many times each scan actually RAN. See the wiring floor at the bottom of this file — the
  *  self-check can prove a scan works without proving anything still calls it. */
-const ran = { text: 0, coverage: 0, placed: 0, discovery: 0, leverKind: 0 };
+const ran = { text: 0, coverage: 0, placed: 0, discovery: 0, leverKind: 0, ownerRule: 0 };
 
 /**
  * Scan one skill's TEXT. Split out from `scanSkill` so the self-check can drive **this** function
@@ -794,6 +794,77 @@ const COMMAND = '.claude/commands/review-pr.md';
   if (text && commandNamesRead - before7 < 5) findings.push({ file: COMMAND, kind: 'scan went dark', detail: `only ${commandNamesRead - before7} backticked file name(s) read from the review command, below the floor of 5` });
 }
 
+// ---- 8. OWNER RULES (#2986) -----------------------------------------------------------------------
+// An owner decision that ships as prose, not as a token, has nothing to fail when it is edited away: the
+// names it quotes still resolve, so scans 1-3 pass over a skill that no longer says it. This check holds each
+// declared rule in the places the decision put it: a bullet (or paragraph) in each named skill, and the
+// `avoid_when` of each named role in the `.ai.json` the engine emits. Every pattern must match the same
+// block, so a rule split across unrelated paragraphs does not count.
+//
+// Independence (docs/34): the patterns are literals here, the subject is the skill text and the shipping
+// `buildAiMetadata` output, and the roles the rule names are checked against the token tree. The role set
+// is read from the emitted metadata, so a link state added later is held to the rule the day it lands, and
+// metadata with no matching role fails rather than passing over nothing.
+//
+// WHAT IT CANNOT SEE: whether the advice is right. It checks the rule is stated, not that it is true.
+let ownerSelfRuns = 0;
+type OwnerRule = { id: string; skills: string[]; roles: RegExp; must: RegExp[]; resolve: string[] };
+const OWNER_RULES: OwnerRule[] = [
+  {
+    // Q690 A: no on-media link role. Over a photograph a link is `inverse.text.primary`, underlined, on
+    // the media veil when the photo is busy.
+    id: '#2986 link over photography',
+    skills: ['prism3-consume', 'prism3-rebind'],
+    roles: /^(inverse\.)?text\.link\./,
+    must: [/photo/i, /`inverse\.text\.primary`/, /underline/i, /`veil\.\*`/],
+    resolve: ['inverse.text.primary', 'veil.dark.medium'],
+  },
+];
+const blocks = (text: string): string[] => text.split(/\n(?=\s*\n|- |\d+\. )/);
+export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => string | undefined, color: Record<string, { avoid_when?: string }>, paths: Set<string>): Finding[] => {
+  ran.ownerRule++;
+  const out: Finding[] = [];
+  const missing = (s: string) => rule.must.filter((re) => !re.test(s)).map((re) => re.source);
+  for (const name of rule.resolve) if (!paths.has(name)) out.push({ file: 'packages/engine/lint-skills.ts', kind: 'owner rule', detail: `${rule.id}: the rule names \`${name}\`, which the token tree no longer has` });
+  for (const s of rule.skills) {
+    const text = skillText(s);
+    if (text === undefined) { out.push({ file: `skills/${s}/SKILL.md`, kind: 'owner rule', detail: `${rule.id}: the skill is gone` }); continue; }
+    if (!blocks(text).some((b) => missing(b).length === 0)) out.push({ file: `skills/${s}/SKILL.md`, kind: 'owner rule', detail: `${rule.id}: no paragraph states it (each must match in one block: ${rule.must.map((r) => r.source).join(', ')})` });
+  }
+  const roles = Object.keys(color).filter((k) => rule.roles.test(k));
+  if (!roles.length) out.push({ file: 'packages/engine/ai-metadata.ts', kind: 'owner rule', detail: `${rule.id}: no emitted role matches ${rule.roles.source}; the rule is held over nothing` });
+  for (const r of roles) {
+    const gap = missing(color[r].avoid_when ?? '');
+    if (gap.length) out.push({ file: 'packages/engine/ai-metadata.ts', kind: 'owner rule', detail: `${rule.id}: \`${r}\` avoid_when lacks ${gap.join(', ')}` });
+  }
+  return out;
+};
+{
+  const color = (buildAiMetadata(probe, tree) as { color: Record<string, { avoid_when?: string }> }).color;
+  const read = (s: string) => (existsSync(join(skillsDir, s, 'SKILL.md')) ? readFileSync(join(skillsDir, s, 'SKILL.md'), 'utf8') : undefined);
+  // Self-check, both directions, through the shipping function: the rule in one bullet passes; the same words
+  // split across two bullets, a role that drops the underline, metadata without the role, and a tree without
+  // the named tokens each fail, by the expected count.
+  const r = OWNER_RULES[0];
+  const good = '- Over a photo, set it in `inverse.text.primary`, underlined, on `veil.*`.';
+  const split = '- Over a photo, set it in `inverse.text.primary`.\n- Keep the underline on `veil.*`.';
+  const ok = { 'text.link.default': { avoid_when: good } };
+  const checks: [string, Finding[], number][] = [
+    ['one bullet', ownerRuleFindings(r, () => good, ok, TOKEN_PATHS), 0],
+    ['split bullets', ownerRuleFindings(r, () => split, ok, TOKEN_PATHS), r.skills.length],
+    ['role without underline', ownerRuleFindings(r, () => good, { 'text.link.default': { avoid_when: good.replace('underlined', 'plain') } }, TOKEN_PATHS), 1],
+    ['no matching role', ownerRuleFindings(r, () => good, { 'text.primary': { avoid_when: good } }, TOKEN_PATHS), 1],
+    ['names not in tree', ownerRuleFindings(r, () => good, ok, new Set()), r.resolve.length],
+  ];
+  ownerSelfRuns = checks.length;
+  const broken = checks.filter(([, f, n]) => f.length !== n);
+  if (broken.length) {
+    console.error(`\n❌ the owner-rule check is broken: ${broken.map(([w, f, n]) => `${w} gave ${f.length} finding(s), expected ${n}`).join('; ')}`);
+    process.exit(1);
+  }
+  for (const rule of OWNER_RULES) findings.push(...ownerRuleFindings(rule, read, color, TOKEN_PATHS));
+}
+
 console.log(`Skills gate — ${dirs.length} skill(s) scanned (${dirs.join(', ')}).`);
 // A scan that goes dark reports success forever. Zero skills means the layout moved, not that the
 // skills are clean.
@@ -841,6 +912,11 @@ if (ran.leverKind - before.leverKind !== classifying.length || !classifying.incl
 }
 if (ran.coverage - before.coverage !== optedIn.length) {
   wiring.push(`the coverage scan engaged ${ran.coverage - before.coverage}× but ${optedIn.length} skill(s) declare \`documents: brandInput\` (${optedIn.join(', ') || 'none'})`);
+}
+// Check 8 runs its self-check samples and then every declared rule; a count short of both means the real
+// rules stopped being checked while the samples still pass.
+if (ran.ownerRule - before.ownerRule !== ownerSelfRuns + OWNER_RULES.length) {
+  wiring.push(`the owner-rule check ran ${ran.ownerRule - before.ownerRule}× for ${ownerSelfRuns} self-check sample(s) and ${OWNER_RULES.length} rule(s) — the real rules are no longer checked`);
 }
 if (wiring.length) {
   console.error('\n❌ the skills gate is no longer wired to the skills it scanned:\n');
