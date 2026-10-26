@@ -2401,10 +2401,11 @@ Type: dimension. Bound by 26 component(s).
 
 ### `icon.size.lg`
 
-Type: dimension. Bound by 6 component(s).
+Type: dimension. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| brand-mark | `size.large` | (not drawn) | — |
 | icon | `size.large` | (not drawn) | — |
 | icon-button | `size.large.icon` | icon | size: large · state: disabled, focus-visible, hover, pressed, rest (60 of 216) |
 |  |  | spinner | size: large · state: pending (12 of 216) |
@@ -2418,7 +2419,7 @@ Type: dimension. Bound by 6 component(s).
 
 ### `icon.size.md`
 
-Type: dimension. Bound by 20 component(s).
+Type: dimension. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2431,6 +2432,7 @@ Type: dimension. Bound by 20 component(s).
 |  |  | infoGlyph | tone: info (2 of 8) |
 |  |  | successGlyph | tone: success (2 of 8) |
 |  |  | warningGlyph | tone: warning (2 of 8) |
+| brand-mark | `size.medium` | (not drawn) | — |
 | button | `size.large.icon` | leadingVisual | leading: true · size: large · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: large · state: pending (32 of 576) |
 |  |  | trailingVisual | size: large · trailing: true (88 of 576) |
@@ -2473,7 +2475,7 @@ Type: dimension. Bound by 20 component(s).
 
 ### `icon.size.sm`
 
-Type: dimension. Bound by 24 component(s).
+Type: dimension. Bound by 25 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2482,6 +2484,7 @@ Type: dimension. Bound by 24 component(s).
 |  |  | frame | size: medium (4 of 12) |
 |  |  | minusGlyph | expansion: expanded · indicator: plus-minus · size: medium (1 of 12) |
 |  |  | plusGlyph | expansion: collapsed · indicator: plus-minus · size: medium (1 of 12) |
+| brand-mark | `size.small` | (not drawn) | — |
 | button | `size.medium.icon` | leadingVisual | leading: true · size: medium · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: medium · state: pending (32 of 576) |
 |  |  | trailingVisual | size: medium · trailing: true (88 of 576) |
@@ -3468,6 +3471,14 @@ Declared, not drawn: `color.border.focus`
 24 token(s); 8 design-file member(s).
 
 `border-width.hairline`, `border-width.none`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.warning`, `color.foreground.danger-subtle`, `color.foreground.info-subtle`, `color.foreground.success-subtle`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.success`, `color.icon.warning`, `color.text.primary`, `container.min`, `icon.size.md`, `radius.md`, `radius.none`, `space.050`, `space.150`, `space.200`, `type.body.md.default`, `type.label.md.emphasis`
+
+### brand-mark
+
+3 token(s); 19 design-file member(s).
+
+`icon.size.lg`, `icon.size.md`, `icon.size.sm`
+
+Declared, not drawn: `icon.size.lg`, `icon.size.md`, `icon.size.sm`
 
 ### breadcrumb-item
 

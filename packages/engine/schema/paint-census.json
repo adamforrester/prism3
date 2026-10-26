@@ -13,6 +13,18 @@
         "sha256": "c0daf376b461a125879a0a8f64eddc07ef4b46c502424c4849bdb9de45fded25"
       }
     },
+    "brand-mark": {
+      "set": {
+        "members": 19,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "grid": {
+        "members": 19,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
     "focus-ring": {
       "set": {
         "members": 2,

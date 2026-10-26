@@ -1880,6 +1880,13 @@
       "affectedByChange": [],
       "inheritedBy": []
     },
+    "brand-mark": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "breadcrumb-item": {
       "nests": [
         "_breadcrumb-separator",
@@ -2756,6 +2763,7 @@
     "accordion": 1,
     "badge": 0,
     "banner": 2,
+    "brand-mark": 0,
     "breadcrumb-item": 2,
     "breadcrumbs": 3,
     "button": 1,

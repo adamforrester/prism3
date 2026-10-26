@@ -25,6 +25,12 @@
             ]
           },
           {
+            "name": "↳ Brand marks",
+            "components": [
+              "brand-mark"
+            ]
+          },
+          {
             "name": "↳ Grids & layouts"
           }
         ]
@@ -377,6 +383,43 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/icon.md"
+      },
+      {
+        "id": "brand-mark",
+        "name": "BrandMark",
+        "figmaName": "brand-mark",
+        "kind": "component set",
+        "page": "↳ Brand marks",
+        "section": "Foundations",
+        "members": 19,
+        "variantProperties": [
+          {
+            "name": "name",
+            "values": [
+              "card/amex",
+              "card/generic",
+              "card/mastercard",
+              "card/visa",
+              "provider/apple",
+              "provider/apple-white",
+              "provider/facebook",
+              "provider/google",
+              "social/facebook",
+              "social/facebook-mono",
+              "social/instagram",
+              "social/instagram-mono",
+              "social/x-mono",
+              "wallet/apple-pay-black",
+              "wallet/apple-pay-white",
+              "wallet/google-pay-black",
+              "wallet/google-pay-white",
+              "wallet/paypal",
+              "wallet/shop-pay"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/brand-mark.md"
       },
       {
         "id": "focus-ring",

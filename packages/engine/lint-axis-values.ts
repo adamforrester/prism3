@@ -387,12 +387,28 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'plus-filled', 'resize-grip', 'search', 'slash', 'warning-triangle', 'warning-triangle-filled',
     ],
     defs: ['icon'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'The only axis in the corpus a def does not author: these are `ICON_NAMES`, spread from the icon '
       + 'set, so `icon.ts` cannot spell one wrong and the synonym failure mode this whole register guards '
       + 'has no way in. Declared here anyway, at full width, because the register\'s claim is that every '
       + 'set is accounted for — an axis exempted for being safe is an axis nobody is watching.',
+  },
+  {
+    axis: 'name',
+    values: [
+      'card/amex', 'card/generic', 'card/mastercard', 'card/visa',
+      'provider/apple', 'provider/apple-white', 'provider/facebook', 'provider/google',
+      'social/facebook', 'social/facebook-mono', 'social/instagram', 'social/instagram-mono', 'social/x-mono',
+      'wallet/apple-pay-black', 'wallet/apple-pay-white', 'wallet/google-pay-black', 'wallet/google-pay-white', 'wallet/paypal', 'wallet/shop-pay',
+    ],
+    defs: ['brand-mark'],
+    relation: 'disjoint',
+    reason:
+      'The brand marks (#2343): `BRAND_MARK_NAMES`, spread from the mark set, the second icon type, whose names '
+      + 'are `<kind>/<provider>[-<style>]` and so can never collide with a glyph name. Disjoint by construction: a '
+      + 'mark and a glyph are different things, and a shared value would mean one name in two vocabularies. The '
+      + 'provider list is data, so a provider added to the set is a line here in the same PR, as a glyph is above.',
   },
   {
     axis: 'labeled',
