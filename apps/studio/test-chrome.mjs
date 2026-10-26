@@ -2910,6 +2910,18 @@ for (const host of ['web', 'figma']) {
         ok(spGW2.length === 0, `${where}: #3034 review C4: with an agent's components run out, the draw's own guard posts nothing even from a control left available (posted ${JSON.stringify(spGW2)})`);
         await postMsg(page, { type: 'agent-finished', id: 'sp1', cmd: 'build-components' });
         await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === null, null, { timeout: 5000 }).catch(() => {});
+        // Q713 A: an agent's `draw-specs` is the same operation: it runs on the Specs row, not the Build set row, and holds
+        // Draw specs unavailable until it finishes.
+        await postMsg(page, { type: 'agent-started', id: 'sp2', cmd: 'draw-specs' });
+        await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === 'true', null, { timeout: 5000 }).catch(() => {});
+        await settle(page);
+        const spAg = await drawerState(page);
+        const spAgOff = await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') ?? null);
+        ok(spAgOff === 'true' && spAg.ops['specs']?.state === 'running' && spAg.ops['specs']?.phase === 'Drawing specs…' && spAg.ops['components']?.state !== 'running',
+          `${where}: #2830 Q713 A: an agent's draw-specs runs on the Specs row, not the Build set row, and holds Draw specs unavailable (Draw specs ${spAgOff}, Specs ${JSON.stringify(spAg.ops['specs'] ?? null)}, Build set ${JSON.stringify(spAg.ops['components'] ?? null)})`);
+        await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ drew 3 spec panels', summary: 'Drew 3 of 3.', lines: ['Drew 3 of 3.'] });
+        await postMsg(page, { type: 'agent-finished', id: 'sp2', cmd: 'draw-specs' });
+        await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === null, null, { timeout: 5000 }).catch(() => {});
         if (!narrow) {
           const msp = await measure(page, `${where} / Documentation › Specs`, host, w);
           check(msp, `${where} / Documentation › Specs`, columnOf(host, w), PLACE_FLOOR, { state: 'area', only: ['[data-p3="docs-specs-draw"]'] });
