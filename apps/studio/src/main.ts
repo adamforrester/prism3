@@ -1538,7 +1538,7 @@ const closeOpenDetail = (): void => { if (host.openDetail === null) return; setH
 
 /** The static pending texts, one per write that has one: the page rows' pills and the Activity drawer's
  *  phase line read the same words. */
-const PENDING_TEXT = { apply: 'Writing to Figma…', filesetup: 'Setting up file…', styleguide: 'Drawing the style guide…' } as const;
+const PENDING_TEXT = { apply: 'Writing to Figma…', filesetup: 'Setting up file…', styleguide: 'Drawing the style guide…', specs: 'Drawing specs…' } as const;
 /** The style guide's live pending text (#1778), for the Activity drawer: the table being drawn, counted from 1. Before
  *  the first reading, and from a host build older than this one, the pre-#1778 string. The reading is the panel's own
  *  run's, or else an agent's (owner decision Q19 b): one text for both. */
@@ -1630,9 +1630,12 @@ const activityReading = (): ActivityReading => {
     ops: {
       apply: opReading('apply', host.applyState === 'pending', verdictOf(host.applyState), fixed(PENDING_TEXT.apply)),
       // #2265: the row shows whichever the operation reported last, a build or an update check.
-      components: opReading('components', host.componentState === 'pending',
+      // #2830 Q2830.12 A (awaiting the owner, Q3034.1): Documentation › Specs' Draw specs runs on this row too: running
+      // while it is out, then its verdict, which the host sends as a `component-update-result`.
+      components: opReading('components', host.componentState === 'pending' || host.specsState === 'pending',
         host.componentLatest === 'update' ? verdictOf(host.componentUpdate) : verdictOf(host.componentState),
         () => {
+          if (host.specsState === 'pending') return { phase: PENDING_TEXT.specs, progress: null };
           const check = host.componentState === 'pending' ? undefined : CHECK_TEXT[host.agentRun?.cmd ?? ''];
           if (check) return { phase: check, progress: null };
           const r = componentPhase(host.componentState === 'pending' ? host.componentProgress : agentBuildReading());

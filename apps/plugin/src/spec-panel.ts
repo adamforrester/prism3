@@ -766,22 +766,26 @@ export const specItems = (o: SpecOutcome | undefined): string[] => {
 /** Whether a live spec panel was drawn from an older plan than `plan`: the run's out-of-date line. */
 export const specPanelStale = (n: PNode, plan: SpecPanelPlan): boolean => (n.getSharedPluginData?.(SPEC_PANEL_NS, SPEC_PANEL_PLAN) ?? '') !== plan.hash;
 
-/** The page a node sits on, or null when no ancestor is one. */
-const pageOf = (n: PNode): unknown => {
+/** The id of the page a node sits on, or null when no ancestor is one. By id, not by object: the plugin API is not
+ *  promised to hand back the same object for one page twice (the review of #3034). */
+const pageIdOf = (n: PNode): string | null => {
   let p = n.parent as PNode | null | undefined;
   while (p && p.type !== 'PAGE') p = p.parent as PNode | null | undefined;
-  return p ?? null;
+  return p ? String(p.id ?? '') : null;
 };
 
 /** The family leads whose sets are in the file, each with its set: what `draw-specs` with no def draws. `page`, the
- *  panel's Draw specs (Documentation › Specs, Q2830.3 A): only the sets on that page. */
-export const specTargets = (api: Pick<PanelApi, 'root'>, onlyDef?: string, page?: unknown): { targets: { def: ComponentDef; set: PNode }[]; skipped: string[] } => {
-  const sets = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).filter((n) => n.type === 'COMPONENT_SET' && !n.removed && (page === undefined || pageOf(n) === page));
+ *  panel's Draw specs (Documentation › Specs, Q2830.3 A): only the families whose set is on that page. Two sets of one
+ *  name are counted over the whole file either way, so the panel and the agent's command skip the same families. */
+export const specTargets = (api: Pick<PanelApi, 'root'>, onlyDef?: string, page?: { readonly id: string }): { targets: { def: ComponentDef; set: PNode }[]; skipped: string[] } => {
+  const sets = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).filter((n) => n.type === 'COMPONENT_SET' && !n.removed);
+  const here = (n: PNode): boolean => page === undefined || pageIdOf(n) === page.id;
   const targets: { def: ComponentDef; set: PNode }[] = [], skipped: string[] = [];
   for (const d of componentDefs) {
     if (!d.figmaProperties || panelFamily(d.id)?.lead !== d.id) continue;
     if (onlyDef !== undefined && panelFamily(onlyDef)?.lead !== d.id && onlyDef !== d.id) continue;
     const hit = sets.filter((s) => s.name === d.id);
+    if (hit.length && !hit.some(here)) { if (onlyDef !== undefined) skipped.push(`No spec panel for ${d.id}: its set is not on this page`); continue; }
     if (hit.length === 1) targets.push({ def: d, set: hit[0] });
     // Two sets of one name: which one the panel documents is not this command's call, as for Update.
     else if (hit.length > 1) skipped.push(`No spec panel for ${d.id}: the file has ${hit.length} sets named ${d.id}`);

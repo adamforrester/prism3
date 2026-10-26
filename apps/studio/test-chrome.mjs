@@ -2849,11 +2849,58 @@ for (const host of ['web', 'figma']) {
         const spBusy = await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-busy') ?? null);
         ok(spW.length === 1 && canon(spW[0]) === canon({ type: 'draw-specs' }) && spBusy === 'true',
           `${where}: #2830 Q2830.3 A: Draw specs posts draw-specs alone and reads as drawing (${JSON.stringify(spW)}, busy ${spBusy})`);
+        // Q2830.12 A as written (built ahead of the owner's answer, Q3034.1): while Draw specs is out, Activity's
+        // components row runs, reading "Drawing specs…" (literal); its verdict lands on the same row below.
+        await settle(page);
+        const spA = (await drawerState(page)).ops['components'];
+        ok(spA?.state === 'running' && spA.phase === 'Drawing specs…',
+          `${where}: #2830 Q2830.12 A: while Draw specs is out, Activity's components row runs, reading "Drawing specs…" (row ${JSON.stringify(spA)})`);
+        // The review of #3034 (C3): the verdict is a `component-update-result`, which any components write sends, so no
+        // other may start while the specs draw. The plugin builds through Update file's sets step (Q2909.5 A): with one set
+        // ticked and the theme not, its run posts no build and ends on the step's refusal.
+        await openUpdate({ present: [], setUp: true });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="update-set"]').first(), WAIT);
+        const spT = await page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
+          sets: [...document.querySelectorAll('[data-p3="update-set"]')].filter((n) => n.getAttribute('aria-checked') === 'true').length }));
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+        await settle(page);
+        const spBW = await takeWrites(page);
+        const spBU = await updBtn();
+        ok(spT.theme === 'false' && spT.sets === 1 && spBW.length === 0 && !spBU.busy,
+          `${where}: #3034 review C3: while Draw specs is out, Update file's sets step builds nothing, and its run ends (ticked ${JSON.stringify(spT)}, posted ${JSON.stringify(spBW.map(keyOf))}, Update file ${JSON.stringify(spBU)})`);
+        if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
+        if (narrow) await page.locator('[data-p3="docs-select"]').selectOption('specs');
+        else await hooks.click(page.locator('[data-p3="docs-tab-specs"]'), WAIT);
+        await hooks.need(page, '[data-p3="docs-specs-draw"]');
         await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ drew 2 spec panels', summary: 'Drew 2 of 2.', lines: ['Drew 2 of 2.'] });
         await page.waitForFunction(() => { const r = document.querySelector('[data-p3="docs-specs-result"]'); return !!r && !r.hidden; }, null, { timeout: 5000 }).catch(() => {});
         const sp1 = await page.evaluate(() => { const b = document.querySelector('[data-p3="docs-specs-draw"]'); const r = document.querySelector('[data-p3="docs-specs-result"]');
           return { busy: b?.getAttribute('aria-busy') ?? null, result: r && !r.hidden ? r.textContent : null }; });
         ok(sp1.busy === null && sp1.result === '✓ drew 2 spec panels. Drew 2 of 2.', `${where}: #2830 Q2830.3 A: the host's verdict ends the drawing and is Specs' result line (${JSON.stringify(sp1)})`);
+        await settle(page);
+        const spV = (await drawerState(page)).ops['components'];
+        ok(spV?.state === 'ok' && spV.verdict === '✓ drew 2 spec panels',
+          `${where}: #2830 Q2830.12 A: the verdict ends the components row's run and is its verdict (row ${JSON.stringify(spV)})`);
+        // The review of #3034 (C2, C4): with an agent's components run out, Draw specs reads unavailable and a click posts
+        // nothing; with the control's attribute stripped, as a stale paint would leave it, the draw's own guard still posts
+        // nothing. Clicks are activated in the page, as above.
+        await postMsg(page, { type: 'agent-started', id: 'sp1', cmd: 'build-components' });
+        await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const spG = await page.evaluate(() => { const b = document.querySelector('[data-p3="docs-specs-draw"]'); return { off: b?.getAttribute('aria-disabled') ?? null, busy: b?.getAttribute('aria-busy') ?? null }; });
+        await takeWrites(page);
+        await page.evaluate(() => { const n = document.querySelector('[data-p3="docs-specs-draw"]'); if (n) HTMLElement.prototype.click.call(n); });
+        const spGW = await takeWrites(page);
+        ok(spG.off === 'true' && spG.busy === null && spGW.length === 0,
+          `${where}: #3034 review C2: with an agent's components run out, Draw specs reads unavailable and a click posts nothing (${JSON.stringify(spG)}, posted ${JSON.stringify(spGW)})`);
+        await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.removeAttribute('aria-disabled'));
+        await page.evaluate(() => { const n = document.querySelector('[data-p3="docs-specs-draw"]'); if (n) HTMLElement.prototype.click.call(n); });
+        const spGW2 = await takeWrites(page);
+        ok(spGW2.length === 0, `${where}: #3034 review C4: with an agent's components run out, the draw's own guard posts nothing even from a control left available (posted ${JSON.stringify(spGW2)})`);
+        await postMsg(page, { type: 'agent-finished', id: 'sp1', cmd: 'build-components' });
+        await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === null, null, { timeout: 5000 }).catch(() => {});
         if (!narrow) {
           const msp = await measure(page, `${where} / Documentation › Specs`, host, w);
           check(msp, `${where} / Documentation › Specs`, columnOf(host, w), PLACE_FLOOR, { state: 'area', only: ['[data-p3="docs-specs-draw"]'] });

@@ -472,5 +472,27 @@ const specDefs = (): string[] => { const walk = (n: any): any[] => [n, ...((n.ch
 ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. drew 1 spec panel/.test(String(drew.headline)),
   `specs/this page: the panel's Draw specs draws the spec panel for the set on the current page alone, ${LEVER_DEF}, not Badge on its own page ("${drew?.headline}": ${String(drew?.summary ?? '').slice(0, 160)}; tagged ${JSON.stringify(specDefs())})`);
 
+// 9. The review of #3034 (Nit 1, and its gap): `specTargets` counts two sets of one name over the WHOLE file before it
+//    keeps the current page's, so the panel's Draw specs skips the family the agent's whole-file command skips; and it
+//    knows the page by its id, not by the object (the plugin API is not promised to hand back one object per page). The
+//    file is literal plain nodes: Badge twice, once on each of two pages, and Switch row once. The page passed in is a
+//    fresh object carrying the id, never the page node itself.
+{
+  const { specTargets } = await import('./src/spec-panel');
+  const p1 = { id: '9:1', type: 'PAGE', parent: null }, p2 = { id: '9:2', type: 'PAGE', parent: null };
+  const set = (name: string, parent: unknown) => ({ type: 'COMPONENT_SET', name, removed: false, parent });
+  const nodes = [set('badge', p1), set('badge', p2), set(LEVER_DEF, p1)];
+  const api = { root: { findAllWithCriteria: () => nodes } } as unknown as Parameters<typeof specTargets>[0];
+  const onPage = specTargets(api, undefined, { id: '9:1' });
+  const inFile = specTargets(api);
+  const names = (r: ReturnType<typeof specTargets>) => r.targets.map((t) => t.def.id).sort();
+  const twice = (r: ReturnType<typeof specTargets>) => r.skipped.some((x) => /badge: the file has 2 sets named badge/.test(x));
+  ok(JSON.stringify(names(onPage)) === JSON.stringify([LEVER_DEF]) && twice(onPage) && JSON.stringify(names(inFile)) === JSON.stringify([LEVER_DEF]) && twice(inFile),
+    `specs/one rule: two sets named badge on two pages are skipped by the panel's Draw specs as by the agent's command, counted over the file (page ${JSON.stringify({ targets: names(onPage), skipped: onPage.skipped })}; file ${JSON.stringify({ targets: names(inFile), skipped: inFile.skipped })})`);
+  const other = specTargets(api, undefined, { id: '9:2' });
+  ok(names(other).length === 0 && twice(other),
+    `specs/page by id: a fresh object for page 9:2, which holds the other badge alone, skips that badge for its twin and draws nothing (${JSON.stringify({ targets: names(other), skipped: other.skipped })})`);
+}
+
 console.log(`\n${executed - failed}/${executed} build-completed assertions passed.`);
 process.exit(failed ? 1 : 0);
