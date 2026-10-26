@@ -78,6 +78,8 @@ const GLYPHS = {
   unlock: '<rect x="3.2" y="7.2" width="9.6" height="6.6" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.4 7.2V5.2a2.6 2.6 0 0 1 5.1-.7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   // #2949: the agent link strip's Restore (two arrows, out to opposite corners).
   restore: '<path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5L9 7M2.5 13.5L7 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  // #2909 rail polish (owner, 2026-10-26): Minimize's collapse, Restore's arrows turned inward, their heads at the center.
+  collapse: '<path d="M9 3.5V7h3.5M7 12.5V9H3.5M13.5 2.5L9 7M2.5 13.5L7 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
   // S11.2: the Build style guides page's part-checked box (a dash) and a table that was not drawn (concept v6's error).
   dash: '<path d="M4 8h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   error: '<circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6v4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="11.2" r="0.95" fill="currentColor"/>',

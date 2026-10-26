@@ -1,6 +1,6 @@
 /**
  * The top bar's controls (UI redesign S13.1, owner decisions G18 A and N-2 A; reduced by #2909 IA v2): the brand
- * switcher and its menu, then, in the plugin, Minimize's slot and Update file, the one global action (Q668 A). On both
+ * switcher and its menu, then, in the plugin, Update file, the one global action (Q668 A), and Minimize's slot at the outer end. On both
  * hosts since Q2909.9 A the bar sits beside the rail (`rail.ts`): the mark, Contrast, Theme, Agent, Activity, Docs and
  * Export left it for the rail, the Theme area and the drawer, and Export's content is the Export area's page. The web's
  * bar holds the brand switcher alone. Until S13.1 `main.ts`'s `renderBar` drew these into the frame's bar slot in the
@@ -167,10 +167,10 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
       homeBadge.textContent = v.home.badge ?? '';
       homeBadge.hidden = !v.home.badge;
     }
-    // #2909 (round 4): the brand, then Minimize (link on or off) and Update file, the one global action, in the plugin.
-    // #2879: a home keeps Minimize, which needs no brand. The shell's nodes are placed, never re-minted, so one that holds
-    // focus keeps it.
-    const order: (HTMLElement | null)[] = v.home ? [homeName, spacer, placed.minimize] : [brandWrap, spacer, placed.minimize, placed.update];
+    // #2909 (round 4): the brand, then Update file, the one global action, and Minimize (link on or off) at the outer end,
+    // in the plugin (Q716 A, 2026-10-26: Minimize was before Update file). #2879: a home keeps Minimize, which needs no
+    // brand. The shell's nodes are placed, never re-minted, so one that holds focus keeps it.
+    const order: (HTMLElement | null)[] = v.home ? [homeName, spacer, placed.minimize] : [brandWrap, spacer, placed.update, placed.minimize];
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);
 

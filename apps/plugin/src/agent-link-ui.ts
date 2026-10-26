@@ -156,7 +156,8 @@ export const mountAgentLink = (): void => {
   minBtn.classList.add('p3-agent-min');
   minBtn.setAttribute('aria-label', 'Minimize');
   minTip.textContent = 'Minimize';
-  minMark.append(glyph('dash'));
+  // The collapse glyph, two arrows in toward the center (the owner, 2026-10-26; it was a minus).
+  minMark.append(glyph('collapse'));
   minBtn.addEventListener('click', () => post({ type: 'minimize-ui', minimized: true }));
   wrap.append(chip, minBtn);
 

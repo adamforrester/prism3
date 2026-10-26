@@ -1651,6 +1651,16 @@ for (const host of ['web', 'figma']) {
               logoHidden: mark?.querySelector('.logo')?.getAttribute('aria-hidden') === 'true', control: !!mark && (mark.matches('button, a[href], [tabindex]') || !!mark.querySelector('button, a[href], [tabindex]')) },
             // The bar's old mark was an image named "Prism3 Studio"; none is drawn there now, on either host.
             barMark: document.querySelectorAll('[data-p3="top-bar"] [role="img"]').length,
+            // The rail polish (owner, 2026-10-26): each tile's mark and icon box, and its label's size, tracking and box.
+            geo: tiles.map((t) => {
+              const box = (n) => { const b = n?.getBoundingClientRect(); return b ? { l: b.left, r: b.right, t: b.top, b: b.bottom, w: b.width, h: b.height } : null; };
+              const lab = t.querySelector('.p3-tile-label');
+              const cs = lab ? getComputedStyle(lab) : null;
+              return { hook: t.getAttribute('data-p3'), mark: box(t.querySelector('.p3-tile-mark')), icon: box(t.querySelector('.p3-tile-mark svg')),
+                fs: cs?.fontSize ?? null, ls: cs?.letterSpacing ?? null, lh: cs ? parseFloat(cs.lineHeight) : null, label: box(lab),
+                sw: lab?.scrollWidth ?? 0, cw: lab?.clientWidth ?? 0, sh: lab?.scrollHeight ?? 0, ch: lab?.clientHeight ?? 0 };
+            }),
+            railBox: r ? { l: r.left, r: r.right } : null,
           };
         });
         // Q2909.9 A: the web's rail is Theme, Components and Export, then Help and Appearance: no Documentation (no file to
@@ -1692,6 +1702,28 @@ for (const host of ['web', 'figma']) {
         ok(JSON.stringify(looks) === JSON.stringify(want),
           `rail ${where}: Appearance draws the current choice's glyph by name, its name and tooltip the choice (Q2995.3 B): ${Q2995_3_B.map(([, n, g], k) => `${n} wants ${g}, drew ${looks[k]?.icon} ("${looks[k]?.name}")`).join('; ')}`);
         ok(rl.labels.length === ORDER.length && rl.labels.every(Boolean), `rail ${where}: every tile shows its label, at this width too (Q2909.16 A) (${JSON.stringify(rl.labels)})`);
+        // The rail polish (the owner's hands-on look, 2026-10-26, #2909). Literals, from the owner's words, never read from
+        // `chrome.css` or the token map. MUTATIONS, each failing its arm by name: the label rule's `font-size` back to
+        // `--p3-fs-12` → `… every rail label renders at 9px …`; its `letter-spacing` dropped → `… at -0.01em …`; the icon rule
+        // dropped → `… every rail icon renders 24 × 24 …`; the mark's `height` back to `min-height: ctl-h-xs` → `… inside a square mark …`.
+        const RAIL_LABEL_PX = 9, RAIL_LABEL_EM = -0.01, RAIL_ICON = 24;
+        const badLabel = rl.geo.filter((g) => g.fs !== `${RAIL_LABEL_PX}px`);
+        ok(rl.geo.length === ORDER.length && badLabel.length === 0, `rail ${where}: every rail label renders at ${RAIL_LABEL_PX}px (${badLabel.map((g) => `${g.hook} ${g.fs}`).join(', ') || 'all'})`);
+        const badTrack = rl.geo.filter((g) => Math.abs(parseFloat(g.ls) / parseFloat(g.fs) - RAIL_LABEL_EM) > 0.0005);
+        ok(rl.geo.length === ORDER.length && badTrack.length === 0, `rail ${where}: every rail label tracks at ${RAIL_LABEL_EM}em (${badTrack.map((g) => `${g.hook} ${g.ls}`).join(', ') || 'all'})`);
+        const badIcon = rl.geo.filter((g) => !g.icon || Math.abs(g.icon.w - RAIL_ICON) > 0.5 || Math.abs(g.icon.h - RAIL_ICON) > 0.5);
+        ok(rl.geo.length === ORDER.length && badIcon.length === 0, `rail ${where}: every rail icon renders ${RAIL_ICON} × ${RAIL_ICON} (${badIcon.map((g) => `${g.hook} ${g.icon?.w}×${g.icon?.h}`).join(', ') || 'all'})`);
+        const badMark = rl.geo.filter((g) => !g.mark || !g.icon || Math.abs(g.mark.w - g.mark.h) > 0.5 || g.mark.w < RAIL_ICON
+          || g.icon.l < g.mark.l - 0.5 || g.icon.r > g.mark.r + 0.5 || g.icon.t < g.mark.t - 0.5 || g.icon.b > g.mark.b + 0.5);
+        ok(rl.geo.length === ORDER.length && badMark.length === 0, `rail ${where}: every rail icon sits inside a square mark, never a landscape one (${badMark.map((g) => `${g.hook} ${g.mark?.w}×${g.mark?.h}`).join(', ') || 'all'})`);
+        // No label clips or wraps at 9px: one line (its box no taller than its line height), nothing scrolled, inside the rail.
+        const badFit = rl.geo.filter((g) => !g.label || g.label.h > g.lh + 0.5 || g.sw > g.cw || g.sh > g.ch + 0.5 || !rl.railBox || g.label.l < rl.railBox.l - 0.5 || g.label.r > rl.railBox.r + 0.5);
+        ok(rl.geo.length === ORDER.length && badFit.length === 0, `rail ${where}: every rail label fits on one line inside the rail, unclipped (${badFit.map((g) => `${g.hook} ${g.label?.w}×${g.label?.h} (line ${g.lh})`).join(', ') || 'all'})`);
+        // Theme's tab row (the owner, 2026-10-26): one step more on the spacing scale, `space.150` (12px) to `space.200`
+        // (16px), wherever the row is drawn (wide; narrow it is a select). MUTATION: the gap back to `--p3-space-150` →
+        // this arm, by name, at 1280 and 640 on both hosts.
+        const tabGap = await page.evaluate(() => { const t = document.querySelector('[data-p3="frame"] .p3-nav .p3-tabs'); return t && t.getBoundingClientRect().width > 0 && getComputedStyle(t).display !== 'none' ? getComputedStyle(t).columnGap : null; });
+        if (w > 560) ok(tabGap === '16px', `rail ${where}: the Theme tab row's gap is 16px, one step up from 12px (read ${tabGap})`);
         ok(rl.current === 'rail-theme' && hexOfRgb(rl.curBg) === RAIL_SELECTED[theme], `rail ${where}: Theme is the current area, its tile filled with the inset role (${RAIL_SELECTED[theme]}) (${rl.current}, ${rl.curBg})`);
         // Q2995.2 A (#2909): at the plugin's least height (420) the logo hides so every tile keeps its label; elsewhere it shows.
         // The web's rail (five tiles, Q2909.9 A) fits at 420 with its logo, so only the plugin's hides it there.
@@ -2601,16 +2633,20 @@ for (const host of ['web', 'figma']) {
           const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
           const kids = slot ? [...slot.querySelectorAll('[data-p3="agent-toggle"], [data-p3="agent-minimize"]')].map((n) => n.getAttribute('data-p3')) : [];
           const upd = document.querySelector('[data-p3="top-bar"] [data-p3="update-file"]');
-          return { shown: vis(b), name: b?.getAttribute('aria-label') ?? null, order: kids, beforeUpdate: !!slot && !!upd && !!(slot.compareDocumentPosition(upd) & Node.DOCUMENT_POSITION_FOLLOWING) };
+          // The rail polish (Q716 A, 2026-10-26): Minimize at the bar's outer end, after Update file, drawing the collapse glyph.
+          return { shown: vis(b), name: b?.getAttribute('aria-label') ?? null, order: kids, afterUpdate: !!slot && !!upd && !!(slot.compareDocumentPosition(upd) & Node.DOCUMENT_POSITION_PRECEDING),
+            last: !!slot && slot.parentElement?.lastElementChild === slot, glyph: [...(b?.querySelectorAll('.p3-tile-mark svg') ?? [])].map((g) => g.dataset.glyph ?? '?').join('+') };
         });
         // The owner's direction (#2909, 2026-10-24): Minimize does not depend on the link. Before the link is on, it is drawn.
         await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, on: false, since: null } });
         const m0 = await minTile();
-        ok(m0.shown && m0.name === 'Minimize' && m0.beforeUpdate, `#2909 ${where}: with the link off, Minimize shows on the top bar, before Update file (${JSON.stringify(m0)})`);
+        // MUTATIONS: `placed.update` and `placed.minimize` swapped back in `bar.ts` → this arm and the next, by name; `glyph('dash')`
+        // back in `agent-link-ui.ts` → the same two, by name.
+        ok(m0.shown && m0.name === 'Minimize' && m0.afterUpdate && m0.last && m0.glyph === 'collapse', `#2909 ${where}: with the link off, Minimize shows on the top bar, after Update file at its outer end, drawing the collapse glyph (${JSON.stringify(m0)})`);
         await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
         const m1 = await minTile();
-        ok(m1.shown && m1.name === 'Minimize' && JSON.stringify(m1.order) === '["agent-minimize"]' && m1.beforeUpdate,
-          `#2949 ${where}: with the link on, Minimize shows on the top bar, before Update file, named "Minimize" (#2909) (${JSON.stringify(m1)})`);
+        ok(m1.shown && m1.name === 'Minimize' && JSON.stringify(m1.order) === '["agent-minimize"]' && m1.afterUpdate && m1.last && m1.glyph === 'collapse',
+          `#2949 ${where}: with the link on, Minimize shows on the top bar, after Update file at its outer end, named "Minimize", drawing the collapse glyph (#2909) (${JSON.stringify(m1)})`);
         await takeWrites(page);
         await hooks.click(page.locator('[data-p3="agent-minimize"]'), WAIT);
         const mw = await takeWrites(page);
@@ -9199,9 +9235,10 @@ const BAR_ORDER = {
   // #2909 Q2909.9 A: the web's bar is the brand switcher alone: the mark, Contrast, Theme, Activity and Export moved to
   // the rail, the Theme area and the Export area, and the web has no file to write and no window to shrink.
   web: ['brand-switcher'],
-  // #2909 (round 4, and the owner's direction of 2026-10-24): the plugin's bar is the brand switcher, Minimize (link on or
-  // off) and Update file; the rest moved to the rail, the Theme area and the drawer.
-  figma: ['brand-switcher', 'agent-minimize', 'update-file'],
+  // #2909 (round 4, and the owner's direction of 2026-10-24): the plugin's bar is the brand switcher, Update file and
+  // Minimize (link on or off), Minimize at the outer end since the rail polish (Q716 A, 2026-10-26); the rest moved to
+  // the rail, the Theme area and the drawer.
+  figma: ['brand-switcher', 'update-file', 'agent-minimize'],
 };
 const TILE_LABEL = { verdict: 'Contrast', 'theme-toggle': 'Theme', 'agent-toggle': 'Agent', 'activity-open': 'Activity', 'export-open': 'Export', 'agent-minimize': 'Minimize' };
 for (const { w, h } of WIDTHS) {
@@ -9234,7 +9271,7 @@ for (const { w, h } of WIDTHS) {
         ok(JSON.stringify(bp.filled) === JSON.stringify(host === 'web' ? [] : ['update-file']), `${where}: bar fill: ${host === 'web' ? 'no control' : 'Update file alone (#2909)'} is filled (${bp.filled.join(', ') || 'none'})`);
         // #2909: the bar is one row at every width on both hosts now (round 4; Q2909.9 A for the web).
         ok(bp.row2.length === 0 && JSON.stringify(bp.row1) === JSON.stringify(BAR_ORDER[host]), `${where}: bar rows: the bar is one row, ${host === 'web' ? 'the brand alone' : 'the brand and Update file'} (${bp.row1.join(', ')} / ${bp.row2.join(', ') || 'none'})`);
-        // The plugin's last control, Update file, ends at the page content's right edge; the web's bar has nothing at its
+        // The plugin's last control, Minimize since Q716 A, ends at the page content's right edge; the web's bar has nothing at its
         // right end now, its switcher sitting at the left.
         if (w !== 640 && host === 'figma') {
           ok(Math.abs(bp.lastRight - bp.contentRight) <= 1,
