@@ -464,8 +464,8 @@ export const viewLabel = (v: ViewId | InspectId): string =>
  *  Documentation is "Docs" on the rail and "Documentation" in its own header. */
 export const RAIL_AREAS = [
   { id: 'theme', label: 'Theme', name: 'Theme', glyph: 'swatches' },
-  // A hyphen, so the word breaks as "Compo-nents" in the 60px column (the wireframe's own break): the face has no soft hyphen, and the word never fits one line there. The tile's name stays whole.
-  { id: 'components', label: 'Compo-nents', name: 'Components', glyph: 'diamonds' },
+  // Whole since Q732 A (2026-10-26): at the rail's 9px the word fits one line, so the wireframe's "Compo-nents" break went.
+  { id: 'components', label: 'Components', name: 'Components', glyph: 'diamonds' },
   { id: 'documentation', label: 'Docs', name: 'Documentation', glyph: 'page' },
   { id: 'export', label: 'Export', name: 'Export', glyph: 'send' },
 ] as const;

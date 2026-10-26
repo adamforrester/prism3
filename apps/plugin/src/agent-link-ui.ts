@@ -1,6 +1,10 @@
 /**
  * THE AGENT LINK'S PANEL CONTROL — UI IFRAME side: the Agent tile in the top bar.
  *
+ * PLACEMENT SINCE Q731 (the owner, 2026-10-26): the Agent tile is on the top bar again, in the place Minimize held
+ * (after the brand, before Update file), and Minimize is at the rail's foot, where #2909 had put the Agent tile. The tile
+ * keeps its toggle, its `aria-pressed` and its green dot; on the bar it shows its label where the bar's tiles do.
+ *
  * PLACEMENT (UI redesign S1.4, IA-3 and D6; the owner's top-bar decision T7 A, 2026-10-05): a bar tile like Theme,
  * Activity and Export (`dom.ts` `tile`), its glyph over "Agent", in the stable `bar-agent` slot the frame renders
  * (`apps/studio/src/shell/frame.ts`) and never clears, which the bar places between Theme and Activity. A click
@@ -18,8 +22,8 @@
  * it: the web build carries none of it. The frame mounts and unmounts with the app view (the start screen
  * has none), so the tile is built once and moved into whichever slot is in the document.
  *
- * THE STRIP (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A, 2026-10-23). A Minimize tile sits on the top bar
- * (`bar-minimize`, #2909). It asks the main thread to shrink the window to a one-row strip (`minimize-ui`), and the main
+ * THE STRIP (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A, 2026-10-23). A Minimize tile sits at the rail's foot
+ * (`rail-minimize`, Q731; on the top bar from #2909 until then). It asks the main thread to shrink the window to a one-row strip (`minimize-ui`), and the main
  * thread answers `ui-minimized`, the authority as for the link. Minimize does not depend on the link (the owner's
  * direction on #2909, 2026-10-24): it is drawn and works whether the link is on or off. Minimized, the document shows
  * only the strip (`html[data-strip]`, `chrome.css`). While the link is on, the strip holds the link's dot, its status in
@@ -50,10 +54,10 @@ import type { WsLike } from './agent-bridge-relay';
 import { glyph, h, hook, switchEl, tile } from '../../studio/src/shell/dom';
 import { setAgentLinkOn, setAgentLinkStatus } from '../../studio/src/shell/activity';
 
-/** The frame's stable slot for the tile, by its hook: on the rail's foot since #2909. */
+/** The frame's stable slot for the tile, by its hook: on the top bar since Q731 (the rail's foot under #2909). */
 const SLOT = '[data-p3="bar-agent"]';
-/** #2909 (round 4): Minimize's slot on the reduced top bar, beside Update file. */
-const MIN_SLOT = '[data-p3="bar-minimize"]';
+/** Q731: Minimize's slot at the rail's foot, where the Agent tile was (on the top bar from #2909 until then). */
+const MIN_SLOT = '[data-p3="rail-minimize"]';
 /** The library home's slot for its switch (#2879), by its hook. */
 const HOME_SLOT = '[data-p3="home-agent"]';
 
@@ -151,12 +155,12 @@ export const mountAgentLink = (): void => {
   dot.setAttribute('aria-hidden', 'true');
   // #2909 (Q2909.19 A): the chain link, the rail's Agent icon.
   mark.append(glyph('link'), dot);
-  // #2949 (Q600 A): Minimize, on the top bar since #2909, whether the link is on or off. A plain button: the main thread decides.
+  // #2949 (Q600 A): Minimize, at the rail's foot since Q731, whether the link is on or off. A plain button: the main thread decides.
   const { btn: minBtn, mark: minMark, tip: minTip } = tile('agent-minimize', 'Minimize');
   minBtn.classList.add('p3-agent-min');
   minBtn.setAttribute('aria-label', 'Minimize');
   minTip.textContent = 'Minimize';
-  // The collapse glyph, two arrows in toward the center (the owner, 2026-10-26; it was a minus).
+  // The collapse glyph, two arrows in toward the center, the mirror of the strip's Restore (the owner, 2026-10-26; it was a minus).
   minMark.append(glyph('collapse'));
   minBtn.addEventListener('click', () => post({ type: 'minimize-ui', minimized: true }));
   wrap.append(chip, minBtn);
@@ -282,7 +286,7 @@ export const mountAgentLink = (): void => {
   const place = (): void => {
     const slot = document.querySelector(SLOT);
     if (slot && wrap.parentElement !== slot) slot.append(wrap);
-    // #2909: Minimize sits on the top bar, apart from the tile, while the frame draws its slot there.
+    // Q731: Minimize sits at the rail's foot, apart from the tile, while the frame draws its slot there.
     const minSlot = document.querySelector(MIN_SLOT);
     if (minSlot && minBtn.parentElement !== minSlot) minSlot.append(minBtn);
     // The library home's slot is mounted with the frame (`frame.ts`), so it arrives with the same frame.
