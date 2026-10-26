@@ -1,0 +1,16 @@
+{
+  "$collection": "blur",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "ads/blur/glass",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "EFFECT_FLOAT"
+      ],
+      "description": "32px background blur — the glass effect style binds it",
+      "value": 32,
+      "alias": null
+    }
+  ]
+}

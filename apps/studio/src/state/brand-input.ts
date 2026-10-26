@@ -39,12 +39,19 @@ export const namespaceNote = (draft: string): { kind: 'warn' | 'bad' | 'hint'; t
   return { kind: 'hint', text: `Token paths start with ${clean}, for example ${clean}.color.text.primary.` };
 };
 
-/** The name, per keystroke: written to the working brand and synced to the last-good input without a
- *  rebuild (#1196), so the field's caret holds and Apply, persist and the export filename read it at once. */
+/** The name, per keystroke: the brand's display name (`BrandInput.name`, #2915), which the library cover and the
+ *  bar show. The id stays the export slug: renaming never moves it. Written to the working brand and synced to the
+ *  last-good input without a rebuild (#1196), so the field's caret holds and Apply and persist read it at once. An
+ *  empty field clears the name, so the cover falls back to the id made readable. */
 export const setName = (v: string): void => {
-  brandState.id = v.trim() || 'untitled';
+  const t = v.trim();
+  if (t) brandState.name = t;
+  else delete brandState.name;
   syncIdentity();
 };
+
+/** The name the field and the bar show: the display name, else the id as written. */
+export const shownName = (b: { id: string; name?: string } = brandState): string => b.name?.trim() || b.id;
 
 /** Rename the namespace to `next`. Refused (false, nothing written) when it is not a namespace the engine
  *  takes or does not change anything. The caller rebuilds: a namespace is in every token path. */

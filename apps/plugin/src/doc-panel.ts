@@ -17,11 +17,20 @@
  *     how many of how many when the def has more;
  *   - Accessibility: Keyboard, Focus and Screen readers, one sentence each. WCAG and Motion stay on the page;
  *   - Content guidelines: the guidelines and each pattern, two sentences each;
- *   - Theming: the default member in light and in dark side by side (Q406.6 A), each its mode pinned on the instance.
- *     The model draws Theming only when it is given modes, so the panel passes the file's: those of the color
- *     collection, `light` and `dark` among them;
+ *   - Theming: the default member in light and in dark side by side (Q406.6 A), each its mode pinned on the instance,
+ *     stacked instead when side by side would make the panel `THEMING_ROW_MAX` wide (#2970 Q2 A). The model draws
+ *     Theming only when it is given modes, so the panel passes the file's: those of the color collection, `light` and
+ *     `dark` among them;
  *   - Related components: each list as a bulleted list of component names, each name a link to that component's set
- *     in the file (#2970 item 3); a name with no set in the file, and each Replaces entry, is plain text.
+ *     in the file (#2970 item 3); a name with no set in the file, and each Replaces entry, is plain text. A family's
+ *     member reads as its family, linked to the lead's set, once per list, and the panel's own family is left out
+ *     (#2970 Q5 A).
+ *
+ * EVERY SPECIMEN AT ITS MEMBER'S OWN WIDTH (#2970 Q1 A). The panel is as wide as its widest stage needs and never
+ * narrower than `PANEL_WIDTH` (`panelLayout`), read off the set alone, so the seat, the dry run and the apply agree.
+ *
+ * A FAMILY AS ONE COMPONENT (#2970 item 4, Q3 A, Q4 A): titled with its taxonomy page's name, the lead's summary as
+ * its lede, and "In this family" a bulleted list of its parts, the lead first, each with its own summary and a link.
  *
  * CANVAS FURNITURE, KEPT APART FROM ITS LABELS. The panel is a frame on the set's own parent, never inside the set, so
  * the update's hand-edit check and the as-built record stay blind to it, as they are to the labels. It carries its own
@@ -50,8 +59,8 @@
  * NEVER THROWS FOR A MISSING TEMPLATE. A file without `_Doc-block` draws no panel and keeps any it has; the run's
  * Set up file line names it (`templatesLine`), as for the labels.
  *
- * HELD FOR THE OWNER: `PANEL_WIDTH`, `PANEL_GAP`, `PANEL_PAD`, `SECTION_GAP`, the panel's name, and every sentence
- * this file writes (DRAFT wording).
+ * HELD FOR THE OWNER: `PANEL_GAP`, `PANEL_PAD`, `SECTION_GAP`, `MODE_GAP`, the panel's name, and every sentence this
+ * file writes (DRAFT wording). `PANEL_WIDTH` and `THEMING_ROW_MAX` are the owner's (#2970 Q1 A, Q2 A).
  */
 import { docSections, type DocSection, type DocSectionId } from '@prism3/engine/component-doc-sections';
 import type { ComponentDef } from '@prism3/engine/component-schema';
@@ -65,7 +74,7 @@ import { STAMP_KEY } from './write-components';
 import { builtByPrism3, readBaseline } from './member-baseline';
 import { readTag } from './canvas-furniture';
 import { readSpecTag } from './spec-tag';
-import { CAPTION, CHIP_SLOTS, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, TOP_PADDING, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
+import { CAPTION, CHIP_SLOTS, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, STAGE_PAD, TOP_PADDING, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
 
 export const DOC_PANEL_NS = 'prism3';
 export const DOC_PANEL_KEY = 'docPanel';
@@ -75,12 +84,22 @@ export const DOC_PANEL_PLAN = 'docPanelPlan';
 /** The sets Related's names linked to when the panel was drawn, by def id (#2970): a set built, rebuilt or deleted since
  *  makes the panel due, so its links never point at a node that is gone or miss one that is now there. */
 export const DOC_PANEL_LINKS = 'docPanelLinks';
+/** The width the panel's rule gave when it was drawn (`panelLayout`): a member resized since makes the panel due. */
+export const DOC_PANEL_WIDTH = 'docPanelWidth';
 /** On the set's parent: each set whose panel the last draw found blocked, with the panel's height and plan then
  *  (`docPanelBlockers`). Cleared when the panel is drawn. */
 export const DOC_PANEL_BLOCKED = 'docPanelBlocked';
 /** On each section frame: the model section it draws. */
 export const DOC_SECTION_KEY = 'docSection';
+/** The panel's narrowest width. A set whose specimens need more widens its panel (`panelWidthFor`, #2970 Q1 A). */
 export const PANEL_WIDTH = 560;
+/** THEMING SIDE BY SIDE (#2970 Q2 A): the two modes sit in a row `MODE_GAP` apart, unless that row would make the panel
+ *  this wide or wider; then they stack. No cap otherwise: a single wide specimen widens the panel as far as it needs. */
+export const THEMING_ROW_MAX = 960;
+export const MODE_GAP = 16;
+/** What the width rule allows for one part marker across, before the host lays the Badge out: a bracket's tier is this
+ *  plus `MARK_SEP` on each side. The draw measures the real Badge and widens the panel further if it needs to. */
+export const MARK_ROOM = 24;
 /** Between the set's right edge and the panel. More than `BACKDROP_PAD`, so a backdrop never reaches it. */
 export const PANEL_GAP = 40;
 export const PANEL_PAD = 24;
@@ -90,7 +109,8 @@ export const SECTION_GAP = 24;
 export const SPEC_WIDTH = 880;
 export const SPEC_GAP = PANEL_GAP;
 /** How far a set's box reaches right once its panels are drawn: past the usage panel and the spec column, whether or not
- *  specs are drawn yet (Q2830.1 B: every set moves once, on the next Update). What the update spaces the next set from. */
+ *  specs are drawn yet (Q2830.1 B: every set moves once, on the next Update). What the update spaces the next set from,
+ *  for a panel at its narrowest; a set whose panel widens reaches further (`panelReachFor`). */
 export const PANEL_REACH = PANEL_GAP + PANEL_WIDTH + SPEC_GAP + SPEC_WIDTH;
 /** The sections the panel leaves to the docs site (Q406.2 A). */
 export const PANEL_OMITS: readonly DocSectionId[] = ['code'];
@@ -100,8 +120,9 @@ export const PANEL_MODES = ['light', 'dark'] as const;
 const SIZE: DocBlockSize = 'sm';
 /** Raise when the panel's layout moves without its plan moving, so every drawn panel reads as due again. 2: one panel
  *  per family, and the anatomy markers with their leaders (#2927). 3: the title sizes, the space above Do and Don't, and
- *  Related as linked lists (#2970). */
-const PANEL_FORMAT = 3;
+ *  Related as linked lists (#2970). 4: each specimen at its member's own width, the panel widening to fit (#2970 items 1
+ *  and 4, #2916). */
+const PANEL_FORMAT = 4;
 /** THE TITLES (#2970 item 5, owner decision): the panel's title and each section's, in px, with their letter-spacing
  *  in percent. The tracking is the studio's: its 20px page titles take `ls-tightest` (−4%) and its 16px section titles
  *  `ls-tighter` (−3%), the default theme's values (`theme.ts` `LETTER_SPACINGS`). Written over the block's text style,
@@ -125,15 +146,20 @@ export type PanelBlock =
   | { type: 'Field'; label: string; text: string }
   | { type: 'Do-Dont'; do: string[]; dont: string[] }
   | { type: 'Chips'; label: string; chips: string[]; note?: string }
-  /** A bulleted list (#2970 item 3): each item's name, and the def whose set it links to when the file has one. */
-  | { type: 'Links'; label: string; items: { name: string; def?: string }[] }
+  /** A bulleted list (#2970 item 3): each item's name, the def whose set it links to when the file has one, and a line
+   *  after the name (`note`, "In this family"'s summaries, #2970 item 4). */
+  | { type: 'Links'; label: string; items: LinkItem[] }
   /** The documented set's default member; `mode` pins one, `marks` numbers the parts on it (and on the members the
    *  draw adds for parts the default does not show). */
   | { type: 'Specimen'; mode?: string; caption?: string; marks?: AnatomyMark[] };
+export interface LinkItem { name: string; def?: string; note?: string }
+/** One line of a Links block as the panel writes it: the name, then its note after a colon. */
+export const linkLine = (i: LinkItem): string => (i.note ? `${i.name}: ${i.note}` : i.name);
 export interface PanelSection { id: DocSectionId; title: string; blocks: PanelBlock[]; row?: boolean }
-/** `family`: the display names of every def on the lead's taxonomy page, the lead included, when it holds more than one
- *  (#2927): the panel lists them under the lede. */
-export interface PanelPlan { def: string; title: string; lede: string; family?: string[]; sections: PanelSection[]; hash: string }
+/** `family`: every def on the lead's taxonomy page, the lead included, when it holds more than one (#2927): the panel
+ *  lists them under the lede, the lead first, each by its name in the family and its own summary's first sentence,
+ *  linked to its set (#2970 Q4 A). */
+export interface PanelPlan { def: string; title: string; lede: string; family?: LinkItem[]; sections: PanelSection[]; hash: string }
 /**
  * ONE NUMBERED ENTRY OF THE ANATOMY (#2916, #2927): its number, the part it marks, and that part's path below the
  * def's root, by part id (empty for the root itself: the specimen is the root). `bracket` marks a part that holds
@@ -155,6 +181,15 @@ export const panelFamily = (defId: string): PanelFamily | null => {
 };
 /** Whether `defId`'s set carries its family's panel: only the lead's does. */
 export const leadsPanel = (defId: string): boolean => panelFamily(defId)?.lead === defId;
+/** A def as another panel's Related names it (#2970 Q5 A): a member of a family of more than one by the family's page
+ *  name, linked to its lead's set; any other def by its own name and set. */
+export const familyRef = (id: string, name: (id: string) => string): { name: string; def: string } => {
+  const f = panelFamily(id);
+  return f && f.members.length > 1 ? { name: f.page, def: f.lead } : { name: name(id), def: id };
+};
+/** A member's name within its family (#2970 Q4 A): its display name less the family's page name and a dot, so
+ *  "Checkbox.Row" on the Checkbox page reads "Row"; a name the page does not prefix ("Button.Group" on Buttons) stays. */
+export const nameInFamily = (name: string, page: string): string => (name.startsWith(`${page}.`) && name.length > page.length + 1 ? name.slice(page.length + 1) : name);
 
 /** A variant value or axis as text: hyphens to spaces, first letter capitalized. The labels' rule (`sentenceCase`). */
 const sentence = (s: string): string => { const t = s.replace(/-/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
@@ -265,14 +300,26 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         for (const m of s.modes) blocks.push({ type: 'Specimen', mode: m, caption: sentence(m) });
         break;
       case 'related':
-        for (const l of s.lists) blocks.push({ type: 'Links', label: l.label, items: l.ids.map((id) => ({ name: name(id), def: id })) });
+        // By family (#2970 Q5 A): each member shows as its family, once per list, and the panel's own family is dropped.
+        for (const l of s.lists) {
+          const items: LinkItem[] = [];
+          for (const id of l.ids) {
+            const r = familyRef(id, name);
+            if ((fam && r.def === fam.lead) || items.some((x) => x.def === r.def)) continue;
+            items.push(r);
+          }
+          if (items.length) blocks.push({ type: 'Links', label: l.label, items });
+        }
         if (s.replaces.length) blocks.push({ type: 'Links', label: 'Replaces', items: s.replaces.map((r) => ({ name: plain(r) })) });
         break;
     }
+    if (!blocks.length) continue;
     sections.push({ id: s.id, title: s.title, blocks, ...(row ? { row } : {}) });
   }
-  const family = others.length ? fam!.members.map(name) : undefined;
-  const body = { def: def.id, title: def.name, lede: plain(def.summary), ...(family ? { family } : {}), sections };
+  // THE FAMILY AS ONE COMPONENT (#2970 item 4, Q3 A and Q4 A): titled with its page's name, the lede the lead's summary,
+  // and its parts listed, the lead first and then the page's order.
+  const family = others.length ? [def, ...others].map((d) => ({ name: nameInFamily(name(d.id), fam!.page), def: d.id, note: firstSentences(d.summary, 1) })) : undefined;
+  const body = { def: def.id, title: family ? fam!.page : def.name, lede: plain(def.summary), ...(family ? { family } : {}), sections };
   return { ...body, hash: `${PANEL_FORMAT}:${fnv(JSON.stringify(body), false)}${fnv(JSON.stringify(body), true)}` };
 };
 
@@ -399,7 +446,8 @@ export const findDocBlock = (api: Pick<PanelApi, 'root'>): PNode | undefined => 
 /** THE SETS RELATED LINKS TO (#2970 item 3): for each def a Links item names, its set in the file, found as the executor
  *  finds it, by its exact name, document-wide. A def with no set, or with more than one, is left out: its name is plain. */
 export const panelLinks = (api: Pick<PanelApi, 'root'>, plan: PanelPlan): Record<string, string> => {
-  const want = new Set(plan.sections.flatMap((s) => s.blocks).flatMap((b) => (b.type === 'Links' ? b.items.flatMap((i) => (i.def ? [i.def] : [])) : [])));
+  const items = [...(plan.family ?? []), ...plan.sections.flatMap((s) => s.blocks).flatMap((b) => (b.type === 'Links' ? b.items : []))];
+  const want = new Set(items.flatMap((i) => (i.def ? [i.def] : [])));
   if (!want.size) return {};
   const sets = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).filter((n) => n.type === 'COMPONENT_SET' && !n.removed && want.has(String(n.name)));
   const out: Record<string, string> = {};
@@ -408,8 +456,12 @@ export const panelLinks = (api: Pick<PanelApi, 'root'>, plan: PanelPlan): Record
 };
 const linksKey = (l: Record<string, string>): string => JSON.stringify(l);
 
-/** How far each set's box reaches right for the update's spacing: past its panel when the file can draw one. */
-export const docPanelReach = (api: Pick<PanelApi, 'root'>): number => (findDocBlock(api) ? PANEL_REACH : 0);
+/** How far `set`'s box reaches right for the update's spacing: past its panel when the file can draw one, at the width
+ *  its panel takes (`panelReachFor`); `PANEL_REACH` with no set. */
+export const docPanelReach = (api: Pick<PanelApi, 'root'>, set?: PNode): number => (findDocBlock(api) ? (set ? panelReachFor(set) : PANEL_REACH) : 0);
+/** Each set's reach, as `pageSetMoves` takes it: 0 when the file cannot draw a panel, so the template is looked up once. */
+export type PanelReach = number | ((set: unknown) => number);
+export const docPanelReaches = (api: Pick<PanelApi, 'root'>): PanelReach => (findDocBlock(api) ? (set) => panelReachFor(set as PNode) : 0);
 
 /** The modes Theming shows: those of the file's color collection (the one holding `color/background/primary`) that
  *  `PANEL_MODES` names, in that order, with each one's collection and id for pinning. None before a theme. */
@@ -489,12 +541,17 @@ const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> |
   };
   const plan = planDocPanel(def, { modes: PANEL_MODES, names });
   strings(plan);
-  if (plan.family) out.add(plan.family.join(', '));
+  // The family as one comma line, before #2970 listed it.
+  const fam = panelFamily(defId);
+  if (fam && fam.members.length > 1) out.add(fam.members.map(names).join(', '));
+  if (plan.family) out.add(plan.family.map(linkLine).join('\n'));
   for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Chips' && b.chips.length > CHIP_SLOTS) out.add(`+${b.chips.length - CHIP_SLOTS + 1} more`);
-  for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Links') out.add(b.items.map((x) => x.name).join('\n'));
+  for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Links') out.add(b.items.map(linkLine).join('\n'));
   for (const s of docSections(def, { modes: PANEL_MODES }).sections as DocSection[]) {
     // A further specimen's caption names what its member changes (`markSpecimens`): each pair, joined by commas.
     if (s.id === 'styles') for (const pair of [...s.axes.flatMap((a) => a.values.map((v) => `${a.axis} ${v}`)), ...s.states.map((v) => `state ${v}`)]) out.add(`${SHOWN_ON}${pair}`);
+    // Related by each def's own name, before #2970 named families.
+    if (s.id === 'related') for (const l of s.lists) out.add(l.ids.map(names).join('\n'));
     if (s.id === 'anatomy') s.parts.forEach((p, i) => { out.add(`${i + 1}  ${p.name}${p.optional ? ' (optional)' : ''}`); out.add(firstSentences(p.caption ?? '', 1)); });
     if (s.id === 'usage') {
       [...s.do, ...s.dont].forEach((t) => out.add(plain(t)));
@@ -560,7 +617,8 @@ export const docPanelDue = (api: Pick<PanelApi, 'root'>, set: PNode, plan: Panel
   const at = panelSpot(set);
   const near = (a: number | undefined, b: number) => Math.abs((a ?? 0) - b) <= 0.5;
   return p.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PLAN) === plan.hash && near(p.x, at.x) && near(p.y, at.y)
-    && (p.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_LINKS) ?? '') === linksKey(panelLinks(api, plan)) ? 0 : 1;
+    && (p.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_LINKS) ?? '') === linksKey(panelLinks(api, plan))
+    && (p.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_WIDTH) ?? '') === String(panelWidthFor(set)) ? 0 : 1;
 };
 
 /** Whether a node is a set Prism3 built: one of its members is, by the shared member test (`builtByPrism3`, #2510). */
@@ -594,11 +652,11 @@ const updateMakesRoom = (set: PNode, hits: readonly PNode[], kids: readonly PNod
   return !!o && o !== set && prism3Set(o) && (o.x ?? 0) > (set.x ?? 0)
     && (o.y ?? 0) < (set.y ?? 0) + (set.height ?? 0) && (o.y ?? 0) + (o.height ?? 0) > (set.y ?? 0);
 });
-type Blocked = Record<string, { h: number; plan: string }>;
+type Blocked = Record<string, { h: number; w?: number; plan: string }>;
 const readBlocked = (parent: PanelParent): Blocked => {
   try { return JSON.parse(parent.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_BLOCKED) || '{}') as Blocked; } catch { return {}; }
 };
-const writeBlocked = (parent: PanelParent, setId: string, rec: { h: number; plan: string } | null): void => {
+const writeBlocked = (parent: PanelParent, setId: string, rec: { h: number; w: number; plan: string } | null): void => {
   if (!parent.setSharedPluginData) return;
   const all = readBlocked(parent);
   if (rec) all[setId] = rec;
@@ -619,7 +677,7 @@ export const docPanelBlockers = (api: Pick<PanelApi, 'root'>, set: PNode, plan: 
   if (!rec || rec.plan !== plan.hash) return [];
   const at = panelSpot(set);
   const skip = new Set<PNode>([...earlierPanels(api, set, plan.def), ...(parent.children as readonly PNode[]).filter((c) => readPanelTag(c)?.state === 'kept' && readPanelTag(c)?.def === plan.def)]);
-  return blockersAt(parent.children as readonly PNode[], { x: at.x, y: at.y, width: PANEL_WIDTH, height: rec.h }, skip, set);
+  return blockersAt(parent.children as readonly PNode[], { x: at.x, y: at.y, width: rec.w ?? PANEL_WIDTH, height: rec.h }, skip, set);
 };
 
 /** List.Item's text layer in a Do or Don't row: the part its item text is written into, read from the def (#2902).
@@ -669,6 +727,77 @@ const reveal = (specimen: PNode, path: readonly string[]): boolean => {
   });
   return up.every((q) => q.visible !== false);
 };
+
+/**
+ * THE MEMBERS THE ANATOMY SHOWS (#2916, Q551 A on Q3): the set's default first, with the marks whose parts it holds, then
+ * for what is left the member that holds the most of it, and so on. The selection `markSpecimens` draws, read off the set
+ * alone, so the panel's width is known before anything is drawn.
+ */
+export const anatomyMembers = (set: PNode, marks: readonly AnatomyMark[]): { member: PNode; marks: AnatomyMark[] }[] => {
+  const all = set.children ?? [];
+  const out: { member: PNode; marks: AnatomyMark[] }[] = [];
+  let left = [...marks];
+  for (let m: PNode | undefined = all[0]; m; ) {
+    const at: PNode = m;
+    const here = left.filter((x) => showable(at, x.path));
+    if (!here.length && out.length) break;
+    out.push({ member: at, marks: here });
+    left = left.filter((x) => !here.includes(x));
+    let best: PNode | undefined, most = 0;
+    for (const c of all) {
+      if (out.some((o) => o.member === c)) continue;
+      const n = left.filter((x) => showable(c, x.path)).length;
+      if (n > most) { best = c; most = n; }
+    }
+    m = best;
+  }
+  return out;
+};
+/**
+ * HOW MANY BRACKET TIERS A SPECIMEN TAKES, read off the member's layers as the draw lays them out (`drawMarkers`): the
+ * innermost first, each in the lowest tier no bracket it overlaps already holds. Two brackets overlap down the page when
+ * one holds the other, or when the layer that holds both lays them side by side; stacked siblings share a tier.
+ */
+const bracketTiers = (member: PNode, marks: readonly AnatomyMark[]): number => {
+  const nodes = [...marks].filter((m) => m.bracket).sort((a, b) => b.path.length - a.path.length).flatMap((m) => {
+    const n = locate(member, m.path);
+    return n ? [chain(n, member)] : [];
+  });
+  const tiers: PNode[][][] = [];
+  const meets = (a: PNode[], b: PNode[]): boolean => {
+    if (a.includes(b[0]) || b.includes(a[0])) return true;
+    const common = a.find((q) => b.includes(q));
+    return common?.layoutMode === 'HORIZONTAL';
+  };
+  for (const up of nodes) {
+    let t = 0;
+    while ((tiers[t] ?? []).some((o) => meets(o, up))) t++;
+    (tiers[t] ??= []).push(up);
+  }
+  return tiers.length;
+};
+/** The stage a specimen `w` wide needs: its padding on the right, and on the left its padding or, when the specimen
+ *  carries brackets, room for each tier (`MARK_ROOM`), whichever is more. */
+const stageFor = (w: number, tiers: number): number =>
+  w + STAGE_PAD + Math.max(STAGE_PAD, tiers ? MARK_GAP + tiers * (MARK_ROOM + 2 * MARK_SEP) + LEADER : 0);
+/**
+ * HOW WIDE A SET'S PANEL IS (#2970 Q1 A, Q2 A): every specimen at its member's own width, so the panel is as wide as its
+ * widest stage needs plus its padding, never narrower than `PANEL_WIDTH`. Theming shows the default member twice side by
+ * side, unless that row would make the panel `THEMING_ROW_MAX` or wider: then the two stack (`stack`). Pure on the set,
+ * so Build's seat, the dry run's spacing and the apply all read the one number. A set with no def: its default only.
+ */
+export const panelLayout = (set: PNode, def: ComponentDef | undefined = componentDefs.find((d) => d.id === set.name)): { width: number; stack: boolean } => {
+  const w0 = (set.children ?? [])[0]?.width ?? 0;
+  const anatomy = def?.anatomy ? docSections(def).sections.find((s) => s.id === 'anatomy') : undefined;
+  const marks = anatomy && anatomy.id === 'anatomy' ? anatomyMarks(def!, anatomy.parts.map((p) => p.id)) : [];
+  const stages = anatomyMembers(set, marks).map((a) => stageFor(a.member.width ?? 0, bracketTiers(a.member, a.marks)));
+  const row = 2 * stageFor(w0, 0) + MODE_GAP;
+  const stack = row + 2 * PANEL_PAD >= THEMING_ROW_MAX;
+  return { width: Math.ceil(Math.max(PANEL_WIDTH - 2 * PANEL_PAD, stageFor(w0, 0), ...stages, stack ? 0 : row) + 2 * PANEL_PAD), stack };
+};
+export const panelWidthFor = (set: PNode): number => panelLayout(set).width;
+/** How far a set's box reaches right once its panels are drawn, its own panel's width in. */
+export const panelReachFor = (set: PNode): number => PANEL_GAP + panelWidthFor(set) + SPEC_GAP + SPEC_WIDTH;
 
 /**
  * Draw the usage panel for `def`'s family beside `def`'s set fresh: remove the set's earlier panels that are unedited
@@ -739,19 +868,35 @@ export const drawDocPanel = async (
 
   // The member the specimens show: the set's own default, its first.
   const member = (set.children ?? [])[0];
-  const panel = frame(`${def.name} usage`, 'VERTICAL', SECTION_GAP);
+  const layout = panelLayout(set, def);
+  const panel = frame(`${plan.title} usage`, 'VERTICAL', SECTION_GAP);
   panel.paddingTop = PANEL_PAD; panel.paddingRight = PANEL_PAD; panel.paddingBottom = PANEL_PAD; panel.paddingLeft = PANEL_PAD;
   panel.fills = paint('color/background/primary');
   panel.strokes = paint('color/border/secondary');
   panel.strokeWeight = 1;
-  panel.resize?.(PANEL_WIDTH, 1);
+  panel.resize?.(layout.width, 1);
   panel.layoutSizingHorizontal = 'FIXED';
   panel.layoutSizingVertical = 'HUG';
   // The anatomy's specimens, each with the marks whose parts it shows (#2916).
   const anatomy: { spec: PNode; stage?: PNode; marks: AnatomyMark[] }[] = [];
+  /** THE SPECIMEN AT ITS MEMBER'S OWN WIDTH (#2970 Q1 A). The swap keeps the sizing the template's placeholder had, a
+   *  Badge's hug, so a member built at a fixed width hugged its content instead: Banner's text went one letter per line
+   *  and Checkbox.Row's label wrapped. A fixed member is sized to its width, a hugging one hugs. */
+  const sizeSpecimen = (i: PNode, m: PNode): void => {
+    const sp = find(i, 'specimen');
+    if (!sp) return;
+    try {
+      if (m.layoutSizingHorizontal === 'HUG') sp.layoutSizingHorizontal = 'HUG';
+      else {
+        sp.layoutSizingHorizontal = 'FIXED';
+        sp.resize?.(m.width ?? sp.width ?? 0, sp.height ?? 0);
+        if (m.layoutSizingVertical === 'HUG') sp.layoutSizingVertical = 'HUG';
+      }
+    } catch { out.misses.push(`the specimen of ${def.id} could not take its member's width`); }
+  };
   const showSpecimen = async (i: PNode, m: PNode | undefined, mode?: string, caption?: string): Promise<void> => {
     const key = propKey(i, SPECIMEN);
-    if (key && m?.id) i.setProperties?.({ [key]: String(m.id) });
+    if (key && m?.id) { i.setProperties?.({ [key]: String(m.id) }); sizeSpecimen(i, m); }
     else out.misses.push(`No specimen for ${def.id}: ${key ? 'the set has no member' : `${DOC_BLOCK_SET} has no ${SPECIMEN} property`}`);
     if (mode) {
       const pm = pin.get(mode);
@@ -810,15 +955,6 @@ export const drawDocPanel = async (
     header.appendChild?.(i); fill(i);
     await write(findText(i, 'text'), text, 'text', type === 'Heading' ? TITLE_TYPE : undefined);
   }
-  // THE FAMILY (#2927, Q551 A on Q1): every set the panel covers, by name. DRAFT label (Q10); links are a later phase.
-  if (plan.family) {
-    const i = block('Field');
-    if (i) {
-      header.appendChild?.(i); fill(i);
-      await write(findText(find(i, 'row') ?? i, 'label'), 'In this family', 'label');
-      await write(findText(find(i, 'row') ?? i, 'text'), plan.family.join(', '), 'text');
-    }
-  }
 
   const draw = async (into: PNode, b: PanelBlock): Promise<void> => {
     const i = block(b.type === 'Links' ? 'Field' : b.type, b.type === 'Heading' || b.type === 'Paragraph' ? b.size : SIZE);
@@ -861,16 +997,17 @@ export const drawDocPanel = async (
         const row = find(i, 'row') ?? i;
         await write(findText(row, 'label'), b.label, 'label');
         const t = findText(row, 'text');
-        if (!(await write(t, b.items.map((x) => x.name).join('\n'), 'text')) || !t) break;
-        try { t.setRangeListOptions?.(0, String(t.characters).length, { type: 'UNORDERED' }); } catch { out.misses.push('Related: list bullets not set'); }
+        if (!(await write(t, b.items.map(linkLine).join('\n'), 'text')) || !t) break;
+        try { t.setRangeListOptions?.(0, String(t.characters).length, { type: 'UNORDERED' }); } catch { out.misses.push(`${b.label}: list bullets not set`); }
+        // Only the name is the link; a note after it is plain.
         let at = 0;
         for (const x of b.items) {
           const node = x.def ? links[x.def] : undefined;
           if (node) {
             try { t.setRangeHyperlink?.(at, at + x.name.length, { type: 'NODE', value: node }); t.setRangeTextDecoration?.(at, at + x.name.length, 'UNDERLINE'); }
-            catch { out.misses.push(`Related: no link to ${x.name}`); }
+            catch { out.misses.push(`${b.label}: no link to ${x.name}`); }
           }
-          at += x.name.length + 1;
+          at += linkLine(x).length + 1;
         }
         break;
       }
@@ -952,6 +1089,10 @@ export const drawDocPanel = async (
         if (n > Number(stage[k] ?? 0)) { try { stage[k] = Math.ceil(n); } catch { out.misses.push(`the specimen's ${side} gutter could not grow`); } }
       }
     }
+    // A GUTTER WIDER THAN THE RULE ALLOWED (the real Badge wider than `MARK_ROOM`): the panel widens again, before the
+    // places are read, so every specimen keeps its own width inside its stage.
+    const need = Math.max(0, ...all.map(({ spec, stage }) => (stage ? rect(spec).width + Number(stage.paddingLeft ?? 0) + Number(stage.paddingRight ?? 0) : 0))) + 2 * PANEL_PAD;
+    if (need > (panel.width ?? 0)) { panel.resize?.(Math.ceil(need), panel.height ?? 1); panel.layoutSizingVertical = 'HUG'; }
     // THE PLACES, from the boxes as now laid out, each relative to the panel.
     const at = rect(panel);
     let marked = 0;
@@ -1004,6 +1145,10 @@ export const drawDocPanel = async (
     return marked;
   };
 
+  // THE FAMILY (#2927, #2970 Q4 A): every set the panel covers, as a bulleted list under the lede, each name linked to its
+  // set and followed by its own summary. DRAFT label (Q10).
+  if (plan.family) await draw(header, { type: 'Links', label: 'In this family', items: plan.family });
+
   for (const s of plan.sections) {
     const d = block('Divider');
     if (d) { panel.appendChild?.(d); fill(d); }
@@ -1013,11 +1158,13 @@ export const drawDocPanel = async (
     fill(sec);
     const h = block('Heading', SIZE);
     if (h) { sec.appendChild?.(h); fill(h); await write(findText(h, 'text'), s.title, 'text', SECTION_TYPE); }
-    const into = s.row ? frame('modes', 'HORIZONTAL', 16) : sec;
+    // Theming's modes side by side, or stacked when side by side would be too wide (#2970 Q2 A).
+    const side = !!s.row && !layout.stack;
+    const into = s.row ? frame('modes', side ? 'HORIZONTAL' : 'VERTICAL', MODE_GAP) : sec;
     if (s.row) { sec.appendChild?.(into); fill(into); }
     for (const b of s.blocks) {
       await draw(into, b);
-      if (s.row) { const last = (into.children ?? []).slice(-1)[0]; if (last) last.layoutGrow = 1; }
+      if (side) { const last = (into.children ?? []).slice(-1)[0]; if (last) last.layoutGrow = 1; }
     }
     out.sections.push(s.id);
   }
@@ -1037,7 +1184,7 @@ export const drawDocPanel = async (
   const hits = blockersAt(kids, box(panel), movers, set);
   if (hits.length) {
     // Recorded, so the dry run does not list it as due again until the spot is clear (`docPanelBlockers`).
-    writeBlocked(parent, String(set.id ?? ''), { h: panel.height ?? 0, plan: plan.hash });
+    writeBlocked(parent, String(set.id ?? ''), { h: panel.height ?? 0, w: panel.width ?? PANEL_WIDTH, plan: plan.hash });
     panel.remove?.();
     out.sections = [];
     delete out.marked;
@@ -1053,6 +1200,7 @@ export const drawDocPanel = async (
   writeTag(panel, { v: 1, def: def.id, set: String(set.id ?? ''), state: 'live', ...family });
   panel.setSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PLAN, plan.hash);
   panel.setSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_LINKS, linksKey(links));
+  panel.setSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_WIDTH, String(layout.width));
   panel.setSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PRINT, await panelPrint(panel));
   out.drawn = true;
 
