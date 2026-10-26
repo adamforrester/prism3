@@ -1,0 +1,14 @@
+## (2026-10-26) — Update file with Theme unticked measures against the stored brand (#3023, Q701 B)
+
+**What.** Q699 A had Update file's due read, its scoped check and its update all measure against the panel's brand, because the run's Theme step stores it first. But Theme can be unticked, and then the update laid the panel's plans while the file kept its stored brand, so the next load's due read flagged the sets the update had just written. Q701 B (the owner's decision, 2026-10-25): with Theme unticked, all three measure against the stored brand, the one the run leaves in the file.
+
+- `brandFor(theme, panel)` (`apps/studio/src/state/update-file.ts`) is the one rule: the panel's brand when Theme is ticked, else `undefined`, which the host already reads as "the file's stored brand" (`brandOf` in `apps/plugin/src/main.ts`, as for an agent's update). The host is unchanged.
+- `apps/studio/src/main.ts`'s `panelBrand(theme)` uses it everywhere the panel sends a brand. The check and the scoped check take Theme's tick from the checklist. The update, its re-check and the due read after a run take it from the run's own steps.
+- **A Theme toggle checks the file again** (`shell/update-file.ts`). The checklist goes back to "Checking the file…", asks for the due read under the brand the toggle picks, ticks the due sets afresh from that answer, and asks the scoped check over them. So the counts shown are the ones the run writes. While it checks, the Theme box is gone from the dialog, so focus falls back to the dialog itself and never leaves the modal.
+
+**Tests.**
+- `test-build-completed.ts` section 6b: stored A, the set built under B, the panel on B with Theme unticked. Each message is built through the panel's own `brandFor`. The update lays A's plan (the ledger records A), and the next load (the read with no brand, as at load) reads the set `current`. Mutation: `brandFor` returning the panel's brand whatever Theme says → `q701/update writes A` and `q701/next load` fail by name.
+- `test:verdict`'s two checklist drivers (`test-build-verdict.mjs`'s `runSets`, `test-style-guides-page.mjs`'s `runGuides`) untick Theme, so each now answers the re-check as the main thread does before it ticks on.
+- `test:chrome`: Theme unticked, ticked again, then unticked. Each toggle sends a fresh `file-sets-request` and `update-check-request` with no brand, then with the panel's, then with none again; focus stays in the dialog while it checks; and the update then posts with no brand.
+
+**Scope.** Only the brand selection and the re-check. The consumer-breaking flags in `update-plan.ts` and their checklist line (#2831, #2864) are another lane's.

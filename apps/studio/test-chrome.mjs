@@ -15607,15 +15607,39 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       ok(/^1 set not checked yet/.test(ck.unrec ?? '') && ck.saves, `${where}: Q2909.8 A: the set never recorded is offered a check, and the update says it saves a version first (${JSON.stringify({ unrec: ck.unrec, saves: ck.saves })})`);
       const dm = await measure(page, `${where} / Update checklist`, host, 1280);
       check(dm, `${where} / Update checklist`, columnOf(host, 1280), PLACE_FLOOR, { only: ['[data-p3="update-go"]', '[data-p3="update-due-set"]', '[data-p3="update-hand-keep"]'] });
+      // #3023 Q701 B: a Theme toggle checks the file again, against the brand the run would leave in it: with Theme
+      // unticked, the file's stored one (no brand on the wire), ticked again, the panel's. Each answer re-asks the check.
+      step = 'the Theme toggle';
+      const toggleTheme = async () => {
+        await page.evaluate(() => { window.__ia2.length = 0; });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+        // While it checks, the checklist says so, and focus stays inside the modal (the Theme box it was on is gone).
+        const checking = await page.evaluate(() => !!document.querySelector('[data-p3="update-checking"]') && !!document.querySelector('[data-p3="update-dialog"]')?.contains(document.activeElement));
+        await postMsg(page, FILE);
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+        const got = await page.evaluate(() => window.__ia2.slice());
+        await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+        const box = await page.evaluate(() => document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null);
+        return { checking, box, got };
+      };
+      const want = (brand) => (m) => (brand === undefined ? !('input' in m) : canon(m.input) === canon(brand));
+      for (const [on, brand, words] of [[false, undefined, 'unticked, the file\'s stored brand (none sent)'], [true, PANEL_BRAND, 'ticked again, the panel\'s brand'], [false, undefined, 'unticked once more, the stored brand']]) {
+        const tg = await toggleTheme();
+        const fs = tg.got.filter((m) => m.type === 'file-sets-request');
+        const uc = tg.got.filter((m) => m.type === 'update-check-request');
+        ok(tg.box === String(on) && tg.checking && fs.length === 1 && fs.every(want(brand)) && uc.length === 1 && JSON.stringify(uc[0].defs) === JSON.stringify(['button', 'select']) && uc.every(want(brand)),
+          `${where}: #3023 Q701 B: Theme ${words}: the checklist checks the file again, then the due sets, against that brand (${JSON.stringify({ box: tg.box, checking: tg.checking, fileSets: fs.map((m) => 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none'), check: uc.map((m) => [m.defs, 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none']) })})`);
+      }
       step = 'the update';
-      // The theme unticked, so the update is the run's first step and posts at once.
-      await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+      // The theme unticked, so the update is the run's first step and posts at once, with no brand: the stored one.
       await page.evaluate(() => { window.__ia2.length = 0; });
       await hooks.click(page.locator('[data-p3="update-go"]'));
       await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
       const sent = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-sets'));
-      ok(sent.length === 1 && canon(sent[0]) === canon({ type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep', input: PANEL_BRAND }),
-        `${where}: Q2909.8 A, Q699 A: the update posts the ticked sets with the check's own hash, Keep, and the brand the check measured (${sent.length ? wireDiff(sent[0], { type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep', input: PANEL_BRAND }) : 'nothing posted'})`);
+      ok(sent.length === 1 && canon(sent[0]) === canon({ type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep' }),
+        `${where}: Q2909.8 A, #3023 Q701 B: with Theme unticked, the update posts the ticked sets with the check's own hash, Keep, and no brand, so the host lays the stored one (${sent.length ? wireDiff(sent[0], { type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep' }) : 'nothing posted'})`);
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {

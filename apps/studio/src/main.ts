@@ -34,7 +34,7 @@ import type { StyleGuidesLend } from './shell/style-guides';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { DocumentationLend } from './shell/documentation';
-import { startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
+import { brandFor, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
 import { readSaved, savedDrawOptions } from './state/style-guides';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
@@ -1847,18 +1847,22 @@ let updateReviewed: readonly CheckedSetView[] = [];
 let updatePhase: 'recheck' | 'apply' | null = null;
 /** The update of fewer sets than were checked, checked again: each set must hash as the person reviewed it. */
 const UPDATE_MOVED = 'A set changed in the file since the check. Open Update file again to see what changes now.';
-/** The brand Update file measures against (Q699 A): the one the panel holds, which the run's
- *  Theme step applies, so the due read, the check and the update agree. Apply's own `lastGoodInput`. */
-const panelBrand = (): BrandInput => lastGoodInput;
+/** The brand Update file measures against (Q699 A, #3023 Q701 B): the one the panel holds (Apply's own
+ *  `lastGoodInput`) when Theme is ticked, as the run's Theme step applies it; with Theme unticked, none, so the host
+ *  measures against the brand the file keeps (`brandFor`). The due read, the check and the update agree either way. */
+const panelBrand = (theme: boolean): BrandInput | undefined => brandFor(theme, lastGoodInput);
+/** Whether the run out (or the one that just ended, `steps`) writes the theme. */
+const runTheme = (steps: readonly StepKey[] | undefined): boolean => !!steps?.includes('theme');
 const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): void => {
   updatePhase = 'apply';
-  commit.postUpdateSets(u.defs, previewHash, u.handEdits, panelBrand());
+  commit.postUpdateSets(u.defs, previewHash, u.handEdits, panelBrand(runTheme(updateRun?.steps)));
 };
 const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
 /** The run after the step out ended: record it, then start the next or end the run. */
 const endStep = (ok: boolean, headline: string): void => {
   if (!updateRun) return;
   const step = stepOf(updateRun);
+  const steps = updateRun.steps;
   updateRun = stepDone(updateRun, ok, headline);
   if (!ok && step) updateStopped = { step, headline };
   if (updateRun.done) {
@@ -1866,7 +1870,7 @@ const endStep = (ok: boolean, headline: string): void => {
     updatePhase = null;
     // Q2909.8 A: what is due now, and the hand edits after it, so the badge and the statuses follow the run.
     setHost({ handPass: 'running', handEdits: new Map(), updateCheck: null });
-    commit.requestFileSets(panelBrand());
+    commit.requestFileSets(panelBrand(runTheme(steps)));
     commit.requestHandEdits();
     updateChanged();
     return;
@@ -1886,7 +1890,7 @@ const startStep = (): void => {
     if (!u || componentBusy()) { endStep(false, busy); return; }
     // The check's own hash when the update covers exactly the sets it read; else those sets are checked again first.
     if (u.previewHash) postUpdate(u, u.previewHash);
-    else { updatePhase = 'recheck'; setHost({ updateCheck: 'pending' }); commit.requestUpdateCheck(u.defs, panelBrand()); }
+    else { updatePhase = 'recheck'; setHost({ updateCheck: 'pending' }); commit.requestUpdateCheck(u.defs, panelBrand(runTheme(updateRun.steps))); }
   }
   else if (step === 'sets') { runSets('selection', updateRun.sets); if (!run) { endStep(false, busy); return; } }
   else if (agentRunning('styleguide') || host.styleGuideState === 'pending') { endStep(false, busy); return; }
@@ -1928,8 +1932,8 @@ const updateFileLend: UpdateFileLend = {
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
     handEdits: host.handEdits, updateCheck: host.updateCheck,
   }),
-  check: () => commit.requestFileSets(panelBrand()),
-  checkSets: (defs) => { setHost({ updateCheck: 'pending' }); updateChanged(); commit.requestUpdateCheck(defs, panelBrand()); },
+  check: (theme) => commit.requestFileSets(panelBrand(theme)),
+  checkSets: (defs, theme) => { setHost({ updateCheck: 'pending' }); updateChanged(); commit.requestUpdateCheck(defs, panelBrand(theme)); },
   run: (steps, sets, update) => {
     if (updateRun || restoreFailure) return;
     updateStopped = null;

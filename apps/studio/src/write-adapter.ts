@@ -161,12 +161,13 @@ export interface HostCommit {
   /** #2909: keep Documentation's settings in the file (`doc-settings-save`). Figma only; inert on the web. */
   saveDocSettings(settings: unknown): void;
   /** #2909: ask which sets the file holds (`file-sets-request`), and what is due against `input`, the brand the panel
-   *  holds (Q699 A; `unknown` for the reason `postTheme`'s is). Figma only; inert on the web. */
+   *  holds (Q699 A; `unknown` for the reason `postTheme`'s is), or, `undefined` with Theme unticked, the file's stored
+   *  brand (#3023 Q701 B). Figma only; inert on the web. */
   requestFileSets(input: unknown): void;
   /** #2909 Q2909.8 A: start the background hand-edit pass (`hand-edits-request`). Figma only; inert on the web. */
   requestHandEdits(): void;
-  /** #2909 Q2909.8 A: the full check, scoped to `defs` (`update-check-request`), against the panel's brand `input`.
-   *  Figma only; inert on the web. */
+  /** #2909 Q2909.8 A: the full check, scoped to `defs` (`update-check-request`), against the panel's brand `input`
+   *  (`undefined`: the file's stored brand, as `requestFileSets`'). Figma only; inert on the web. */
   requestUpdateCheck(defs: readonly string[], input: unknown): void;
   /** #2909: update `defs` in place under the check's hash (`update-sets`). Figma only; inert on the web. */
   postUpdateSets(defs: readonly string[], previewHash: string, handEdits: 'keep' | 'overwrite' | 'accept', input: unknown): void;

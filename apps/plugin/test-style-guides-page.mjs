@@ -331,6 +331,10 @@ const runGuides = async (page) => {
   await until(page, 'the checklist drawn', () => !!document.querySelector('[data-p3="update-check-guides"]'));
   const ticks = await page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'), guides: document.querySelector('[data-p3="update-check-guides"]')?.getAttribute('aria-checked') }));
   await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+  // #3023 Q701 B: unticking Theme checks the file again; it is answered as the first read was.
+  await posted(page, 'file-sets-request', 2);
+  await post(page, { type: 'file-sets', present: [], setUp: true });
+  await until(page, 'the checklist drawn again', () => !!document.querySelector('[data-p3="update-check-guides"]'));
   await hooks.click(page.locator('[data-p3="update-check-guides"]'));
   await hooks.click(page.locator('[data-p3="update-go"]'));
   await posted(page, 'style-guide-catalog-request', 2);
