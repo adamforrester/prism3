@@ -1116,6 +1116,15 @@ section('single, marks — the brand marks, read and updated in place as single 
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const v = applyVerdict(res);
   ok(v.ok && res.outcomes[0]?.updated.length === 1 && res.outcomes[0].added === 0, `marks/apply: the recolor is taken in place (${v.headline}; ${JSON.stringify(res.outcomes[0]?.updated)})`);
+  // The stamp alone passes with the old colors kept, so the mark's vector must carry the new fill. Mutation: the
+  // fills dropped from the in-place glyph signature (`ownPaint` false) → `marks/apply: … carries the new fill`.
+  const vectorsOf = (n: Node): Node[] => [...(n.type === 'VECTOR' ? [n] : []), ...((n.children as Node[]) ?? []).flatMap(vectorsOf)];
+  const hexes = (n: Node): string[] => ((n.fills as { color?: { r: number; g: number; b: number } }[]) ?? [])
+    .flatMap((f) => (f.color ? [[f.color.r, f.color.g, f.color.b].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('').toUpperCase()] : []));
+  const marked = w.comps().find((c) => String(c.name) === `brand-mark/${MARK}`);
+  const fills = marked ? vectorsOf(marked).flatMap(hexes) : [];
+  ok(fills.includes('1A73E8') && !fills.includes('9AA0A6'),
+    `marks/apply: the recolored mark's vector carries the new fill, #1A73E8, and not the old #9AA0A6 (${JSON.stringify(fills)})`);
   const after = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
   ok(after.size === square.length && [...before].every(([n, b]) => after.get(n)?.key === b.key && after.get(n)?.id === b.id), 'marks/keys: every mark keeps its key and id');
   const post = (await previewUpdate(w.host, [t])).sets[0];
