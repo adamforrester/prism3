@@ -4241,32 +4241,100 @@ for (const b of brands) {
 
   // ...and the delta is UNIFORM across modes, which is the whole point of an offset over a ratio.
   // Chasing an absolute ratio made the perceptual delta depend on wherever `rest` happened to land:
-  // 2 ramp steps in light/dark but 3 in HC, for the same nominal "hover" affordance.
+  // 2 ramp steps in light/dark but 3 in HC, for the same nominal "hover" affordance. FOUR steps (200 units)
+  // since #2926 (owner Q2′ A), typed here rather than read from `modes.ts`.
   const fbStep = (r: any) => Number(r.path.split('.').pop());
   const fbDeltas = modes.map((m: any) => Math.abs(fbStep(m.roles['field.border.hover']) - fbStep(m.roles['field.border.rest'])));
-  ok(new Set(fbDeltas).size === 1 && fbDeltas[0] === 100,
-    `field: hover sits a uniform 2 ramp steps from rest in every mode (deltas ${fbDeltas.join(', ')})`);
+  ok(new Set(fbDeltas).size === 1 && fbDeltas[0] === 200,
+    `field: hover sits a uniform 4 ramp steps from rest in every mode (deltas ${fbDeltas.join(', ')})`);
 
-  // #1342 — the field's HOVER is a translucent alpha WASH, not a solid fill swap. Select (the component
-  // #1342 opened on) binds an `overlay` slot at hover, reusing the interactive overlay mechanism. Assert
-  // the binding BY NAME and that the role it points at is an ink-on-composite wash with alpha < 1 in every
-  // mode — so a mutation repointing select's `overlay.hover` to a SOLID role (model 'ink-on-surface'), or
-  // one that makes the overlay opaque, fails here rather than shipping an opaque hover fill.
-  const selOverlayRef = (select.tokens as Record<string, string>)['overlay.hover'];
-  ok(selOverlayRef === 'color.interactive.neutral.overlay.hover',
-    `#1342 select binds a hover overlay wash (overlay.hover → ${selOverlayRef})`);
-  const selControl = select.anatomy?.parts?.control as any;
-  ok(Array.isArray(selControl?.paintSlots) && selControl.paintSlots.includes('overlay'),
-    '#1342 select\'s control paints an overlay slot, so the hover wash reaches the box');
-  const washFails: string[] = [];
-  const washRole = (selOverlayRef ?? '').replace(/^color\./, '');
-  for (const m of modes) {
-    const r: any = m.roles[washRole];
-    if (!r) { washFails.push(`${m.mode}:absent`); continue; }
-    if (r.model !== 'ink-on-composite' || !(typeof r.alpha === 'number' && r.alpha > 0 && r.alpha < 1))
-      washFails.push(`${m.mode}:model=${r.model},alpha=${r.alpha}`);
+  // #1342's wash (select's `overlay.hover` → the neutral interactive overlay) was REMOVED by #2926: a field hovers by
+  // its border alone. The gates that replace its three asserts are the #2926 block below.
+}
+
+// #2926 — FIELDS HOVER BY BORDER ONLY (owner decision 2026-10-26, Q1′ D and Q2′ A). Three gates, each independent of
+// its subject (docs/34):
+//   (A) NO WASH: every field def × both field styles × every `outlineInteraction` method, materialized the way the
+//       plugin does and projected, paints no interactive overlay or subtle-fill on any node of any member. The def
+//       list and the method list are TYPED here, not read from `FIELD_FRAME_PARTS` or the Theme type, so a field
+//       left out of the lever tables is still covered (shape 1).
+//   (B) THE STEP: rest→hover border contrast ≥ FIELD_HOVER_DELTA_MIN, measured from the EMITTED hexes in
+//       `out/<brand>.tokens.json` with this file's own alias resolver and color parser, page and inverse, in every
+//       corpus brand × mode. The floor is typed, not derived from `modes.ts`' step count (shape 2). The owner asked
+//       for 1.9; the decided four steps measures 1.8906 in HC dark on the page (and HC light on the inverse band) in
+//       the lowest brand, so the floor is 1.89, the research's own low end. Two steps measured 1.39–1.47 and three
+//       about 1.7–1.8, so either fails it.
+//   (C) THE SCOPE: Button's outline hover still paints the neutral-family wash at the default method, so (A) cannot
+//       pass by the wash vanishing everywhere.
+{
+  const FIELD_DEFS_2926 = ['text-field', 'password-field', 'select', 'textarea', 'search-field', 'code-input-cell'];
+  const FIELD_STYLES_2926 = ['outline', 'underline'] as const;
+  const METHODS_2926 = ['overlay-neutral', 'solid-tint', 'none'] as const;
+  const WASH_VAR = /(^|\/)interactive\/[^/]+\/(overlay|subtle-fill)\//;
+  const WASH_REF = /(^|\.)interactive\.[^.]+\.(overlay|subtle-fill)\./;
+  const washHits: string[] = [];
+  let hoverMembers = 0;
+  for (const id of FIELD_DEFS_2926) {
+    const d = componentDefs.find((c) => c.id === id);
+    if (!d) { washHits.push(`${id}: def not found`); continue; }
+    for (const style of FIELD_STYLES_2926) for (const method of METHODS_2926) {
+      const m = applyOutlineInteraction(applyFieldStyle(d, style), method);
+      for (const [k, ref] of Object.entries(m.tokens)) if (WASH_REF.test(ref)) washHits.push(`${id}/${style}/${method} token ${k} → ${ref}`);
+      for (const plan of figmaAnatomySet(m, { swapTarget: 'FPO-default-icon' })) {
+        if (plan.coord.state === 'hover') hoverMembers++;
+        const walk = (n: any): void => {
+          for (const v of Object.values(n.paints ?? {})) if (typeof v === 'string' && WASH_VAR.test(v)) washHits.push(`${id}/${style}/${method} [${JSON.stringify(plan.coord)}] ${n.name}: ${v}`);
+          for (const c of n.children ?? []) walk(c);
+        };
+        walk(plan.root);
+      }
+    }
   }
-  ok(washFails.length === 0, '#1342 the field hover is a translucent wash (ink-on-composite, 0 < alpha < 1), NOT a solid opaque fill, every mode' + (washFails.length ? ` — ${washFails.slice(0, 3).join(',')}` : ''));
+  ok(hoverMembers > 0 && washHits.length === 0,
+    `#2926 no field binds or paints a hover wash, in any field style or outlineInteraction setting (text-field, password-field, select, textarea, search-field, code-input-cell × outline/underline × overlay-neutral/solid-tint/none; ${hoverMembers} hover members walked)` + (washHits.length ? ` — ${washHits.length}: ${washHits.slice(0, 4).join('; ')}` : ''));
+
+  // (C) Button keeps its wash: the outline appearance's hover member paints the neutral-family overlay at the default.
+  const btnHover = figmaAnatomySet(buttonNeutral, { swapTarget: 'FPO-default-icon' })
+    .filter((p) => p.coord.state === 'hover' && p.coord.appearance === 'outline');
+  const btnWashed = btnHover.filter((p) => typeof (p.root as any).paints?.fills === 'string' && /interactive\/neutral\/overlay\/hover$/.test((p.root as any).paints.fills));
+  ok(btnHover.length > 0 && btnWashed.length === btnHover.length,
+    `#2926 the removal is scoped: every Button.Neutral outline hover member still paints the neutral hover wash (${btnWashed.length} of ${btnHover.length})`);
+
+  // (B) THE STEP, from the emitted files.
+  const FIELD_HOVER_DELTA_MIN = 1.89;
+  const CORPUS_2926 = ['aurora', 'harbor', 'nb', 'prism3', 'wendys'];
+  const MODES_2926 = ['light', 'dark', 'hc-light', 'hc-dark'];
+  const rgbOf = (v: string): RGB => {
+    const m = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/.exec(v);
+    if (m) return { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]) };
+    const h = /^#([0-9a-f]{6})/i.exec(v);
+    if (!h) throw new Error(`#2926: unparsed color ${v}`);
+    return { r: parseInt(h[1].slice(0, 2), 16), g: parseInt(h[1].slice(2, 4), 16), b: parseInt(h[1].slice(4, 6), 16) };
+  };
+  const stepFails: string[] = [];
+  let stepCells = 0;
+  for (const brand of CORPUS_2926) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, `out/${brand}.tokens.json`), 'utf8'));
+    const ns = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const valueAt = (path: string, mode: string, depth = 0): string => {
+      const n = path.split('.').reduce((o: any, k) => o?.[k], tree);
+      if (!n || depth > 12) throw new Error(`#2926: ${brand} ${path} unresolved`);
+      const over = mode === 'light' ? undefined : n.$extensions?.prism3?.modes?.[mode]?.$value;
+      const v = over ?? n.$value;
+      return typeof v === 'string' && v.startsWith('{') ? valueAt(v.slice(1, -1), mode, depth + 1) : v;
+    };
+    for (const mode of MODES_2926) for (const pre of ['', 'inverse.']) {
+      const rest = rgbOf(valueAt(`${ns}.color.${pre}field.border.rest`, mode));
+      const hover = rgbOf(valueAt(`${ns}.color.${pre}field.border.hover`, mode));
+      const ground = rgbOf(valueAt(`${ns}.color.${pre}background.secondary`, mode));
+      const delta = contrast(rest, hover);
+      stepCells++;
+      if (delta < FIELD_HOVER_DELTA_MIN) stepFails.push(`${brand}/${mode} ${pre ? "inverse" : "page"} Δ ${delta.toFixed(3)}`);
+      if (contrast(hover, ground) < 3) stepFails.push(`${brand}/${mode} ${pre ? "inverse" : "page"} hover on background.secondary ${contrast(hover, ground).toFixed(2)} < 3`);
+    }
+  }
+  ok(stepCells === CORPUS_2926.length * MODES_2926.length * 2 && stepFails.length === 0,
+    `#2926 the field hover border steps ≥ ${FIELD_HOVER_DELTA_MIN}:1 from rest, and stays ≥ 3:1 on background.secondary, measured from the emitted hexes, page and inverse, every corpus brand × mode (${stepCells} cells)` + (stepFails.length ? ` — ${stepFails.join('; ')}` : ''));
 }
 
 // #1518 — PLACEHOLDER INK vs VALUE INK, pinned BY NAME on both field defs (docs/34: the oracle — placeholder
@@ -4705,9 +4773,10 @@ arm: {
   // count moves 10 → 9 for that reason and no other.
   // `motion` joined in #2394 as FLOAT milliseconds and left with #2412: TIMING + EASING, so it is
   // `buildMotionVarPlan`'s, not a FLOAT axis. Asserted absent here so it cannot be written twice.
-  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
+  // `blur` joined in #2869: the glass radius, a FLOAT the `glass` Effect Style binds.
+  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'blur', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
-    `float-plan: ten collections present, motion not among them (${names.join(', ')})`);
+    `float-plan: eleven collections present, motion not among them (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
   ok(auroraFloat.find((c) => c.name === 'core')!.modes.join(',') === 'Default',
@@ -4793,7 +4862,10 @@ arm: {
   const nbDark = nbStyles.effects.filter((e) => e.name.startsWith('shadow-dark/')).length;
   ok(nbLight > 0 && nbLight === nbDark, `styles: NB emits N light + N dark effect rows (${nbLight}L / ${nbDark}D)`);
   ok(nbStyles.paints.length === 0, 'styles: NB has no gradients → 0 paint rows');
-  ok(nbStyles.effects.every((e) => e.effects.length > 0 && e.effects.every((fx) => ['DROP_SHADOW', 'INNER_SHADOW'].includes(fx.type))), 'styles: every effect row carries ≥1 drop/inner shadow');
+  // The one non-shadow row is `glass` (#2869), a single background blur; every other row is a shadow step.
+  ok(nbStyles.effects.every((e) => e.effects.length > 0 && (e.name === 'glass'
+    ? e.effects.length === 1 && e.effects[0].type === 'BACKGROUND_BLUR'
+    : e.effects.every((fx) => ['DROP_SHADOW', 'INNER_SHADOW'].includes(fx.type)))), 'styles: every shadow row carries ≥1 drop/inner shadow, and glass one background blur');
 
   // Aurora — opts into gradients → paint rows with valid paintType, baked RGBA stops, finite transform.
   const auroraStylesTheme = exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput));
@@ -10016,6 +10088,11 @@ arm: {
   ok(!m12threw, 'M-12: an all-caps PRIMARY no longer throws "no primary"');
   const { input, xApplied } = standardToBrandInput(std);
   ok(input.id === 'wendys', "standardToBrandInput: id derived from name (Wendy's → wendys)");
+  // #2892: the brief's name is also the display name the library cover shows, not only the slug's source; a brief
+  // with none leaves `name` unset rather than the parser's 'brand' default.
+  ok(input.name === "Wendy's", `standardToBrandInput: the brief's name is the display name (#2892) — ${JSON.stringify(input.name)}`);
+  ok(standardToBrandInput(parseStandardDesignMd('---\ncolors:\n  primary: "#3366cc"\n---\n')).input.name === undefined,
+    'standardToBrandInput: a brief with no name sets no display name (#2892)');
   // #1283 gave wendys ONE x-prism3 lever — its root namespace — because a standard-spec brief has no
   // other way to name one, and a shipped brand may not sit on the reserved `prism`. So the arm names
   // exactly what the block applies rather than counting zero: "engine defaults everywhere but the
@@ -12205,6 +12282,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       'color/field/', 'color/inverse/field/',
       'color/inverse/text/', 'color/inverse/icon/',
       'color/veil/',
+      // `color/glass/` (#2869) — NB's export defines no glass var, so the prefix waives nothing real, as for veil.
+      'color/glass/',
     ];
     // Engine-added vars inside a REAL family, allow-listed by EXACT name rather than by prefix.
     // `color/inverse/border/focus` (#573, renamed #891, relocated #1140) is the accessibility fix for a
@@ -12775,6 +12854,110 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   }
   ok(emptyDescs.length === 0, 'figma dims: every variable carries the DTCG $description (namespace-stripped names + rich prose in the Variables sidebar)' + (emptyDescs.length ? ` — ${emptyDescs.slice(0, 3).join(', ')}` : ''));
 }
+// (13b) GLASS (#2869, Q464 A) — the blur token, the Effect Style that binds it, and the fill that carries its own alpha.
+// Read off the COMMITTED emission, every brand, and spelled rather than derived: the variable name the radius must
+// bind is assembled here from the brand root and the literal `blur/glass`, so an emitter that bound the wrong
+// variable — or wrote the radius as a bare literal, the hand-built library's state this replaces — fails by name.
+{
+  const dtcgBrands = readdirSync(resolve(HERE, './out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.') && !f.includes('.overlay.'));
+  ok(dtcgBrands.length >= 5, `glass: every committed DTCG brand is read (${dtcgBrands.length})`);
+  for (const f of dtcgBrands) {
+    const brand = f.replace('.tokens.json', '');
+    const tr = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+    const root = Object.keys(tr).find((k) => !k.startsWith('$'))!;
+    const blur = tr[root].blur?.glass;
+    ok(blur?.$type === 'dimension' && blur?.$value === '32px', `glass ${brand}: blur.glass is a 32px dimension (${blur?.$type} ${blur?.$value})`);
+    const surf = tr[root].color?.glass?.surface;
+    const modes = { light: surf?.$value, ...Object.fromEntries(Object.entries(surf?.$extensions?.prism3?.modes ?? {}).map(([m, e]: [string, any]) => [m, e.$value])) } as Record<string, string>;
+    // Every mode's value is an alias that RESOLVES, and to a translucent primitive: the alpha lives in the value,
+    // because Figma forces a variable-bound paint to opacity 1 (#2869, the 10/21 evidence).
+    const bad: string[] = [];
+    for (const [m, v] of Object.entries(modes)) {
+      const target = /^\{(.+)\}$/.exec(String(v))?.[1];
+      const leaf = target ? target.split('.').reduce((n: any, k) => n?.[k], tr) : undefined;
+      const hex = String(leaf?.$value ?? '');
+      const alpha = /^#[0-9a-f]{8}$/i.test(hex) ? parseInt(hex.slice(7), 16) / 255 : /rgba?\([^)]*,\s*([\d.]+)\)$/.exec(hex)?.[1] ? Number(/,\s*([\d.]+)\)$/.exec(hex)![1]) : 1;
+      if (!leaf) bad.push(`${m}: ${v} does not resolve`);
+      else if (!(alpha > 0.5 && alpha < 1)) bad.push(`${m}: ${v} alpha ${alpha}`);
+    }
+    ok(Object.keys(modes).length >= 1 && bad.length === 0, `glass ${brand}: color.glass.surface resolves in every mode (${Object.keys(modes).join(', ')}) to a translucent primitive${bad.length ? ` — ${bad.join('; ')}` : ''}`);
+  }
+
+  // (13b-ii) THE ACCESSIBILITY CLAIM: glass follows the page polarity, so `text.primary` reads on it in every mode.
+  // The roles record glass at `ratio: 1, against: 'self'`, so no mode contract measures text on it — this arm is the
+  // only thing that does. Independent of the subject on three counts: the step each mode must alias is SPELLED
+  // (Q2869.3 A: white 70 light, black 70 dark, 90 in high contrast), the grounds are SPELLED (every gray 0–255, which
+  // holds pure black under a white glass and pure white under a black glass), and the WCAG 2 math is written out here
+  // rather than imported from `./color`. A 32px blur cannot lower the floor: a uniform worst-case ground blurs to itself.
+  {
+    const GLASS_STEP: Record<string, string> = { light: 'white-alpha.70', dark: 'black-alpha.70', 'hc-light': 'white-alpha.90', 'hc-dark': 'black-alpha.90' };
+    const lin = (c: number) => { const s = c / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+    const lum = ([r, g, b]: number[]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    const wcag = (a: number[], b: number[]) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    // Both value spellings the corpus ships: `#rrggbb[aa]` (generated brands) and `rgb[a](r, g, b[, a])` (the NB fixture).
+    const rgba = (h: string) => {
+      const m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(h);
+      if (m) { const n = parseInt(m[1], 16); return { rgb: [n >> 16 & 255, n >> 8 & 255, n & 255], a: m[2] ? parseInt(m[2], 16) / 255 : 1 }; }
+      const f = /^rgba?\(\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\s*\)$/.exec(h);
+      return f ? { rgb: [Number(f[1]), Number(f[2]), Number(f[3])], a: f[4] === undefined ? 1 : Number(f[4]) } : null;
+    };
+    for (const f of dtcgBrands) {
+      const brand = f.replace('.tokens.json', '');
+      const tr = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+      const root = Object.keys(tr).find((k) => !k.startsWith('$'))!;
+      const inMode = (role: any, m: string) => String(m === 'light' ? role?.$value : role?.$extensions?.prism3?.modes?.[m]?.$value ?? role?.$value);
+      const leafOf = (ref: string): any => { let v: any = ref; for (let i = 0; i < 8 && /^\{.+\}$/.test(String(v)); i++) v = String(v).slice(1, -1).split('.').reduce((n: any, k) => n?.[k], tr)?.$value; return v; };
+      const surf = tr[root].color?.glass?.surface, text = tr[root].color?.text?.primary, page = tr[root].color?.background?.primary;
+      const seen = ['light', ...Object.keys(surf?.$extensions?.prism3?.modes ?? {})];
+      ok(seen.length === 4 && seen.every((m) => m in GLASS_STEP), `glass ${brand}: the modes read are exactly light, dark, hc-light, hc-dark (got ${seen.join(', ')})`);
+      const steps: string[] = [], polarity: string[] = [], floor: string[] = [];
+      for (const m of Object.keys(GLASS_STEP)) {
+        const ref = inMode(surf, m);
+        if (ref !== `{${root}.core.palette.${GLASS_STEP[m]}}`) steps.push(`${m}: ${ref}, want ${GLASS_STEP[m]}`);
+        const g = rgba(String(leafOf(ref))), t = rgba(String(leafOf(inMode(text, m)))), p = rgba(String(leafOf(inMode(page, m))));
+        if (!g || !t || !p) { floor.push(`${m}: unresolved (glass ${!!g}, text ${!!t}, page ${!!p})`); continue; }
+        // Polarity follows the PAGE: a light page wears white glass, a dark page black glass.
+        if ((lum(p.rgb) > 0.18) !== (lum(g.rgb) > 0.5)) polarity.push(`${m}: page L ${lum(p.rgb).toFixed(2)}, glass L ${lum(g.rgb).toFixed(2)}`);
+        let worst = Infinity, at = -1;
+        for (let k = 0; k <= 255; k++) {
+          const ground = g.rgb.map((c) => c * g.a + k * (1 - g.a));
+          const r = wcag(t.rgb, ground);
+          if (r < worst) { worst = r; at = k; }
+        }
+        if (!(worst >= 4.5)) floor.push(`${m}: ${worst.toFixed(2)}:1 over gray ${at}`);
+      }
+      ok(steps.length === 0, `glass ${brand}: color.glass.surface aliases white-alpha.70 / black-alpha.70 / white-alpha.90 / black-alpha.90 in light / dark / hc-light / hc-dark (Q2869.3 A)${steps.length ? ` — ${steps.join('; ')}` : ''}`);
+      ok(polarity.length === 0, `glass ${brand}: the glass polarity follows the page in every mode (white glass on a light page, black on a dark)${polarity.length ? ` — ${polarity.join('; ')}` : ''}`);
+      ok(floor.length === 0, `glass ${brand}: text.primary reads ≥ 4.5:1 on color.glass.surface composited over the worst-case ground (every gray 0–255) in every mode${floor.length ? ` — ${floor.join('; ')}` : ''}`);
+    }
+  }
+
+  const figmaBrands = readdirSync(resolve(HERE, './out/figma'));
+  ok(figmaBrands.length >= 4, `glass: every committed Figma brand is read (${figmaBrands.length})`);
+  for (const b of figmaBrands) {
+    const dir = resolve(HERE, './out/figma', b);
+    const blurFile = JSON.parse(readFileSync(resolve(dir, 'blur.json'), 'utf8'));
+    const root = String(blurFile.variables[0]?.name ?? '').split('/')[0];
+    const wanted = `${root}/blur/glass`;
+    const v = blurFile.variables.find((x: any) => x.name === wanted);
+    ok(blurFile.$collection === 'blur' && v?.resolvedType === 'FLOAT' && v?.value === 32 && v?.alias === null && JSON.stringify(v?.scopes) === '["EFFECT_FLOAT"]',
+      `glass ${b}: ${wanted} is a 32 FLOAT in the blur collection, scoped to effect radii`);
+    const styles = JSON.parse(readFileSync(resolve(dir, 'shadow-styles.json'), 'utf8')).styles as any[];
+    const glass = styles.filter((s) => s.name === 'glass');
+    const fx = glass[0]?.effects ?? [];
+    ok(glass.length === 1 && fx.length === 1 && fx[0].type === 'BACKGROUND_BLUR' && fx[0].radius === v?.value,
+      `glass ${b}: one 'glass' Effect Style holding one BACKGROUND_BLUR at the variable's radius (${fx.map((e: any) => `${e.type}:${e.radius}`).join(', ')})`);
+    ok(fx[0]?.boundVariables?.radius?.type === 'VARIABLE_ALIAS' && fx[0].boundVariables.radius.name === wanted,
+      `glass ${b}: the effect's radius BINDS ${wanted}, not a literal (got ${JSON.stringify(fx[0]?.boundVariables ?? null)})`);
+    const colorModes = readdirSync(dir).filter((x) => /^color\.[a-z-]+\.json$/.test(x));
+    const unbound = colorModes.filter((x) => {
+      const gv = JSON.parse(readFileSync(resolve(dir, x), 'utf8')).variables.find((y: any) => y.name === `${root}/color/glass/surface`);
+      return !(gv?.alias?.name && /\/core\/palette\/(?:white|black)-alpha\/\d+$/.test(gv.alias.name) && gv.value.a > 0.5 && gv.value.a < 1);
+    });
+    ok(colorModes.length >= 1 && unbound.length === 0, `glass ${b}: color/glass/surface aliases a translucent alpha primitive in every color mode (${colorModes.length})${unbound.length ? ` — NOT IN: ${unbound.join(', ')}` : ''}`);
+  }
+}
+
 // (14) EMIT-FIGMA SHADOW + GRADIENT (docs/10 §7 item 3) — styles, not variables.
 // Figma Effect Styles + Paint Styles ride the Plugin API (docs/08 §5). Shadow
 // is mode-aware via two style sets (light + dark); gradient is opt-in per brand.
@@ -12785,7 +12968,10 @@ arm: {
   const { tree: nbTree } = buildTree(nb);
   const nbRoot = Object.keys(nbTree)[0];
   const nbShadowKeys = Object.keys(nbTree[nbRoot].shadow ?? {});
-  const shadows = buildFigmaShadow(nb);
+  // The Effect Style list also carries `glass` (#2869), a background blur and no shadow — its own arm below.
+  const allEffects = buildFigmaShadow(nb);
+  const shadows = { ...allEffects, styles: allEffects.styles.filter((s) => s.name !== 'glass') };
+  ok(allEffects.styles.length === shadows.styles.length + 1, `figma shadow: the effect list is the shadow sets plus exactly one glass style`);
 
   // (a) One style per shadow step, TWO SETS (light + dark). NB ships 7 steps
   // (xs..2xl + inset) × 2 modes = 14 styles.
@@ -18818,10 +19004,11 @@ arm: {
       }
     }
     const shModesMissing = SH_MODES.filter((mm) => !shModesSeen.has(mm));
-    // `shWashed > 0` is the arm that keeps the inside comparison from degenerating into the outside one: if no
-    // measured member composited a real wash, the gate would be measuring the page twice and calling it both.
-    ok(shModesMissing.length === 0 && shCells > 0 && shCells === shCellsExpected && shWashed > 0,
-      `a11y(#1782): the status-hover sweep measured every corpus brand × mode × stroked member × ground (${shCells} of ${shCellsExpected} cells; ${shWashed} member-modes composited a hover wash, ${shWashOptOut} with none because the brand opts out of overlay tokens)` + (shModesMissing.length ? ` — modes missing: ${shModesMissing.join(', ')}` : ''));
+    // Since #2926 no field washes at hover, so the inside comparison IS the outside one, and `shWashed === 0` says so:
+    // a status field hover member that composites any fill again is a field wash back, and fails here by name. Until
+    // #2926 this arm read `shWashed > 0`, which kept the inside comparison from degenerating while a wash existed.
+    ok(shModesMissing.length === 0 && shCells > 0 && shCells === shCellsExpected && shWashed === 0,
+      `a11y(#1782): the status-hover sweep measured every corpus brand × mode × stroked member × ground (${shCells} of ${shCellsExpected} cells; ${shWashed} member-modes composited a hover wash, which must be 0 since #2926, ${shWashOptOut} with none because the brand opts out of overlay tokens)` + (shModesMissing.length ? ` — modes missing: ${shModesMissing.join(', ')}` : ''));
     const shGrouped = new Map<string, string[]>();
     for (const f of shFails) {
       const mm = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
@@ -18831,17 +19018,16 @@ arm: {
     ok(shFails.length === 0,
       `a11y(#1782): every status field border (danger / warning / success) clears 3:1 (SC 1.4.11) at hover against the page outside the control AND the hover wash composited over it inside, every corpus brand × mode — ${shFails.length} members below, in ${shGrouped.size} cells: ` + [...shGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shGrouped.size > 12 ? '; …' : ''));
 
-    // HC ARM (decision 1). Representation first: both HC modes must have been measured, and at least one HC
-    // member must have composited a real wash — otherwise "inside" would be the page again and the arm would
-    // pass on the outside measurement alone.
+    // HC ARM (decision 1). Representation first: both HC modes must have been measured, and since #2926 no HC
+    // member composites a wash, so "inside" is the page, as the 3:1 arm above says.
     const shHcGrouped = new Map<string, string[]>();
     for (const f of shHcFails) {
       const mm = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
       const key = mm ? `${mm[1]} ${mm[4]}` : f;
       shHcGrouped.set(key, [...(shHcGrouped.get(key) ?? []), mm ? mm[2] : '']);
     }
-    ok(shModesSeen.has('hc-light') && shModesSeen.has('hc-dark') && shHcCells > 0 && shHcWashed > 0,
-      `a11y(#1782) HC: the high-contrast sweep measured hc-light and hc-dark (${shHcCells} cells, ${shHcWashed} composited a hover wash)`);
+    ok(shModesSeen.has('hc-light') && shModesSeen.has('hc-dark') && shHcCells > 0 && shHcWashed === 0,
+      `a11y(#1782) HC: the high-contrast sweep measured hc-light and hc-dark (${shHcCells} cells, ${shHcWashed} composited a hover wash, 0 since #2926)`);
     ok(shHcFails.length === 0,
       `a11y(#1782) HC: every status field border clears the high-contrast 4.5:1 non-text floor (owner decision, 2026-09-29) at hover against background.primary and background.secondary outside the control AND the hover wash composited over each inside, in hc-light and hc-dark of every corpus brand — ${shHcFails.length} members below, in ${shHcGrouped.size} cells: ` + [...shHcGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shHcGrouped.size > 12 ? '; …' : ''));
 
@@ -19993,9 +20179,10 @@ arm: {
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
     // `pagination-item` joins (#2665): a page cell's hover and pressed are IconButton.Neutral ghost's neutral wash.
-    // `code-input-cell` joins (#2428): its hover is Text field's neutral wash, so the lever reaches it as it reaches a field.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'code-input-cell', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'pagination-item', 'password-field', 'search-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, code-input-cell, flush-icon-button ×3 (round), icon-button ×3, pagination-item, password-field, search-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
+    // `code-input-cell` joined with #2428 and every field (text-field, password-field, search-field, select, textarea) left
+    // with #2926: a field binds no wash, so the lever has nothing to reach on it.
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'pagination-item', 'segmented-control-segment', 'tag']),
+      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, pagination-item, segmented-control-segment, tag, and no field (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -20061,6 +20248,49 @@ arm: {
       '#1012: emitAsComponents and notStandalone together fail — one ships standalone components, the other refuses a standalone build');
     ok(figmaPropertyErrors(icon).length === 0,
       `#1012 control: the real \`icon\` def — the only one that sets emitAsComponents — validates clean, so the arms above reject MISUSE rather than the mode itself (${figmaPropertyErrors(icon).slice(0, 2).join('; ') || 'no errors'})`);
+  }
+
+  // #2343 PR 2 — A HOSTED COMPONENT'S OWN PAINT AND PROPORTION (`fixedPaint`, `aspectLock`). No def carries either yet
+  // (the branded buttons and card fields will, nesting a brand mark), so the arms run on a Button clone whose leading
+  // slot is turned into a mark slot. Expected values are literals here, never read from the projector (docs/34).
+  {
+    const cloneOf = (d: ComponentDef) => JSON.parse(JSON.stringify(d)) as any;
+    const markSlot = (extra: Record<string, unknown> = {}) => {
+      const d = cloneOf(button);
+      const lv = d.anatomy.parts.leadingVisual;
+      delete lv.size;
+      Object.assign(lv, { height: 'size.{size}.icon', aspectLock: true, fixedPaint: true }, extra);
+      return d;
+    };
+    const host = markSlot();
+    ok(validateComponentDef(host).errors.length === 0,
+      `#2343 PR 2: a slot that binds its height under aspectLock and keeps its content's paint validates clean (${validateComponentDef(host).errors.slice(0, 2).join('; ') || 'no errors'})`);
+    // At a full coordinate (the set's), where Button's own slot does take its host's ink, so the control can fail.
+    const nodeAt = (d: ComponentDef) => figmaAnatomySet(d, { swapTarget: 'brand-mark/card/visa' }).find((p) => p.slots?.leading)?.root.children?.find((c) => c.name === 'leadingVisual');
+    const slot = nodeAt(host);
+    ok(!!slot && slot.descendantFills === undefined && slot.fixedPaint === true && !slot.paints,
+      `#2343 PR 2 fixedPaint: the mark slot carries no descendantFills and states fixedPaint (descendantFills ${String(slot?.descendantFills)}, fixedPaint ${String(slot?.fixedPaint)})`);
+    ok(!!slot && JSON.stringify(Object.keys(slot.bound)) === JSON.stringify(['height']) && slot.aspectLock === true,
+      `#2343 PR 2 aspectLock: the mark slot binds its height alone and carries the lock (bound ${JSON.stringify(slot?.bound)}, aspectLock ${String(slot?.aspectLock)})`);
+    const control = nodeAt(button);
+    ok(!!control?.descendantFills && control.fixedPaint === undefined && control.aspectLock === undefined && 'width' in (control.bound ?? {}),
+      `#2343 PR 2 control: Button's own leading slot still takes the host's icon ink and its square binding, with neither flag (descendantFills ${String(control?.descendantFills)})`);
+    const errs = (extra: Record<string, unknown>) => validateComponentDef(markSlot(extra)).errors;
+    ok(errs({ height: undefined }).some((e) => /declares 'aspectLock' but binds no 'height'/.test(e)), '#2343 PR 2: aspectLock with no height is refused');
+    ok(errs({ size: 'size.{size}.icon', height: undefined }).some((e) => /declares 'aspectLock' and binds 'size'/.test(e)), '#2343 PR 2: aspectLock beside a size binding is refused (the second binding would evict the lock)');
+    ok(errs({ paintSlot: 'icon' }).some((e) => /declares 'fixedPaint' and paintSlot/.test(e)), '#2343 PR 2: fixedPaint beside a paintSlot is refused');
+    const onText = cloneOf(button); onText.anatomy.parts.label.fixedPaint = true; onText.anatomy.parts.label.aspectLock = true;
+    const textErrs = validateComponentDef(onText).errors;
+    ok(textErrs.some((e) => /kind 'text' but declares 'fixedPaint'/.test(e)) && textErrs.some((e) => /kind 'text' but declares 'aspectLock'/.test(e)),
+      `#2343 PR 2: both flags are refused on a text part (${textErrs.filter((e) => /fixedPaint|aspectLock/.test(e)).length} refusal(s))`);
+    const plainHeight = cloneOf(button); delete plainHeight.anatomy.parts.leadingVisual.size; plainHeight.anatomy.parts.leadingVisual.height = 'size.{size}.icon';
+    ok(validateComponentDef(plainHeight).errors.some((e) => /kind 'slot' but binds 'height'/.test(e)),
+      '#2343 PR 2: a slot that binds a height WITHOUT aspectLock is still refused — it would reach no node');
+    // THE PASTE EXECUTOR reads the main's proportion and locks before the bind loop, in that order.
+    const js = planToPluginJs(figmaAnatomyPlan(host, 'medium', { leading: true, swapTarget: 'brand-mark/card/visa' }));
+    const lockAt = js.indexOf('if(n.aspectLock)'), bindAt = js.indexOf('for(const [prop,varName] of Object.entries(n.bound))');
+    ok(lockAt > 0 && bindAt > lockAt && /if\(n\.aspectLock\)\{const m=await node\.getMainComponentAsync\(\);if\(m&&m\.height\)\{node\.resize\(m\.width\/m\.height,1\);node\.lockAspectRatio\(\);\}/.test(js),
+      `#2343 PR 2 paste executor: an aspect-locked instance is resized to its main's proportion and locked BEFORE the bind loop (lock at ${lockAt}, bind at ${bindAt})`);
   }
 
   // The three FIELD TYPES, read out of the declaration — the only source available here, for the reason
@@ -25620,8 +25850,12 @@ arm: {
       // 1 KB off every chunk's shell, so icon-button packs two chunks tighter. (The vertical-trim lines #2428 first added
       // to the shell went with the trim, Q560 A on #2789.) Re-pinned per the same standing instruction; every chunk stays
       // under budget.
+      //
+      // NOW 17, AS OF #2343 PR 2 — a shell-byte move: the paste script gained the aspect-locked instance (`aspectLock`,
+      // a slot that reads its main's proportion before its height binds), in every chunk's shell. icon-button does not
+      // use it. Re-pinned per the same standing instruction; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 16, `anatomy/icon-button: the set packs into 16 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
@@ -33114,7 +33348,7 @@ arm: {
 {
   const EXPECTED_FAMILY_ORDER = [
     'background', 'foreground', 'text', 'border', 'icon', 'interactive',
-    'disabled', 'scrim', 'veil', 'field', 'inverse',
+    'disabled', 'scrim', 'glass', 'veil', 'field', 'inverse',
   ];
 
   // ---- (a) THE DTCG SIDE: object-key insertion order, read off the committed tree ----
@@ -33255,7 +33489,7 @@ arm: {
     ok(firstDiff < 0 && mirrored.length === inv.size,
       `#2860 ${brand}: inverse mirrors default — same keys in the same order, minus the groups with no inverse${firstDiff >= 0 ? ` — FIRST DIFFERENCE at inverse.${strip(invLeaves)[firstDiff]} (default order puts ${mirrored[firstDiff]} there)` : ''}`);
     const noInverse = Object.keys(roles).filter((g) => !(g in inverse));
-    ok(noInverse.join() === 'scrim,veil', `#2860 ${brand}: the families without an inverse are exactly scrim and veil (got ${noInverse.join(', ')})`);
+    ok(noInverse.join() === 'scrim,glass,veil', `#2860 ${brand}: the families without an inverse are exactly scrim, glass and veil (got ${noInverse.join(', ')})`);
 
     // Design-UX order, not alphabetical: a literal spot-check per axis that an alphabetical sort breaks.
     const at = (k: string): number => def.indexOf(k);
@@ -34442,7 +34676,7 @@ arm: {
   // skin with `color.disabled.border` (Q346).
   const PAINT: Record<string, { fills?: string; strokes: string }> = {
     rest: { fills: 'color/field/fill', strokes: 'color/field/border/rest' },
-    hover: { fills: 'color/interactive/neutral/overlay/hover', strokes: 'color/field/border/hover' },
+    hover: { fills: 'color/field/fill', strokes: 'color/field/border/hover' },
     filled: { fills: 'color/field/fill', strokes: 'color/field/border/rest' },
     'focus-visible': { fills: 'color/field/fill', strokes: 'color/border/focus' },
     'focus-visible-filled': { fills: 'color/field/fill', strokes: 'color/border/focus' },
@@ -34451,7 +34685,7 @@ arm: {
   };
   const paintOff = CELL_STATES.filter((st) => { const r = cellAt('medium', st)!.root.paints; return r?.fills !== PAINT[st].fills || r?.strokes !== PAINT[st].strokes; })
     .map((st) => `${st}: ${JSON.stringify(cellAt('medium', st)!.root.paints)}`);
-  ok(paintOff.length === 0, `#2428 code-input: the cell paints the field chrome per state — wash and field border at hover, the focus border when active, the danger border in error, disabled.fill and disabled.border when disabled (${paintOff.join('; ') || 'ok'})`);
+  ok(paintOff.length === 0, `#2428 code-input: the cell paints the field chrome per state — the field border alone at hover (no wash, #2926), the focus border when active, the danger border in error, disabled.fill and disabled.border when disabled (${paintOff.join('; ') || 'ok'})`);
   // Q346: no border on either def binds a text or icon role.
   const borderRoles = Object.entries(cellDef.tokens).filter(([k]) => k.split('.').includes('border')).map(([, v]) => v);
   ok(borderRoles.length >= 5 && borderRoles.every((v) => !/^color\.(text|icon)\./.test(v)),

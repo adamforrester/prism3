@@ -2467,6 +2467,25 @@
       }
     },
     {
+      "name": "wds/color/glass/surface",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Glass fill behind the glass blur — 70% (90% in high-contrast modes), white or black by mode",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.7019608020782471
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/palette/white-alpha/70"
+      }
+    },
+    {
       "name": "wds/color/veil/dark/subtle",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2663,14 +2682,14 @@
       ],
       "description": "Form field hover border — 3:1 on background/secondary; pair it with a second cue",
       "value": {
-        "r": 0.40392157435417175,
-        "g": 0.4117647111415863,
-        "b": 0.4156862795352936,
+        "r": 0.30588236451148987,
+        "g": 0.3137255012989044,
+        "b": 0.3176470696926117,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/550"
+        "name": "wds/core/palette/neutral/650"
       }
     },
     {
@@ -4973,14 +4992,14 @@
       ],
       "description": "Form field hover border — 3:1 on inverse/background/secondary; pair it with a second cue",
       "value": {
-        "r": 0.501960813999176,
-        "g": 0.5098039507865906,
-        "b": 0.5137255191802979,
+        "r": 0.6000000238418579,
+        "g": 0.6039215922355652,
+        "b": 0.6117647290229797,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/450"
+        "name": "wds/core/palette/neutral/350"
       }
     },
     {

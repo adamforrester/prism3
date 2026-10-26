@@ -10241,6 +10241,53 @@
           }
         }
       },
+      "glass": {
+        "surface": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.white-alpha.70}",
+          "$description": "Glass — the translucent white fill behind the glass background blur; opacity 70%",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.core.palette.white-alpha.70",
+              "contrast": 1,
+              "against": "self",
+              "modes": {
+                "dark": {
+                  "$value": "{nbds.core.palette.black-alpha.70}",
+                  "aliasOf": "nbds.core.palette.black-alpha.70",
+                  "contrast": 1,
+                  "against": "self",
+                  "description": "Glass — the translucent black fill behind the glass background blur; opacity 70%"
+                },
+                "hc-light": {
+                  "$value": "{nbds.core.palette.white-alpha.90}",
+                  "aliasOf": "nbds.core.palette.white-alpha.90",
+                  "contrast": 1,
+                  "against": "self",
+                  "description": "Glass — the translucent white fill behind the glass background blur; opacity 90%"
+                },
+                "hc-dark": {
+                  "$value": "{nbds.core.palette.black-alpha.90}",
+                  "aliasOf": "nbds.core.palette.black-alpha.90",
+                  "contrast": 1,
+                  "against": "self",
+                  "description": "Glass — the translucent black fill behind the glass background blur; opacity 90%"
+                }
+              },
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ]
+              }
+            }
+          }
+        }
+      },
       "veil": {
         "dark": {
           "subtle": {
@@ -10677,38 +10724,38 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{nbds.core.palette.neutral.550}",
-            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)",
+            "$value": "{nbds.core.palette.neutral.650}",
+            "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.palette.neutral.550",
-                "contrast": 4.52,
+                "aliasOf": "nbds.core.palette.neutral.650",
+                "contrast": 6.7,
                 "against": "background.secondary",
                 "min": 3,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.neutral.450}",
-                    "aliasOf": "nbds.core.palette.neutral.450",
-                    "contrast": 4.68,
+                    "$value": "{nbds.core.palette.neutral.350}",
+                    "aliasOf": "nbds.core.palette.neutral.350",
+                    "contrast": 6.41,
                     "against": "background.secondary",
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{nbds.core.palette.neutral.600}",
-                    "aliasOf": "nbds.core.palette.neutral.600",
-                    "contrast": 6.69,
+                    "$value": "{nbds.core.palette.neutral.700}",
+                    "aliasOf": "nbds.core.palette.neutral.700",
+                    "contrast": 9.84,
                     "against": "background.secondary",
                     "min": 4.5,
-                    "description": "Form field hover border — two ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)"
+                    "description": "Form field hover border — four ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
                   },
                   "hc-dark": {
-                    "$value": "{nbds.core.palette.neutral.400}",
-                    "aliasOf": "nbds.core.palette.neutral.400",
-                    "contrast": 6.41,
+                    "$value": "{nbds.core.palette.neutral.300}",
+                    "aliasOf": "nbds.core.palette.neutral.300",
+                    "contrast": 8.75,
                     "against": "background.secondary",
                     "min": 4.5,
-                    "description": "Form field hover border — two ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)"
+                    "description": "Form field hover border — four ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
                   }
                 },
                 "figma": {
@@ -16553,38 +16600,38 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.neutral.450}",
-              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)",
+              "$value": "{nbds.core.palette.neutral.350}",
+              "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.neutral.450",
-                  "contrast": 4.68,
+                  "aliasOf": "nbds.core.palette.neutral.350",
+                  "contrast": 6.41,
                   "against": "inverse.background.secondary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.neutral.550}",
-                      "aliasOf": "nbds.core.palette.neutral.550",
-                      "contrast": 4.52,
+                      "$value": "{nbds.core.palette.neutral.650}",
+                      "aliasOf": "nbds.core.palette.neutral.650",
+                      "contrast": 6.7,
                       "against": "inverse.background.secondary",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.core.palette.neutral.400}",
-                      "aliasOf": "nbds.core.palette.neutral.400",
-                      "contrast": 6.41,
+                      "$value": "{nbds.core.palette.neutral.300}",
+                      "aliasOf": "nbds.core.palette.neutral.300",
+                      "contrast": 8.75,
                       "against": "inverse.background.secondary",
                       "min": 4.5,
-                      "description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)"
+                      "description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
                     },
                     "hc-dark": {
-                      "$value": "{nbds.core.palette.neutral.600}",
-                      "aliasOf": "nbds.core.palette.neutral.600",
-                      "contrast": 6.69,
+                      "$value": "{nbds.core.palette.neutral.700}",
+                      "aliasOf": "nbds.core.palette.neutral.700",
+                      "contrast": 9.84,
                       "against": "inverse.background.secondary",
                       "min": 4.5,
-                      "description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)"
+                      "description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
                     }
                   },
                   "figma": {
@@ -20009,6 +20056,19 @@
                 "offsetY"
               ]
             }
+          }
+        }
+      }
+    },
+    "blur": {
+      "glass": {
+        "$type": "dimension",
+        "$value": "32px",
+        "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface",
+        "$extensions": {
+          "prism3": {
+            "generated": true,
+            "px": 32
           }
         }
       }

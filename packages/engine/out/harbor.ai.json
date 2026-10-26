@@ -174,6 +174,18 @@
         "foreground.primary"
       ]
     },
+    "glass.surface": {
+      "$description": "Glass — the translucent white fill behind the glass background blur; opacity 70%",
+      "meaning": "Frosted band over a photograph",
+      "when_to_use": "The translucent fill of a glass band over a photograph — a caption or footer set over the bottom of an image. Pair it with a background blur of `blur.glass`. Text on it uses the page roles, such as `text.primary`.",
+      "avoid_when": "Do not use without the background blur, as a modal backdrop (use `scrim.default`), or as an opaque surface (use `foreground.primary`).",
+      "mode_overrides": {
+        "light": "{hds.core.palette.white-alpha.70}",
+        "dark": "{hds.core.palette.black-alpha.70}",
+        "hc-light": "{hds.core.palette.white-alpha.90}",
+        "hc-dark": "{hds.core.palette.black-alpha.90}"
+      }
+    },
     "veil.dark.subtle": {
       "$description": "Media veil, dark — a subtle black wash (50%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "meaning": "Text legibility over a photograph",
@@ -2960,7 +2972,7 @@
       "$description": "primary interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.hover)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary hover wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle) or as a modal backdrop (use `scrim.default`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.10}",
         "dark": "{hds.core.palette.white-alpha.10}",
@@ -2984,7 +2996,7 @@
       "$description": "primary interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle) or as a modal backdrop (use `scrim.default`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3008,7 +3020,7 @@
       "$description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.selected)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary selected wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle) or as a modal backdrop (use `scrim.default`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3032,7 +3044,7 @@
       "$description": "neutral interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral hover wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle) or as a modal backdrop (use `scrim.default`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.10}",
         "dark": "{hds.core.palette.white-alpha.10}",
@@ -3056,7 +3068,7 @@
       "$description": "neutral interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle) or as a modal backdrop (use `scrim.default`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3080,7 +3092,7 @@
       "$description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral selected wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle) or as a modal backdrop (use `scrim.default`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3104,7 +3116,7 @@
       "$description": "destructive interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive hover wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle) or as a modal backdrop (use `scrim.default`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.10}",
         "dark": "{hds.core.palette.white-alpha.10}",
@@ -3128,7 +3140,7 @@
       "$description": "destructive interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle) or as a modal backdrop (use `scrim.default`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3152,7 +3164,7 @@
       "$description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive selected wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle) or as a modal backdrop (use `scrim.default`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3176,7 +3188,7 @@
       "$description": "primary interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent primary hover wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.hover`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle) or as a modal backdrop (use `scrim.default`).",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.hover`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.10}",
         "dark": "{hds.core.palette.black-alpha.10}",
@@ -3200,7 +3212,7 @@
       "$description": "primary interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent primary pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.pressed`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle) or as a modal backdrop (use `scrim.default`).",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.pressed`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -3224,7 +3236,7 @@
       "$description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent primary selected wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.selected`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle) or as a modal backdrop (use `scrim.default`).",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.selected`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -3248,7 +3260,7 @@
       "$description": "neutral interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent neutral hover wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.hover`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle) or as a modal backdrop (use `scrim.default`).",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.hover`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.10}",
         "dark": "{hds.core.palette.black-alpha.10}",
@@ -3272,7 +3284,7 @@
       "$description": "neutral interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent neutral pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.pressed`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle) or as a modal backdrop (use `scrim.default`).",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.pressed`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -3296,7 +3308,7 @@
       "$description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent neutral selected wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.selected`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle) or as a modal backdrop (use `scrim.default`).",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.selected`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -3320,7 +3332,7 @@
       "$description": "destructive interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent destructive hover wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.hover`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle) or as a modal backdrop (use `scrim.default`).",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.hover`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.10}",
         "dark": "{hds.core.palette.black-alpha.10}",
@@ -3344,7 +3356,7 @@
       "$description": "destructive interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent destructive pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.pressed`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle) or as a modal backdrop (use `scrim.default`).",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.pressed`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -3368,7 +3380,7 @@
       "$description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent destructive selected wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.selected`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle) or as a modal backdrop (use `scrim.default`).",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.selected`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -3620,15 +3632,15 @@
       ]
     },
     "field.border.hover": {
-      "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)",
+      "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer",
       "meaning": "Form input / field chrome",
-      "when_to_use": "The hover boundary of a form field — a subtly stronger perceivable border (SC 1.4.11) on pointer hover. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
+      "when_to_use": "The hover boundary of a form field — four ramp steps stronger than the resting border, and the field's only drawn hover cue: a field takes no hover fill. A perceivable border (SC 1.4.11) on pointer hover. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use as the resting border (use `field.border.rest`), the focus ring (use `border.focus`), or a validation state (use an intent border such as `border.danger`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.600}",
-        "dark": "{hds.core.palette.neutral.450}",
-        "hc-light": "{hds.core.palette.neutral.600}",
-        "hc-dark": "{hds.core.palette.neutral.400}"
+        "light": "{hds.core.palette.neutral.700}",
+        "dark": "{hds.core.palette.neutral.350}",
+        "hc-light": "{hds.core.palette.neutral.700}",
+        "hc-dark": "{hds.core.palette.neutral.300}"
       },
       "sits_on": [
         "background.primary",
@@ -3645,7 +3657,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 4.88,
+          "ratio": 7.13,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -3724,15 +3736,15 @@
       ]
     },
     "inverse.field.border.hover": {
-      "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)",
+      "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer",
       "meaning": "Form input / field chrome (inverse ground)",
-      "when_to_use": "The hover boundary of a form field — a subtly stronger perceivable border (SC 1.4.11) on pointer hover. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The hover boundary of a form field — four ramp steps stronger than the resting border, and the field's only drawn hover cue: a field takes no hover fill. A perceivable border (SC 1.4.11) on pointer hover. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.border.hover`. Do not use as the resting border (use `inverse.field.border.rest`), the focus ring (use `inverse.border.focus`), or a validation state (use an intent border such as `inverse.border.danger`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.450}",
-        "dark": "{hds.core.palette.neutral.550}",
-        "hc-light": "{hds.core.palette.neutral.400}",
-        "hc-dark": "{hds.core.palette.neutral.600}"
+        "light": "{hds.core.palette.neutral.350}",
+        "dark": "{hds.core.palette.neutral.650}",
+        "hc-light": "{hds.core.palette.neutral.300}",
+        "hc-dark": "{hds.core.palette.neutral.700}"
       },
       "sits_on": [
         "inverse.background.primary",
@@ -3749,7 +3761,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 4.61,
+          "ratio": 6.38,
           "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -7597,6 +7609,12 @@
       "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
       "resolves_to": "21px"
     },
+    "blur.glass": {
+      "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface",
+      "meaning": "Background-blur radius — glass",
+      "when_to_use": "The background blur behind a glass band over a photograph (`backdrop-filter: blur()` in code). Its fill is `color.glass.surface`.",
+      "resolves_to": "32px"
+    },
     "icon.size.xs": {
       "$description": "icon.size.xs — 16px artboard (fixed grid; pairs with size.xs)",
       "meaning": "Icon size step xs",
@@ -8893,7 +8911,9 @@
       "aliased_by": [
         "color.border.secondary",
         "color.disabled.on-fill",
+        "color.field.border.hover",
         "color.icon.secondary",
+        "color.inverse.field.border.hover",
         "color.text.secondary"
       ]
     },
@@ -8904,10 +8924,12 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.field.border.hover",
         "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",
         "color.inverse.border.tertiary",
         "color.inverse.disabled.on-fill",
+        "color.inverse.field.border.hover",
         "color.inverse.field.placeholder",
         "color.inverse.icon.secondary",
         "color.inverse.text.secondary"
@@ -8918,11 +8940,7 @@
       "meaning": "neutral ramp — raw step 400",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
-      "aliased_by": [
-        "color.field.border.hover",
-        "color.inverse.field.border.hover"
-      ]
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.neutral.450": {
       "$description": "Neutral 450 — Mid-Tone band (mid tones, steps 400–600)",
@@ -8934,13 +8952,11 @@
         "color.disabled.icon",
         "color.disabled.on-fill",
         "color.disabled.text",
-        "color.field.border.hover",
         "color.field.placeholder",
         "color.icon.secondary",
         "color.icon.tertiary",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.text",
-        "color.inverse.field.border.hover",
         "color.inverse.field.border.rest",
         "color.inverse.field.placeholder",
         "color.inverse.icon.secondary",
@@ -8990,7 +9006,6 @@
         "color.icon.tertiary",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.text",
-        "color.inverse.field.border.hover",
         "color.inverse.field.border.rest",
         "color.inverse.field.placeholder",
         "color.inverse.icon.secondary",
@@ -9009,13 +9024,11 @@
       "aliased_by": [
         "color.disabled.icon",
         "color.disabled.text",
-        "color.field.border.hover",
         "color.field.placeholder",
         "color.icon.secondary",
         "color.icon.tertiary",
         "color.inverse.border.secondary",
         "color.inverse.disabled.on-fill",
-        "color.inverse.field.border.hover",
         "color.text.secondary",
         "color.text.tertiary"
       ]
@@ -9031,6 +9044,7 @@
         "color.disabled.on-fill",
         "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",
+        "color.inverse.field.border.hover",
         "color.inverse.field.placeholder",
         "color.inverse.icon.secondary",
         "color.inverse.text.secondary"
@@ -9044,10 +9058,12 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.secondary",
+        "color.field.border.hover",
         "color.icon.secondary",
         "color.inverse.border.secondary",
         "color.inverse.border.tertiary",
         "color.inverse.disabled.on-fill",
+        "color.inverse.field.border.hover",
         "color.text.secondary"
       ]
     },
@@ -10193,6 +10209,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.glass.surface",
         "color.scrim.default",
         "color.veil.dark.strong"
       ]
@@ -10209,7 +10226,10 @@
       "meaning": "Black at 90% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.glass.surface"
+      ]
     },
     "core.palette.white-alpha.0": {
       "$description": "White alpha 0% — clear white, the end a light veil fades to",
@@ -10306,7 +10326,10 @@
       "meaning": "White at 70% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.glass.surface"
+      ]
     },
     "core.palette.white-alpha.80": {
       "$description": "White alpha 80% — alpha, composites over any surface",
@@ -10320,7 +10343,10 @@
       "meaning": "White at 90% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.glass.surface"
+      ]
     },
     "core.dimension.0": {
       "$description": "0px — dimension primitive",

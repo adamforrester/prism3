@@ -352,28 +352,6 @@
     },
     "text-field": {
       "members": 84,
-      "sha256": "1c7512757ceade7ccc5d6513092d5880551ace590e2e33c741c96b5a4d3132ea",
-      "properties": [
-        "leading icon:BOOLEAN",
-        "message:BOOLEAN",
-        "placeholder:TEXT",
-        "trailing icon:BOOLEAN",
-        "value:TEXT"
-      ]
-    },
-    "text-field@outline-solid-tint": {
-      "members": 84,
-      "sha256": "6a94389ed4ac26cd78c7851a676472309800bddf91ac2deddab5a81ea59acd5e",
-      "properties": [
-        "leading icon:BOOLEAN",
-        "message:BOOLEAN",
-        "placeholder:TEXT",
-        "trailing icon:BOOLEAN",
-        "value:TEXT"
-      ]
-    },
-    "text-field@outline-none": {
-      "members": 84,
       "sha256": "3e12bdae965b2358779c7c78d99f6e225fcfb8cbe01bab5fc8a296e7fabb7b1f",
       "properties": [
         "leading icon:BOOLEAN",
@@ -384,30 +362,6 @@
       ]
     },
     "textarea": {
-      "members": 84,
-      "sha256": "39edacd9854461b07ecf2b9ec6f7b091634ffe4868ed77752c0c33c40ea3723c",
-      "properties": [
-        "character count:BOOLEAN",
-        "count:TEXT",
-        "message:BOOLEAN",
-        "placeholder:TEXT",
-        "resize handle:BOOLEAN",
-        "value:TEXT"
-      ]
-    },
-    "textarea@outline-solid-tint": {
-      "members": 84,
-      "sha256": "b3c621d0553b723ee4144e7edbf57aa55ee1cff0d25a74ef0a623e49d3514c9b",
-      "properties": [
-        "character count:BOOLEAN",
-        "count:TEXT",
-        "message:BOOLEAN",
-        "placeholder:TEXT",
-        "resize handle:BOOLEAN",
-        "value:TEXT"
-      ]
-    },
-    "textarea@outline-none": {
       "members": 84,
       "sha256": "e8b82d2b0e730afefdd8df658edbf9a439e162bd699196f40b94dcae673962ec",
       "properties": [
@@ -472,26 +426,6 @@
       ]
     },
     "select": {
-      "members": 84,
-      "sha256": "425a08a50d113f5c004d0e4590fa3a5804487f84536e4b1838d963f2f87aab59",
-      "properties": [
-        "leading icon:BOOLEAN",
-        "message:BOOLEAN",
-        "placeholder:TEXT",
-        "value:TEXT"
-      ]
-    },
-    "select@outline-solid-tint": {
-      "members": 84,
-      "sha256": "f859e2ba98827e0f047306f0cb38bcfd3d504e1013a5a40c9254c2b0f4e598e2",
-      "properties": [
-        "leading icon:BOOLEAN",
-        "message:BOOLEAN",
-        "placeholder:TEXT",
-        "value:TEXT"
-      ]
-    },
-    "select@outline-none": {
       "members": 84,
       "sha256": "af84c5102cb1bbe8430a44766fe1a6d5cac7544c3829ee677c4b6200f29ed1c8",
       "properties": [
@@ -716,26 +650,6 @@
     },
     "password-field": {
       "members": 84,
-      "sha256": "bb1d73489fc0e9f2c8bea48463b9f7efc5301db400c47a70e612781a7ba3e211",
-      "properties": [
-        "leading icon:BOOLEAN",
-        "message:BOOLEAN",
-        "placeholder:TEXT",
-        "value:TEXT"
-      ]
-    },
-    "password-field@outline-solid-tint": {
-      "members": 84,
-      "sha256": "9bdb30605aa7aa1f65c928d60e30ec5f539ebf3edce222f6d0ede2b691e10e53",
-      "properties": [
-        "leading icon:BOOLEAN",
-        "message:BOOLEAN",
-        "placeholder:TEXT",
-        "value:TEXT"
-      ]
-    },
-    "password-field@outline-none": {
-      "members": 84,
       "sha256": "9ecf84ba37b1e0b0edf906e5f0cf78b79929ac782ef6226e309f112de59f3f8a",
       "properties": [
         "leading icon:BOOLEAN",
@@ -830,34 +744,6 @@
     },
     "search-field": {
       "members": 84,
-      "sha256": "fdcf9873c85c47f4cf8b183a06cc385ce376363fae0f354fd8615d2ed7c48885",
-      "properties": [
-        "label:BOOLEAN",
-        "leading icon:BOOLEAN",
-        "message:BOOLEAN",
-        "placeholder:TEXT",
-        "trailing icon:BOOLEAN",
-        "value:TEXT",
-        "↳ swap leading icon:INSTANCE_SWAP",
-        "↳ swap trailing icon:INSTANCE_SWAP"
-      ]
-    },
-    "search-field@outline-solid-tint": {
-      "members": 84,
-      "sha256": "55c1da79153294658e54db4d592f27b0e69962d36b74d0822525725f2ce8ab0d",
-      "properties": [
-        "label:BOOLEAN",
-        "leading icon:BOOLEAN",
-        "message:BOOLEAN",
-        "placeholder:TEXT",
-        "trailing icon:BOOLEAN",
-        "value:TEXT",
-        "↳ swap leading icon:INSTANCE_SWAP",
-        "↳ swap trailing icon:INSTANCE_SWAP"
-      ]
-    },
-    "search-field@outline-none": {
-      "members": 84,
       "sha256": "5b2a706e4b3e264d4c08d72e12621f657d06897e24429c36f75fd567c0bdfac5",
       "properties": [
         "label:BOOLEAN",
@@ -904,20 +790,6 @@
       ]
     },
     "code-input-cell": {
-      "members": 28,
-      "sha256": "d0857df733826ea6e1f2a9e869c212c47b475d9613bc2582cef9bcbc95120a9c",
-      "properties": [
-        "digit:TEXT"
-      ]
-    },
-    "code-input-cell@outline-solid-tint": {
-      "members": 28,
-      "sha256": "dc1ce53587bb028f5fb6acf512a779b0e019ef50c4c52ce8abc55e54a6654cce",
-      "properties": [
-        "digit:TEXT"
-      ]
-    },
-    "code-input-cell@outline-none": {
       "members": 28,
       "sha256": "10273a351aca9f6670b859ae4f5999eafe21050f105f91e44c44654d6cbeede6",
       "properties": [

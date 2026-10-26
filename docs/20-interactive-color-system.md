@@ -401,7 +401,7 @@ the existing gated families (per §15: *the field's interaction states come from
 |---|---|---|
 | `field.fill` | the field fill — a subtly *inset* neutral so the field reads as an input even before focus | surface (min 0); the value ink `text.primary` clears on it (it tracks the page tier) |
 | `field.border.rest` | the resting boundary | **gated `nonTextMin` (3:1 / 4.5 HC) against `background.primary`** — SC 1.4.11. **This is the improvement over Prism2**, whose resting input border sat sub-3:1 and leaned entirely on focus |
-| `field.border.hover` | a subtly *stronger* boundary on pointer hover | **gated `secondaryMin` (4.5) against `background.primary`**, and asserted ≥ the rest ratio — a perceptible strengthening, *never the sole state carrier* (KB §4) |
+| `field.border.hover` | a *stronger* boundary on pointer hover: four ramp steps above rest since #2926 (two before), about 1.9–2.2:1 rest→hover, and the field's only drawn hover cue (a field takes no hover wash since #2926; buttons keep theirs) | **gated `nonTextMin` (3:1 / 4.5 HC) against `background.secondary`**, the darkest permissible ground |
 | `field.placeholder` | placeholder / hint ink on the field fill | **gated `secondaryMin` (4.5) against `field.fill`** — a *readable* hint, not the sub-AA placeholder Prism2 (and most systems) ship |
 
 `field.border` is the one **stateful** field slot, nested `rest`/`hover` in the same shape as `interactive.*.fill.<state>` — so the field family stays self-describing rather than borrowing a generic border for hover. All other states still compose (below).

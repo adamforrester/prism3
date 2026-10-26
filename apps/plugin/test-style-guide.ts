@@ -82,7 +82,7 @@
  *      later-phase variables with no table; the text styles last; `isSetUp` needing both cell sets and both pages.
  *  27. A RUN TABLE BY TABLE: its list first, then each table drawing and done.
  *  28. ONE FAILED TABLE (owner decision P6): the host refusing the Accent table fails that table with its words, the run
- *      draws the other 28, the verdict is "⚠ 28 drawn, 1 failed", and a redraw by the table's key draws it alone.
+ *      draws the other 29, the verdict is "⚠ 29 drawn, 1 failed", and a redraw by the table's key draws it alone.
  *  29. CANCEL (owner decision P7): a stop read after table 3 ends the run there, deletes no superseded table (the control
  *      run to the end does), and the verdict says where it stopped; a stop after the last table is no stop.
  *  33. THE OWNER'S QA OF A REAL BRAND FILE (#2371): a mixed filtered run, tables narrowed or shortened in place and one
@@ -1325,7 +1325,7 @@ const main = async (): Promise<void> => {
     // A fill is the swatch itself, filling its cell (#2331), so the cell IS the owner's layerless instance.
     const bgSw = bgG ? cellAt(bgG, rowOf(bgG, 'primary'), 1) : undefined;
     ok(bgSw?.mainComponent?.name === 'type=Default' && boundId(bgSw?.fills) === vars.find((v) => v.name === 'pds3/color/background/primary')!.id, "2: a type=default swatch with no layers binds the instance's own fill");
-    ok(run.unbound === 0 && styleGuideSummary(run).headline === '✓ style guide: 18 tables', '2: nothing unbound — headline "✓ style guide: 18 tables"');
+    ok(run.unbound === 0 && styleGuideSummary(run).headline === '✓ style guide: 19 tables', '2: nothing unbound — headline "✓ style guide: 19 tables"');
     // The owner's cells are a fixed 120px and clip; drawn, each hugs its words and no column cuts one off.
     const off = g ? clipped(g) : ['no grid'];
     ok(off.length === 0, `2: no text in the owner's cells is wider than its column (${off.slice(0, 3).join('; ')})`);
@@ -1351,12 +1351,12 @@ const main = async (): Promise<void> => {
   const byTitle = (kind: string, title: string): SgTable | undefined => plan.tables.find((t) => t.kind === kind && t.title === title);
   {
     const sem = plan.tables.filter((t) => t.kind === 'semantic');
-    ok(JSON.stringify(sem.map((t) => t.title)) === JSON.stringify(['Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE]), '3: color groups by family, in file order, each inverse family its own table (#2801)');
+    ok(JSON.stringify(sem.map((t) => t.title)) === JSON.stringify(['Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Glass', 'Veil', 'Field', ...SEM_INVERSE]), '3: color groups by family, in file order, each inverse family its own table (#2801)');
     ok(sem.every((t) => t.page === SEM), '3: semantic tables go on ↳ Semantic tokens');
     const prim = plan.tables.filter((t) => t.kind === 'primitive');
     ok(JSON.stringify(prim.map((t) => t.title)) === JSON.stringify(['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha', 'Legacy']), '3: primitive tables per palette');
     ok(prim.every((t) => t.page === PRIM), '3: primitive tables go on ↳ Primitive tokens');
-    ok(sem.reduce((n, t) => n + t.rows.length, 0) === 268 && prim.filter((t) => t.title !== 'Legacy').reduce((n, t) => n + t.rows.length, 0) === 164, '3: every color variable is a row (268 + 164)');
+    ok(sem.reduce((n, t) => n + t.rows.length, 0) === 269 && prim.filter((t) => t.title !== 'Legacy').reduce((n, t) => n + t.rows.length, 0) === 164, '3: every color variable is a row (269 + 164)');
     const text = byTitle('semantic', 'Text')!;
     ok(JSON.stringify(text.columns) === JSON.stringify(['Token', 'light', 'Value', 'Contrast', 'dark', 'Value', 'Contrast', 'hc-light', 'Value', 'Contrast', 'hc-dark', 'Value', 'Contrast', 'Description']), '3: a specimen, value and contrast column per mode');
     ok(JSON.stringify(byTitle('primitive', 'Neutral')!.columns) === JSON.stringify(['Token', 'Default', 'Value', 'Description']), '3: a primitive table has no contrast column');
@@ -1395,7 +1395,7 @@ const main = async (): Promise<void> => {
   const idOf = (name: string): string => f.vars.find((v) => v.name === name)!.id;
   const first = await draw(f.api, contract);
   {
-    ok(tablesOn(f.sem).length === 18 && tablesOn(f.prim).length === 11, '5: 18 semantic and 11 primitive tables');
+    ok(tablesOn(f.sem).length === 19 && tablesOn(f.prim).length === 11, '5: 19 semantic and 11 primitive tables');
     ok(first.tables.every((t) => t.status === 'created'), '5: every table created on a first run');
     const text = tableFrame(f.sem, 'Text')!;
     const header = text.children[0];
@@ -1407,7 +1407,7 @@ const main = async (): Promise<void> => {
     // track on both axes, every text hugs its words on one line and nothing truncates.
     const grids = [...tablesOn(f.sem), ...tablesOn(f.prim)].map(gridOf);
     const notHug = grids.flatMap((x) => [...x.gridColumnSizes, ...x.gridRowSizes].filter((s) => s.type !== 'HUG').map((s) => `${x.parent?.name}: ${s.type}`));
-    ok(grids.length === 29 && notHug.length === 0, `5: every column and row track of every table is HUG (${notHug.slice(0, 3).join('; ')})`);
+    ok(grids.length === 30 && notHug.length === 0, `5: every column and row track of every table is HUG (${notHug.slice(0, 3).join('; ')})`);
     // A palette row's swatch sits in the grid itself (decision 13), so the text cells are the instances of any other set.
     const isSwatch = (k: N): boolean => k.mainComponent?.parent?.name === '_style-guide-swatches';
     const textCells = grids.flatMap((x) => x.children.filter((k) => k.type === 'INSTANCE' && !isSwatch(k)));
@@ -1520,7 +1520,7 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(neutral.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn).slice(0, 4)) === JSON.stringify(['pds3/core/palette/neutral/025', 'pds3/core/palette/neutral/050', 'pds3/core/palette/neutral/100', 'pds3/core/palette/neutral/150']),
       '5: a palette table leads with each step\'s full path, in ramp order: pds3/core/palette/neutral/025, 050, 100, 150 … (#2372)');
     const sum = styleGuideSummary(first);
-    ok(sum.ok && sum.headline === '✓ style guide: 29 tables' && sum.headline.length <= 24, '5: headline "✓ style guide: 29 tables"');
+    ok(sum.ok && sum.headline === '✓ style guide: 30 tables' && sum.headline.length <= 24, '5: headline "✓ style guide: 30 tables"');
   }
 
   console.log('6a. a deleted table is not read after it is removed (#1795)');
@@ -1595,7 +1595,7 @@ const main = async (): Promise<void> => {
     f.vars.push({ id: 'VariableID:color:new', name: 'pds3/color/text/quaternary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: 'New', valuesByMode: { 'color:0': { r: 0, g: 0, b: 0, a: 1 }, 'color:1': { r: 1, g: 1, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 0, a: 1 }, 'color:3': { r: 1, g: 1, b: 1, a: 1 } } });
     for (let i = f.vars.length - 1; i >= 0; i--) if (f.vars[i].name.startsWith('pds3/color/scrim/')) f.vars.splice(i, 1);
     const again = await draw(f.api, contract);
-    ok(tablesOn(f.sem).length === 17, '6: rerun: 17 tables on the semantic page — none duplicated, the emptied Scrim deleted');
+    ok(tablesOn(f.sem).length === 18, '6: rerun: 18 tables on the semantic page — none duplicated, the emptied Scrim deleted');
     ok(tableFrame(f.sem, 'Text')?.id === wrapId, '6: the Text table is updated in place');
     ok(tableFrame(f.sem, 'Text')!.children.filter((c) => c.name === 'Table').length === 1 && tableFrame(f.sem, 'Text')!.children.filter((c) => c.mainComponent).length === 1, '6: one grid and one header after the rerun');
     const t = again.tables.find((x) => x.title === 'Text') as Extract<TableOutcome, { status: 'updated' }>;
@@ -1619,21 +1619,21 @@ const main = async (): Promise<void> => {
     const s = makeShim([prim, fc], c2, v2);
     await ensureStyleGuideCells(s.api, fc);
     const r = await draw(s.api, contract);
-    ok(r.tables.filter((t) => t.status === 'skipped' && t.reason === 'no-page').length === 18, '7: no Semantic tokens page — 18 tables skipped');
+    ok(r.tables.filter((t) => t.status === 'skipped' && t.reason === 'no-page').length === 19, '7: no Semantic tokens page — 19 tables skipped');
     ok(!s.pages.some((p) => p.name === SEM), '7: the missing page is not created');
     ok(r.tables.filter((t) => t.status === 'created').length === 11, '7: the primitive tables are still drawn');
-    ok(styleGuideSummary(r).summary.includes('18 tables skipped — this file has no Semantic tokens page'), '7: the skip is named in the summary');
+    ok(styleGuideSummary(r).summary.includes('19 tables skipped — this file has no Semantic tokens page'), '7: the skip is named in the summary');
     const partial = styleGuideSummary(r);
-    ok(!partial.ok && partial.headline === '⚠ 11 drawn, 18 skipped', `7: a partial run is not a pass — headline "${partial.headline}"`);
+    ok(!partial.ok && partial.headline === '⚠ 11 drawn, 19 skipped', `7: a partial run is not a pass — headline "${partial.headline}"`);
     // #2177: the Activity drawer's lines are the summary's items, the created tables, the skip and the group drawn (#2801),
     // each in the summary's words, and joined by `. ` they are the summary, byte for byte.
-    ok(partial.lines.length === 3 && partial.lines[0].startsWith('11 tables created (') && partial.lines[1] === '18 tables skipped — this file has no Semantic tokens page, and Set up file adds it'
+    ok(partial.lines.length === 3 && partial.lines[0].startsWith('11 tables created (') && partial.lines[1] === '19 tables skipped — this file has no Semantic tokens page, and Set up file adds it'
       && partial.lines[2] === '1 group drawn: Palettes' && partial.summary === partial.lines.join('. '),
       `7 #2177: the summary's three items are its three lines (${JSON.stringify(partial.lines)})`);
 
     const bare = makeShim([page(PRIM), page(SEM)], c2, v2);
     const r2 = await draw(bare.api, contract);
-    ok(r2.tables.length === 29 && r2.tables.every((t) => t.status === 'skipped' && t.reason === 'no-cells'), '7: no cell sets — every table skipped');
+    ok(r2.tables.length === 30 && r2.tables.every((t) => t.status === 'skipped' && t.reason === 'no-cells'), '7: no cell sets — every table skipped');
     const s2 = styleGuideSummary(r2);
     ok(!s2.ok && s2.headline === '✗ style guide skipped' && s2.summary.includes('Set up file adds them'), '7: the verdict says Set up file adds the cells');
 
@@ -1709,7 +1709,7 @@ const main = async (): Promise<void> => {
   {
     const two = twoRootVariables();
     const p2 = planStyleGuide({ collections: two.cols, variables: two.vars }, contract);
-    const fams = ['Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE];
+    const fams = ['Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Glass', 'Veil', 'Field', ...SEM_INVERSE];
     ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'semantic').map((t) => t.title)) === JSON.stringify([...fams.map((x) => `${x} — nbds`), ...fams.map((x) => `${x} — pds3`)]), '9: a two-root color collection groups by family within each root, the root named in the title');
     const pal = ['Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha'];
     ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'primitive').map((t) => t.title)) === JSON.stringify(['Core — nbds base', ...pal.map((x) => `${x} — nbds`), 'Core — pds3 base', ...pal.map((x) => `${x} — pds3`), 'Legacy']), '9: the two Primary palettes are told apart by their root; a one-root collection names none');
@@ -1722,10 +1722,10 @@ const main = async (): Promise<void> => {
     const f9 = await fullFile(two);
     const id9 = (name: string): string => f9.vars.find((v) => v.name === name)!.id;
     const r9 = await draw(f9.api, contract);
-    ok(tablesOn(f9.sem).length === 36 && tablesOn(f9.prim).length === 21, '9: 36 semantic and 21 primitive tables');
+    ok(tablesOn(f9.sem).length === 38 && tablesOn(f9.prim).length === 21, '9: 38 semantic and 21 primitive tables');
     const ground = (root: string): string | undefined => { const g = gridOf(tableFrame(f9.sem, `Text — ${root}`)!); return boundId(cellAt(g, rowOf(g, 'primary'), 1)?.fills); };
     ok(ground('nbds') === id9('nbds/color/background/primary') && ground('pds3') === id9('pds3/color/background/primary'), "9: each root's text is drawn on its own root's background");
-    ok(styleGuideSummary(r9).headline === '✓ style guide: 57 tables', `9: headline "✓ style guide: 57 tables" (got "${styleGuideSummary(r9).headline}")`);
+    ok(styleGuideSummary(r9).headline === '✓ style guide: 59 tables', `9: headline "✓ style guide: 59 tables" (got "${styleGuideSummary(r9).headline}")`);
 
     // A RERUN over the live run's tables: one per root for a semantic collection, keyed at the root, and primitive
     // tables titled without their root. Planted as that build left them.
@@ -1738,7 +1738,7 @@ const main = async (): Promise<void> => {
     const nTitle = neu.children[0].findOne((k) => k.name === 'Title')!;
     nTitle.characters = 'Grays';
     const again = await draw(f9.api, contract);
-    ok(tablesOn(f9.sem).length === 37 && tablesOn(f9.prim).length === 21 && again.tables.every((t) => t.status === 'updated'), '9: rerun: every table updated in place, no duplicates');
+    ok(tablesOn(f9.sem).length === 39 && tablesOn(f9.prim).length === 21 && again.tables.every((t) => t.status === 'updated'), '9: rerun: every table updated in place, no duplicates');
     ok(JSON.stringify(again.replaced) === JSON.stringify(['Style guide — Nbds']) && again.stale.length === 0, '9: the per-root table is reported as replaced, not stale');
     ok(old.parent === f9.sem && JSON.stringify(again.kept) === JSON.stringify([{ name: 'Style guide — Nbds', reason: 'unrecorded' }]), '9: the per-root table has no fingerprint, so it is left in place');
     ok(styleGuideSummary(again).summary.includes('1 table the generator no longer draws was left in place — drawn before edits were tracked, so the generator never deletes it; delete it by hand if no longer needed: Style guide — Nbds'), '9: the summary names the kept table and why it is kept');
@@ -1775,14 +1775,14 @@ const main = async (): Promise<void> => {
     const ic = groupFrame(r.sem, 'Inverse colors')!;
     const at = (title: string): string => cellOf(tableFrame(r.sem, title));
     // INVERSE COLORS IS ITS OWN GROUP (owner decision, 2026-10-19): the defaults in Semantic colors' one row, the inverse
-    // guides in their own titled frame, each in its default counterpart's column. Scrim and Veil have no inverse, so their
+    // guides in their own titled frame, each in its default counterpart's column. Scrim, Glass and Veil have no inverse, so their
     // cells below stay empty; typed out here.
-    const want = { Background: '0,0', Foreground: '0,1', Text: '0,2', Border: '0,3', Icon: '0,4', Interactive: '0,5', Disabled: '0,6', Scrim: '0,7', Veil: '0,8', Field: '0,9',
-      'Inverse background': '0,0', 'Inverse foreground': '0,1', 'Inverse text': '0,2', 'Inverse border': '0,3', 'Inverse icon': '0,4', 'Inverse interactive': '0,5', 'Inverse disabled': '0,6', 'Inverse field': '0,9' };
+    const want = { Background: '0,0', Foreground: '0,1', Text: '0,2', Border: '0,3', Icon: '0,4', Interactive: '0,5', Disabled: '0,6', Scrim: '0,7', Glass: '0,8', Veil: '0,9', Field: '0,10',
+      'Inverse background': '0,0', 'Inverse foreground': '0,1', 'Inverse text': '0,2', 'Inverse border': '0,3', 'Inverse icon': '0,4', 'Inverse interactive': '0,5', 'Inverse disabled': '0,6', 'Inverse field': '0,10' };
     const got = Object.keys(want).map((t) => `${t} ${at(t)}`);
     const inverseTitles = Object.keys(want).filter((t) => t.startsWith('Inverse '));
     ok(!!sc && !!ic && pageFrames(r.sem).length === 2 && JSON.stringify(got) === JSON.stringify(Object.entries(want).map(([t, c]) => `${t} ${c}`))
-      && guidesOf(sc)!.gridRowCount === 1 && guidesOf(sc)!.gridColumnCount === 10 && guidesOf(ic)!.gridRowCount === 1
+      && guidesOf(sc)!.gridRowCount === 1 && guidesOf(sc)!.gridColumnCount === 11 && guidesOf(ic)!.gridRowCount === 1
       && Object.keys(want).every((t) => tableFrame(r.sem, t)!.parent === guidesOf(t.startsWith('Inverse ') ? ic : sc)),
       `10: Semantic colors holds the defaults in one row, and Inverse colors, a group of its own, holds every inverse guide in its default's column (${got.filter((g, i) => g !== `${Object.keys(want)[i]} ${Object.values(want)[i]}`).join(', ') || 'as typed'})`);
     ok(ic.children[0]?.findOne((k) => k.name === 'Title')?.characters === 'Inverse colors' && ic.layoutMode === 'VERTICAL',
@@ -1814,7 +1814,7 @@ const main = async (): Promise<void> => {
     ok(border.parent === r.sem && border.x === bx && border.y === by && border.pluginData['prism3-style-guide-in-group'] === sc.id, '10: a guide a designer dragged out of its group stays where they put it, and is not put back');
     // The grid closed over Border's empty cell, and Inverse colors follows: Inverse border, whose default is now out of the
     // group, goes past the last column, and each other inverse guide keeps its default's.
-    ok(at('Scrim') === '0,6' && at('Field') === '0,8' && guidesOf(sc)!.gridColumnCount === 9 && at('Inverse field') === '0,8' && at('Inverse border') === '0,9',
+    ok(at('Scrim') === '0,6' && at('Field') === '0,9' && guidesOf(sc)!.gridColumnCount === 10 && at('Inverse field') === '0,9' && at('Inverse border') === '0,10',
       `10: the grid closes over a guide dragged out, and Inverse colors follows its columns (Scrim ${at('Scrim')}, Inverse field ${at('Inverse field')}, Inverse border ${at('Inverse border')})`);
     // TABLES FROM BEFORE GROUPS: an earlier build drew every table loose on the page, in category rows, with no group
     // record. The next run puts each in its group, and the groups stack from where those rows started.
@@ -2036,14 +2036,14 @@ const main = async (): Promise<void> => {
     await draw(g0.api, contract);
     g0.vars.splice(0);
     const r0 = await draw(g0.api, contract);
-    ok(r0.deleted.length === 0 && r0.kept.length === 29 && r0.kept.every((k) => k.reason === 'nothing-drawn') && tablesOn(g0.prim).length + tablesOn(g0.sem).length === 29, `11: a run that draws nothing deletes nothing: 29 tables kept (${r0.deleted.length} deleted)`);
-    ok(summaryOf(r0).includes('29 tables the generator no longer draws were left in place — nothing was drawn this run: ') && summaryOf(r0).includes(' and 26 more'), '11: the summary gives the reason and caps the list at three names');
+    ok(r0.deleted.length === 0 && r0.kept.length === 30 && r0.kept.every((k) => k.reason === 'nothing-drawn') && tablesOn(g0.prim).length + tablesOn(g0.sem).length === 30, `11: a run that draws nothing deletes nothing: 30 tables kept (${r0.deleted.length} deleted)`);
+    ok(summaryOf(r0).includes('30 tables the generator no longer draws were left in place — nothing was drawn this run: ') && summaryOf(r0).includes(' and 27 more'), '11: the summary gives the reason and caps the list at three names');
     // The variables moved to a library: no local collection, no local variable. Every table's collection is gone.
     const lib = await fullFile();
     await draw(lib.api, contract);
     lib.cols.splice(0); lib.vars.splice(0);
     const rl = await draw(lib.api, contract);
-    ok(rl.deleted.length === 0 && rl.kept.length === 29 && rl.kept.every((k) => k.reason === 'no-collection'), '11: variables moved to a library: every table kept, its collection not in this file');
+    ok(rl.deleted.length === 0 && rl.kept.length === 30 && rl.kept.every((k) => k.reason === 'no-collection'), '11: variables moved to a library: every table kept, its collection not in this file');
     // One collection gone while the rest still draw: the plan is not empty, and only the collection check keeps it.
     const g1 = await fullFile();
     await draw(g1.api, contract);
@@ -2058,7 +2058,7 @@ const main = async (): Promise<void> => {
     await draw(many.api, contract, { collections: ['color'] });
     for (let i = many.vars.length - 1; i >= 0; i--) if (/^pds3\/color\/(scrim|veil|field|disabled)\//.test(many.vars[i].name)) many.vars.splice(i, 1);
     const rm = await draw(many.api, contract, { collections: ['color'] });
-    ok(rm.deleted.length === 4 && summaryOf(rm).includes('4 tables the generator no longer draws were deleted, unedited: ') && summaryOf(rm).includes(' and 1 more') && styleGuideSummary(rm).headline === '✓ 14 tables, 4 deleted', `11: four deleted: three named and "and 1 more"; headline "✓ 14 tables, 4 deleted" (got "${styleGuideSummary(rm).headline}", ${rm.deleted.length})`);
+    ok(rm.deleted.length === 4 && summaryOf(rm).includes('4 tables the generator no longer draws were deleted, unedited: ') && summaryOf(rm).includes(' and 1 more') && styleGuideSummary(rm).headline === '✓ 15 tables, 4 deleted', `11: four deleted: three named and "and 1 more"; headline "✓ 15 tables, 4 deleted" (got "${styleGuideSummary(rm).headline}", ${rm.deleted.length})`);
   }
 
   console.log("12. the owner's grid model: a table dragged wider");
@@ -2111,14 +2111,14 @@ const main = async (): Promise<void> => {
     const p500 = f13.vars.find((v) => v.name === 'nbds/core/palette/primary/500')!;
     p500.valuesByMode['core:0'] = { r: 0.1, g: 0.2, b: 0.3, a: 1 };
     const r1 = await draw(f13.api, contract, { tables: [PRIMARY] });
-    ok(others.length === 56 && r1.tables.length === 1 && r1.tables[0].title === PRIMARY && r1.tables[0].status === 'updated', `13: tables: ["${PRIMARY}"] draws that one table (${r1.tables.map((t) => `${t.title} ${t.status}`).join(', ')})`);
+    ok(others.length === 58 && r1.tables.length === 1 && r1.tables[0].title === PRIMARY && r1.tables[0].status === 'updated', `13: tables: ["${PRIMARY}"] draws that one table (${r1.tables.map((t) => `${t.title} ${t.status}`).join(', ')})`);
     const d1 = (r1.tables[0] as Extract<TableOutcome, { status: 'updated' }>).diff;
     ok(tableFrame(f13.prim, PRIMARY) === target && gridOf(target).id !== targetGrid && JSON.stringify(d1.changed) === JSON.stringify(['nbds/core/palette/primary/500']),
       '13: a filtered rerun updates its table in place: the same frame, a new grid, primary/500 reported changed');
     ok(r1.stale.length === 0 && r1.replaced.length === 0 && r1.deleted.length === 0 && r1.kept.length === 0,
       `13: the tables a filtered run skips are not stale, not replaced, not deleted and not reported (stale ${r1.stale.length}, deleted ${r1.deleted.length}, kept ${r1.kept.length})`);
     const touched = [...snap].filter(([n, x]) => n.parent !== x.page || gridOf(n).id !== x.grid || n.pluginData[PRINT] !== x.print);
-    ok(tablesOn(f13.prim).length + tablesOn(f13.sem).length === 57 && touched.length === 0, `13: every other table is untouched: all 57 still drawn, each with its own grid and fingerprint (${touched.length} touched)`);
+    ok(tablesOn(f13.prim).length + tablesOn(f13.sem).length === 59 && touched.length === 0, `13: every other table is untouched: all 59 still drawn, each with its own grid and fingerprint (${touched.length} touched)`);
     // THE REVIEW'S PROBE (S1): a run that does not change its table's height moves nothing and records nothing: no
     // guide changes its cell, no frame on either page moves, and the guides a designer dragged out stay where they are.
     const movedAt = (m: typeof snap): N[] => [...m].filter(([n, x]) => n.x !== x.x || n.y !== x.y || cellOf(n) !== x.cell).map(([n]) => n);
@@ -2163,17 +2163,17 @@ const main = async (): Promise<void> => {
     const r3 = await draw(f13.api, contract, { tables: ['primary — NBDS', 'color|variablecollectionid:color|pds3/color/text'] });
     ok(JSON.stringify(r3.tables.map((t) => t.title)) === JSON.stringify([PRIMARY, 'Text — pds3']) && r3.unmatched.length === 0, `13: a table is named by its title in any case, or by its key (${r3.tables.map((t) => t.title).join(', ')})`);
 
-    // A NAME THAT MATCHES NOTHING is reported by name, with the first 8 of the 57 titles this run can draw and a count
+    // A NAME THAT MATCHES NOTHING is reported by name, with the first 8 of the 59 titles this run can draw and a count
     // of the rest, and is not a pass.
     const r4 = await draw(f13.api, contract, { tables: [PRIMARY, 'Primry — nbds'] });
     const s4 = styleGuideSummary(r4);
     const first8 = 'Core — nbds base, Primary — nbds, Neutral — nbds, Accent — nbds, Success — nbds, Warning — nbds, Info — nbds, Danger — nbds';
-    ok(JSON.stringify(r4.unmatched) === JSON.stringify(['Primry — nbds']) && s4.summary.includes(`No table is titled or keyed "Primry — nbds"; the tables this run can draw are ${first8} and 49 more`),
-      `13: an unknown name is reported by name, with the first 8 titles this run can draw and "and 49 more" (${s4.summary.slice(0, 160)})`);
+    ok(JSON.stringify(r4.unmatched) === JSON.stringify(['Primry — nbds']) && s4.summary.includes(`No table is titled or keyed "Primry — nbds"; the tables this run can draw are ${first8} and 51 more`),
+      `13: an unknown name is reported by name, with the first 8 titles this run can draw and "and 51 more" (${s4.summary.slice(0, 160)})`);
     ok(!s4.ok && s4.headline === '⚠ 1 drawn, 1 not found', `13: an unknown name is not a pass: "⚠ 1 drawn, 1 not found" (got "${s4.headline}")`);
     const r5 = await draw(f13.api, contract, { tables: ['Nope'] });
     const s5 = styleGuideSummary(r5);
-    ok(r5.tables.length === 0 && !s5.ok && s5.headline === '✗ no table matched' && r5.deleted.length === 0 && tablesOn(f13.prim).length + tablesOn(f13.sem).length === 57,
+    ok(r5.tables.length === 0 && !s5.ok && s5.headline === '✗ no table matched' && r5.deleted.length === 0 && tablesOn(f13.prim).length + tablesOn(f13.sem).length === 59,
       `13: a filter that matches nothing draws nothing, deletes nothing and says so: "✗ no table matched" (got "${s5.headline}")`);
     const p13 = planStyleGuide({ collections: f13.cols, variables: f13.vars }, contract, { types: ['dimension'], tables: [PRIMARY] });
     ok(JSON.stringify(p13.unmatched) === JSON.stringify([PRIMARY]) && p13.notes.includes(`No table is titled or keyed "${PRIMARY}"; this run draws no tables`), '13: a name asked for in a run that draws no color is still reported');
@@ -2207,10 +2207,10 @@ const main = async (): Promise<void> => {
       await fastYield();
     };
     await draw(y.api, contract, {}, { yieldTo, onProgress: (p) => { readings.push(p); reading = p.done; } });
-    ok(INV >= 0 && JSON.stringify(readings.map((p) => `${p.done}/${p.total}`)) === JSON.stringify(Array.from({ length: 30 }, (_, i) => `${i}/29`)),
-      `14: progress reads 0 of 29, then after each table 1 of 29 … 29 of 29 (${readings.slice(0, 3).map((p) => `${p.done}/${p.total}`).join(', ')}…)`);
+    ok(INV >= 0 && JSON.stringify(readings.map((p) => `${p.done}/${p.total}`)) === JSON.stringify(Array.from({ length: 31 }, (_, i) => `${i}/30`)),
+      `14: progress reads 0 of 30, then after each table 1 of 30 … 30 of 30 (${readings.slice(0, 3).map((p) => `${p.done}/${p.total}`).join(', ')}…)`);
     ok(readings[INV + 1]?.title === 'Interactive' && readings.slice(1).every((p) => p.tableMs >= 0), '14: each reading names the table just drawn and what it cost');
-    const silent = Array.from({ length: 29 }, (_, i) => i + 1).filter((k) => !perReading.get(k));
+    const silent = Array.from({ length: 30 }, (_, i) => i + 1).filter((k) => !perReading.get(k));
     ok(silent.length === 0, `14: the host gets control back after every table (none after table ${silent.join(', ')})`);
     const gaps = rowsAt.map((n, i) => n - (i ? rowsAt[i - 1] : 0));
     // 55 is odd: the last yield inside the table falls after row 54, and the one after the table reads the next table.
@@ -2242,10 +2242,10 @@ const main = async (): Promise<void> => {
       `15: a run asked for while another is mid-yield is refused, in the guard's words (${JSON.stringify(second && (second.ran ? 'ran' : second.message))})`);
     const wraps = [...tablesOn(f15.prim), ...tablesOn(f15.sem)];
     const keys = new Set(wraps.map((w) => w.pluginData['prism3-style-guide']));
-    ok(wraps.length === 29 && keys.size === 29 && wraps.every((w) => w.children.filter((c) => c.name === 'Table').length === 1)
-      && first.ran && first.value.tables.length === 29 && first.value.tables.every((t) => t.status === 'created')
+    ok(wraps.length === 30 && keys.size === 30 && wraps.every((w) => w.children.filter((c) => c.name === 'Table').length === 1)
+      && first.ran && first.value.tables.length === 30 && first.value.tables.every((t) => t.status === 'created')
       && pageFrames(f15.prim).length === 1 && pageFrames(f15.sem).length === 2,
-      `15: exactly one set of tables results: 29, each key once, one group a page (Inverse colors with its own), each with one grid (${wraps.length} tables, ${keys.size} keys)`);
+      `15: exactly one set of tables results: 30, each key once, one group a page (Inverse colors with its own), each with one grid (${wraps.length} tables, ${keys.size} keys)`);
     const third = await request(() => draw(f15.api, contract, { collections: ['legacy'] }));
     ok(third.ran && !guard.busy('style-guide'), '15: once that run reports, the next is let through');
   }
@@ -2986,15 +2986,15 @@ const main = async (): Promise<void> => {
 
   console.log('26. the Build style guides page: what the file holds, and whether Set up file has run (S11.2)');
   {
-    // THE TABLES THE PAGE OFFERS, typed here: the prism3 file's 29, in draw order (section 14 counts the same run).
+    // THE TABLES THE PAGE OFFERS, typed here: the prism3 file's 30, in draw order (section 14 counts the same run).
     const PRISM3_TITLES = ['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha',
-      'Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE, 'Legacy'];
+      'Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Glass', 'Veil', 'Field', ...SEM_INVERSE, 'Legacy'];
     const f25 = await fullFile();
     const cat = catalogFor({ collections: f25.cols, variables: f25.vars }, contract, isSetUp(f25.api.root));
     ok(JSON.stringify(cat.tables.map((t) => t.title)) === JSON.stringify(PRISM3_TITLES) && cat.tables.every((t) => t.kind === 'color')
-      && cat.tables.filter((t) => t.page === 'Semantic tokens').length === 18 && cat.tables.filter((t) => t.page === 'Primitive tokens').length === 11,
-      `26: the page is offered the 29 tables in draw order, all color, 18 semantic and 11 primitive, named without "↳" (${cat.tables.slice(0, 3).map((t) => `${t.title}@${t.page}`).join(', ')}…)`);
-    ok(JSON.stringify(cat.collections.map((c) => `${c.name}:${c.modes.join('/')}:${c.items.length}`)) === JSON.stringify(['core:Default:164', 'color:light/dark/hc-light/hc-dark:268', 'legacy:Value:4']),
+      && cat.tables.filter((t) => t.page === 'Semantic tokens').length === 19 && cat.tables.filter((t) => t.page === 'Primitive tokens').length === 11,
+      `26: the page is offered the 30 tables in draw order, all color, 19 semantic and 11 primitive, named without "↳" (${cat.tables.slice(0, 3).map((t) => `${t.title}@${t.page}`).join(', ')}…)`);
+    ok(JSON.stringify(cat.collections.map((c) => `${c.name}:${c.modes.join('/')}:${c.items.length}`)) === JSON.stringify(['core:Default:164', 'color:light/dark/hc-light/hc-dark:269', 'legacy:Value:4']),
       `26: every collection, its modes and every variable in it (${cat.collections.map((c) => `${c.name} ${c.items.length}`).join(', ')})`);
     const item = (n: string) => cat.collections.flatMap((c) => c.items).find((i) => i.name === n);
     ok(cat.tables[item('pds3/color/text/primary')!.table]?.title === 'Text' && cat.tables[item('pds3/core/palette/primary/500')!.table]?.title === 'Primary'
@@ -3043,9 +3043,9 @@ const main = async (): Promise<void> => {
     const events: string[] = [];
     let listed: string[] = [];
     await draw(f26.api, contract, {}, { onPlan: (ts) => { listed = ts.map((t) => t.title); }, onTable: (e) => events.push(`${e.index}:${e.status}`) });
-    const want = Array.from({ length: 29 }, (_, i) => [`${i}:drawing`, `${i}:done`]).flat();
-    ok(listed.length === 29 && listed[0] === 'Core — base' && listed[28] === 'Legacy' && JSON.stringify(events) === JSON.stringify(want),
-      `27: the run lists its 29 tables first, then each one drawing and then done, in order (${events.slice(0, 4).join(', ')}… ${events.length} moves)`);
+    const want = Array.from({ length: 30 }, (_, i) => [`${i}:drawing`, `${i}:done`]).flat();
+    ok(listed.length === 30 && listed[0] === 'Core — base' && listed[29] === 'Legacy' && JSON.stringify(events) === JSON.stringify(want),
+      `27: the run lists its 30 tables first, then each one drawing and then done, in order (${events.slice(0, 4).join(', ')}… ${events.length} moves)`);
   }
 
   console.log('28. one failed table does not stop the run, and Draw it again redraws that table alone (S11.2, owner decision P6)');
@@ -3071,13 +3071,13 @@ const main = async (): Promise<void> => {
     const accent = 3;
     const failedT = r.tables.filter((t) => t.status === 'failed');
     ok(failedT.length === 1 && failedT[0].title === 'Accent' && (failedT[0] as Extract<TableOutcome, { status: 'failed' }>).reason === 'Accent refused'
-      && r.tables.filter((t) => t.status === 'created').length === 28,
-      `28: the Accent table fails with the host's words, and the run goes on to draw the other 28 (${r.tables.map((t) => t.status).filter((x) => x !== 'created').join(', ')}; ${r.tables.filter((t) => t.status === 'created').length} created)`);
-    ok(events[accent * 2] === '3:drawing' && events[accent * 2 + 1] === '3:failed(Accent refused)' && events[accent * 2 + 2] === '4:drawing' && events.length === 58,
+      && r.tables.filter((t) => t.status === 'created').length === 29,
+      `28: the Accent table fails with the host's words, and the run goes on to draw the other 29 (${r.tables.map((t) => t.status).filter((x) => x !== 'created').join(', ')}; ${r.tables.filter((t) => t.status === 'created').length} created)`);
+    ok(events[accent * 2] === '3:drawing' && events[accent * 2 + 1] === '3:failed(Accent refused)' && events[accent * 2 + 2] === '4:drawing' && events.length === 60,
       `28: the Accent table's moves read drawing, then failed with its reason, and the next table starts (${events.slice(6, 9).join(', ')})`);
     const v = styleGuideSummary(r);
-    ok(!v.ok && v.headline === '⚠ 28 drawn, 1 failed' && v.summary.startsWith('Accent: Accent refused. '),
-      `28: the verdict is "⚠ 28 drawn, 1 failed", not a pass, and the summary opens on the failed table and its reason (${v.headline}; ${v.summary.slice(0, 40)}…)`);
+    ok(!v.ok && v.headline === '⚠ 29 drawn, 1 failed' && v.summary.startsWith('Accent: Accent refused. '),
+      `28: the verdict is "⚠ 29 drawn, 1 failed", not a pass, and the summary opens on the failed table and its reason (${v.headline}; ${v.summary.slice(0, 40)}…)`);
     // DRAW IT AGAIN: the host now takes the binding, and the page redraws the one table by its key.
     refuse = false;
     const others = [...tablesOn(f27.prim), ...tablesOn(f27.sem)].filter((w) => w.pluginData['prism3-style-guide'] !== keys[accent]);
@@ -3101,20 +3101,20 @@ const main = async (): Promise<void> => {
     for (const v of legacy) f28.vars.splice(f28.vars.indexOf(v), 1);
     let done = 0;
     const r = await draw(f28.api, contract, {}, { onTable: (e) => { if (e.status === 'done') done++; }, stop: () => done >= 3 });
-    ok(r.tables.length === 3 && JSON.stringify(r.stopped) === JSON.stringify({ done: 3, total: 28 }) && done === 3,
-      `29: a stop read after the third table ends the run there: 3 of 28 reached (${r.tables.length} outcomes; ${JSON.stringify(r.stopped)})`);
+    ok(r.tables.length === 3 && JSON.stringify(r.stopped) === JSON.stringify({ done: 3, total: 29 }) && done === 3,
+      `29: a stop read after the third table ends the run there: 3 of 29 reached (${r.tables.length} outcomes; ${JSON.stringify(r.stopped)})`);
     ok(r.deleted.length === 0 && r.stale.length === 0 && !!tableFrame(f28.prim, 'Legacy'),
       `29: a stopped run judges no superseded table: the emptied Legacy table stays (deleted ${r.deleted.length}, stale ${r.stale.length})`);
     const v = styleGuideSummary(r);
-    ok(v.ok && v.headline === '✓ style guide: 3 tables' && v.summary.includes('Stopped after table 3 of 28. The tables already drawn stay'),
+    ok(v.ok && v.headline === '✓ style guide: 3 tables' && v.summary.includes('Stopped after table 3 of 29. The tables already drawn stay'),
       `29: the verdict counts the 3 tables and says where it stopped (${v.headline}; ${v.summary.slice(0, 120)})`);
     // The control: the same file, run to the end, deletes the Legacy table, so the stop is what kept it.
     const full = await draw(f28.api, contract);
     ok(!full.stopped && full.deleted.includes('Style guide — Legacy'), `29: run to the end, the same file deletes the Legacy table (${full.deleted.join(', ')})`);
     // A stop read after the LAST table is no stop.
     let n = 0;
-    const last = await draw(f28.api, contract, {}, { onTable: (e) => { if (e.status === 'done') n++; }, stop: () => n >= 28 });
-    ok(!last.stopped && last.tables.length === 28, `29: a stop that turns true only after the last table is not a stop (${JSON.stringify(last.stopped)})`);
+    const last = await draw(f28.api, contract, {}, { onTable: (e) => { if (e.status === 'done') n++; }, stop: () => n >= 29 });
+    ok(!last.stopped && last.tables.length === 29, `29: a stop that turns true only after the last table is not a stop (${JSON.stringify(last.stopped)})`);
   }
 
   console.log('30. the NB master QA (2026-10-06): font-size rows, the palette swatch, the skip count, a filtered run (#2267, #2268, #2261, #2269)');
@@ -3431,7 +3431,7 @@ const main = async (): Promise<void> => {
     const toShort = await draw(full.api, contract, { collections: ['color'], tokenNames: 'short' });
     const quiet = (r: StyleGuideResult): string[] => r.tables.flatMap((t) => (t.status !== 'updated' ? [`${t.title}: ${t.status}`]
       : [...t.diff.added, ...t.diff.removed, ...t.diff.changed, ...t.diff.renamed].map((x) => `${t.title}: ${x}`)));
-    ok(toShort.tables.length === 18 && quiet(toShort).length === 0, `34: switching to short names updates every table and reports no row added, removed, changed or renamed (${quiet(toShort).slice(0, 3).join('; ')})`);
+    ok(toShort.tables.length === 19 && quiet(toShort).length === 0, `34: switching to short names updates every table and reports no row added, removed, changed or renamed (${quiet(toShort).slice(0, 3).join('; ')})`);
 
     // DRAWN, SHORT: the names below each table's prefix, as before #2372.
     const short = await fullFile();
@@ -3444,7 +3444,7 @@ const main = async (): Promise<void> => {
       `34: short: a palette table leads with the step alone: 025, 050, 100, 150 … (${tokenCol(tableFrame(short.prim, 'Neutral')).slice(0, 4).join(', ')})`);
     ok(tokenCol(tableFrame(short.sem, 'Text'))[0] === 'primary', `34: short: text/primary is named "primary" in the Text table (${tokenCol(tableFrame(short.sem, 'Text'))[0]})`);
     const toFull = await draw(short.api, contract, { collections: ['color'] });
-    ok(toFull.tables.length === 18 && quiet(toFull).length === 0 && tokenCol(tableFrame(short.sem, 'Text'))[0] === 'pds3/color/text/primary',
+    ok(toFull.tables.length === 19 && quiet(toFull).length === 0 && tokenCol(tableFrame(short.sem, 'Text'))[0] === 'pds3/color/text/primary',
       `34: back to full paths: no row reported, and text/primary reads its full path again (${quiet(toFull).slice(0, 3).join('; ')})`);
 
     // PHASE 2 FOLLOWS THE SAME OPTION: a dimension and a text style.
@@ -3854,8 +3854,8 @@ const main = async (): Promise<void> => {
     const fx = plan.tables.find((t) => t.type === 'shadow');
     const gr = plan.tables.find((t) => t.type === 'gradient');
     const EFFECT_ROWS = ['shadow/xs', 'shadow/sm', 'shadow/md', 'shadow/lg', 'shadow/xl', 'shadow/2xl', 'shadow/inset',
-      'shadow-dark/xs', 'shadow-dark/sm', 'shadow-dark/md', 'shadow-dark/lg', 'shadow-dark/xl', 'shadow-dark/2xl', 'shadow-dark/inset', 'Brand/Frost'];
-    ok(plan.tables.length === 2 && fx?.key === 'shadow|effect-styles|' && fx.title === 'Effect styles' && fx.page === SEM && fx.description === '15 effect styles in this file'
+      'shadow-dark/xs', 'shadow-dark/sm', 'shadow-dark/md', 'shadow-dark/lg', 'shadow-dark/xl', 'shadow-dark/2xl', 'shadow-dark/inset', 'glass', 'Brand/Frost'];
+    ok(plan.tables.length === 2 && fx?.key === 'shadow|effect-styles|' && fx.title === 'Effect styles' && fx.page === SEM && fx.description === '16 effect styles in this file'
       && JSON.stringify(fx.columns) === JSON.stringify(['Token', 'Specimen', 'Type', 'X', 'Y', 'Blur', 'Spread', 'Color', 'Description']),
       `36: the effect styles draw one table, "Effect styles" on Semantic tokens: Token · Specimen · Type · X · Y · Blur · Spread · Color · Description (${fx?.key}; ${fx?.columns.join(', ')}; "${fx?.description}")`);
     ok(JSON.stringify(fx?.rows.map((r) => r.tokenCell)) === JSON.stringify(EFFECT_ROWS),
@@ -3972,10 +3972,10 @@ const main = async (): Promise<void> => {
     refuseStyle = true;
     const refused = await draw(f.api, contract, { types: ['shadow', 'gradient'] });
     refuseStyle = false;
-    ok(refused.unbound === 18 && refused.misses.some((m) => m.startsWith('15 effect styles are not bound to their style, so they show the cell component\'s own value ('))
+    ok(refused.unbound === 19 && refused.misses.some((m) => m.startsWith('16 effect styles are not bound to their style, so they show the cell component\'s own value ('))
       && refused.misses.some((m) => m.startsWith('3 gradient styles are not bound to their style, so they show the cell component\'s own value ('))
       && !styleGuideSummary(refused).ok,
-      `36: a style the host refuses to apply is counted (18), named by kind, and not a pass (${refused.unbound}; ${refused.misses.filter((m) => m.includes('style')).join(' / ')})`);
+      `36: a style the host refuses to apply is counted (19), named by kind, and not a pass (${refused.unbound}; ${refused.misses.filter((m) => m.includes('style')).join(' / ')})`);
     // Q272 A: the miss names the style in plain words. No internal kind key reaches the user, in the misses or the summary.
     const keyLeaks = [...refused.misses, styleGuideSummary(refused).summary, ...styleGuideSummary(refused).lines].filter((m) => /\b(effect|gradient)-style\b/.test(m));
     ok(keyLeaks.length === 0, `36: the refused styles' miss says "effect styles" / "gradient styles", never a raw kind key (${keyLeaks.join(' / ') || 'none'})`);
@@ -4118,14 +4118,14 @@ const main = async (): Promise<void> => {
     iv.vars.push({ id: 'VariableID:color:invlink', name: 'pds3/color/inverse/link/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
     await draw(iv.api, contract, { collections: ['color'] });
     const invGrid = (): N => guidesOf(groupFrame(iv.sem, 'Inverse colors'))!;
-    ok(cellOf(tableFrame(iv.sem, 'Inverse link')) === '0,10' && tableFrame(iv.sem, 'Inverse link')!.parent === invGrid() && cellOf(tableFrame(iv.sem, 'Scrim')) === '0,7' && !invGrid().children.some((k) => k.gridCol === 7),
+    ok(cellOf(tableFrame(iv.sem, 'Inverse link')) === '0,11' && tableFrame(iv.sem, 'Inverse link')!.parent === invGrid() && cellOf(tableFrame(iv.sem, 'Scrim')) === '0,7' && !invGrid().children.some((k) => k.gridCol === 7),
       `37: an inverse family with no default sits past Semantic colors' last column, and a default with no inverse leaves its cell below empty (Inverse link ${cellOf(tableFrame(iv.sem, 'Inverse link'))})`);
     // A new default family drawn later joins the end, and its inverse counterpart, drawn after it, goes under it.
     iv.vars.push({ id: 'VariableID:color:link', name: 'pds3/color/link/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
     iv.vars.push({ id: 'VariableID:color:invglow', name: 'pds3/color/inverse/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
     iv.vars.push({ id: 'VariableID:color:glow', name: 'pds3/color/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
     await draw(iv.api, contract, { collections: ['color'] });
-    ok(cellOf(tableFrame(iv.sem, 'Link')) === '0,10' && cellOf(tableFrame(iv.sem, 'Inverse link')) === '0,10' && cellOf(tableFrame(iv.sem, 'Glow')) === '0,11' && cellOf(tableFrame(iv.sem, 'Inverse glow')) === '0,11'
+    ok(cellOf(tableFrame(iv.sem, 'Link')) === '0,11' && cellOf(tableFrame(iv.sem, 'Inverse link')) === '0,11' && cellOf(tableFrame(iv.sem, 'Glow')) === '0,12' && cellOf(tableFrame(iv.sem, 'Inverse glow')) === '0,12'
       && tableFrame(iv.sem, 'Inverse glow')!.parent === invGrid(),
       `37: a new default joins the end, and its inverse moves under it; a new pair takes a new column, inverse under default (Link ${cellOf(tableFrame(iv.sem, 'Link'))}, Inverse link ${cellOf(tableFrame(iv.sem, 'Inverse link'))}, Glow ${cellOf(tableFrame(iv.sem, 'Glow'))}, Inverse glow ${cellOf(tableFrame(iv.sem, 'Inverse glow'))})`);
 

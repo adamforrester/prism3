@@ -1089,6 +1089,25 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // could only surface where a UI rendered the RESOLVED role, and until now nothing rendered scrim.
   roles['scrim.default'].alpha = scrimStep / 100;
 
+  /*
+   * GLASS (#2869, Q464 A; values Q2869.3 A) — the translucent fill behind a background blur, for text set over
+   * the bottom of a photograph. It pairs with the `glass` Effect Style, whose blur radius binds `blur.glass`.
+   *
+   * THE ALPHA LIVES IN THE VALUE, because Figma forces a variable-bound color paint to opacity 1: a bound
+   * paint plus a paint or layer opacity renders opaque on every instance (#2869, the 10/21 evidence). So this
+   * aliases a `white-alpha` / `black-alpha` step, the way `scrim.default` does, and is never "a surface at N%".
+   *
+   * MODE-VARYING, and that is what separates it from `veil`. The veil is a wash chosen per image and holds
+   * still across modes; glass is a SURFACE that follows the page polarity, so `text.primary` reads on it in
+   * every mode: white on the light family, black on the dark. 70% is the nearest emitted step to the source
+   * comp's 69%; high contrast raises it to 90% so less of the photograph shows through behind text.
+   */
+  const glassStep = hc ? 90 : 70;
+  const glassBase = cfg.family === 'light' ? 'white' : 'black';
+  put('glass.surface', { path: `${ns}.${glassBase}-alpha.${glassStep}`, rgb: cfg.family === 'light' ? WHITE : BLACK, ratio: 1 },
+    `Glass — the translucent ${glassBase} fill behind the glass background blur; opacity ${glassStep}%`, 'self', 0);
+  roles['glass.surface'].alpha = glassStep / 100;
+
   /**
    * MEDIA VEIL (#1030) — the wash a designer puts over a photograph so text on top stays legible.
    *
@@ -1900,13 +1919,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // 2 steps in light/dark but 3 in HC. A fixed offset is the same idiom `iFill` already uses for
   // interactive fill states, and it makes the delta uniform.
   //
-  // TWO is the offset because that is what light and dark already resolved to, so both are
-  // byte-identical to before; only HC changes, tightening 3 steps to 2. One step was the tempting
-  // choice for consistency with `iFill`'s hover, but a field border is a hairline — a single step is
-  // a far weaker cue on 1px of chrome than on a filled button, and this would have been a silent
-  // regression in the affordance.
+  // FOUR is the offset since #2926 (owner decision 2026-10-26, Q2′ A). It was TWO — what light and dark
+  // had resolved to when the offset was fixed — which measured 1.39–1.47:1 rest→hover, under the 1.79
+  // median of the systems surveyed whose border moves on hover, and under the reference brand's
+  // hand-built 500 → 700 (2.19, four 50-unit rungs). The same decision removed the field hover wash
+  // (Q1′ D), so the border is now the field's only drawn hover cue, and four steps gives about
+  // 1.9–2.2:1. Rest does not move. One step was never right: a field border is a hairline, and a single
+  // step is a far weaker cue on 1px of chrome than on a filled button.
+  const FIELD_HOVER_STEPS = 4;
   const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
-  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, 2, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)`, 'background.secondary', cfg.nonTextMin);
+  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, FIELD_HOVER_STEPS, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'background.secondary', cfg.nonTextMin);
   // The placeholder ink sits on the field, whose transparent fill lets the darkest permissible ground
   // (`background.secondary`) through — so it is gated there, not against the (now paint-less) fill. Same
   // rgb the fill used to be, so the pick is byte-identical; only the recorded ground moves off `field.fill`.
@@ -1937,7 +1959,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const fieldInvRest = pickMinPass(ramp, fieldInvGroundRgb, cfg.nonTextMin);
   put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against the darkest permissible inverse ground`, 'inverse.background.secondary', cfg.nonTextMin);
   const fieldInvRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldInvRest.path)!.num;
-  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, 2, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)`, 'inverse.background.secondary', cfg.nonTextMin);
+  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, FIELD_HOVER_STEPS, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'inverse.background.secondary', cfg.nonTextMin);
   put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a readable hint, ${cfg.secondaryMin}:1 on the darkest permissible inverse ground behind the transparent fill`, 'inverse.background.secondary', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)
