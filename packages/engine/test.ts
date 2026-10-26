@@ -4241,32 +4241,100 @@ for (const b of brands) {
 
   // ...and the delta is UNIFORM across modes, which is the whole point of an offset over a ratio.
   // Chasing an absolute ratio made the perceptual delta depend on wherever `rest` happened to land:
-  // 2 ramp steps in light/dark but 3 in HC, for the same nominal "hover" affordance.
+  // 2 ramp steps in light/dark but 3 in HC, for the same nominal "hover" affordance. FOUR steps (200 units)
+  // since #2926 (owner Q2′ A), typed here rather than read from `modes.ts`.
   const fbStep = (r: any) => Number(r.path.split('.').pop());
   const fbDeltas = modes.map((m: any) => Math.abs(fbStep(m.roles['field.border.hover']) - fbStep(m.roles['field.border.rest'])));
-  ok(new Set(fbDeltas).size === 1 && fbDeltas[0] === 100,
-    `field: hover sits a uniform 2 ramp steps from rest in every mode (deltas ${fbDeltas.join(', ')})`);
+  ok(new Set(fbDeltas).size === 1 && fbDeltas[0] === 200,
+    `field: hover sits a uniform 4 ramp steps from rest in every mode (deltas ${fbDeltas.join(', ')})`);
 
-  // #1342 — the field's HOVER is a translucent alpha WASH, not a solid fill swap. Select (the component
-  // #1342 opened on) binds an `overlay` slot at hover, reusing the interactive overlay mechanism. Assert
-  // the binding BY NAME and that the role it points at is an ink-on-composite wash with alpha < 1 in every
-  // mode — so a mutation repointing select's `overlay.hover` to a SOLID role (model 'ink-on-surface'), or
-  // one that makes the overlay opaque, fails here rather than shipping an opaque hover fill.
-  const selOverlayRef = (select.tokens as Record<string, string>)['overlay.hover'];
-  ok(selOverlayRef === 'color.interactive.neutral.overlay.hover',
-    `#1342 select binds a hover overlay wash (overlay.hover → ${selOverlayRef})`);
-  const selControl = select.anatomy?.parts?.control as any;
-  ok(Array.isArray(selControl?.paintSlots) && selControl.paintSlots.includes('overlay'),
-    '#1342 select\'s control paints an overlay slot, so the hover wash reaches the box');
-  const washFails: string[] = [];
-  const washRole = (selOverlayRef ?? '').replace(/^color\./, '');
-  for (const m of modes) {
-    const r: any = m.roles[washRole];
-    if (!r) { washFails.push(`${m.mode}:absent`); continue; }
-    if (r.model !== 'ink-on-composite' || !(typeof r.alpha === 'number' && r.alpha > 0 && r.alpha < 1))
-      washFails.push(`${m.mode}:model=${r.model},alpha=${r.alpha}`);
+  // #1342's wash (select's `overlay.hover` → the neutral interactive overlay) was REMOVED by #2926: a field hovers by
+  // its border alone. The gates that replace its three asserts are the #2926 block below.
+}
+
+// #2926 — FIELDS HOVER BY BORDER ONLY (owner decision 2026-10-26, Q1′ D and Q2′ A). Three gates, each independent of
+// its subject (docs/34):
+//   (A) NO WASH: every field def × both field styles × every `outlineInteraction` method, materialized the way the
+//       plugin does and projected, paints no interactive overlay or subtle-fill on any node of any member. The def
+//       list and the method list are TYPED here, not read from `FIELD_FRAME_PARTS` or the Theme type, so a field
+//       left out of the lever tables is still covered (shape 1).
+//   (B) THE STEP: rest→hover border contrast ≥ FIELD_HOVER_DELTA_MIN, measured from the EMITTED hexes in
+//       `out/<brand>.tokens.json` with this file's own alias resolver and color parser, page and inverse, in every
+//       corpus brand × mode. The floor is typed, not derived from `modes.ts`' step count (shape 2). The owner asked
+//       for 1.9; the decided four steps measures 1.8906 in HC dark on the page (and HC light on the inverse band) in
+//       the lowest brand, so the floor is 1.89, the research's own low end. Two steps measured 1.39–1.47 and three
+//       about 1.7–1.8, so either fails it.
+//   (C) THE SCOPE: Button's outline hover still paints the neutral-family wash at the default method, so (A) cannot
+//       pass by the wash vanishing everywhere.
+{
+  const FIELD_DEFS_2926 = ['text-field', 'password-field', 'select', 'textarea', 'search-field', 'code-input-cell'];
+  const FIELD_STYLES_2926 = ['outline', 'underline'] as const;
+  const METHODS_2926 = ['overlay-neutral', 'solid-tint', 'none'] as const;
+  const WASH_VAR = /(^|\/)interactive\/[^/]+\/(overlay|subtle-fill)\//;
+  const WASH_REF = /(^|\.)interactive\.[^.]+\.(overlay|subtle-fill)\./;
+  const washHits: string[] = [];
+  let hoverMembers = 0;
+  for (const id of FIELD_DEFS_2926) {
+    const d = componentDefs.find((c) => c.id === id);
+    if (!d) { washHits.push(`${id}: def not found`); continue; }
+    for (const style of FIELD_STYLES_2926) for (const method of METHODS_2926) {
+      const m = applyOutlineInteraction(applyFieldStyle(d, style), method);
+      for (const [k, ref] of Object.entries(m.tokens)) if (WASH_REF.test(ref)) washHits.push(`${id}/${style}/${method} token ${k} → ${ref}`);
+      for (const plan of figmaAnatomySet(m, { swapTarget: 'FPO-default-icon' })) {
+        if (plan.coord.state === 'hover') hoverMembers++;
+        const walk = (n: any): void => {
+          for (const v of Object.values(n.paints ?? {})) if (typeof v === 'string' && WASH_VAR.test(v)) washHits.push(`${id}/${style}/${method} [${JSON.stringify(plan.coord)}] ${n.name}: ${v}`);
+          for (const c of n.children ?? []) walk(c);
+        };
+        walk(plan.root);
+      }
+    }
   }
-  ok(washFails.length === 0, '#1342 the field hover is a translucent wash (ink-on-composite, 0 < alpha < 1), NOT a solid opaque fill, every mode' + (washFails.length ? ` — ${washFails.slice(0, 3).join(',')}` : ''));
+  ok(hoverMembers > 0 && washHits.length === 0,
+    `#2926 no field binds or paints a hover wash, in any field style or outlineInteraction setting (text-field, password-field, select, textarea, search-field, code-input-cell × outline/underline × overlay-neutral/solid-tint/none; ${hoverMembers} hover members walked)` + (washHits.length ? ` — ${washHits.length}: ${washHits.slice(0, 4).join('; ')}` : ''));
+
+  // (C) Button keeps its wash: the outline appearance's hover member paints the neutral-family overlay at the default.
+  const btnHover = figmaAnatomySet(buttonNeutral, { swapTarget: 'FPO-default-icon' })
+    .filter((p) => p.coord.state === 'hover' && p.coord.appearance === 'outline');
+  const btnWashed = btnHover.filter((p) => typeof (p.root as any).paints?.fills === 'string' && /interactive\/neutral\/overlay\/hover$/.test((p.root as any).paints.fills));
+  ok(btnHover.length > 0 && btnWashed.length === btnHover.length,
+    `#2926 the removal is scoped: every Button.Neutral outline hover member still paints the neutral hover wash (${btnWashed.length} of ${btnHover.length})`);
+
+  // (B) THE STEP, from the emitted files.
+  const FIELD_HOVER_DELTA_MIN = 1.89;
+  const CORPUS_2926 = ['aurora', 'harbor', 'nb', 'prism3', 'wendys'];
+  const MODES_2926 = ['light', 'dark', 'hc-light', 'hc-dark'];
+  const rgbOf = (v: string): RGB => {
+    const m = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/.exec(v);
+    if (m) return { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]) };
+    const h = /^#([0-9a-f]{6})/i.exec(v);
+    if (!h) throw new Error(`#2926: unparsed color ${v}`);
+    return { r: parseInt(h[1].slice(0, 2), 16), g: parseInt(h[1].slice(2, 4), 16), b: parseInt(h[1].slice(4, 6), 16) };
+  };
+  const stepFails: string[] = [];
+  let stepCells = 0;
+  for (const brand of CORPUS_2926) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, `out/${brand}.tokens.json`), 'utf8'));
+    const ns = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const valueAt = (path: string, mode: string, depth = 0): string => {
+      const n = path.split('.').reduce((o: any, k) => o?.[k], tree);
+      if (!n || depth > 12) throw new Error(`#2926: ${brand} ${path} unresolved`);
+      const over = mode === 'light' ? undefined : n.$extensions?.prism3?.modes?.[mode]?.$value;
+      const v = over ?? n.$value;
+      return typeof v === 'string' && v.startsWith('{') ? valueAt(v.slice(1, -1), mode, depth + 1) : v;
+    };
+    for (const mode of MODES_2926) for (const pre of ['', 'inverse.']) {
+      const rest = rgbOf(valueAt(`${ns}.color.${pre}field.border.rest`, mode));
+      const hover = rgbOf(valueAt(`${ns}.color.${pre}field.border.hover`, mode));
+      const ground = rgbOf(valueAt(`${ns}.color.${pre}background.secondary`, mode));
+      const delta = contrast(rest, hover);
+      stepCells++;
+      if (delta < FIELD_HOVER_DELTA_MIN) stepFails.push(`${brand}/${mode} ${pre ? "inverse" : "page"} Δ ${delta.toFixed(3)}`);
+      if (contrast(hover, ground) < 3) stepFails.push(`${brand}/${mode} ${pre ? "inverse" : "page"} hover on background.secondary ${contrast(hover, ground).toFixed(2)} < 3`);
+    }
+  }
+  ok(stepCells === CORPUS_2926.length * MODES_2926.length * 2 && stepFails.length === 0,
+    `#2926 the field hover border steps ≥ ${FIELD_HOVER_DELTA_MIN}:1 from rest, and stays ≥ 3:1 on background.secondary, measured from the emitted hexes, page and inverse, every corpus brand × mode (${stepCells} cells)` + (stepFails.length ? ` — ${stepFails.join('; ')}` : ''));
 }
 
 // #1518 — PLACEHOLDER INK vs VALUE INK, pinned BY NAME on both field defs (docs/34: the oracle — placeholder
@@ -18982,10 +19050,11 @@ arm: {
       }
     }
     const shModesMissing = SH_MODES.filter((mm) => !shModesSeen.has(mm));
-    // `shWashed > 0` is the arm that keeps the inside comparison from degenerating into the outside one: if no
-    // measured member composited a real wash, the gate would be measuring the page twice and calling it both.
-    ok(shModesMissing.length === 0 && shCells > 0 && shCells === shCellsExpected && shWashed > 0,
-      `a11y(#1782): the status-hover sweep measured every corpus brand × mode × stroked member × ground (${shCells} of ${shCellsExpected} cells; ${shWashed} member-modes composited a hover wash, ${shWashOptOut} with none because the brand opts out of overlay tokens)` + (shModesMissing.length ? ` — modes missing: ${shModesMissing.join(', ')}` : ''));
+    // Since #2926 no field washes at hover, so the inside comparison IS the outside one, and `shWashed === 0` says so:
+    // a status field hover member that composites any fill again is a field wash back, and fails here by name. Until
+    // #2926 this arm read `shWashed > 0`, which kept the inside comparison from degenerating while a wash existed.
+    ok(shModesMissing.length === 0 && shCells > 0 && shCells === shCellsExpected && shWashed === 0,
+      `a11y(#1782): the status-hover sweep measured every corpus brand × mode × stroked member × ground (${shCells} of ${shCellsExpected} cells; ${shWashed} member-modes composited a hover wash, which must be 0 since #2926, ${shWashOptOut} with none because the brand opts out of overlay tokens)` + (shModesMissing.length ? ` — modes missing: ${shModesMissing.join(', ')}` : ''));
     const shGrouped = new Map<string, string[]>();
     for (const f of shFails) {
       const mm = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
@@ -18995,17 +19064,16 @@ arm: {
     ok(shFails.length === 0,
       `a11y(#1782): every status field border (danger / warning / success) clears 3:1 (SC 1.4.11) at hover against the page outside the control AND the hover wash composited over it inside, every corpus brand × mode — ${shFails.length} members below, in ${shGrouped.size} cells: ` + [...shGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shGrouped.size > 12 ? '; …' : ''));
 
-    // HC ARM (decision 1). Representation first: both HC modes must have been measured, and at least one HC
-    // member must have composited a real wash — otherwise "inside" would be the page again and the arm would
-    // pass on the outside measurement alone.
+    // HC ARM (decision 1). Representation first: both HC modes must have been measured, and since #2926 no HC
+    // member composites a wash, so "inside" is the page, as the 3:1 arm above says.
     const shHcGrouped = new Map<string, string[]>();
     for (const f of shHcFails) {
       const mm = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
       const key = mm ? `${mm[1]} ${mm[4]}` : f;
       shHcGrouped.set(key, [...(shHcGrouped.get(key) ?? []), mm ? mm[2] : '']);
     }
-    ok(shModesSeen.has('hc-light') && shModesSeen.has('hc-dark') && shHcCells > 0 && shHcWashed > 0,
-      `a11y(#1782) HC: the high-contrast sweep measured hc-light and hc-dark (${shHcCells} cells, ${shHcWashed} composited a hover wash)`);
+    ok(shModesSeen.has('hc-light') && shModesSeen.has('hc-dark') && shHcCells > 0 && shHcWashed === 0,
+      `a11y(#1782) HC: the high-contrast sweep measured hc-light and hc-dark (${shHcCells} cells, ${shHcWashed} composited a hover wash, 0 since #2926)`);
     ok(shHcFails.length === 0,
       `a11y(#1782) HC: every status field border clears the high-contrast 4.5:1 non-text floor (owner decision, 2026-09-29) at hover against background.primary and background.secondary outside the control AND the hover wash composited over each inside, in hc-light and hc-dark of every corpus brand — ${shHcFails.length} members below, in ${shHcGrouped.size} cells: ` + [...shHcGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shHcGrouped.size > 12 ? '; …' : ''));
 
@@ -20157,9 +20225,10 @@ arm: {
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
     // `pagination-item` joins (#2665): a page cell's hover and pressed are IconButton.Neutral ghost's neutral wash.
-    // `code-input-cell` joins (#2428): its hover is Text field's neutral wash, so the lever reaches it as it reaches a field.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'code-input-cell', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'pagination-item', 'password-field', 'search-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, code-input-cell, flush-icon-button ×3 (round), icon-button ×3, pagination-item, password-field, search-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
+    // `code-input-cell` joined with #2428 and every field (text-field, password-field, search-field, select, textarea) left
+    // with #2926: a field binds no wash, so the lever has nothing to reach on it.
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'pagination-item', 'segmented-control-segment', 'tag']),
+      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, pagination-item, segmented-control-segment, tag, and no field (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -20225,6 +20294,49 @@ arm: {
       '#1012: emitAsComponents and notStandalone together fail — one ships standalone components, the other refuses a standalone build');
     ok(figmaPropertyErrors(icon).length === 0,
       `#1012 control: the real \`icon\` def — the only one that sets emitAsComponents — validates clean, so the arms above reject MISUSE rather than the mode itself (${figmaPropertyErrors(icon).slice(0, 2).join('; ') || 'no errors'})`);
+  }
+
+  // #2343 PR 2 — A HOSTED COMPONENT'S OWN PAINT AND PROPORTION (`fixedPaint`, `aspectLock`). No def carries either yet
+  // (the branded buttons and card fields will, nesting a brand mark), so the arms run on a Button clone whose leading
+  // slot is turned into a mark slot. Expected values are literals here, never read from the projector (docs/34).
+  {
+    const cloneOf = (d: ComponentDef) => JSON.parse(JSON.stringify(d)) as any;
+    const markSlot = (extra: Record<string, unknown> = {}) => {
+      const d = cloneOf(button);
+      const lv = d.anatomy.parts.leadingVisual;
+      delete lv.size;
+      Object.assign(lv, { height: 'size.{size}.icon', aspectLock: true, fixedPaint: true }, extra);
+      return d;
+    };
+    const host = markSlot();
+    ok(validateComponentDef(host).errors.length === 0,
+      `#2343 PR 2: a slot that binds its height under aspectLock and keeps its content's paint validates clean (${validateComponentDef(host).errors.slice(0, 2).join('; ') || 'no errors'})`);
+    // At a full coordinate (the set's), where Button's own slot does take its host's ink, so the control can fail.
+    const nodeAt = (d: ComponentDef) => figmaAnatomySet(d, { swapTarget: 'brand-mark/card/visa' }).find((p) => p.slots?.leading)?.root.children?.find((c) => c.name === 'leadingVisual');
+    const slot = nodeAt(host);
+    ok(!!slot && slot.descendantFills === undefined && slot.fixedPaint === true && !slot.paints,
+      `#2343 PR 2 fixedPaint: the mark slot carries no descendantFills and states fixedPaint (descendantFills ${String(slot?.descendantFills)}, fixedPaint ${String(slot?.fixedPaint)})`);
+    ok(!!slot && JSON.stringify(Object.keys(slot.bound)) === JSON.stringify(['height']) && slot.aspectLock === true,
+      `#2343 PR 2 aspectLock: the mark slot binds its height alone and carries the lock (bound ${JSON.stringify(slot?.bound)}, aspectLock ${String(slot?.aspectLock)})`);
+    const control = nodeAt(button);
+    ok(!!control?.descendantFills && control.fixedPaint === undefined && control.aspectLock === undefined && 'width' in (control.bound ?? {}),
+      `#2343 PR 2 control: Button's own leading slot still takes the host's icon ink and its square binding, with neither flag (descendantFills ${String(control?.descendantFills)})`);
+    const errs = (extra: Record<string, unknown>) => validateComponentDef(markSlot(extra)).errors;
+    ok(errs({ height: undefined }).some((e) => /declares 'aspectLock' but binds no 'height'/.test(e)), '#2343 PR 2: aspectLock with no height is refused');
+    ok(errs({ size: 'size.{size}.icon', height: undefined }).some((e) => /declares 'aspectLock' and binds 'size'/.test(e)), '#2343 PR 2: aspectLock beside a size binding is refused (the second binding would evict the lock)');
+    ok(errs({ paintSlot: 'icon' }).some((e) => /declares 'fixedPaint' and paintSlot/.test(e)), '#2343 PR 2: fixedPaint beside a paintSlot is refused');
+    const onText = cloneOf(button); onText.anatomy.parts.label.fixedPaint = true; onText.anatomy.parts.label.aspectLock = true;
+    const textErrs = validateComponentDef(onText).errors;
+    ok(textErrs.some((e) => /kind 'text' but declares 'fixedPaint'/.test(e)) && textErrs.some((e) => /kind 'text' but declares 'aspectLock'/.test(e)),
+      `#2343 PR 2: both flags are refused on a text part (${textErrs.filter((e) => /fixedPaint|aspectLock/.test(e)).length} refusal(s))`);
+    const plainHeight = cloneOf(button); delete plainHeight.anatomy.parts.leadingVisual.size; plainHeight.anatomy.parts.leadingVisual.height = 'size.{size}.icon';
+    ok(validateComponentDef(plainHeight).errors.some((e) => /kind 'slot' but binds 'height'/.test(e)),
+      '#2343 PR 2: a slot that binds a height WITHOUT aspectLock is still refused — it would reach no node');
+    // THE PASTE EXECUTOR reads the main's proportion and locks before the bind loop, in that order.
+    const js = planToPluginJs(figmaAnatomyPlan(host, 'medium', { leading: true, swapTarget: 'brand-mark/card/visa' }));
+    const lockAt = js.indexOf('if(n.aspectLock)'), bindAt = js.indexOf('for(const [prop,varName] of Object.entries(n.bound))');
+    ok(lockAt > 0 && bindAt > lockAt && /if\(n\.aspectLock\)\{const m=await node\.getMainComponentAsync\(\);if\(m&&m\.height\)\{node\.resize\(m\.width\/m\.height,1\);node\.lockAspectRatio\(\);\}/.test(js),
+      `#2343 PR 2 paste executor: an aspect-locked instance is resized to its main's proportion and locked BEFORE the bind loop (lock at ${lockAt}, bind at ${bindAt})`);
   }
 
   // The three FIELD TYPES, read out of the declaration — the only source available here, for the reason
@@ -25784,8 +25896,12 @@ arm: {
       // 1 KB off every chunk's shell, so icon-button packs two chunks tighter. (The vertical-trim lines #2428 first added
       // to the shell went with the trim, Q560 A on #2789.) Re-pinned per the same standing instruction; every chunk stays
       // under budget.
+      //
+      // NOW 17, AS OF #2343 PR 2 — a shell-byte move: the paste script gained the aspect-locked instance (`aspectLock`,
+      // a slot that reads its main's proportion before its height binds), in every chunk's shell. icon-button does not
+      // use it. Re-pinned per the same standing instruction; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 16, `anatomy/icon-button: the set packs into 16 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
@@ -34606,7 +34722,7 @@ arm: {
   // skin with `color.disabled.border` (Q346).
   const PAINT: Record<string, { fills?: string; strokes: string }> = {
     rest: { fills: 'color/field/fill', strokes: 'color/field/border/rest' },
-    hover: { fills: 'color/interactive/neutral/overlay/hover', strokes: 'color/field/border/hover' },
+    hover: { fills: 'color/field/fill', strokes: 'color/field/border/hover' },
     filled: { fills: 'color/field/fill', strokes: 'color/field/border/rest' },
     'focus-visible': { fills: 'color/field/fill', strokes: 'color/border/focus' },
     'focus-visible-filled': { fills: 'color/field/fill', strokes: 'color/border/focus' },
@@ -34615,7 +34731,7 @@ arm: {
   };
   const paintOff = CELL_STATES.filter((st) => { const r = cellAt('medium', st)!.root.paints; return r?.fills !== PAINT[st].fills || r?.strokes !== PAINT[st].strokes; })
     .map((st) => `${st}: ${JSON.stringify(cellAt('medium', st)!.root.paints)}`);
-  ok(paintOff.length === 0, `#2428 code-input: the cell paints the field chrome per state — wash and field border at hover, the focus border when active, the danger border in error, disabled.fill and disabled.border when disabled (${paintOff.join('; ') || 'ok'})`);
+  ok(paintOff.length === 0, `#2428 code-input: the cell paints the field chrome per state — the field border alone at hover (no wash, #2926), the focus border when active, the danger border in error, disabled.fill and disabled.border when disabled (${paintOff.join('; ') || 'ok'})`);
   // Q346: no border on either def binds a text or icon role.
   const borderRoles = Object.entries(cellDef.tokens).filter(([k]) => k.split('.').includes('border')).map(([, v]) => v);
   ok(borderRoles.length >= 5 && borderRoles.every((v) => !/^color\.(text|icon)\./.test(v)),

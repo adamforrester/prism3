@@ -2682,14 +2682,14 @@
       ],
       "description": "Form field hover border — 3:1 on background/secondary; pair it with a second cue",
       "value": {
-        "r": 0.40784314274787903,
-        "g": 0.40784314274787903,
-        "b": 0.4274509847164154,
+        "r": 0.30980393290519714,
+        "g": 0.30980393290519714,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/550"
+        "name": "ads/core/palette/neutral/650"
       }
     },
     {
@@ -4992,14 +4992,14 @@
       ],
       "description": "Form field hover border — 3:1 on inverse/background/secondary; pair it with a second cue",
       "value": {
-        "r": 0.5058823823928833,
-        "g": 0.5098039507865906,
-        "b": 0.5254902243614197,
+        "r": 0.6039215922355652,
+        "g": 0.6039215922355652,
+        "b": 0.6196078658103943,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/450"
+        "name": "ads/core/palette/neutral/350"
       }
     },
     {

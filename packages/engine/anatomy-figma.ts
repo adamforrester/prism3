@@ -452,6 +452,16 @@ export type FigmaNodePlan = {
    *  from the one nominal dimension the plan binds. Absent on every box without a ratio, which is every
    *  box but `image-placeholder`'s root — so no existing plan moves. */
   aspectRatio?: number;
+  /** THE HOSTED INSTANCE'S OWN PROPORTION (#2343 PR 2, `PartDef.aspectLock`): on a slot or nest instance that binds
+   *  its height alone, both executors resize the instance to the proportion of the component it instances, lock
+   *  it, and then bind the height, so Figma derives the width. The proportion is the main component's, read when
+   *  the instance is built, because it belongs to whatever is swapped in. Carried ONLY on such a part. */
+  aspectLock?: true;
+  /** THE HOSTED CONTENT KEEPS ITS OWN PAINT (#2343 PR 2, `PartDef.fixedPaint`): this node carries no
+   *  `descendantFills` and no paint, and the executors push none into it. Stated on the plan, not merely implied by
+   *  an absent `descendantFills`, so a gate reads the promise and the outcome as two facts. Carried ONLY on such a
+   *  part, so every other plan is byte-identical. */
+  fixedPaint?: true;
   /** For a `box`: whether the frame crops content that overflows it — Figma's `clipsContent` (#1316).
    *  Carried onto the plan ONLY when `true`, so every existing box's plan is byte-identical (both
    *  executors read `n.clipsContent ?? false`, which is the literal they hardcoded before this field). */
@@ -1884,6 +1894,8 @@ export const figmaAnatomyPlan = (
       // `height` and `size` are mutually exclusive on every kind (the validator says so), so this is an
       // else-if in effect and cannot fight the two-axis binding above.
       if (p.kind === 'nest' && p.height) bound.height = varOf(p.height);
+      // A SLOT UNDER `aspectLock` (#2343 PR 2) binds its height too, and only its height: the lock derives the width.
+      if (p.kind === 'slot' && p.aspectLock && p.height) bound.height = varOf(p.height);
     }
 
     // THE TYPE KEY, resolved from the coordinate like every other binding key (#1248). This lookup
@@ -1982,7 +1994,9 @@ export const figmaAnatomyPlan = (
       // spinner structurally but leaving it out of the paint branch produced a node in the right cell
       // with no colour — a pending button whose spinner is invisible against its own fill. It is a
       // glyph standing in a glyph's cell, so it takes a glyph's ink.
-      descendantFills = paintOf('icon');
+      // A part that keeps its content's own paint (#2343 PR 2, `fixedPaint`) takes none: on a brand mark the host's
+      // ink would be the retint the provider forbids.
+      if (!p.fixedPaint) descendantFills = paintOf('icon');
     }
 
     // The placeholder lands only on a TEXT node, and only where the def declares a TEXT property for
@@ -2094,6 +2108,9 @@ export const figmaAnatomyPlan = (
       // frame to it and `lockAspectRatio()`. Only present where a `ratio` coordinate resolved, so no
       // existing plan carries it.
       ...(aspectRatio !== undefined ? { aspectRatio } : {}),
+      // A hosted instance's own proportion and paint (#2343 PR 2), carried only where the part declares them.
+      ...((p.kind === 'slot' || p.kind === 'nest') && p.aspectLock ? { aspectLock: true as const } : {}),
+      ...((p.kind === 'slot' || p.kind === 'overlay' || p.kind === 'nest') && p.fixedPaint ? { fixedPaint: true as const } : {}),
       // The crop flag (#1316), carried ONLY when true so every existing box's plan is byte-identical —
       // both executors read `n.clipsContent ?? false`, which is the literal `false` they hardcoded before.
       ...(p.kind === 'box' && p.clipsContent ? { clipsContent: true as const } : {}),
@@ -2489,7 +2506,8 @@ export const fieldStyleFor = (defId: string, input: { fieldStyle?: FieldStyle; s
  *   · THE EDGES (Q5, Q6, Q10): the inline padding binds `space.0`, so the label, value, message and line share one
  *     start edge and a trailing glyph (Select's chevron) sits flush with the line's end; the corner binds
  *     `radius.none`, whatever Control shape chose, so this runs after `applyControlShape`.
- *   · HOVER (Q4): the overlay wash keys go, so hover changes the line's color only.
+ *   · HOVER (Q4): changes the line's color only. No field binds a wash under either style since #2926, so there
+ *     is no wash key left to drop.
  *   · DISABLED (Q8): the disabled plate goes. With no `disabled.fill`, the projector's disabled ink asks for the
  *     plain-ground form (`disabled.<slot>`), so each `disabled.<slot>.on-fill` is replaced by it: `disabled.text`
  *     for the value, `disabled.icon` for a glyph.
@@ -2504,7 +2522,7 @@ export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): Component
   if (!a || !frame) return def;
   const tokens: Record<string, string> = {};
   for (const [k, ref] of Object.entries(def.tokens)) {
-    if (k.split('.')[0] === 'overlay' || k === 'disabled.fill') continue;
+    if (k === 'disabled.fill') continue;
     const onFill = /^disabled\.([a-z-]+)\.on-fill$/.exec(k);
     if (onFill) { tokens[`disabled.${onFill[1]}`] = onFill[1] === 'icon' ? 'color.disabled.icon' : 'color.disabled.text'; continue; }
     tokens[k] = ref;
@@ -3077,7 +3095,8 @@ export const applyWeightIntent = (authored: ComponentDef, avail: WeightAvailabil
 // `outlineInteraction` decides WHICH family carries an outline/text control's hover fill, and the
 // engine EMITS only that family (`modes.ts`, the `overlay-neutral` / `solid-tint` branches): the
 // translucent `interactive.<c>.overlay.*` wash, the tinted `interactive.<c>.subtle-fill.*` wash, or
-// neither. Four defs (button, icon-button, select, text-field) bind the wash by name, which is right
+// neither. Button and Icon button bind the wash by name (the fields bound it too until #2926 removed
+// every field wash: a field hovers by its border alone, whatever this lever says), which is right
 // for the default and names a variable that does not exist for the other two methods — the owner's
 // NB file, at `solid-tint` or `none`, built `button` with 96 misses on `container.fills`.
 
@@ -3106,7 +3125,7 @@ const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/
  *                         tinted wash lands exactly where the neutral wash did.
  *   · `none`            → the ENTRY IS DROPPED. `paintOf('overlay')` then resolves nothing and the box
  *                         falls through to its `fill` slot — none for outline/text (no hover wash, the
- *                         intended "no hover expression"), the rest fill for a field. Dropping rather
+ *                         intended "no hover expression"). Dropping rather
  *                         than binding transparent is what makes this a non-event on the host: no
  *                         variable is asked for, so there is nothing to miss. A bound SUBTLE FILL (Tag's
  *                         selected tint, 2026-09-29) is dropped the same way: `none` emits none of them.
@@ -4682,6 +4701,8 @@ ${PLACEMENT_SLOT}
   // layoutMode and before the bind loop for that reason: a lock captured from the resized box, and a
   // single dimension bound afterward, so there is no second binding for the lock to evict.
   if(n.aspectRatio){node.resize(n.aspectRatio,1);node.lockAspectRatio();}
+  // A HOSTED INSTANCE'S OWN PROPORTION (#2343 PR 2): the main's ratio, locked, before the height binds.
+  if(n.aspectLock){const m=await node.getMainComponentAsync();if(m&&m.height){node.resize(m.width/m.height,1);node.lockAspectRatio();}else misses.push(n.name+'.aspectLock -> no main component to read a proportion from');}
   // \`wrote\` is what was ACTUALLY set, which is not the same as what the plan declared — a name that
   // does not resolve is skipped below. The read-back iterates this rather than the declaration, so an
   // unresolved name reports its one true cause instead of also claiming Figma discarded a write that

@@ -16790,7 +16790,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.field.border.hover"
             },
             {
@@ -16973,7 +16973,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.danger"
             },
             {
@@ -17156,7 +17156,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.warning"
             },
             {
@@ -17339,7 +17339,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.success"
             },
             {
@@ -18093,7 +18093,7 @@
           "parts": [
             {
               "part": "container/body/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.field.border.hover"
             },
             {
@@ -18272,7 +18272,7 @@
           "parts": [
             {
               "part": "container/body/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.danger"
             },
             {
@@ -18451,7 +18451,7 @@
           "parts": [
             {
               "part": "container/body/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.warning"
             },
             {
@@ -18630,7 +18630,7 @@
           "parts": [
             {
               "part": "container/body/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.success"
             },
             {
@@ -22873,7 +22873,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.field.border.hover"
             },
             {
@@ -23048,7 +23048,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.danger"
             },
             {
@@ -23223,7 +23223,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.warning"
             },
             {
@@ -23398,7 +23398,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.success"
             },
             {
@@ -35102,7 +35102,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.field.border.hover"
             },
             {
@@ -35257,7 +35257,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.danger"
             },
             {
@@ -35412,7 +35412,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.warning"
             },
             {
@@ -35567,7 +35567,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.success"
             },
             {
@@ -40600,7 +40600,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.field.border.hover"
             },
             {
@@ -40783,7 +40783,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.danger"
             },
             {
@@ -40966,7 +40966,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.warning"
             },
             {
@@ -41149,7 +41149,7 @@
           "parts": [
             {
               "part": "container/control",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.border.success"
             },
             {
@@ -43793,7 +43793,7 @@
           "parts": [
             {
               "part": "container",
-              "fill": "color.interactive.neutral.overlay.hover",
+              "fill": "color.field.fill",
               "stroke": "color.field.border.hover"
             }
           ]

@@ -4138,13 +4138,14 @@
           ],
           "parts": {
             "container": {
-              "members": 20,
+              "members": 24,
               "where": {
                 "state": [
                   "error",
                   "filled",
                   "focus-visible",
                   "focus-visible-filled",
+                  "hover",
                   "rest"
                 ]
               }
@@ -4176,12 +4177,13 @@
           ],
           "parts": {
             "control": {
-              "members": 60,
+              "members": 72,
               "where": {
                 "state": [
                   "filled",
                   "focus-visible",
                   "focus-visible-filled",
+                  "hover",
                   "read-only",
                   "rest"
                 ]
@@ -4195,12 +4197,13 @@
           ],
           "parts": {
             "control": {
-              "members": 60,
+              "members": 72,
               "where": {
                 "state": [
                   "filled",
                   "focus-visible",
                   "focus-visible-filled",
+                  "hover",
                   "read-only",
                   "rest"
                 ]
@@ -4214,12 +4217,13 @@
           ],
           "parts": {
             "control": {
-              "members": 60,
+              "members": 72,
               "where": {
                 "state": [
                   "filled",
                   "focus-visible",
                   "focus-visible-filled",
+                  "hover",
                   "read-only",
                   "rest"
                 ]
@@ -4233,12 +4237,13 @@
           ],
           "parts": {
             "control": {
-              "members": 60,
+              "members": 72,
               "where": {
                 "state": [
                   "filled",
                   "focus-visible",
                   "focus-visible-filled",
+                  "hover",
                   "read-only",
                   "rest"
                 ]
@@ -4252,12 +4257,13 @@
           ],
           "parts": {
             "control": {
-              "members": 60,
+              "members": 72,
               "where": {
                 "state": [
                   "filled",
                   "focus-visible",
                   "focus-visible-filled",
+                  "hover",
                   "read-only",
                   "rest"
                 ]
@@ -7754,21 +7760,6 @@
             }
           }
         },
-        "code-input-cell": {
-          "keys": [
-            "overlay.hover"
-          ],
-          "parts": {
-            "container": {
-              "members": 4,
-              "where": {
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "flush-icon-button-neutral": {
           "keys": [
             "round.overlay.hover"
@@ -7844,36 +7835,6 @@
             }
           }
         },
-        "password-field": {
-          "keys": [
-            "overlay.hover"
-          ],
-          "parts": {
-            "control": {
-              "members": 12,
-              "where": {
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
-        "search-field": {
-          "keys": [
-            "overlay.hover"
-          ],
-          "parts": {
-            "control": {
-              "members": 12,
-              "where": {
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "unselected.overlay.hover"
@@ -7892,21 +7853,6 @@
             }
           }
         },
-        "select": {
-          "keys": [
-            "overlay.hover"
-          ],
-          "parts": {
-            "control": {
-              "members": 12,
-              "where": {
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "tag": {
           "keys": [
             "unselected.overlay.hover"
@@ -7918,36 +7864,6 @@
                 "selection": [
                   "unselected"
                 ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
-        "text-field": {
-          "keys": [
-            "overlay.hover"
-          ],
-          "parts": {
-            "control": {
-              "members": 12,
-              "where": {
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
-        "textarea": {
-          "keys": [
-            "overlay.hover"
-          ],
-          "parts": {
-            "control": {
-              "members": 12,
-              "where": {
                 "state": [
                   "hover"
                 ]
@@ -28086,7 +28002,6 @@
         "color.field.border.hover",
         "color.field.border.rest",
         "color.field.fill",
-        "color.interactive.neutral.overlay.hover",
         "color.text.primary",
         "focus.ring.offset-field",
         "focus.ring.width",
@@ -29165,7 +29080,6 @@
         "color.field.border.rest",
         "color.field.fill",
         "color.icon.primary",
-        "color.interactive.neutral.overlay.hover",
         "color.text.primary",
         "color.text.secondary",
         "control.size.lg.line-box",
@@ -29374,7 +29288,6 @@
         "color.field.border.rest",
         "color.field.fill",
         "color.icon.primary",
-        "color.interactive.neutral.overlay.hover",
         "color.text.primary",
         "color.text.secondary",
         "control.size.lg.line-box",
@@ -29513,7 +29426,6 @@
         "color.field.border.rest",
         "color.field.fill",
         "color.icon.primary",
-        "color.interactive.neutral.overlay.hover",
         "color.text.primary",
         "color.text.secondary",
         "focus.ring.offset-field",
@@ -29879,7 +29791,6 @@
         "color.field.border.rest",
         "color.field.fill",
         "color.icon.primary",
-        "color.interactive.neutral.overlay.hover",
         "color.text.primary",
         "color.text.secondary",
         "control.size.lg.line-box",
@@ -29940,7 +29851,6 @@
         "color.field.border.rest",
         "color.field.fill",
         "color.icon.secondary",
-        "color.interactive.neutral.overlay.hover",
         "color.text.primary",
         "color.text.secondary",
         "control.size.lg.line-box",

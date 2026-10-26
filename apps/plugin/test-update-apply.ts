@@ -957,6 +957,64 @@ section('min/max — a member built under one Tag style and updated under the ot
 }
 
 /* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('aspect lock, in place — a square slot rebuilt under aspectLock keeps only its height bound (#2343 PR 2)');
+{
+  // A Button clone whose leading slot was BUILT square (`size`: width and height both bound) and is then UPDATED in
+  // place to the mark slot (`height` alone, `aspectLock`, `fixedPaint`). The slot's main is a live 32×20 component, so
+  // the lock reads 8:5. In place, a bound width wins over the resize, so the executor unbinds both dimensions before it
+  // locks; left bound, the old width would stretch the mark back to square. Expected numbers are literals (docs/34).
+  // Mutation: the in-place unbind in the executor's aspectLock branch dropped → `aspect lock/in place`.
+  const button = componentDefs.find((d) => d.id === 'button')!;
+  const MARK = 'brand-mark/card/visa';
+  const locked = JSON.parse(JSON.stringify(button)) as ComponentDef;
+  const lv = (locked.anatomy as unknown as { parts: Record<string, Record<string, unknown>> }).parts.leadingVisual;
+  delete lv.size;
+  Object.assign(lv, { height: 'size.{size}.icon', aspectLock: true, fixedPaint: true });
+  const pick = (d: ComponentDef): AnatomyPlan[] => figmaAnatomySet(d, { swapTarget: MARK }).filter((p) => p.slots?.leading).slice(0, 4);
+  const square = pick(button);
+  const next = pick(locked);
+  const page: Page = { children: [] };
+  const all = [...square, ...next];
+  const api = makeShim({
+    vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])].filter((c) => c !== MARK),
+    page, liveRoot: true, liveComponents: true, identities: true, scaleConstrained: true,
+  }) as any;
+  const frame = api.createFrame();
+  frame.resize(32, 20);
+  const mark = api.createComponentFromNode(frame);
+  mark.name = MARK;
+  if (!page.children.includes(mark)) page.children.push(mark);
+  const built = await applyComponentPlan(square, api);
+  const set = (): Node => page.children.find((n) => n.type === 'COMPONENT_SET') as Node;
+  const slots = (): Node[] => {
+    const out: Node[] = [];
+    const walk = (n: Node): void => { if (n.name === 'leadingVisual') out.push(n); for (const c of (n.children as Node[] | undefined) ?? []) walk(c); };
+    walk(set());
+    return out;
+  };
+  const bound = (n: Node): string[] => Object.keys((n.boundVariables ?? {}) as object).filter((k) => k === 'width' || k === 'height').sort();
+  ok(built.misses.length === 0 && slots().length === 4 && slots().every((n) => bound(n).join() === 'height,width'),
+    `premise: 4 square slots built, width and height both bound (${slots().map((n) => bound(n).join('+')).join(' ')}; ${built.misses[0] ?? 'no miss'})`);
+  const host = {
+    ...api,
+    root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) },
+  } as unknown as ApplyHost;
+  const ids = slots().map((n) => String(n.id));
+  const t = { def: 'button', plans: next };
+  const pre = await previewUpdate(host, [t]);
+  const res = await applyUpdate(host, api, [t], previewHashOf(pre));
+  const off = slots().filter((n) => {
+    const r = n.targetAspectRatio as { x: number; y: number } | undefined;
+    return bound(n).join() !== 'height' || !r || Math.abs(r.x / r.y - 1.6) > 1e-6;
+  });
+  ok(applyVerdict(res).ok && slots().length === 4 && off.length === 0,
+    `aspect lock/in place: every slot updated in place is locked to its main's 8:5 with only its height bound (${applyVerdict(res).headline}; ${off.length} off${off[0] ? ` — bound ${bound(off[0]).join('+')}, ratio ${JSON.stringify(off[0].targetAspectRatio)}` : ''})`);
+  ok(slots().map((n) => String(n.id)).join() === ids.join(), 'aspect lock/kept: each slot is the node it was, written in place');
+}
+
 section('single — the icons, updated in place as single components (#2296)');
 const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { keyPrefix?: string; styleIdPrefix?: string } = {}) => {
   const page: Page = { children: [] };
@@ -1021,10 +1079,57 @@ const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { 
   ok(applyVerdict(res).ok && dump() === before && res.outcomes[0]?.skipped.some((x) => x.member === 'name=my-logo' && x.reason === 'not built by Prism3'),
     `single/owner: the owner's hand-made icon is left exactly as it is, and named (${JSON.stringify(res.outcomes[0]?.skipped)})`);
 }
+{
+  // A GLYPH THAT KEEPS ITS OWN PAINT, RECOLORED BY THE PLAN (#2343 PR 2): a brand mark whose provider changed a color
+  // and not a path. Its vectors take no host ink, so the in-place glyph must compare their fills too, or the update
+  // keeps the old colors under a current stamp. Built on the icon set with the ink stripped and literal fills written,
+  // the shape a mark's plan has. Mutation: the fills dropped from the in-place signature → `recolor/taken`.
+  const own = (plans: AnatomyPlan[], hex: string, only?: number): AnatomyPlan[] => plans.map((p, i) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const r = q.root as unknown as Record<string, unknown>;
+    delete r.descendantFills;
+    if (only === undefined || only === i) r.glyphSvg = String(r.glyphSvg).replace('fill="currentColor"', `fill="#${hex}"`);
+    return q;
+  });
+  const base = own(plansOf('icon'), '111111');
+  const w = await singleWorld(base);
+  const t = { def: 'icon', plans: own(plansOf('icon'), 'aa0000', 9).map((p, i) => (i === 9 ? p : base[i])), single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const red = w.comps().filter((c) => ((c.children as Node[]) ?? []).some((k) => k.type === 'VECTOR' && Math.abs(((k.fills as { color?: { r: number } }[])?.[0]?.color?.r ?? 0) - 0xaa / 255) < 1e-6));
+  ok(applyVerdict(res).ok && red.length === 1, `recolor/taken: the recolored glyph takes the new import's color, and no other changes (${red.length} red; ${applyVerdict(res).headline})`);
+}
 const pdOf = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
 const putPd = (n: Node, k: string, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, v);
 /** Each icon plan with its ink moved to `color/icon/secondary`, as `single/update` moves it. */
 const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
+{
+  // A MARK OR GLYPH REDRAWN IN ITS MAIN COMPONENT (#2343 PR 2, owner decision Q-B3 A): a brand swaps a mark by editing
+  // the drawing inside `brand-mark/*` in Figma, and a rebuild must keep it. The drawing is the vectors' GEOMETRY, which
+  // no node hash reads; `Baseline.art` does. Built here on the icon set, the same standalone-component path the marks
+  // take. Mutations: the artwork arm of `baselineDiff` dropped → `redraw/listed`, `redraw/kept`; the kept artwork
+  // laundered in `finishUpdated` → `redraw/still listed`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const hit = w.comps()[7];
+  const vec = ((hit.children as Node[]) ?? []).find((k) => k.type === 'VECTOR')!;
+  const REDRAWN = [{ windingRule: 'NONZERO', data: 'M 2 2 L 22 2 L 22 22 L 2 22 Z' }];
+  vec.vectorPaths = REDRAWN;
+  const t = { def: 'icon', plans: reinked(plans), single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  const member = `name=${String(hit.name).split('/').pop()}`;
+  const listed = pre.sets[0].handEdits.filter((h) => h.member === member).map((h) => h.path);
+  ok(JSON.stringify(listed) === JSON.stringify(['.']), `redraw/listed: the dry run reads the redrawn glyph as a hand edit at its frame (${JSON.stringify(listed)}; ${JSON.stringify(pre.sets[0].counts)})`);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const nowVec = ((hit.children as Node[]) ?? []).find((k) => k.type === 'VECTOR');
+  ok(JSON.stringify(nowVec?.vectorPaths) === JSON.stringify(REDRAWN) && applyVerdict(res).ok,
+    `redraw/kept: the update keeps the designer's drawing rather than laying a fresh import over it (${JSON.stringify(nowVec?.vectorPaths)?.slice(0, 80)}; ${applyVerdict(res).headline})`);
+  const post = (await previewUpdate(w.host, [t])).sets[0];
+  ok(post.handEdits.some((h) => h.member === member && h.path === '.') && post.counts.current === 45,
+    `redraw/still listed: the next dry run still reports the redraw, and the other 45 read current (${JSON.stringify(post.handEdits.filter((h) => h.member === member))}; ${JSON.stringify(post.counts)})`);
+  // CONTROL: an untouched glyph's artwork reads the same across a rebuild, so the arm cannot fire on every glyph.
+  ok(!pre.sets[0].handEdits.some((h) => h.member !== member), `redraw/control: no other glyph reads as redrawn (${pre.sets[0].handEdits.filter((h) => h.member !== member).length})`);
+}
 {
   // THE RECORD WRITE FAILS AFTER THE UPDATE (#2373): one icon's host refuses its as-built record. The stamp comes last
   // (§7), so the icon keeps the stamp it had and its in-progress marker, reads out of date in the next dry run, and the
@@ -3099,11 +3204,11 @@ section('field style — a field set built in one Field style is redrawn in plac
       const after = identityOf(w.set());
       const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
       ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `field style/${tag} in place: the set, every member and every node under it keep their keys and ids (${lost.slice(0, 2).join('; ') || 'all kept'})`);
-      // THE WASH (#2774): every control the plan washes draws it translucent, read off the stored paint.
+      // THE WASH (#2774, then #2926): until #2926 an outline hover washed and had to draw translucent; since #2926 no
+      // field washes under either style, so no plan asks for one in either direction.
       const washed = to.filter((p) => /\/overlay\//.test(String(findPart(p.root as unknown as Node, 'control')?.paints?.fills ?? ''))).map((p) => planComponentName(p));
-      const solid = membersOf(w.set()).filter((m) => washed.includes(String(m.name))).map((m) => ({ m: String(m.name), o: ((findPart(m, 'control')?.fills as { opacity?: number }[] | undefined) ?? [])[0]?.opacity ?? 1 })).filter((x) => !(x.o < 1));
-      ok(toName === 'underline' ? washed.length === 0 : washed.length > 0 && solid.length === 0,
-        `field style/${tag} wash: ${toName === 'underline' ? 'no member asks for the wash' : `all ${washed.length} washed controls draw it translucent`} (${solid.slice(0, 2).map((x) => `${x.m}: opacity ${x.o}`).join('; ') || 'ok'})`);
+      ok(washed.length === 0,
+        `field style/${tag} wash: no member asks for the wash, under either style (#2926) (${washed.slice(0, 2).join('; ') || 'ok'})`);
       // Q346 on the line: a disabled member's edge binds the disabled BORDER role, never an icon or text role.
       const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((x: { id: string; name: string }) => [x.id, x.name.slice(x.name.indexOf('/') + 1)] as [string, string]));
       const edges = membersOf(w.set()).filter((m) => /state=disabled/.test(String(m.name))).map((m) => vars.get(String(((findPart(m, 'control')?.strokes as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id)));
