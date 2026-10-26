@@ -233,7 +233,7 @@ Keyed by `status`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.field.border.hover` | — | — |
+| `container/body/control` | `color.field.fill` | `color.field.border.hover` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
 | `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
@@ -297,7 +297,7 @@ Keyed by `status`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.danger` | — | — |
+| `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
 | `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
@@ -361,7 +361,7 @@ Keyed by `status`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.warning` | — | — |
+| `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
 | `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
@@ -425,7 +425,7 @@ Keyed by `status`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.success` | — | — |
+| `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
 | `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |

@@ -121,6 +121,12 @@ that hold across brands:
   names those surfaces for its brand. A brand that needs text there moves the floor
   (`surfaces.<mode>.floorStep`, or `inverseSecondary` on the band), and every floor-gated ink
   re-derives to clear it.
+- **A link over a photograph is `inverse.text.primary`, underlined.** No link role is measured
+  against a photo, and there is no on-media link color. Set the link in `inverse.text.primary` and
+  keep the underline: it is the link cue, because the ink now matches the plain text beside it.
+  When the photo is busy, put a media veil (`veil.*`) behind the text. The veil is the same in
+  every mode and `inverse.text.primary` flips in dark mode, so pick the veil for each mode and
+  check the contrast against the real photo, not the token surface.
 - **Disabled inks clear 3:1, not 4.5:1.** WCAG 1.4.3 exempts disabled controls, but Prism3 does not
   use that exemption: `disabled.text` (on `background.secondary`) and `disabled.on-fill` (on
   `disabled.fill`) each carry a 3:1 contract (4.5:1 in the high-contrast modes). Score a disabled

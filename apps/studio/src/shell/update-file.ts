@@ -12,7 +12,9 @@
  * WHAT IS DUE (phase 2, Q2909.8 A): the button carries a badge with the number of due sets, from the as-built ledger the
  * host reads at load. The checklist lists the due sets first, ticked, and as it opens asks for the full check over them
  * alone; each set then says what changes, and the update waits on that answer. One choice covers the hand edits it finds
- * (Keep, the default). A set built before the ledger reads "Not checked yet", with a way to check it.
+ * (Keep, the default). A set built before the ledger reads "Not checked yet", with a way to check it. Both reads measure
+ * against the panel's brand while Theme is ticked, else the file's stored one (#3023 Q701 B, `brandFor`), so a Theme toggle
+ * checks the file again.
  *
  * CLEAN UP: Prune stale, moved here with its own preview (Q668 A): the preview runs as the tab opens and writes nothing;
  * its Delete is the confirmed prune. It never rides Update. The style guide's retired tables (Q412 A) are offered here
@@ -53,10 +55,11 @@ export type UpdateFileLend = {
     readonly handEdits: ReadonlyMap<string, { readonly members: number; readonly edited: number }>;
     readonly updateCheck: { readonly previewHash: string; readonly sets: readonly CheckedSetView[]; readonly error: string | null } | 'pending' | null;
   };
-  /** Ask the host which sets the file holds (`file-sets-request`). */
-  readonly check: () => void;
-  /** Q2909.8 A: the full check, scoped to `defs` (`update-check-request`). */
-  readonly checkSets: (defs: readonly string[]) => void;
+  /** Ask the host which sets the file holds (`file-sets-request`). `theme`: whether Theme is ticked, which decides the
+   *  brand what is due is measured against (#3023 Q701 B: the panel's, else the file's stored one). */
+  readonly check: (theme: boolean) => void;
+  /** Q2909.8 A: the full check, scoped to `defs` (`update-check-request`), against the brand `theme` picks, as `check`. */
+  readonly checkSets: (defs: readonly string[], theme: boolean) => void;
   /** `update`: the due sets to update in place, the check's hash for exactly those sets (empty when they are fewer than
    *  the check read, and the run checks them again first), and the hand-edit choice. */
   readonly run: (steps: readonly StepKey[], sets: readonly string[], update: { readonly defs: readonly string[]; readonly previewHash: string; readonly checked: readonly CheckedSetView[]; readonly handEdits: HandEditChoice } | null) => void;
@@ -87,6 +90,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   let pruneAsked = false;
   /** The sets this opening asked the scoped check for, or null before it has (Q2909.8 A). */
   let checkedFor: readonly string[] | null = null;
+  /** A Theme toggle asked the file again (#3023): its answer ticks the due sets afresh. */
+  let rechecking = false;
   /** The not-yet-recorded sets a check has already ticked or left, so an untick by hand sticks. */
   const seen = new Set<string>();
 
@@ -96,8 +101,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     tab = 'update';
     pruneAsked = false;
     checkedFor = null;
+    rechecking = false;
     seen.clear();
-    if (!lend.read().run) { asked = lend.read().fileSets; ticks = null; lend.check(); }
+    if (!lend.read().run) { asked = lend.read().fileSets; ticks = null; lend.check(true); }
     paint();
     const d = layer.querySelector<HTMLElement>('[data-p3="update-dialog"]');
     if (d) (focusables(d)[0] ?? d).focus();
@@ -154,6 +160,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (asked !== undefined && f === asked) return { body: [hook(h('p', 'p3-upd-line', UPDATE_COPY.checking), 'update-checking')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
     if (!f || f.error) return { body: [hook(h('p', 'p3-sg-error', UPDATE_COPY.readError), 'update-read-error')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
     asked = undefined;
+    if (rechecking && ticks) { rechecking = false; ticks = { ...ticks, update: new Set(dueSetsOf(r.catalog, f)) }; }
     ticks ??= defaultTicks(r.catalog, f);
     const t = ticks;
     const fresh = !f.setUp;
@@ -162,13 +169,22 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (r.stopped) body.push(hook(h('p', 'p3-sg-error', UPDATE_COPY.stopped(STEP_TITLE[r.stopped.step], r.stopped.headline)), 'update-stopped'));
     body.push(h('p', 'p3-sub p3-upd-lead', fresh ? UPDATE_COPY.leadFresh : UPDATE_COPY.lead));
     if (fresh) body.push(item('setup', t.setup, UPDATE_COPY.setup, UPDATE_COPY.setupSub, () => { ticks = { ...t, setup: !t.setup }; }));
-    body.push(item('theme', t.theme, UPDATE_COPY.theme, UPDATE_COPY.themeSub, () => { ticks = { ...t, theme: !t.theme }; }));
+    // #3023 Q701 B: Theme decides the brand the sets are measured against, so a toggle checks the file again, and the due
+    // sets are ticked again from that answer; what the counts say stays what the run writes.
+    body.push(item('theme', t.theme, UPDATE_COPY.theme, UPDATE_COPY.themeSub, () => {
+      ticks = { ...t, theme: !t.theme };
+      rechecking = true;
+      asked = f;
+      checkedFor = null;
+      seen.clear();
+      lend.check(!t.theme);
+    }));
     // The sets (Q2909.8 A): the due ones first, updated in place, then the ones not in the file; each is its own box.
     const fresh2 = newSetsOf(r.catalog, f);
     const due = dueSetsOf(r.catalog, f);
     const unrec = unrecordedOf(r.catalog, f);
     // The full check, over the due sets alone, once per opening, as soon as the ledger's answer is in.
-    if (due.length && checkedFor === null) { checkedFor = due; lend.checkSets(due); }
+    if (due.length && checkedFor === null) { checkedFor = due; lend.checkSets(due, t.theme); }
     const chk = r.updateCheck;
     const answered = chk && chk !== 'pending' && checkedFor !== null ? chk : null;
     const checkOf = (id: string): CheckedSetView | undefined => answered?.sets.find((c) => c.def === id);
@@ -231,7 +247,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       line.append(h('span', 'p3-sub', UPDATE_COPY.unrecorded(unrec.length)),
         btn('p3-btn p3-btn-page', 'update-check-unrecorded', 'unrecorded', UPDATE_COPY.checkUnrecorded(unrec.length), () => {
           checkedFor = [...due, ...unrec];
-          lend.checkSets(checkedFor);
+          lend.checkSets(checkedFor, t.theme);
         }));
       sets.append(line);
     }
@@ -362,7 +378,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     scrim.onmousedown = (e) => { if (e.target === scrim) { e.preventDefault(); close(); } };
     scrim.append(dlg);
     layer.replaceChildren(scrim);
-    if (focused) layer.querySelector<HTMLElement>(`[data-key="${CSS.escape(focused)}"]`)?.focus({ preventScroll: true });
+    // A control gone from the repaint (Theme's box while its toggle checks the file again, #3023) leaves focus on the
+    // dialog, never outside the modal.
+    if (focused) (layer.querySelector<HTMLElement>(`[data-key="${CSS.escape(focused)}"]`) ?? dlg).focus({ preventScroll: true });
     else if (!dlg.contains(document.activeElement)) (focusables(dlg)[0] ?? dlg).focus({ preventScroll: true });
   };
   for (const t of ['host', 'host:update', 'host:components', 'host:filesetup', 'host:styleguide', 'host:sgpage'] as const) cleanups.push(subscribe(t, paint));
