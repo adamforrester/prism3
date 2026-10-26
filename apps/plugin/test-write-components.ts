@@ -5564,4 +5564,39 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `link bar footprint: every current member measures what its unselected twin measures, so the bar moves no box (${moved.length} moved — ${moved[0] ?? 'none'})`);
 }
 
+// #2343 PR 2 — AN ASPECT-LOCKED, FIXED-PAINT SLOT, built by the REAL executor. A Button clone whose leading slot carries
+// a brand mark: height bound alone, `aspectLock`, `fixedPaint`. The mark is a live 32×20 component in the file, so the
+// instance's proportion is the main's 8:5, read when it is built. Expected numbers are literals (docs/34). Mutations: the
+// executor's aspectLock branch dropped → `mark slot/locked`; the projector pushing ink into a fixedPaint slot →
+// `mark slot/own paint`.
+{
+  const host = JSON.parse(JSON.stringify(button));
+  const lv = host.anatomy.parts.leadingVisual;
+  delete lv.size;
+  Object.assign(lv, { height: 'size.{size}.icon', aspectLock: true, fixedPaint: true });
+  const MARK = 'brand-mark/card/visa';
+  const plans = figmaAnatomySet(host, { swapTarget: MARK }).filter((p) => p.slots?.leading).slice(0, 4);
+  const page: Page = { children: [] };
+  const f = fullFor(plans);
+  const shim = makeShim({ ...f, comps: (f.comps ?? []).filter((c) => c !== MARK), page, liveRoot: true, liveComponents: true }) as any;
+  const frame = shim.createFrame();
+  frame.resize(32, 20);
+  const mark = shim.createComponentFromNode(frame);
+  mark.name = MARK;
+  if (!page.children.includes(mark)) page.children.push(mark);
+  const res = await applyComponentPlan(plans, shim);
+  const slots: Node[] = [];
+  const walk = (n: Node): void => { if (n.name === 'leadingVisual') slots.push(n); for (const c of (n.children as Node[] | undefined) ?? []) walk(c); };
+  for (const n of page.children) walk(n);
+  const bad = slots.filter((n) => {
+    const t = n.targetAspectRatio as { x: number; y: number } | undefined;
+    const bv = (n.boundVariables ?? {}) as Record<string, unknown>;
+    return !t || Math.abs(t.x / t.y - 1.6) > 1e-6 || !bv.height || bv.width;
+  });
+  ok(slots.length === plans.length && bad.length === 0 && !res.misses.some((m) => m.includes('aspectLock')),
+    `mark slot/locked: every mark slot is locked to its main's 8:5 with only its height bound (${slots.length} slots, ${bad.length} off${bad[0] ? ` — ${JSON.stringify(bad[0].targetAspectRatio)} ${Object.keys((bad[0].boundVariables ?? {}) as object).join(',')}` : ''}; ${res.misses.filter((m) => m.includes('aspectLock'))[0] ?? 'no aspectLock miss'})`);
+  const inked = slots.filter((n) => ((n as { findAll?: () => Node[] }).findAll?.() ?? []).some((v) => ((v.fills as { boundVariables?: unknown }[] | undefined) ?? []).some((p) => p?.boundVariables)));
+  ok(slots.length > 0 && inked.length === 0, `mark slot/own paint: no host ink is bound onto a vector inside any mark slot (${inked.length} of ${slots.length} inked)`);
+}
+
 if (failed) process.exit(1);
