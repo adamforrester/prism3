@@ -3794,6 +3794,18 @@ const choosable = (page) => page.evaluate(() => {
   return { radios: radios.length, clipped: radios.filter((r) => !whole.includes(r)).map((r) => r.dataset.mode),
     modes: shown(sel) ? [...sel.options].map((o) => o.value) : whole.map((r) => r.dataset.mode), select: shown(sel), selected: shown(sel) ? sel.value : null };
 });
+/** #3033: `fit` picks radios or the select in a frame after the header resizes, so a read made straight after
+ *  the pane toggle can land before it and see a radio the select is about to replace. Read until the control
+ *  has settled (the select shown, or radios with none clipped), a frame apart, for at most 2 s; a control that
+ *  never settles is still read and reported as it stands. */
+const settled = async (page) => {
+  for (const end = Date.now() + 2000; Date.now() < end;) {
+    const c = await choosable(page);
+    if (c.select || (c.radios > 0 && c.clipped.length === 0)) return c;
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+  }
+  return choosable(page);
+};
 for (const { w, h } of WIDTHS) {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w, h });
   try {
@@ -3802,7 +3814,7 @@ for (const { w, h } of WIDTHS) {
     // The default theme's four modes first: none clipped at any width (at 640 they did not fit, and the old
     // scroll hid one; the select shows them all).
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
-    const c4 = await choosable(page);
+    const c4 = await settled(page);
     ok(c4.clipped.length === 0 && JSON.stringify(c4.modes) === JSON.stringify(want), `web light ${w} / brand, 4 modes: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c4)}`);
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
     for (const n of [1, 2]) {
@@ -3810,8 +3822,7 @@ for (const { w, h } of WIDTHS) {
       want.push(`custom-${n}`);
       await page.waitForFunction((k) => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === k, want.length);
       if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
-      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-      const c = await choosable(page);
+      const c = await settled(page);
       const where = `web light ${w} / brand, ${want.length} modes`;
       ok(c.clipped.length === 0 && JSON.stringify(c.modes) === JSON.stringify(want), `${where}: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c)}`);
       if (c.select) {
