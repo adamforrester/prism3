@@ -586,6 +586,10 @@ export const slider: ComponentDef = {
   },
 
   notes: {
+    // #2967: how the readout's text property is keyed, for a projector (docs/19) — maintainer-only.
+    projection: [
+      'The range text key (#2967) — the Figma text property range text is keyed to defaultValue only because a texts key must be a declared prop and the two readouts need different placeholders. It is mechanical, not a prop mapping: range text is the readout of the current range, and defaultValue is only the starting value, so a Code Connect projection does not map defaultValue to it.',
+    ],
     contested: [
       'NO ERROR MEMBERS IN FIGMA. Q354 puts every control that can be invalid on the fields\' `status` axis. The approved proposal (call 2 A, 10 members) holds that a slider\'s own value is always in range, so an error comes from a paired input or outside validation, and the field message carries it; there is no error skin on the track. So the set has no `status` axis, and code carries `validation` (default, error) onto the nested message. Held for the owner: a `status` axis would make 20 members.',
     ],

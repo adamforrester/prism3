@@ -9,6 +9,11 @@
  * overlay closes and Activity shows each step as before. While a run is out the button is busy and, reopened, the
  * overlay shows the step running and Stop.
  *
+ * WHAT IS DUE (phase 2, Q2909.8 A): the button carries a badge with the number of due sets, from the as-built ledger the
+ * host reads at load. The checklist lists the due sets first, ticked, and as it opens asks for the full check over them
+ * alone; each set then says what changes, and the update waits on that answer. One choice covers the hand edits it finds
+ * (Keep, the default). A set built before the ledger reads "Not checked yet", with a way to check it.
+ *
  * CLEAN UP: Prune stale, moved here with its own preview (Q668 A): the preview runs as the tab opens and writes nothing;
  * its Delete is the confirmed prune. It never rides Update. The style guide's retired tables (Q412 A) are offered here
  * too, after a run that found some.
@@ -21,7 +26,8 @@
  */
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
-import { defaultTicks, newSetsOf, stepOf, stepsOf, STEP_TITLE, UPDATE_COPY, type FileSets, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { defaultTicks, dueCount, dueSetsOf, newSetsOf, stepOf, stepsOf, unrecordedOf, updatableOf, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import type { CheckedSetView } from '../write-adapter';
 import { focusables, glyph, h, hook, pendingLabel, setBusy, trapTab } from './dom';
 
 export type UpdateFileLend = {
@@ -43,10 +49,17 @@ export type UpdateFileLend = {
     /** The style guide's retired tables (Q412 A), and whether their removal is out. */
     readonly retired: readonly { readonly id: string; readonly name: string }[];
     readonly cleanupBusy: boolean;
+    /** Q2909.8 A: the background pass's hand edits by set, and the scoped check's last answer (`pending` while out). */
+    readonly handEdits: ReadonlyMap<string, { readonly members: number; readonly edited: number }>;
+    readonly updateCheck: { readonly previewHash: string; readonly sets: readonly CheckedSetView[]; readonly error: string | null } | 'pending' | null;
   };
   /** Ask the host which sets the file holds (`file-sets-request`). */
   readonly check: () => void;
-  readonly run: (steps: readonly StepKey[], sets: readonly string[]) => void;
+  /** Q2909.8 A: the full check, scoped to `defs` (`update-check-request`). */
+  readonly checkSets: (defs: readonly string[]) => void;
+  /** `update`: the due sets to update in place, the check's hash for exactly those sets (empty when they are fewer than
+   *  the check read, and the run checks them again first), and the hand-edit choice. */
+  readonly run: (steps: readonly StepKey[], sets: readonly string[], update: { readonly defs: readonly string[]; readonly previewHash: string; readonly checked: readonly CheckedSetView[]; readonly handEdits: HandEditChoice } | null) => void;
   readonly stop: () => void;
   readonly pruneCheck: () => void;
   readonly pruneDelete: () => void;
@@ -59,6 +72,10 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   button.type = 'button';
   button.setAttribute('aria-haspopup', 'dialog');
   button.append(pendingLabel(UPDATE_COPY.button, UPDATE_COPY.busy));
+  // Q2909.8 A: the number of due sets, beside the label; its words ride the button's name too.
+  const badge = hook(h('span', 'p3-upd-badge'), 'update-badge');
+  badge.setAttribute('aria-hidden', 'true');
+  button.append(badge);
   const layer = hook(h('div', 'p3-bardlg-layer'), 'update-layer');
 
   let open = false;
@@ -68,12 +85,18 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   let ticks: Ticks | null = null;
   /** Clean up's preview was asked for in this opening. */
   let pruneAsked = false;
+  /** The sets this opening asked the scoped check for, or null before it has (Q2909.8 A). */
+  let checkedFor: readonly string[] | null = null;
+  /** The not-yet-recorded sets a check has already ticked or left, so an untick by hand sticks. */
+  const seen = new Set<string>();
 
   const show = (): void => {
     if (open) return;
     open = true;
     tab = 'update';
     pruneAsked = false;
+    checkedFor = null;
+    seen.clear();
     if (!lend.read().run) { asked = lend.read().fileSets; ticks = null; lend.check(); }
     paint();
     const d = layer.querySelector<HTMLElement>('[data-p3="update-dialog"]');
@@ -140,16 +163,81 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     body.push(h('p', 'p3-sub p3-upd-lead', fresh ? UPDATE_COPY.leadFresh : UPDATE_COPY.lead));
     if (fresh) body.push(item('setup', t.setup, UPDATE_COPY.setup, UPDATE_COPY.setupSub, () => { ticks = { ...t, setup: !t.setup }; }));
     body.push(item('theme', t.theme, UPDATE_COPY.theme, UPDATE_COPY.themeSub, () => { ticks = { ...t, theme: !t.theme }; }));
-    // The sets: the item's head says how many are not in the file; each is its own box.
+    // The sets (Q2909.8 A): the due ones first, updated in place, then the ones not in the file; each is its own box.
     const fresh2 = newSetsOf(r.catalog, f);
+    const due = dueSetsOf(r.catalog, f);
+    const unrec = unrecordedOf(r.catalog, f);
+    // The full check, over the due sets alone, once per opening, as soon as the ledger's answer is in.
+    if (due.length && checkedFor === null) { checkedFor = due; lend.checkSets(due); }
+    const chk = r.updateCheck;
+    const answered = chk && chk !== 'pending' && checkedFor !== null ? chk : null;
+    const checkOf = (id: string): CheckedSetView | undefined => answered?.sets.find((c) => c.def === id);
+    const nameOf = (id: string): string => r.catalog.find((e) => e.id === id)?.name ?? id;
+    // A check that read the not-yet-recorded sets ticks each one an update would change, once, before anything is drawn.
+    if (answered && checkedFor && unrec.some((id) => checkedFor!.includes(id) && !t.update.has(id) && !seen.has(id))) {
+      for (const id of unrec) if (checkOf(id)) seen.add(id);
+      const add = unrec.filter((id) => { const c = checkOf(id); return c && !c.blocked && !c.upToDate && !t.update.has(id); });
+      if (add.length) { ticks = { ...t, update: new Set([...t.update, ...add]) }; return updateBody(); }
+    }
     const sets = hook(h('div', 'p3-upd-item'), 'update-item-sets');
-    sets.append(h('b', 'p3-upd-title', UPDATE_COPY.sets), h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.setsSub(fresh2.length)));
+    sets.append(h('b', 'p3-upd-title', UPDATE_COPY.sets), h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.setsDueSub(due.length + [...t.update].filter((id) => !due.includes(id)).length, fresh2.length)));
+    const updating = [...new Set([...due, ...t.update])];
+    if (updating.length) {
+      const list = hook(h('div', 'p3-upd-sets'), 'update-due-sets');
+      for (const id of updating) {
+        const on = t.update.has(id);
+        const d = f.due[id];
+        const c = checkOf(id);
+        const label: Node[] = [h('span', 'p3-upd-setname', nameOf(id))];
+        if (d?.state === 'due') label.push(hook(h('span', 'p3-sg-tag', UPDATE_COPY.dueWhy(d.reason)), 'update-set-due'));
+        const box = check('update-due-set', `due=${id}`, on, label, () => {
+          const next = new Set(t.update);
+          if (on) next.delete(id); else next.add(id);
+          ticks = { ...t, update: next };
+        });
+        box.dataset.id = id;
+        const row = h('div', 'p3-upd-setrow');
+        row.append(box, hook(h('p', 'p3-sub p3-upd-setline', c ? UPDATE_COPY.checked(c) : chk === 'pending' ? UPDATE_COPY.checkingSets : ''), 'update-set-check'));
+        list.append(row);
+      }
+      sets.append(list);
+      if (chk && chk !== 'pending' && chk.error) sets.append(hook(h('p', 'p3-sg-error', UPDATE_COPY.checkError), 'update-check-error'));
+      // One choice for every hand edit the update meets (the owner's starter-kit posture: Keep, by default).
+      const handN = [...t.update].reduce((n, id) => n + (checkOf(id)?.handEdited ?? r.handEdits.get(id)?.edited ?? 0), 0);
+      if (handN > 0) {
+        const grp = hook(h('div', 'p3-seg p3-upd-hand'), 'update-hand-edits');
+        grp.setAttribute('role', 'radiogroup');
+        grp.setAttribute('aria-label', UPDATE_COPY.handEdits);
+        for (const k of ['keep', 'overwrite', 'accept'] as const) {
+          const b = hook(h('button', 'p3-seg-tab', UPDATE_COPY.handChoice[k]), `update-hand-${k}`);
+          b.type = 'button';
+          b.dataset.key = `hand=${k}`;
+          b.setAttribute('role', 'radio');
+          b.setAttribute('aria-checked', String(t.handEdits === k));
+          b.onclick = () => { ticks = { ...t, handEdits: k }; paint(); };
+          grp.append(b);
+        }
+        const wrap = h('div', 'p3-upd-handrow');
+        wrap.append(h('span', 'p3-sub', UPDATE_COPY.handEdits), grp);
+        sets.append(wrap);
+      }
+      if (t.update.size) sets.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
+    }
+    if (unrec.length && !unrec.every((id) => t.update.has(id) || checkOf(id))) {
+      // Built before the ledger: only the full check can say. Checked, each one with changes joins the update, ticked.
+      const line = hook(h('div', 'p3-upd-handrow'), 'update-unrecorded');
+      line.append(h('span', 'p3-sub', UPDATE_COPY.unrecorded(unrec.length)),
+        btn('p3-btn p3-btn-page', 'update-check-unrecorded', 'unrecorded', UPDATE_COPY.checkUnrecorded(unrec.length), () => {
+          checkedFor = [...due, ...unrec];
+          lend.checkSets(checkedFor);
+        }));
+      sets.append(line);
+    }
     if (fresh2.length) {
       const list = hook(h('div', 'p3-upd-sets'), 'update-sets');
       for (const id of fresh2) {
-        const name = r.catalog.find((e) => e.id === id)?.name ?? id;
         const on = t.sets.has(id);
-        const box = check('update-set', `set=${id}`, on, [h('span', 'p3-upd-setname', name), hook(h('span', 'p3-sg-tag', UPDATE_COPY.setNew), 'update-set-new')], () => {
+        const box = check('update-set', `set=${id}`, on, [h('span', 'p3-upd-setname', nameOf(id)), hook(h('span', 'p3-sg-tag', UPDATE_COPY.setNew), 'update-set-new')], () => {
           const next = new Set(t.sets);
           if (on) next.delete(id); else next.add(id);
           ticks = { ...t, sets: next };
@@ -160,16 +248,22 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       sets.append(list);
     }
     body.push(sets, item('guides', t.guides, UPDATE_COPY.guides, UPDATE_COPY.guidesSub, () => { ticks = { ...t, guides: !t.guides }; }));
-    const steps = stepsOf(t, f);
+    const t2 = ticks ?? t;
+    // The update waits on the check's answer: its counts are what the person reviews, and its hash what the update echoes.
+    const updatable = answered ? updatableOf(t2, answered) : [];
+    const steps = stepsOf({ ...t2, update: new Set(updatable) }, f);
+    const waiting = t2.update.size > 0 && !answered;
     const go = hook(h('button', 'p3-btn p3-btn-primary'), 'update-go');
     go.type = 'button';
     go.dataset.key = 'go';
     go.textContent = fresh ? UPDATE_COPY.goFresh : UPDATE_COPY.go;
-    go.disabled = steps.length === 0 || !!r.off;
+    go.disabled = steps.length === 0 || !!r.off || waiting;
     if (r.off) go.title = r.off;
     go.onclick = () => {
-      if (go.disabled) return;
-      lend.run(steps, steps.includes('sets') ? fresh2.filter((id) => t.sets.has(id)) : []);
+      if (go.disabled || !answered && t2.update.size) return;
+      const exact = !!answered && checkedFor !== null && updatable.length === checkedFor.length && updatable.every((id) => checkedFor!.includes(id));
+      lend.run(steps, steps.includes('sets') ? fresh2.filter((id) => t2.sets.has(id)) : [],
+        updatable.length && answered ? { defs: updatable, previewHash: exact ? answered.previewHash : '', checked: answered.sets, handEdits: t2.handEdits } : null);
       close();
     };
     return { body, foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close), go] };
@@ -208,6 +302,10 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   const paint = (): void => {
     const r = lend.read();
     setBusy(button, !!r.run);
+    const n = dueCount(r.catalog, r.fileSets);
+    badge.textContent = n ? String(n) : '';
+    badge.hidden = !n;
+    if (n) button.setAttribute('aria-label', `${UPDATE_COPY.button}, ${UPDATE_COPY.badge(n)}`); else button.removeAttribute('aria-label');
     // Busy, it still opens the overlay (the step running, and Stop), so it is not announced as unavailable.
     button.removeAttribute('aria-disabled');
     if (!open) { if (layer.firstChild) layer.replaceChildren(); return; }

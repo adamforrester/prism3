@@ -27,6 +27,7 @@ import type { AgentLinkState, AgentResult, AgentProgress, AgentCmd } from './age
 import type { WriteCmd } from './run-guard';
 import type { LibraryFile } from './file-kind';
 import type { DocSettings } from './doc-settings';
+import type { SetDue } from './as-built-ledger';
 
 /** Messages the UI iframe sends TO the main thread. Wrapped in `{ pluginMessage }` on the wire. */
 export type UiToMain =
@@ -137,9 +138,32 @@ export type UiToMain =
    *  file's root plugin data so they travel with it (`doc-settings.ts`). The main thread normalizes them, keeps them and
    *  answers `doc-settings` with what it kept. */
   | { type: 'doc-settings-save'; settings: unknown }
-  /** Update file's checklist opening (#2909): which sets the file holds, and whether it is set up. Answered with one
-   *  `file-sets`. A read; never refused by the run guard. */
-  | { type: 'file-sets-request' };
+  /** Update file's checklist opening (#2909): which sets the file holds, whether it is set up, and which are due by the
+   *  as-built ledger (Q2909.8 A). Answered with one `file-sets`. A read; never refused by the run guard. Sent after load
+   *  too, so the panel knows what is due at rest. `input` is the brand the panel holds, which the due read measures
+   *  against (Q699 A): a lever changed in the panel shows its sets as due before Apply
+   *  Theme writes it. Absent (the main thread's own read at load), the file's stored brand. */
+  | { type: 'file-sets-request'; input?: BrandInput }
+  /** #2909 Q2909.8 A: the background hand-edit pass, after load. Answered with one `hand-edits` per set the file holds,
+   *  then one with `done`. A read; a later request, or a write starting, ends an earlier pass. */
+  | { type: 'hand-edits-request' }
+  /** #2909 Q2909.8 A: the full update check, scoped to the sets the checklist flags. Answered with one `update-check`. A
+   *  read; never refused by the run guard. `input`: the panel's brand, as `file-sets-request`'s, so the counts shown are
+   *  the ones the run's update writes after its Theme step stores that brand. */
+  | { type: 'update-check-request'; defs: string[]; input?: BrandInput }
+  /** #2909: Update file's in-place update of the ticked sets, under the check's `previewHash`, with the checklist's
+   *  choice for hand edits. The confirmed `update-components`, through the same action; answered with its
+   *  `component-update-result`. `input`: the panel's brand, the one the check measured, so the plans the apply lays are
+   *  the plans the check hashed. */
+  | { type: 'update-sets'; defs: string[]; previewHash: string; handEdits: 'keep' | 'overwrite' | 'accept'; input?: BrandInput };
+
+/** One set as the scoped check reads it (#2909): its members, what an update would do to them, and whether it is blocked. */
+export type CheckedSet = {
+  /** `hash`: the set's own share of the check's hash (`SetPreview.previewHash`), so an update of fewer sets than were
+   *  checked can tell the file moved under one of them since. */
+  def: string; hash: string; members: number; update: number; add: number; drop: number; handEdited: number; noBaseline: number;
+  blocked: boolean; upToDate: boolean;
+};
 
 /** A style-guide specimen (#259) — the `type` axis of `_style-guide-swatches` a table row instances. */
 export type SwatchType = 'default' | 'text' | 'icon' | 'border' | 'transparency';
@@ -456,7 +480,15 @@ export type MainToUi =
   | { type: 'doc-settings'; settings: DocSettings; error?: string }
   /** The answer to `file-sets-request` (#2909): the def ids whose set the file holds, and whether Set up file has run.
    *  `error` when the file could not be read; then `present` is empty and `setUp` false. */
-  | { type: 'file-sets'; present: string[]; setUp: boolean; error?: string }
+  | { type: 'file-sets'; present: string[]; setUp: boolean; error?: string;
+      /** #2909 Q2909.8 A: each present set read against the as-built ledger (`as-built-ledger.ts` `dueOf`). */
+      due: Record<string, SetDue> }
+  /** #2909 Q2909.8 A: one set's hand edits from the background pass (`handEditsOf`), or the pass's end (`done`). */
+  | { type: 'hand-edits'; def: string; members: number; edited: number }
+  | { type: 'hand-edits'; done: true }
+  /** #2909 Q2909.8 A: the scoped full check's answer: each set's counts, and the hash an `update-sets` must echo. `error`
+   *  when the check threw; then nothing else is filled. */
+  | { type: 'update-check'; previewHash: string; sets: CheckedSet[]; missing: string[]; refused: { def: string; reason: string }[]; error?: string }
   /** The result of an `agent-command` — the protocol's own envelope, relayed to the bridge unchanged. */
   | { type: 'agent-result'; result: AgentResult }
   /** A build's progress reading while an agent command runs, streamed to the bridge (#684's reading). */

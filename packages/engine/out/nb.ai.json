@@ -3826,7 +3826,7 @@
       "$description": "Secondary text — 4.5:1 on background.secondary",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Secondary text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
-      "avoid_when": "Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill.",
+      "avoid_when": "Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.550}",
         "dark": "{nbds.core.palette.neutral.450}",
@@ -3851,7 +3851,7 @@
       "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill.",
+      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.450}",
         "dark": "{nbds.core.palette.neutral.550}",
@@ -3890,7 +3890,7 @@
       "$description": "brand text — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Brand identity",
       "when_to_use": "Brand text — e.g. a brand accent or highlighted label. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid brand fill. Use `text.on-brand` there.",
+      "avoid_when": "Do not use on a solid brand fill. Use `text.on-brand` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.600}",
         "dark": "{nbds.core.palette.red.450}",
@@ -3915,7 +3915,7 @@
       "$description": "success text — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Success / positive signaling",
       "when_to_use": "Success text — e.g. a success confirmation. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 4.5:1 on `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid success fill. Use `text.on-success` there.",
+      "avoid_when": "Do not use on a solid success fill. Use `text.on-success` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.green.600}",
         "dark": "{nbds.core.palette.green.400}",
@@ -3942,7 +3942,7 @@
       "$description": "warning text — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Warning / caution signaling",
       "when_to_use": "Warning text — e.g. a caution note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid warning fill. Use `text.on-warning` there.",
+      "avoid_when": "Do not use on a solid warning fill. Use `text.on-warning` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.amber.600}",
         "dark": "{nbds.core.palette.amber.450}",
@@ -3967,7 +3967,7 @@
       "$description": "danger text — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Destructive / error signaling",
       "when_to_use": "Danger text — e.g. an inline validation error. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid danger fill. Use `text.on-danger` there.",
+      "avoid_when": "Do not use on a solid danger fill. Use `text.on-danger` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.600}",
         "dark": "{nbds.core.palette.red.450}",
@@ -3992,7 +3992,7 @@
       "$description": "info text — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Informational signaling",
       "when_to_use": "Info text — e.g. an informational note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid info fill. Use `text.on-info` there.",
+      "avoid_when": "Do not use on a solid info fill. Use `text.on-info` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.info.600}",
         "dark": "{nbds.core.palette.info.450}",
@@ -4327,7 +4327,7 @@
       "$description": "Link text — default, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.600}",
         "dark": "{nbds.core.palette.red.450}",
@@ -4352,7 +4352,7 @@
       "$description": "Link text — hover, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.700}",
         "dark": "{nbds.core.palette.red.350}",
@@ -4380,7 +4380,7 @@
       "$description": "Link text — visited, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.900}",
         "dark": "{nbds.core.palette.red.150}",
@@ -4408,7 +4408,7 @@
       "$description": "Link text — focused, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.600}",
         "dark": "{nbds.core.palette.red.450}",
@@ -4433,7 +4433,7 @@
       "$description": "Link text — pressed, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.800}",
         "dark": "{nbds.core.palette.red.250}",
@@ -4489,7 +4489,7 @@
       "$description": "Secondary icon — 4.5:1 on background.secondary",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Secondary icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `icon.primary` there.",
-      "avoid_when": "Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill.",
+      "avoid_when": "Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.550}",
         "dark": "{nbds.core.palette.neutral.450}",
@@ -4514,7 +4514,7 @@
       "$description": "Tertiary icon — 3:1 on background.secondary",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary icon. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `icon.primary` there.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill.",
+      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.450}",
         "dark": "{nbds.core.palette.neutral.550}",
@@ -4553,7 +4553,7 @@
       "$description": "brand icon — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Brand identity",
       "when_to_use": "Brand icons — e.g. the icon beside a brand accent or highlighted label. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid brand fill. Use `icon.on-brand` there.",
+      "avoid_when": "Do not use on a solid brand fill. Use `icon.on-brand` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.600}",
         "dark": "{nbds.core.palette.red.450}",
@@ -4578,7 +4578,7 @@
       "$description": "success icon — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Success / positive signaling",
       "when_to_use": "Success icons — e.g. the icon beside a success confirmation. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 4.5:1 on `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid success fill. Use `icon.on-success` there.",
+      "avoid_when": "Do not use on a solid success fill. Use `icon.on-success` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.green.600}",
         "dark": "{nbds.core.palette.green.400}",
@@ -4605,7 +4605,7 @@
       "$description": "warning icon — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Warning / caution signaling",
       "when_to_use": "Warning icons — e.g. the icon beside a caution note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid warning fill. Use `icon.on-warning` there.",
+      "avoid_when": "Do not use on a solid warning fill. Use `icon.on-warning` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.amber.600}",
         "dark": "{nbds.core.palette.amber.450}",
@@ -4630,7 +4630,7 @@
       "$description": "danger icon — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Destructive / error signaling",
       "when_to_use": "Danger icons — e.g. the icon beside an inline validation error. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid danger fill. Use `icon.on-danger` there.",
+      "avoid_when": "Do not use on a solid danger fill. Use `icon.on-danger` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.600}",
         "dark": "{nbds.core.palette.red.450}",
@@ -4655,7 +4655,7 @@
       "$description": "info icon — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Informational signaling",
       "when_to_use": "Info icons — e.g. the icon beside an informational note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid info fill. Use `icon.on-info` there.",
+      "avoid_when": "Do not use on a solid info fill. Use `icon.on-info` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.info.600}",
         "dark": "{nbds.core.palette.info.450}",
@@ -4990,7 +4990,7 @@
       "$description": "Link icon — default, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
+      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.600}",
         "dark": "{nbds.core.palette.red.450}",
@@ -5015,7 +5015,7 @@
       "$description": "Link icon — hover, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
+      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.700}",
         "dark": "{nbds.core.palette.red.350}",
@@ -5043,7 +5043,7 @@
       "$description": "Link icon — visited, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
+      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.900}",
         "dark": "{nbds.core.palette.red.150}",
@@ -5071,7 +5071,7 @@
       "$description": "Link icon — focused, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
+      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.600}",
         "dark": "{nbds.core.palette.red.450}",
@@ -5096,7 +5096,7 @@
       "$description": "Link icon — pressed, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
+      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.800}",
         "dark": "{nbds.core.palette.red.250}",
@@ -5158,7 +5158,7 @@
       "$description": "Secondary text on an inverse surface — 4.5:1 on inverse.background.secondary",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Secondary text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.text.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.secondary`. Do not use on solid or vivid fills.",
+      "avoid_when": "Do not use on the page ground; that is `text.secondary`. Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.450}",
         "dark": "{nbds.core.palette.neutral.550}",
@@ -5183,7 +5183,7 @@
       "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.text.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.tertiary`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills.",
+      "avoid_when": "Do not use on the page ground; that is `text.tertiary`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.550}",
         "dark": "{nbds.core.palette.neutral.450}",
@@ -5222,7 +5222,7 @@
       "$description": "brand text — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Brand identity (inverse ground)",
       "when_to_use": "Brand text — e.g. a brand accent or highlighted label. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.brand`. Do not use on a solid brand fill.",
+      "avoid_when": "Do not use on the page ground; that is `text.brand`. Do not use on a solid brand fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.450}",
         "dark": "{nbds.core.palette.red.600}",
@@ -5247,7 +5247,7 @@
       "$description": "success text — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Success text — e.g. a success confirmation. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary` and `inverse.foreground.secondary`. Below 4.5:1 on `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.success`. Do not use on a solid success fill.",
+      "avoid_when": "Do not use on the page ground; that is `text.success`. Do not use on a solid success fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.green.400}",
         "dark": "{nbds.core.palette.green.600}",
@@ -5274,7 +5274,7 @@
       "$description": "warning text — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Warning text — e.g. a caution note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.warning`. Do not use on a solid warning fill.",
+      "avoid_when": "Do not use on the page ground; that is `text.warning`. Do not use on a solid warning fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.amber.450}",
         "dark": "{nbds.core.palette.amber.600}",
@@ -5299,7 +5299,7 @@
       "$description": "danger text — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Danger text — e.g. an inline validation error. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.danger`. Do not use on a solid danger fill.",
+      "avoid_when": "Do not use on the page ground; that is `text.danger`. Do not use on a solid danger fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.450}",
         "dark": "{nbds.core.palette.red.600}",
@@ -5324,7 +5324,7 @@
       "$description": "info text — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Info text — e.g. an informational note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.info`. Do not use on a solid info fill.",
+      "avoid_when": "Do not use on the page ground; that is `text.info`. Do not use on a solid info fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.info.450}",
         "dark": "{nbds.core.palette.info.600}",
@@ -5544,7 +5544,7 @@
       "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use `inverse.text.primary`).",
+      "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use `inverse.text.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.450}",
         "dark": "{nbds.core.palette.red.550}",
@@ -5569,7 +5569,7 @@
       "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use `inverse.text.primary`).",
+      "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use `inverse.text.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.350}",
         "dark": "{nbds.core.palette.red.650}",
@@ -5597,7 +5597,7 @@
       "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use `inverse.text.primary`).",
+      "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use `inverse.text.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.150}",
         "dark": "{nbds.core.palette.red.850}",
@@ -5625,7 +5625,7 @@
       "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.focused`. Do not use for non-interactive text (use `inverse.text.primary`).",
+      "avoid_when": "Do not use on the page ground; that is `text.link.focused`. Do not use for non-interactive text (use `inverse.text.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.450}",
         "dark": "{nbds.core.palette.red.550}",
@@ -5650,7 +5650,7 @@
       "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.pressed`. Do not use for non-interactive text (use `inverse.text.primary`).",
+      "avoid_when": "Do not use on the page ground; that is `text.link.pressed`. Do not use for non-interactive text (use `inverse.text.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.250}",
         "dark": "{nbds.core.palette.red.750}",
@@ -5706,7 +5706,7 @@
       "$description": "Secondary icon on an inverse surface — 4.5:1 on inverse.background.secondary",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Secondary icon. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.icon.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.secondary`. Do not use on solid or vivid fills.",
+      "avoid_when": "Do not use on the page ground; that is `icon.secondary`. Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.450}",
         "dark": "{nbds.core.palette.neutral.550}",
@@ -5731,7 +5731,7 @@
       "$description": "Tertiary icon on an inverse surface — 3:1 on inverse.background.secondary",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Tertiary icon. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.icon.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.tertiary`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills.",
+      "avoid_when": "Do not use on the page ground; that is `icon.tertiary`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.550}",
         "dark": "{nbds.core.palette.neutral.450}",
@@ -5770,7 +5770,7 @@
       "$description": "brand icon — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Brand identity (inverse ground)",
       "when_to_use": "Brand icons — e.g. the icon beside a brand accent or highlighted label. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.brand`. Do not use on a solid brand fill.",
+      "avoid_when": "Do not use on the page ground; that is `icon.brand`. Do not use on a solid brand fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.450}",
         "dark": "{nbds.core.palette.red.600}",
@@ -5795,7 +5795,7 @@
       "$description": "success icon — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Success icons — e.g. the icon beside a success confirmation. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary` and `inverse.foreground.secondary`. Below 4.5:1 on `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.success`. Do not use on a solid success fill.",
+      "avoid_when": "Do not use on the page ground; that is `icon.success`. Do not use on a solid success fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.green.400}",
         "dark": "{nbds.core.palette.green.600}",
@@ -5822,7 +5822,7 @@
       "$description": "warning icon — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Warning icons — e.g. the icon beside a caution note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.warning`. Do not use on a solid warning fill.",
+      "avoid_when": "Do not use on the page ground; that is `icon.warning`. Do not use on a solid warning fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.amber.450}",
         "dark": "{nbds.core.palette.amber.600}",
@@ -5847,7 +5847,7 @@
       "$description": "danger icon — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Danger icons — e.g. the icon beside an inline validation error. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.danger`. Do not use on a solid danger fill.",
+      "avoid_when": "Do not use on the page ground; that is `icon.danger`. Do not use on a solid danger fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.450}",
         "dark": "{nbds.core.palette.red.600}",
@@ -5872,7 +5872,7 @@
       "$description": "info icon — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Info icons — e.g. the icon beside an informational note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.info`. Do not use on a solid info fill.",
+      "avoid_when": "Do not use on the page ground; that is `icon.info`. Do not use on a solid info fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.info.450}",
         "dark": "{nbds.core.palette.info.600}",
@@ -6092,7 +6092,7 @@
       "$description": "Link icon on an inverse surface — default, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.default`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.default`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.450}",
         "dark": "{nbds.core.palette.red.550}",
@@ -6117,7 +6117,7 @@
       "$description": "Link icon on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.hover`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.hover`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.350}",
         "dark": "{nbds.core.palette.red.650}",
@@ -6145,7 +6145,7 @@
       "$description": "Link icon on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon after it has been visited. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.visited`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.visited`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.150}",
         "dark": "{nbds.core.palette.red.850}",
@@ -6173,7 +6173,7 @@
       "$description": "Link icon on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.focused`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.focused`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.450}",
         "dark": "{nbds.core.palette.red.550}",
@@ -6198,7 +6198,7 @@
       "$description": "Link icon on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.pressed`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.pressed`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.250}",
         "dark": "{nbds.core.palette.red.750}",

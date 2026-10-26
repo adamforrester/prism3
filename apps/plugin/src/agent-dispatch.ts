@@ -60,9 +60,14 @@ export type AgentActions = {
   seedFromFile(sink: ActionSink): Promise<void>;
   /** #2265: the in-place update's dry run (writes nothing) and the one-time baseline capture. */
   /** `previewHash` is `null` for a check and the check's hash for an apply (#2265 PR 2); `choices`, an apply's. */
-  updateComponents(def: string | undefined, previewHash: string | null, choices: UpdateChoiceArgs | undefined, sink: ActionSink): Promise<void>;
+  /** `def`: one def, every def (`undefined`), or, from the panel's Update file (#2909), the sets its checklist ticked.
+   *  `input`: the brand the panel's check measured (Q699 A); an agent's update sends none and reads the file's. Before
+   *  `sink`, which the run guard reads as the last argument. */
+  updateComponents(def: string | readonly string[] | undefined, previewHash: string | null, choices: UpdateChoiceArgs | undefined, input: BrandInput | undefined, sink: ActionSink): Promise<void>;
   captureBaseline(def: string | undefined, sink: ActionSink): Promise<void>;
   adoptMembers(def: string | undefined, sink: ActionSink): Promise<void>;
+  /** #2830 phase 2: the spec panels, on request only. */
+  drawSpecs(def: string | undefined, sink: ActionSink): Promise<void>;
 };
 
 /** The slice of a page node the census reads. */
@@ -161,10 +166,11 @@ export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   },
   'update-components': (c, a, sink) => {
     const args = (c as Extract<ValidCommand, { cmd: 'update-components' }>).args;
-    return a.updateComponents(args.def, args.confirm ? args.previewHash : null, args.confirm ? args.choices : undefined, sink);
+    return a.updateComponents(args.def, args.confirm ? args.previewHash : null, args.confirm ? args.choices : undefined, undefined, sink);
   },
   'capture-baseline': (c, a, sink) => a.captureBaseline((c as Extract<ValidCommand, { cmd: 'capture-baseline' }>).args.def, sink),
   'adopt-members': (c, a, sink) => a.adoptMembers((c as Extract<ValidCommand, { cmd: 'adopt-members' }>).args.def, sink),
+  'draw-specs': (c, a, sink) => a.drawSpecs((c as Extract<ValidCommand, { cmd: 'draw-specs' }>).args.def, sink),
   readback: async (_c, a, sink, d) => {
     await a.seedFromFile(sink);
     sink.data({ components: await d.census() });

@@ -19,7 +19,7 @@ A field for a short one-time code sent by text message, email or an authenticato
 
 Shown on the default member: size `medium`, status `default`.
 
-1. **Container** — The field: label, the row of cells and the message, as wide as the cells.
+1. **Container** — The field: label, the row of cells and the message, as wide as the widest of the three.
 2. **Label** — The accessible name, composed. Its label text, required marker, emphasis and weight surface on the code input; it dims when the field is disabled.
 3. **Items** — The cells: a native slot of Cell instances, six by default, four at least and eight at most. The code is as long as the slot holds cells. In code the whole row is one target that focuses the one input.
 4. **Cell1** — Cell 1 of the default six.

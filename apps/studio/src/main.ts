@@ -25,7 +25,7 @@ import { hex, oklchToRgb } from '@prism3/engine/color';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { toDesignMd } from '@prism3/engine/design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
-import { hostCommit, type HostCommit } from './write-adapter';
+import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
@@ -34,7 +34,7 @@ import type { StyleGuidesLend } from './shell/style-guides';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { DocumentationLend } from './shell/documentation';
-import { startUpdate, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
+import { startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
 import { readSaved, savedDrawOptions } from './state/style-guides';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
@@ -1113,7 +1113,6 @@ const mountView = (view: RootView): void => {
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
         activity: { read: activityReading, closeDetail: closeOpenDetail },
         // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
-        applyTheme: null,
         updateFile: commit.isFigma ? updateFileLend : null,
         documentation: commit.isFigma ? documentationLend : null,
         // #2637 Q384: the bar's Docs. In the plugin the main thread opens the docs in the browser; on the web it is a link.
@@ -1125,6 +1124,7 @@ const mountView = (view: RootView): void => {
           busy: componentBusy, agentBusy: () => agentRunning('components'), lastOf: (id) => host.setBuilds.get(id),
           run: runSets, stop: stopSets, current: () => run, last: () => lastRun,
           showResult: () => { setHost({ openDetail: 'components' }); hostChanged(); },
+          status: (id) => (commit.isFigma ? statusesOf(id, host.fileSets, host.handEdits, host.handPass) : []),
         } },
         // The product mark's logo, `styles.css`'s fixed gradient, lent like the views above.
         logo: () => el('span', 'logo'),
@@ -1413,17 +1413,10 @@ const barRead = (): BarView => ({
   confirm: pendingLoad && (pendingLoad.origin.kind === 'example' || pendingLoad.origin.kind === 'import')
     ? { at: pendingLoad.origin.kind, text: overwriteText(pendingLoad) } : null,
   importOpen, importText, importErr,
-  // #2909: in the plugin Export is an area, so its content shows for as long as the area is open, whatever else
-  // (the brand menu, a download) closes the web's dialog. The one mechanism that holds it open (#2995, nit 4).
-  exportOpen: exportMenuOpen || (commit.isFigma && page === 'export'),
+  // #2909: Export is an area, so its content shows for as long as the area is open, whatever else (the brand menu, a
+  // download) closes. The one mechanism that holds it open (#2995, nit 4).
+  exportOpen: exportMenuOpen || page === 'export',
   home: homeBar(homeShown()),
-  // #2909: on the rail the prune's preview is Update file's Clean up tab, never this dialog.
-  prune: host.prunePreview && !commit.isFigma ? {
-    summary: host.prunePreview.summary,
-    deleteLabel: `Delete ${host.prunePreview.count} item${host.prunePreview.count === 1 ? '' : 's'}`,
-    // #1989: a preview the host sends opens this dialog whatever the Prune button's state, so Delete is off too.
-    off: restoreFailure ? RESTORE_OFF_HINT : null,
-  } : null,
 });
 
 /** The export dialog's content (#723, implementing #720), from `export-settings.ts`, which is pure and tested under
@@ -1507,8 +1500,6 @@ const barActions: BarActions = {
   cancelReplace: () => { pendingLoad = null; barChanged(); },
   toggleExport: () => { exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; barChanged(); },
   closeExport: () => { exportMenuOpen = false; barChanged(); },
-  // Escape closes the dialog and its import box with it, as it always has.
-  escapeExport: () => { exportMenuOpen = false; importOpen = false; barChanged(); },
   artifact: (id) => { exportArtifact = id as ArtifactId; barChanged(); },
   setting: (key, value) => {
     if (key === METADATA_OPTION.key) exportMetadata = value === 'on';
@@ -1516,17 +1507,17 @@ const barActions: BarActions = {
     barChanged();
   },
   download: () => {
-    // The dialog closes; in the plugin the Export area stays drawn (`exportOpen` in `barRead`, #2909).
+    // The Export area stays drawn (`exportOpen` in `barRead`, #2909).
     exportMenuOpen = false; barChanged();
     if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
   },
-  // Cancel deletes nothing: a review is not a commitment. Only Delete's `postPrune(…, true)` does, and the main thread
-  // recomputes the plan from a fresh read before it acts.
-  closePrune: () => { setHost({ prunePreview: null }); barChanged(); },
-  deletePrune: () => {
-    if (restoreFailure) return;
-    setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true);
-  },
+};
+
+/** Clean up's Delete (#2909; the bar's prune review until #2998): only its `postPrune(…, true)` deletes, and the main
+ *  thread recomputes the plan from a fresh read before it acts. Its preview's Cancel deletes nothing. */
+const deletePrune = (): void => {
+  if (restoreFailure) return;
+  setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true);
 };
 
 
@@ -1850,6 +1841,19 @@ let updateRun: UpdateRun | null = null;
 let updateStopped: { readonly step: StepKey; readonly headline: string } | null = null;
 /** The style-guide step asked for a fresh catalog and waits for it, to draw with Documentation's saved settings. */
 let guidesWait = false;
+/** Q2909.8 A: what the person reviewed, set by set, and where the `update` step is: checking fewer sets again, or
+ *  waiting on the update's verdict. */
+let updateReviewed: readonly CheckedSetView[] = [];
+let updatePhase: 'recheck' | 'apply' | null = null;
+/** The update of fewer sets than were checked, checked again: each set must hash as the person reviewed it. */
+const UPDATE_MOVED = 'A set changed in the file since the check. Open Update file again to see what changes now.';
+/** The brand Update file measures against (Q699 A): the one the panel holds, which the run's
+ *  Theme step applies, so the due read, the check and the update agree. Apply's own `lastGoodInput`. */
+const panelBrand = (): BrandInput => lastGoodInput;
+const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): void => {
+  updatePhase = 'apply';
+  commit.postUpdateSets(u.defs, previewHash, u.handEdits, panelBrand());
+};
 const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
 /** The run after the step out ended: record it, then start the next or end the run. */
 const endStep = (ok: boolean, headline: string): void => {
@@ -1857,7 +1861,16 @@ const endStep = (ok: boolean, headline: string): void => {
   const step = stepOf(updateRun);
   updateRun = stepDone(updateRun, ok, headline);
   if (!ok && step) updateStopped = { step, headline };
-  if (updateRun.done) { updateRun = null; updateChanged(); return; }
+  if (updateRun.done) {
+    updateRun = null;
+    updatePhase = null;
+    // Q2909.8 A: what is due now, and the hand edits after it, so the badge and the statuses follow the run.
+    setHost({ handPass: 'running', handEdits: new Map(), updateCheck: null });
+    commit.requestFileSets(panelBrand());
+    commit.requestHandEdits();
+    updateChanged();
+    return;
+  }
   startStep();
 };
 /** Start the step the run is on. A write that refuses to start (its own run is out, the panel's or an agent's) ends the
@@ -1868,6 +1881,13 @@ const startStep = (): void => {
   const busy = 'Another run of this step is out. Try again when it ends.';
   if (step === 'setup') { runFileSetup(); if (host.fileSetupState !== 'pending') { endStep(false, busy); return; } }
   else if (step === 'theme') { runApply(); if (host.applyState !== 'pending') { endStep(false, busy); return; } }
+  else if (step === 'update') {
+    const u = updateRun.update;
+    if (!u || componentBusy()) { endStep(false, busy); return; }
+    // The check's own hash when the update covers exactly the sets it read; else those sets are checked again first.
+    if (u.previewHash) postUpdate(u, u.previewHash);
+    else { updatePhase = 'recheck'; setHost({ updateCheck: 'pending' }); commit.requestUpdateCheck(u.defs, panelBrand()); }
+  }
   else if (step === 'sets') { runSets('selection', updateRun.sets); if (!run) { endStep(false, busy); return; } }
   else if (agentRunning('styleguide') || host.styleGuideState === 'pending') { endStep(false, busy); return; }
   else { guidesWait = true; commit.requestStyleGuideCatalog(); }
@@ -1879,6 +1899,14 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   if (!step) return;
   if (step === 'setup' && m.kind === 'file-setup-result') { endStep(m.ok, m.headline); return; }
   if (step === 'theme' && m.kind === 'apply-result') { endStep(m.ok, m.headline); return; }
+  if (step === 'update' && updatePhase === 'recheck' && m.kind === 'update-check') {
+    const u = updateRun!.update!;
+    const same = !m.error && u.defs.every((id) => { const was = updateReviewed.find((c) => c.def === id); const now = m.sets.find((c) => c.def === id); return !!was && !!now && was.hash === now.hash; });
+    if (!same) { updatePhase = null; endStep(false, m.error ?? UPDATE_MOVED); return; }
+    postUpdate(u, m.previewHash);
+    return;
+  }
+  if (step === 'update' && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline); return; }
   // The build queue posts its sets one after another (`runAfterResult`); the step ends with the queue.
   if (step === 'sets' && m.kind === 'component-result' && prev.componentState === 'pending' && !run) { endStep(lastRun?.verdict.ok ?? m.ok, lastRun?.verdict.headline ?? m.headline); return; }
   if (step === 'guides' && guidesWait && m.kind === 'style-guide-catalog') {
@@ -1889,7 +1917,8 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   }
   if (step === 'guides' && !guidesWait && m.kind === 'style-guide-result') { endStep(m.ok, m.headline); return; }
   // A panel request the host declined behind an agent's run gets no verdict: the step ends with the host's words.
-  if (m.kind === 'refused' && !m.agent && STEP_OF_OP[host.refused?.op ?? 'readback'] === step) endStep(false, m.message);
+  const refusedStep = STEP_OF_OP[host.refused?.op ?? 'readback'];
+  if (m.kind === 'refused' && !m.agent && (refusedStep === step || (step === 'update' && refusedStep === 'sets'))) { updatePhase = null; endStep(false, m.message); }
 };
 /** Update file's reads and writes, lent to the shell (`shell/update-file.ts`). */
 const updateFileLend: UpdateFileLend = {
@@ -1897,12 +1926,15 @@ const updateFileLend: UpdateFileLend = {
     fileSets: host.fileSets, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: restoreFailure ? RESTORE_OFF_HINT : null,
     prune: { busy: host.pruneBusy, preview: host.prunePreview, verdict: host.pruneVerdict },
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
+    handEdits: host.handEdits, updateCheck: host.updateCheck,
   }),
-  check: () => commit.requestFileSets(),
-  run: (steps, sets) => {
+  check: () => commit.requestFileSets(panelBrand()),
+  checkSets: (defs) => { setHost({ updateCheck: 'pending' }); updateChanged(); commit.requestUpdateCheck(defs, panelBrand()); },
+  run: (steps, sets, update) => {
     if (updateRun || restoreFailure) return;
     updateStopped = null;
-    updateRun = startUpdate(steps, sets);
+    updateReviewed = update?.checked ?? [];
+    updateRun = startUpdate(steps, sets, update ? { defs: update.defs, previewHash: update.previewHash, handEdits: update.handEdits } : null);
     startStep();
   },
   stop: () => {
@@ -1912,7 +1944,7 @@ const updateFileLend: UpdateFileLend = {
     updateChanged();
   },
   pruneCheck: () => runPrune(),
-  pruneDelete: () => barActions.deletePrune(),
+  pruneDelete: deletePrune,
   cleanUp: (ids) => styleGuidesLend.cleanUp(ids),
 };
 

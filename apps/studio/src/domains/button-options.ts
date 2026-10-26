@@ -2,6 +2,10 @@
  * Button options (UI redesign S8.2; moved by #2700). The way to Shape › Density, then Button icons, Button label & icon,
  * Control label weight (the `buttonLabelWeight` key, #2945) and text-button hover as chips, and Button minimum width as a slider.
  *
+ * READ-ONLY LINES (#2909 Q2909.3 A, Q2909.4 A, v2's lever-home table). Three brand-wide levers shape buttons and are
+ * edited in Theme, so each shows here as a line whose link opens its home (`ui/home-line.ts`): Density (Theme › Shape),
+ * the weights under Control label weight (Theme › Type) and Outline hover (Theme › Color › Interactive).
+ *
  * WHERE THEY ARE DRAWN (#2700, call 9 A). They used to be the Components levers panel's Button section. With the list in
  * the levers pane, the options sit with the family they shape: the preview pane's Buttons block, and at the narrow tier
  * the same block opened inline under the Buttons row. One builder, so the two places cannot drift.
@@ -24,7 +28,8 @@ import { contentSizeOf, setButtonContentSize, setButtonIcons, setButtonLabelWeig
 import { brandDensity } from '../state/shape-input';
 import { pageOfTab } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
-import { choice, leverBlock, leverOf, slider, sliderReadout, stateLine, subLine, keepFocus, type LeverBlock } from '../ui/lever-kit';
+import { choice, leverBlock, leverOf, slider, sliderReadout, stateLine, keepFocus, type LeverBlock } from '../ui/lever-kit';
+import { homeLine } from '../ui/home-line';
 
 /** The options' copy (S8.2). DRAFT, pending the owner (the S8.2 PR's "Copy for owner approval" block). */
 export const BUTTON_OPTIONS_COPY = {
@@ -32,6 +37,11 @@ export const BUTTON_OPTIONS_COPY = {
   densityLabel: 'Density',
   density: 'Density sets component heights and spacing.',
   densityLink: 'Set it in Shape › Density',
+  /** #2909 Q2909.4 A: the two other lines' names and links. DRAFT placeholders (Q2909.10 A). */
+  weightsLabel: 'Weights',
+  weightsLink: 'Set it in Type › Weights and styles',
+  outlineLabel: 'Outline hover',
+  outlineLink: 'Set it in Color › Interactive',
   /** What the chosen Button label & icon gives a medium button, in the brand's sizes (#2918). DRAFT, option A. */
   contentSize: (c: ContentSizeView): string => c.rung === 'sm'
     ? `Medium button label: ${c.labelPx}px, the small button's (label/sm). Icon: ${c.iconPx}px.`
@@ -54,6 +64,22 @@ export const BUTTON_OPTION_KEYS = ['buttonIcons', 'buttonContentSize', 'buttonLa
 /** Everything a pointer or keyboard can operate, held in a derived mode. */
 const OPERABLE = 'button, input, select, [role="radio"], [role="slider"], [role="checkbox"], [tabindex]:not([tabindex="-1"])';
 
+/** A lever's value as its options name it (the manifest's label), or the value itself. */
+export const optionLabel = (key: string): string => {
+  const v = String(getPath(brandState, key) ?? leverOf(key)?.default ?? '');
+  return (leverOf(key)?.options ?? []).find((o) => String(o.value) === v)?.label ?? v;
+};
+
+/** The Density line (S8.2's way to Shape › Density), Button options' and the shared block's (#2909). */
+export const densityLine = (role = 'components-density'): HTMLElement => {
+  const d = brandDensity();
+  return homeLine({
+    role, label: BUTTON_OPTIONS_COPY.densityLabel,
+    value: (leverOf('density')?.options ?? []).find((o) => String(o.value) === d)?.label ?? d,
+    note: BUTTON_OPTIONS_COPY.density, link: BUTTON_OPTIONS_COPY.densityLink, go: () => setPage(pageOfTab('shape')),
+  });
+};
+
 /** Mount the Button options into `hostEl`. `modeName` names a mode as the mode control shows it. Subscriptions are
  *  released through `cleanups`. */
 export const mountButtonOptions = (hostEl: HTMLElement, cleanups: (() => void)[], modeName: (m: string) => string): void => {
@@ -73,21 +99,17 @@ export const mountButtonOptions = (hostEl: HTMLElement, cleanups: (() => void)[]
     rebuild();
   };
 
-  const densityLink = (): HTMLElement => {
-    const box = hook(h('div', 'p3-lever'), 'components-density');
-    const head = h('div', 'p3-lever-head');
-    const d = brandDensity();
-    const label = (leverOf('density')?.options ?? []).find((o) => String(o.value) === d)?.label ?? d;
-    head.append(h('span', 'p3-lever-name', BUTTON_OPTIONS_COPY.densityLabel), h('span', 'p3-readout', label));
-    const go = hook(h('button', 'p3-btn p3-btn-ghost p3-deplink'), 'components-density-link');
-    go.type = 'button';
-    go.append(h('span', 'p3-btn-label', BUTTON_OPTIONS_COPY.densityLink), glyph('chevr'));
-    go.onclick = () => setPage(pageOfTab('shape'));
-    const ctl = h('div', 'p3-lever-ctl');
-    ctl.append(subLine(BUTTON_OPTIONS_COPY.density), go);
-    box.append(head, ctl);
-    return box;
-  };
+  const densityLink = (): HTMLElement => densityLine();
+  /** The weights a label can take, as Type › Weights and styles names them. */
+  const weightsLine = (): HTMLElement => homeLine({
+    role: 'components-weights', label: BUTTON_OPTIONS_COPY.weightsLabel,
+    value: theme.typography.weightRoles.map((w) => `${w.role} ${w.value}`).join(' · '),
+    link: BUTTON_OPTIONS_COPY.weightsLink, go: () => setPage(pageOfTab('type')),
+  });
+  const outlineLine = (): HTMLElement => homeLine({
+    role: 'components-outline-hover', label: BUTTON_OPTIONS_COPY.outlineLabel, value: optionLabel('outlineInteraction'),
+    link: BUTTON_OPTIONS_COPY.outlineLink, go: () => setPage('interactive'),
+  });
   const chips = (key: string): HTMLElement => {
     const L = leverOf(key);
     const b = leverBlock(key, { group: true });
@@ -134,7 +156,8 @@ export const mountButtonOptions = (hostEl: HTMLElement, cleanups: (() => void)[]
     const derived = isDerived(currentMode);
     if (derived) parts.push(hook(h('p', 'p3-sg-note p3-sg-warn'), 'button-options-derived'));
     // #2905 Q10 A: the block's description says icon buttons are not affected, so no scope line closes it.
-    parts.push(densityLink(), ...BUTTON_OPTION_KEYS.map(chips), minWidth());
+    // The weights line under Control label weight, Outline hover after Text button hover (v2's table).
+    parts.push(densityLink(), ...BUTTON_OPTION_KEYS.flatMap((k) => [chips(k), ...(k === 'buttonLabelWeight' ? [weightsLine()] : k === 'buttonTextHover' ? [outlineLine()] : [])]), minWidth());
     root.replaceChildren(...parts);
     if (derived) {
       const note = parts[0];

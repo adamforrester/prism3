@@ -26441,6 +26441,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.thick"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "height": {
                   "token": "size.md.height"
                 }
@@ -26503,6 +26515,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.thick"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "height": {
                   "token": "size.sm.height"
                 }
@@ -26565,6 +26589,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.thick"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "height": {
                   "token": "size.lg.height"
                 }
@@ -27081,6 +27117,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 }
@@ -27113,6 +27161,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 }
@@ -27145,6 +27205,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 }
@@ -27177,6 +27249,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 },
@@ -27213,6 +27297,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 },
@@ -27249,6 +27345,18 @@
             {
               "part": "container",
               "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "border-width.hairline"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
                 "gap": {
                   "token": "space.0"
                 },
@@ -28029,7 +28137,7 @@
     "accordion": {
       "id": "accordion",
       "name": "Accordion",
-      "members": 24,
+      "members": 48,
       "axes": [
         {
           "name": "expansion",
@@ -28046,6 +28154,15 @@
           "values": [
             "leading",
             "trailing"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "indicator",
+          "figmaName": "indicator",
+          "values": [
+            "chevron",
+            "plus-minus"
           ],
           "kind": "variant"
         },
@@ -28074,22 +28191,22 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 24
+          "members": 48
         },
         {
           "part": "container/header",
           "kind": "frame",
-          "members": 24
+          "members": 48
         },
         {
           "part": "container/header/titleRow",
           "kind": "frame",
-          "members": 24
+          "members": 48
         },
         {
           "part": "container/header/titleRow/leadingIndicator",
           "kind": "frame",
-          "members": 12,
+          "members": 24,
           "when": {
             "iconPosition": [
               "leading"
@@ -28099,7 +28216,7 @@
         {
           "part": "container/header/titleRow/leadingIndicator/leadingGlyph",
           "kind": "instance",
-          "members": 12,
+          "members": 24,
           "when": {
             "iconPosition": [
               "leading"
@@ -28109,22 +28226,22 @@
         {
           "part": "container/header/titleRow/titleBox",
           "kind": "frame",
-          "members": 24
+          "members": 48
         },
         {
           "part": "container/header/titleRow/titleBox/label",
           "kind": "text",
-          "members": 24
+          "members": 48
         },
         {
           "part": "container/divider",
           "kind": "instance",
-          "members": 24
+          "members": 48
         },
         {
           "part": "container/header/focusRing",
           "kind": "instance",
-          "members": 12,
+          "members": 24,
           "when": {
             "state": [
               "focus-visible"
@@ -28134,7 +28251,7 @@
         {
           "part": "container/header/titleRow/trailingIndicator",
           "kind": "frame",
-          "members": 12,
+          "members": 24,
           "when": {
             "iconPosition": [
               "trailing"
@@ -28144,7 +28261,7 @@
         {
           "part": "container/header/titleRow/trailingIndicator/trailingGlyph",
           "kind": "instance",
-          "members": 12,
+          "members": 24,
           "when": {
             "iconPosition": [
               "trailing"
@@ -28154,7 +28271,7 @@
         {
           "part": "container/content",
           "kind": "slot",
-          "members": 12,
+          "members": 24,
           "when": {
             "expansion": [
               "expanded"
@@ -28164,7 +28281,7 @@
         {
           "part": "container/content/placeholder",
           "kind": "text",
-          "members": 12,
+          "members": 24,
           "when": {
             "expansion": [
               "expanded"
@@ -28449,6 +28566,7 @@
       "colorKey": [
         "expansion",
         "iconPosition",
+        "indicator",
         "state"
       ],
       "colors": [
@@ -28456,6 +28574,7 @@
           "where": {
             "expansion": "collapsed",
             "iconPosition": "leading",
+            "indicator": "chevron",
             "state": "rest"
           },
           "parts": [
@@ -28469,6 +28588,35 @@
           "where": {
             "expansion": "collapsed",
             "iconPosition": "leading",
+            "indicator": "chevron",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/header/titleRow/titleBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "expansion": "collapsed",
+            "iconPosition": "leading",
+            "indicator": "plus-minus",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/header/titleRow/titleBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "expansion": "collapsed",
+            "iconPosition": "leading",
+            "indicator": "plus-minus",
             "state": "focus-visible"
           },
           "parts": [
@@ -28482,6 +28630,7 @@
           "where": {
             "expansion": "collapsed",
             "iconPosition": "trailing",
+            "indicator": "chevron",
             "state": "rest"
           },
           "parts": [
@@ -28495,6 +28644,35 @@
           "where": {
             "expansion": "collapsed",
             "iconPosition": "trailing",
+            "indicator": "chevron",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/header/titleRow/titleBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "expansion": "collapsed",
+            "iconPosition": "trailing",
+            "indicator": "plus-minus",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/header/titleRow/titleBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "expansion": "collapsed",
+            "iconPosition": "trailing",
+            "indicator": "plus-minus",
             "state": "focus-visible"
           },
           "parts": [
@@ -28508,6 +28686,7 @@
           "where": {
             "expansion": "expanded",
             "iconPosition": "leading",
+            "indicator": "chevron",
             "state": "rest"
           },
           "parts": [
@@ -28525,6 +28704,43 @@
           "where": {
             "expansion": "expanded",
             "iconPosition": "leading",
+            "indicator": "chevron",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/header/titleRow/titleBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/content/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "expansion": "expanded",
+            "iconPosition": "leading",
+            "indicator": "plus-minus",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/header/titleRow/titleBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/content/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "expansion": "expanded",
+            "iconPosition": "leading",
+            "indicator": "plus-minus",
             "state": "focus-visible"
           },
           "parts": [
@@ -28542,6 +28758,7 @@
           "where": {
             "expansion": "expanded",
             "iconPosition": "trailing",
+            "indicator": "chevron",
             "state": "rest"
           },
           "parts": [
@@ -28559,6 +28776,43 @@
           "where": {
             "expansion": "expanded",
             "iconPosition": "trailing",
+            "indicator": "chevron",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/header/titleRow/titleBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/content/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "expansion": "expanded",
+            "iconPosition": "trailing",
+            "indicator": "plus-minus",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/header/titleRow/titleBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/content/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "expansion": "expanded",
+            "iconPosition": "trailing",
+            "indicator": "plus-minus",
             "state": "focus-visible"
           },
           "parts": [
@@ -28584,12 +28838,11 @@
             "size": "medium"
           },
           "follows": [
+            "indicator",
             "expansion",
             "size"
           ],
-          "exposes": [
-            "indicator"
-          ]
+          "exposes": []
         },
         {
           "part": "container/divider",
@@ -28622,12 +28875,11 @@
             "size": "medium"
           },
           "follows": [
+            "indicator",
             "expansion",
             "size"
           ],
-          "exposes": [
-            "indicator"
-          ]
+          "exposes": []
         },
         {
           "part": "container/content",

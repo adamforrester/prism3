@@ -47,7 +47,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DOMAINS, INSPECT, VIEWS, type Domain, type PageData } from './src/shell/pages';
+import { DOMAINS, INSPECT, VIEWS, railAreas, type Domain, type PageData } from './src/shell/pages';
 
 let failed = 0;
 let executed = 0;
@@ -219,6 +219,31 @@ for (const p of PAGES) {
   ok(MOVED.includes(p.key) && p.status === 'new', `${p.name} is a moved page (status "${p.status}")`);
   ok(!('legacy' in (p as object)), `${p.name} carries no legacy page list (H12): ${JSON.stringify((p as { legacy?: unknown }).legacy)}`);
 }
+
+// ── 5. IA v2 phase 2 (#2909) ────────────────────────────────────────────────────────────────────────
+console.log('\n5. IA v2 phase 2 (#2909): one home per lever, the Decisions log cut, the web rail');
+/** v2's lever-home table on #2909 (Q2909.4 A), literally: each lever's one page. Control shape writes no token, so it
+ *  moved to Components; Density, the weights and Outline hover write tokens, so they stay in Theme. */
+const LEVER_HOME: ReadonlyArray<readonly [string, string]> = [
+  ['controlShape', 'components'], ['density', 'shape'], ['typography.weights', 'type'], ['outlineInteraction', 'color/interactive'], ['searchFieldStyle', 'components'],
+];
+for (const [key, page] of LEVER_HOME) {
+  const homes = PAGES.filter((p) => p.sections.some((sec) => sec.rows.some((r) => (r.keys ?? []).includes(key)))).map((p) => p.key);
+  ok(homes.length === 1 && homes[0] === page, `Q2909.4 A: ${key}'s one home is ${page} (homes: ${homes.join(', ') || 'none'})`);
+}
+/** Where each lever homed elsewhere shows its read-only line (Q2909.3 A), by the row that draws it, literally. */
+const LINES: ReadonlyArray<readonly [string, string, string]> = [
+  ['controlShapeLink', 'shape', 'Radius'], ['densityLink', 'components', 'Shared by every component'], ['densityLink', 'components', 'Button'],
+  ['weightsLink', 'components', 'Button'], ['outlineLink', 'components', 'Button'],
+];
+for (const [ctl, page, section] of LINES) {
+  const p = PAGES.find((x) => x.key === page);
+  const sec = p?.sections.find((x) => x.title === section);
+  ok(!!sec?.rows.some((r) => r.ctl === ctl && !(r.keys ?? []).length), `Q2909.3 A: ${page} › ${section} draws ${ctl}, a read-only line with no key of its own`);
+}
+ok(JSON.stringify(INSPECT.map(([v]) => v)) === JSON.stringify(['contrast', 'tokens']), `Q2909.7 A: Inspect holds Contrast and Tokens, and no Decisions log (${INSPECT.map(([v]) => v).join(', ')})`);
+ok(JSON.stringify(railAreas('web').map((a) => a.id)) === JSON.stringify(['theme', 'components', 'export']), `Q2909.9 A: the web's rail holds Theme, Components and Export only (${railAreas('web').map((a) => a.id).join(', ')})`);
+ok(JSON.stringify(railAreas('figma').map((a) => a.id)) === JSON.stringify(['theme', 'components', 'documentation', 'export']), `the plugin's rail keeps its four areas (${railAreas('figma').map((a) => a.id).join(', ')})`);
 
 console.log(`\n${executed - failed}/${executed} page-data assertions passed.`);
 if (failed) process.exit(1);

@@ -608,7 +608,7 @@ const downloadSet = async (page, id, expect) => {
     const on = (dl) => { got.set(dl.suggestedFilename(), dl); if (got.size >= count) { page.off('download', on); res(); } };
     page.on('download', on);
   });
-  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
+  await hooks.click(page.locator('[data-p3="export-page"] [data-p3="dialog-confirm"]'));
   await Promise.race([all, new Promise((res) => setTimeout(res, 15000))]);
   const out = {};
   for (const [name, dl] of got) { try { out[name] = JSON.parse(await readFile(await dl.path(), 'utf8')); } catch { /* reported by the caller */ } }
@@ -804,7 +804,7 @@ const watchErrors = (page) => {
  *  the page's Show advanced (S6.3: Individual sizes, Scale limits, Weights and styles, Line height and letter
  *  spacing), and wait for its levers to draw. */
 const gotoType = async (page) => {
-  await hooks.click(page.locator('[data-p3="tab-type"]'));
+  await tabClick(page, 'type');
   await hooks.need(page, '[data-p3="type-levers"]');
   for (const hk of ['scale-advanced', 'type-sections-advanced']) {
     const sel = `[data-p3="${hk}"]`;
@@ -818,7 +818,7 @@ const gotoType = async (page) => {
 /** Open Layout through the tab row (UI redesign S10: it left the Pages menu for the two panes) and wait for its levers
  *  and its preview to draw. */
 const gotoLayout = async (page) => {
-  await hooks.click(page.locator('[data-p3="tab-layout"]'));
+  await tabClick(page, 'layout');
   await hooks.need(page, '[data-p3="layout-levers"]');
   await hooks.need(page, '[data-p3="layout-style-guide"] .psec');
   await page.evaluate(() => document.fonts.ready);
@@ -971,10 +971,23 @@ const SWEEP_PLACES = {
   shape: ['[data-p3="tab-shape"]'],
   depth: ['[data-p3="tab-depth"]'],
   layout: ['[data-p3="tab-layout"]'],
-  components: ['[data-p3="tab-components"]'],
+  // #2909 Q2909.9 A: the web's Components is a rail area, as the plugin's is, not a tab.
+  components: ['[data-p3="rail-components"]'],
 };
-/** Go to a place by its clicks, and wait for the frame to say it shows that place: a real condition, never a duration. */
+/** #2909 Q2909.9 A: a tab of Theme's row, reached from wherever the rail is: Components is its own area (`rail-components`),
+ *  and from Components or an area drawn as a page (Export) the Theme tile brings the tab row back first. */
+async function tabClick(page, id) {
+  if (id === 'components') { await hooks.click(page.locator('[data-p3="rail-components"]')); return; }
+  const away = await page.evaluate(() => { const f = document.querySelector('[data-p3="frame"]'); return f?.dataset.place === 'components' || f?.dataset.layout === 'page'; });
+  if (away) await hooks.click(page.locator('[data-p3="rail-theme"]'));
+  await hooks.click(page.locator(`[data-p3="${`tab-${id}`}"]`));
+}
+/** Go to a place by its clicks, and wait for the frame to say it shows that place: a real condition, never a duration.
+ *  #2909: Theme's tab row comes back with the Theme area, so from Components or an area drawn as a page (Export) the
+ *  rail's Theme tile comes first. */
 const goPlace = async (page, place) => {
+  const away = await page.evaluate(() => { const f = document.querySelector('[data-p3="frame"]'); return f?.dataset.place === 'components' || f?.dataset.layout === 'page'; });
+  if (place !== 'components' && away) await hooks.click(page.locator('[data-p3="rail-theme"]'));
   for (const sel of SWEEP_PLACES[place]) await hooks.click(page.locator(sel));
   await page.waitForFunction((p) => document.querySelector('[data-p3="frame"]')?.dataset.place === p, place);
   await page.evaluate(() => document.fonts.ready);
@@ -992,6 +1005,8 @@ const offeredPlaces = async (page) => {
     if (subs.length) for (const s of subs) out.push(`${id}-${s.slice(`${id}-sub-`.length)}`);
     else out.push(id);
   }
+  // #2909 Q2909.9 A: Components is offered by the rail, not the tab row.
+  if (await page.locator('[data-p3="rail"] [data-p3="rail-components"]').count()) out.push('components');
   return out;
 };
 /**
@@ -1281,7 +1296,7 @@ const STYLE_GUIDE_ROOTS = ['Type sample', 'Radius and shadow sample', 'Backgroun
 let brandStates = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await tabClick(page, 'brand');
   await hooks.need(page, '[data-p3="brand-levers"]');
   await hooks.need(page, '[data-p3="brand-style-guide"] [data-p3="specimen"]');
   const emission = await loadEmission(brand);
@@ -1791,7 +1806,7 @@ for (const brand of BRANDS) {
   const palOf = await emittedPalette(brand);
   const expectRoots = EXPECT_FILLS_ROOTS[brand.toLowerCase()];
   ok(!!expectRoots, `${brand} / Surfaces & fills: the suite lists the specimen roots this brand's preview draws (EXPECT_FILLS_ROOTS)`);
-  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await tabClick(page, 'color');
   await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
   await hooks.need(page, '[data-p3="fills-levers"]');
   await hooks.need(page, SG_FILLS);
@@ -1947,7 +1962,7 @@ for (const brand of BRANDS) {
   }
   // The Style guide itself (Brand's preview, lent by `main.ts`, S3) draws the same five sections.
   const typeOracle = await emittedType(brand);
-  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await tabClick(page, 'brand');
   await hooks.need(page, '[data-p3="preview-body"] [data-p3="brand-style-guide"] .psec');
   // Per mode, as on Surfaces & fills: its swatches (the Text color columns by position) and the shared marker.
   for (const mode of modes) {
@@ -2006,7 +2021,7 @@ console.log(`  ${fillsStates} + ${sgStates} states, ${fillsPaint} swatches and $
 
 /** Open Color › Interactive through the tab row (UI redesign S5.2: it left the Pages menu for the two panes). */
 const gotoInteractive = async (page) => {
-  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await tabClick(page, 'color');
   await hooks.click(page.locator('[data-p3="color-sub-interactive"]'));
   await hooks.need(page, '[data-p3="interactive-levers"]');
   await page.evaluate(() => document.fonts.ready);
@@ -2191,9 +2206,14 @@ const settledClick = async (page, selector, label) => {
 };
 const previewMode = async (page, m) => {
   const sel = `[data-p3="mode-option"][data-mode="${m}"]`;
-  if (!await settledClick(page, sel, `previewMode ${m}`)) return false;
+  // #2909 Q2909.9 A: the web's preview header is narrower by the rail, so where the modes do not all fit it draws the
+  // select of the same modes (the mode choice either way, as test:chrome's `pickMode` reads it).
+  const select = page.locator('[data-p3="mode-select"]');
+  if (await select.isVisible()) await select.selectOption(m);
+  else if (!await settledClick(page, sel, `previewMode ${m}`)) return false;
   // Bounded too: unbounded, a click that landed without taking effect was the same bare 30-second throw.
-  const on = await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', sel, { timeout: SETTLE_CLICK_MS })
+  const on = await page.waitForFunction(([s, mode]) => document.querySelector(s)?.getAttribute('aria-checked') === 'true'
+    || document.querySelector('[data-p3="mode-select"]')?.value === mode, [sel, m], { timeout: SETTLE_CLICK_MS })
     .then(() => true, () => false);
   if (!on) ok(false, `previewMode ${m}: the ${m} option was clicked and is still not checked after ${SETTLE_CLICK_MS}ms`);
   return on;
@@ -2209,7 +2229,7 @@ const PICKED = new Set(['base', 'floor', 'band-step', 'secondary', 'tertiary', '
 const SURF = (k) => SURF_HOOKS[k];
 s4cArm: for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await tabClick(page, 'color');
   await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
   await hooks.need(page, '[data-p3="fills-levers"]');
   const modes = await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode));
@@ -2306,8 +2326,9 @@ s4cArm: for (const brand of BRANDS) {
     await page.waitForFunction((sel) => /Override/.test(document.querySelector(sel)?.textContent ?? ''), `${row} [data-p3="fill-pick"]`, { timeout: 5000 }).catch(() => {});
     if (!await bounded(page, `${at}: Escape closes the picker`, () => page.keyboard.press('Escape'))) { if (deadPages.has(page)) continue s4cArm; continue; }
   }
-  await hooks.click(page.locator('[data-p3="export-open"]'));
-  await hooks.need(page, '[data-p3="export-dialog"]');
+  // #2909 Q2909.9 A: Export is the rail's area, its content a page.
+  await hooks.click(page.locator('[data-p3="rail-export"]'));
+  await hooks.need(page, '[data-p3="export-page"]');
   const exported = await downloadSet(page, brand.toLowerCase());   // #2552: base + one overlay per mode
   for (const [m, role, step] of EDITS) {
     const want = `{${root}.core.palette.neutral.${step}}`;
@@ -2329,7 +2350,7 @@ s4cArm: for (const brand of BRANDS) {
 console.log(`\nColor › Surfaces & fills — a Secondary pick carries the contrast floor (S4e)\n${'='.repeat(78)}`);
 s4eArm: for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await tabClick(page, 'color');
   await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
   await hooks.need(page, '[data-p3="fills-levers"]');
   if (!await previewMode(page, 'light')) { if (!deadPages.has(page)) await ctx.close(); continue s4eArm; }
@@ -2459,7 +2480,7 @@ const S4D_EDITS = [
 s4dArm: for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   const b = brand.toLowerCase();
-  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await tabClick(page, 'color');
   await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
   await hooks.need(page, '[data-p3="fills-levers"]');
   if (!await previewMode(page, 'light')) { if (!deadPages.has(page)) await ctx.close(); continue s4dArm; }
@@ -2512,8 +2533,8 @@ s4dArm: for (const brand of BRANDS) {
   const root = Object.keys(emission)[0];
   const leaf = (tree, role) => role.split('.').reduce((n, x) => n?.[x], tree[root]?.color);
   const aliasIn = (tree, role, m) => (m === 'light' ? leaf(tree, role)?.$value : leaf(tree, role)?.$extensions?.prism3?.modes?.[m]?.$value) ?? null;
-  await hooks.click(page.locator('[data-p3="export-open"]'));
-  await hooks.need(page, '[data-p3="export-dialog"]');
+  await hooks.click(page.locator('[data-p3="rail-export"]'));
+  await hooks.need(page, '[data-p3="export-page"]');
   const exported = await downloadSet(page, b);   // #2552: base + one overlay per mode
   for (const [m, role, pal, step, sec] of S4D_EDITS) {
     const want = `{${root}.core.palette.${pal}.${step}}`;
@@ -2753,7 +2774,7 @@ const emittedDims = async (brand) => {
 };
 /** Open Shape through the tab row and wait for its levers. */
 const gotoShape = async (page) => {
-  await hooks.click(page.locator('[data-p3="tab-shape"]'));
+  await tabClick(page, 'shape');
   await hooks.need(page, '[data-p3="shape-levers"]');
   await hooks.need(page, `${SG_SHAPE} .psec`);
   await page.evaluate(() => document.fonts.ready);
@@ -2854,7 +2875,7 @@ const EXPECT_DEPTH_SECTIONS = ['Elevation', 'Motion'];
 const EXPECT_DEPTH_PIECES = { 'shadow-ramp': 'Elevation', 'shadow-tint': 'Elevation', 'motion-curves': 'Motion', 'duration-ramp': 'Motion', springs: 'Motion', 'motion-transitions': 'Motion' };
 /** Open Depth & motion through the tab row (S9.2: it left the Pages menu for the two panes). */
 const gotoDepth = async (page) => {
-  await hooks.click(page.locator('[data-p3="tab-depth"]'));
+  await tabClick(page, 'depth');
   await hooks.need(page, '[data-p3="depth-levers"]');
   await hooks.need(page, `${SG_DEPTH} .psec`);
   await page.evaluate(() => document.fonts.ready);
@@ -3207,12 +3228,13 @@ s5aArm: for (const brand of BRANDS) {
   // without it the wide bar's name is "↓ Export" and the narrow bar's is "↓", and neither matches exactly.
   const exportNamed = await page.getByRole('button', { name: 'Export', exact: true })
     .evaluateAll((ns) => ns.map((n) => n.getAttribute('data-p3')));
-  ok(exportNamed.length === 1 && exportNamed[0] === 'export-open',
+  // #2909 Q2909.9 A: the Export control is the rail's Export tile now.
+  ok(exportNamed.length === 1 && exportNamed[0] === 'rail-export',
     `${brand}: the Export button's accessible name is "Export" — buttons by that name: ${JSON.stringify(exportNamed)}`);
-  await hooks.click(page.locator('[data-p3="export-open"]'));
-  await hooks.need(page, '[data-p3="export-dialog"]');
+  await hooks.click(page.locator('[data-p3="rail-export"]'));
+  await hooks.need(page, '[data-p3="export-page"]');
   const pending = page.waitForEvent('download');
-  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
+  await hooks.click(page.locator('[data-p3="export-page"] [data-p3="dialog-confirm"]'));
   const dl = await pending;
   ok(dl.suggestedFilename().endsWith('.tokens.json'), `${brand}: the export downloads ${dl.suggestedFilename()}`);
   const body = await readFile(await dl.path(), 'utf8');
@@ -3887,9 +3909,12 @@ console.log(`\nEasing per motion role, through the export (#2046)\n${'='.repeat(
 /** #2552: the export is the consumer set (base + one overlay per mode), so each mode is read as a consumer merges it. */
 /** `id` names a committed brand; without one (a brand made here, light only) the set is one base file, its id read off it. */
 const exportTree = async (page, where, id) => {
-  await hooks.click(page.locator('[data-p3="export-open"]'));
-  await hooks.need(page, '[data-p3="export-dialog"]');
+  await hooks.click(page.locator('[data-p3="rail-export"]'));
+  await hooks.need(page, '[data-p3="export-page"]');
   const set = await downloadSet(page, id, id ? undefined : 1);
+  // #2909 Q2909.9 A: Export is a rail area drawn as a page, not a dialog that closed on its download, so the arm goes
+  // back to the page it exported from (both callers drive Depth).
+  await gotoDepth(page);
   const own = id ?? Object.keys(set).find((n) => n.endsWith('.base.tokens.json'))?.slice(0, -'.base.tokens.json'.length);
   if (!own || !set[`${own}.base.tokens.json`]) { ok(false, `${where}: the export is a parseable token set`); return null; }
   return { light: mergedFromSet(set, own, 'light'), dark: mergedFromSet(set, own, 'dark') };
@@ -3978,17 +4003,18 @@ ok(easingTrips === 2, `both easing round trips reached the export (${easingTrips
 // `schema/lever-manifest.json`), exactly one checked and it is the brand's stored value (read from the persisted brand,
 // a store the chip does not paint), each choice writes its value, ArrowRight writes the next, each chip a >= 24px target.
 console.log(`\nLever chips on Shape (S7)\n${'='.repeat(78)}`);
+// #2909 Q2909.3 A: Control shape's one home is Components' shared block, so its chips are read there.
 const SHAPE_CHIPS = [
-  { key: 'density', group: '[data-p3="lever-density"]' },
-  { key: 'controlShape', group: '[data-p3="lever-control-shape"]' },
+  { key: 'density', group: '[data-p3="lever-density"]', go: (page) => gotoShape(page), at: 'Shape' },
+  { key: 'controlShape', group: '[data-p3="lever-control-shape"]', go: (page) => gotoComponents(page), at: 'Components' },
 ];
 let shapeChipGroups = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoShape(page);
   for (const c of SHAPE_CHIPS) {
+    await c.go(page);
     const lever = leverOf(c.key);
-    const where = `${brand} / Shape / ${c.key}`;
+    const where = `${brand} / ${c.at} / ${c.key}`;
     const g = await page.evaluate(readNewChips, c.group);
     if (!g.found) { ok(false, `${where}: renders a chip group`); continue; }
     shapeChipGroups++;
@@ -4019,6 +4045,7 @@ for (const brand of BRANDS) {
   // The Auto-chip rule (#2078), on the first brand: previewing Dark on Auto, Light's density chip is the checked one;
   // choosing it writes nothing.
   if (brand === BRANDS[0]) {
+    await gotoShape(page);
     await chooseMode(page, 'dark');
     const lightDensity = String((await persistedAt(page, 'density')) ?? leverOf('density').default);
     const g = await page.evaluate(readNewChips, SHAPE_CHIPS[0].group);
@@ -4031,7 +4058,7 @@ for (const brand of BRANDS) {
   ok(errs.length === 0, `${brand}: rendering and driving Shape's chips raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
-ok(shapeChipGroups >= SHAPE_CHIPS.length * 2, `${shapeChipGroups} Shape chip groups checked (floor ${SHAPE_CHIPS.length * 2}: both levers on at least two brands)`);
+ok(shapeChipGroups >= SHAPE_CHIPS.length * 2, `${shapeChipGroups} Shape-lever chip groups checked (floor ${SHAPE_CHIPS.length * 2}: both levers on at least two brands)`);
 
 // =============================================================================================
 // 3e. Components (UI redesign S8.2): the Button option chips, the specimen, the slider per step, and #2049's corner
@@ -4075,8 +4102,8 @@ const emittedPx = async (brand) => {
   const px = (leaf, mode) => (mode !== base ? leaf?.$extensions?.prism3?.modes?.[mode]?.px : undefined) ?? leaf?.$extensions?.prism3?.px;
   return { radius: (step, mode) => px(root.radius?.[step], mode), height: (step, mode) => px(root.size?.[step]?.height, mode) };
 };
-const gotoComponents = async (page) => {
-  await hooks.click(page.locator('[data-p3="tab-components"]'));
+async function gotoComponents(page) {
+  await tabClick(page, 'components');
   await hooks.need(page, '[data-p3="components-levers"]');
   // #2844: the Button options are closed when the page opens, behind a disclosure line under the Buttons row: open it, as a designer would.
   // The open state lasts the session, so a second visit finds it open: open it only when it is closed.
@@ -4085,7 +4112,7 @@ const gotoComponents = async (page) => {
   await page.waitForFunction(() => !!document.querySelector('[data-p3="button-options-section"]')?.getClientRects().length, null, { timeout: 5000 });
   await hooks.need(page, '[data-p3="components-style-guide"] [data-sg-section="button-layout"]');
   await page.evaluate(() => document.fonts.ready);
-};
+}
 let componentChipGroups = 0, buttonSpecimens = 0, minWidthSteps = 0, cornersChecked = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -4152,7 +4179,7 @@ for (const brand of BRANDS) {
   // #2049: the corner as drawn, per Control shape, in Light and Dark, against the emission.
   const em = await emittedPx(brand);
   for (const [shape, step] of Object.entries(SHAPE_STEP)) {
-    await gotoShape(page);
+    await gotoComponents(page);
     await hooks.click(page.locator(`[data-p3="lever-control-shape"] button[role="radio"][data-value="${shape}"]`));
     await page.waitForFunction((v) => document.querySelector('[data-p3="lever-control-shape"] button[aria-checked="true"]')?.dataset.value === v, shape, { timeout: 5000 }).catch(() => {});
     await gotoComponents(page);
@@ -4202,7 +4229,7 @@ for (const brand of BRANDS) {
     }
     await chooseMode(page, 'light');
   }
-  await gotoShape(page);
+  await gotoComponents(page);   // #2909 Q2909.3 A: Control shape's home
   await hooks.click(page.locator('[data-p3="control-shape-choice-rounded"]'));
   const errs = drain();
   ok(errs.length === 0, `${brand}: driving the Components page raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
@@ -4425,7 +4452,7 @@ console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(7
   const { ctx, page, drain } = await openBrand(brand);
   // Open Brand and change ONLY the identity fields. `page.fill` dispatches an `input` event, so each field's
   // real handler (and the #1196 `syncIdentity`) runs — exactly a designer typing.
-  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await tabClick(page, 'brand');
   await hooks.need(page, '[data-p3="brand-namespace"]');
   await page.fill('[data-p3="brand-name"]', NAME);         // Name      → lastGoodInput.id (persisted blob)
   await page.fill('[data-p3="brand-namespace"]', NS);      // Namespace → a draft, until it is renamed
@@ -4450,10 +4477,10 @@ console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(7
   // rooted the tree at `ttds` while ~976 colour refs still pointed at `{prism.core.palette.*}`, a root no
   // longer present — dangling aliases, the exact silent-resolve class this PR closes. `roots.includes(NS)`
   // alone cannot see that (it only reads the top-level key); the ref scan over the serialized tree can.
-  await hooks.click(page.locator('[data-p3="export-open"]'));
-  await hooks.need(page, '[data-p3="export-dialog"]');
+  await hooks.click(page.locator('[data-p3="rail-export"]'));
+  await hooks.need(page, '[data-p3="export-page"]');
   const pending = page.waitForEvent('download');
-  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
+  await hooks.click(page.locator('[data-p3="export-page"] [data-p3="dialog-confirm"]'));
   const dl = await pending;
   let raw = '';
   let roots = [];
@@ -4507,7 +4534,7 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   // `openBrand` enters through a start-screen chip, which loads with `{ kind: 'example', id }` — so the
   // origin is already an example and only an EDIT is missing before the guard has something to protect.
   // The edit is a rename on Brand › Identity (S3 moved the Name field there from the menu).
-  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await tabClick(page, 'brand');
   await page.fill('[data-p3="brand-name"]', 'renamed-in-smoke');
   await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example"]');
@@ -4544,7 +4571,7 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   // the button carries the `new` origin.
   await hooks.click(page.locator('[data-p3="start-blank"]'));   // "Start blank" → loadBrand(NEW_BRAND(), { kind: 'new' })
   await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
-  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await tabClick(page, 'brand');
   await page.fill('[data-p3="brand-name"]', 'renamed-in-smoke');
   await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example"]');
@@ -4587,7 +4614,7 @@ console.log(`\nStyle guide Outline hover on the inverse ground (#1629)\n${'='.re
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   // The Style guide is Brand's preview from UI redesign S3 (lent into `preview/brand.ts`).
-  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await tabClick(page, 'brand');
   await hooks.need(page, '[data-p3="brand-style-guide"] [data-p3="style-guide-ground"]');
   // The primary palette block's Outline row, hover and pressed cells, read by their visible labels.
   const readOutline = () => page.evaluate(() => {
@@ -4801,7 +4828,7 @@ for (const brand of BRANDS) {
     }
     await capPills(page, null);
   };
-  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await tabClick(page, 'brand');
   await hooks.need(page, '[data-p3="brand-style-guide"] [data-p3="token-pill"]');
   await walkPills();
   pages.push('Brand');
@@ -5304,8 +5331,8 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   // carrying $extensions.prism3.facePin — the engine bakes the Figma Text Style's fontStyle from exactly this
   // (emit-figma-font.ts). Oracle: the same STYLE + bound face typed above. facePin is BUILD METADATA, which the
   // default export leaves out since #2552, so "Include build metadata" is switched On to read it.
-  await hooks.click(page.locator('[data-p3="export-open"]'));
-  await hooks.need(page, '[data-p3="export-dialog"]');
+  await hooks.click(page.locator('[data-p3="rail-export"]'));
+  await hooks.need(page, '[data-p3="export-page"]');
   await hooks.click(page.locator('[data-p3="export-setting"][aria-label="Include build metadata: On"]'));
   let emitted = null;
   try {
@@ -5315,6 +5342,7 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
     for (const tree of Object.values(set)) walk(tree);
     emitted = found.length ? found : null;
   } catch { /* reported by the assertions below */ }
+  await gotoType(page);   // back from the Export area, the Type page's disclosures open again
   ok(Array.isArray(emitted) && emitted.length > 0, `${brand}: the exported DTCG carries the pinned cut in $extensions.prism3.facePin (${emitted?.length ?? 0} leaves)`);
   ok(Array.isArray(emitted) && emitted.length > 0 && emitted.every((p) => p.style === STYLE), `${brand}: every emitted facePin bakes fontStyle = "${STYLE}" verbatim`);
   ok(Array.isArray(emitted) && emitted.length > 0 && emitted.every((p) => p.family === boundFace), `${brand}: every emitted facePin binds the bound face "${boundFace}"`);
@@ -5348,10 +5376,10 @@ console.log(`\nItalic chips, through the exported DTCG (S6.3)\n${'='.repeat(78)}
   const { ctx, page, drain } = await openBrand(brand);
   await gotoType(page);
   const exported = async () => {
-    await hooks.click(page.locator('[data-p3="export-open"]'));
-    await hooks.need(page, '[data-p3="export-dialog"]');
+    await hooks.click(page.locator('[data-p3="rail-export"]'));
+    await hooks.need(page, '[data-p3="export-page"]');
     const pending = page.waitForEvent('download');
-    await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
+    await hooks.click(page.locator('[data-p3="export-page"] [data-p3="dialog-confirm"]'));
     const dl = await pending;
     try {
       const tree = JSON.parse(await readFile(await dl.path(), 'utf8'));
@@ -5360,7 +5388,7 @@ console.log(`\nItalic chips, through the exported DTCG (S6.3)\n${'='.repeat(78)}
       const walk = (n, path) => { for (const [k, v] of Object.entries(n ?? {})) { if (k.startsWith('$') || !v || typeof v !== 'object') continue; if (v.$type === 'typography') out.push({ key: `${path}.${k}`, italic: v.$value?.fontStyle === 'italic' }); else walk(v, `${path}.${k}`); } };
       walk(root?.type?.[G], `type.${G}`);
       return out;
-    } catch { return null; }
+    } catch { return null; } finally { await gotoType(page); }
   };
   const RULE = {
     upright: (ls) => ls.length > 0 && ls.every((l) => !l.italic && !/-italic/.test(l.key)),

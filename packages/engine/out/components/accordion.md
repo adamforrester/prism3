@@ -17,13 +17,13 @@ One expand and collapse section: a header that names the content, and a panel th
 
 ## Anatomy
 
-Shown on the default member: expansion `collapsed`, iconPosition `leading`, size `medium`.
+Shown on the default member: expansion `collapsed`, iconPosition `leading`, indicator `chevron`, size `medium`.
 
 1. **Container** — One section: the header, the panel when open, and the rule under it.
 2. **Header** — The header row and the hit target: the whole row is the button, so a click anywhere on it opens or closes the section.
 3. **Title row** — The indicator and the title, side by side. The header centers this row, and the glyph inside it stays beside the title's first line.
 4. **Leading indicator** — The indicator before the title: as tall as the title row, with the glyph at its top, beside the title's first line.
-5. **Leading glyph** — The open and closed glyph. Choose chevron or plus-minus on the Accordion; it follows the open state and the size.
+5. **Leading glyph** — The open and closed glyph. It follows the Accordion's indicator, open state and size.
 6. **Title box** — The title's column. It fills the row, and sits 2px lower than the glyph so the first line centers on it.
 7. **Label** — The section title. It fills the row and wraps onto more lines rather than truncating.
 8. **Trailing indicator** — The indicator after the title: as tall as the title row, with the glyph at its top, beside the title's first line.
@@ -39,6 +39,7 @@ Shown on the default member: expansion `collapsed`, iconPosition `leading`, size
 | --- | --- | --- | --- |
 | `expansion` | `collapsed`, `expanded` | at runtime | — |
 | `iconPosition` | `leading`, `trailing` | once, when authored | Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge. |
+| `indicator` | `chevron`, `plus-minus` | once, when authored | The open and closed glyph: a chevron that points down when closed and up when open, or a plus that becomes a minus. |
 | `size` | `medium`, `small`, `large` | once, when authored | The header's type, padding and indicator size. Every size keeps the header at least 44px tall. |
 
 ### States
@@ -120,7 +121,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 24 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 48 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -191,54 +192,106 @@ Keyed by `size`.
 
 ### Color
 
-Keyed by `expansion`, `iconPosition`, `state`.
+Keyed by `expansion`, `iconPosition`, `indicator`, `state`.
 
-**expansion=collapsed, iconPosition=leading, state=rest**
-
-| Part | Fill | Stroke | Ink | Icon |
-| --- | --- | --- | --- | --- |
-| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
-
-**expansion=collapsed, iconPosition=leading, state=focus-visible**
+**expansion=collapsed, iconPosition=leading, indicator=chevron, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
 
-**expansion=collapsed, iconPosition=trailing, state=rest**
+**expansion=collapsed, iconPosition=leading, indicator=chevron, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
 
-**expansion=collapsed, iconPosition=trailing, state=focus-visible**
+**expansion=collapsed, iconPosition=leading, indicator=plus-minus, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
 
-**expansion=expanded, iconPosition=leading, state=rest**
+**expansion=collapsed, iconPosition=leading, indicator=plus-minus, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=collapsed, iconPosition=trailing, indicator=chevron, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=collapsed, iconPosition=trailing, indicator=chevron, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=collapsed, iconPosition=trailing, indicator=plus-minus, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=collapsed, iconPosition=trailing, indicator=plus-minus, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=expanded, iconPosition=leading, indicator=chevron, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
 | `container/content/placeholder` | — | — | `color.text.primary` | — |
 
-**expansion=expanded, iconPosition=leading, state=focus-visible**
+**expansion=expanded, iconPosition=leading, indicator=chevron, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
 | `container/content/placeholder` | — | — | `color.text.primary` | — |
 
-**expansion=expanded, iconPosition=trailing, state=rest**
+**expansion=expanded, iconPosition=leading, indicator=plus-minus, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
 | `container/content/placeholder` | — | — | `color.text.primary` | — |
 
-**expansion=expanded, iconPosition=trailing, state=focus-visible**
+**expansion=expanded, iconPosition=leading, indicator=plus-minus, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+**expansion=expanded, iconPosition=trailing, indicator=chevron, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+**expansion=expanded, iconPosition=trailing, indicator=chevron, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+**expansion=expanded, iconPosition=trailing, indicator=plus-minus, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+**expansion=expanded, iconPosition=trailing, indicator=plus-minus, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -247,10 +300,10 @@ Keyed by `expansion`, `iconPosition`, `state`.
 
 ### Nesting and properties
 
-- `container/header/titleRow/leadingIndicator/leadingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `expansion`, `size`; exposes `indicator`
+- `container/header/titleRow/leadingIndicator/leadingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `indicator`, `expansion`, `size`
 - `container/divider` nests `divider` at `orientation=horizontal, inset=none`
 - `container/header/focusRing` nests `focus-ring` at `surface=default`
-- `container/header/titleRow/trailingIndicator/trailingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `expansion`, `size`; exposes `indicator`
+- `container/header/titleRow/trailingIndicator/trailingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `indicator`, `expansion`, `size`
 - `container/content` is a slot
 
 | Property | Type | Default |

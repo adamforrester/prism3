@@ -1076,6 +1076,12 @@ export const GATES: Gate[] = [
     cmd: engine('lint-naming.ts'),
   },
   {
+    // #2928 — reads the projected plans only; needs no build and no `after`.
+    id: 'lint-fill-under-hug',
+    ciStep: 'No member fills a width that hugs (#2928)',
+    cmd: engine('lint-fill-under-hug.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject

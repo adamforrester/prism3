@@ -15,6 +15,9 @@
  * left alone, so a drag or a caret survives every edit. It never names a legacy repaint tier and never
  * imports `main.ts` (`test-shell-imports.ts`).
  *
+ * THE ENGINE'S TWO WARNINGS (#2909 Q2909.7 A, the Decisions log cut): an anchor outside the sRGB gamut, under Primary, the
+ * brand color it names or the pinned neutral; and the danger hue the engine chose, under Danger (`state/engine-warnings.ts`).
+ *
  * SEARCH (Q3) filters this panel in place: a lever block that does not match its label, description or
  * key is hidden, and so is a section with none that do. Advanced levers are searched too.
  */
@@ -26,6 +29,7 @@ import {
   removalEffects, setStatusSource, statusSeedHex, statusSource, type StatusRole, type StatusSource,
 } from '../state/palette-input';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
+import { dangerSubstitution, gamutWarning } from '../state/engine-warnings';
 import { glyph, h, hook } from '../shell/dom';
 import { noteEdit } from '../preview/follow-edit';
 import { choice, colorField, inlineConfirm, leverBlock, onCommitted, perFrame, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, type LeverBlock, keepFocus } from '../ui/lever-kit';
@@ -39,6 +43,16 @@ const oklchMeta = (o: { l: number; c: number; h: number }): string =>
 const NEXT = { label: 'Surfaces & fills', page: 'fills' } as const;
 
 type Drawn = { block: LeverBlock; keys: readonly string[]; sync: () => void };
+
+/** The engine's lines under a lever (`setState`), or null for none: one state line each, hooked so a check finds them. */
+const lines = (texts: readonly string[], kind: 'hint' | 'warn', role: string): HTMLElement | null => {
+  if (!texts.length) return null;
+  const box = h('div');
+  for (const t of texts) box.append(hook(stateLine(t, kind), role));
+  return box;
+};
+/** The gamut warnings under a lever, the anchors that have none left out. */
+const warnLines = (texts: readonly (string | null)[]): HTMLElement | null => lines(texts.filter((t): t is string => !!t), 'warn', 'gamut-note');
 
 /** Mount the Palettes levers into `host`. Returns nothing; everything it subscribes to is released through
  *  `cleanups`, which the frame runs when the page goes. */
@@ -101,6 +115,7 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
         const steps = theme.palettes.find((p) => p.palette === 'primary')?.steps.length ?? 0;
         const a = anchorStepFor('primary');
         setText(sub, a !== null ? `Pinned at step ${pad(a)} of the primary ramp. The other ${steps - 1} steps are derived.` : '');
+        b.setState(warnLines([gamutWarning(theme.notes, 'primary')]));
       } }];
     },
 
@@ -162,7 +177,10 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
       };
       list.append(add);
       b.ctl.append(list);
-      return [{ block: b, keys: ['brandColors'], sync: () => syncs.forEach((f) => f()) }];
+      return [{ block: b, keys: ['brandColors'], sync: () => {
+        syncs.forEach((f) => f());
+        b.setState(warnLines((brandState.brandColors ?? []).map((c) => gamutWarning(theme.notes, c.name))));
+      } }];
     },
 
     neutral: () => {
@@ -222,6 +240,7 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
         ...(p && cf ? [{ block: p, keys: ['neutral.anchor'], sync: () => {
           const anc = brandState.neutral.anchor;
           if (anc) cf.set(hexOf(anc), oklchMeta(anc));
+          p.setState(warnLines([gamutWarning(theme.notes, 'neutral')]));
         } }] : []),
         { block: b, keys: ['neutral.chroma'], sync: () => {
           // Following a gray primary, the ramp is built at chroma 0 (owner Q87 A), so that is what the readout shows.
@@ -251,6 +270,7 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
           ...names.map((p) => ({ v: `use:${p}`, l: `Use ${p}` })),
         ], statusSource(role));
         if (cf) cf.set(statusSeedHex(role), st ? oklchMeta(st) : '');
+        if (role === 'danger') b.setState(lines(dangerSubstitution(theme.notes), 'hint', 'danger-hue-note'));
       } }];
     },
   };

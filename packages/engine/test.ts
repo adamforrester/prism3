@@ -756,6 +756,122 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
   }
 }
 
+// ── #2991 / Q689 A — THE CONTRAST FLOOR IS THE ONE TEXT PROMISE ─────────────────────────────────────────
+// Every floor-gated ink (text and icon, secondary / tertiary / status / link, and their inverse twins) is
+// promised its bar on the floor surface and on every neutral surface on the page side of it. A surface deeper
+// than the floor (`background.tertiary`, `foreground.secondary` / `.tertiary` by default) carries no text
+// promise; a brand that needs one there moves `surfaces.<mode>.floorStep`, and every floor-gated ink re-derives.
+// ORACLE, independent of the subject: the ink names and the bars are literals here, never read off a role's
+// `against` or `min`; the floor surface is the one the lever names (`floorStep`'s tier, else
+// `background.secondary`; the inverse floor is `inverse.background.secondary`), and every ratio is measured
+// from the emitted hexes. HC keeps its family's standard floor (`docs/06` §4), so it is read from that mode.
+// Arm 1, per corpus brand × mode × ink: clears its bar on the floor and on each surface nearer the page.
+// Arm 2, per corpus brand × light/dark: `floorStep` one step deeper (the `background.tertiary` step) and
+// every floor-gated ink, in that family's standard and HC modes, clears its bar on the new floor. The band's
+// twin moves `inverseSecondary` to the band's tertiary step, and every inverse ink clears that.
+// BY-NAME MUTATIONS: pin the resting link one ramp step lighter in `modes.ts` → arm 1 names the link cells
+// that miss; make `resolve()` ignore `cfg.floorStep` → arm 2 names every brand × family whose inks stay put.
+{
+  const INKS = ['secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info',
+    'link.default', 'link.hover', 'link.pressed', 'link.visited', 'link.focused'] as const;
+  // The bars, by tier: body (4.5:1, 7:1 in HC), large (3:1, 4.5:1 in HC). `iconContrast: '3:1'` puts every
+  // non-primary icon at the non-text bar (3:1, 4.5:1 in HC).
+  const MODE_OF: Record<string, { family: 'light' | 'dark'; hc: boolean }> = {
+    light: { family: 'light', hc: false }, dark: { family: 'dark', hc: false }, 'hc-light': { family: 'light', hc: true }, 'hc-dark': { family: 'dark', hc: true },
+  };
+  const barOf = (fam: 'text' | 'icon', ink: string, hc: boolean, icon31: boolean): number =>
+    (fam === 'icon' && icon31) || ink === 'tertiary' ? (hc ? 4.5 : 3) : (hc ? 7 : 4.5);
+  type Roles = Record<string, { hex: string; path: string }>;
+  const SIDES = [['', 'background.secondary'], ['inverse.', 'inverse.background.secondary']] as const;
+  const TIERS = ['background.primary', 'background.secondary', 'background.tertiary', 'foreground.primary', 'foreground.secondary', 'foreground.tertiary'];
+  // One brand's misses: every mode × side × ink × surface on the page side of the floor. `floorHex(mode, side)`
+  // is the floor surface. Unmapped modes and missing inks fail by name, so a scope cannot quietly shrink.
+  const missesOf = (theme: Theme, floorHex: (all: ReturnType<typeof resolveAllModes>, mode: string, side: string) => string | null, modes: Array<string>): { misses: string[]; cells: number } => {
+    const all = resolveAllModes(theme);
+    const misses: string[] = []; let cells = 0;
+    const icon31 = theme.iconContrast === '3:1';
+    for (const m of all.filter((x) => modes.includes(x.mode))) {
+      const mo = MODE_OF[m.mode];
+      if (!mo) { misses.push(`${m.mode}: a mode the gate has no bar for`); continue; }
+      const roles = m.roles as Roles;
+      for (const [side] of SIDES) {
+        const fl = floorHex(all, m.mode, side);
+        if (!fl) { misses.push(`${m.mode} ${side || 'page'}: no floor surface`); continue; }
+        const page = roles[`${side}background.primary`].hex;
+        const pageToFloor = contrast(hexToRgb(page), hexToRgb(fl));
+        // The floor itself, plus every neutral tier no farther from the page than it is.
+        const grounds: Array<[string, string]> = [['floor', fl], ...TIERS.map((t) => [`${side}${t}`, roles[`${side}${t}`]?.hex] as [string, string])
+          .filter(([, h]) => h && contrast(hexToRgb(page), hexToRgb(h)) <= pageToFloor + 1e-9)];
+        for (const fam of ['text', 'icon'] as const) for (const ink of INKS) {
+          const name = `${side}${fam}.${ink}`;
+          const r = roles[name];
+          if (!r) { misses.push(`${m.mode} ${name}: not emitted`); continue; }
+          const bar = barOf(fam, ink, mo.hc, icon31);
+          for (const [g, h] of grounds) {
+            cells++;
+            const ratio = contrast(hexToRgb(r.hex), hexToRgb(h));
+            if (ratio < bar - 1e-9) misses.push(`${m.mode} ${name} ${r.hex} ${ratio.toFixed(2)}:1 on ${g} ${h} (bar ${bar})`);
+          }
+        }
+      }
+    }
+    return { misses, cells };
+  };
+  const stdMode = (all: ReturnType<typeof resolveAllModes>, mode: string) => all.find((x) => x.mode === MODE_OF[mode]?.family);
+  // The floor the lever names: the tier on `floorStep`'s neutral step, else `background.secondary`, read in the
+  // family's standard mode; the inverse floor is the mode's own `inverse.background.secondary`.
+  const leverFloor = (theme: Theme) => (all: ReturnType<typeof resolveAllModes>, mode: string, side: string): string | null => {
+    if (side) return (all.find((x) => x.mode === mode)!.roles as Roles)['inverse.background.secondary']?.hex ?? null;
+    const std = stdMode(all, mode); const fam = MODE_OF[mode]?.family;
+    if (!std || !fam) return null;
+    const roles = std.roles as Roles;
+    const step = theme.surfaces?.[fam]?.floorStep;
+    if (step == null) return roles['background.secondary']?.hex ?? null;
+    const pal = theme.palettes.find((p) => p.role === 'neutral')!.palette;
+    const t = ['background.secondary', 'background.primary', 'background.tertiary'].find((k) => roles[k]?.path.endsWith(`.${pal}.${step}`));
+    return t ? roles[t].hex : null;
+  };
+  const brands = [...contractCorpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })), { id: 'prism3', theme: brandTheme(exampleBrands()['prism3'] as BrandInput) }];
+  ok(brands.length >= 11, `Q689 floor promise: the corpus and the default example are all swept (found ${brands.length})`);
+  for (const { id, theme } of brands) {
+    const modes = resolveAllModes(theme).map((m) => m.mode);
+    const { misses, cells } = missesOf(theme, leverFloor(theme), modes);
+    ok(misses.length === 0 && cells > 0,
+      `Q689 floor promise: ${id} — every floor-gated ink clears its bar on the floor and every surface nearer the page, in ${modes.join(', ')} (${cells} cells; misses: ${misses.slice(0, 4).join('; ') || 'none'}${misses.length > 4 ? ` … ${misses.length} in all` : ''})`);
+    // Arm 2: the floor one step deeper. The tertiary tier's step is read off the plain build (a floor does not
+    // move a ground); a family with no neutral tertiary step has nothing deeper to move to and fails by name.
+    const pal = theme.palettes.find((p) => p.role === 'neutral')!.palette;
+    for (const fam of ['light', 'dark'] as const) {
+      const std = resolveAllModes(theme).find((m) => m.mode === fam);
+      if (!std) continue;
+      const before = std.roles as Roles;
+      const step = new RegExp(`\\.${pal}\\.(\\d+)$`).exec(before['background.tertiary'].path)?.[1];
+      if (!step) { ok(false, `Q689 deeper floor: ${id} ${fam} — background.tertiary sits on no neutral step (${before['background.tertiary'].path})`); continue; }
+      const deeper: Theme = { ...theme, surfaces: { ...(theme.surfaces ?? {}), [fam]: { ...(theme.surfaces?.[fam] ?? {}), floorStep: Number(step) } } as Theme['surfaces'] };
+      const tertiary = before['background.tertiary'].hex;
+      const famModes = modes.filter((m) => MODE_OF[m]?.family === fam);
+      const r = missesOf(deeper, (all, mode, side) => side ? leverFloor(deeper)(all, mode, side) : tertiary, famModes);
+      const after = resolveAllModes(deeper).find((m) => m.mode === fam)!.roles as Roles;
+      const moved = INKS.filter((ink) => after[`text.${ink}`]?.hex !== before[`text.${ink}`]?.hex).length;
+      ok(r.misses.length === 0 && r.cells > 0 && moved > 0,
+        `Q689 deeper floor: ${id} ${fam}.floorStep ${step} (background.tertiary) — every floor-gated ink re-derives to clear it in ${famModes.join(', ')} (${r.cells} cells, ${moved} text inks moved; misses: ${r.misses.slice(0, 4).join('; ') || 'none'}${r.misses.length > 4 ? ` … ${r.misses.length} in all` : ''})`);
+      // The band's twin: its floor is its own second tier, moved by `inverseSecondary`. One step deeper is the
+      // band's tertiary step, on whatever palette the band sits on; the standard (HC-flat bands aside) inverse
+      // inks must clear the old `inverse.background.tertiary`.
+      const inv = /\.palette\.([a-z0-9-]+)\.(\d+)$/.exec(before['inverse.background.tertiary'].path);
+      if (!inv) { ok(false, `Q689 deeper band floor: ${id} ${fam} — inverse.background.tertiary sits on no ramp step (${before['inverse.background.tertiary'].path})`); continue; }
+      const spec = inv[1] === pal ? Number(inv[2]) : { palette: inv[1], step: Number(inv[2]) };
+      const deeperBand: Theme = { ...theme, surfaces: { ...(theme.surfaces ?? {}), [fam]: { ...(theme.surfaces?.[fam] ?? {}), inverseSecondary: spec } } as Theme['surfaces'] };
+      const bandTertiary = before['inverse.background.tertiary'].hex;
+      const rb = missesOf(deeperBand, (all, mode, side) => side ? bandTertiary : leverFloor(deeperBand)(all, mode, side), [fam]);
+      const afterBand = resolveAllModes(deeperBand).find((m) => m.mode === fam)!.roles as Roles;
+      const movedBand = INKS.filter((ink) => afterBand[`inverse.text.${ink}`]?.hex !== before[`inverse.text.${ink}`]?.hex).length;
+      ok(rb.misses.length === 0 && rb.cells > 0 && movedBand > 0,
+        `Q689 deeper band floor: ${id} ${fam}.inverseSecondary ${inv[1]}.${inv[2]} (inverse.background.tertiary) — every floor-gated inverse ink re-derives to clear it (${rb.cells} cells, ${movedBand} text inks moved; misses: ${rb.misses.slice(0, 4).join('; ') || 'none'}${rb.misses.length > 4 ? ` … ${rb.misses.length} in all` : ''})`);
+    }
+  }
+}
+
 // ── #1296 — THE CANONICAL DEFAULT THEME IS A COMPLETE REFERENCE ─────────────────────────────────────
 // `prism3` is not a contract corpus member (the corpus spans input VARIATION; see `token-contract.ts`),
 // so nothing forces it to emit the guaranteed surface — a default theme that quietly lacked a promised
@@ -17090,6 +17206,20 @@ arm: {
       const panel = planSetProperties(sMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`).sort();
       ok(JSON.stringify(panel) === JSON.stringify(['helper=false', 'inputs=false', 'label=true', 'milestones=false', 'value=true']),
         `#2669 calls 4 A / 7 A, Q550 d, Q345 slider booleans: label and value on, milestones, inputs and helper off, all lowercase (${panel.join(', ')})`);
+      // #2967 (Q550 kept them medium): every nested input is a medium TextField, at every slider size. Without this only
+      // `lint-component-surface`'s plan digest held the size, and `--accept` clears a digest. A literal, never read off
+      // the def: one input in a single member, two in a range, so the floor below is 15 + 30.
+      const inputsOf = (n: any): any[] => [...(n?.nestTarget === 'text-field' ? [n] : []), ...(n?.children ?? []).flatMap(inputsOf)];
+      const inputs = sMembers.flatMap((m) => inputsOf(m.root).map((n) => ({ at: planComponentName(m), size: n.nestVariant?.size })));
+      const inputSizeOff = inputs.filter((x) => x.size !== 'medium').map((x) => `${x.at}: ${String(x.size)}`);
+      ok(inputs.length === 45 && inputSizeOff.length === 0,
+        `#2967 Q550 slider inputs: every nested input is a medium TextField at every slider size, one per single member and two per range (${inputs.length} inputs; ${inputSizeOff.length} not medium — ${inputSizeOff.slice(0, 3).join('; ') || 'none'})`);
+      // #2967: `texts.defaultValue → range text` is forced (a texts key must be a declared prop), and a projector reading
+      // it would map the readout to the starting value. One `notes.projection` entry must say the keying is not a prop mapping. The
+      // phrases are literals here, never read off the def.
+      const keyNote = (sliderDef.notes?.projection ?? []).filter((e) => /range text/.test(e) && /defaultValue/.test(e) && /not a prop mapping/.test(e) && /Code Connect/.test(e));
+      ok(sliderDef.figmaProperties?.texts?.defaultValue?.figmaName === 'range text' && keyNote.length === 1,
+        `#2967 slider: range text is keyed to defaultValue, and one notes.projection entry says the keying is mechanical, not a prop mapping, for a Code Connect projection (${keyNote.length} entries)`);
       const msOff = sMembers.flatMap((m) => {
         const ms = findIn(m.root, 'milestones');
         const kids = (ms?.children ?? []).map((k) => `${k.name}:${String(k.paints?.fills)}`);
@@ -34614,7 +34744,8 @@ arm: {
 
 // ---- centered Tabs (#2518, owner decision Q222 A) ----
 // At `alignment=center` the root projects as a bar built 480 wide (DRAFT, typed here from the decision), centering
-// its children across; the row of tabs keeps hugging and the baseline stretches across the bar. At `alignment=start`
+// its children across; the row of tabs keeps hugging and the baseline is pinned across the bar's foot (#2928: a foot pin,
+// not a stretch, which would freeze a hugging list at its first width). At `alignment=start`
 // every member is BYTE-IDENTICAL to the approved Tabs (#2416), read against the same def with the axis taken out, so
 // "everything else matches" is held rather than assumed. Mutation: the root's `center` field dropped → `#2518 tabs`.
 {
@@ -34632,13 +34763,13 @@ arm: {
   const bad: string[] = [];
   let centered = 0, started = 0;
   for (const size of ['small', 'medium', 'large']) {
-    const c = figmaAnatomyPlan(tabsDef, size, { alignment: 'center' }) as unknown as { root: { counterAxisAlignItems?: string; counterAxisSizingMode?: string; placementWidth?: number; children: { name: string; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutAlign?: string }[] } };
+    const c = figmaAnatomyPlan(tabsDef, size, { alignment: 'center' }) as unknown as { root: { counterAxisAlignItems?: string; counterAxisSizingMode?: string; placementWidth?: number; children: { name: string; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutAlign?: string; footPin?: boolean }[] } };
     // The row of tabs is the `items` slot since #2649.
     const list = c.root.children.find((k) => k.name === 'items');
     const base = c.root.children.find((k) => k.name === 'baseline');
     if (c.root.counterAxisAlignItems === 'CENTER' && c.root.counterAxisSizingMode === 'FIXED' && c.root.placementWidth === 480
-      && list?.primaryAxisSizingMode === 'AUTO' && list?.counterAxisSizingMode === 'AUTO' && base?.layoutAlign === 'STRETCH') centered++;
-    else bad.push(`${size}/center: root ${c.root.counterAxisAlignItems} ${c.root.counterAxisSizingMode} ${c.root.placementWidth}, list ${list?.primaryAxisSizingMode}/${list?.counterAxisSizingMode}, baseline ${base?.layoutAlign}`);
+      && list?.primaryAxisSizingMode === 'AUTO' && list?.counterAxisSizingMode === 'AUTO' && base?.footPin === true && base?.layoutAlign === undefined) centered++;
+    else bad.push(`${size}/center: root ${c.root.counterAxisAlignItems} ${c.root.counterAxisSizingMode} ${c.root.placementWidth}, list ${list?.primaryAxisSizingMode}/${list?.counterAxisSizingMode}, baseline ${base?.footPin ? 'foot pin' : base?.layoutAlign}`);
     const st = figmaAnatomyPlan(tabsDef, size, { alignment: 'start' });
     if (strip(st) === strip(figmaAnatomyPlan(approved, size, {}))) started++;
     else bad.push(`${size}/start: differs from the approved Tabs`);
@@ -34681,9 +34812,9 @@ arm: {
 }
 
 // ------------------------------------------------------------------- #2417: the accordion and its indicator
-// Each owner decision held against a literal (Q182, Q183): the 24 members and their axes, start as the default
-// position, no hover, pressed or disabled member, the indicator a nested building block exposed on `indicator` and
-// following `expansion`, the panel a native slot present only when open with page ink and no top inset, the nested
+// Each owner decision held against a literal (Q182, Q183, #2878): the 48 members and their axes, start as the default
+// position, no hover, pressed or disabled member, the indicator a nested building block following the Accordion's
+// `indicator`, `expansion` and `size` (#2878 Q-block A, no longer exposed), the panel a native slot present only when open with page ink and no top inset, the nested
 // Divider stretched across the item with no width binding on its instance, and the 44px header floor at every size.
 // EXPECTED is typed here; ACTUAL is the projected plan, so a def that moved fails the arm by name.
 {
@@ -34695,8 +34826,8 @@ arm: {
   const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
   // The plan's own CODE coordinate (member names carry Figma display names, #2571: `icon position=leading`).
   const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
-  ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], iconPosition: ['leading', 'trailing'], size: ['medium', 'small', 'large'] }),
-    `#2417 accordion: 24 members, expansion × iconPosition × size [medium first, #2752 Q1 B] × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
+  ok(plans.length === 48 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], iconPosition: ['leading', 'trailing'], indicator: ['chevron', 'plus-minus'], size: ['medium', 'small', 'large'] }),
+    `#2417 accordion: 48 members, expansion × iconPosition × indicator [chevron first, #2878] × size [medium first, #2752 Q1 B] × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
   ok(JSON.stringify(acc.states) === JSON.stringify(['rest', 'focus-visible']) && JSON.stringify(acc.figmaProperties?.stateAxis?.values) === JSON.stringify(['rest', 'focus-visible']),
     `#2417 accordion: the states are rest and focus-visible only, with no hover (Q182), pressed or disabled (Q183) (got ${JSON.stringify(acc.states)})`);
   const pos = acc.props.find((p) => p.name === 'iconPosition');
@@ -34704,7 +34835,7 @@ arm: {
   // THE AXIS NAME (owner QA, 2026-10-12): `iconPosition`, never a bare `position`, which read as if it could be the
   // label's. In the def's variants, its Figma axes, its props and every member's name. The old name back fails here.
   const bare = /(^|, )position=/;
-  ok(!('position' in acc.variants) && JSON.stringify(acc.figmaProperties?.variantAxes) === JSON.stringify(['expansion', 'iconPosition', 'size']) && !acc.props.some((p) => p.name === 'position') && plans.every((p) => /(^|, )icon position=(leading|trailing)(,|$)/.test(planComponentName(p)) && !bare.test(planComponentName(p)) && !/iconPosition=/.test(planComponentName(p))),
+  ok(!('position' in acc.variants) && JSON.stringify(acc.figmaProperties?.variantAxes) === JSON.stringify(['expansion', 'iconPosition', 'indicator', 'size']) && !acc.props.some((p) => p.name === 'position') && plans.every((p) => /(^|, )icon position=(leading|trailing)(,|$)/.test(planComponentName(p)) && !bare.test(planComponentName(p)) && !/iconPosition=/.test(planComponentName(p))),
     `#2417 accordion iconPosition (owner QA, #2571): the code axis and prop are iconPosition, and every member's name carries its Figma name "icon position" (got ${JSON.stringify(Object.keys(acc.variants))}; ${planComponentName(plans[0])})`);
   // THE VALUE NAMES (Q242): `leading | trailing`, as Button names its visuals and Switch row its label position, in
   // the def, the prop, every member's name and the indicator parts' layer names. An old name back (`start` / `end`,
@@ -34716,8 +34847,8 @@ arm: {
   const glyphs = plans.map((p) => { const c = coord(p); const start = find(p.root as PN, 'leadingGlyph'), end = find(p.root as PN, 'trailingGlyph'); return { c, start, end }; });
   ok(glyphs.every(({ c, start, end }) => {
     const g = c.iconPosition === 'leading' ? start : end, other = c.iconPosition === 'leading' ? end : start;
-    return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && JSON.stringify(g.nestExpose) === JSON.stringify(['indicator']);
-  }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, exposing indicator and following the member's expansion and size (Q183)`);
+    return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.indicator === c.indicator && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && !g.nestExpose;
+  }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, following the member's indicator (#2878), expansion and size, and not exposed`);
   ok(plans.every((p) => { const c = coord(p); const panel = find(p.root as PN, 'content'); return c.expansion === 'expanded' ? panel?.type === 'CONTENT_SLOT' : !panel; }),
     `#2417 accordion panel: a native slot on every expanded member and on no collapsed one (Q182)`);
   const open = plans.find((p) => coord(p).expansion === 'expanded' && coord(p).size === 'medium')!;
@@ -34761,7 +34892,7 @@ arm: {
   // live: compensated, it covered it by 2px). The control offset back, or the compensation back, fails here by name.
   type PR = PN & { absoluteInset?: string; absoluteStrokeInset?: string };
   const rings = plans.filter((p) => coord(p).state === 'focus-visible').map((p) => find(p.root as PN, 'focusRing') as PR | undefined);
-  ok(acc.tokens['ring-offset'] === 'focus.ring.offset-field' && rings.length === 12 && rings.every((r) => r?.absoluteInset === 'focus/ring/offset-field' && r.absoluteStrokeInset === undefined),
+  ok(acc.tokens['ring-offset'] === 'focus.ring.offset-field' && rings.length === 24 && rings.every((r) => r?.absoluteInset === 'focus/ring/offset-field' && r.absoluteStrokeInset === undefined),
     `#2417 accordion focus ring (Q257): drawn inside the header's edge, focus.ring.offset-field and no stroke compensation on every focus-visible member (got ${acc.tokens['ring-offset']}; ${[...new Set(rings.map((r) => `${r?.absoluteInset} + ${r?.absoluteStrokeInset ?? 'no stroke'}`))].join(', ')})`);
   // `drawnInside` IS VALIDATED ON ITS OWN TERMS (#2417): never beside `strokeInset`, and only on an absolute part. Each
   // refusal is asserted by its own message, so switching one off fails its own arm.
@@ -34814,7 +34945,7 @@ arm: {
       }
     }
   }
-  ok(measured === 30 && off.length === 0,
+  ok(measured === 60 && off.length === 0,
     `#2417 accordion header (Q262): the glyph's row is top-aligned, and on a one- and a two-line title the glyph centers on line one, within 1px, at every size in every brand (${measured} measured${off.length ? `; OFF: ${off.join('; ')}` : ''})`);
   // A SINGLE LINE IS CENTERED IN THE HEADER (owner Q276 A, #2594): the header is top-aligned no more. It centers one
   // row holding the indicator and the title, so the 44px floor's slack falls evenly above and below the content
@@ -34846,7 +34977,7 @@ arm: {
       if (!(floor > 0 && Math.abs(mid - hh / 2) <= 0.5)) offC.push(`${b} ${size} ${side} (header ${header.counterAxisAlignItems} over [${flow.map((c) => c.name).join(', ')}]): content center ${mid.toFixed(2)} vs header middle ${(hh / 2).toFixed(2)} of ${hh.toFixed(2)}`);
     }
   }
-  ok(measuredC === 30 && offC.length === 0,
+  ok(measuredC === 60 && offC.length === 0,
     `#2594 accordion header (Q276): a single-line header's content is vertically centered, within 0.5px, at every size and icon position in every brand (${measuredC} measured${offC.length ? `; OFF: ${offC.join('; ')}` : ''})`);
   // THE FIGMA DISPLAY NAME OF A VARIANT AXIS (#2571): "icon position" in every member name, and in every key that
   // parses one, so the plugin's and the paste's layouts and footprint cohorts read the same string. Mutations: the
@@ -36389,6 +36520,51 @@ arm: {
   const tabsLow = tabsCells.filter((x) => !(x.bar > x.base)).map((x) => `${x.cell} bar ${x.bar.toFixed(2)} ≤ baseline ${x.base.toFixed(2)}`);
   ok(tabsCells.length === 16 && tabsMiss.length === 0 && tabsLow.length === 0,
     `#2715 tabs contrast: the selected bar measures above the baseline against the page in all 16 brand × mode cells (${tabsCells.length} measured, ${tabsLow.length} not above — ${tabsLow.slice(0, 2).join('; ') || 'none'}${tabsMiss.length ? `; missing ${tabsMiss.slice(0, 2).join(', ')}` : ''})`);
+}
+
+// #2965 — THE BRAND-INVARIANT STROKE STEPS, IN PIXELS, IN EVERY CORPUS BRAND. No gate asserted a `border-width` step's
+// emitted px: `BORDER_PX` above only feeds the executor stub, and #2792 pinned the Slider's three track rungs only. So
+// `border-width.none` (0px) and `hairline` (1px, the border floor) were unpinned, and so was the focus ring, whose width
+// is the 2px SC 2.4.13 floor and whose two offsets are fixed (2px off a control, 0px on a field edge). None is a brand
+// lever: `tree.ts` writes each as a constant, so every brand's tree must hold the same number. The table is typed from
+// the decisions and the WCAG floor, never read off `tree.ts` (docs/34 shape 1). The walk reads each COMPOSED
+// `out/<brand>.tokens.json` (not the base or the overlays), follows every alias to its `$value`, and also holds any
+// per-mode override of the leaf to the same number. Values are deliberately unversioned (docs/30), so this is a
+// correctness pin, not a contract one. Not here, on purpose: the grid, breakpoint and container steps, which are brand
+// levers (one corpus brand already ships its own), and `container.min`, pinned at 320px by #2971 above.
+{
+  const INVARIANT_PX: ReadonlyArray<[string, string, string]> = [
+    ['border-width.none', '0px', 'no stroke'],
+    ['border-width.hairline', '1px', 'the border floor; no sub-px stroke'],
+    ['border-width.thick', '2px', 'emphasis / selected; the small Slider track (Q550 e)'],
+    ['border-width.heavy', '4px', 'the medium Slider track (Q550 e)'],
+    ['border-width.x-heavy', '6px', 'the large Slider track (Q550 e)'],
+    ['focus.ring.width', '2px', 'SC 2.4.13 focus appearance, the 2px floor'],
+    ['focus.ring.offset', '2px', 'the ring off a control edge'],
+    ['focus.ring.offset-field', '0px', 'the ring on a field edge'],
+  ];
+  const brands = readdirSync(resolve(HERE, 'out')).filter((f) => /^[^.]+\.tokens\.json$/.test(f)).sort();
+  const off: string[] = [];
+  let pinned = 0;
+  for (const f of brands) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8'));
+    const rootKey = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const at = (dotted: string): any => dotted.split('.').reduce((o: any, k) => o?.[k], tree[rootKey]);
+    const deref = (ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').reduce((o: any, k) => o?.[k], tree);
+    const valueOf = (v: any): any => { for (let hop = 0; typeof v === 'string' && v.startsWith('{') && hop < 8; hop++) v = deref(v)?.$value; return v; };
+    for (const [path, px, why] of INVARIANT_PX) {
+      const leaf = at(path);
+      const v = valueOf(leaf?.$value);
+      pinned++;
+      if (v !== px) off.push(`${f} ${path} ${String(v)} (want ${px}: ${why})`);
+      for (const [mode, mv] of Object.entries((leaf?.$extensions?.prism3?.modes ?? {}) as Record<string, any>)) {
+        const m = valueOf(typeof mv === 'object' && mv !== null && '$value' in mv ? mv.$value : mv);
+        if (m !== px) off.push(`${f} ${path} in ${mode} ${String(m)} (want ${px}: ${why})`);
+      }
+    }
+  }
+  ok(brands.length >= 5 && ['aurora', 'harbor', 'prism3'].every((b) => brands.includes(`${b}.tokens.json`)) && pinned === brands.length * INVARIANT_PX.length && off.length === 0,
+    `#2965 brand-invariant steps: border-width none / hairline / thick / heavy / x-heavy resolve to 0 / 1 / 2 / 4 / 6px and focus.ring width / offset / offset-field to 2 / 2 / 0px in every corpus brand's composed tree, in every mode (${brands.length} brands, ${pinned} leaves; ${off.length} off — ${off.slice(0, 3).join('; ') || 'none'})`);
 }
 
 // ------------------------------------------------------------------- report

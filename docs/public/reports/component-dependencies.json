@@ -44,18 +44,16 @@
       "to": "_accordion-indicator",
       "part": "leadingGlyph",
       "partKind": "nest",
-      "relation": "nest-exposed",
+      "relation": "nest-fixed",
       "variant": {
         "indicator": "chevron",
         "expansion": "collapsed",
         "size": "medium"
       },
       "follow": [
+        "indicator",
         "expansion",
         "size"
-      ],
-      "expose": [
-        "indicator"
       ]
     },
     {
@@ -63,18 +61,16 @@
       "to": "_accordion-indicator",
       "part": "trailingGlyph",
       "partKind": "nest",
-      "relation": "nest-exposed",
+      "relation": "nest-fixed",
       "variant": {
         "indicator": "chevron",
         "expansion": "collapsed",
         "size": "medium"
       },
       "follow": [
+        "indicator",
         "expansion",
         "size"
-      ],
-      "expose": [
-        "indicator"
       ]
     },
     {

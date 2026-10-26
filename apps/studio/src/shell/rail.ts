@@ -1,7 +1,8 @@
 /**
- * The plugin's left rail (#2909 IA v2 phase 1; the owner's decisions of 2026-10-24 on the round-3 wireframe, and the
- * round-4 wireframe's drafts): a 60px column of tiles, each its icon over a one-word label, the pattern Figma's own left
- * rail uses. Plugin only: the web studio keeps its top bar and tab row until Q2909.9 is built (phase 2).
+ * The left rail (#2909 IA v2 phase 1; the owner's decisions of 2026-10-24 on the round-3 wireframe, and the round-4
+ * wireframe's drafts): a 60px column of tiles, each its icon over a one-word label, the pattern Figma's own left rail
+ * uses. On both hosts since phase 2 (Q2909.9 A): the web's rail holds Theme, Components and Export (`railAreas`), with
+ * Help and Appearance at its foot and no Agent.
  *
  * WHAT IT HOLDS, top to bottom:
  *   · the product mark (the logo; its name is the mark's accessible name);
@@ -22,7 +23,7 @@
  * The labels and icons are the owner's (Chunk 2, 2026-10-24: Q2909.19 A icons, Q2909.20 A labels). The rail keeps its
  * labels at 380 (Q2909.16 A). Its selected tile's fill is the mapped `fill-2` (Q2909.24 A).
  */
-import { RAIL_AREAS, type AreaId } from './pages';
+import type { AreaId, RailArea } from './pages';
 import { glyph, h, hook, tile } from './dom';
 
 export type Rail = {
@@ -31,8 +32,10 @@ export type Rail = {
   readonly paint: (area: AreaId | null) => void;
 };
 
-/** Mount the rail. `foot` is the frame's own nodes for the rail's foot, in order (the Agent slot, Help, Appearance). */
-export const mountRail = (opts: { readonly logo: HTMLElement; readonly go: (area: AreaId) => void; readonly foot: readonly HTMLElement[] }): Rail => {
+/** Mount the rail. `areas` is the host's areas, in order (`railAreas`); `foot` is the frame's own nodes for the rail's
+ *  foot, in order (the plugin's Agent slot, Help, Appearance). */
+export const mountRail = (opts: { readonly logo: HTMLElement; readonly areas: readonly RailArea[]; readonly go: (area: AreaId) => void; readonly foot: readonly HTMLElement[] }): Rail => {
+  const RAIL_AREAS = opts.areas;
   const node = hook(h('nav', 'p3-rail'), 'rail');
   node.setAttribute('aria-label', 'Areas');
   const mark = hook(h('div', 'p3-rail-mark'), 'rail-mark');

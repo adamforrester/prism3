@@ -778,6 +778,13 @@ jobs:
       - name: Component names follow the naming table (#2759)
         run: npx --yes tsx@4 packages/engine/lint-naming.ts
 
+      # #2928, the shape owner QA Q537 found in Pagination — no projected member stretches a child across a
+      # column that hugs its width, or grows one along a row that does. The host turns that width FIXED when the
+      # fill is written, so the frame stops following its content. The rule is typed in the gate and the subject
+      # is the plans the executors build from.
+      - name: No member fills a width that hugs (#2928)
+        run: npx --yes tsx@4 packages/engine/lint-fill-under-hug.ts
+
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because
       # docs/34 shape 17 is explicit that a stale checkout is internally consistent — nothing running

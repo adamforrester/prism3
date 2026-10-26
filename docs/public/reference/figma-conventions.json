@@ -1936,7 +1936,7 @@
         "kind": "component set",
         "page": "↳ Accordion",
         "section": "Components",
-        "members": 24,
+        "members": 48,
         "variantProperties": [
           {
             "name": "expansion",
@@ -1950,6 +1950,13 @@
             "values": [
               "leading",
               "trailing"
+            ]
+          },
+          {
+            "name": "indicator",
+            "values": [
+              "chevron",
+              "plus-minus"
             ]
           },
           {

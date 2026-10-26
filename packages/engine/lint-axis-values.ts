@@ -957,12 +957,12 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'indicator',
     values: ['chevron', 'plus-minus'],
-    defs: ['_accordion-indicator'],
+    defs: ['_accordion-indicator', 'accordion'],
     relation: 'sole',
     reason:
       'Which pair of glyphs the accordion\'s indicator shows (#2417, owner Q183): a chevron, down closed and up open, or a '
       + 'plus that becomes a minus. `chevron` LEADS because it is the field\'s default and the code default. An axis of the '
-      + 'BUILDING BLOCK, exposed on the accordion, so a designer picks it once and it survives an expansion switch.',
+      + 'BUILDING BLOCK and of the accordion itself (#2878), which the nested indicator follows per member.',
   },
   {
     axis: 'ratio',

@@ -98,8 +98,12 @@ const LEGACY_TIERS = ['apply', 'applyFull', 'build', 'renderBar', 'renderWorkspa
 const NEW_DIRS = ['src/shell', 'src/domains', 'src/preview', 'src/ui', 'src/state'];
 /** Files the scan must read, so an empty or misdirected scan cannot pass. */
 const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.ts', 'src/shell/dom.ts', 'src/shell/preview.ts',
-  // S1.4: the Activity drawer and the Figma menu, which run writes `main.ts` lends and must not reach a tier.
-  'src/shell/activity.ts', 'src/shell/figma.ts',
+  // S1.4: the Activity drawer, which runs writes `main.ts` lends and must not reach a tier. (The Figma menu, beside it
+  // since S1.4, went with #2998: nothing called it once #2909 moved its writes into Update file.)
+  'src/shell/activity.ts',
+  // #2909: the rail, Update file and Documentation, and phase 2's shared block, read-only lines and engine warnings.
+  'src/shell/rail.ts', 'src/shell/update-file.ts', 'src/shell/documentation.ts', 'src/domains/shared-options.ts', 'src/ui/home-line.ts',
+  'src/state/update-file.ts', 'src/state/engine-warnings.ts',
   // S13.1: the top bar's controls (the brand menu, Export and its dialog, Apply Theme, the prune review) and the error
   // strip, which `main.ts`'s `renderBar` drew until then. Their actions are lent, like the Figma menu's, and each ends
   // in the store's `bar` topic rather than a repaint tier.

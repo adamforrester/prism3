@@ -892,8 +892,12 @@ export const makeShim = (opts: ShimOpts = {}) => {
         if (!opts.layoutModel || !p) return;
         node._fromRight = c?.horizontal === 'MAX' ? ((p.width as number) || 0) - (node._x as number) - ((node.width as number) || 0) : undefined;
         node._fromBottom = c?.vertical === 'MAX' ? ((p.height as number) || 0) - (node._y as number) - ((node.height as number) || 0) : undefined;
+        // A HORIZONTAL `STRETCH` (#2928, the foot pin): the host keeps both edges at their distance from the parent's,
+        // so the child widens with it. Recorded here as the right margin, read back in the frame's `width`.
+        node._stretchRight = c?.horizontal === 'STRETCH' ? ((p.width as number) || 0) - ((node._x as number) || 0) - ((node.width as number) || 0) : undefined;
       },
       _fromRight: undefined as number | undefined,
+      _stretchRight: undefined as number | undefined,
       _fromBottom: undefined as number | undefined,
       parent: null as Node | null,
       _absolute: false,
@@ -1110,7 +1114,12 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const autoLayout = (): boolean => !!opts.layoutModel && !!node.layoutMode && node.type !== 'INSTANCE' && node.type !== 'TEXT';
         const fixedOnY = (): boolean => (node.layoutMode === 'VERTICAL' ? node.primaryAxisSizingMode : node.counterAxisSizingMode) === 'FIXED';
         if (opts.layoutModel && node.type !== 'INSTANCE' && node.type !== 'TEXT') {
-          Object.defineProperty(node, 'width', { configurable: true, get: () => (autoLayout() ? fillWidth(node) ?? naturalWidth(node) : bv.width ? bv.width.value ?? 0 : w), set: (v: number) => { w = v; node._setW = v; } });
+          // An ABSOLUTE frame constrained `STRETCH` across (#2928) follows its parent's width (see `constraints`).
+          const stretched = (): number | undefined => {
+            const p = node.parent as Node | null;
+            return node._absolute && p && typeof node._stretchRight === 'number' ? ((p.width as number) || 0) - ((node._x as number) || 0) - node._stretchRight : undefined;
+          };
+          Object.defineProperty(node, 'width', { configurable: true, get: () => (autoLayout() ? fillWidth(node) ?? naturalWidth(node) : stretched() ?? (bv.width ? bv.width.value ?? 0 : w)), set: (v: number) => { w = v; node._setW = v; } });
           Object.defineProperty(node, 'height', { configurable: true, get: () => (autoLayout() && !fixedOnY() && hugH ? hugH.call(node) : bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; node._setH = v; } });
           return;
         }

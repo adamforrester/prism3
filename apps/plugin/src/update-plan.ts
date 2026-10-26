@@ -56,7 +56,8 @@ import { adoptions, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP
 import { furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
 import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
-import { PANEL_WIDTH, docPanelBlockers, docPanelDue, docPanelReach, ownerSet, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
+import { isLiveSpecPanel, readSpecTag } from './spec-tag';
+import { PANEL_GAP, PANEL_WIDTH, SPEC_WIDTH, docPanelBlockers, docPanelDue, docPanelReach, ownerSet, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
@@ -1054,6 +1055,26 @@ const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Pro
   return { kind: 'found', name, set: found[0], view: await readSetView(found[0], breathe, drawVars), ...(from ? { from } : {}) };
 };
 
+/**
+ * THE BACKGROUND HAND-EDIT PASS (#2909 Q2909.8 A): how many of a set's members someone edited by hand, read the way the
+ * dry run reads a hand edit (the member's as-built record against the node now, an update's own part-way writes left
+ * out), and nothing else: no plan is laid against the set and no field change is worked out, so it is the part of the
+ * check the ledger cannot answer. A preview of the status, never what an update acts on: the full check scoped to the
+ * flagged sets reads every member again before anything is written. `null` for a set the file does not hold.
+ */
+export const handEditsOf = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>): Promise<{ members: number; edited: number } | null> => {
+  const v = await locateView(host, t, breathe);
+  if (v.kind !== 'found') return null;
+  let edited = 0;
+  for (const m of v.view.members) {
+    if (!m.stamp || !m.baseline) continue;
+    let d = baselineDiff(m.baseline, baselineOf(m.snap));
+    if (m.updating) { const kept = new Set(m.updating); d = { changed: d.changed.filter((p) => kept.has(p)), added: [], removed: [] }; }
+    if (d.changed.length + d.added.length + d.removed.length > 0) edited++;
+  }
+  return { members: v.view.members.length, edited };
+};
+
 export type UpdatePreview = {
   sets: SetPreview[]; missing: string[]; refused: { def: string; reason: string }[];
   /** #2568, owner decision Q260 A — the component pages not in alphabetical order, by full page name, which the apply
@@ -1120,7 +1141,7 @@ export const pageSnugSets = (found: readonly PageSet[], reach = 0): Set<string> 
 
 /** Each page that takes part in the re-spacing, with its top-level nodes read as `respaceSets` reads them. A page takes
  *  part only when every set Prism3 built on it is one this update reads and none is blocked. `reach` is how far a
- *  set's usage panel reaches right of it (`docPanelReach`, #846): 0 when the file cannot draw one. Only a set whose
+ *  set's usage panel and spec column reach right of it (`docPanelReach`, #846, #2830): 0 when the file cannot draw one. Only a set whose
  *  `lead` is not false reaches it: one panel per family, beside its lead's set (#2927). */
 const pageViews = (found: readonly PageSet[], reach = 0) => {
   const pages = new Map<unknown, typeof found[number][]>();
@@ -1142,18 +1163,24 @@ const pageViews = (found: readonly PageSet[], reach = 0) => {
       id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0), height: Number(k.height ?? 0),
       header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
       prism3: k.type === 'COMPONENT_SET' && setBuiltByPrism3(k),
-      furniture: !!readTag(k as never) || isLivePanel(k as PNode),
-      of: at.get(readTag(k as never)?.set ?? readPanelTag(k as PNode)?.set ?? ''),
+      // A live spec panel (#2830) is its set's furniture too: it moves with the set and never blocks it.
+      furniture: !!readTag(k as never) || isLivePanel(k as PNode) || isLiveSpecPanel(k),
+      of: at.get(readTag(k as never)?.set ?? readPanelTag(k as PNode)?.set ?? (isLiveSpecPanel(k) ? readSpecTag(k)?.set : undefined) ?? ''),
     }));
     // A SET'S USAGE PANEL IS PART OF ITS VISIBLE BOX (#846), as its labels are: a live panel is furniture of its set,
     // so the next set is spaced from the panel's edge and the panel moves with its set (`respaceLive`). A Prism3 set
     // with no live panel yet, in a file that can draw one, reaches as far as the panel will: that is the room the
     // update makes for it. A panel kept aside after a hand edit is the designer's, and stays put like any other node.
+    // The spec column (#2830, Q2830.1 B) is reserved the same way: a lead set with no live spec panel reaches past where
+    // one goes, `SPEC_WIDTH` at the end of its reach, so drawing specs later never needs the row spaced again.
     if (reach > 0) {
       const drawn = new Set(boxes.filter((b) => b.of !== undefined && isLivePanel(kids[Number(b.id)] as PNode)).map((b) => b.of));
+      const specs = new Set(boxes.filter((b) => b.of !== undefined && isLiveSpecPanel(kids[Number(b.id)])).map((b) => b.of));
       const leads = new Set(here.filter((f) => f.lead !== false).map((f) => String(kids.indexOf(f.set as never))));
-      for (const b of boxes.filter((x) => x.prism3 && !drawn.has(x.id) && leads.has(x.id)))
-        boxes.push({ id: `panel:${b.id}`, type: 'FRAME', x: b.x + b.width + reach - PANEL_WIDTH, y: b.y, width: PANEL_WIDTH, height: b.height, furniture: true, of: b.id });
+      for (const b of boxes.filter((x) => x.prism3 && leads.has(x.id))) {
+        if (!drawn.has(b.id)) boxes.push({ id: `panel:${b.id}`, type: 'FRAME', x: b.x + b.width + PANEL_GAP, y: b.y, width: PANEL_WIDTH, height: b.height, furniture: true, of: b.id });
+        if (!specs.has(b.id)) boxes.push({ id: `specs:${b.id}`, type: 'FRAME', x: b.x + b.width + reach - SPEC_WIDTH, y: b.y, width: SPEC_WIDTH, height: b.height, furniture: true, of: b.id });
+      }
     }
     views.push({ here, kids, boxes });
   }

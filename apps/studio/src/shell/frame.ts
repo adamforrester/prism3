@@ -53,14 +53,13 @@
  */
 import { currentMode, page, rp, searchHits, searchQuery, setCurrentMode, setPage, setSearch, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { INSPECT, TABS, THEME_TABS, areaOfPage, homeOf, isMenuPage, newPageOf, pageOfTab, placeId, placeOfPage, placeOfTab, viewLabel, type AreaId, type Host, type InspectId, type NewPageKey, type PageKey, type Place, type TabId } from './pages';
+import { DOCS_HREF, INSPECT, THEME_TABS, TABS, areaOfPage, railAreas, homeOf, isMenuPage, newPageOf, pageOfTab, placeId, placeOfPage, placeOfTab, viewLabel, type AreaId, type Host, type InspectId, type NewPageKey, type PageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook, linkTile, menuButton, tile } from './dom';
 import { mountRail } from './rail';
 import { mountDocumentation, type DocumentationLend } from './documentation';
 import { mountUpdateFile, type UpdateFileLend } from './update-file';
 import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
-import type { FigmaAction } from './figma';
 import { mountBar, type BarLend } from './bar';
 import { mountHome, type HomeView } from './home';
 import { THEME_CHOICES, onThemeChange, setThemePref, themeChoice } from './theme';
@@ -128,9 +127,6 @@ const STAYS_LIVE = ['.p3-info', '[aria-controls^="p3-advb-"]', '.p3-jump-link', 
 const OPERABLE = ['button', 'select', 'textarea', 'input:not([type="hidden"])', 'a[href]', '[contenteditable]:not([contenteditable="false"])',
   '[tabindex]:not([tabindex="-1"])', ...['button', 'switch', 'checkbox', 'radio', 'slider', 'spinbutton', 'tab', 'menuitem', 'menuitemradio',
     'menuitemcheckbox', 'option', 'combobox', 'textbox'].map((r) => `[role="${r}"]`)].join(', ');
-
-/** The product's name, as the studio's top bar shows it (owner, 2026-10-04). */
-const PRODUCT_NAME = 'Prism3 Studio';
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */
 export const NARROW_MAX = 560;
@@ -202,14 +198,11 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly inspect: InspectLegacy;
   /** The host session's writes, as the Activity drawer reads them, and how it answers a request to show one (S1.4, S11). */
   readonly activity: ActivityLend;
-  /** The bar's Apply Theme (#2178), or null. Null on both hosts since #2909: the plugin's write is Update file, and the
-   *  web has none. Kept as the bar's slot for a host that still draws it. */
-  readonly applyTheme: (() => FigmaAction) | null;
   /** #2909 IA v2 phase 1: Update file's reads and writes, or null where there is no Figma file (the studio). */
   readonly updateFile: UpdateFileLend | null;
   /** #2909: Documentation's reads and writes, or null where there is no Figma file. */
   readonly documentation: DocumentationLend | null;
-  /** The plugin's Docs (#2637 Q384): the main thread opens the docs in the browser. Null on the web, a link there. */
+  /** The rail's Help (#2637 Q384): the main thread opens the docs in the browser. Null on the web, a link there. */
   readonly openDocs: (() => void) | null;
   /** The legacy renderers lent to the moved pages (S3: the Style guide, to Brand's preview), and the host's font
    *  list (S6.2, Type). */
@@ -222,9 +215,6 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly startBrand: () => void;
 }): Frame => {
   const { host } = opts;
-  // #2909 IA v2 phase 1: the plugin's shell is the left rail (`rail.ts`); the web keeps its bar and tab row (Q2909.9 is
-  // phase 2).
-  const railShell = host === 'figma';
   const cleanups: (() => void)[] = [];
   let place: Place | null = placeOfPage(page);
 
@@ -235,14 +225,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   // ── the top bar ────────────────────────────────────────────────────────────────────────────────
   const bar = hook(h('div', 'p3-bar'), 'top-bar');
   const barSlot = h('div', 'p3-bar-slot');
-  // The product mark, first in the bar on both hosts (owner, 2026-10-04 and 2026-10-05). An image with a name, not a
-  // control. The bar places it.
-  const mark = hook(h('div', 'p3-mark'), 'product-mark');
-  mark.setAttribute('role', 'img');
-  mark.setAttribute('aria-label', PRODUCT_NAME);
-  const logo = opts.logo();
-  logo.setAttribute('aria-hidden', 'true');
-  mark.append(logo, h('span', 'p3-mark-name', PRODUCT_NAME));
+  // The product mark is the rail's logo on both hosts since Q2909.9 A (`rail.ts`), so the bar carries none.
   bar.append(barSlot);
 
   // The narrow Settings / Preview toggle (Q7). It switches the two panes.
@@ -262,15 +245,15 @@ export const mountFrame = (app: HTMLElement, opts: {
   // The theme menu (F3; on the plugin too since the owner's top-bar decision of 2026-10-05, with Match Figma first).
   // The bar places it, before Activity and Export.
   // On the rail it is Appearance (round 4), so it does not collide with the Theme area.
-  const theme = themeToggle(cleanups, railShell ? 'Appearance' : 'Theme');
+  const theme = themeToggle(cleanups, 'Appearance');
 
   // ── the tab row and Color's sub-row ─────────────────────────────────────────────────────────────
   const nav = hook(h('div', 'p3-nav'), 'tab-row');
   const tabList = h('div', 'p3-tabs');
   tabList.setAttribute('role', 'tablist');
   tabList.setAttribute('aria-label', 'Settings domains');
-  // On the rail, Components is an area of its own: the tab row is Theme's pages (Q2909.1 A, Q2909.21 A).
-  const tabData = railShell ? THEME_TABS : TABS;
+  // Components is a rail area of its own: the tab row is Theme's pages (Q2909.1 A, Q2909.21 A).
+  const tabData = THEME_TABS;
   const tabs = tabData.map((t) => {
     const b = tabButton('p3-tab', `p3-tab-${t.id}`, `tab-${t.id}`, t.label, PANEL_ID);
     b.onclick = () => go(placeOfTab(t.id));
@@ -463,44 +446,39 @@ export const mountFrame = (app: HTMLElement, opts: {
   root.append(head, panes, menuPage, home.node, inspect, activity.drawer, layer);
   app.append(root);
 
-  // The verdict: on the web, on the bar after the brand switcher; on the rail, in the Theme area's preview header (round
-  // 4: Contrast moved off the global bar into Theme). Then the bar's controls (S13.1), which place the shell's nodes.
+  // The verdict, in the Theme area's preview header (round 4: Contrast moved off the global bar into Theme). Then the
+  // bar's controls (S13.1), which place the shell's nodes.
   const verdict = verdictButton((opener) => openInspect('contrast', opener), cleanups);
-  // #2909: the rail and what it and the reduced bar hold. Minimize's slot sits on the bar; the plugin's entry fills it.
-  const minimize = railShell ? hook(h('div', 'p3-agent-slot p3-min-slot'), 'bar-minimize') : null;
-  const update = railShell && opts.updateFile ? mountUpdateFile(opts.updateFile, cleanups) : null;
-  const exportPage = railShell ? hook(h('div', 'p3-export-host'), 'export-host') : null;
+  // #2909: the rail and what it and the reduced bar hold, on both hosts since Q2909.9 A. Minimize's slot sits on the
+  // plugin's bar, and the plugin's entry fills it; Update file is the plugin's too. The web has neither (Q2909.9 A).
+  const minimize = host === 'figma' ? hook(h('div', 'p3-agent-slot p3-min-slot'), 'bar-minimize') : null;
+  const update = opts.updateFile ? mountUpdateFile(opts.updateFile, cleanups) : null;
+  const exportPage = hook(h('div', 'p3-export-host'), 'export-host');
   let lastTheme: PageKey = isMenuPage(page) || page === 'components' ? pageOfTab('brand') : page;
   const goArea = (a: AreaId): void => {
     if (a === 'theme') setPage(lastTheme);
     else if (a === 'components') setPage(pageOfTab('components'));
     else setPage(a);
   };
-  let rail: ReturnType<typeof mountRail> | null = null;
-  if (railShell) {
-    // Help (round 4): the old bar's Docs, renamed so it does not collide with Documentation.
-    const help = opts.openDocs ? tile('docs-open', 'Help') : linkTile('docs-open', 'Help', '/docs/');
-    help.mark.append(glyph('help'));
-    help.tip.textContent = 'Help';
-    help.btn.setAttribute('aria-label', 'Help');
-    if (opts.openDocs) help.btn.onclick = () => opts.openDocs!();
-    help.btn.classList.add('p3-rail-tile');
-    theme.querySelector('.p3-tile')?.classList.add('p3-rail-tile');
-    // "Appear-ance" in the 60px column, as the wireframe breaks it; its name stays whole.
-    const lab = theme.querySelector('.p3-tile-label');
-    if (lab) lab.textContent = 'Appear-ance';
-    const railLogo = opts.logo();
-    rail = mountRail({ logo: railLogo, go: goArea, foot: [agent!, help.btn, theme] });
-    root.prepend(rail.node);
-    root.dataset.shell = 'rail';
-    previewHead.insertBefore(verdict, previewHead.children[1] ?? null);
-    if (update) root.append(update.layer);
-  }
-  const barMain = mountBar(opts.bar, {
-    mark, verdict, activity: activity.button, agent: railShell ? null : agent, figma: null, theme: railShell ? null : theme,
-    applyTheme: null, openDocs: host === 'figma' ? opts.openDocs : null,
-    rail: railShell && minimize && update && exportPage ? { minimize, update: update.button, exportPage } : null,
-  }, cleanups);
+  // Help (round 4): the old bar's Docs, renamed so it does not collide with Documentation. On the web a link to the
+  // site's docs (#2637 Q384), opened in a new tab so the brand being edited stays put.
+  const help = opts.openDocs ? tile('docs-open', 'Help') : linkTile('docs-open', 'Help', DOCS_HREF);
+  help.mark.append(glyph('help'));
+  help.tip.textContent = 'Help';
+  help.btn.setAttribute('aria-label', 'Help');
+  if (opts.openDocs) help.btn.onclick = () => opts.openDocs!();
+  help.btn.classList.add('p3-rail-tile');
+  theme.querySelector('.p3-tile')?.classList.add('p3-rail-tile');
+  // "Appear-ance" in the 60px column, as the wireframe breaks it; its name stays whole.
+  const lab = theme.querySelector('.p3-tile-label');
+  if (lab) lab.textContent = 'Appear-ance';
+  // Q2909.9 A: the web's rail holds Theme, Components and Export, and no Agent.
+  const rail = mountRail({ logo: opts.logo(), areas: railAreas(host), go: goArea, foot: [agent, help.btn, theme].filter((n): n is HTMLElement => !!n) });
+  root.prepend(rail.node);
+  root.dataset.shell = 'rail';
+  previewHead.insertBefore(verdict, previewHead.children[1] ?? null);
+  if (update) root.append(update.layer);
+  const barMain = mountBar(opts.bar, { minimize, update: update?.button ?? null, exportPage }, cleanups);
   barSlot.append(barMain);
 
   // ── Inspect state ───────────────────────────────────────────────────────────────────────────────
@@ -673,7 +651,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   /** The menu page mounted now, or null. */
   let menuFor: PageKey | null = null;
   const render = (): void => {
-    const onMenu = !homeView && isMenuPage(page) && railShell;
+    const onMenu = !homeView && isMenuPage(page);
     // Written only when the layout a place calls for changes, never on every render. A home (#2879) takes the place of
     // whatever page is current, which stays mounted under it.
     const layout = homeView ? 'home' : onMenu ? 'page' : 'panes';
@@ -695,7 +673,7 @@ export const mountFrame = (app: HTMLElement, opts: {
         if (!opts.bar.read().exportOpen) opts.bar.act.toggleExport();
       }
     }
-    rail?.paint(homeView ? null : areaOfPage(page));
+    rail.paint(homeView ? null : areaOfPage(page));
     if (layout !== lastLayout) { root.dataset.layout = layout; lastLayout = layout; }
     root.dataset.pane = pane;
     for (const b of paneButtons) b.setAttribute('aria-pressed', String(b === paneButtons[pane === 'settings' ? 0 : 1]));
@@ -774,7 +752,8 @@ export const mountFrame = (app: HTMLElement, opts: {
     if (root.dataset.layout === 'page') { menuPage.focus({ preventScroll: true }); return; }
     const shown = (n: HTMLElement | undefined): n is HTMLElement => !!n && n.getClientRects().length > 0;
     const sel = (xs: HTMLElement[]): HTMLElement | undefined => xs.find((t) => t.getAttribute('aria-selected') === 'true');
-    [sel(subTabs), sel(tabs), domSelect].find(shown)?.focus({ preventScroll: true });
+    // #2909: on a rail area with no tab row (Components), the area's own tile says where the user is.
+    [sel(subTabs), sel(tabs), domSelect, rail.node.querySelector<HTMLElement>('[aria-current="page"]') ?? undefined].find(shown)?.focus({ preventScroll: true });
   }));
 
   // ── width class and the sticky height ───────────────────────────────────────────────────────────

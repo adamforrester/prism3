@@ -1015,7 +1015,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 24,
+    "members": 48,
     "nests": [
       "_accordion-indicator",
       "divider",

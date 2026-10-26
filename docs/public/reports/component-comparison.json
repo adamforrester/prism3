@@ -158,6 +158,10 @@
           "leading",
           "trailing"
         ],
+        "indicator": [
+          "chevron",
+          "plus-minus"
+        ],
         "size": [
           "medium",
           "small",
@@ -5190,7 +5194,8 @@
           "plus-minus"
         ],
         "components": [
-          "_accordion-indicator"
+          "_accordion-indicator",
+          "accordion"
         ]
       }
     ],
