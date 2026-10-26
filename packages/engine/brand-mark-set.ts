@@ -16,10 +16,19 @@
  *
  * ── THE PROVIDER LIST IS DATA (owner decision on #2343, Q-B7 amended) ─────────────────────────────────
  *
- * The owner will supply marks for about a dozen providers. Nothing in code counts them: adding a provider is
- * an SVG in its kind's folder, an entry here and a record in `provenance.json`, and every gate reads those.
- * What the gates assert is the one thing that holds at any size: every listed mark has a file and a
- * provenance record, and every file has a name and a record.
+ * The owner will supply marks for about a dozen providers. Nothing in code counts them: every gate reads the
+ * folder, this file and `provenance.json`. What the gates assert is the one thing that holds at any size:
+ * every listed mark has a file and a provenance record, and every file has a name and a record.
+ *
+ * Adding a provider is three data edits and the steps any new member owes the versioned surface:
+ *   1. the SVG in its kind's folder;
+ *   2. its entry here;
+ *   3. its record in `provenance.json`;
+ *   4. its name in `lint-axis-values.ts`'s hand-typed register (`AXIS_VALUE_SETS`, the `brand-mark` row);
+ *   5. `--accept` on `lint-component-surface.ts` and `lint-component-renames.ts` (`component-axes.json`),
+ *      after `regen.ts`;
+ *   6. a change note for the surface drift (`packages/engine/changes/`).
+ * Steps 4 to 6 are the same for a new core icon. Replacing a placeholder's artwork under its name is 1 and 3.
  *
  * ── NAMES ────────────────────────────────────────────────────────────────────────────────────────────
  *

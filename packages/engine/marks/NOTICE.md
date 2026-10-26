@@ -23,6 +23,19 @@ the provider's own colors, a provider-shaped artboard, and no ink from the compo
 files are a data drop: the SVGs and their records change, and no name moves. `card/generic` is not a
 placeholder: it is Prism3's own neutral card, which names no network, and it stays.
 
+## Adding a provider
+
+Three data edits, then the steps any new member owes the versioned surface:
+
+1. the SVG in its kind's folder;
+2. its entry in `brand-mark-set.ts`;
+3. its record in `provenance.json`;
+4. its name in the `brand-mark` row of `lint-axis-values.ts`'s register;
+5. after `regen.ts`, `--accept` on `lint-component-surface.ts` and `lint-component-renames.ts`;
+6. a change note for the surface drift.
+
+Replacing a placeholder's artwork under the same name is steps 1 and 3 only.
+
 ## Trademarks
 
 Every provider mark is a trademark of its owner. Its presence here grants no right to use it. A mark is
