@@ -3582,7 +3582,7 @@ console.log(`\nBrand — the levers, the namespace, the modes (S3)\n${'='.repeat
 /** The schema inputs v6 homes on Brand, with the hook each lever block must render once. Literal: the
  *  decision (IA-1: Brand holds identity, personality and modes), never read from `pages.ts`. None is a
  *  manifest lever, so the hook rule is `leverHook`'s, applied here by hand. */
-const BRAND_LEVERS = [['id', '[data-p3="lever-id"]'], ['root', '[data-p3="lever-root"]'], ['personality', '[data-p3="lever-personality"]'],
+const BRAND_LEVERS = [['name', '[data-p3="lever-name"]'], ['root', '[data-p3="lever-root"]'], ['personality', '[data-p3="lever-personality"]'],
   ['modes', '[data-p3="lever-modes"]'], ['customModes', '[data-p3="lever-custom-modes"]']];
 /** The engine's personality words, in its order (`TRAITS`, `packages/engine/vocabulary.ts`), typed here. */
 const PERSONALITY = ['energetic', 'calm', 'premium', 'restrained', 'bold', 'generous', 'dense', 'soft', 'sharp'];
@@ -3686,7 +3686,9 @@ for (const host of ['web', 'figma']) {
   await nm.fill('acme-brand');
   const nmState = await page.evaluate(() => ({ bar: document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent, same: document.querySelector('[data-p3="brand-name"]').dataset.cid === 'same', focus: document.activeElement?.getAttribute('data-p3') }));
   ok(nmState.bar === 'acme-brand' && nmState.same && nmState.focus === 'brand-name', `name: typing a name reaches the bar's brand switcher, the field kept and focused (${JSON.stringify(nmState)})`);
-  ok((await persisted(page))?.id === 'acme-brand', `name: the name reaches the persisted brand without a rebuild (#1196) — "${(await persisted(page))?.id}"`);
+  // #2915: the field is the display name; the id, the export slug, does not move with it.
+  const saved = await persisted(page);
+  ok(saved?.name === 'acme-brand' && saved?.id === 'prism3', `name: the name reaches the persisted brand's display name without a rebuild (#1196, #2915), the id kept — name "${saved?.name}", id "${saved?.id}"`);
 
   // Personality: a word turns on, says what it fills, and reaches the brand.
   const soft = page.locator('[data-p3="personality-word"][data-word="soft"]');
@@ -3800,6 +3802,10 @@ for (const { w, h } of WIDTHS) {
     // The default theme's four modes first: none clipped at any width (at 640 they did not fit, and the old
     // scroll hid one; the select shows them all).
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    // The control fits itself one frame after its header resizes (`modeControl`'s observer), and revealing the
+    // preview pane is that resize. Wait the two frames the 5- and 6-mode checks below already wait, or the radios
+    // are measured before they give way to the select (web light 380 flaked on main at d61c9e23).
+    await settle(page);
     // The pane just shown lays its header out after the click, and the control's fit (radios or the select) follows its
     // width, so the reading waits (bounded) for every radio to sit inside it or the select to show. A radio still cut
     // off at the bound fails the arm below, as before.
@@ -9962,7 +9968,7 @@ for (const { w, h } of START_SIZES) {
         await page.fill('[data-p3="start-hex"]', '#336699');
         await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'harbor' }));
         s = await readStartWindow(page);
-        ok(!s.open && !s.guard && (s.brand ?? '').includes('harbor'), `${where}: on the first run an example loads at once, no guard (brand "${s.brand}")`);
+        ok(!s.open && !s.guard && /harbor/i.test(s.brand ?? ''), `${where}: on the first run an example loads at once, no guard (brand "${s.brand}")`);
 
         // ── three edits, then "+ New brand" (G15, S9, S10) ──────────────────────────────────────────────
         await goPlace(page, 'brand');
@@ -10056,7 +10062,7 @@ for (const { w, h } of START_SIZES) {
         await hooks.click(aurora);
         await hooks.click(page.locator('[data-p3="start-guard-discard"]'));
         s = await readStartWindow(page);
-        ok(!s.open && !s.guard && (s.brand ?? '').includes('aurora'), `${where}: Discard loads the choice and closes both windows (brand "${s.brand}")`);
+        ok(!s.open && !s.guard && /aurora/i.test(s.brand ?? ''), `${where}: Discard loads the choice and closes both windows (brand "${s.brand}")`);
         // A clean brand: a start path loads at once.
         await reopen();
         await hooks.click(page.locator('[data-p3="start-blank"]'));
@@ -10804,7 +10810,7 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
   for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900, query: '?p3-test-hooks' });
     try {
-      if (host === 'web') await page.evaluate((n) => window.__prism3TestEdit('id', n), LONG_NAME);
+      if (host === 'web') await page.evaluate((n) => window.__prism3TestEdit('name', n), LONG_NAME);
       else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LONG_BRAND);
       await page.waitForFunction((n) => document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent === n, LONG_NAME, { timeout: 5000 }).catch(() => {});
       const wrong = [];
@@ -15605,7 +15611,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const waiting = await page.evaluate(() => ({ go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null, line: [...document.querySelectorAll('[data-p3="update-set-check"]')].map((n) => n.textContent) }));
       ok(waiting.go === true && waiting.line.every((l) => l === 'Checking what changes…'), `${where}: Q2909.8 A: until the check answers, each due set says so and the update waits (${JSON.stringify(waiting)})`);
       const sets = [
-        { def: 'button', hash: 'hb', members: 648, update: 12, add: 0, drop: 0, handEdited: 2, noBaseline: 0, blocked: false, upToDate: false },
+        { def: 'button', hash: 'hb', members: 648, update: 12, add: 0, drop: 0, handEdited: 2, noBaseline: 0, blocked: false, upToDate: false, breaks: 'Breaks library consumers: 1 layer removed.' },
         { def: 'select', hash: 'hs', members: 30, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: true },
       ];
       await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
@@ -15613,12 +15619,14 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const ck = await page.evaluate(() => ({
         rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => ({ id: b.dataset.id, on: b.getAttribute('aria-checked'), why: b.querySelector('[data-p3="update-set-due"]')?.textContent ?? null })),
         lines: [...document.querySelectorAll('[data-p3="update-set-check"]')].map((n) => n.textContent),
+        breaks: [...document.querySelectorAll('[data-p3="update-due-sets"] [data-p3="update-set-breaks"]')].map((n) => [n.previousElementSibling?.querySelector('[data-p3="update-due-set"]')?.dataset.id ?? null, n.textContent]),
         hand: [...document.querySelectorAll('[data-p3="update-hand-edits"] [role="radio"]')].map((b) => [b.dataset.key, b.getAttribute('aria-checked')]),
         unrec: document.querySelector('[data-p3="update-unrecorded"]')?.textContent ?? null, saves: !!document.querySelector('[data-p3="update-saves"]'),
       }));
       ok(JSON.stringify(ck.rows) === JSON.stringify([{ id: 'button', on: 'true', why: 'Due · its settings changed' }, { id: 'select', on: 'true', why: 'Due · Prism3 changed' }]),
         `${where}: Q2909.8 A: the due sets are listed first, ticked, each with why it is due (${JSON.stringify(ck.rows)})`);
       ok(ck.lines[0] === '12 of 648 members change · 2 edited by hand' && ck.lines[1] === 'No member changes', `${where}: Q2909.8 A: each due set says what the check found (${JSON.stringify(ck.lines)})`);
+      ok(JSON.stringify(ck.breaks) === JSON.stringify([['button', 'Breaks library consumers: 1 layer removed.']]), `${where}: #2831: a published set's consumer-breaking line sits under its row, and only under it (${JSON.stringify(ck.breaks)})`);
       ok(JSON.stringify(ck.hand) === JSON.stringify([['hand=keep', 'true'], ['hand=overwrite', 'false'], ['hand=accept', 'false']]), `${where}: Q2909.8 A: the update keeps hand edits by default (${JSON.stringify(ck.hand)})`);
       ok(/^1 set not checked yet/.test(ck.unrec ?? '') && ck.saves, `${where}: Q2909.8 A: the set never recorded is offered a check, and the update says it saves a version first (${JSON.stringify({ unrec: ck.unrec, saves: ck.saves })})`);
       const dm = await measure(page, `${where} / Update checklist`, host, 1280);

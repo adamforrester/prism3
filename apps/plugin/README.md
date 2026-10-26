@@ -287,7 +287,7 @@ once its labels are drawn (`seatNewSet`), and Update moves a set that sits too c
 shared page.
 
 **The usage panel (#846 phase 2, wireframe approved 2026-10-19).** Beside every set the furniture labels, a build or an
-update draws the component's usage doc as a 560px frame, 40px right of the set and top-aligned with it
+update draws the component's usage doc as a frame at least 560px wide, 40px right of the set and top-aligned with it
 (`src/doc-panel.ts`). Its sections are the engine's doc section model (`component-doc-sections.ts`), the one the
 Markdown page renders, less Building it in code, which is site-only; a section with no data is not drawn. It is built
 from `_Doc-block` instances, a template Set up file makes from the file's own Badge, Tag, List.Item and Divider and its
@@ -315,6 +315,17 @@ specimen's gutter with a 1px leader to its part, placed from the host's laid-out
 that holds another marked part, the root among them, gets a bracket instead. The panel's print leaves out what the set
 puts in it (a specimen's content, sizes, main components), so a rebuilt set no longer reads as a hand edit and leaves
 two panels stacked.
+
+**Wide components, and a family as one component (#2970 items 1 and 4, owner decision Q1–Q5 A).** Every specimen is
+shown at its member's own width: the swap kept the template placeholder's hug, so a member built at a width (Banner at
+480, Checkbox.Row at 320) hugged its content and its text wrapped down to one letter per line. The panel is as wide as
+its widest stage needs, the bracket gutter included, and never narrower than 560 (`panelLayout`); Theming's two modes
+sit side by side unless that row would make the panel 960 or wider, and then they stack. The width is pure on the set,
+so Build's seat, the dry run's spacing and the apply read the same number (`docPanelReaches`), and the spec column moves
+right with a wider panel. A member built wider since makes the panel due. A family's panel is titled with its taxonomy
+page's name ("Checkbox", "Buttons"), its lede the lead's summary; "In this family" is a bulleted list, the lead first,
+each part by its name in the family ("Row") with its own summary's first sentence and a link to its set. In Related, a
+family member reads as its family, linked to the lead's set, once per list, and the panel's own family leaves its lists.
 
 **Interactive components (#2466, owner decision Q238 A).** Every set whose `state` axis holds `rest`, `hover` and
 `pressed` (the button family, icon buttons, tag, tab, and the checkbox, radio and switch controls) gets prototype

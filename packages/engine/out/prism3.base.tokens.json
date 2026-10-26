@@ -2163,6 +2163,13 @@
           "$description": "Scrim — black backdrop behind modals and drawers; opacity 40%"
         }
       },
+      "glass": {
+        "surface": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.white-alpha.70}",
+          "$description": "Glass — the translucent white fill behind the glass background blur; opacity 70%"
+        }
+      },
       "veil": {
         "dark": {
           "subtle": {
@@ -2223,8 +2230,8 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{pds3.core.palette.neutral.550}",
-            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)"
+            "$value": "{pds3.core.palette.neutral.650}",
+            "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
           }
         },
         "placeholder": {
@@ -2902,8 +2909,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{pds3.core.palette.neutral.450}",
-              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)"
+              "$value": "{pds3.core.palette.neutral.350}",
+              "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
             }
           },
           "placeholder": {
@@ -4404,6 +4411,13 @@
           }
         ],
         "$description": "shadow inset — inner shadow for wells / pressed states / inputs"
+      }
+    },
+    "blur": {
+      "glass": {
+        "$type": "dimension",
+        "$value": "32px",
+        "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface"
       }
     },
     "icon": {

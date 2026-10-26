@@ -1,4 +1,5 @@
 {
+  "permissions": { "allow": ["mcp__Figma"] },
   "hooks": {
     "PreToolUse": [
       {

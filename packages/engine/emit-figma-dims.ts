@@ -23,7 +23,7 @@ import { Theme } from './theme';
 import { buildTree, at } from './tree';
 import {
   figmaDimensionDescription, figmaSpaceDescription, figmaRadiusDescription, figmaSizeDescription, figmaIconSizeDescription,
-  figmaControlDescription, figmaLabelLineBoxDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription,
+  figmaControlDescription, figmaLabelLineBoxDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription, figmaBlurDescription,
   figmaDurationPrimitiveDescription, figmaDurationDescription, figmaStaggerDescription,
   figmaCurveDescription, figmaEasingRoleDescription, figmaSpringDescription,
   figmaBreakpointDescription, figmaContainerDescription, figmaGridVarDescription,
@@ -104,6 +104,8 @@ export type FigmaDimsCollections = {
   borderWidth: FigmaCollectionFile;
   focus: FigmaCollectionFile;
   opacity: FigmaCollectionFile;
+  /** `blur/glass` (#2869) — the glass background-blur radius the `glass` Effect Style binds. EFFECT_FLOAT. */
+  blur: FigmaCollectionFile;
 };
 
 // ---------------------------------------------------------------------------
@@ -128,6 +130,7 @@ export type FigmaDimsCollections = {
 //                  literal) is intentionally SKIPPED — Figma has no strokeStyle
 //                  variable primitive; the literal stays code-side.
 //   opacity      → dimensionless 0–1 (0/5/10/…/100 as percent keys). Scope: OPACITY.
+//   blur         → `glass` (#2869), the background-blur radius the `glass` Effect Style binds. Scope: EFFECT_FLOAT.
 // ---------------------------------------------------------------------------
 
 // Scopes by Figma convention. `dimension` primitives carry none (#2602 — `PRIMITIVE_SCOPES`, so no local
@@ -138,6 +141,7 @@ const RADIUS_SCOPES = ['CORNER_RADIUS'];
 const BORDER_WIDTH_SCOPES = ['STROKE_FLOAT'];
 const FOCUS_SCOPES = ['STROKE_FLOAT'];
 const OPACITY_SCOPES = ['OPACITY'];
+const BLUR_SCOPES = ['EFFECT_FLOAT'];
 const SIZE_HEIGHT_SCOPES = ['WIDTH_HEIGHT'];
 const SIZE_PADDING_SCOPES = ['GAP'];
 
@@ -375,6 +379,16 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     alias: null,
   }));
 
+  // Blur (#2869) — a literal px radius, published: an Effect Style binds it, and so may a designer's own blur.
+  const blurVars: FigmaVar[] = Object.keys(brand.blur).map((key) => ({
+    name: ns(`blur/${key}`),
+    resolvedType: 'FLOAT' as const,
+    scopes: BLUR_SCOPES,
+    description: figmaBlurDescription(key, pxFromValue(tree, brand.blur[key].$value)),
+    value: pxFromValue(tree, brand.blur[key].$value),
+    alias: null,
+  }));
+
   const c = (name: string, variables: FigmaVar[]): FigmaCollectionFile => ({ $collection: name, $mode: 'Default', variables });
   return {
     dimension: c(CORE_COLLECTION, dimVars),
@@ -386,6 +400,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     borderWidth: c('border-width', borderVars),
     focus: c('focus', focusVars),
     opacity: c('opacity', opacityVars),
+    blur: c('blur', blurVars),
   };
 };
 

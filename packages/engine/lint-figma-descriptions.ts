@@ -106,7 +106,7 @@ const rowsOf = (file: any): Array<{ name: string; description: unknown }> =>
 
 /** The KIND of a Figma file — its name with the mode suffix dropped (`color.dark.json` → `color`). */
 const kindOf = (file: string): string => file.replace(/\.json$/, '').split('.')[0];
-const KINDS = ['color', 'core', 'control', 'focus', 'space', 'radius', 'size', 'icon', 'border-width', 'opacity', 'layout', 'type-sets', 'text-styles', 'shadow-styles', 'grid-styles'];
+const KINDS = ['color', 'core', 'control', 'focus', 'space', 'radius', 'size', 'icon', 'border-width', 'opacity', 'blur', 'layout', 'type-sets', 'text-styles', 'shadow-styles', 'grid-styles'];
 
 // ── COMMITTED ────────────────────────────────────────────────────────────────────────────────────
 const committed = existsSync(FIGMA) ? readdirSync(FIGMA).filter((b) => existsSync(join(FIGMA, b, 'color.light.json'))) : [];

@@ -222,7 +222,7 @@ export const isRefusal = (s: RenameStatus): boolean =>
  * rather than trusted.
  */
 export const PROJECTED_ROOTS: readonly string[] = [
-  'border-width', 'color', 'control', 'focus', 'icon', 'opacity', 'radius', 'size', 'space',
+  'blur', 'border-width', 'color', 'control', 'focus', 'icon', 'opacity', 'radius', 'size', 'space',
 ];
 
 /**

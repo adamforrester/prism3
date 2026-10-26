@@ -116,6 +116,7 @@ const FLOAT_SCOPE_CODE: Record<string, string> = {
   WIDTH_HEIGHT: 'w', GAP: 'g', CORNER_RADIUS: 'r', STROKE_FLOAT: 'k',
   OPACITY: 'o', FONT_SIZE: 'z', FONT_WEIGHT: 'e', LINE_HEIGHT: 'l',
   LETTER_SPACING: 'p', PARAGRAPH_SPACING: 'a', PARAGRAPH_INDENT: 'i', TEXT_CONTENT: 'c',
+  EFFECT_FLOAT: 'f',   // #2869 — `blur/glass`, an effect radius
   ALL_SCOPES: '*',
 };
 const encodeFloatScopes = (scopes: string[]): string =>
@@ -211,6 +212,7 @@ const FLOAT_AXES: { stem: string; modes: string[] | null }[] = [
   { stem: 'border-width', modes: null },
   { stem: 'focus', modes: null },
   { stem: 'opacity', modes: null },
+  { stem: 'blur', modes: null },   // #2869 — the glass radius the `glass` Effect Style binds
   { stem: 'layout', modes: ['sm', 'md', 'lg', 'xl', '2xl'] },
   // `motion` left this list with #2412: TIMING + EASING, not FLOAT. It is the `motion-vars` pass.
 ];
@@ -753,8 +755,9 @@ return {collections:out,bound,misses};
 };
 
 // ---- pass: styles (Effect Styles = shadows, Paint Styles = gradients) --------------------
-// The only pass that writes NO variables — Effect/Paint styles hold resolved values, so there's no
-// alias graph and no ordering constraint against the other passes. Both style sets are written
+// The only pass that writes NO variables. Effect/Paint styles hold resolved values, plus two bindings: a
+// gradient stop's palette color and the `glass` blur's radius (#2869), which binds `blur/glass` — so this pass
+// follows `dims-create` in `ORDER`, and a missing radius variable is a miss, never a silent literal. Both style sets are written
 // (`shadow/*` light + `shadow-dark/*` dark) because Effect Styles can't carry Figma modes; a
 // component swaps the pair by mode instead (the lane decision in `write-plan.ts`).
 const stylesPass = (brand: string): string => {
@@ -764,11 +767,22 @@ const stylesPass = (brand: string): string => {
   return `const E=${JSON.stringify(E)};
 const P=${JSON.stringify(P)};
 const effectByName=new Map((await figma.getLocalEffectStylesAsync()).map(s=>[s.name,s]));
-let effectsCreated=0;
+const fvarByName=new Map((await figma.variables.getLocalVariablesAsync()).map(v=>[v.name,v]));
+let effectsCreated=0;const effectMisses=[];
 for(const [name,desc,effects] of E){
   let s=effectByName.get(name);
   if(!s){s=figma.createEffectStyle();s.name=name;effectByName.set(name,s);effectsCreated++;}
-  s.description=desc;s.effects=effects;
+  s.description=desc;
+  s.effects=effects.map(e=>{
+    if(!e.boundVariables)return e;
+    const {boundVariables,...plain}=e;let out=plain;
+    for(const [field,a] of Object.entries(boundVariables)){
+      const v=fvarByName.get(a.name);
+      if(!v){effectMisses.push(name+' '+field+' -> '+a.name);continue;}
+      out=figma.variables.setBoundVariableForEffect(out,field,v);
+    }
+    return out;
+  });
 }
 const paintByName=new Map((await figma.getLocalPaintStylesAsync()).map(s=>[s.name,s]));
 let paintsCreated=0;
@@ -778,7 +792,7 @@ for(const [name,desc,paintType,gradientTransform,stops] of P){
   s.description=desc;
   s.paints=[{type:paintType,gradientTransform:gradientTransform,gradientStops:stops}];
 }
-return {effects:{total:E.length,created:effectsCreated},paints:{total:P.length,created:paintsCreated}};
+return {effects:{total:E.length,created:effectsCreated,misses:effectMisses},paints:{total:P.length,created:paintsCreated}};
 `;
 };
 

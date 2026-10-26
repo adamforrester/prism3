@@ -61,6 +61,7 @@ import { componentCatalog } from './state/component-catalog';
 import { currentOf, positionOf, record, runVerdict, startRun, stopRun, type BuildRun, type RunKind } from './state/build-queue';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
+import { shownName } from './state/brand-input';
 // The Elevation and Motion writes moved to `state/depth-motion-input.ts` (UI redesign S9.1), and every Elevation and
 // Motion control to `domains/depth.ts` (S9.2); the Type writes to `state/type-input.ts` and every Type control to
 // `domains/type.ts` (S6.1 to S6.3). Nothing here writes either any more.
@@ -1406,7 +1407,8 @@ const barChanged = (): void => invalidate('bar');
 
 /** The bar's view of this file's state: the brand menu, the import box, the pending load, the dialogs. */
 const barRead = (): BarView => ({
-  brand: { name: brandState.id, hex: hex(oklchToRgb(brandState.primary)) },
+  // #2915: the display name the Brand name field edits, else the id as written.
+  brand: { name: shownName(brandState), hex: hex(oklchToRgb(brandState.primary)) },
   menuOpen: brandMenuOpen,
   // The Examples marker is computed at render, from `brandState.id` (#1075's subject went with the menu's fields).
   examples: Object.keys(BRANDS).map((name) => ({ name, hex: hex(oklchToRgb(BRANDS[name].primary)), current: name === brandState.id })),
@@ -2010,11 +2012,11 @@ const syncStart = (): void => {
     host: commit.isFigma ? 'figma' : 'web',
     mode: want,
     close,
-    closeHint: want === 'reopen' ? `Close — back to ${String(brandState.id)}, unchanged` : 'Close — opens the file without a brand',
+    closeHint: want === 'reopen' ? `Close — back to ${shownName(brandState)}, unchanged` : 'Close — opens the file without a brand',
     // THE ONE DECISION for whether a replacement asks first (#1033's `stageLoad` rule): only with edits to lose. The
     // count it names is the settings that differ from the origin (`editCount`).
     guardFor: (c: StartChoice) => (needsOverwriteConfirm(brandState, provenance)
-      ? guardText(String(brandState.id), originLabel(c.origin, 'arriving'), editCount(brandState, provenance.baseline))
+      ? guardText(shownName(brandState), originLabel(c.origin, 'arriving'), editCount(brandState, provenance.baseline))
       : null),
     load: (c: StartChoice) => { home = null; homeStart = false; loadBrand(c.input, c.origin); },
   });

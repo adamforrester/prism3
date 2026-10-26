@@ -1556,7 +1556,7 @@ for (const [bi, brand] of BRANDS.entries()) {
   await page.evaluate(() => { for (const b of document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')) b.__kept = true; });
   await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: next }).first());
-  await page.waitForFunction((n) => document.querySelector('[data-p3="brand-switcher"]')?.textContent?.includes(n), next, { timeout: 10000 }).catch(() => {});
+  await page.waitForFunction((n) => document.querySelector('[data-p3="brand-switcher"]')?.textContent?.toLowerCase().includes(n), next, { timeout: 10000 }).catch(() => {});
   await hooks.need(page, '[data-p3="palettes-levers"]');
   const after = await readPalettes(page);
   const kept = await page.evaluate(() => [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].filter((b) => b.__kept).length);
@@ -4454,7 +4454,7 @@ console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(7
   // real handler (and the #1196 `syncIdentity`) runs — exactly a designer typing.
   await tabClick(page, 'brand');
   await hooks.need(page, '[data-p3="brand-namespace"]');
-  await page.fill('[data-p3="brand-name"]', NAME);         // Name      → lastGoodInput.id (persisted blob)
+  await page.fill('[data-p3="brand-name"]', NAME);         // Name      → lastGoodInput.name (persisted blob; #2915)
   await page.fill('[data-p3="brand-namespace"]', NS);      // Namespace → a draft, until it is renamed
   await hooks.click(page.locator('[data-p3="namespace-rename"]'));
   await hooks.click(page.locator('[data-p3="namespace-confirm-go"]'));   // → brandState.root, rebuilt (emission)
@@ -4467,7 +4467,8 @@ console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(7
     const raw = localStorage.getItem('prism3:brandInput');
     try { const o = JSON.parse(raw); return (o && typeof o === 'object' && o.input) ? o.input : null; } catch { return null; }
   });
-  ok(persisted?.id === NAME, `#1196: an isolated Name change reaches the persisted blob (id="${persisted?.id}", want "${NAME}")`);
+  // #2915: the Brand name field is the display name; the id, the export slug, does not move with it.
+  ok(persisted?.name === NAME && persisted?.id === 'prism3', `#1196: an isolated Name change reaches the persisted blob (name="${persisted?.name}", want "${NAME}"; id="${persisted?.id}", want "prism3")`);
   ok(persisted?.root === NS, `#1196: an isolated Namespace change reaches the persisted blob (root="${persisted?.root}", want "${NS}")`);
 
   // (b) The namespace reaches the EMITTED DTCG output — the load-bearing half. Export the tokens (still no
@@ -4491,8 +4492,8 @@ console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(7
   ok(!roots.includes('prism'), `#1196: the stale default root is ABSENT from the exported tree (roots: ${roots.join(', ') || 'none'})`);
   ok(freshRefs > 0, `#1196: the exported tree actually carries {${NS}.*} alias refs (found ${freshRefs}) — the ref scan below is not vacuous`);
   ok(staleRefs === 0, `#1196: ZERO residual {prism.*} alias refs inside the exported tree (found ${staleRefs}; ${freshRefs} correct {${NS}.*} refs)`);
-  // slug() reads lastGoodInput.id, so the filename is the other reachable witness of the fix.
-  ok(dl.suggestedFilename().startsWith(NAME), `#1196: the export filename uses the fresh name (${dl.suggestedFilename()})`);
+  // slug() reads lastGoodInput.id, which the Brand name field no longer moves (#2915): the filename keeps the slug.
+  ok(dl.suggestedFilename().startsWith('prism3.') && !dl.suggestedFilename().startsWith(NAME), `#1196, #2915: the export filename keeps the id, not the display name (${dl.suggestedFilename()})`);
 
   const errs = drain();
   ok(errs.length === 0, `#1196: 0 console errors across the identity change + export${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);

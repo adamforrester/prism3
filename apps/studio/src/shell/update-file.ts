@@ -215,6 +215,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         const row = h('div', 'p3-upd-setrow');
         row.append(box, hook(h('p', 'p3-sub p3-upd-setline', c ? UPDATE_COPY.checked(c) : chk === 'pending' ? UPDATE_COPY.checkingSets : ''), 'update-set-check'));
         list.append(row);
+        // #2831: on a published set, what the update breaks for library consumers, beside the set.
+        if (c?.breaks && !c.blocked) list.append(hook(h('p', 'p3-sub p3-upd-setline', c.breaks), 'update-set-breaks'));
       }
       sets.append(list);
       if (chk && chk !== 'pending' && chk.error) sets.append(hook(h('p', 'p3-sg-error', UPDATE_COPY.checkError), 'update-check-error'));

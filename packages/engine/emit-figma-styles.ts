@@ -15,7 +15,7 @@
  */
 import { Theme } from './theme';
 import { buildTree, at } from './tree';
-import { figmaShadowDescription, figmaGridStyleDescription, figmaGradientDescription } from './figma-description';
+import { figmaShadowDescription, figmaGlassDescription, figmaGridStyleDescription, figmaGradientDescription } from './figma-description';
 import { figName, parseColor } from './emit-figma-color';
 import type { FigmaColor } from './emit-figma-color';
 
@@ -32,7 +32,15 @@ import type { FigmaColor } from './emit-figma-color';
 // to Figma {r,g,b,a} float32; numerics carry the DTCG px.
 // ---------------------------------------------------------------------------
 
-export type FigmaEffect = { type: 'DROP_SHADOW' | 'INNER_SHADOW'; color: FigmaColor; offset: { x: number; y: number }; radius: number; spread: number; visible: boolean; blendMode: 'NORMAL' };
+export type FigmaShadowEffect = { type: 'DROP_SHADOW' | 'INNER_SHADOW'; color: FigmaColor; offset: { x: number; y: number }; radius: number; spread: number; visible: boolean; blendMode: 'NORMAL' };
+/**
+ * A background blur whose radius BINDS a FLOAT variable (#2869). `radius` is the resolved value Figma stores;
+ * `boundVariables.radius` names the variable by its Figma NAME, the by-name alias convention every other
+ * emitted binding uses (`emit-figma-dims.ts`). The executor resolves the name and binds it with
+ * `setBoundVariableForEffect`, so Figma itself never sees a by-name alias.
+ */
+export type FigmaBlurEffect = { type: 'BACKGROUND_BLUR'; blurType: 'NORMAL'; radius: number; visible: boolean; boundVariables: { radius: { type: 'VARIABLE_ALIAS'; name: string } } };
+export type FigmaEffect = FigmaShadowEffect | FigmaBlurEffect;
 export type FigmaEffectStyle = { name: string; description: string; effects: FigmaEffect[] };
 export type FigmaEffectStylesFile = { $collection: 'shadow-styles'; styles: FigmaEffectStyle[] };
 
@@ -40,7 +48,7 @@ const pxToNum = (v: unknown): number => parseFloat(String(v).replace('px', '')) 
 
 /** DTCG shadow layer → Figma effect. `inset` shadow becomes INNER_SHADOW; the
  *  rest are DROP_SHADOW. `blur` in DTCG maps to `radius` on the Figma effect. */
-const shadowLayerToEffect = (layer: any, inset: boolean): FigmaEffect => ({
+const shadowLayerToEffect = (layer: any, inset: boolean): FigmaShadowEffect => ({
   type: inset ? 'INNER_SHADOW' : 'DROP_SHADOW',
   color: parseColor(layer.color),
   offset: { x: pxToNum(layer.offsetX), y: pxToNum(layer.offsetY) },
@@ -128,6 +136,22 @@ export const buildFigmaShadow = (theme: Theme): FigmaEffectStylesFile => {
         effects: layerData.map((l: any) => shadowLayerToEffect(l, inset)),
       });
     }
+  }
+
+  // GLASS (#2869, Q464 A; name Q2869.4 A) — one Effect Style, one background blur, its radius bound to
+  // `blur/glass`. It rides in this file because Figma has one Effect Style list, and `shadow-styles.json` is
+  // that list's emission. One style for every mode: the blur does not vary by mode, and the fill that does
+  // (`color/glass/surface`) is a variable with modes, bound on the frame. An Effect Style cannot carry a fill.
+  const blurLeaf = tree[root].blur?.glass;
+  if (blurLeaf) {
+    styles.push({
+      name: 'glass',
+      description: figmaGlassDescription(pxToNum(blurLeaf.$value)),
+      effects: [{
+        type: 'BACKGROUND_BLUR', blurType: 'NORMAL', radius: pxToNum(blurLeaf.$value), visible: true,
+        boundVariables: { radius: { type: 'VARIABLE_ALIAS', name: figName(`${root}.blur.glass`) } },
+      }],
+    });
   }
 
   return { $collection: 'shadow-styles', styles };

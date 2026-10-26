@@ -55,7 +55,7 @@
  * status-led border and falls through to the neutral state border. The nested message carries the status
  * text in parallel, so the field signals status on BOTH the border and the message.
  *
- * ── HOVER: A TRANSLUCENT WASH + THE BORDER; THE FILL IS TRANSPARENT (#1341/#1342, owner-decided) ───
+ * ── HOVER: THE BORDER ALONE; THE FILL IS TRANSPARENT (#1341/#1342, then #2926, owner-decided) ────────
  *
  * A QA question (#1342) asked whether the field FILL should change on hover — i.e. whether the tier
  * should grow a solid `color/field/fill/hover`. The owner-decided answer (recorded on #1341, 2026-09-14,
@@ -66,9 +66,12 @@
  * (`color.interactive.neutral.overlay.hover` — a 10% neutral alpha that tints relative to the CURRENT
  * ground), the button outline/text overlay pattern (#1210/#1233), so it reads on any background a
  * transparent field is dropped on — where a solid `field.fill.hover` would be one step out of register
- * against some ground. So the control paints an `overlay` slot (precedence overlay > fill: the wash at
- * hover, the transparent fill at rest) and no solid fill-hover role is minted. `pressed` is not a select
- * state, so only `hover` washes.
+ * against some ground. So the control painted an `overlay` slot and no solid fill-hover role was minted.
+ *
+ * #2926 (owner decision 2026-10-26, Q1′ D) REMOVED THE WASH from every field, this one included: hover is
+ * the border alone, and `field.border.hover` moved from two ramp steps to four above rest so it carries
+ * the state with the pointer. The wash was the heaviest of the systems surveyed, and most draw no field
+ * hover fill at all. Buttons keep theirs. Still no solid fill-hover role.
  *
  * ── ROLES REUSED, VERSION ────────────────────────────────────────────────────────────────────────
  *
@@ -253,13 +256,9 @@ export const select: ComponentDef = {
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset-field',
 
-    // ── FILL + HOVER WASH — the field chrome (#1341/#1342, owner-decided). `field.fill` is TRANSPARENT by
-    // default, so at rest the control shows the page. Hover does NOT swap the fill to a solid; it lays a
-    // translucent `overlay` wash over the control (precedence overlay > fill), reusing the interactive
-    // overlay mechanism so it tints relative to whatever ground the field sits on. The border strengthens
-    // in parallel (`border.hover`). `pressed` is not a select state, so only `hover` washes. See the header.
+    // ── FILL — the field chrome (#1341/#1342, owner-decided). `field.fill` is TRANSPARENT by default, so the
+    // control shows the page in every state. Hover is the border alone since #2926 (see the header).
     'fill': 'color.field.fill',
-    'overlay.hover': 'color.interactive.neutral.overlay.hover',
 
     // ── BORDER — stateful, with the status-led swaps (border-ONLY). See the header for the vocabulary and
     // the precedence. `border` (bare) is the rest value; `border.hover` / `border.focus-visible` are the
@@ -414,13 +413,13 @@ export const select: ComponentDef = {
         note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts at the select default (small / secondary / regular). Fills the field\'s width (#1503); a long name wraps at FieldLabel\'s max width.',
       },
       // THE CONTROL — the bordered, interactive box. The single target: it owns the hit area, the focus
-      // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
-      // precedence overlay > fill — #1341/#1342); fills the field's width (down to its 120 floor) and hugs its height
+      // ring and the stateful border. Paints its fill and border (`paintSlots`; no hover wash since #2926);
+      // fills the field's width (down to its 120 floor) and hugs its height
       // above a 44px floor, so a wrapping value grows it taller (#1758).
       control: {
         kind: 'box',
         role: 'target',
-        paintSlots: ['overlay', 'fill', 'border'],
+        paintSlots: ['fill', 'border'],
         // `space-between` PINS THE TRAILING CHEVRON TO THE FIELD'S RIGHT EDGE (#1426), independent of the
         // value string's length. It was the fix while `content` hugged its text in Figma (a `justify: 'start'`
         // control let the chevron track the value width — the QA symptom). Since #1751 `content` grows across
@@ -691,7 +690,7 @@ export const select: ComponentDef = {
     ],
     // KB select brief §13, the three-phase through-line the brief adopts as its framing.
     evolution: [
-      'READ-ONLY KEEPS THE EDITABLE FIELD\'S BOUNDARY (owner decision, 2026-09-29, #1710). The read-only member binds `field.border.rest`, the same border as the rest and filled members, in every mode. The earlier `border.secondary` binding measured 2.69–2.81:1 on `background.secondary` in light, below the 1.4.11 floor, and `field.border.rest` is already the quietest neutral step that clears 3:1 there, so no fainter read-only edge can pass. Read-only is carried by its semantics (aria-readonly; still focusable and submitted) and by the affordances its member does not draw (no caret, no hover wash), not by a fainter edge.',
+      'READ-ONLY KEEPS THE EDITABLE FIELD\'S BOUNDARY (owner decision, 2026-09-29, #1710). The read-only member binds `field.border.rest`, the same border as the rest and filled members, in every mode. The earlier `border.secondary` binding measured 2.69–2.81:1 on `background.secondary` in light, below the 1.4.11 floor, and `field.border.rest` is already the quietest neutral step that clears 3:1 there, so no fainter read-only edge can pass. Read-only is carried by its semantics (aria-readonly; still focusable and submitted) and by the affordances its member does not draw (no caret), not by a fainter edge.',
       'STYLING ERA (~2015–2020): custom <div> listboxes to escape the unstyleable native element, at the cost of industry-wide accessibility regressions (KB select brief §13).',
       'ACCESSIBILITY ERA (~2020–2024): headless libraries (React Aria, Radix) codify the ARIA 1.2 listbox and combobox patterns correctly, with JavaScript positioning and focus management dominating the payload.',
       'PLATFORM ERA (2025–present): the Popover API, CSS Anchor Positioning and `appearance: base-select` let a native <select> carry custom styling and rich option content, collapsing the native-versus-custom trade. Directional and unverified in the brief — the reason this def stays native-first and models only the closed control.',

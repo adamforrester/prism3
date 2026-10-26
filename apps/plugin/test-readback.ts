@@ -59,6 +59,7 @@ class VariablesShim {
   createVariableCollection(name: string): ShimCollection { const c = new ShimCollection(`c${++this.cseq}`, name); this.collections.push(c); return c; }
   createVariable(name: string, collection: ShimCollection, t: 'COLOR' | 'FLOAT' = 'COLOR'): ShimVar { const v = new ShimVar(`v${++this.vseq}`, name, collection.id, t); this.vars.push(v); return v; }
   createVariableAlias(target: ShimVar): { type: 'VARIABLE_ALIAS'; id: string } { return { type: 'VARIABLE_ALIAS', id: target.id }; }
+  setBoundVariableForEffect(effect: any, field: string, target: any): any { return { ...effect, boundVariables: { ...(effect.boundVariables ?? {}), [field]: { type: 'VARIABLE_ALIAS', id: target.id } } }; }
 }
 
 // ---- write → read → verify ----------------------------------------------------------------
@@ -144,6 +145,9 @@ const auroraVars = new VariablesShim();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const auroraApi = auroraVars as any;
 await applyWritePlan(buildWritePlan(buildFigmaColor(auroraTheme)), auroraApi);
+// The `blur` collection too (#2869): the `glass` Effect Style binds `blur/glass`, written by the FLOAT executor
+// before the styles step, as Apply Theme orders them.
+await applyFloatPlan(buildFloatWritePlan(auroraTheme).filter((p) => p.name === 'blur'), auroraApi);
 class StylesShimBound extends StylesShim { constructor(public variables: VariablesShim) { super(); } }
 const styleShim = new StylesShimBound(auroraVars);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -164,8 +168,8 @@ ok(sverdict.checks.gradientsConsistent, 'gradient Paint Styles present iff the b
 // pair that matters: the executor's own count is self-reported, while this crosses the Figma boundary
 // (id -> name) the way the real read does, so a binding written to a bogus id would fail here.
 const stopBindings = snap3.styles?.gradientStopBindings;
-ok(sres.paints.bound > 0 && sres.misses.length === 0,
-  `styles write bound ${sres.paints.bound} stops with 0 misses (palette written first)`);
+ok(sres.paints.bound > 0 && sres.effects.bound === 1 && sres.misses.length === 0,
+  `styles write bound ${sres.paints.bound} stops and ${sres.effects.bound} glass radius with 0 misses (palette and blur written first)`);
 ok(!!stopBindings && Object.keys(stopBindings).length === snap3.styles!.paints.length,
   `read-back carries stop bindings for every Paint Style (${Object.keys(stopBindings ?? {}).length})`);
 const readBound = Object.values(stopBindings ?? {}).flat().filter((n) => n !== null);

@@ -95,6 +95,8 @@ export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readon
 export type CheckedSetView = {
   readonly def: string; readonly hash: string; readonly members: number; readonly update: number; readonly add: number; readonly drop: number;
   readonly handEdited: number; readonly noBaseline: number; readonly blocked: boolean; readonly upToDate: boolean;
+  /** #2831 — on a published set, what the update breaks for library consumers, as one line. Absent otherwise. */
+  readonly breaks?: string;
 };
 
 /** What the library home states about the library a file uses (#2879), as the host found it on the current page. */
@@ -275,7 +277,7 @@ const checkedSet = (x: unknown): CheckedSetView[] => {
   const n = (['members', 'update', 'add', 'drop', 'handEdited', 'noBaseline'] as const).map((k) => count(c[k]));
   if (n.some((v) => v === null)) return [];
   const [members, update, add, drop, handEdited, noBaseline] = n as number[];
-  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate }];
+  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(str(c.breaks) ? { breaks: c.breaks } : {}) }];
 };
 const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient'];
 /** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and

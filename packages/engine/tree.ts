@@ -113,6 +113,10 @@ const transitionLeaf = (durPath: string, easePath: string, description: string):
   $description: description, $extensions: { prism3: { role: 'composite' } },
 });
 
+/** The glass treatment's background-blur radius in px (#2869, Q464 A; the source comp's 32px). One value for
+ *  every brand and every mode — not a lever (Q2869.5 A). */
+export const GLASS_BLUR_PX = 32;
+
 // ---- shadow leaves (Phase A) ----
 // DTCG `shadow` composite — an array of layers (key + ambient). Mode-aware via the
 // locked materialization pattern: $value carries the LIGHT shadow (canonical);
@@ -1104,6 +1108,13 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   sh.steps.forEach((s, i) => { shadow[s.name] = shadowLeaf(theme, s, `shadow ${s.name} — elevation ${i + 1} of ${sh.steps.length}, ${s.light.length}-layer (key+ambient)`); });
   shadow.inset = shadowLeaf(theme, sh.inset, 'shadow inset — inner shadow for wells / pressed states / inputs');
 
+  // ---- blur axis (#2869, Q464 A; scale Q2869.1 A) ----
+  // One radius, the glass treatment's background blur. A `dimension`, so a stock Style Dictionary build
+  // carries it to CSS as-is and code writes `backdrop-filter: blur(var(--…-blur-glass))`; in Figma it is a
+  // FLOAT variable the `glass` Effect Style's radius binds (`emit-figma-styles.ts`). The fill half is the
+  // color role `glass.surface`, whose alpha lives in its value (`modes.ts`).
+  const blur = { glass: dimLeaf(GLASS_BLUR_PX, `blur glass — ${GLASS_BLUR_PX}px background blur behind a glass band over a photograph; pair it with color.glass.surface`) };
+
   // ---- gradient axis (brand-opt-in; empty for brands that declare none) ----
   const gradient: Record<string, Token> = {};
   for (const g of theme.gradient.gradients) gradient[g.name] = gradientLeaf(g, theme.colorFormat);
@@ -1146,7 +1157,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // `opacity` stays at the top level deliberately: it is directly consumable (#79) and has no semantic
   // layer above it, so it is not a primitive in the sense this tier means — the same reason it is the
   // one ref-tier-looking collection that is NOT `hiddenFromPublishing` in Figma.
-  const brand = { core: { palette, dimension, font }, color: colorRoles, opacity, motion, type: typeGroup, shadow, icon, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, space, radius, 'border-width': borderWidth, focus, size, control };
+  const brand = { core: { palette, dimension, font }, color: colorRoles, opacity, motion, type: typeGroup, shadow, blur, icon, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, space, radius, 'border-width': borderWidth, focus, size, control };
   const tree = {
     [root]: brand,
     $extensions: {
