@@ -1055,6 +1055,26 @@ const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Pro
   return { kind: 'found', name, set: found[0], view: await readSetView(found[0], breathe, drawVars), ...(from ? { from } : {}) };
 };
 
+/**
+ * THE BACKGROUND HAND-EDIT PASS (#2909 Q2909.8 A): how many of a set's members someone edited by hand, read the way the
+ * dry run reads a hand edit (the member's as-built record against the node now, an update's own part-way writes left
+ * out), and nothing else: no plan is laid against the set and no field change is worked out, so it is the part of the
+ * check the ledger cannot answer. A preview of the status, never what an update acts on: the full check scoped to the
+ * flagged sets reads every member again before anything is written. `null` for a set the file does not hold.
+ */
+export const handEditsOf = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>): Promise<{ members: number; edited: number } | null> => {
+  const v = await locateView(host, t, breathe);
+  if (v.kind !== 'found') return null;
+  let edited = 0;
+  for (const m of v.view.members) {
+    if (!m.stamp || !m.baseline) continue;
+    let d = baselineDiff(m.baseline, baselineOf(m.snap));
+    if (m.updating) { const kept = new Set(m.updating); d = { changed: d.changed.filter((p) => kept.has(p)), added: [], removed: [] }; }
+    if (d.changed.length + d.added.length + d.removed.length > 0) edited++;
+  }
+  return { members: v.view.members.length, edited };
+};
+
 export type UpdatePreview = {
   sets: SetPreview[]; missing: string[]; refused: { def: string; reason: string }[];
   /** #2568, owner decision Q260 A — the component pages not in alphabetical order, by full page name, which the apply

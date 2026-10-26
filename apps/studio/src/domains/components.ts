@@ -51,21 +51,23 @@ import { searchQuery, setSearchHits, subscribe } from '../state/store';
 import { componentCatalog, type Catalog } from '../state/component-catalog';
 import { componentsPage, setComponentsPage, watchComponentsPage } from '../state/components-page';
 import {
-  alsoBuilds, boxOfSets, buildableOf, costOf, entryOf, familiesToOpen, fmt, groupsOf, GROUPS_COPY, inListOrder, rowMatches, rowOfFocus,
+  alsoBuilds, boxOfSets, buildableOf, costOf, entryOf, familiesToOpen, fmt, GROUPS_COPY, tiersOf, inListOrder, rowMatches, rowOfFocus,
   SECTION_BLOCKS, setFocusKey, toggleSets, type BlockKey, type BoxState, type GroupRow, type GroupSection,
 } from '../state/component-groups';
 import { currentOf, positionOf, RUN_COPY } from '../state/build-queue';
 import { glyph, h, hook, pendingLabel, setBusy } from '../shell/dom';
 import { stateLine } from '../ui/lever-kit';
 import { SETS_COPY } from '../preview/sections/component-sets';
+import { UPDATE_COPY, type SetStatus } from '../state/update-file';
 import type { PageLends } from '../preview/brand';
-import { BUTTON_DESC } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { mountButtonOptions, BUTTON_OPTIONS_COPY } from './button-options';
 import { mountFieldOptions, FIELD_OPTIONS_COPY } from './field-options';
 import { mountSearchOptions, SEARCH_OPTIONS_COPY } from './search-options';
 import { mountTagOptions, TAG_OPTIONS_COPY } from './tag-options';
 import { mountDialogOptions, DIALOG_OPTIONS_COPY } from './dialog-options';
+import { mountSharedOptions } from './shared-options';
+import { BUTTON_DESC, DOMAINS, SHARED_DESC, type PageData } from '../shell/pages';
 
 /** Each settings block (#2905): its hook prefix, its title and description (Q10 A: wireframe v2's words), and its
  *  builder. Which blocks a section draws, and in what order, is `SECTION_BLOCKS` (#2952: Fields draws two). */
@@ -142,6 +144,20 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     setComponentsPage({ sel, open: nextOpen });
   };
 
+  /** #2909 Q2909.8 A: a set's statuses in this file, as tags (plugin only; the web has no file). A family shows what its
+   *  sets show, each status once, in the statuses' own order. */
+  const STATUS_ORDER: readonly SetStatus[] = ['due', 'hand', 'unchecked', 'checking', 'new', 'current'];
+  const statusTags = (ids: readonly string[]): HTMLElement | null => {
+    const has = new Set(ids.flatMap((id) => lend.sets.status(id)));
+    // A family whose sets are partly in the file and partly not reads by the ones it holds.
+    if (has.size > 1) has.delete('current');
+    const list = STATUS_ORDER.filter((s) => has.has(s));
+    if (!list.length) return null;
+    const box = hook(h('span', 'p3-cp-status'), 'cp-status');
+    for (const s of list) { const t = hook(h('span', 'p3-sg-tag', UPDATE_COPY.status[s]), 'cp-status-tag'); t.dataset.status = s; box.append(t); }
+    return box;
+  };
+
   /** One set row inside a family, or a set on its own (`single` is its row). `flat`: a family's set listed at a section's
    *  edge (#2905, Q8 A), which focuses as itself, since its family has no row. */
   const setRow = (catalog: Catalog, id: string, row: GroupRow, member: boolean, flat = false): HTMLElement => {
@@ -164,6 +180,8 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       if (last) meta.append(' ', hook(h('span', 'p3-cp-last', last === 'ok' ? SETS_COPY.built : last === 'issues' ? SETS_COPY.problems : SETS_COPY.failed), 'cp-last'));
     }
     r.append(meta);
+    const st = e.buildable ? statusTags([id]) : null;
+    if (st) r.append(st);
     return r;
   };
   /** The name: a button that focuses the row's family in the preview (focus is not selection). A set in a flat section
@@ -208,6 +226,8 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     meta.append(narrow() ? GROUPS_COPY.sets(row.ids.length) : `${GROUPS_COPY.sets(row.ids.length)} · ${fmt(c.variants + c.components)}`);
     if (row.page && !narrow()) meta.append(' ', hook(h('span', 'p3-cp-where', GROUPS_COPY.page(row.page)), 'cp-page'));
     r.append(meta);
+    const st = statusTags(buildableOf(catalog, row.ids));
+    if (st) r.append(st);
     return r;
   };
 
@@ -306,6 +326,25 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     return el;
   };
 
+  /** #2909 Q2909.4 A: the shared block, first in the list: Density's read-only line and Control shape, mounted once and
+   *  moved, not rebuilt, when the list redraws, as the settings blocks are. Its title is the page data's. */
+  const SHARED = (DOMAINS.find((d) => d.id === 'components') as PageData).sections.find((x) => x.rows.some((r) => r.keys?.includes('controlShape')))!;
+  const shared = hook(h('section', 'p3-lsec p3-cp-sec'), 'cp-shared');
+  {
+    // A levers section's own head (the title, its description under it), as every page's sections draw theirs (TY2 A).
+    const head = hook(h('div', 'p3-lsec-head'), 'cp-section-head');
+    const t = hook(h('h2', 'p3-lsec-title p3-cp-title', SHARED.title), 'cp-section-title');
+    t.dataset.name = SHARED.title;
+    head.append(t, h('p', 'p3-lsec-desc', SHARED_DESC));
+    const body = h('div', 'p3-cp-opts');
+    const own: (() => void)[] = [];
+    mountSharedOptions(body, own, modeLabel);
+    cleanups.push(() => { for (const fn of own) fn(); });
+    shared.append(head, body);
+  }
+  /** Under a search the shared block stays only while its words hold the query. */
+  const sharedMatches = (q: string): boolean => !q || (shared.textContent ?? '').toLowerCase().includes(q.toLowerCase());
+
   /** The blocks this draw placed (a search can hide a section's rows, and its blocks with them). */
   const shownHere = new Set<BlockKey>();
   const paintList = (): void => {
@@ -323,11 +362,27 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     } else {
       parts.push(hook(h('p', 'p3-intro', GROUPS_COPY.intro(catalog.length)), 'components-intro'));
       let hits = 0;
-      for (const sec of groupsOf(catalog)) {
-        const rows = sec.rows.filter((r) => rowMatches(catalog, r, q));
-        hits += rows.length;
-        if (rows.length) parts.push(sectionEl(catalog, sec, rows));
+      if (sharedMatches(q)) { parts.push(shared); if (q) hits++; }
+      // Q2909.17 A: the sections under their tiers, each tier a group named by its caption. The caption is not a heading:
+      // the list's three heading levels are its sections, their settings and those settings' levers (TY2 A).
+      const empty: string[] = [];
+      for (const tier of tiersOf(catalog)) {
+        if (!tier.sections.length) { empty.push(tier.title); continue; }
+        const group = hook(h('div', 'p3-cp-tier'), 'cp-tier');
+        group.dataset.tier = tier.id;
+        group.setAttribute('role', 'group');
+        const cap = hook(h('p', 'p3-cp-tier-cap', GROUPS_COPY.tier(tier.title, tier.sections.reduce((n, sec) => n + sec.rows.reduce((m, r) => m + r.ids.length, 0), 0))), 'cp-tier-caption');
+        cap.id = `p3-cp-tier-${tier.id}`;
+        group.setAttribute('aria-labelledby', cap.id);
+        group.append(cap);
+        for (const sec of tier.sections) {
+          const rows = sec.rows.filter((r) => rowMatches(catalog, r, q));
+          hits += rows.length;
+          if (rows.length) group.append(sectionEl(catalog, sec, rows));
+        }
+        if (group.children.length > 1) parts.push(group);
       }
+      if (empty.length && !q) parts.push(hook(h('p', 'p3-sub p3-cp-tiers-empty', GROUPS_COPY.tiersEmpty(empty)), 'cp-tiers-empty'));
       if (q && !hits) parts.push(hook(h('p', 'p3-sub p3-cp-empty', GROUPS_COPY.noMatch), 'components-no-match'));
       setSearchHits(q ? hits : null);
       // The web's one line, a hint line as it always was (the Studio's `stateLine`).

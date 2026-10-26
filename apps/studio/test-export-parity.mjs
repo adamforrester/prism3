@@ -182,9 +182,10 @@ const exportFrom = async (host, id, metadataOn = false) => {
       await hooks.click(page.locator('[data-p3="start-import"]'));
     }
     await hooks.need(page, '[data-p3="frame"]');
-    // #2909 IA v2 phase 1: in the plugin Export is a rail area, its content a page (`export-page`), not a dialog.
-    const box = host === 'figma' ? 'export-page' : 'export-dialog';
-    await hooks.click(page.locator(host === 'figma' ? '[data-p3="rail-export"]' : '[data-p3="export-open"]'));
+    // #2909 IA v2: Export is a rail area, its content a page (`export-page`), not a dialog: the plugin's since phase 1,
+    // the web's since phase 2 (Q2909.9 A).
+    const box = 'export-page';
+    await hooks.click(page.locator('[data-p3="rail-export"]'));
     await hooks.need(page, `[data-p3="${box}"]`);
     const off = page.locator(`[data-p3="export-setting"][aria-label="${METADATA_LABEL}: Off"]`);
     const metadataDefault = (await off.count()) === 1 ? await off.getAttribute('aria-pressed') : 'absent';

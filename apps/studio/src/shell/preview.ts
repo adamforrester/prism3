@@ -7,13 +7,13 @@
  * legacy mode strip uses, and repaints from the `mode` topic, so the two can never disagree: a mode chosen
  * here is the mode a legacy page renders in, and the other way round.
  *
- * INSPECT (F1, V1). Contrast, Tokens and the Decisions log open over the current page's preview and close
- * back to it. They never become a page's home (`pages.ts`). Contrast opens with Health at the top (v5 Q2,
- * Q7), which says what the verdict counts; the verdict on the bar opens it. Contrast's pair table and the
- * token list are the legacy renderers, lent by `main.ts` until a later slice replaces them; they draw in the
- * legacy styles, so their host is pinned light (D2), like every other legacy surface. Health and the
- * Decisions log are the shell's own and follow the chrome theme. The Decisions log is the engine's notes,
- * as the engine words them (`theme.notes`); this file never rewrites one.
+ * INSPECT (F1, V1). Contrast and Tokens open over the current page's preview and close back to it. They never
+ * become a page's home (`pages.ts`). Contrast opens with Health at the top (v5 Q2, Q7), which says what the verdict
+ * counts; the verdict opens it. Contrast's pair table and the token list are the legacy renderers, lent by `main.ts`
+ * until a later slice replaces them; they draw in the legacy styles, so their host is pinned light (D2), like every
+ * other legacy surface. Health is the shell's own and follows the chrome theme. The Decisions log, the third view, was
+ * cut (#2909 Q2909.7 A): its two notes no lever said moved onto their levers (`state/engine-warnings.ts`), and every
+ * note still ships in `$extensions.prism3.decisions`.
  *
  * Repaints come from store topics (plan §3.10): `brand` (every rebuild) and `mode`. Nothing here calls a
  * legacy repaint tier.
@@ -291,18 +291,6 @@ const health = (): HTMLElement => {
   return el;
 };
 
-/** The Decisions log: the engine's notes for this brand, in its order and its words (D4). */
-const decisionsLog = (): HTMLElement => {
-  const notes = theme.notes;
-  const wrap = h('div', 'p3-stack');
-  const { el, body } = card('Decisions log', `${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`, 'decisions-log');
-  const list = hook(h('ul', 'p3-log'), 'decisions-list');
-  for (const n of notes) list.append(hook(h('li', 'p3-log-item', n), 'decision'));
-  body.append(list);
-  wrap.append(el, h('p', 'p3-note', `${notes.length} ${notes.length === 1 ? 'decision' : 'decisions'} the engine recorded for this brand, in the engine's own words.`));
-  return wrap;
-};
-
 /** A host for a legacy view, pinned light: it draws in `styles.css`, which has no dark theme (D2). */
 const legacyHost = (role: string): HTMLElement => {
   const n = hook(h('div', 'p3-legacy-card'), role);
@@ -318,12 +306,10 @@ export const paintInspectView = (v: InspectId, body: HTMLElement, legacy: Inspec
     const host = legacyHost('inspect-contrast-table');
     legacy.contrast(host);
     stack.append(host);
-  } else if (v === 'tokens') {
+  } else {
     const host = legacyHost('inspect-token-list');
     legacy.tokens(host, repaint);
     stack.append(host);
-  } else {
-    stack.append(decisionsLog());
   }
   body.replaceChildren(stack);
 };

@@ -1,40 +1,34 @@
 /**
- * The top bar's controls (UI redesign S13.1, owner decisions G18 A and N-2 A): the brand switcher and its menu,
- * Export and its dialog, the plugin's Apply Theme and the prune review, placed among the shell's own controls (the
- * mark, Contrast, Theme, the Agent tile's slot, Activity and the Figma menu), in the owner's "A · Menu bar" order
- * (2026-10-05; see `paint`): white buttons with ▾ for the menus, borderless tiles with a small label for Contrast,
- * Theme, Agent, Activity and Export (`dom.ts` `tile`), Apply Theme the one filled control, and no divider. Until S13.1
- * `main.ts`'s `renderBar` drew these into the frame's bar slot in the legacy stylesheet, pinned light; they are the
- * chrome's now, in both themes.
+ * The top bar's controls (UI redesign S13.1, owner decisions G18 A and N-2 A; reduced by #2909 IA v2): the brand
+ * switcher and its menu, then, in the plugin, Minimize's slot and Update file, the one global action (Q668 A). On both
+ * hosts since Q2909.9 A the bar sits beside the rail (`rail.ts`): the mark, Contrast, Theme, Agent, Activity, Docs and
+ * Export left it for the rail, the Theme area and the drawer, and Export's content is the Export area's page. The web's
+ * bar holds the brand switcher alone. Until S13.1 `main.ts`'s `renderBar` drew these into the frame's bar slot in the
+ * legacy stylesheet, pinned light; they are the chrome's now, in both themes.
  *
  * WHAT `main.ts` STILL OWNS, AND LENDS (`BarLend`). The brand-load rules (the overwrite confirm, `loadBrand` and its
- * origin, the design.md validation by engine acceptance), the export model (`export-settings.ts` and the downloads)
- * and the host's writes stay where they are, with their state. The bar reads a view of that state (`read`, and
- * `exportView` while the dialog is open) and calls the lent actions, each of which is the body the old control ran.
- * Each action ends by telling the store's `bar` topic, which this subscribes to and repaints from, as the shell
- * repaints from every topic (plan §3.10). So nothing here names a legacy repaint tier, and `test-shell-imports.ts`
- * holds that, as it does for the Figma menu. It cannot see inside a lent body (its header says so): "+ New brand" is
- * `main.ts`'s, and it reopens S12's start window over the studio (`startReopened`, `syncStart`), leaving the brand and
- * its origin in place until a path is chosen.
+ * origin, the design.md validation by engine acceptance) and the export model (`export-settings.ts` and the downloads)
+ * stay where they are, with their state. The bar reads a view of that state (`read`, and `exportView` while the Export
+ * area is open) and calls the lent actions, each of which is the body the old control ran. Each action ends by telling
+ * the store's `bar` topic, which this subscribes to and repaints from, as the shell repaints from every topic (plan
+ * §3.10). So nothing here names a legacy repaint tier, and `test-shell-imports.ts` holds that. It cannot see inside a
+ * lent body (its header says so): "+ New brand" is `main.ts`'s, and it reopens S12's start window over the studio
+ * (`startReopened`, `syncStart`), leaving the brand and its origin in place until a path is chosen.
  *
  * NOTHING IS LENT AS A NODE. The plugin's Pages menu, the last one, went with the old Style guide page in H12 (#2289,
- * owner PG1 A): "Build style guides…" in the Figma menu is the way in.
+ * owner PG1 A); the Figma menu, the bar's Apply Theme and its prune review went with #2998, after #2909 moved them into
+ * Update file (its Clean up tab holds the prune's preview).
  *
  * KEYBOARD (the brand menu): the switcher opens it on a click, Enter, Space or Arrow Down, with focus on the current
  * example (or the first item); Arrow keys, Home and End move between its items; Escape closes it back to the switcher;
  * Tab moves through it in order. The menu holds a form (the import box), so it is a group of controls, not a `menu`
- * role. The export and prune dialogs close on Escape and on a click on their scrim.
+ * role.
  *
- * DIALOG FOCUS (#2124 review). Both dialogs are modal: focus moves into one as it opens, Tab stays inside it, and as it
- * closes, by any path, focus returns to its opener (Export; the Figma menu for the prune review).
- *
- * A REPAINT KEEPS FOCUS. Every repaint redraws the menu and the dialog whole, as `renderBar` did; the control that had
- * focus is found again by its hook and its place among the controls with that hook, and focused again.
+ * A REPAINT KEEPS FOCUS. Every repaint redraws the menu and the Export page whole, as `renderBar` did; the control that
+ * had focus is found again by its hook and its place among the controls with that hook, and focused again.
  */
 import { subscribe } from '../state/store';
-import { focusables, glyph, h, hook, linkTile, pendingLabel, setBusy, tile, trapTab } from './dom';
-import type { FigmaAction } from './figma';
-import { DOCS_HREF } from './pages';
+import { glyph, h, hook } from './dom';
 
 /** The brand menu's state, read from `main.ts` on every repaint. */
 export type BarView = {
@@ -47,12 +41,11 @@ export type BarView = {
   readonly importOpen: boolean;
   readonly importText: string;
   readonly importErr: string | null;
+  /** Whether the Export area's content is drawn: while the area is open (`main.ts`). */
   readonly exportOpen: boolean;
-  /** The prune review (#1521, plugin only), while a preview with something to remove has landed. */
-  readonly prune: { readonly summary: string; readonly deleteLabel: string; readonly off: string | null } | null;
   /** #2879: a home shows in place of the studio (`shell/home.ts`). The bar then names it, the library's name with its
-   *  "Library file" badge or "No brand", and carries no brand control: no brand switcher, Contrast, Export, Figma menu or
-   *  Apply Theme, since there is no brand in the file to switch, check, export or apply. Null for the studio. */
+   *  "Library file" badge or "No brand", and carries no brand control: no brand switcher and no Update file, since there
+   *  is no brand in the file to switch or write. Null for the studio. */
   readonly home: { readonly name: string; readonly badge: string | null } | null;
 };
 
@@ -63,7 +56,8 @@ export type ExportBlock =
   | { readonly kind: 'note'; readonly text: string; readonly hook?: string }
   | { readonly kind: 'previews'; readonly files: readonly { readonly name: string | null; readonly text: string }[] };
 
-/** The export dialog's content (#723), derived by `main.ts` from `export-settings.ts` while the dialog is open. */
+/** The Export area's content (#723, the export dialog's until #2909), derived by `main.ts` from `export-settings.ts`
+ *  while the area is open. */
 export type ExportView = {
   readonly artifacts: readonly { readonly id: string; readonly label: string; readonly on: boolean }[];
   readonly desc: string;
@@ -93,13 +87,9 @@ export type BarActions = {
   readonly cancelReplace: () => void;
   readonly toggleExport: () => void;
   readonly closeExport: () => void;
-  /** Escape: the dialog closes, and its import box with it. */
-  readonly escapeExport: () => void;
   readonly artifact: (id: string) => void;
   readonly setting: (key: string, value: string) => void;
   readonly download: () => void;
-  readonly closePrune: () => void;
-  readonly deletePrune: () => void;
 };
 
 export type BarLend = {
@@ -112,28 +102,12 @@ export type BarLend = {
 
 /** The shell's nodes the bar places, the same nodes every time. */
 export type BarPlaced = {
-  /** The product mark (the logo and "Prism3 Studio"), first on both hosts. */
-  readonly mark: HTMLElement;
-  readonly verdict: HTMLElement;
-  readonly activity: HTMLElement;
-  readonly agent: HTMLElement | null;
-  readonly figma: HTMLElement | null;
-  /** The theme menu (F3; both hosts since 2026-10-05), placed before Activity and Export so Export ends the web's bar. */
-  readonly theme: HTMLElement | null;
-  /** The bar's Apply Theme: its busy and off states, tooltip and function. The Figma menu does not list it (#2178). */
-  readonly applyTheme: (() => FigmaAction) | null;
-  /** The plugin's Docs (#2637 Q384): asks the main thread to open the docs in the browser. Null on the web, where Docs
-   *  is a link to the site's own `/docs/`. */
-  readonly openDocs: (() => void) | null;
-  /** #2909 IA v2 phase 1 (plugin): the rail shell. The bar then holds only the brand switcher, Minimize's slot (whether
-   *  agent link is on or off) and Update file: the mark, Contrast, Theme, Agent, Activity, Docs and Export left it for the rail,
-   *  the Theme area and the drawer. Null on the web, whose bar is unchanged until Q2909.9 is built. */
-  readonly rail: {
-    readonly minimize: HTMLElement;
-    readonly update: HTMLElement;
-    /** Export's area: while it is open, the export dialog's content is drawn here, as a page, not over the panel. */
-    readonly exportPage: HTMLElement;
-  } | null;
+  /** Minimize's slot (#2949; the owner's direction of 2026-10-24: whether the link is on or off), plugin only. */
+  readonly minimize: HTMLElement | null;
+  /** Update file, the plugin's one global action (Q668 A); null on the web, which has no file to write (Q2909.9 A). */
+  readonly update: HTMLElement | null;
+  /** Export's area: while it is open, the export content is drawn here, as a page, not over the panel. */
+  readonly exportPage: HTMLElement;
 };
 
 /** Mount the bar's controls into `host` (the frame's bar slot). Returns the node, which is the `brand-bar` chrome
@@ -161,53 +135,17 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
   });
   brandWrap.append(sel);
 
-  // ── Apply Theme (plugin), Export ─────────────────────────────────────────────────────────────────
-  let applyBtn: HTMLButtonElement | null = null;
-  if (placed.applyTheme) {
-    // The primary CTA, the one inverse-filled control, last on the bar. Busy while any Apply runs (owner decision #4
-    // on #1956); off, natively, while the file's brand does not resolve (#1989), with the reason as its tooltip.
-    applyBtn = hook(h('button', 'p3-btn p3-btn-primary'), 'apply-to-figma');
-    applyBtn.type = 'button';
-    applyBtn.append(pendingLabel('Apply Theme', 'Applying…'));
-    applyBtn.onclick = () => placed.applyTheme!().run();
-  }
-  // Export: a bar tile (the owner's top-bar decision, 2026-10-05), its download glyph over "Export", the glyph alone
-  // at narrow widths; the name and the tooltip stay "Export".
-  const exportWrap = h('div', 'p3-popwrap');
-  const { btn: exp, mark: expMark, tip: expTip } = tile('export-open', 'Export');
-  expMark.append(glyph('export'));
-  expTip.textContent = 'Export';
-  exp.setAttribute('aria-label', 'Export');
-  exp.setAttribute('aria-haspopup', 'dialog');
-  exp.onclick = (e) => { e.stopPropagation(); act.toggleExport(); };
-  exportWrap.append(exp);
-
-  // Docs (#2637, owner decision Q384 A): a bar tile before Export, on both hosts; it replaced Inspect's Docs item. On the
-  // web a link to the site's `/docs/`, opened in a new tab so the brand being edited stays put. In the plugin a button:
-  // the iframe cannot open a page, so the main thread does (`figma.openExternal`), on the studio's web address.
-  const docsTile = placed.openDocs ? tile('docs-open', 'Docs') : linkTile('docs-open', 'Docs', DOCS_HREF);
-  docsTile.mark.append(glyph('docs'));
-  docsTile.tip.textContent = 'Docs';
-  docsTile.btn.setAttribute('aria-label', 'Docs');
-  if (placed.openDocs) docsTile.btn.onclick = () => placed.openDocs!();
-
   // #2879: a home's name, and its badge, in place of the brand switcher. Text, not a control.
   const homeName = hook(h('div', 'p3-homename'), 'home-name');
   const homeNameText = h('span', 'p3-homename-text');
   const homeBadge = hook(h('span', 'p3-homename-badge'), 'home-badge');
   homeName.append(homeNameText, homeBadge);
 
-  // The dialogs sit in a layer of their own after the controls, outside every wrap, so a scrim click is never read
-  // as a click inside a menu's wrap (#723).
-  const layer = h('div', 'p3-bardlg-layer');
-
   // ── paint ──────────────────────────────────────────────────────────────────────────────────────
   let wasOpen = false;
-  let wasExport = false;
-  /** The export dialog as built, and what it was built from (A10). */
+  /** The Export area's content as built, and what it was built from (A10). */
   let expNode: HTMLElement | null = null;
   let expKey = '';
-  let wasPrune = false;
   const paintBrand = (v: BarView): void => {
     dot.style.background = v.brand.hex;
     // Only when it differs (#2487 A9): a same-value write still replaces the text node, and the frame's observer then
@@ -216,100 +154,56 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
   };
   const paint = (): void => {
     const v = lend.read();
-    const focused = document.activeElement instanceof HTMLElement && root.contains(document.activeElement) ? document.activeElement : null;
-    const again = focused ? findAgain(root, focused) : null;
+    const focused = document.activeElement instanceof HTMLElement && (root.contains(document.activeElement) || placed.exportPage.contains(document.activeElement)) ? document.activeElement : null;
+    const again = focused ? findAgain(focused.closest('[data-p3="export-page"]') ? placed.exportPage : root, focused) : null;
 
     paintBrand(v);
     sel.setAttribute('aria-expanded', String(v.menuOpen));
     brandWrap.querySelector(':scope > [data-p3="brand-menu"]')?.remove();
     if (v.menuOpen) brandWrap.append(brandMenu(v));
 
-    if (applyBtn && placed.applyTheme) {
-      const a = placed.applyTheme();
-      setBusy(applyBtn, !!a.busy);
-      if (applyBtn.disabled !== (a.disabled && !a.busy)) applyBtn.disabled = a.disabled && !a.busy;   // same reason (A9)
-      if (a.hint && a.disabled) applyBtn.title = a.hint; else applyBtn.removeAttribute('title');
-    }
-    exp.setAttribute('aria-expanded', String(v.exportOpen));
-
-    // The bar's order (the owner's top-bar decision, 2026-10-05, "A · Menu bar"): the mark, the brand switcher,
-    // Contrast, a spacer, Theme, the Agent tile's slot (plugin; T7 A), Activity, Docs (#2637 Q384), Export, then on the plugin the Figma
-    // menu and Apply Theme (the Pages menu went in H12, #2289). On the web Export is the last control, and its right edge
-    // is the page content's. At the narrow tier the plugin's file actions take a second row (`rowBreak`), Apply Theme
-    // on its right (`spacer2`); above it both draw nothing. The shell's nodes are placed, never re-minted, so one that
-    // holds focus keeps it.
-    const fileRow = !placed.rail && !v.home && !!(placed.figma || applyBtn);
     if (v.home) {
       if (homeNameText.textContent !== v.home.name) homeNameText.textContent = v.home.name;
       homeBadge.textContent = v.home.badge ?? '';
       homeBadge.hidden = !v.home.badge;
     }
-    // #2879: a home keeps the mark, Theme, the Agent tile's slot, Activity and Docs, none of which needs a brand.
-    const rail = placed.rail;
-    const order: (HTMLElement | null)[] = rail
-      // #2909 (round 4): the brand, then Minimize (link on or off), then Update file, the one global action.
-      ? (v.home ? [homeName, spacer, rail.minimize, layer] : [brandWrap, spacer, rail.minimize, rail.update, layer])
-      : v.home
-        ? [placed.mark, homeName, spacer, placed.theme, placed.agent, placed.activity, docsTile.btn, layer]
-        : [placed.mark, brandWrap, placed.verdict, spacer, placed.theme, placed.agent, placed.activity, docsTile.btn, exportWrap,
-          fileRow ? rowBreak : null, placed.figma, fileRow ? spacer2 : null, applyBtn, layer];
+    // #2909 (round 4): the brand, then Minimize (link on or off) and Update file, the one global action, in the plugin.
+    // #2879: a home keeps Minimize, which needs no brand. The shell's nodes are placed, never re-minted, so one that holds
+    // focus keeps it.
+    const order: (HTMLElement | null)[] = v.home ? [homeName, spacer, placed.minimize] : [brandWrap, spacer, placed.minimize, placed.update];
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);
 
-    // The export dialog is rebuilt only when what it shows changes (#2487 A10). Rebuilt on every `host`, `origin` or
+    // The Export content is rebuilt only when what it shows changes (#2487 A10). Rebuilt on every `host`, `origin` or
     // `bar` notification, the import box's caret jumped to the end, an IME composition broke and the preview's scroll
     // reset. The import text is left out of the key: typing stores it without a repaint, so the box already shows it,
     // and a text set from elsewhere (an uploaded file) is written into the box in place.
     const ev = v.exportOpen ? lend.exportView() : null;
     const key = ev ? JSON.stringify([ev, v.importOpen, v.importErr, v.confirm]) : '';
     if (!ev) { expNode = null; expKey = ''; }
-    else if (!expNode || key !== expKey) { expNode = exportDialog(ev, v); expKey = key; }
+    else if (!expNode || key !== expKey) { expNode = exportPage(ev, v); expKey = key; }
     else {
       const ta = expNode.querySelector<HTMLTextAreaElement>('[data-p3="import-text"]');
       if (ta && ta.value !== v.importText) ta.value = v.importText;
     }
-    // #2909: on the rail, Export is an area: its content is drawn into the area's page, and the layer holds no dialog.
-    const pageExport = !!placed.rail;
-    if (placed.rail) {
-      const want = expNode ? [expNode] : [];
-      if (want.length !== placed.rail.exportPage.children.length || want.some((n, i) => placed.rail!.exportPage.children[i] !== n)) placed.rail.exportPage.replaceChildren(...want);
-    }
-    const kids = [pageExport ? null : expNode, v.prune ? pruneDialog(v.prune) : null].filter((n): n is HTMLElement => !!n);
-    if (kids.length !== layer.children.length || kids.some((n, i) => layer.children[i] !== n)) layer.replaceChildren(...kids);
+    // #2909: Export is an area: its content is drawn into the area's page.
+    const page = expNode ? [expNode] : [];
+    if (page.length !== placed.exportPage.children.length || page.some((n, i) => placed.exportPage.children[i] !== n)) placed.exportPage.replaceChildren(...page);
 
-    // Focus. A dialog first (#2124 review, findings 1 and 2): as one opens, focus moves into it (its first control);
-    // as one closes, by whatever path (Close, Cancel, a scrim click, Escape, its action), focus goes back to the
-    // control that opened it: Export, or the Figma menu for the prune review (its Prune stale item). Then the menu:
-    // back on the control that had it, or, as the menu opens, on its current example.
+    // Focus: the menu, back on the control that had it, or, as the menu opens, on its current example.
     const justOpened = v.menuOpen && !wasOpen;
     wasOpen = v.menuOpen;
-    const exportOpened = v.exportOpen && !wasExport, exportClosed = !v.exportOpen && wasExport;
-    const pruneOpened = !!v.prune && !wasPrune, pruneClosed = !v.prune && wasPrune;
-    wasExport = v.exportOpen;
-    wasPrune = !!v.prune;
-    const into = (role: string): void => { const d = layer.querySelector<HTMLElement>(`[data-p3="${role}"]`); if (d) (focusables(d)[0] ?? d).focus(); };
-    const figmaOpener = (): HTMLElement | null => placed.figma?.querySelector<HTMLElement>('[data-p3="figma-open"]') ?? null;
-    if (exportOpened && !pageExport) into('export-dialog');
-    else if (pruneOpened) into('prune-dialog');
-    else if (exportClosed && !v.prune && !pageExport) exp.focus({ preventScroll: true });
-    else if (pruneClosed && !v.exportOpen) (figmaOpener() ?? sel).focus({ preventScroll: true });
-    else if (justOpened) {
+    if (justOpened) {
       const items = menuItems(brandWrap);
       (items.find((i) => i.getAttribute('aria-current') === 'true') ?? items[0] ?? sel).focus();
     } else if (focused && !focused.isConnected) {
       // Redrawn: the same control again, or, when the menu closed under it, the switcher that opened it.
-      // Never behind an open dialog: there, the dialog's first control.
-      const inDlg = v.exportOpen && !pageExport ? 'export-dialog' : v.prune ? 'prune-dialog' : null;
       const back = again?.() ?? null;
       if (back) back.focus({ preventScroll: true });
-      else if (inDlg) into(inDlg);
       else if (!v.menuOpen) sel.focus({ preventScroll: true });
     } else if (focused && document.activeElement !== focused) focused.focus({ preventScroll: true });
   };
   const spacer = h('span', 'p3-spacer');
-  const rowBreak = h('span', 'p3-bar-break');
-  const spacer2 = h('span', 'p3-bar-spacer2');
-
   // ── the brand menu ───────────────────────────────────────────────────────────────────────────────
   const brandMenu = (v: BarView): HTMLElement => {
     const menu = hook(h('div', 'p3-menu p3-brandmenu'), 'brand-menu');
@@ -399,35 +293,10 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     return box;
   };
 
-  // ── the dialogs ──────────────────────────────────────────────────────────────────────────────────
-  /** A modal on a scrim: the head (its title and Close), then its body. A click on the scrim, and Escape, close it. */
-  const dialog = (role: string, title: string, close: () => void): { scrim: HTMLElement; dlg: HTMLElement } => {
-    const scrim = h('div', 'p3-bardlg-scrim');
-    const dlg = hook(h('div', 'p3-bardlg'), role);
-    dlg.setAttribute('role', 'dialog');
-    dlg.setAttribute('aria-modal', 'true');
-    dlg.setAttribute('aria-label', title);
-    dlg.tabIndex = -1;   // focusable itself only as the fallback when it holds no control
-    // Modal (`aria-modal`): Tab and Shift+Tab stay inside until it closes (S12's trap, `dom.ts`).
-    dlg.addEventListener('keydown', (e) => trapTab(dlg, e));
-    const head = h('div', 'p3-bardlg-head');
-    head.append(h('h2', 'p3-bardlg-title', title));
-    const x = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon'), 'dialog-close');
-    x.type = 'button';
-    x.setAttribute('aria-label', 'Close');
-    x.append(glyph('x'));
-    x.onclick = close;
-    head.append(x);
-    dlg.append(head);
-    // A scrim click closes it. Its default (focus moving to the page under the click) is refused, so focus goes back to
-    // the opener, as from Close.
-    scrim.onmousedown = (e) => { if (e.target === scrim) { e.preventDefault(); close(); } };
-    scrim.append(dlg);
-    return { scrim, dlg };
-  };
-
-  /** #2909: the Export area's page, the dialog's parts without the scrim, the Close and the modal trap. */
-  const exportPageShell = (): { scrim: HTMLElement; dlg: HTMLElement } => {
+  // ── the Export area ────────────────────────────────────────────────────────────────────────────
+  /** The Export area's page (#723; the export dialog's content until #2909, without its scrim, Close, Cancel and modal
+   *  trap): the artifact, its settings, then the files and a preview, the action, the import slot. */
+  const exportPage = (x: ExportView, v: BarView): HTMLElement => {
     const dlg = hook(h('section', 'p3-bardlg p3-export-page'), 'export-page');
     dlg.setAttribute('aria-labelledby', 'p3-export-page-h');
     const head = h('div', 'p3-bardlg-head');
@@ -435,13 +304,6 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     h1.id = 'p3-export-page-h';
     head.append(h1);
     dlg.append(head);
-    return { scrim: dlg, dlg };
-  };
-
-  /** The export dialog (#723): the artifact, its settings, then the files and a preview, the action, the import slot. */
-  const exportDialog = (x: ExportView, v: BarView): HTMLElement => {
-    // #2909: on the rail the same content is the Export area's page: no scrim, no Close and no Cancel, never modal.
-    const { scrim, dlg } = placed.rail ? exportPageShell() : dialog('export-dialog', 'Export', act.closeExport);
     // Two columns: the settings on the left, what they produce on the right (#720's verify item: a preview you have
     // to scroll to is not a preview). One column at narrow widths, the preview after the settings.
     const body = h('div', 'p3-bardlg-body p3-export-body');
@@ -494,14 +356,11 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     body.append(left, right);
     dlg.append(body);
     const foot = h('div', 'p3-bardlg-foot');
-    const cancel = hook(h('button', 'p3-btn p3-btn-page', 'Cancel'), 'dialog-cancel');
-    cancel.type = 'button';
-    cancel.onclick = act.closeExport;
     const go = hook(h('button', 'p3-btn p3-btn-primary', x.go.text), 'dialog-confirm');
     go.type = 'button';
     if (x.go.off) { go.disabled = true; go.title = x.go.off; }
     go.onclick = act.download;
-    if (placed.rail) foot.append(go); else foot.append(cancel, go);
+    foot.append(go);
     dlg.append(foot);
     // Import, a slot: the same conversation as export (#723).
     if (x.imports.length) {
@@ -517,41 +376,15 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
       if (v.importOpen) imp.append(importBox(v));
       dlg.append(imp);
     }
-    return scrim;
-  };
-
-  /** The prune review (#1521): the main thread's sentence, Cancel, and the destructive action named by its outcome. */
-  const pruneDialog = (p: NonNullable<BarView['prune']>): HTMLElement => {
-    const { scrim, dlg } = dialog('prune-dialog', 'Prune stale items', act.closePrune);
-    const body = h('div', 'p3-bardlg-col');
-    body.append(h('p', 'p3-bardlg-desc', p.summary));
-    dlg.append(body);
-    const foot = h('div', 'p3-bardlg-foot');
-    const cancel = hook(h('button', 'p3-btn p3-btn-page', 'Cancel'), 'dialog-cancel');
-    cancel.type = 'button';
-    cancel.onclick = act.closePrune;
-    const del = hook(h('button', 'p3-btn p3-btn-primary', p.deleteLabel), 'dialog-confirm');
-    del.type = 'button';
-    if (p.off) { del.disabled = true; del.title = p.off; }
-    del.onclick = act.deletePrune;
-    foot.append(cancel, del);
-    dlg.append(foot);
-    return scrim;
+    return dlg;
   };
 
   // ── dismissal, bound once ────────────────────────────────────────────────────────────────────────
   const onDown = (e: MouseEvent): void => {
     if (lend.read().menuOpen && !brandWrap.contains(e.target as Node)) act.closeMenu();
   };
-  const onKey = (e: KeyboardEvent): void => {
-    if (e.key !== 'Escape' || e.defaultPrevented) return;
-    const v = lend.read();
-    if (v.exportOpen && !placed.rail) { act.escapeExport(); exp.focus(); }
-    else if (v.prune) act.closePrune();
-  };
   document.addEventListener('mousedown', onDown);
-  document.addEventListener('keydown', onKey);
-  cleanups.push(() => document.removeEventListener('mousedown', onDown), () => document.removeEventListener('keydown', onKey));
+  cleanups.push(() => document.removeEventListener('mousedown', onDown));
   cleanups.push(subscribe('bar', paint), subscribe('host', paint), subscribe('origin', paint));
   cleanups.push(subscribe('brand', () => paintBrand(lend.read())), subscribe('identity', () => paintBrand(lend.read())));
   paint();

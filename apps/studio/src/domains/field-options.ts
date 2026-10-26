@@ -1,6 +1,6 @@
 /**
- * Field options (#2905 phase 1, owner decisions Q538 and Q548 on wireframe v2). The way to Shape › Control shape, then
- * Field style as chips (Q3 B: no way to Density here).
+ * Field options (#2905 phase 1, owner decisions Q538 and Q548 on wireframe v2). The way to Control shape (in this page's
+ * shared block since #2909 Q2909.4 A), then Field style as chips (Q3 B: no way to Density here).
  *
  * WHERE THEY ARE DRAWN: once, in the Components page's Fields section, after its sets, behind the section's disclosure
  * line (`domains/components.ts`). Field style is one brand-wide lever, so the one block changes every field in the
@@ -17,10 +17,10 @@
  * HOW IT REPAINTS: by store subscription only (`brand` and `mode`), keeping focus on the element that had it.
  */
 import type { FieldStyle } from '@prism3/engine/scale';
-import { currentMode, lastError, rebuild, setPage, subscribe } from '../state/store';
+import { currentMode, lastError, rebuild, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { brandControlShape, brandFieldStyle, setFieldStyle } from '../state/shape-input';
-import { FIELD_DESC, pageOfTab } from '../shell/pages';
+import { FIELD_DESC } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
 import { choice, leverBlock, leverOf, keepFocus } from '../ui/lever-kit';
 import { BUTTON_OPTIONS_COPY } from './button-options';
@@ -30,7 +30,8 @@ export const FIELD_OPTIONS_COPY = {
   title: 'Field options',
   desc: FIELD_DESC,
   shapeLabel: 'Control shape',
-  shapeLink: 'Set it in Shape › Control shape',
+  // #2909 Q2909.4 A: Control shape's home moved to this page's shared block. DRAFT placeholder (Q2909.10 A).
+  shapeLink: 'Set it in Shared by every component',
   noCorners: 'No corners on an underline field.',
 } as const;
 
@@ -54,7 +55,12 @@ export const mountFieldOptions = (hostEl: HTMLElement, cleanups: (() => void)[],
     const go = hook(h('button', 'p3-btn p3-btn-ghost p3-deplink'), 'components-control-shape-link');
     go.type = 'button';
     go.append(h('span', 'p3-btn-label', FIELD_OPTIONS_COPY.shapeLink), glyph('chevr'));
-    go.onclick = () => setPage(pageOfTab('shape'));
+    // The home is on this page (#2909 Q2909.4 A): the shared block comes into view, and its checked chip takes focus.
+    go.onclick = () => {
+      const home = document.querySelector<HTMLElement>('[data-p3="cp-shared"]');
+      home?.scrollIntoView({ block: 'start' });
+      home?.querySelector<HTMLElement>('[data-p3="control-shape-choice"] [aria-checked="true"]')?.focus({ preventScroll: true });
+    };
     const ctl = h('div', 'p3-lever-ctl');
     ctl.append(go);
     box.append(head, ctl);

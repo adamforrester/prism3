@@ -11,8 +11,15 @@
  * Mutations that fail here by name: new sets ticked on a set-up file → `ticks: on a set-up file …`; the setup step kept
  * on a set-up file → `steps: Set up file is never a step on a set-up file`; a failed step not ending the run →
  * `run: a failed step ends the run …`.
+ *
+ * PHASE 2 (Q2909.8 A, the as-built ledger): the due sets are ticked and update in place, before the new sets are added;
+ * a set the ledger never recorded is "Not checked yet" and is never ticked unasked; hand-edited is a status of its own,
+ * beside Due; Keep is the default for hand edits; the badge counts the due sets. Mutations that fail here by name: due
+ * sets unticked by default → `Q2909.8 A ticks: every due set is ticked …`; the `update` step after `sets` → `Q2909.8 A
+ * steps: … the in-place update runs before the new sets are added`; a hand-edited set read as Up to date → `Q2909.8 A
+ * status: a hand-edited set reads Hand-edited …`.
  */
-import { defaultTicks, newSetsOf, startUpdate, stepDone, stepOf, stepsOf, stopUpdate } from './src/state/update-file';
+import { defaultTicks, dueCount, dueSetsOf, newSetsOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 
 let failed = 0;
@@ -26,8 +33,8 @@ const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.str
 
 const entry = (id: string, buildable = true) => ({ id, name: id, category: 'x', summary: '', buildable, reason: null, members: buildable ? 2 : null, unit: 'variants' as const, nests: [], spacing: [] });
 const CAT = [entry('button'), entry('tag'), entry('focus-ring', false), entry('badge')] as unknown as Catalog;
-const SET_UP = { present: ['button'], setUp: true, error: null };
-const FRESH = { present: [], setUp: false, error: null };
+const SET_UP = { present: ['button'], setUp: true, error: null, due: { button: { state: 'current' } } } as const;
+const FRESH = { present: [], setUp: false, error: null, due: {} };
 
 ok(same(newSetsOf(CAT, SET_UP), ['tag', 'badge']), 'new sets: buildable and not in the file, in catalog order; an unbuildable set is never offered');
 const t1 = defaultTicks(CAT, SET_UP);
@@ -52,6 +59,38 @@ ok(failedRun.done && stepOf(failedRun) === null && same(failedRun.results.map((x
 const stopped = stepDone(stopUpdate(r), true, '✓ applied');
 ok(stopped.done && stopped.results.length === 2, 'run: Stop ends the run after the step running');
 ok(startUpdate([], []).done, 'run: a run with no steps is done at once');
+
+// ── phase 2: what is due (Q2909.8 A) ──────────────────────────────────────────────────────────────────────────────
+const CAT2 = [entry('button'), entry('tag'), entry('badge'), entry('select'), entry('icon')] as unknown as Catalog;
+const DUE = {
+  present: ['button', 'tag', 'badge', 'select'], setUp: true, error: null,
+  due: { button: { state: 'due', reason: 'definition' }, tag: { state: 'current' }, badge: { state: 'unrecorded' }, select: { state: 'due', reason: 'engine' } },
+} as const;
+ok(same(dueSetsOf(CAT2, DUE), ['button', 'select']), 'Q2909.8 A due: the sets the ledger reads as due, in catalog order');
+ok(same(unrecordedOf(CAT2, DUE), ['badge']), 'Q2909.8 A unrecorded: the sets the file holds with no ledger entry');
+ok(same(unrecordedOf(CAT2, { ...DUE, due: {} }), ['button', 'tag', 'badge', 'select']), 'Q2909.8 A unrecorded: a set the ledger answered nothing for is not checked yet');
+const td = defaultTicks(CAT2, DUE);
+ok(same([...td.update], ['button', 'select']) && td.handEdits === 'keep' && td.sets.size === 0,
+  'Q2909.8 A ticks: every due set is ticked, hand edits are kept, a set never recorded is not ticked, and no new set is');
+ok(same(stepsOf(td, DUE), ['theme', 'update']), 'Q2909.8 A steps: a file with due sets writes the theme, then updates the sets in place');
+ok(same(stepsOf({ ...td, sets: new Set(['icon']) }, DUE), ['theme', 'update', 'sets']), 'Q2909.8 A steps: the in-place update runs before the new sets are added');
+ok(same(stepsOf({ ...td, update: new Set() }, DUE), ['theme']), 'Q2909.8 A steps: unticked, the due sets are not a step');
+const check = { sets: [
+  { def: 'button', hash: 'a', members: 4, update: 2, add: 0, drop: 0, handEdited: 1, noBaseline: 0, blocked: false, upToDate: false },
+  { def: 'select', hash: 'b', members: 2, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false },
+] };
+ok(same(updatableOf(td, check), ['button']), 'Q2909.8 A update: a set the check blocks, or did not read, is left out of the update');
+ok(dueCount(CAT2, DUE) === 2 && dueCount(CAT2, null) === 0 && dueCount(CAT2, { ...DUE, error: 'x' }) === 0, 'Q2909.8 A badge: it counts the due sets, and nothing before the host answers or when it could not read');
+const hand = new Map([['tag', { edited: 3 }], ['button', { edited: 1 }]]);
+ok(same(statusesOf('icon', DUE, hand, 'done'), ['new']), 'Q2909.8 A status: a set the file lacks reads Not in file');
+ok(same(statusesOf('button', DUE, hand, 'done'), ['due', 'hand']), 'Q2909.8 A status: a due set with hand edits reads Due and Hand-edited, both');
+ok(same(statusesOf('tag', DUE, hand, 'done'), ['hand']), 'Q2909.8 A status: a hand-edited set reads Hand-edited, never Up to date (first class, not a warning)');
+ok(same(statusesOf('badge', DUE, new Map(), 'running'), ['unchecked']), 'Q2909.8 A status: a set never recorded reads Not checked yet');
+ok(same(statusesOf('select', DUE, new Map(), 'running'), ['due', 'checking']), 'Q2909.8 A status: while the pass has not reached a set, it reads Checking');
+ok(same(statusesOf('tag', { ...DUE, due: { ...DUE.due } }, new Map(), 'done'), ['current']), 'Q2909.8 A status: a recorded set with no hand edits, once the pass is done, reads Up to date');
+ok(same(statusesOf('tag', null, hand, 'done'), []), 'Q2909.8 A status: nothing before the host has answered');
+const ru = startUpdate(['update', 'sets'], ['icon'], { defs: ['button'], previewHash: 'h', handEdits: 'keep' });
+ok(stepOf(ru) === 'update' && same(ru.update, { defs: ['button'], previewHash: 'h', handEdits: 'keep' }), 'Q2909.8 A run: the update step carries its sets, the check\'s hash and the hand-edit choice');
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

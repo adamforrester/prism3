@@ -36,7 +36,8 @@
  */
 import { COMPONENT_CATALOG_DATA as catalog } from './src/state/component-catalog-data';
 import type { Catalog, CatalogEntry } from './src/state/component-catalog';
-import { alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, rowOfFocus, sentenceCase, setFocusKey, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
+import { alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, rowOfFocus, sentenceCase, setFocusKey, tiersOf, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
+import { TAXONOMY } from '../plugin/src/file-taxonomy';
 import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS, DIALOG_TITLE_TYPE_KEYS } from '@prism3/engine/anatomy-figma';
 import { currentOf, positionOf, record, runVerdict, startRun, stopRun, RUN_COPY } from './src/state/build-queue';
 
@@ -192,6 +193,23 @@ const cv = runVerdict(clean, catalog);
 ok(cv.ok && cv.headline === 'Built 2 sets' && JSON.stringify(cv.lines) === JSON.stringify(['Built Button, Button.Destructive on ↳ Buttons.']),
   `a clean run of one family reads as one line for its page (${cv.headline}; ${JSON.stringify(cv.lines)})`);
 ok(startRun('selection', []).done, 'a run of nothing is over before it starts');
+
+console.log('\nT. The four tiers (#2909 Q2909.17 A; Q659 A, working names)');
+// The owner's tiers, in order, typed. Each set's tier is its page's section in the plugin's file taxonomy, read from
+// `file-taxonomy.ts` itself (the file's structure, the oracle), never from the grouping: the Components section is the
+// Components tier, and everything else a build places is Subcomponents, Icon's Foundations page included (call 11 A).
+// No definition is placed in Content components or Blocks yet, so both stay empty, and no tier is guessed.
+const tiers = tiersOf(catalog);
+ok(JSON.stringify(tiers.map((t) => t.title)) === JSON.stringify(['Components', 'Subcomponents', 'Content components', 'Blocks']), `the tiers, in order (${tiers.map((t) => t.title).join(' / ')})`);
+const sectionOf = (id: string): string | null => TAXONOMY.sections.find((sec) => sec.leaves.some((l) => l.defs.includes(id)))?.header ?? null;
+const tierOfSet = (id: string): string | undefined => tiers.find((t) => t.sections.some((sec) => sec.rows.some((r) => r.ids.includes(id))))?.id;
+const misplaced = catalog.filter((e) => (sectionOf(e.id) === 'Components' ? 'components' : 'subcomponents') !== tierOfSet(e.id)).map((e) => `${e.id} → ${tierOfSet(e.id)} (file: ${sectionOf(e.id)})`);
+ok(catalog.length > 40 && !misplaced.length, `every set (${catalog.length}) sits in the tier its file section names${misplaced.length ? ` — ${misplaced.join(', ')}` : ''}`);
+ok(tierOfSet('icon') === 'subcomponents', 'Icon, on its Foundations page, lists under Subcomponents (call 11 A)');
+ok(JSON.stringify(tiers[0].sections.map((sec) => sec.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components']) && JSON.stringify(tiers[1].sections.map((sec) => sec.title)) === JSON.stringify(['Subcomponents']),
+  `the sections sit under their tier, settings first (${tiers.map((t) => `${t.title}: ${t.sections.map((sec) => sec.title).join(', ')}`).join(' | ')})`);
+ok(tiers[2].sections.length === 0 && tiers[3].sections.length === 0, 'Content components and Blocks hold nothing: no definition names either');
+ok(GROUPS_COPY.tiersEmpty(['Content components', 'Blocks']).startsWith('Content components and Blocks'), 'the empty tiers are named in one line');
 
 console.log(`\n${executed - failed}/${executed} component group assertions passed.`);
 if (failed) process.exit(1);

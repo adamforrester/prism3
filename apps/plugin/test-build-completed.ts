@@ -40,14 +40,23 @@
  * `furnish` hook without `panelFor` → `panel/update drawn`. Documentation's switches (#2995, the file's
  * `prism3:docSettings`): Build ignoring Usage panels off (`main.ts`, the `readDocSettings(figma.root).panels` before
  * `panelBeside` read as `true`) → `docs/panels off`; Set up file ignoring Cover off (`main.ts` `fileSetup`, its
- * `readDocSettings(figma.root).cover` test never taken) → `docs/cover off`. `panelFor` drawing the spec panel after
- * the usage panel (Q2830.3 A: specs are drawn on request only) → `specs/never on build`, `specs/never on update`.
+ * `readDocSettings(figma.root).cover` test never taken) → `docs/cover off`. The as-built ledger (#2909 Q2909.8 A): Build
+ * recording nothing (`main.ts`, its `recordSets` after `applyComponentPlan`) → `ledger/build`; the Update recording
+ * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. Q699 A
+ * (section 6): `main.ts`'s `brandOf` reading the stored brand whatever the panel sends → `q699/due` and `q699/update`
+ * ("Nothing was updated: the file changed since the check"). The hand-edit pass (section 7): `stale()` cut to
+ * `mine !== handPass`, so a write starting no longer ends it → `hand-edits/guard`. `panelFor` drawing the spec panel
+ * after the usage panel (Q2830.3 A: specs are drawn on request only) → `specs/never on build`, `specs/never on update`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
 import { SWAP_TARGET } from './src/build-deps';
 import { componentDefs } from '@prism3/engine/components/index';
+import type { BrandInput } from '@prism3/engine/theme';
+import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { materializeForBrand, materializerFor } from './src/brand-def';
+import { entryFor } from './src/as-built-ledger';
 import { readSpecTag } from './src/spec-tag';
 
 let failed = 0;
@@ -79,13 +88,22 @@ const posted: any[] = [];
 // The variables and styles Badge binds are in the file, as after Apply Theme, so a build with every template present is
 // clean (✓) and Q284.3's ⚠ can only come from the missing template (`templates/build warns` and `… clean`).
 const badgePlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'badge')!, { swapTarget: SWAP_TARGET });
+// Section 6's set (Q699 A): one that follows a lever (Switch row's padding follows density) under the example brand, A,
+// and the same brand at compact density, B. What it and the sets it nests bind under either brand is in the file too,
+// so its update is not blocked for a missing variable.
+const LEVER_DEF = 'switch-row';
+const brandA = Object.values(exampleBrands as Record<string, unknown>)[0] as BrandInput;
+const brandB: BrandInput = { ...brandA, density: 'compact' };
+const leverPlans = ['switch-row', 'switch-control', 'icon'].flatMap((id) => [brandA, brandB].flatMap((b) => figmaAnatomySet(materializeForBrand(componentDefs.find((d) => d.id === id)!, b), { swapTarget: SWAP_TARGET })));
+const filePlans = [...badgePlans, ...leverPlans];
 const shim = makeShim({
-  vars: [...new Set(badgePlans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
-  styles: [...new Set(badgePlans.flatMap((p) => planTextStyles(p.root)))],
-  effects: [...new Set(badgePlans.flatMap((p) => planEffectStyles(p.root)))],
+  vars: [...new Set(filePlans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+  styles: [...new Set(filePlans.flatMap((p) => planTextStyles(p.root)))],
+  effects: [...new Set(filePlans.flatMap((p) => planEffectStyles(p.root)))],
 }) as Record<string, any>;
 const root = shim.root as Record<string, unknown>;
 const pluginData = new Map<string, string>();
+const sharedData = new Map<string, string>();
 Object.defineProperty(root, 'children', { get: () => pages });
 Object.assign(root, {
   name: 'build-completed test file',
@@ -95,17 +113,34 @@ Object.assign(root, {
     pages.splice(Math.max(0, Math.min(index, pages.length)), 0, child);
   },
   appendChild: (child: ShimPage) => { const i = pages.indexOf(child); if (i >= 0) pages.splice(i, 1); pages.push(child); },
-  getSharedPluginData: () => '',
-  setSharedPluginData: () => undefined,
+  // The file's shared plugin data, so the brand Apply Theme stores (`persistInput`, `prism3:brandInput`) can be set per
+  // arm (Q699 A, section 6). Empty until an arm stores one, which reads as no stored brand, as before.
+  getSharedPluginData: (ns: string, k: string) => sharedData.get(`${ns}:${k}`) ?? '',
+  setSharedPluginData: (ns: string, k: string, v: string) => { sharedData.set(`${ns}:${k}`, v); },
   // The file's own plugin data, so Documentation's settings (`prism3:docSettings`, #2909) can be set per arm.
   getPluginData: (k: string) => pluginData.get(k) ?? '',
   setPluginData: (k: string, v: string) => { pluginData.set(k, v); },
 });
 // A search for sets finds the ones on the pages, as Figma's does: the Update reads its targets this way. So does a
 // search for the usage panels (#846): top-level frames on the pages carrying the shared plugin data asked for.
+/** A component node that makes instances of itself, as Figma's `ComponentNode.createInstance` does: a node of the shim's
+ *  own kind, typed INSTANCE, that knows its main component. */
+const instanceable = (comp: Node): Node => {
+  if (!Object.getOwnPropertyDescriptor(comp, 'createInstance')) Object.defineProperty(comp, 'createInstance', { configurable: true, enumerable: false, value: () => {
+    const inst = (shim.createFrame as () => Node)();
+    inst.type = 'INSTANCE';
+    inst._main = comp;
+    Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: comp });
+    return inst;
+  } });
+  return comp;
+};
 const shimFind = (root.findAllWithCriteria as (c?: { types?: string[] }) => unknown[]).bind(root);
 root.findAllWithCriteria = (c?: { types?: string[]; sharedPluginData?: { namespace: string; keys: string[] } }) => [...shimFind(c),
   ...(c?.types?.includes('COMPONENT_SET') ? pages.flatMap((p) => p.children).filter((n) => n.type === 'COMPONENT_SET') : []),
+  // And the components on the pages, the members of a set and the single components a def emits (the icons, #2296), each
+  // instanceable as Figma's is, so a set that nests another (section 6) finds it built and can place it.
+  ...(c?.types?.includes('COMPONENT') ? pages.flatMap((p) => p.children).flatMap((n) => n.type === 'COMPONENT' ? [n] : n.type === 'COMPONENT_SET' ? (n.children as Node[]) : []).map(instanceable) : []),
   ...(c?.types?.includes('FRAME') && c.sharedPluginData ? pages.flatMap((p) => p.children).filter((n) => n.type === 'FRAME' && c.sharedPluginData!.keys.some((k) => (n as any).getSharedPluginData?.(c.sharedPluginData!.namespace, k))) : [])];
 const empty = async () => [];
 Object.assign(shim, {
@@ -159,6 +194,39 @@ const set = badgePage?.children.find((c) => c.type === 'COMPONENT_SET');
 ok(!!set && (set.children as Node[]).length > 1, `a real set reached the file (${set ? `${(set.children as Node[]).length} members on '${badgePage?.name}'` : 'none'})`);
 ok(first?.completed === true, `C1: a build that made its set posts completed: true (ok ${first?.ok}, completed ${first?.completed}, "${first?.headline}")`);
 
+// 1a. #2909 Q2909.8 A, THE AS-BUILT LEDGER, through the real `main.ts`: the build records the set it landed; the
+//     panel's `file-sets` reads it back as current; an entry from another def reads as due for its definition; the
+//     background pass and the scoped check answer for the set. The entry is planted on the file's root plugin data, the
+//     ledger's own store; the expected states are literals.
+const ask = async (msg: Record<string, unknown>, type: string, until: (m: any) => boolean = () => true): Promise<any[]> => {
+  posted.length = 0;
+  (shim.ui as { onmessage: (m: unknown) => void }).onmessage(msg);
+  for (let j = 0; j < 600; j++) {
+    const got = posted.filter((m) => m?.type === type);
+    if (got.some(until)) return got;
+    await new Promise((res) => realTimeout(res, 10));
+  }
+  return posted.filter((m) => m?.type === type);
+};
+const ledger = (): Record<string, { def: string; rev: number; engine: string }> => { try { return JSON.parse(pluginData.get('prism3:asBuilt') ?? '{}').sets ?? {}; } catch { return {}; } };
+ok(typeof ledger().badge?.def === 'string', `ledger/build: the build records the set it landed (${JSON.stringify(ledger().badge)})`);
+const fs1 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(fs1?.present?.includes('badge') && fs1?.due?.badge?.state === 'current', `ledger/due: file-sets reads the set just built as current (${JSON.stringify(fs1?.due)})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...ledger().badge, def: 'another-def' } } }));
+const fs2 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(fs2?.due?.badge?.state === 'due' && fs2?.due?.badge?.reason === 'definition', `ledger/due: an entry for another def reads as due for its definition (${JSON.stringify(fs2?.due)})`);
+const hands = await ask({ type: 'hand-edits-request' }, 'hand-edits', (m) => m.done === true);
+const hb = hands.find((m) => m.def === 'badge');
+ok(!!hb && hb.members > 0 && hb.edited === 0 && hands.some((m) => m.done === true), `hand-edits: the background pass reads Badge's members, none edited by hand, then ends (${JSON.stringify(hands)})`);
+const chk = (await ask({ type: 'update-check-request', defs: ['badge'] }, 'update-check'))[0];
+const cb = chk?.sets?.find((c: any) => c.def === 'badge');
+ok(!!cb && typeof chk.previewHash === 'string' && chk.previewHash.length > 0 && cb.members > 0 && typeof cb.hash === 'string',
+  `update-check: the scoped check reads Badge alone and returns its hash (${JSON.stringify(chk)})`);
+// The check reads the sets it is asked for, never the file's: one the file lacks is answered as missing, by name.
+const chk2 = (await ask({ type: 'update-check-request', defs: ['badge', 'button'] }, 'update-check'))[0];
+ok(JSON.stringify(chk2?.missing) === JSON.stringify(['button']) && chk2?.sets?.length === 1,
+  `update-check: the check reads the sets asked for, and names one the file lacks as missing (${JSON.stringify({ missing: chk2?.missing, sets: chk2?.sets?.length })})`);
+
 // 1b. #2598: a file with no `_Label` is told so, in the verdict the build posts and in the Update's summary. The
 //     expected line is typed here, from the issue; the actual is what `main.ts` posted. This host has no `_Label`
 //     (nothing in it makes one), so the furniture `furnishSet` draws beside Badge finds no template.
@@ -178,14 +246,19 @@ const runAction = async (go: (sink: Sink) => Promise<void>): Promise<{ posts: an
   }
   return { posts: [], data: [] };
 };
-const check = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, sink as never));
+const check = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, undefined, sink as never));
 const hash = (check.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string })?.previewHash;
 ok(typeof hash === 'string', `fixture: the Update's check finds Badge and returns its hash (${hash})`);
-const applied = (await runAction((sink) => ACTIONS.updateComponents('badge', hash ?? null, undefined, sink as never))).posts
+const applied = (await runAction((sink) => ACTIONS.updateComponents('badge', hash ?? null, undefined, undefined, sink as never))).posts
   .find((m) => m?.type === 'component-update-result');
 const NO_LABEL_UPDATE = 'No canvas labels or usage panels drawn: this file has no _Label or _Doc-block component. Run Set up file, then update again';
 ok(!!applied && String(applied.summary).includes(NO_LABEL_UPDATE) && (applied.lines as string[]).some((l) => l.startsWith(NO_LABEL_UPDATE)),
   `templates/update verdict: the Update's component-update-result summary carries the missing-template line (${JSON.stringify(applied?.summary)})`);
+// #2909 Q2909.8 A: the scoped check's hash is the agent check's own, for the same sets, so the panel's update can echo it.
+ok(chk?.previewHash === hash, `update-check: the panel's scoped check hashes as the agent's check of the same set (${chk?.previewHash} vs ${hash})`);
+// The apply records the set it acted on, so the ledger reads it current again.
+const fs3 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(fs3?.due?.badge?.state === 'current' && ledger().badge?.def !== 'another-def', `ledger/update: the update records the set it acted on, current again (${JSON.stringify(fs3?.due)})`);
 
 // 1c. Q284.3 A: a run that skipped furniture for a missing template is a WARNING, the state every partial result takes:
 //     `ok: false` and a `⚠` headline, never `✓`. The build still made its set, so it stays `completed`.
@@ -218,9 +291,9 @@ ok(livePanels.length === 1 && (livePanels[0] as any).x >= Number(set?.x ?? 0) + 
 // Q2830.3 A: specs are drawn on request only ("Draw specs"), so the build that drew the usage panel tagged no spec panel.
 const specPanels = (): string[] => { const walk = (n: any): any[] => [n, ...((n.children ?? []) as any[]).flatMap(walk)]; return pages.flatMap((p) => p.children.flatMap(walk)).filter((n) => readSpecTag(n)).map((n) => String(n.name)); };
 ok(!specPanels().length, `specs/never on build: the build draws no spec panel (${specPanels().join(', ') || 'none tagged'})`);
-const check2 = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, sink as never));
+const check2 = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, undefined, sink as never));
 const hash2 = (check2.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string })?.previewHash;
-const applied2 = (await runAction((sink) => ACTIONS.updateComponents('badge', hash2 ?? null, undefined, sink as never))).posts
+const applied2 = (await runAction((sink) => ACTIONS.updateComponents('badge', hash2 ?? null, undefined, undefined, sink as never))).posts
   .find((m) => m?.type === 'component-update-result');
 ok(!!applied2 && applied2.ok === true && String(applied2.headline).startsWith('✓') && !String(applied2.summary).includes('No canvas labels') && !String(applied2.summary).includes('No usage panels'),
   `templates/update clean: with the templates in the file, the same Update stays ✓ (ok ${applied2?.ok}, "${applied2?.headline}", ${JSON.stringify(applied2?.summary)})`);
@@ -229,10 +302,10 @@ ok(!!applied2 && applied2.ok === true && String(applied2.headline).startsWith('�
 const livePanel = () => (badgePage?.children ?? []).filter((c) => { try { return JSON.parse(String((c as any).getSharedPluginData?.('prism3', 'docPanel') || 'null'))?.state === 'live'; } catch { return false; } });
 const spotX = Number(set?.x ?? 0) + Number(set?.width ?? 0) + 40;
 (livePanel()[0] as any).x = spotX + 50;
-const check3 = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, sink as never));
+const check3 = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, undefined, sink as never));
 const pre3 = check3.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string; sets?: { furniture?: { panels?: number } }[] } | undefined;
 ok(pre3?.sets?.[0]?.furniture?.panels === 1, `panel/update due: the Update's dry run lists the moved usage panel as 1 to draw (${JSON.stringify(pre3?.sets?.[0]?.furniture)})`);
-await runAction((sink) => ACTIONS.updateComponents('badge', pre3?.previewHash ?? null, undefined, sink as never));
+await runAction((sink) => ACTIONS.updateComponents('badge', pre3?.previewHash ?? null, undefined, undefined, sink as never));
 ok(livePanel().length === 1 && Number((livePanel()[0] as any).x) === spotX, `panel/update drawn: the Update redraws it on its spot, ${spotX} (${livePanel().map((c) => (c as any).x).join(', ')})`);
 ok(!specPanels().length, `specs/never on update: the Update that redrew the usage panel draws no spec panel (${specPanels().join(', ') || 'none tagged'})`);
 
@@ -307,6 +380,79 @@ pluginData.delete('prism3:docSettings');
 const setupOn = await runAction((sink) => ACTIONS.fileSetup(sink as never));
 const coverOn = (setupOn.data.find((d) => d.fileSetup)?.fileSetup as { cover?: { did?: string; skipped?: string } } | undefined)?.cover;
 ok(!!coverOn && coverOn.skipped !== COVER_OFF_WORDS, `docs/cover on (control): with the switch on, Set up file goes to the cover (${JSON.stringify(coverOn)})`);
+
+// 6. Q699 A, the owner's decision of 2026-10-25 (#2909 S1): Update file's due read, its
+//    scoped check and its update all measure against the brand the PANEL holds, which the run's Theme step stores before
+//    the update. The file stores brand A and holds a set built under it; the panel holds brand B, one lever apart, a lever
+//    the set follows. The run is driven as the panel drives it: the checklist opens (`file-sets-request`, then the scoped
+//    `update-check-request`), Theme stores B (`persistInput`, as `apply-theme.ts` does), then `update-sets` echoes the
+//    check's hash. The expected states are literals; the brands are the example brand and a copy with one lever moved.
+const { persistInput } = await import('./src/persist-figma');
+persistInput(root as never, brandA);
+const leverBuilt = await build(LEVER_DEF);
+ok(leverBuilt?.completed === true && ledger()[LEVER_DEF]?.def === entryFor(materializerFor(brandA)(componentDefs.find((d) => d.id === LEVER_DEF)!)).def,
+  `fixture: ${LEVER_DEF} is built under the stored brand A and recorded ("${leverBuilt?.headline}")`);
+const dueA = (await ask({ type: 'file-sets-request', input: brandA }, 'file-sets'))[0];
+ok(dueA?.due?.[LEVER_DEF]?.state === 'current', `q699/due control: with the panel on the stored brand, ${LEVER_DEF} reads current (${JSON.stringify(dueA?.due?.[LEVER_DEF])})`);
+const dueB = (await ask({ type: 'file-sets-request', input: brandB }, 'file-sets'))[0];
+ok(dueB?.due?.[LEVER_DEF]?.state === 'due' && dueB?.due?.[LEVER_DEF]?.reason === 'definition',
+  `q699/due: a lever changed in the panel and not yet applied shows the set as due on the first opening (${JSON.stringify(dueB?.due?.[LEVER_DEF])})`);
+const chkB = (await ask({ type: 'update-check-request', defs: [LEVER_DEF], input: brandB }, 'update-check'))[0];
+const setB = chkB?.sets?.find((c: any) => c.def === LEVER_DEF);
+const chkA = (await ask({ type: 'update-check-request', defs: [LEVER_DEF] }, 'update-check'))[0];
+ok(!!setB && setB.update > 0 && typeof chkA?.previewHash === 'string' && chkA.previewHash !== chkB.previewHash,
+  `fixture: the check under the panel's brand B finds members to change, and hashes apart from the stored brand's (${JSON.stringify({ b: setB, hashA: chkA?.previewHash, hashB: chkB?.previewHash })})`);
+// Theme stores B. The stored brand's check is now stale: the agent's update with its hash is refused, so the arm below
+// can tell an update laid from B's plans from one laid from A's.
+persistInput(root as never, brandB);
+const staleUpd = (await runAction((sink) => ACTIONS.updateComponents(LEVER_DEF, chkA?.previewHash ?? null, undefined, undefined, sink as never))).posts.find((m) => m?.type === 'component-update-result');
+ok(staleUpd?.headline === '✗ update refused', `q699/control: an update echoing a check of the old stored brand is refused once Theme stores B ("${staleUpd?.headline}")`);
+const askRun = async (msg: Record<string, unknown>, type: string): Promise<any> => {
+  for (let i = 0; i < 1200; i++) {
+    const got = await ask(msg, type);
+    if (got.length) return got[0];
+    if (posted.some((m) => m?.type === 'refused')) { await new Promise((res) => realTimeout(res, 25)); continue; }
+    return null;
+  }
+  return null;
+};
+const upd = await askRun({ type: 'update-sets', defs: [LEVER_DEF], previewHash: chkB?.previewHash, handEdits: 'keep', input: brandB }, 'component-update-result');
+ok(!!upd && !String(upd.headline).startsWith('✗') && !String(upd.summary).includes('changed since the check'),
+  `q699/update: checked under the panel's brand B while the file stored A, then B stored as the Theme step does, the update goes through ("${upd?.headline}": ${String(upd?.summary ?? '').slice(0, 160)})`);
+const after = (await ask({ type: 'update-check-request', defs: [LEVER_DEF], input: brandB }, 'update-check'))[0]?.sets?.find((c: any) => c.def === LEVER_DEF);
+ok(!!after && after.update === 0 && after.upToDate === true, `q699/update wrote B: a fresh check under brand B finds no member to change (${JSON.stringify(after)})`);
+const recorded = ledger()[LEVER_DEF]?.def;
+ok(recorded === entryFor(materializerFor(brandB)(componentDefs.find((d) => d.id === LEVER_DEF)!)).def && recorded !== entryFor(materializerFor(brandA)(componentDefs.find((d) => d.id === LEVER_DEF)!)).def,
+  `q699/ledger: the ledger records the brand that was applied, B (${recorded})`);
+
+// 7. #2909 S2: the background hand-edit pass stops when a write starts (`handEditsPass`'s `stale()`, the run guard). A
+//    build is held mid-run (its page switch waits on a promise this test releases), the pass is asked for, and no set's
+//    hand edits may come back while the build holds the guard. Then the build is let go, and the same request answers
+//    for the sets: the control, so the arm measures the guard, not a pass that never answers.
+let release: () => void = () => undefined;
+const setPage = shim.setCurrentPageAsync;
+shim.setCurrentPageAsync = () => new Promise<void>((res) => { release = res; });
+for (let i = 0; i < 1200; i++) {
+  posted.length = 0;
+  (shim.ui as { onmessage: (m: unknown) => void }).onmessage({ type: 'build-components', def: 'badge' });
+  await new Promise((res) => realTimeout(res, 5));
+  if (posted.some((m) => m?.type === 'refused')) { await new Promise((res) => realTimeout(res, 25)); continue; }
+  break;
+}
+const heldResult = (async () => { for (let j = 0; j < 600; j++) { const r = posted.find((m) => m?.type === 'component-result'); if (r) return r; await new Promise((res) => realTimeout(res, 10)); } return null; })();
+const duringHold = await ask({ type: 'hand-edits-request' }, 'hand-edits', (m) => m.done === true);
+// `ask` waits up to 6 s for `done`; a pass the guard ends posts neither a set nor `done`.
+ok(!duringHold.some((m) => typeof m.def === 'string'), `hand-edits/guard: while a build holds the guard, the pass reports no set before done (${JSON.stringify(duringHold)})`);
+shim.setCurrentPageAsync = setPage;
+release();
+await heldResult;
+await new Promise((res) => realTimeout(res, 50));
+let afterHold: any[] = [];
+for (let i = 0; i < 100 && !afterHold.some((m) => typeof m.def === 'string'); i++) {
+  afterHold = await ask({ type: 'hand-edits-request' }, 'hand-edits', (m) => m.done === true);
+  if (!afterHold.some((m) => typeof m.def === 'string')) await new Promise((res) => realTimeout(res, 50));
+}
+ok(afterHold.some((m) => m.def === 'badge') && afterHold.some((m) => m.done === true), `hand-edits/guard control: once the build ends, the same request reads the sets, then ends (${afterHold.length} answers)`);
 
 console.log(`\n${executed - failed}/${executed} build-completed assertions passed.`);
 process.exit(failed ? 1 : 0);

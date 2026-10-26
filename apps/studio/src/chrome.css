@@ -51,13 +51,6 @@
 .p3-bar-slot { display: contents; }
 .p3-bar-main { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); position: relative; }
 .p3-spacer { flex: 1 1 auto; }
-/* The product mark (studio only, owner 2026-10-04): the logo, then the name, ahead of the brand switcher. Not a
-   control, so no edge. The logo is `styles.css`'s `.logo`, a fixed gradient no rule here may draw. */
-.p3-mark {
-  display: inline-flex; align-items: center; gap: var(--p3-space-100); flex: none; padding-right: var(--p3-space-200);
-  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong);
-  letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); white-space: nowrap;
-}
 
 /* Buttons: a page-colored fill and an edge that clears 3:1 on the bar (B1). */
 /* No hover on a disabled control (owner decision Q28 a, 2026-10-05): a control that is `:disabled` or
@@ -157,8 +150,6 @@
 }
 .p3-tile-start > .p3-tile-tip { left: 0; right: auto; }
 .p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip { display: block; }
-/* The plugin's second row at the narrow tier: a break and a spacer that draw nothing above it. */
-.p3-bar-break, .p3-bar-spacer2 { display: none; }
 .p3-verdict:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-field-edge-hover); }
 /* A status dot. Never the only cue: the verdict's line, a mode's name and count, Health's sentence say it. */
 .p3-dot { display: inline-block; flex: none; width: var(--p3-dot); height: var(--p3-dot); border-radius: var(--p3-radius-pill); }
@@ -475,10 +466,8 @@
 .p3-vpill .p3-ico { color: var(--p3-ok-icon); }
 .p3-vpill-bad { color: var(--p3-bad-text); }
 .p3-vpill-bad .p3-ico { color: var(--p3-bad-icon); }
-.p3-health-modes, .p3-log { display: grid; gap: var(--p3-space-100); margin: 0; padding: 0; list-style: none; }
+.p3-health-modes { display: grid; gap: var(--p3-space-100); margin: 0; padding: 0; list-style: none; }
 .p3-health-mode { display: flex; align-items: center; gap: var(--p3-space-100); }
-.p3-log-item { padding-bottom: var(--p3-space-100); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
-.p3-log-item:last-child { padding-bottom: 0; border-bottom: 0; }
 /* A legacy view inside Inspect: pinned light (D2), on its own page-colored container, inset like the
    chrome's own cards (Health, the Decisions log) so its toolbar does not sit on the container's edge. */
 .p3-legacy-card { min-width: 0; padding: var(--p3-space-300); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page); }
@@ -503,12 +492,10 @@
 }
 .p3-frame[data-w="narrow"] .p3-bar-main { flex-wrap: wrap; gap: var(--p3-space-075); }
 /* Narrow keeps the logo and drops the name; the mark's accessible name still says it. */
-.p3-frame[data-w="narrow"] .p3-mark { padding-right: var(--p3-space-050); }
 /* The narrow tier's rules for the tile labels, the product name and the two rows also serve the wide bar's fit steps
    (#2214, BL1 A+B): `frame.ts` (`fitBar`) sets `data-bar-fit` when the full bar would not fit on one row. `glyphs`
    drops the labels, `logo` the name too, `rows` takes the two rows as well, and `trim` (Q83 A) also cuts the brand
    switcher's name short, below. The narrow tier takes `trim` too (#2262), when its own first row would not fit. */
-.p3-frame:is([data-w="narrow"], [data-bar-fit="logo"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-mark-name { display: none; }
 .p3-frame[data-w="narrow"] :is(.p3-btn, .p3-brand) { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-frame[data-w="narrow"] .p3-brand { padding: 0 var(--p3-space-100); }
 .p3-frame[data-w="narrow"] .p3-btn-icon { min-width: var(--p3-ctl-h-xs); }
@@ -549,8 +536,6 @@
 /* At 380 the Contrast tooltip hangs from the bar's left edge, so a long line stays inside the window. */
 .p3-frame[data-w="narrow"] .p3-tile-start { position: static; }
 .p3-frame[data-w="narrow"] .p3-tile-start > .p3-tile-tip { left: 0; top: 100%; }
-.p3-frame:is([data-w="narrow"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-bar-break { display: block; flex: 0 0 100%; height: 0; }
-.p3-frame:is([data-w="narrow"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-bar-spacer2 { display: block; flex: 1 1 auto; }
 /* `trim` (#2214, the owner's Q83 A): the first row still does not fit, so the brand switcher takes what is left of it and
    cuts its name short with the ellipsis `.p3-brand-name` already draws; the spacer before Theme gives up its share. */
 .p3-frame[data-bar-fit="trim"] .p3-brandwrap { flex: 1 1 0; min-width: 0; }
@@ -679,8 +664,6 @@
 .p3-frame[data-layout="panes"][data-w="wide"] .p3-drawer[data-sized="true"] { grid-row: 4 / -1; align-self: end; }
 
 /* The Figma menu (S1.4, plugin only). At 380 it spans the top row, under it, like the Agent popover. */
-.p3-frame[data-w="narrow"] .p3-figma-wrap { position: static; }
-.p3-frame[data-w="narrow"] .p3-figma-menu { left: 0; right: 0; }
 
 /* ── the Agent tile (S1.4, IA-3; T7 A, 2026-10-05; plugin only) ───────────────────────────── */
 .p3-agent-slot { display: inline-flex; }
@@ -925,6 +908,13 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-cp-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-300); min-width: 0; }
 /* TY2 A: an L1 section title has space-300 after it, so the title's last line is the head's bottom. */
 .p3-cp-sec { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-300); min-width: 0; }
+/* #2909 Q2909.17 A: a tier holds its sections, after its caption: a small secondary line with a hairline under it, not a
+   heading (the list's three levels are its sections, their settings and those settings' levers, TY2 A). */
+.p3-cp-tier { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-300); min-width: 0; }
+.p3-cp-tier-cap {
+  margin: 0; padding-bottom: var(--p3-space-050); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); color: var(--p3-text-2);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-normal);
+}
 /* A grid, so the title takes what the box and Build all leave and wraps inside itself at any pane width (#1975: the
    levers pane is 268px at 640). */
 .p3-cp-sec-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: var(--p3-space-075) var(--p3-space-100); }
@@ -1704,6 +1694,17 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-setname { flex: 1 1 auto; min-width: 0; }
 .p3-upd-line, .p3-upd-summary { color: var(--p3-text); }
 .p3-btn.p3-upd-btn { flex: none; }
+/* #2909 Q2909.8 A: the number of due sets on Update file, in the button's own inverse ink with a ring of it, so it needs
+   no color of its own; the due sets' rows, each with what the check found under its box; the one hand-edit choice. */
+.p3-upd-badge { display: inline-flex; align-items: center; justify-content: center; min-width: var(--p3-space-200); padding: 0 var(--p3-space-050);
+  border: var(--p3-bw-hairline) solid var(--p3-inv-text); border-radius: var(--p3-radius-pill); font-size: var(--p3-fs-12); line-height: var(--p3-lh-compact); }
+.p3-upd-badge[hidden] { display: none; }
+.p3-upd-setrow { display: grid; gap: 0; }
+.p3-upd-setline { padding-left: var(--p3-space-400); color: var(--p3-text-2); }
+.p3-upd-handrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); padding-left: var(--p3-space-300); }
+.p3-upd-saves { padding-left: var(--p3-space-300); }
+/* #2909 Q2909.8 A: a set's statuses on Components' list, after its meta. */
+.p3-cp-status { display: inline-flex; flex-wrap: wrap; gap: var(--p3-space-025); flex: none; margin-left: var(--p3-space-050); }
 
 /* The rail's narrow tier and dialogs (#2909): at 380 a dialog's columns stop scrolling (`.p3-bardlg-col` above,
    `overflow: visible`, the body scrolls there), so Update file's checklist scrolls inside itself, and its foot (the

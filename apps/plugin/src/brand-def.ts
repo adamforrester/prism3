@@ -76,9 +76,13 @@ export const brandButtonLayout = (input: BrandInput | null): ButtonLayout => ({
  *  the button layout (#1667 — it touches the button family's geometry, its label type refs (#1752) and its two
  *  medium content refs, and reads the visual padding and gap AFTER density has moved them), then the ratio
  *  floor (Tag's minimum width, from the brand's heights). */
-export const materializeForBrand = (def: ComponentDef, input: BrandInput | null): ComponentDef => {
+export const materializeForBrand = (def: ComponentDef, input: BrandInput | null): ComponentDef => materializerFor(input)(def);
+
+/** `materializeForBrand` for many defs over one brand (#2909's due check materializes every def the file holds): the
+ *  brand's theme is built once, not once a def. */
+export const materializerFor = (input: BrandInput | null): ((def: ComponentDef) => ComponentDef) => {
   const { avail, outline, sizes, density } = brandLevers(input);
-  return applyMinWidthRatio(applyButtonLayout(
+  return (def) => applyMinWidthRatio(applyButtonLayout(
     applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, input?.controlShape ?? 'rounded'), fieldStyleFor(def.id, input)), input?.tagStyle ?? 'pill'), input?.dialogTitleSize ?? 'large'), avail), outline), density),
     brandButtonLayout(input), sizeRefPx(sizes)), sizeRefPx(sizes));
 };

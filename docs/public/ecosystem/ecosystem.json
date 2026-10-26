@@ -1442,6 +1442,28 @@
       }
     },
     {
+      "id": "update-due-sets",
+      "label": "What is due, and the update in place",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Update file: the as-built ledger flags the due sets, a background pass reads hand edits, and the checklist checks and updates the due sets in place",
+          "sources": [
+            "apps/plugin/src/as-built-ledger.ts",
+            "apps/plugin/src/update-plan.ts",
+            "apps/plugin/src/update-apply.ts",
+            "apps/studio/src/state/update-file.ts"
+          ],
+          "messages": [
+            "update-sets",
+            "update-check-request",
+            "hand-edits-request"
+          ]
+        }
+      }
+    },
+    {
       "id": "capture-baseline",
       "label": "Record sets as built",
       "group": "Write to Figma",

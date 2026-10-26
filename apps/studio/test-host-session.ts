@@ -43,12 +43,13 @@ const ok = (cond: boolean, label: string): void => {
 };
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 /** A session as plain data, with the Map spelled out, so two sessions compare by value. */
-const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFontStyles], setBuilds: [...s.setBuilds] });
+const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFontStyles], setBuilds: [...s.setBuilds], handEdits: [...s.handEdits] });
 
 /** Every kind the UI's handler receives, written out here rather than read from the code under test. */
 const KINDS = [
   'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-reading', 'restore-input-library', 'restore-input-error', 'font-list', 'doc-settings', 'file-sets',
+  'hand-edits', 'hand-edits-done', 'update-check',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
   'style-guide-catalog', 'style-guide-tables', 'style-guide-table', 'style-guide-cleanup-result',
 ] as const;
@@ -70,6 +71,7 @@ ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
   pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null, docSettings: null, fileSets: null,
+  handEdits: [], handPass: 'idle', updateCheck: null,
 }), 'initial session: every slot empty');
 
 // ---- the four verdict kinds ------------------------------------------------------------------------------
@@ -372,9 +374,28 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
 }
 {
   // #2909: Update file's checklist read lands in its own slot and moves only the overlay's topic.
-  const f = step(init, { kind: 'file-sets', present: ['button'], setUp: true, error: null });
-  ok(same(f.next.fileSets, { present: ['button'], setUp: true, error: null }), 'file-sets: the sets present and the setup state land in the slot');
-  ok(same(f.topics, ['host:update']), 'file-sets: only host:update is invalidated');
+  const due = { button: { state: 'due', reason: 'definition' } } as const;
+  const f = step(init, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due });
+  ok(same(f.next.fileSets, { present: ['button'], setUp: true, error: null, due }), 'file-sets: the sets present, the setup state and the ledger\'s due land in the slot');
+  // #2909 Q2909.8 A: the statuses on Components' list follow it too.
+  ok(same(f.topics, ['host:update', 'host:components']), 'file-sets: only host:update and host:components are invalidated');
+  // The main thread starts the hand-edit pass after its first answer at load; the pass is out from here, once.
+  ok(f.next.handPass === 'running', 'Q2909.8 A: the first file-sets starts the hand-edit pass (handPass running)');
+  const done = step({ ...f.next, handPass: 'done' }, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due });
+  ok(done.next.handPass === 'done', 'Q2909.8 A: a later file-sets leaves a finished pass finished');
+  const bad = step(init, { kind: 'file-sets', present: [], setUp: false, error: 'boom', due: {} });
+  ok(bad.next.handPass === 'idle', 'Q2909.8 A: a file-sets that could not read the file starts no pass');
+  // Each set's hand edits land as they come, one by one, and the pass's end marks it done.
+  const h1 = step(f.next, { kind: 'hand-edits', def: 'button', members: 648, edited: 2 });
+  const h2 = step(h1.next, { kind: 'hand-edits', def: 'tag', members: 24, edited: 0 });
+  ok(same([...h2.next.handEdits], [['button', { members: 648, edited: 2 }], ['tag', { members: 24, edited: 0 }]]), 'Q2909.8 A: hand-edits: each set\'s answer lands beside the ones before it');
+  ok(same(h1.topics, ['host:update', 'host:components']), 'Q2909.8 A: hand-edits invalidates host:update and host:components');
+  const hd = step(h2.next, { kind: 'hand-edits-done' });
+  ok(hd.next.handPass === 'done' && hd.next.handEdits.size === 2, 'Q2909.8 A: hand-edits-done ends the pass and keeps its answers');
+  const set = { def: 'button', hash: 'h', members: 648, update: 12, add: 0, drop: 0, handEdited: 2, noBaseline: 0, blocked: false, upToDate: false };
+  const c = step({ ...init, updateCheck: 'pending' }, { kind: 'update-check', previewHash: 'abc', sets: [set], missing: [], error: null });
+  ok(same(c.next.updateCheck, { previewHash: 'abc', sets: [set], missing: [], error: null }), 'Q2909.8 A: update-check: the scoped check\'s answer replaces pending');
+  ok(same(c.topics, ['host:update']), 'Q2909.8 A: update-check invalidates only host:update');
 }
 for (const k of KINDS) ok(exercised.has(k), `coverage: ${k} was exercised`);
 
