@@ -661,6 +661,7 @@ const notes: string[] = [];
 const covered = new Set<string>();
 const vb = declaredViewBox();
 let glyphChecks = 0;
+let tileFiles = 0;
 
 for (const def of componentDefs as ComponentDef[]) {
   const parts = Object.entries(def.anatomy?.parts ?? {}).filter(([, p]) => (p as { kind?: string }).kind === 'vector');
@@ -745,7 +746,8 @@ for (const def of componentDefs as ComponentDef[]) {
         const doc = dimsOf(node.glyphSvg ?? '');
         const source = BRAND_MARK_SOURCES[nm];
         let src = { w: NaN, h: NaN, vb: [] as number[] };
-        try { src = dimsOf(readFileSync(new URL(`${source}.svg`, MARKS_DIR), 'utf8')); } catch { failures.push(`${MARK_DEF}/${nm}: marks/${source}.svg is unreadable`); continue; }
+        let srcText = '';
+        try { srcText = readFileSync(new URL(`${source}.svg`, MARKS_DIR), 'utf8'); src = dimsOf(srcText); } catch { failures.push(`${MARK_DEF}/${nm}: marks/${source}.svg is unreadable`); continue; }
         const wantW = board[0] ?? records[`${source}.svg`]?.width;
         if (doc.h !== board[1] || doc.w !== wantW)
           failures.push(`${MARK_DEF}/${nm}: the document is ${doc.w}×${doc.h}, and a ${kind} mark is ${wantW ?? '(no width recorded)'}×${board[1]}${board[0] === null ? ' (24 high, at the width its provenance record states)' : ''}`);
@@ -767,6 +769,32 @@ for (const def of componentDefs as ComponentDef[]) {
             failures.push(`${MARK_DEF}/${nm}: ink at ${b.x},${b.y} ${b.w}×${b.h} spills outside its ${doc.w}×${doc.h} artboard — the frame would clip it or the host would size it wrong`);
         }
         if (!(area > 0)) failures.push(`${MARK_DEF}/${nm}: the outlines have no area — a mark that draws nothing`);
+        // A CARD FILE IS FULL-BLEED (#2343, owner decision Q720 A): the component draws the tile's corners and edge
+        // from tokens (`lint-mark-colors.ts` holds that half), so the file bakes neither. Read from the SOURCE file,
+        // the thing the provider hands over. The first path is the tile's ground and must be the artboard rectangle
+        // itself: straight edges only (a curve at a corner is a baked radius) and an ink box that is the whole
+        // artboard. No later path may span the whole artboard: that is a border ring drawn into the artwork, or a
+        // second ground under a baked edge.
+        if (kind === 'card') {
+          const srcDs = [...srcText.matchAll(/<path\b[^>]*\sd="([^"]*)"/g)].map((m) => m[1]);
+          const eps = 1e-3;
+          const spans = (b: Box): boolean => Math.abs(b.x) < eps && Math.abs(b.y) < eps && Math.abs(b.w - src.w) < eps && Math.abs(b.h - src.h) < eps;
+          const ground = srcDs[0];
+          if (ground === undefined) failures.push(`${MARK_DEF}/${nm}: CARD TILE BAKED — marks/${source}.svg draws no ground; a card file is full-bleed, its first path the ${src.w}×${src.h} artboard`);
+          else {
+            let gb: Box | undefined;
+            try { gb = markInkBox(ground); } catch (err) { failures.push(`${MARK_DEF}/${nm}: the ground could not be measured — ${(err as Error).message}`); }
+            if (/[CcSsQqTtAa]/.test(ground) || (ground.match(/[Mm]/g) ?? []).length !== 1 || (gb && !spans(gb)))
+              failures.push(`${MARK_DEF}/${nm}: CARD TILE BAKED — marks/${source}.svg's ground '${ground.slice(0, 60)}${ground.length > 60 ? '…' : ''}' is not the full ${src.w}×${src.h} artboard as one shape with square corners${gb ? ` (it covers ${gb.x},${gb.y} ${gb.w}×${gb.h})` : ''}; the component rounds the corners (Q720 A), so a file that rounds them too, or insets its ground, bakes the tile`);
+            srcDs.slice(1).forEach((d, i) => {
+              let b: Box | undefined;
+              try { b = markInkBox(d); } catch { return; }
+              if (spans(b))
+                failures.push(`${MARK_DEF}/${nm}: CARD BORDER BAKED — marks/${source}.svg's path ${i + 2} spans the whole ${src.w}×${src.h} artboard over the ground: a border drawn into the artwork, which the component draws from tokens instead (Q720 A)`);
+            });
+          }
+          tileFiles++;
+        }
         glyphChecks++;
       }
       continue;
@@ -1292,7 +1320,10 @@ for (const key of Object.keys(SCALED_GLYPH))
   if (!vectorParts.has(key))
     failures.push(`STALE SCALED_GLYPH: '${key}' records a glyphScale of ${SCALED_GLYPH[key].scale}, and no def declares a vector part by that name. The per-part loop cannot see this, so the padded-artboard exemption would outlive its subject and let arm D be relaxed for the next part to take that name.`);
 
-console.log(`Glyph geometry — ${glyphChecks} glyph(s) measured across ${covered.size} vector part(s): ${[...covered].join(', ') || 'NONE'}`);
+// The card-tile arm ran on something: a mark set with card marks and no file read as a tile is an arm that checked nothing.
+if (Object.keys(BRAND_MARK_SOURCES).some((nm) => nm.startsWith('card/')) && tileFiles === 0)
+  failures.push(`${MARK_DEF}: the set lists card marks and the full-bleed arm read no card file — the CARD TILE check ran on nothing`);
+console.log(`Glyph geometry — ${glyphChecks} glyph(s) measured across ${covered.size} vector part(s): ${[...covered].join(', ') || 'NONE'}; ${tileFiles} card file(s) read as full-bleed tiles`);
 for (const n of notes) console.log(`    ${n}`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} glyph-geometry failure(s):`);

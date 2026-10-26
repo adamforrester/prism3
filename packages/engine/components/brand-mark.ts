@@ -17,6 +17,13 @@
  * folds into an assets-panel folder. The projector resolves this def's glyph against the mark vocabulary
  * (`BRAND_MARK_DOCUMENTS`) rather than the icon set, and writes the document with its literal fills.
  *
+ * A CARD MARK IS A TILE, AND THE COMPONENT DRAWS ITS EDGE (owner decision Q720 A, 2026-10-26). The card files are
+ * full-bleed: square corners, no border, the tile's ground kept, because a colored ground is part of the provider's
+ * mark. The glyph's own frame rounds the corners and draws the 1px edge from the theme (`tileEdge`), and clips the
+ * artwork to the rounded corners. Bound, not baked, so the corner and the edge are the same at every height a host
+ * binds and in every mode; baked into the file, they would scale with the artwork. Square and wallet marks have no
+ * edge. `lint-mark-colors.ts` holds both halves: the edge bound on every card member, and no card file baking one.
+ *
  * NO COUNT IN THE PROSE. The owner will supply about a dozen providers (Q-B7 amended); the list is data, so
  * nothing here states how many marks there are. `lint-icon-count.ts` holds this def's prose to that.
  */
@@ -24,6 +31,11 @@ import { ComponentDef } from '../component-schema';
 // The vocabulary, imported rather than restated: `emit-marks.ts` proves it matches the authored mapping and
 // the folder in both directions, and that every file has a provenance record.
 import { BRAND_MARK_NAMES } from '../brand-mark-glyphs';
+import { BRAND_MARK_KINDS } from '../brand-mark-set';
+
+/** The marks drawn on the card artboard, read from the vocabulary by kind, so a card network added to the set is a
+ *  tile the day it lands: the tile edge below names these members and no other. */
+const CARD_MARKS = BRAND_MARK_NAMES.filter((n) => BRAND_MARK_KINDS[n.split('/')[0]] === 'card');
 
 export const brandMark: ComponentDef = {
   id: 'brand-mark',
@@ -33,7 +45,7 @@ export const brandMark: ComponentDef = {
   status: 'draft',
   summary: 'A provider\'s own mark, in its own colors: sign-in, wallet, card and social. Never retinted.',
   description:
-    'A provider\'s mark, drawn as the provider supplies it: the glyph a sign-in or wallet button carries, a card network\'s mark in a payment field, a social network\'s mark in a footer link. The colors are the provider\'s and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, card marks 32 by 20, and wallet lockups 24 high at the provider\'s width.',
+    'A provider\'s mark, drawn as the provider supplies it: the glyph a sign-in or wallet button carries, a card network\'s mark in a payment field, a social network\'s mark in a footer link. The colors are the provider\'s and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, card marks 32 by 20, and wallet lockups 24 high at the provider\'s width. A card mark is a tile: its corners and its edge come from the theme, the same at every size.',
 
   props: [
     { name: 'name', type: 'enum: BrandMarkName', values: [...BRAND_MARK_NAMES], required: true, description: 'Which mark, as kind and provider: card/visa, provider/google, social/instagram-mono. The list is generated from the mark set, so an unknown name fails at compile time, and a provider added to the set reaches the list the day it lands.' },
@@ -54,7 +66,14 @@ export const brandMark: ComponentDef = {
     'size.small': 'icon.size.sm',
     'size.medium': 'icon.size.md',
     'size.large': 'icon.size.lg',
+    // A card tile's edge (Q720 A), existing roles only: the brand's small corner, the hairline, and the default
+    // decorative border, so a white tile still reads as a card on a white page.
+    'tile.radius': 'radius.sm',
+    'tile.border-width': 'border-width.hairline',
+    'tile.border': 'color.border.primary',
   },
+  // The one paint this def binds is the tile's edge. The artwork takes none: the projector skips this def's glyph ink.
+  paintKeys: ['tile.{slot}'],
 
   anatomy: {
     root: 'glyph',
@@ -64,7 +83,8 @@ export const brandMark: ComponentDef = {
         role: 'target',
         // Resolved against the mark vocabulary, by the member's own name.
         glyph: '{name}',
-        note: 'The mark itself, on its kind\'s artboard, in the provider\'s colors. It takes no ink from the component around it.',
+        tileEdge: { when: { name: CARD_MARKS }, radius: 'tile.radius', strokeWidth: 'tile.border-width' },
+        note: 'The mark itself, on its kind\'s artboard, in the provider\'s colors. It takes no ink from the component around it. On a card mark the frame rounds the corners and draws a 1px edge from the theme, over artwork drawn full-bleed.',
       },
     },
     codeOnly: [
@@ -151,9 +171,10 @@ export const brandMark: ComponentDef = {
     ],
     evolution: [
       'Proposed on #2343 (2026-10-25) as a second icon type, after #2316 asked for provider marks the core set could not carry. The owner chose two swap routes, by name (Q-B3 A), separate one-color files only where the provider publishes them (Q-B2 A), and committed artwork for internal use (Q-B1 B).',
+      'Card tiles (Q720 A, 2026-10-26): the card files are full-bleed, square corners and no border, and the component draws the corner radius and the edge from tokens, so every tile has the same edge at every size and mode. The placeholders were re-exported full-bleed before the provider files arrive.',
     ],
     projection: [
-      'In Figma each mark is a standalone brand-mark/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink.',
+      'In Figma each mark is a standalone brand-mark/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink. A card mark\'s frame is the one exception, and it is the frame, not the artwork: its corner radii and stroke weight are bound variables, its stroke the border color, and it clips the artwork to its corners.',
     ],
   },
 };
