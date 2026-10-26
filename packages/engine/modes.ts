@@ -1089,6 +1089,25 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // could only surface where a UI rendered the RESOLVED role, and until now nothing rendered scrim.
   roles['scrim.default'].alpha = scrimStep / 100;
 
+  /*
+   * GLASS (#2869, Q464 A; values Q2869.3 A) — the translucent fill behind a background blur, for text set over
+   * the bottom of a photograph. It pairs with the `glass` Effect Style, whose blur radius binds `blur.glass`.
+   *
+   * THE ALPHA LIVES IN THE VALUE, because Figma forces a variable-bound color paint to opacity 1: a bound
+   * paint plus a paint or layer opacity renders opaque on every instance (#2869, the 10/21 evidence). So this
+   * aliases a `white-alpha` / `black-alpha` step, the way `scrim.default` does, and is never "a surface at N%".
+   *
+   * MODE-VARYING, and that is what separates it from `veil`. The veil is a wash chosen per image and holds
+   * still across modes; glass is a SURFACE that follows the page polarity, so `text.primary` reads on it in
+   * every mode: white on the light family, black on the dark. 70% is the nearest emitted step to the source
+   * comp's 69%; high contrast raises it to 90% so less of the photograph shows through behind text.
+   */
+  const glassStep = hc ? 90 : 70;
+  const glassBase = cfg.family === 'light' ? 'white' : 'black';
+  put('glass.surface', { path: `${ns}.${glassBase}-alpha.${glassStep}`, rgb: cfg.family === 'light' ? WHITE : BLACK, ratio: 1 },
+    `Glass — the translucent ${glassBase} fill behind the glass background blur; opacity ${glassStep}%`, 'self', 0);
+  roles['glass.surface'].alpha = glassStep / 100;
+
   /**
    * MEDIA VEIL (#1030) — the wash a designer puts over a photograph so text on top stays legible.
    *

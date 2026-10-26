@@ -95,6 +95,15 @@ export const INVERSE_GAPS: InverseGap[] = [
       + 'holding it, which is the job it was built for.',
   },
   {
+    paths: ['color.glass.surface'],
+    reason:
+      'UNDECIDED, deliberately (#2869). Glass is the fill behind a background blur over a PHOTOGRAPH, and it '
+      + 'follows the page polarity so the page text roles read on it. Whether a glass band set inside an '
+      + 'inverse band should take the band\'s polarity instead has not been asked: the source comp is a '
+      + 'product card on the page. Adding `inverse.glass.surface` is a MINOR the day a design needs it; '
+      + 'until then this register holds the question rather than an invented answer.',
+  },
+  {
     paths: [
       'color.veil.dark.subtle', 'color.veil.dark.medium', 'color.veil.dark.strong',
       'color.veil.light.subtle', 'color.veil.light.medium', 'color.veil.light.strong',

@@ -85,14 +85,18 @@ export interface StylesApi {
   variables: {
     getLocalVariablesAsync(type?: string): Promise<StyleVariable[]>;
     createVariableAlias(target: StyleVariable): VariableAlias;
+    /** Binds one effect field to a variable (#2869, the `glass` blur radius) and returns the bound COPY. Typed
+     *  loosely for the reason the style nodes' arrays are: Figma's `Effect` is a superset of what we write. */
+    setBoundVariableForEffect(effect: never, field: 'radius', variable: never): unknown;
   };
 }
 
 /** What the styles executor did — surfaced to the UI + asserted by the harness. `bound` counts stops
- *  actually wired to a variable; `misses` names the `palette/*` targets a stop asked for and this file
- *  does not have. A miss is reported, never fatal: the baked RGBA still renders correctly. */
+ *  (and, under `effects`, effect fields) actually wired to a variable; `misses` names the targets a stop or an
+ *  effect asked for and this file does not have. A miss is reported, never fatal: the baked value still renders
+ *  correctly. */
 export type StylesApplyResult = {
-  effects: { total: number; created: number };
+  effects: { total: number; created: number; bound: number };
   paints: { total: number; created: number; bound: number };
   misses: string[];
 };
@@ -136,9 +140,17 @@ export const bindGradientStops = <V extends StyleVariable>(
  * reuse an existing style with the same name (overwrite its props), else create one.
  */
 export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi): Promise<StylesApplyResult> => {
-  // ---- Effect Styles (shadows — both light `shadow/*` and dark `shadow-dark/*`) ----
+  // Unfiltered fetch, for the #146 reason `resolveCollection` documents: a type-filtered call returns
+  // only that type, and nothing here guarantees the filter matches. Indexing every local variable by name is
+  // what both the FLOAT and Text Style executors already do. Read once: the effect binding (FLOAT) and the
+  // gradient stops (COLOR) both resolve against it.
+  const varByName = new Map((await styles.variables.getLocalVariablesAsync()).map((v) => [v.name, v] as const));
+  const misses: string[] = [];
+
+  // ---- Effect Styles (shadows — both light `shadow/*` and dark `shadow-dark/*` — and `glass`, #2869) ----
   const effectByName = new Map((await styles.getLocalEffectStylesAsync()).map((s) => [s.name, s] as const));
   let effectsCreated = 0;
+  let effectsBound = 0;
   for (const row of plan.effects) {
     let s = effectByName.get(row.name);
     if (!s) { s = styles.createEffectStyle(); s.name = row.name; effectByName.set(row.name, s); effectsCreated++; }
@@ -146,18 +158,23 @@ export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi): Prom
     // earlier version wrote leaves this apply marked. See `provenance.ts`.
     markOwned(s);
     s.description = row.description;
-    s.effects = row.effects;
+    s.effects = row.effects.map((effect) => {
+      // A shadow is written as the plan has it. The glass blur names its radius variable BY NAME (the emit's
+      // alias convention), which Figma cannot read: strip it, then bind through `setBoundVariableForEffect`,
+      // which returns the bound copy. A missing variable leaves the literal radius and reports a miss.
+      if (!('boundVariables' in effect)) return effect;
+      const { boundVariables, ...plain } = effect;
+      const v = varByName.get(boundVariables.radius.name);
+      if (!v) { misses.push(boundVariables.radius.name); return plain; }
+      effectsBound++;
+      return styles.variables.setBoundVariableForEffect(plain as never, 'radius', v as never);
+    });
   }
 
   // ---- Paint Styles (gradients — one GradientPaint per style, stops bound to palette/* where traced) ----
   const paintByName = new Map((await styles.getLocalPaintStylesAsync()).map((s) => [s.name, s] as const));
-  // Unfiltered fetch, for the #146 reason `resolveCollection` documents: a type-filtered call returns
-  // only that type, and the palette targets are COLOR while nothing here guarantees the filter matches.
-  // Indexing every local variable by name is what both the FLOAT and Text Style executors already do.
-  const varByName = new Map((await styles.variables.getLocalVariablesAsync()).map((v) => [v.name, v] as const));
   let paintsCreated = 0;
   let bound = 0;
-  const misses: string[] = [];
 
   for (const row of plan.paints) {
     let s = paintByName.get(row.name);
@@ -173,7 +190,7 @@ export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi): Prom
   }
 
   return {
-    effects: { total: plan.effects.length, created: effectsCreated },
+    effects: { total: plan.effects.length, created: effectsCreated, bound: effectsBound },
     paints: { total: plan.paints.length, created: paintsCreated, bound },
     misses,
   };

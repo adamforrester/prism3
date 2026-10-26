@@ -31,9 +31,9 @@
     },
     "layout": {
       "type": "object",
-      "description": "Space, control size, radius, border-width, focus-ring, icon-size, selection-control size and grid roles, and the label line box (`type.label.*.line-box`), keyed by full tree path.",
+      "description": "Space, control size, radius, border-width, background-blur (`blur.*`), focus-ring, icon-size, selection-control size and grid roles, and the label line box (`type.label.*.line-box`), keyed by full tree path.",
       "additionalProperties": false,
-      "patternProperties": { "^(space|size|radius|border-width|focus|icon|control|grid)\\.[a-z0-9-]+(\\.[a-z0-9-]+)*$|^type\\.[a-z0-9-]+\\.[a-z0-9-]+\\.line-box$": { "$ref": "#/$defs/thinEntry" } }
+      "patternProperties": { "^(space|size|radius|border-width|blur|focus|icon|control|grid)\\.[a-z0-9-]+(\\.[a-z0-9-]+)*$|^type\\.[a-z0-9-]+\\.[a-z0-9-]+\\.line-box$": { "$ref": "#/$defs/thinEntry" } }
     },
     "motion": {
       "type": "object",
