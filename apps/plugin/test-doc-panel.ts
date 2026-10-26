@@ -52,6 +52,23 @@
  *                   per name, the names whose set is in the file linked to it by node and underlined, every other plain;
  *                   a set built after the draw makes the panel due, and the redraw links it. Mutations: the links key
  *                   dropped from `docPanelDue` → `qa/links due`; the hyperlink call dropped → `qa/related links`.
+ *   width/…         #2970 items 1 and 4 (Q1 A, Q2 A): Banner and Checkbox.Row, each specimen at its member's width (480,
+ *                   320, typed here), inside its stage, no text narrower than its longest word; Theming stacked for
+ *                   Banner, side by side for the Row; a member built wider makes the panel due, the redraw is wider by
+ *                   as much and a live spec panel moves to stay 40 past it; the dry run moves the next set 160 past the
+ *                   spec column beside the panel as drawn, and nothing after the draw; `markers/widths`: every lead's
+ *                   panel is drawn as wide as Update spaces it for. `width/hug` shows the host squeezing a hugging
+ *                   instance, the failure the fix guards. Mutations: the width forced to 560 → `width/checkbox-row`,
+ *                   `width/room`, `width/seat`, `markers/widths`; the specimen not sized to its member →
+ *                   `width/banner`, `width/checkbox-row`.
+ *   markers/…       (#2916) each leader's tip lies inside its part's box, at the part's middle, and each bracket runs
+ *                   exactly its part's height with both ticks ending inside it; Breadcrumbs' six entries (the `items`
+ *                   slot's among them) on two specimens, pinned by hand in `marks/breadcrumbs`. Mutations: a slot
+ *                   part's marker placed against its slot → `markers/breadcrumbs`; marker 1 dropped →
+ *                   `markers/breadcrumbs numbers` and every `markers/<def>`.
+ *   family/related  (#2970 Q5 A) Checkbox's and Buttons' Related lists typed from the approved wireframe; a family named
+ *                   twice in one list once. Mutations: the own-family drop removed → `family/related`, `family/related
+ *                   buttons`; the de-duplication removed → `family/related once`.
  *   line/…          a file without `_Doc-block`: one Set up file line for the run, naming usage panels.
  *
  * INDEPENDENCE (docs/34): the expected sections come from the engine's model (`docSections`), which the panel reads but
@@ -67,7 +84,7 @@ import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffe
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node } from './component-shim';
-import { anatomyMarks, clearOrphanPanels, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, type PanelApi, type PNode } from './src/doc-panel';
+import { anatomyMarks, clearOrphanPanels, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, type PanelApi, type PNode } from './src/doc-panel';
 import { TAXONOMY } from './src/file-taxonomy';
 import { readSpecTag } from './src/spec-tag';
 import { fingerprintOf } from './src/style-guide';
@@ -133,6 +150,17 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
       const p = self.parent as N | undefined;
       // FILL across a vertical parent: its width less its padding. A `_hug` frame hugs its children, as a specimen does.
       if (self.layoutSizingHorizontal === 'FILL' && p?._mk && p.layoutMode === 'VERTICAL') return p.width! - Number(p.paddingLeft ?? 0) - Number(p.paddingRight ?? 0);
+      // A MEMBER'S STRETCHED LAYER (#2970): one that grows along a horizontal parent or stretches across a vertical one
+      // takes the room its parent gives it. In a parent that hugs, there is none: it shrinks to its narrowest, a text to
+      // one letter, as Banner's did in a specimen that hugged.
+      if (p?._mk && stretched(self)) {
+        if (hugs(p)) return narrowest(self);
+        const inner = p.width! - Number(p.paddingLeft ?? 0) - Number(p.paddingRight ?? 0);
+        if (p.layoutMode === 'VERTICAL') return inner;
+        const kids = flow(p), grown = kids.filter(stretched);
+        return Math.max(0, (inner - kids.filter((c) => !stretched(c)).reduce((a, c) => a + c.width!, 0) - Number(p.itemSpacing ?? 0) * (kids.length - 1)) / grown.length);
+      }
+      if (self.layoutSizingHorizontal === 'FIXED' && self._hug) return self._w as number;
       const kids = flow(self);
       if (!self._hug || !self.layoutMode || !kids.length) return self._w as number;
       const pad = Number(self.paddingLeft ?? 0) + Number(self.paddingRight ?? 0);
@@ -189,6 +217,23 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
 };
 /** The children an auto-layout frame lays out: shown and not absolute. */
 const flow = (n: N): N[] => n.children.filter((c) => c.visible !== false && c.layoutPositioning !== 'ABSOLUTE');
+/** A member's layer that takes its width from its parent (#2970): it grows along a horizontal parent, or stretches across
+ *  a vertical one. Only a layer copied from a member's plan carries these. */
+const stretched = (n: N): boolean => {
+  const p = n.parent as N | undefined;
+  return !!p?._mk && !!p.layoutMode && n.layoutPositioning !== 'ABSOLUTE' && (p.layoutMode === 'HORIZONTAL' ? n.layoutGrow === 1 : n.layoutAlign === 'STRETCH');
+};
+/** Whether a frame's width comes from its content: it hugs, is not fixed, and takes no width from its own parent. */
+const hugs = (n: N): boolean => !!n._hug && n.layoutSizingHorizontal !== 'FIXED' && !stretched(n) && n.layoutSizingHorizontal !== 'FILL';
+/** The narrowest a layer goes when its parent gives it no room: a text's widest letter, a frame its content's narrowest. */
+const narrowest = (n: N): number => {
+  if (n.type === 'TEXT') return Math.max(...[...String(n.characters ?? 'x')].map((ch) => runWidth(ch)));
+  const kids = flow(n);
+  if (!n.layoutMode || !kids.length) return n._w as number;
+  const own = (c: N) => (stretched(c) ? narrowest(c) : c.width!);
+  const pad = Number(n.paddingLeft ?? 0) + Number(n.paddingRight ?? 0);
+  return pad + (n.layoutMode === 'HORIZONTAL' ? kids.reduce((a, c) => a + own(c), 0) + Number(n.itemSpacing ?? 0) * (kids.length - 1) : Math.max(...kids.map(own)));
+};
 const detach = (c: N): void => {
   const p = c.parent as N | undefined;
   if (p?.children) { const i = p.children.indexOf(c); if (i >= 0) p.children.splice(i, 1); }
@@ -208,7 +253,7 @@ const blockInstance = (type: string): N => {
   const body: N[] =
     type === 'Field' ? [mk('FRAME', 'row', [t('label'), t('text')], { layoutMode: 'HORIZONTAL' })]
       : type === 'Do-Dont' ? [mk('FRAME', 'columns', ['do', 'dont'].map((c) => mk('FRAME', c, [mk('FRAME', 'rule'), t('heading'), ...[1, 2, 3, 4].map((k) => { const it = prism3Instance(LIST_ITEM_TEXT); it.name = `item${k}`; return it; })], { layoutMode: 'VERTICAL', itemSpacing: 8 })), { layoutMode: 'HORIZONTAL' })]
-        : type === 'Specimen' ? [mk('FRAME', 'stage', [mk('INSTANCE', 'specimen', [], { _h: 40 })], { layoutMode: 'VERTICAL', paddingTop: 24, paddingBottom: 24, paddingLeft: 24, paddingRight: 24, counterAxisAlignItems: 'CENTER', layoutSizingHorizontal: 'FILL' }), t('caption')]
+        : type === 'Specimen' ? [mk('FRAME', 'stage', [mk('INSTANCE', 'specimen', [], { _h: 40, layoutSizingHorizontal: 'HUG' })], { layoutMode: 'VERTICAL', paddingTop: 24, paddingBottom: 24, paddingLeft: 24, paddingRight: 24, counterAxisAlignItems: 'CENTER', layoutSizingHorizontal: 'FILL' }), t('caption')]
           : type === 'Part-marker' ? [(() => { const m = prism3Instance('count'); m.name = 'marker'; m._w = 20; m._h = 20; return m; })()]
             : type === 'Chips' ? [t('label'), mk('FRAME', 'chips', Array.from({ length: 16 }, (_, k) => { const c = prism3Instance('label'); c.name = `chip${k + 1}`; c._h = 32; return c; }), { layoutMode: 'HORIZONTAL' }), t('note')]
               : type === 'Divider' ? [mk('INSTANCE', 'divider', [], { _h: 1 })]
@@ -251,6 +296,10 @@ const copyLayer = (src: Record<string, unknown>): N => {
     visible: src.visible !== false, _w: type === 'TEXT' ? 48 : 24, _h: type === 'TEXT' ? 16 : 24, _hug: true,
     layoutMode: kids.length ? (src.layoutMode === 'HORIZONTAL' ? 'HORIZONTAL' : 'VERTICAL') : undefined, itemSpacing: 4,
     ...(vis ? { componentPropertyReferences: { visible: vis } } : {}),
+    // How the layer takes its width (#2970): grown, stretched, or, as text, wrapped at its width.
+    ...(src.layoutGrow === 1 ? { layoutGrow: 1 } : {}), ...(src.layoutAlign === 'STRETCH' ? { layoutAlign: 'STRETCH' } : {}),
+    ...(typeof src.textAutoResize === 'string' ? { textAutoResize: src.textAutoResize } : {}),
+    ...(typeof src.characters === 'string' ? { characters: src.characters } : {}),
   });
   if (type === 'TEXT') { n._w = 48; n._h = 16; }
   // An instance holds its main's padding and spacing as numbers (#2830's redlines read them).
@@ -268,7 +317,10 @@ const instanceOf = (sp: N, member: N): void => {
   // The root's own padding and spacing, as the instance mirrors its main's (#2830's redlines read them).
   const own = copyLayer({ ...(member as unknown as Record<string, unknown>), children: [] });
   for (const k of ['paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom']) if (typeof own[k] === 'number') sp[k] = own[k];
+  // THE SWAP KEEPS THE INSTANCE'S OWN SIZING (#2970): the placeholder's hug stays until the panel sets the member's, and
+  // the main's width is what a fixed instance takes.
   sp._hug = true;
+  sp._w = member.width;
   sp.layoutMode = member.layoutMode ?? 'VERTICAL';
   sp.itemSpacing = 4;
   const props: Record<string, { type: string; value: unknown }> = {};
@@ -286,6 +338,9 @@ const instanceOf = (sp: N, member: N): void => {
 const planMember = (plan: { coord: Record<string, string>; root: Record<string, unknown> }): N => {
   const m = copyLayer(plan.root);
   m.type = 'COMPONENT';
+  // A root built at a width (#1757) is fixed at it, as the executor resizes it; any other hugs.
+  const built = plan.root.placementWidth;
+  if (typeof built === 'number') { m._w = built; m.layoutSizingHorizontal = 'FIXED'; } else m.layoutSizingHorizontal = 'HUG';
   m.name = Object.entries(plan.coord).map(([k, v]) => `${k}=${v}`).join(', ');
   members.set(String(m.id), m);
   return m;
@@ -356,12 +411,27 @@ for (const def of withSets) {
   const got = panels[0] ? drawnSections(panels[0]) : [];
   ok(r.drawn && panels.length === 1 && tagOf(panels[0]).def === def.id && tagOf(panels[0]).set === set.id && got.join() === want.join(),
     `present/${def.id}: one panel, sections ${got.join(', ')}`, `want [${want.join(', ')}], got ${panels.length} panel(s) [${got.join(', ')}] ${r.skipped.join('; ')}`);
-  // The family's sets by name, under the lede, when the page holds more than one.
+  // THE FAMILY AS ONE COMPONENT (#2970 Q3 A, Q4 A), when the page holds more than one: the title is the page's name, and
+  // "In this family" one bulleted line per member, the lead's first, each its name (the page's own prefix dropped) then
+  // its summary's opening, the name linked to its set when the file has one (here only the lead's).
   const fam = familyOf(def.id);
   if (fam.members.length > 1) {
-    const all = texts(panels[0]);
-    const listed = fam.members.map((m) => componentDefs.find((d) => d.id === m)!.name);
-    ok(all.includes('In this family') && all.includes(listed.join(', ')) && tagOf(panels[0]).family === fam.page, `present/${def.id} family: lists ${listed.join(', ')}`);
+    const field = walk(panels[0]).find((c) => c.name === '_Doc-block' && walk(c).some((t) => t.name === 'label' && t.characters === 'In this family'));
+    const text = field ? walk(field).find((t) => t.name === 'text')! : undefined;
+    const lines = String(text?.characters ?? '').split('\n');
+    const order = [def.id, ...fam.members.filter((m) => m !== def.id)];
+    const bad = order.flatMap((m, k) => {
+      const d = componentDefs.find((x) => x.id === m)!;
+      const short = d.name.startsWith(`${fam.page}.`) ? d.name.slice(fam.page.length + 1) : d.name;
+      return lines[k]?.startsWith(`${short}: ${d.summary.slice(0, 12)}`) ? [] : [`line ${k + 1} "${lines[k] ?? ''}" is not ${short}'s`];
+    });
+    const title = walk(panels[0]).find((c) => c.type === 'TEXT' && c.fontSize === 18);
+    const linked = ((text?._links ?? []) as { text: string; link: { value: string } }[]).map((l) => `${l.text}>${l.link.value}`);
+    const leadName = componentDefs.find((x) => x.id === def.id)!.name;
+    const leadShort = leadName.startsWith(`${fam.page}.`) ? leadName.slice(fam.page.length + 1) : leadName;
+    ok(!bad.length && lines.length === order.length && title?.characters === fam.page && panels[0].name === `${fam.page} usage` && tagOf(panels[0]).family === fam.page
+      && JSON.stringify(text?._lists) === `[{"s":0,"e":${String(text?.characters).length},"o":{"type":"UNORDERED"}}]` && linked.join() === `${leadShort}>${set.id}`,
+    `present/${def.id} family: "${fam.page}", ${order.length} parts listed, the lead first, each with its summary`, [...bad, `title ${String(title?.characters)}`, `links ${linked.join()}`].slice(0, 3).join('; '));
   }
 }
 
@@ -468,6 +538,10 @@ section('marks/… — repeats merged, the root and the parts that hold others b
   ok(show(of('code-input')) === ci, `marks/code-input: two runs of two, apart (${show(of('code-input'))})`, `want ${ci}`);
   ok(show(of('counter')).includes('decrement') && show(of('counter')).includes('increment'), `marks/counter: two parts that nest one component with different jobs stay apart (${show(of('counter'))})`);
   ok(of('button').every((m) => !m.bracket && m.parts === 1), 'marks/button: nothing merged, nothing bracketed');
+  // Breadcrumbs (#2916), read by hand: the container, the native items slot holding the trail (two ancestors alike, the
+  // current page apart), and the parent path's back glyph and link, which only the `path=parent` member holds.
+  const bc = '1:container[@ 2:items[@items 3:item1x2@items/item1 4:item3@items/item3 5:backGlyph@backGlyph 6:parentLink@parentLink';
+  ok(show(of('breadcrumbs')) === bc, `marks/breadcrumbs: six entries, the slot's items among them (${show(of('breadcrumbs'))})`, `want ${bc}`);
 }
 
 /* ── markers: on their parts, by the host's own layout ─────────────────────────────────────────────────── */
@@ -520,6 +594,23 @@ section('markers/… — every listed number on a specimen, on its part, by a le
       if (!hit) { wrong.push(`${num} ${first.id}: its marker and leader reach no ${merged ? `untaken ${nm}` : first.id} (${targets.length} in the specimens)`); continue; }
       const part = isRoot ? first : pool.find((pt) => pt.id === hit.name)!;
       taken.add(part.id);
+      // ON ITS PART BY CONTAINMENT (#2916): a leader runs down (or up) the part's middle and its tip lies inside the
+      // part's box; a bracket runs exactly the part's height and both its ticks end inside the part. The root is always
+      // bracketed.
+      const B = hit.absoluteBoundingBox!;
+      const inside = (x: number, y: number) => x >= B.x - 0.5 && x <= B.x + B.width + 0.5 && y >= B.y - 0.5 && y <= B.y + B.height + 0.5;
+      if (lines.length === 3) {
+        const [v, ...ticks] = lines;
+        if (Math.abs(v.y - B.y) > 0.5 || Math.abs(v.y + v.height - (B.y + B.height)) > 0.5) wrong.push(`${num} ${part.id}: its bracket runs ${v.y}–${v.y + v.height}, the part ${B.y}–${B.y + B.height}`);
+        if (!ticks.every((t) => inside(t.x + t.width, t.y))) wrong.push(`${num} ${part.id}: a bracket tick ends outside the part`);
+      } else if (lines.length === 1) {
+        const [l] = lines;
+        if (isRoot) wrong.push(`${num} ${part.id}: the root has a leader, not a bracket`);
+        const down = marker.y < B.y;
+        const tip = { x: l.x + l.width / 2, y: down ? l.y + l.height : l.y };
+        if (!inside(tip.x, tip.y)) wrong.push(`${num} ${part.id}: its leader ends at ${tip.x},${tip.y}, outside the part ${B.x},${B.y} ${B.width}×${B.height}`);
+        if (Math.abs(tip.x - (B.x + B.width / 2)) > 1) wrong.push(`${num} ${part.id}: its leader is ${Math.round(tip.x - (B.x + B.width / 2))}px off the part's middle`);
+      } else wrong.push(`${num} ${part.id}: ${lines.length} lines, neither a leader nor a bracket`);
       if (merged) {
         const at = parts.indexOf(part);
         if (at <= (lastAt.get(nm) ?? -1)) wrong.push(`${num} ${part.id}: reached before an earlier ${nm} entry's part`);
@@ -543,10 +634,16 @@ section('markers/… — every listed number on a specimen, on its part, by a le
       `markers/${label}: ${nums.length} numbers on ${specs.length} specimen(s), each on its part, no two markers touching, all inside the panel`,
       [...wrong, ...(touching.length ? [`markers ${touching.join(', ')} touch another`] : []), ...(inside ? [] : ['a marker outside the panel']), ...r.misses].slice(0, 4).join('; '));
   };
+  const widths: string[] = [];
   for (const def of leads) {
     const p = page(`↳ m ${def.id}`);
-    await check(def, fakeSet(p, def.id), p, def.id);
+    const set = fakeSet(p, def.id);
+    await check(def, set, p, def.id);
+    // The width the draw gave is the one the dry run spaces by (#2970): the reach less the two gaps and the spec column.
+    const w = Number(panelsOn(p)[0]?.width), reach = docPanelReach(host([p]), set) - 40 - 40 - 880;
+    if (w !== reach) widths.push(`${def.id} drawn ${w}, spaced for ${reach}`);
   }
+  ok(!widths.length, `markers/widths: every lead's panel is drawn as wide as Update spaces it for`, widths.slice(0, 4).join('; '));
   // A part in a slot inside a nested instance: list's items slot moved into an instance, as a shell component holds it.
   {
     const def = componentDefs.find((d) => d.id === 'list')!;
@@ -560,6 +657,18 @@ section('markers/… — every listed number on a specimen, on its part, by a le
     }
     await check(def, set, p, 'slot in a nested instance');
   }
+  // BREADCRUMBS (#2916): the owner's case. Items 1 and 3 sit in the native `items` slot; the parent path's two parts
+  // only in the `path=parent` member, so a second specimen carries 5 and 6. Every number 1–6 is drawn on its part.
+  {
+    const q = page('↳ m breadcrumbs');
+    const set = fakeSet(q, 'breadcrumbs');
+    await check(componentDefs.find((d) => d.id === 'breadcrumbs')!, set, q, 'breadcrumbs, slot and second member');
+    const panel = panelsOn(q)[0];
+    const sec = walk(panel).find((c) => c.getSharedPluginData!('prism3', 'docSection') === 'anatomy')!;
+    const drawn = panel.children.filter((c) => /^part \d+$/.test(c.name)).map((c) => c.name.slice(5)).join(',');
+    ok(listedNumbers(panel).join(',') === '1,2,3,4,5,6' && drawn === '1,2,3,4,5,6' && walk(sec).filter((c) => c.name === 'specimen').length === 2,
+      `markers/breadcrumbs numbers: 1–6 listed and drawn, on two specimens (drawn ${drawn})`);
+  }
   // More than one specimen: a part the default member does not show is marked on the member that does (Q3 A).
   {
     const q = page('↳ m tag');
@@ -569,9 +678,93 @@ section('markers/… — every listed number on a specimen, on its part, by a le
   }
 }
 
+/* ── width: each specimen at its member's own width, the panel widening to fit ─────────────────────────── */
+section('width/… — each specimen at its member\'s width, the panel as wide as that needs, the spec column past it (#2970 Q1 A, Q2 A)');
+{
+  // THE BUILT WIDTHS, read by hand off each def's root (`placementWidth`, #1757): Banner 480, Checkbox.Row 320 (the
+  // Checkbox family's lead, so its default is the family panel's specimen). The panel's least width, its padding and the stage's, from the owner's decision and the template:
+  // 560, 24 and 24. Theming side by side is 2 × (member + 48) + 16 + 48; at 960 or more the modes stack.
+  const BUILT: Record<string, number> = { banner: 480, 'checkbox-row': 320 };
+  const STACKS: Record<string, boolean> = { banner: true, 'checkbox-row': false };
+  const longestWord = (t: string): number => Math.max(0, ...t.split(/\s+/).filter(Boolean).map((w) => runWidth(w)));
+  for (const id of Object.keys(BUILT)) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const p = page(`↳ w ${id}`);
+    const set = fakeSet(p, id);
+    const r = await drawDocPanel(host([p]), set, d, { names });
+    const panel = panelsOn(p)[0];
+    const specs = walk(panel).filter((c) => c.name === 'specimen');
+    const wrong: string[] = [];
+    for (const sp of specs) {
+      const member = members.get(String(sp.swapped));
+      const box = sp.absoluteBoundingBox!, stage = (sp.parent as N).absoluteBoundingBox!;
+      if (!member) { wrong.push('a specimen with no member'); continue; }
+      if (box.width !== member.width) wrong.push(`a specimen ${box.width} wide, its member ${member.width}`);
+      if (box.x < stage.x + 24 - 0.5 || box.x + box.width > stage.x + stage.width - 24 + 0.5) wrong.push(`a specimen ${box.width} wide past its ${stage.width} stage's padding`);
+      for (const t of walk(sp).filter((c) => c.type === 'TEXT' && c.textAutoResize === 'HEIGHT' && c.visible !== false))
+        if (t.width! < longestWord(String(t.characters))) wrong.push(`"${String(t.characters).slice(0, 24)}" wraps at ${t.width}px, under its longest word (${longestWord(String(t.characters))})`);
+    }
+    const first = specs[0];
+    ok(r.drawn && !!first && first.absoluteBoundingBox!.width === BUILT[id] && !wrong.length && Number(panel.width) >= 560 && Number(panel.width) >= BUILT[id] + 96,
+      `width/${id}: every specimen at its member's width (the default ${BUILT[id]}), inside its stage, no text narrower than its longest word, the panel ${panel.width} wide`,
+      [...new Set(wrong)].slice(0, 3).join('; '));
+    const modes = walk(panel).find((c) => c.name === 'modes');
+    ok(!!modes && modes.layoutMode === (STACKS[id] ? 'VERTICAL' : 'HORIZONTAL'),
+      `width/${id} theming: the two modes ${STACKS[id] ? 'stacked, side by side would reach 960' : 'side by side'}`, `got ${String(modes?.layoutMode)}`);
+  }
+  // The fix's own cause, held apart: the swap keeps the placeholder's hug, so Banner's text, read before the panel sizes
+  // it, is one letter wide. This proves the host can show the failure the gate above guards.
+  {
+    const p = page('↳ w hug');
+    const set = fakeSet(p, 'banner');
+    const sp = mk('INSTANCE', 'specimen', [], { layoutSizingHorizontal: 'HUG' });
+    p.appendChild!(sp);
+    instanceOf(sp, set.children[0]);
+    const title = walk(sp).find((c) => c.type === 'TEXT' && c.textAutoResize === 'HEIGHT')!;
+    ok(title.width! <= runWidth('W'), `width/hug: an instance swapped to Banner that keeps the placeholder's hug squeezes its text to ${title.width}px`);
+  }
+  // THE PANEL WIDENS AND THE SPEC COLUMN MOVES WITH IT: Banner's panel drawn, a live spec panel beside it, then the
+  // member built wider. The panel is due (its width moved), the redraw is wider by as much, and the spec panel keeps
+  // its 40 gap.
+  {
+    const p = page('↳ w push');
+    const set = fakeSet(p, 'banner');
+    const api = host([p]);
+    const d = componentDefs.find((x) => x.id === 'banner')!;
+    await drawDocPanel(api, set, d, { names });
+    const before = panelsOn(p)[0];
+    const sp = mk('FRAME', 'Banner specs', [], { x: Number(before.x) + Number(before.width) + 40, y: Number(before.y), _w: 880, _h: 600 });
+    sp.setSharedPluginData!('prism3', 'specPanel', JSON.stringify({ v: 1, def: 'banner', set: set.id, state: 'live' }));
+    p.appendChild!(sp);
+    const plan = planDocPanel(d, { modes: ['light', 'dark'], names });
+    ok(docPanelDue(api, set, plan) === 0, 'width/current: not due right after the draw');
+    const w0 = Number(before.width);
+    for (const m of set.children) m._w = Number(m._w) + 200;
+    ok(docPanelDue(api, set, plan) === 1, 'width/due: a member built 200 wider makes the panel due');
+    await drawDocPanel(api, set, d, { names });
+    const after = panelsOn(p).find((n) => tagOf(n).state === 'live')!;
+    ok(Number(after.width) === w0 + 200 && Number(sp.x) === Number(after.x) + Number(after.width) + 40 && docPanelDue(api, set, plan) === 0,
+      `width/spec column: the panel widens ${w0} → ${after.width}, and the spec panel moves to ${sp.x}, 40 past it`, `want ${w0 + 200}, spec at ${Number(after.x) + Number(after.width) + 40}`);
+  }
+}
+
 /* ── family: one panel per page, the members' earlier panels replaced ──────────────────────────────────── */
 section('family/… — one panel per taxonomy page, beside its lead; the members\' own panels go (#2927)');
 {
+  // RELATED BY FAMILY (#2970 Q5 A), typed from the wireframe the owner approved: a member shows as its family, linked to
+  // the lead's set; a family named twice in a list is one entry; the panel's own family leaves its own lists (Checkbox
+  // loses Built from: Checkbox.Control and Often used with: Checkbox.Group; Buttons loses nothing of its own here).
+  const related = (id: string) => planDocPanel(componentDefs.find((d) => d.id === id)!, { modes: ['light', 'dark'], names }).sections.find((s) => s.id === 'related')!.blocks
+    .flatMap((b) => (b.type === 'Links' && b.label !== 'Replaces' ? [`${b.label}: ${b.items.map((i) => `${i.name}>${i.def}`).join(' / ')}`] : []));
+  const cb = ['Instead, consider: Switch>switch-row / Radio>radio-row', 'Often used with: FieldLabel>field-label / FieldMessage>field-message / FocusRing>focus-ring / Buttons>button'];
+  const bt = ['Built from: FocusRing>focus-ring / Spinner>spinner', 'Instead, consider: Icon button>icon-button / Switch>switch-row', 'Often used with: Icon>icon'];
+  ok(related('checkbox-row').join('\n') === cb.join('\n'), 'family/related: Checkbox names families, its own parts dropped, Built from gone', related('checkbox-row').join(' | '));
+  ok(related('button').join('\n') === bt.join('\n'), 'family/related buttons: Buttons as the wireframe has it', related('button').join(' | '));
+  // A list naming one family twice, through two members: one entry.
+  const twice = componentDefs.find((d) => d.id === 'tag')!;
+  const doubled = { ...twice, composition: { ...twice.composition, alternativeTo: ['checkbox-row', 'checkbox-group', 'radio-row'] } } as ComponentDef;
+  const alt = planDocPanel(doubled, { modes: ['light', 'dark'], names }).sections.find((s) => s.id === 'related')!.blocks.find((b) => b.type === 'Links' && b.label === 'Instead, consider');
+  ok(alt?.type === 'Links' && alt.items.map((i) => i.name).join(' / ') === 'Checkbox / Radio', `family/related once: Checkbox.Row and Checkbox.Group in one list read "Checkbox" once (${alt?.type === 'Links' ? alt.items.map((i) => i.name).join(' / ') : 'no list'})`);
   const p = page('↳ Checkbox');
   const control = fakeSet(p, 'checkbox-control', 0, 0, 300, 200);
   const row = fakeSet(p, 'checkbox-row', 1000, 0, 300, 200);
@@ -714,8 +907,8 @@ section('legacy/… — a panel printed the old way, its set rebuilt since: repl
   {
     const { b, sets, rb } = await famPage('↳ Buttons legacy');
     const live = panelsOn(b).filter((n) => tagOf(n).state === 'live');
-    ok(rb.drawn && live.length === 1 && live[0].name === 'Button usage' && tagOf(live[0]).set === sets[0].id && panelsOn(b).length === 1,
-      `legacy/family lead: one panel on the page, "Button usage", beside the lead's set (${panelsOn(b).map((n) => n.name).join(', ')})`);
+    ok(rb.drawn && live.length === 1 && live[0].name === 'Buttons usage' && tagOf(live[0]).set === sets[0].id && panelsOn(b).length === 1,
+      `legacy/family lead: one panel on the page, "Buttons usage", beside the lead's set (${panelsOn(b).map((n) => n.name).join(', ')})`);
     ok(rb.replaced === 4 && rb.kept.length === 0 && !panelsOn(b).some((n) => String(n.name).endsWith(' (edited)')),
       `legacy/family members: the lead's old panel and the three members' are removed, none kept (replaced ${rb.replaced}, kept ${rb.kept.length})`);
   }
@@ -902,6 +1095,25 @@ section('room/… — the update makes room for the panel, and a panel follows i
   const notLead = [{ name: 'badge', set: a.set, blocked: false, lead: false }, { name: 'divider', set: b.set, blocked: false }] as never;
   ok(pageSetMoves(notLead, undefined, 40 + 560 + 40 + 880).get('divider')?.to.x === Number(a.set.width) + 160,
     'room/not a lead: no room is made past a set that carries no panel');
+}
+
+// #2970 Q1 A: a set whose panel widens reaches as far as its panel.
+{
+  // UPDATE SPACES BY THE SAME WIDTH: Banner then Divider, built by the executor, 400 apart as before the panels. The dry
+  // run moves Divider 160 past the spec column beside Banner's panel; moved there, the panel is drawn at exactly the
+  // width the move allowed, and the next dry run moves nothing. Build seats a new Banner set by that width too.
+  const p = page('↳ w room');
+  const { sets: [a, b] } = await buildAll(p, ['banner', 'divider']);
+  a.x = 0; a.y = 0; b.x = Number(a.width) + 400; b.y = 0;
+  const found = [{ name: 'banner', set: a, blocked: false }, { name: 'divider', set: b, blocked: false }] as never;
+  const move = pageSetMoves(found, undefined, docPanelReaches(host([p]))).get('divider');
+  if (move) b.x = move.to.x;
+  const r = await drawDocPanel(host([p]), a, componentDefs.find((x) => x.id === 'banner')!, { names });
+  const panel = panelsOn(p)[0];
+  const want = Number(a.width) + 40 + Number(panel?.width) + 40 + 880 + 160;
+  ok(r.drawn && Number(panel.width) > 560 && move?.to.x === want, `width/room: Divider moves to ${move?.to.x}, 160 past the spec column beside Banner's ${panel?.width} panel, drawn there`, `want ${want}; ${r.skipped.join('; ')}`);
+  ok(!pageSetMoves(found, undefined, docPanelReaches(host([p]))).get('divider'), 'width/room settled: drawn, the next dry run moves nothing');
+  ok(docPanelReach(host([p]), a) === 40 + Number(panel.width) + 40 + 880, `width/seat: Build seats a new Banner set by its panel's ${panel.width} (reach ${docPanelReach(host([p]), a)})`);
 }
 
 /** Two sets on one page, Badge then Divider at the #2502 spacing (400 frame to frame), as a file built before the
@@ -1119,18 +1331,18 @@ section('qa/… — usage panels QA round 1 (#2970): titles, the space above Do 
   const lists = rows.map((x) => `${String(x.label.characters)}: ${String(x.text.characters).split('\n').join(' / ')}`);
   ok(lists.join('\n') === [
     'Built from: FocusRing',
-    'Instead, consider: Badge / Button / Checkbox.Group / Radio.Group',
-    'Often used with: Badge / Icon / Checkbox.Group / Radio.Group',
+    'Instead, consider: Badge / Buttons / Checkbox / Radio',
+    'Often used with: Badge / Icon / Checkbox / Radio',
     'Replaces: a removable token list built as a listbox / a clickable div styled as a pill / a bare × glyph with no accessible name',
   ].join('\n'), 'qa/related lists: 4 lists, one line per name, no chips', lists.join(' | '));
   ok(!related.children.some((b) => walk(b).some((c) => /^chip\d/.test(String(c.name)))) && rows.every((x) => JSON.stringify(x.text._lists) === `[{"s":0,"e":${String(x.text.characters).length},"o":{"type":"UNORDERED"}}]`),
     'qa/related bullets: every list is one UNORDERED list over its whole text');
   const links = rows.flatMap((x) => x.text._links as { text: string; link: { type: string; value: string } }[]);
   ok(JSON.stringify(links) === JSON.stringify([
-    { text: 'Badge', link: { type: 'NODE', value: badge.id } }, { text: 'Button', link: { type: 'NODE', value: button.id } },
+    { text: 'Badge', link: { type: 'NODE', value: badge.id } }, { text: 'Buttons', link: { type: 'NODE', value: button.id } },
     { text: 'Badge', link: { type: 'NODE', value: badge.id } },
-  ]), 'qa/related links: Badge ×2 and Button link to their sets by node; FocusRing, Icon, the groups and Replaces stay plain', JSON.stringify(links));
-  ok(JSON.stringify(rows.flatMap((x) => (x.text._decos as { text: string }[]).map((d) => d.text))) === '["Badge","Button","Badge"]', 'qa/related underline: exactly the 3 linked names are underlined');
+  ]), 'qa/related links: Badge ×2, and Buttons to its lead Button\'s set, link by node; FocusRing, Icon, the families with no set here and Replaces stay plain', JSON.stringify(links));
+  ok(JSON.stringify(rows.flatMap((x) => (x.text._decos as { text: string }[]).map((d) => d.text))) === '["Badge","Buttons","Badge"]', 'qa/related underline: exactly the 3 linked names are underlined');
   // A set built after the draw: the panel is due, so its name is linked on the next update; drawn again, it is not.
   ok(docPanelDue(api, set, planDocPanel(def, { modes: ['light', 'dark'], names })) === 0, 'qa/links current: not due right after the draw');
   const icon = mk('COMPONENT_SET', 'icon', [], { x: 0, y: 5000 }); p.appendChild!(icon);

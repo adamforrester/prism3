@@ -58,7 +58,7 @@ import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
 import { emptiedLine, pageMovesLine, relocateSets, type PageMove } from './page-moves';
 import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furniture';
-import { docPanelReach, readPanelTag, type PanelApi, type PNode } from './doc-panel';
+import { docPanelReaches, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
 import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
@@ -599,7 +599,7 @@ const liveSets = async (host: ApplyHost, targets: readonly UpdateTarget[], previ
 };
 const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { choices?: UpdateChoices; ledger?: readonly ComponentRename[] }, before?: (names: string[]) => Promise<boolean>, snug?: ReadonlySet<string>): Promise<string[]> => {
   const live = await liveSets(host, targets, preview, res, opts);
-  const moves = pageSetMoves(live as never, snug, docPanelReach(host as unknown as Pick<PanelApi, 'root'>));
+  const moves = pageSetMoves(live as never, snug, docPanelReaches(host as unknown as Pick<PanelApi, 'root'>));
   if (!moves.size || (before && !await before([...moves.keys()]))) return [];
   const moved: string[] = [];
   for (const { name, set } of live) {
@@ -644,7 +644,7 @@ const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], pr
 const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { furnish?: Furnish; choices?: UpdateChoices; ledger?: readonly ComponentRename[]; nameOf?: (def: string) => string | undefined }): Promise<void> => {
   if (!opts.furnish) return;
   // #2734: which sets sit at exactly `SET_GAP` now, before a redraw can narrow the labels beside them.
-  const snug = pageSnugSets(await liveSets(host, targets, preview, res, opts) as never, docPanelReach(host as unknown as Pick<PanelApi, 'root'>));
+  const snug = pageSnugSets(await liveSets(host, targets, preview, res, opts) as never, docPanelReaches(host as unknown as Pick<PanelApi, 'root'>));
   for (const o of res.outcomes) {
     const t = targets.find((x) => x.def === o.def);
     if (!t || t.single) continue;
