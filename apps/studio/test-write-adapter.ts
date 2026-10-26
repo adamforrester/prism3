@@ -186,6 +186,14 @@ accepts('style-guide-cleanup-result', { type: 'style-guide-cleanup-result', ok: 
   { kind: 'style-guide-cleanup-result', ok: true, summary: '1 table removed: Style guide — Inverse', removed: ['1:2'] });
 accepts('style-guide-result with a malformed stopped leaves it off', { type: 'style-guide-result', ok: true, headline: '✓ x', summary: 's', stopped: { done: 9, total: 3 } },
   { kind: 'style-guide-result', ok: true, headline: '✓ x', summary: 's' , lines: null, retired: [] });
+// #2831: a checked set's consumer-breaking line crosses as given; one that is not a string is left off, the set kept.
+{
+  const base = { def: 'button', hash: 'h', members: 4, update: 2, add: 0, drop: 1, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false };
+  accepts('update-check with a published set\'s breaks line', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, breaks: 'Breaks library consumers: x.' }, base] },
+    { kind: 'update-check', previewHash: 'H', missing: [], sets: [{ ...base, breaks: 'Breaks library consumers: x.' }, base], error: null });
+  accepts('update-check with a malformed breaks line leaves it off', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, breaks: 7 }] },
+    { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
+}
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

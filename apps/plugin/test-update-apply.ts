@@ -38,7 +38,11 @@
  *                  `published/blocked`; the member-itself exclusion dropped → `published/member replaced`;
  *                  `readSingleView` carrying no status → `published/single`; `breakingSection`'s per-set cap dropped →
  *                  `published/cap`; Link's `selection` axis with `selected` first → `published/link current additive`
- *                  (#2872).
+ *                  (#2872). #2864, a layer the update removes: `removedLayers` returning nothing → `published/layer
+ *                  removed`, `/layer line`, `/checklist set`; the same-parent lookup dropped → `/layer removed`,
+ *                  `/layer line`; the structural-skip guard dropped → `/layer hand-added`; `breakingSummary`'s layer
+ *                  clause dropped → `/checklist line`, `/checklist set`; `checkedSetOf` posting no line →
+ *                  `/checklist set`.
  *   property/…     a default the plan changed is edited in place, keeping the property's id.
  *   rename/…       a declared value rename and an added axis rename members in place, keeping keys.
  *   skip/…         an unstamped member, one with no record and one with a layer added by hand are untouched.
@@ -200,7 +204,7 @@ import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { adoptMembers, breakingLine, breakingOf, breakingSection, captureBaselines, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { adoptMembers, breakingLine, breakingOf, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
@@ -4056,6 +4060,79 @@ section('published — on a set in a team library, what breaks consumer files is
     ];
     ok(JSON.stringify(capped) === JSON.stringify(wantCap),
       `published/cap: each set lists at most 8 breaking changes, then "N more breaking changes not listed." (${capped.length} lines: ${JSON.stringify(capped.slice(9))})`);
+  }
+
+  // A LAYER REMOVED AND RE-ADDED (#2864): Tag built while its check layer was `check`, updated to plans naming it
+  // `checkGlyph` with no ledger entry. The update removes `check` and adds `checkGlyph` on every selected member, so on a
+  // published set consumer overrides on `check` are lost; with the shipped `part` entry it is renamed in place and
+  // nothing is listed. The names and the 15 are the test's own literals.
+  {
+    const planned = plansOf(TAG);
+    const old = planned.map((p) => JSON.parse(JSON.stringify(p).split('"checkGlyph"').join('"check"')) as AnatomyPlan);
+    const CHECK = 'content/labelCheck/check';
+    const layerOf = (b: readonly Breaking[] | undefined) => (b ?? []).filter((x): x is Extract<Breaking, { kind: 'layer' }> => x.kind === 'layer');
+    const quiet = await world(TAG, old);
+    const qp = (await previewUpdate(quiet.host, [{ def: TAG, plans: planned }], undefined, [])).sets[0];
+    ok(qp.changes.some((c) => c.part === CHECK && c.to.startsWith('removed')) && qp.breaking === undefined && breakingOf(qp).length === 0,
+      `published/layer unpublished: on a set not published, the removed layer is a change and nothing is listed as breaking (${JSON.stringify(qp.breaking ?? null)})`);
+    const w = await world(TAG, old);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const p = (await previewUpdate(w.host, [{ def: TAG, plans: planned }], undefined, [])).sets[0];
+    const lay = layerOf(p.breaking);
+    // A missing entry fails the arms below by name rather than throwing.
+    const one: Extract<Breaking, { kind: 'layer' }> = lay[0] ?? { kind: 'layer', path: '(none listed)', members: 0 };
+    ok(lay.length === 1 && lay[0].path === CHECK && lay[0].members === 15 && JSON.stringify(lay[0].added) === JSON.stringify(['checkGlyph']),
+      `published/layer removed: the removed layer is listed once, on its 15 members, beside the layer added in its place (${JSON.stringify(lay)})`);
+    ok(breakingLine(TAG, one) === `${TAG} · ${CHECK} · removed from 15 members — consumer overrides on it are lost. If checkGlyph is this layer renamed, declare the rename and the update renames it in place.`,
+      `published/layer line: the line names the layer, what is lost and the in-place fix (${breakingLine(TAG, one)})`);
+    ok(previewVerdict({ sets: [p], missing: [], refused: [] }).lines.includes(breakingLine(TAG, one)), 'published/layer section: the check\'s section carries the line');
+    // The checklist's set (`checkedSetOf`, what `main.ts` posts): the published set carries its line, the unpublished none.
+    const LINE = 'Breaks library consumers: 1 layer removed: consumer overrides on it are lost; a declared rename keeps a renamed layer in place.';
+    ok(checkedSetOf(p, TAG).breaks === LINE && !('breaks' in checkedSetOf(qp, TAG)),
+      `published/checklist set: the checked set posted for the checklist carries the published set's line, and the unpublished set's none (${checkedSetOf(p, TAG).breaks} | ${checkedSetOf(qp, TAG).breaks})`);
+    const shipped = (await previewUpdate(w.host, [{ def: TAG, plans: planned }])).sets[0];
+    ok(shipped.publish === 'CURRENT' && layerOf(shipped.breaking).length === 0, `published/layer declared: with the shipped part entry the layer is renamed in place and nothing is listed (${JSON.stringify(shipped.breaking ?? null)})`);
+  }
+  // A LAYER ADDED BY HAND is not in the plan either, but the update skips its member whole (§5), so nothing is removed.
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const extra = (w.api.createFrame as () => Node)();
+    extra.name = 'designer note';
+    (membersOf(w.set())[7].appendChild as (c: Node) => void)(extra);
+    const p = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0];
+    ok(p.changes.some((c) => c.part === 'designer note' && c.to.startsWith('removed')) && p.handEdits.some((h) => h.path === 'designer note' && h.structural) && p.breaking === undefined,
+      `published/layer hand-added: a layer added by hand, whose member the update skips, is not listed as breaking (${JSON.stringify(p.breaking ?? null)})`);
+  }
+
+  // A SET RENAMED TO A PRIVATE NAME, through the ledger as an update would meet it: the set is found under its old name
+  // and the rename to `_tag` is listed as breaking on a published set, and not on an unpublished one.
+  {
+    const PRIV = `_${TAG}`;
+    const ledger = [{ def: TAG, kind: 'def' as const, to: PRIV, issue: 2831 }];
+    const planned = plansOf(TAG).map((p) => ({ ...JSON.parse(JSON.stringify(p)), component: PRIV }) as AnatomyPlan);
+    const quiet = await world(TAG);
+    const qp = (await previewUpdate(quiet.host, [{ def: PRIV, plans: planned }], undefined, ledger)).sets[0];
+    ok(qp?.setRename?.to === PRIV && qp.breaking === undefined, `published/private unpublished: the rename to ${PRIV} on a set not published lists nothing (${JSON.stringify(qp?.setRename)}, ${JSON.stringify(qp?.breaking ?? null)})`);
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const p = (await previewUpdate(w.host, [{ def: PRIV, plans: planned }], undefined, ledger)).sets[0];
+    ok(JSON.stringify(p?.breaking) === JSON.stringify([{ kind: 'private', from: TAG, to: PRIV }]),
+      `published/private shim: on a published set the ledger's rename to ${PRIV} is listed as breaking, and nothing else (${JSON.stringify(p?.breaking ?? null)})`);
+  }
+
+  // THE CHECKLIST LINE (#2831): one line per published set, each case named with what breaks and what the update does.
+  {
+    const all: Breaking[] = [
+      { kind: 'private', from: TAG, to: `_${TAG}` },
+      { kind: 'drop', member: 'size=a' }, { kind: 'drop', member: 'size=b' },
+      { kind: 'property', name: 'label', change: 'removed' },
+      { kind: 'replace', member: 'size=a', path: 'content/x', reason: 'FRAME → TEXT' }, { kind: 'replace', member: 'size=b', path: 'content/x', reason: 'FRAME → TEXT' },
+      { kind: 'layer', path: 'content/check', members: 15, added: ['checkGlyph'] },
+    ];
+    ok(breakingSummary(all) === 'Breaks library consumers: renamed to a name Figma does not publish, so the set leaves the library; 2 members dropped: kept and marked deprecated, so consumer instances still resolve; 1 property removed or retyped: consumer overrides of it are dropped; 1 layer replaced, not updated in place: consumer overrides on it are lost; 1 layer removed: consumer overrides on it are lost; a declared rename keeps a renamed layer in place.',
+      `published/checklist line: every case is named in the set's one line (${breakingSummary(all)})`);
+    ok(breakingSummary(undefined) === '' && breakingSummary([]) === '', 'published/checklist quiet: a set with nothing breaking has no line');
   }
 
   // A SINGLE-COMPONENT DEF (the icons, #2296): each component is published on its own, and the def reads as its most
