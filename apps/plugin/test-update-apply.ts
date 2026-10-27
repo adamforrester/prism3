@@ -1094,7 +1094,11 @@ section('single, marks — the brand marks, read and updated in place as single 
 }
 {
   const glyphOf = (n: PlanNode): PlanNode | undefined => n.glyphSvg ? n : (n.children ?? []).map(glyphOf).find(Boolean);
-  const square = plansOf('brand-mark').filter((p) => { const g = glyphOf(p.root)!; return g.glyphViewBox![0] === g.glyphViewBox![1]; });
+  const squareAll = plansOf('brand-mark').filter((p) => { const g = glyphOf(p.root)!; return g.glyphViewBox![0] === g.glyphViewBox![1]; });
+  // The shim's span sizing misreads some real outlines too (relative commands, exponents), as content drift Figma's
+  // importer does not have: a first build names them, and the update runs on the rest.
+  const misread = new Set((await previewUpdate((await singleWorld(squareAll)).host, [{ def: 'brand-mark', plans: squareAll, single: true }])).sets[0]?.states.map((x) => x.member) ?? []);
+  const square = squareAll.filter((p) => !misread.has(`name=${p.coord.name}`));
   const MARK = 'provider/google';
   const w = await singleWorld(square);
   const t0 = { def: 'brand-mark', plans: square, single: true };
@@ -1388,6 +1392,41 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
 }
 
 /* ── noop ────────────────────────────────────────────────────────────────────────────────────────────── */
+
+// THE KIND RENAMES (#2343 PR 3, Q780 A, Q783 A): `card/` became `payment/` and `wallet/` became `logo/`, declared in
+// COMPONENT_RENAMES. A file built before the rename holds `brand-mark/card/visa`; the reader must admit that former
+// value (it has a second slash and is not a plan coordinate), so the dry run renames it in place rather than building
+// a second component beside it. The old names are typed here from the ledger's decision, not read from it.
+// Mutation: the ledger values dropped from `readSingleView`'s `known` → `marks/rename: dry run`.
+section('single, marks — a mark built under its former kind is renamed in place (#2343 PR 3)');
+{
+  // Typed from the decision: each new name and the name it had. One of each kind is renamed, picked among those the
+  // shim reads clean as built (its span sizing misreads some real outlines as drift Figma's importer does not have).
+  const TYPED: Record<string, string> = {
+    'payment/amex': 'card/amex', 'payment/generic': 'card/generic', 'payment/mastercard': 'card/mastercard', 'payment/visa': 'card/visa',
+    'logo/apple-pay': 'wallet/apple-pay-black', 'logo/google-pay': 'wallet/google-pay-black', 'logo/paypal-wordmark': 'wallet/paypal', 'logo/shop-pay': 'wallet/shop-pay',
+  };
+  const all = plansOf('brand-mark').filter((p) => String(p.coord.name) in TYPED);
+  const misread = new Set((await previewUpdate((await singleWorld(all)).host, [{ def: 'brand-mark', plans: all, single: true }])).sets[0]?.states.map((x) => x.member) ?? []);
+  const clean = all.filter((p) => !misread.has(`name=${p.coord.name}`)).map((p) => String(p.coord.name));
+  const pick = ['payment/', 'logo/'].map((k) => clean.find((n) => n.startsWith(k))).filter((n): n is string => !!n);
+  const plans = plansOf('brand-mark').filter((p) => [...pick, 'provider/google'].includes(String(p.coord.name)));
+  const w = await singleWorld(plans);
+  const FORMER: Record<string, string> = Object.fromEntries(pick.map((n) => [`brand-mark/${n}`, `brand-mark/${TYPED[n]}`]));
+  for (const c of w.comps()) if (FORMER[String(c.name)]) c.name = FORMER[String(c.name)];
+  const before = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
+  ok(pick.length === 2 && plans.length === 3 && Object.values(FORMER).every((n) => before.has(n)), `premise: a payment tile and a logo sit under their former names (${[...before.keys()].join(', ')})`);
+  const t = { def: 'brand-mark', plans, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  const c = pre.sets[0]?.counts;
+  ok(c?.rename === 2 && c.add === 0 && c.members === 3, `marks/rename: dry run — the two former names read as members to rename, none to add (${JSON.stringify(c)})`);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const after = new Map(w.comps().map((x) => [String(x.name), { key: String(x.key), id: String(x.id) }] as const));
+  const kept = Object.entries(FORMER).every(([now, was]) => after.get(now)?.key === before.get(was)?.key && after.get(now)?.id === before.get(was)?.id);
+  ok(applyVerdict(res).ok && after.size === 3 && Object.values(FORMER).every((n) => !after.has(n)) && kept,
+    `marks/rename: apply — each renamed in place to its new kind, keeping its key and id (${applyVerdict(res).headline}; ${[...after.keys()].join(', ')})`);
+}
+
 section('noop — a set already current is not written');
 {
   const w = await world(TAG);
