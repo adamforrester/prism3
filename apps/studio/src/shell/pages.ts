@@ -45,6 +45,8 @@ export const BACKGROUND_FILLS_DESC = 'The base page planes and their inverse cou
 export const FOREGROUND_FILLS_DESC = "Content surfaces, shown on the contrast floor they're measured against.";
 /** The Scrim copy (S4f, QA-B10, APPROVED), shared by the levers' Scrim section and the preview's (Q23). */
 export const SCRIM_DESC = "The overlay that dims the page behind a modal. It isn't editable.";
+// #3073: DRAFT for the owner, the Glass section's line.
+export const GLASS_DESC = 'The see-through fill behind a background blur. The white glass is fixed; add a glass fill to match a surface, such as a card.';
 /** The Fields copy (Q29, APPROVED), shared by the levers' Fields section and, since S4f (#2016, Q80), the preview's. */
 export const FIELDS_DESC = 'Form field fills, borders and text, in every state.';
 /** The Faces copy (S6.2), the preview's Font families section's. The Type levers drew it too until TY1 A split their
@@ -182,6 +184,8 @@ export const DOMAINS = [
           // dropped its scrim clause (the owner's Q26 intro again), as the preview's Background section's did (Q23).
           { title: 'Background fills', desc: BACKGROUND_FILLS_DESC, rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
           { title: 'Scrim', desc: SCRIM_DESC, rows: [{ ctl: 'scrim' }] },
+          // #3073 (owner Q806, Q807 A): the shipped white glass, read-only, and the glass fills a brand adds (`glassRoles`).
+          { title: 'Glass', desc: GLASS_DESC, rows: [{ ctl: 'glass', keys: ['glassRoles'] }] },
           // S4d (owner decision Q44): the neutral ladder in its own section, the approved heading with the preview's
           // Foreground description (Q23; since #1971 the floor's sentence, FOREGROUND_FILLS_DESC). The fills keep Foreground fills.
           { title: 'Foreground', desc: FOREGROUND_FILLS_DESC, rows: [{ ctl: 'foreground', schemaOnly: ['overrides'] }] },
