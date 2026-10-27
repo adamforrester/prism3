@@ -36,6 +36,9 @@
  * selection or a verdict never resets it.
  *
  * SEARCH (the Studio's search, Q3) filters the rows: a family stays while any of its sets matches (#2700's edge state).
+ * It also reaches the settings (#3093): a lever in a settings block matches by its label, its description or its key
+ * (`leverBlock`'s words, `saidOf`), so its section shows even when none of its sets matches, the search opens its block
+ * as it opens a family (call 7), and the block shows only the levers that match. Each matching lever is a hit.
  *
  * A DERIVED MODE holds nothing here: the list and the bar edit no brand setting, so building stays available, as it was
  * when the build bar sat in the preview pane, and the frame does not hold this page (#2700). The Button options, which do
@@ -56,7 +59,7 @@ import {
 } from '../state/component-groups';
 import { currentOf, positionOf, RUN_COPY } from '../state/build-queue';
 import { glyph, h, hook, pendingLabel, setBusy } from '../shell/dom';
-import { stateLine } from '../ui/lever-kit';
+import { saidOf, stateLine } from '../ui/lever-kit';
 import { SETS_COPY } from '../preview/sections/component-sets';
 import { UPDATE_COPY, type SetStatus } from '../state/update-file';
 import type { PageLends } from '../preview/brand';
@@ -315,7 +318,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       }
       ul.append(li);
     }
-    el.append(ul);
+    if (ul.children.length) el.append(ul);
     for (const kind of SECTION_BLOCKS[sec.kind] ?? []) {
       // After the section's sets, never before them (Q9 A), in `SECTION_BLOCKS`' order (#2952): each block's own
       // disclosure (Q7 A), then the block, hidden while closed.
@@ -344,8 +347,26 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     cleanups.push(() => { for (const fn of own) fn(); });
     shared.append(head, body);
   }
-  /** Under a search the shared block stays only while its words hold the query. */
-  const sharedMatches = (q: string): boolean => !q || (shared.textContent ?? '').toLowerCase().includes(q.toLowerCase());
+  /** Under a search the shared block stays only while its words, or a lever's in it (#3093: a key is never drawn),
+   *  hold the query. */
+  const sharedMatches = (q: string): boolean => !q || (shared.textContent ?? '').toLowerCase().includes(q.toLowerCase())
+    || [...shared.querySelectorAll('.p3-lever')].some((n) => saidOf(n).includes(q.toLowerCase()));
+  /** #3093: the levers in a settings block a search names, by each lever block's words (`saidOf`). The block is mounted
+   *  to be read, as its section's draw mounts it; a block no draw places is dropped at the end of the draw. */
+  const matchesIn = (kind: BlockKey, q: string): HTMLElement[] => {
+    const t = q.trim().toLowerCase();
+    return t ? [...settingsOf(kind).querySelectorAll<HTMLElement>('.p3-lever')].filter((n) => saidOf(n).includes(t)) : [];
+  };
+  /** Under a search, a block that holds a match shows only its matching levers; with no search, or no match in it,
+   *  every lever. Run after each draw, and after a block repaints itself on an edit (it draws its levers anew). */
+  const filterBlocks = (): void => {
+    const t = searchQuery.trim().toLowerCase();
+    for (const { el } of settings.values()) {
+      const levers = [...el.querySelectorAll<HTMLElement>('.p3-lever')];
+      const any = !!t && levers.some((n) => saidOf(n).includes(t));
+      for (const n of levers) { const hide = any && !saidOf(n).includes(t); if (n.hidden !== hide) n.hidden = hide; }
+    }
+  };
 
   /** The blocks this draw placed (a search can hide a section's rows, and its blocks with them). */
   const shownHere = new Set<BlockKey>();
@@ -379,8 +400,10 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
         group.append(cap);
         for (const sec of tier.sections) {
           const rows = sec.rows.filter((r) => rowMatches(catalog, r, q));
-          hits += rows.length;
-          if (rows.length) group.append(sectionEl(catalog, sec, rows));
+          // #3093: a section whose settings hold a match shows, whether or not one of its sets matches.
+          const levers = (SECTION_BLOCKS[sec.kind] ?? []).reduce((n, k) => n + matchesIn(k, q).length, 0);
+          hits += rows.length + levers;
+          if (rows.length || levers) group.append(sectionEl(catalog, sec, rows));
         }
         if (group.children.length > 1) parts.push(group);
       }
@@ -392,6 +415,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     }
     list.replaceChildren(...parts);
     dropSettings(shownHere);
+    filterBlocks();
     if (inSettings?.isConnected) inSettings.focus({ preventScroll: true });
     else if (key) root.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
     if (hostEl.scrollTop !== scrollTop) hostEl.scrollTop = scrollTop;
@@ -469,9 +493,12 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   const paint = (): void => { paintList(); paintBar(); };
   // Call 7 on #2812: a search opens each family one of whose sets matches, so the match is shown. The families stay open
   // once the search is cleared, as one opened by hand would.
+  // #3093: and each settings block one of whose levers matches, the same way.
   const onSearch = (): void => {
-    const add = familiesToOpen(componentCatalog(), searchQuery).filter((k) => !componentsPage().open.has(k));
-    if (add.length) setComponentsPage({ open: new Set([...componentsPage().open, ...add]) });
+    const s = componentsPage();
+    const add = familiesToOpen(componentCatalog(), searchQuery).filter((k) => !s.open.has(k));
+    const blocks = [...new Set(Object.values(SECTION_BLOCKS).flatMap((v) => v ?? []))].filter((k) => !s.optsOpen.has(k) && matchesIn(k, searchQuery).length);
+    if (add.length || blocks.length) setComponentsPage({ open: new Set([...s.open, ...add]), optsOpen: new Set([...s.optsOpen, ...blocks]) });
     else paintList();
   };
   // The frame's width tier flips without a remount: the list redraws for the narrow rows.
@@ -483,6 +510,8 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     () => mo.disconnect(),
     watchComponentsPage(paint),
     subscribe('host', paint), subscribe('host:components', paint), subscribe('search', onSearch),
+    // A block repaints itself on an edit, drawing its levers anew, after this page's own subscribers run: filter after it.
+    subscribe('brand', () => queueMicrotask(filterBlocks)), subscribe('mode', () => queueMicrotask(filterBlocks)),
     () => dropSettings(),
     () => { if (searchQuery.trim()) setSearchHits(null); },
   );

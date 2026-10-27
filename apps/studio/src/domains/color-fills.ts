@@ -7,7 +7,8 @@
  * S4f, QA-B1: under "Default" Primary, Secondary, Tertiary and the contrast floor with its own info text, QA-B3,
  * QA-B6; under "Inverse" the inverse fill's palette select, then Inverse primary,
  * secondary and tertiary; each row names its token, Q41, and opens the step picker, Q45); **Scrim** (S4f, QA-B10:
- * the scrim's read-only row, out of Background fills); **Foreground** (the neutral ladder,
+ * the scrim's read-only row, out of Background fills; then, #3093, the panel over it, `foreground.raised`, read-only, with
+ * a link that opens Dialog surface, its one home in Components › Dialog); **Foreground** (the neutral ladder,
  * page and inverse, Q44); **Foreground fills** (a row per fill: a small swatch, its name and role, and a button
  * that opens the step picker under the row, with the ratio on it; then the subtle fills, the on-color inks and
  * the inverse fills, Q49); **Text color** (the same rows for the text inks, page and inverse: the permanent,
@@ -47,10 +48,13 @@ import {
   type FillRow, type InverseTier, type PageTier,
 } from '../state/fills-input';
 import { floorNoneText } from '../state/floor-refusal';
-import { DOMAINS, ICONS_DESC, type PageData, type Section } from '../shell/pages';
+import { DOMAINS, ICONS_DESC, pageOfTab, type PageData, type Section } from '../shell/pages';
+import { componentsPage, setComponentsPage } from '../state/components-page';
+import type { BlockKey } from '../state/component-groups';
+import { leverHook } from '../levers/controls';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { infoTip, inlineConfirm, jumpLabel, leverBlock, onCommitted, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, markRefused } from '../ui/lever-kit';
+import { infoTip, inlineConfirm, jumpLabel, leverBlock, leverOf, onCommitted, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, markRefused } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
@@ -62,6 +66,14 @@ const NEXT = { label: 'Interactive', page: 'interactive' } as const;
 const FLOOR_INFO = 'The background most text, icon and fill colors are checked against for contrast. Auto uses background.secondary.';
 /** The contrast floor row's `data-role`: it sets a setting, not a token, so it names the setting. */
 const FLOOR_ROW = 'surfaces.floorStep';
+
+/** #3093: the panel over the scrim, set by Dialog surface (`raisedSurface`), whose one home is Components › Dialog. */
+const RAISED_ROLE = 'foreground.raised';
+/** The read-only row's words. DRAFT for the owner (#3093). */
+const RAISED_COPY = {
+  label: 'Dialog panel',
+  link: (lever: string): string => `Set by ${lever}`,
+} as const;
 
 /** Something drawn that search can hide and a refusal can mark. */
 type Item = { el: HTMLElement; said: string; key: string; block?: LeverBlock; refmark?: HTMLElement };
@@ -293,7 +305,42 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     if (!r) return [];
     const wrap = h('div', 'p3-fillrow-wrap');
     wrap.append(r);
-    return [{ el: wrap, said: `scrim ${SCRIM_ROLE}`, key: 'scrim' }];
+    // #3093: the panel over the scrim follows it. A section draws its first item, so the two rows share one box.
+    const raised = raisedRow();
+    if (!raised) return [{ el: wrap, said: `scrim ${SCRIM_ROLE}`, key: 'scrim' }];
+    const box = hook(h('div', 'p3-fillrows'), 'scrim-rows');
+    box.append(wrap, raised.el);
+    return [{ el: box, said: '', key: 'scrim-rows' }, { el: wrap, said: `scrim ${SCRIM_ROLE}`, key: 'scrim' }, raised];
+  };
+
+  /** #3093: the panel over the scrim, `foreground.raised`, read-only: a fill row's swatch, name and role, and in place
+   *  of the picker a link to its control, Dialog surface (`raisedSurface`), whose one home is Components › Dialog. The
+   *  link opens that block and puts focus on the lever's checked chip, as Field options' way to Control shape does. */
+  const raisedRow = (): Item | null => {
+    const res = rolesIn(currentMode)[RAISED_ROLE];
+    if (!res) return null;
+    const L = leverOf('raisedSurface');
+    const lever = L?.label ?? 'Dialog surface';
+    const el = hook(h('div', 'p3-fillrow'), 'raised-row');
+    el.dataset.role = RAISED_ROLE;
+    const sw = h('span', 'p3-fill-sw');
+    sw.dataset.content = '';
+    sw.style.background = res.hex;
+    const go = hook(h('button', 'p3-btn p3-btn-ghost p3-deplink'), 'raised-surface-link');
+    go.type = 'button';
+    go.append(h('span', 'p3-btn-label', RAISED_COPY.link(lever)), glyph('chevr'));
+    go.onclick = () => {
+      const dialogs: BlockKey = 'dialogs';
+      setComponentsPage({ optsOpen: new Set([...componentsPage().optsOpen, dialogs]) });
+      setPage(pageOfTab('components'));
+      const home = document.querySelector<HTMLElement>(`[data-p3="${leverHook('raisedSurface')}"]`);
+      home?.scrollIntoView({ block: 'start' });
+      home?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus({ preventScroll: true });
+    };
+    el.append(sw, tokenLabel(RAISED_ROLE, RAISED_COPY.label), go);
+    const wrap = h('div', 'p3-fillrow-wrap');
+    wrap.append(el);
+    return { el: wrap, said: `${RAISED_COPY.label} ${RAISED_ROLE} ${lever} raisedSurface`.toLowerCase(), key: `row:${RAISED_ROLE}` };
   };
 
   /** The scrim, read-only (owner decision, 2026-10-02): a fill row's swatch, name and role, and in place of the

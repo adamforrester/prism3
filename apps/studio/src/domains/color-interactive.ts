@@ -596,6 +596,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const cols = root.querySelector<HTMLElement>('[data-p3="lever-interactive-palettes"]');
     const colsItem = items.find((it) => it.key === 'interactivePalettes');
     if (cols && colsItem?.block) cols.hidden = !!q && !colsItem.block.said.includes(q) && !cols.querySelector(':is(.p3-fillrow-wrap, .p3-lever):not([hidden])');
+    // #3093: a search that names the columns' own lever (Interactive palettes) shows them, so their section too.
+    if (q && cols && !cols.hidden) { const sec = cols.closest<HTMLElement>('.p3-lsec'); if (sec) sec.hidden = false; }
     for (const n of root.querySelectorAll<HTMLElement>('.p3-intro, .p3-nextrow, .p3-jump, .p3-icol-add')) n.hidden = !!q;
     setSearchHits(q ? shown.filter((it) => !it.el.hidden).length : null);
   };

@@ -2139,6 +2139,122 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
 } // 6
 
 // =============================================================================================
+// 6b. Search reaches every lever (#3093): its label, searched on its home, shows it there
+// =============================================================================================
+if (runs('6b')) console.log(`\nSearch reaches every lever (#3093)\n${'='.repeat(78)}`);
+/** #3093: a sample of the levers search must reach, typed here: each lever's key, its label as the issue names it,
+ *  and its home place (the owner's decisions, never read from `pages.ts`). Every Components settings block the issue
+ *  audits is here, Dialog surface first. The sweep below reads every lever from the manifest (`levers.ts`, committed
+ *  as `schema/lever-manifest.json`), so a new lever cannot be missed; this sample holds the labels themselves, so a
+ *  label the manifest renames, or a lever the manifest loses, fails by name here. */
+const SEARCH_SAMPLE = [
+  { key: 'raisedSurface', label: 'Dialog surface', place: 'components' },
+  { key: 'dialogTitleSize', label: 'Dialog title size', place: 'components' },
+  { key: 'fieldStyle', label: 'Field style', place: 'components' },
+  { key: 'searchFieldStyle', label: 'Search field style', place: 'components' },
+  { key: 'tagStyle', label: 'Tag style', place: 'components' },
+  { key: 'bannerStyle', label: 'Banner style', place: 'components' },
+  { key: 'controlShape', label: 'Control shape', place: 'components' },
+  { key: 'buttonIcons', label: 'Button icons', place: 'components' },
+  { key: 'density', label: 'Density', place: 'shape' },
+  { key: 'primary', label: 'Primary brand color', place: 'color-palettes' },
+  { key: 'motionPersonality.tempo', label: 'Motion tempo', place: 'depth' },
+];
+/** The hook rule, written here (read by section 12 too) (the `leverHook` contract: dots to dashes, camel case to kebab case). */
+const kebabHook = (k) => `lever-${k.replace(/\./g, '-').replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
+/** The issue's other words for Dialog surface: a word of its label, the label, a word of its description, its key. */
+const RAISED_QUERIES = ['dialog', 'dialog surface', 'white', 'raisedSurface'];
+/** The levers with no block of their own in the state the sweep opens on, each with the block that draws its control
+ *  and says its words (`alsoSays`, #2175): a search for the lever shows that block. Typed here, each by its reason. */
+const SEARCH_STANDS_IN = {
+  'neutral.anchor': 'neutral.hue',            // Pin a neutral: the Pinned choice in the neutral source, until pinned (#2175)
+  'typography.links': 'typography.weights',   // Underlined link styles: the weights table's Link column
+  'typography.italicDefault': 'typography.italics', // Italic-only text types: each text type's Only chip
+};
+/** Every place a lever can live, in the tab row's order (`PLACE_CLICKS`, typed above). */
+const SEARCH_PLACES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
+if (runs('6b')) {
+const levers = manifest.levers.filter((l) => !l.deprecated);
+ok(levers.length >= 50 && SEARCH_SAMPLE.every((s) => levers.some((l) => l.key === s.key)), `#3093: the manifest lists the levers to sweep (${levers.length}) and every sampled key`);
+for (const s of SEARCH_SAMPLE) {
+  const got = levers.find((l) => l.key === s.key)?.label;
+  ok(got === s.label, `#3093: ${s.key}'s label is "${s.label}" (the manifest says "${got}")`);
+}
+ok(SEARCH_PLACES.every((p) => Object.hasOwn(PLACE_CLICKS, p)) && Object.keys(PLACE_CLICKS).every((p) => SEARCH_PLACES.includes(p)), `#3093: the sweep visits every place (${SEARCH_PLACES.join(', ')})`);
+const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+/** Search `q` on the page in view, and read whether each hook's lever block is shown in the levers pane. */
+const shows = async (q, hookIds) => {
+  await page.locator('[data-p3="search-input"]').fill(q);
+  return page.evaluate((hs) => Object.fromEntries(hs.map((hk) => {
+    const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${hk}"]`);
+    return [hk, !!n && n.getBoundingClientRect().height > 0];
+  })), hookIds);
+};
+/** Each lever's key → the places where searching its label shows its block. */
+const foundAt = new Map(levers.map((l) => [l.key, []]));
+for (const place of SEARCH_PLACES) {
+  await goPlace(page, place);
+  if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+  await hooks.need(page, '[data-p3="search-input"]');
+  for (const l of levers) {
+    const hk = kebabHook(SEARCH_STANDS_IN[l.key] ?? l.key);
+    if ((await shows(l.label, [hk]))[hk]) foundAt.get(l.key).push(place);
+  }
+  if (place === 'components') {
+    for (const q of RAISED_QUERIES) {
+      const r = await shows(q, ['lever-raised-surface']);
+      const status = await page.evaluate(() => document.querySelector('[data-p3="search-status"]')?.textContent ?? '');
+      ok(r['lever-raised-surface'] && /^\d+ settings? match/.test(status), `#3093: on Components, searching "${q}" shows Dialog surface (${JSON.stringify({ ...r, status })})`);
+    }
+  }
+  await page.locator('[data-p3="search-input"]').fill('');
+}
+for (const l of levers) {
+  const at = foundAt.get(l.key);
+  const via = SEARCH_STANDS_IN[l.key] ? ` (by ${SEARCH_STANDS_IN[l.key]}'s block, which draws its control)` : '';
+  ok(at.length === 1, `#3093: searching "${l.label}" shows ${l.key}'s lever${via} on one page, its home (shown on ${at.length ? at.join(', ') : 'no page'})`);
+}
+for (const s of SEARCH_SAMPLE) {
+  const at = foundAt.get(s.key) ?? [];
+  ok(at.length === 1 && at[0] === s.place, `#3093: searching "${s.label}" shows ${s.key} on ${s.place} (shown on ${at.length ? at.join(', ') : 'no page'})`);
+}
+ok(errors.length === 0, `#3093: the search sweep raised no page error (${errors.join(' | ')})`);
+await ctx.close();
+}
+
+// The Color row's link (#3093 part 2): Surfaces & fills draws the panel over the scrim, `foreground.raised`, read-only,
+// with a link to Dialog surface that opens its block in Components and focuses its checked chip.
+if (runs('6b')) {
+/** The link's words, typed (DRAFT on #3093): the lever's label after "Set by". */
+const RAISED_LINK = 'Set by Dialog surface';
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  await goPlace(page, 'color-fills');
+  const row = await page.evaluate(() => {
+    const r = document.querySelector('[data-p3="levers-pane"] [data-p3="raised-row"]');
+    const a = r?.querySelector('[data-p3="raised-surface-link"]');
+    return { role: r?.dataset.role ?? null, link: a?.textContent?.trim() ?? null, tag: a?.tagName ?? null, pickers: r ? r.querySelectorAll('[data-p3="fill-pick"]').length : null };
+  });
+  ok(row.role === 'foreground.raised' && row.link === RAISED_LINK && row.tag === 'BUTTON' && row.pickers === 0,
+    `#3093: ${host}: Color › Surfaces & fills draws foreground.raised read-only, its "${RAISED_LINK}" a link (${JSON.stringify(row)})`);
+  await hooks.click(page.locator('[data-p3="raised-surface-link"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
+  const home = await page.evaluate(() => {
+    const lv = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-raised-surface"]');
+    const f = document.activeElement;
+    const pane = document.querySelector('[data-p3="levers-pane"]')?.getBoundingClientRect();
+    const r = lv?.getBoundingClientRect();
+    return { shown: !!r && r.height > 0, inView: !!r && !!pane && r.top >= pane.top - 1 && r.top < pane.bottom,
+      focus: !!lv && lv.contains(f) && f.getAttribute('aria-checked') === 'true', toggle: document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]')?.getAttribute('aria-expanded') };
+  });
+  ok(home.shown && home.inView && home.focus && home.toggle === 'true',
+    `#3093: ${host}: the link opens Components › Dialog options, Dialog surface in view with its checked chip focused (${JSON.stringify(home)})`);
+  ok(errors.length === 0, `#3093: ${host}: the Color row's link raised no page error (${errors.join(' | ')})`);
+  await ctx.close();
+}
+} // 6b
+
+// =============================================================================================
 // 7. One home per page (V1): every place names its literal home, and nothing but a place change moves it
 // =============================================================================================
 if (runs('7')) console.log(`\nHomes (V1, V12) — one home per page, never moved by scroll or focus\n${'='.repeat(78)}`);
@@ -3293,8 +3409,6 @@ const PALETTES_LEVERS = [
   ['status.success', '[data-p3="lever-status-success"]', true], ['status.warning', '[data-p3="lever-status-warning"]', true],
   ['status.danger', '[data-p3="lever-status-danger"]', true], ['status.info', '[data-p3="lever-status-info"]', true],
 ];
-/** The hook rule, written here (the `leverHook` contract: dots to dashes, camel case to kebab case). */
-const kebabHook = (k) => `lever-${k.replace(/\./g, '-').replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
 if (runs('12')) {
 for (const [key, hook, adv] of PALETTES_LEVERS) {
   const lev = manifest.levers.find((l) => l.key === key);
