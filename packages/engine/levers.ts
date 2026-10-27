@@ -208,7 +208,7 @@ export const leverManifest: Lever[] = [
   // the Studio is Theme › Type › Weights and styles, beside Underlined link styles (Q3 A).
   { key: 'typography.underline', group: 'type', kind: 'value', label: 'Underline thickness and offset', control: 'object', advanced: true,
     default: { thickness: 'auto', offset: 'auto' }, unit: '% of font size',
-    description: 'The underline on every link style, as a share of the font size: 5% thickness is 0.8px on 16px text, and 25% offset is 4px below the baseline. Auto leaves it to the font.' },
+    description: 'The underline on every link style, as a share of the font size: 5% thickness is 0.8px on 16px text, and a 25% offset puts the line 4px below the text. Auto leaves it to the font.' },
   { key: 'typography.italics', group: 'type', kind: 'value', label: 'Italic styles', control: 'list', advanced: true, itemLabel: 'type role',
     description: 'Which text types ship an italic style for each weight. The default is none.' },
   { key: 'typography.italicDefault', group: 'type', kind: 'value', label: 'Italic-only text types', control: 'list', advanced: true, itemLabel: 'type role',

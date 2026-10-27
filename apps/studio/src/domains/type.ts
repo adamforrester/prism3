@@ -176,12 +176,12 @@ export const S63 = {
   // #2942 — DRAFT placeholders (owner Q2 A): the owner replaces this wording before merge. `underlineTip` is the
   // lever's own description, word for word (`test-lever-tips.ts` holds it to the manifest).
   underlineLabel: 'Underline thickness and offset',
-  underlineTip: 'The underline on every link style, as a share of the font size: 5% thickness is 0.8px on 16px text, and 25% offset is 4px below the baseline. Auto leaves it to the font.',
+  underlineTip: 'The underline on every link style, as a share of the font size: 5% thickness is 0.8px on 16px text, and a 25% offset puts the line 4px below the text. Auto leaves it to the font.',
   underlineSwitch: 'Custom underline',
   underlineThickness: 'Underline thickness, %',
   underlineOffset: 'Underline offset, %',
   underlineThicknessHint: 'Share of the font size: 5% is 0.8px on 16px text. Auto leaves it to the font.',
-  underlineOffsetHint: 'Gap below the baseline, as a share of the font size: 25% is 4px on 16px text. Auto leaves it to the font.',
+  underlineOffsetHint: 'Space between the text and the line, as a share of the font size: 25% is 4px on 16px text. Auto leaves it to the font.',
   underlineRange: (lo: number, hi: number): string => `A whole number from ${lo} to ${hi}. A value outside it is set to the nearest end.`,
   italicsLabel: 'Italic styles',
   italicsTip: 'Upright ships no italic. Upright + italic adds an italic style for each weight. Italic only makes italic the one style.',
@@ -950,8 +950,9 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const b = leverBlock('typography.underline', { label: S63.underlineLabel, desc: S63.underlineTip, group: true });
     const sw = switchButton('p3-type-underline', S63.underlineSwitch, 'type-underline-switch', (v) => edit('typography.underline', () => setCustomUnderline(v)));
     sw.set(on);
-    // The switch's own name beside it (Q800 A: "Custom underline"); the block keeps the lever's label above.
-    const row = hook(h('div', 'p3-list-row'), 'type-underline-switch-row');
+    // The switch's own name above it (Q800 A: "Custom underline"), as a field label sits over its field; the block keeps
+    // the lever's label as its heading.
+    const row = hook(h('div', 'p3-field'), 'type-underline-switch-row');
     const swLab = h('label', 'p3-field-label', S63.underlineSwitch);
     swLab.htmlFor = 'p3-type-underline';
     row.append(swLab, sw.el);

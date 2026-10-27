@@ -667,6 +667,7 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `typography.responsive` | value |  |
 | `typography.weights` | value |  |
 | `typography.links` | value |  |
+| `typography.underline` | value | the underline's thickness and offset move: a percent written into every `-link` text style, and two tokens code reads in `em`; Link's markup is unchanged |
 | `typography.italics` | value |  |
 | `typography.italicDefault` | value |  |
 | `motionPersonality.tempo` | value |  |
