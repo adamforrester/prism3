@@ -178,7 +178,7 @@
       "$description": "Glass — the translucent white fill behind the glass background blur; opacity 70%",
       "meaning": "Frosted band over a photograph",
       "when_to_use": "The translucent fill of a glass band over a photograph — a caption or footer set over the bottom of an image. Pair it with a background blur of `blur.glass`. Text on it uses the page roles, such as `text.primary`.",
-      "avoid_when": "Do not use without the background blur, as a modal backdrop (use `scrim.default`), or as an opaque surface (use `foreground.primary`).",
+      "avoid_when": "Do not use without the background blur, as a modal backdrop (use `scrim.default`), or as an opaque surface (use `foreground.primary`). Where this brand made its own glass for the surface underneath, use `glass.card`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.white-alpha.70}",
         "dark": "{nbds.core.palette.black-alpha.70}",
@@ -6583,6 +6583,21 @@
         }
       ]
     },
+    "glass.card": {
+      "$description": "Glass card — foreground.primary's color at 70% behind the glass background blur, a glass fill this brand adds",
+      "meaning": "Frosted band over a photograph",
+      "when_to_use": "A glass fill this brand adds: `foreground.primary`'s color at 70%, for a glass band that should read as the surface it sits on, so only the blurred image shows through. Pair it with a background blur of `blur.glass`. Text on it uses the page roles, such as `text.primary`.",
+      "avoid_when": "Do not use for glass over a photograph or a surface it was not made for (use `glass.surface`), without the background blur, or as an opaque surface (use `foreground.primary`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral-050-alpha.70}",
+        "dark": "{nbds.core.palette.neutral-900-alpha.70}",
+        "hc-light": "{nbds.core.palette.white-alpha.70}",
+        "hc-dark": "{nbds.core.palette.black-alpha.70}"
+      },
+      "tracks": [
+        "foreground.primary"
+      ]
+    },
     "interactive.primary.subtle-fill.selected": {
       "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
       "meaning": "Interactivity / actions",
@@ -10088,6 +10103,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.glass.card",
         "color.glass.surface",
         "color.scrim.default",
         "color.veil.dark.strong"
@@ -10207,6 +10223,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.glass.card",
         "color.glass.surface"
       ]
     },
@@ -10225,6 +10242,26 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.glass.surface"
+      ]
+    },
+    "core.palette.neutral-050-alpha.70": {
+      "$description": "neutral.050 at 70% — alpha, a glass fill the brand adds",
+      "meaning": "neutral 050 at 70% alpha — a brand glass fill",
+      "intent": "Brand glass fill — a palette color at a glass alpha; reach it through its `glass.*` role",
+      "tier": "primitive",
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.glass.card"
+      ]
+    },
+    "core.palette.neutral-900-alpha.70": {
+      "$description": "neutral.900 at 70% — alpha, a glass fill the brand adds",
+      "meaning": "neutral 900 at 70% alpha — a brand glass fill",
+      "intent": "Brand glass fill — a palette color at a glass alpha; reach it through its `glass.*` role",
+      "tier": "primitive",
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.glass.card"
       ]
     },
     "core.dimension.0": {

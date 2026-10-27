@@ -635,6 +635,20 @@
             "$value": "rgba(255, 255, 255, 0.9)",
             "$description": "White alpha 90% — alpha, composites over any surface"
           }
+        },
+        "neutral-050-alpha": {
+          "70": {
+            "$type": "color",
+            "$value": "rgba(232, 233, 234, 0.7)",
+            "$description": "neutral.050 at 70% — alpha, a glass fill the brand adds"
+          }
+        },
+        "neutral-900-alpha": {
+          "70": {
+            "$type": "color",
+            "$value": "rgba(21, 23, 25, 0.7)",
+            "$description": "neutral.900 at 70% — alpha, a glass fill the brand adds"
+          }
         }
       },
       "dimension": {
@@ -1976,6 +1990,11 @@
           "$type": "color",
           "$value": "{nbds.core.palette.white-alpha.70}",
           "$description": "Glass — the translucent white fill behind the glass background blur; opacity 70%"
+        },
+        "card": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.neutral-050-alpha.70}",
+          "$description": "Glass card — foreground.primary's color at 70% behind the glass background blur, a glass fill this brand adds"
         }
       },
       "veil": {

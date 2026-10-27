@@ -458,6 +458,22 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // a second path; the rename gives every role the short name directly, including the 113 inverse ones
   // that never got a pointer at all (`docs/20` §9.9).
   const modes = resolveAllModes(theme);
+  // BRAND GLASS ROLES (#3073) — the alpha step each mode's `glass.<name>` aliases, minted the way the white/black
+  // alpha steps are (`alphaLeaf`), and only the steps some mode reads: a full alpha ramp per palette color would be
+  // dozens of primitives nobody binds. A role on white or black reads the existing `white-alpha` / `black-alpha`.
+  let glassAlphaLeaves = 0;
+  for (const m of modes) {
+    for (const [key, r] of Object.entries(m.roles)) {
+      if (!key.startsWith('glass.') || key === 'glass.surface') continue;
+      const [family, step] = r.path.slice(theme.namespace.length + 1).split('.');
+      if (family === 'white-alpha' || family === 'black-alpha') continue;
+      const node = (palette[family] ??= {});
+      if (node[step]) continue;
+      const source = family.replace(/-alpha$/, '').replace(/-(\d+)$/, '.$1');
+      node[step] = alphaLeaf(theme, rgbFromHex(r.hex), r.alpha!, `${source} at ${step}% — alpha, a glass fill the brand adds`);
+      glassAlphaLeaves++;
+    }
+  }
   // light is canonical ($value); the rest carry per-mode overrides — only those the brand
   // opted into (docs/11 Pillar 1). A light-only brand emits no mode overrides.
   const OVERRIDE_MODES = theme.modes.filter((m) => m !== 'light');
@@ -1278,7 +1294,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // `+ 1` for `white-alpha.0` (#1318) — the one alpha leaf outside the 5–90 ramp steps.
   const alphaLeaves = 2 * ALPHA_STEPS.filter((s) => s > 0 && s < 100).length + 1;
   // 3 base swatches: white, black, and the alpha-0 `transparent` primitive (#1341).
-  const colorLeaves = 3 + theme.palettes.reduce((n, p) => n + p.steps.length, 0) + alphaLeaves;
+  // `+ glassAlphaLeaves` — the brand glass roles' alpha steps (#3073), one per distinct color and alpha the modes read.
+  const colorLeaves = 3 + theme.palettes.reduce((n, p) => n + p.steps.length, 0) + alphaLeaves + glassAlphaLeaves;
   return { tree, modes, stats: { colorLeaves, dimLeaves: theme.dims.grid.length, spaceTokens: theme.dims.space.length, radiusTokens: theme.dims.radius.length, sizeSteps: theme.dims.sizes.length, fontSizes: theme.typography.sizesPx.length, fontWeights: theme.typography.weightsRef.length, typeComposites: theme.typography.composites.length, aliases: aliases.length, resolved: aliases.length - broken.length, broken, modeChecks, modePass } };
 };
 

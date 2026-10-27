@@ -179,6 +179,16 @@
       "description": "The surface of every dialog and sheet in light mode: the card color, the page color, or white. Dark mode always uses the card color, so the panel stays lifted."
     },
     {
+      "key": "glassRoles",
+      "group": "color",
+      "kind": "value",
+      "label": "Glass fills",
+      "control": "object",
+      "advanced": true,
+      "itemLabel": "glass fill",
+      "description": "Glass fills the brand adds beside the white glass. Each takes a color, from a palette or from a role such as the card, at an opacity, and is named color.glass.<name>."
+    },
+    {
       "key": "strictInteractiveContrast",
       "group": "color",
       "kind": "value",
