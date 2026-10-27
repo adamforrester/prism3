@@ -437,8 +437,11 @@ export const pinnedSizeCount = (): number => {
 
 // ── caption sizes and the letter spacing pin (#3077, owner decisions 2026-10-27: caption A, tracking A) ──────
 
-/** The rungs `typography.sizes.caption` may set: md and lg (xs and sm are pinned by their floors). */
-export const CAPTION_SIZE_RUNGS = ['md', 'lg'] as const;
+/** The rungs `typography.sizes.caption` may set: md and lg (xs and sm are pinned by their floors). Declared as a bare
+ *  `const` and exported below, because `packages/engine/lint-ramp-steps.ts` reads this array literal by the
+ *  `const NAME = [` shape and holds it to the caption sizes every brand emits. */
+const CAPTION_SIZE_RUNGS = ['md', 'lg'] as const;
+export { CAPTION_SIZE_RUNGS };
 export type CaptionSizeRung = typeof CAPTION_SIZE_RUNGS[number];
 /** The caption size set for one rung, if any. */
 export const captionSizePin = (variant: CaptionSizeRung): number | undefined => brandState.typography?.sizes?.caption?.[variant];

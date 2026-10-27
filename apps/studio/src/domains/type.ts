@@ -1167,13 +1167,13 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const em = new Map(ty.letterSpacings.map((l) => [l.key, l.em]));
     for (const g of TYPE_GROUP_ORDER) {
       if (!ty.composites.some((c) => c.group === g)) continue;
-      const row = hook(h('div', 'p3-titalic'), 'track-pin-row');
+      const row = hook(h('div', 'p3-tweight'), 'track-pin-row');
       row.dataset.group = g;
       const id = `p3-track-pin-${g}`;
       const sel = selectField(id, TYPE_PIN_COPY.trackField(S63.groupName(g)), 'track-pin', (v) => edit('typography.tracking', () => setTrackingPin(g, v || undefined)));
       sel.select.dataset.group = g;
       sel.set([{ v: '', l: TYPE_PIN_COPY.trackFollow }, ...LETTER_SPACING_KEYS.map((k) => ({ v: k, l: TYPE_PIN_COPY.trackOpt(k, emToPercentLabel(em.get(k) ?? 0)) }))], trackingPinOf(g) ?? '');
-      row.append(tokenLabel(`type.${g}`, S63.groupName(g), id, { onLine: true }), sel.el);
+      row.append(tokenLabel(`type.${g}`, S63.groupName(g), id), sel.el);
       rows.append(row);
     }
     b.ctl.append(rows);

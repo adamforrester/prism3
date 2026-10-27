@@ -6484,7 +6484,9 @@ const TYPE_S63_COPY = {
 /** Every S6.3 lever, by its hook, drawn once each (represented, not counted). */
 const TYPE_S63_LEVERS = ['lever-typography-type-scale', 'lever-typography-sizes', 'lever-typography-responsive', 'lever-typography-display-ceiling',
   'lever-typography-title-floor', 'lever-typography-caption-floor', 'lever-typography-size-floor', 'lever-typography-weight-roles', 'lever-typography-weights',
-  'lever-typography-italics', 'lever-typography-faces', 'lever-typography-line-heights', 'lever-typography-letter-spacings', 'lever-typography-leading-shift'];
+  'lever-typography-italics', 'lever-typography-faces', 'lever-typography-line-heights', 'lever-typography-letter-spacings', 'lever-typography-leading-shift',
+  // #3077: Caption sizes and Letter spacing for each text type.
+  'lever-typography-sizes-caption', 'lever-typography-tracking'];
 /** Literal copy on the controls: the chips (the manifest's scale labels; Q6's italic chips), the floors, the
  *  owner's words for fluid sizing (Q70) and the way to Layout. */
 const TYPE_S63_WORDS = {
@@ -6530,7 +6532,8 @@ for (const host of ['web', 'figma']) {
       if (TYPE_S63_COPY[title]) ok(lev?.[1] === TYPE_S63_COPY[title], `${host}: "${title}" reads "${TYPE_S63_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
     }
     for (const [k, want] of Object.entries(TYPE_S63_WORDS)) ok(JSON.stringify(r.words[k]) === JSON.stringify(want), `${host}: the ${k} copy reads ${JSON.stringify(want)} (${JSON.stringify(r.words[k])})`);
-    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 12 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 12 advanced (${JSON.stringify(r.folds)})`);
+    // 14 since #3077: Caption sizes (Scale limits) and Letter spacing for each text type (Line height and letter spacing).
+    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 14 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 14 advanced (${JSON.stringify(r.folds)})`);
     const WANT_NAMES = {
       weight: [['p3-fill-label', 'Strong'], ['p3-fill-tok', 'font.weight-role.strong']], lh: [['p3-fill-label', 'normal'], ['p3-fill-tok', 'font.line-height-role.normal']],
       matrix: [['p3-fill-label', 'Body'], ['p3-fill-tok', 'type.body']],
