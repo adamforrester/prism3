@@ -232,6 +232,8 @@ const LEVER_ROLES: Record<string, string> = {
   'background.tertiary': 'Tertiary, surfaces.<mode>.tertiary',
   'inverse.background.secondary': 'Inverse secondary, surfaces.<mode>.inverseSecondary',
   'inverse.background.tertiary': 'Inverse tertiary, surfaces.<mode>.inverseTertiary',
+  // #3049: the panel over the scrim, set by Dialog surface (`raisedSurface`), whose home is Components › Dialog.
+  'foreground.raised': 'Dialog surface, raisedSurface (Components › Dialog)',
 };
 /** Read-only, each with its declared reason. Literal. */
 const VEILS = ['dark.subtle', 'dark.medium', 'dark.strong', 'dark.clear', 'light.subtle', 'light.medium', 'light.strong', 'light.clear'].map((v) => `veil.${v}`);

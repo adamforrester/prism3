@@ -8533,6 +8533,8 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
   'lever-control-shape',
   // #2958: Dialog options draws Dialog title size the same way, its home Components › Dialog.
   'lever-dialog-title-size',
+  // #3049: and Dialog surface below it, the same block, the same home.
+  'lever-raised-surface',
   // #2924: Banner options draws Banner style the same way, its home Components › Banner.
   'lever-banner-style'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
