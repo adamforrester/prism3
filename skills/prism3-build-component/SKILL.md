@@ -640,6 +640,7 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `status.danger` | value |  |
 | `status.info` | value |  |
 | `surfaces` | value |  |
+| `raisedSurface` | value | one token's value moves: `color.foreground.raised`, which Dialog's panel binds, holds the card, the page or white in light |
 | `strictInteractiveContrast` | value | swaps the inverse label ink token |
 | `linkStateRungs` | value |  |
 | `radiusScale` | value |  |

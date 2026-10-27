@@ -156,6 +156,29 @@
       "description": "Non-default page and inverse surfaces per mode. The contrast floor follows the second tier."
     },
     {
+      "key": "raisedSurface",
+      "group": "color",
+      "kind": "value",
+      "label": "Dialog surface",
+      "control": "enum",
+      "default": "card",
+      "options": [
+        {
+          "value": "card",
+          "label": "Card"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "white",
+          "label": "White"
+        }
+      ],
+      "description": "The surface of every dialog and sheet in light mode: the card color, the page color, or white. Dark mode always uses the card color, so the panel stays lifted."
+    },
+    {
       "key": "strictInteractiveContrast",
       "group": "color",
       "kind": "value",

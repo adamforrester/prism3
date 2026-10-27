@@ -9,7 +9,7 @@
  *   · Another editable mode writes `modeLevers[mode].density` / `.radius` through the store's pruning helper, and
  *     Return to Auto unsets it (`setModeLever(…, undefined)`), so an all-cleared mode is byte-identical to never
  *     having had one. A value equal to Light's is written as a value, as the legacy select wrote it.
- *   · `controlShape`, `fieldStyle` (#2695), `searchFieldStyle` (#2888), `tagStyle` (#2887), `dialogTitleSize` (#2958), `bannerStyle` (#2924) and `baseMd` are brand-wide (the engine has no per-mode value for either), so they write the
+ *   · `controlShape`, `fieldStyle` (#2695), `searchFieldStyle` (#2888), `tagStyle` (#2887), `dialogTitleSize` (#2958), `bannerStyle` (#2924), `raisedSurface` (#3049) and `baseMd` are brand-wide (the engine has no per-mode value for either), so they write the
  *     same bytes from any editable mode (the Q54 rule).
  * The retired `radiusHairline` (#2053) has no writer: the engine always emits `radius.hairline`, so the switch
  * went with the legacy page and nothing here writes the key.
@@ -21,6 +21,7 @@
  */
 import type { Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle } from '@prism3/engine/scale';
 import { brandState, getModeLever, getPath, setModeLever, setPath } from './store';
+import type { RaisedSurface } from '@prism3/engine/theme';
 import { leverManifest } from '@prism3/engine/levers';
 
 const defaultOf = (key: string): unknown => leverManifest.find((l) => l.key === key)?.default;
@@ -34,6 +35,7 @@ export const brandSearchFieldStyle = (): SearchFieldStyle => (getPath(brandState
 export const brandTagStyle = (): TagStyle => (getPath(brandState, 'tagStyle') ?? defaultOf('tagStyle') ?? 'pill') as TagStyle;
 export const brandDialogTitleSize = (): DialogTitleSize => (getPath(brandState, 'dialogTitleSize') ?? defaultOf('dialogTitleSize') ?? 'large') as DialogTitleSize;
 export const brandBannerStyle = (): BannerStyle => (getPath(brandState, 'bannerStyle') ?? defaultOf('bannerStyle') ?? 'tinted') as BannerStyle;
+export const brandRaisedSurface = (): RaisedSurface => (getPath(brandState, 'raisedSurface') ?? defaultOf('raisedSurface') ?? 'card') as RaisedSurface;
 export const brandBaseMd = (): number => Number(getPath(brandState, 'baseMd') ?? defaultOf('baseMd') ?? 4);
 
 /** A per-mode lever as a control reads it in `mode`: the value it resolves to, and whether the mode sets its own
@@ -74,5 +76,7 @@ export const setTagStyle = (v: TagStyle): void => { setPath(brandState, 'tagStyl
 export const setDialogTitleSize = (v: DialogTitleSize): void => { setPath(brandState, 'dialogTitleSize', v); };
 /** Banner style (#2924), brand-wide like Dialog title size: one surface for every banner. */
 export const setBannerStyle = (v: BannerStyle): void => { setPath(brandState, 'bannerStyle', v); };
+/** The dialog surface (#3049), brand-wide like Banner style: the engine reads it in the light-family modes only. */
+export const setRaisedSurface = (v: RaisedSurface): void => { setPath(brandState, 'raisedSurface', v); };
 /** The base radius, brand-wide (legacy slider, a number). */
 export const setBaseMd = (v: number): void => { setPath(brandState, 'baseMd', Number(v)); };
