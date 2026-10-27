@@ -1129,9 +1129,17 @@ npx tsx packages/engine/lint-mark-colors.ts         # a brand mark is NEVER RETI
                                                     # emitted brand-mark-glyphs.ts, in order and spelled
                                                     # as supplied, and (c) the brand-mark Figma plans,
                                                     # where no node binds a variable or names a paint;
-                                                    # and (d) no host pushes descendantFills into a
-                                                    # brand-mark/* instance (vacuous until a host carries
-                                                    # one, so its detector is proven live by a self-check).
+                                                    # and (d) no host pushes descendantFills, a paint or a
+                                                    # paint variable into a brand-mark/* instance, and each
+                                                    # states fixedPaint; the hosts are listed by hand, both
+                                                    # ways (the Card number field is the first).
+npx tsx packages/engine/lint-mark-slots.ts          # a PAYMENT-TILE SLOT takes tiles only (#2343 PR 4).
+                                                    # The tiles are read from the marks folder by the
+                                                    # gate's own viewBox reader (32x20); the host's code
+                                                    # prop offers exactly them, defaults to generic, and
+                                                    # every member's slot (and the set's swap property)
+                                                    # starts at brand-mark/<tile folder>/generic, binding
+                                                    # its height alone under the aspect lock.
 npx tsx packages/engine/lint-nesting.ts             # the component NESTING graph (anatomy.parts[*].nests)
                                                     # resolves and is acyclic (#1226 PR-A). Two arms,
                                                     # each mutation-proven BY NAME: nest-resolves — every

@@ -367,6 +367,19 @@ export const FIELDS: Record<string, FieldCheck> = {
       return Math.abs(ratio - (p as number)) < 1e-6 ? null : `${got.x}:${got.y}`;
     },
   },
+  // A HOSTED INSTANCE'S OWN PROPORTION (#2343 PR 2, first carried by the Card number field's tile, PR 4): the plan does
+  // not state the proportion, because it belongs to whatever component the designer swaps in, so the reader holds the
+  // one thing the plan does promise: the built instance is LOCKED, to a real {x, y} ratio. That the ratio is the tile's
+  // own is `test-roundtrip.ts`'s tile block, which reads the main component's extent from the host.
+  aspectLock: {
+    show: () => 'aspect ratio locked to the instance\'s own component',
+    check: (_p, n) => {
+      const got = n.targetAspectRatio as { x?: unknown; y?: unknown } | number | null | undefined;
+      if (got === undefined || got === null) return 'NOT LOCKED (no targetAspectRatio)';
+      if (typeof got !== 'object' || typeof got.x !== 'number' || typeof got.y !== 'number' || !(got.x > 0) || !(got.y > 0)) return `${str(got)} (not a {x, y} ratio)`;
+      return null;
+    },
+  },
   clipsContent: {
     show: (p) => `clipsContent ${String(p)}`,
     check: (p, n) => (n.clipsContent === p ? null : str(n.clipsContent)),
@@ -778,6 +791,7 @@ export const FIELDS: Record<string, FieldCheck> = {
       return bad.length ? bad.join(', ') : null;
     },
   },
+  fixedPaint: { reason: 'a promise about what the executor does NOT write: no descendantFills on this node, which the plan already omits and `lint-mark-colors.ts` holds on every host plan; the paint inside an instance is the importer\'s nodes, which this reader does not name (as descendantFills)' },
   descendantFills: { reason: 'applies to nodes the SVG importer created, which this reader does not name; the executor read-back at write time is the only thing that can address them' },
 };
 

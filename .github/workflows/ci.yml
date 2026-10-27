@@ -679,6 +679,11 @@ jobs:
       - name: A brand mark keeps its own colors from file to plan
         run: npx --yes tsx@4 packages/engine/lint-mark-colors.ts
 
+      # #2343 PR 4: a payment-tile slot (the Card number field's) offers exactly the tiles in the marks folder, starts
+      # at the generic tile on every member and in its swap property, and binds its height alone under the aspect lock.
+      - name: A payment-tile slot takes tiles only and starts at the generic tile
+        run: npx --yes tsx@4 packages/engine/lint-mark-slots.ts
+
       - name: The component nesting graph resolves and is acyclic
         run: npx --yes tsx@4 packages/engine/lint-nesting.ts
 

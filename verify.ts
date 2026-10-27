@@ -1001,6 +1001,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-mark-colors.ts'),
   },
   {
+    id: 'lint-mark-slots',
+    ciStep: 'A payment-tile slot takes tiles only and starts at the generic tile',
+    cmd: engine('lint-mark-slots.ts'),
+  },
+  {
     id: 'lint-nesting',
     ciStep: 'The component nesting graph resolves and is acyclic',
     cmd: engine('lint-nesting.ts'),

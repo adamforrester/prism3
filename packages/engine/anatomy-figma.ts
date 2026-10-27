@@ -2490,6 +2490,8 @@ export const FIELD_CORNER_REFS: Readonly<Record<string, readonly string[]>> = {
   textarea: ['radius.sm'],
   // #2888: the Search field's box is TextField's, from the shared field factory.
   'search-field': ['radius.sm'],
+  // #2343 PR 4: the Card number field's box is TextField's too.
+  'card-number-field': ['radius.sm'],
   'checkbox-control': ['control.size.sm.radius', 'control.size.md.radius', 'control.size.lg.radius'],
 };
 
@@ -2528,6 +2530,8 @@ export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
   'code-input-cell': 'container',
   // #2888: drawn in the Search field style, which may differ from the other fields' (`fieldStyleFor`).
   'search-field': 'control',
+  // #2343 PR 4: the Card number field's box is TextField's; under underline its tile sits at the line's end.
+  'card-number-field': 'control',
 };
 
 /**
@@ -5331,6 +5335,8 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', '_slider-thumb', 'slider',
   // #2428: Code input and its cell, each a set with headers like every field's.
   'code-input-cell', 'code-input',
+  // #2343 PR 4: the Card number field, a set with headers like every field's.
+  'card-number-field',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
