@@ -1781,7 +1781,7 @@ export const figmaAnatomyPlan = (
       if (!nested?.figmaProperties?.emitAsComponents) return undefined;
       const axis = nested.figmaProperties.variantAxes[0];
       const value = nestVariantOf(p.nesting)[axis];
-      if (value === undefined || !(nested.variants[axis] ?? []).includes(value))
+      if (value === undefined || !((nested.variants as Record<string, readonly string[] | undefined>)[axis] ?? []).includes(value))
         throw new Error(`${def.id}: anatomy part '${name}' nests '${p.nests}' at ${axis}='${String(value)}', which is not one of its members — a standalone component is nested by its own name, <id>/<value>`);
       return `${p.nests}/${value}`;
     })();
