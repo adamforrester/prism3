@@ -1018,19 +1018,25 @@ export const locateSets = (host: { root: { findAllWithCriteria(c: { types: strin
  *     found and updated in place, not rebuilt as a second one.
  *   - Each `<component>/<value>` is the member `<axis>=<value>`: one axis, so the mapping back is exact. A name with a
  *     further `/` is no member value, and is listed under `others`, never read, unless that value is one of the def's
- *     own plan coordinates: a brand mark's value is `<kind>/<name>` (`brand-mark/card/visa`, #2343).
+ *     own plan coordinates: a brand mark's value is `<kind>/<name>` (`brand-mark/payment/visa`, #2343), or a value the
+ *     ledger renamed or dropped (`brand-mark/card/visa`, #2343 PR 3), so the dry run renames or deprecates it in place.
  *   - OWNERSHIP IS THE STAMP, NEVER THE NAME: the dry run's own reading (`ownedView`, #2300) decides. A hand-made
  *     icon, even one carrying a Prism3 glyph's exact name, is unstamped: it holds its coordinate, so that glyph is
  *     never built beside it (Q109 A), and it is never written.
  *
  * `set` is a stand-in for the by-id lookups the capture and Adopt make: its children are the components read.
  */
-export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>): Promise<{ view: HostSetView; set: LiveSet }> => {
+export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<{ view: HostSetView; set: LiveSet }> => {
   const component = t.plans[0]?.component ?? t.def;
   const prefix = `${component}/`;
   const first = t.plans[0] ? coordKey(planComponentName(t.plans[0])) : null;
   const axis = first ? coordPairs(first)[0][0] : 'name';
   const known = new Set(t.plans.map((p) => String(p.coord[axis])));
+  for (const r of ledger) {
+    if (r.def !== t.def) continue;
+    if (r.kind === 'value' && r.axis === axis) known.add(r.from);
+    if (r.kind === 'drop' && r.axis === axis && r.value !== undefined) known.add(r.value);
+  }
   const comps = (host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly unknown[]).filter((c) => {
     const x = c as { name?: unknown; parent?: { type?: unknown } | null };
     let parentType: unknown;
@@ -1061,7 +1067,7 @@ export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?
 type Viewed = { kind: 'missing' } | { kind: 'refused'; reason: string } | { kind: 'found'; name: string; set: LiveSet; view: HostSetView; from?: string };
 const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<Viewed> => {
   if (t.single) {
-    const { view, set } = await readSingleView(host, t, breathe, drawVars);
+    const { view, set } = await readSingleView(host, t, breathe, drawVars, ledger);
     return view.members.length + view.others.length ? { kind: 'found', name: view.name, set, view } : { kind: 'missing' };
   }
   const { found, name, from } = locateSets(host, t, ledger);

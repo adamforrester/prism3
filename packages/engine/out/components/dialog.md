@@ -238,7 +238,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -247,7 +247,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -256,7 +256,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -265,7 +265,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -274,7 +274,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -283,7 +283,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -292,7 +292,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -301,7 +301,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -310,7 +310,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -319,7 +319,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -328,7 +328,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -337,7 +337,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -346,7 +346,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -355,7 +355,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -364,7 +364,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
@@ -373,7 +373,7 @@ Keyed by `placement`, `footer`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `panel` | `color.foreground.primary` | — | — | — |
+| `panel` | `color.foreground.raised` | — | — | — |
 | `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |

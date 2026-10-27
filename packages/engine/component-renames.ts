@@ -117,6 +117,19 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'field-label', kind: 'part', from: 'text', to: 'label', issue: 2759 },
   { def: 'badge', kind: 'part', from: 'text', to: 'label', issue: 2759 },
   { def: 'list-item', kind: 'part', from: 'text', to: 'label', issue: 2759 },
+  // #2343 PR 3 — the brand marks' kinds renamed, `card/` → `payment/` (Q780 A) and `wallet/` → `logo/` (Q783 A), as the
+  // owner's artwork replaced the placeholders. Each mark is a single component, `brand-mark/<kind>/<name>`, so an update
+  // renames the component in place and every instance keeps it. A wallet lockup was the logo in one ink; its black
+  // form is the logo's successor, PayPal's lockup its wordmark. The white forms, and `provider/apple-white`, have none:
+  // the owner's set draws one form per logo, and `provider/apple` is now the white glyph.
+  ...(['amex', 'generic', 'mastercard', 'visa'] as const).map((n) => ({ def: 'brand-mark', kind: 'value', axis: 'name', from: `card/${n}`, to: `payment/${n}`, issue: 2343 }) as const),
+  { def: 'brand-mark', kind: 'value', axis: 'name', from: 'wallet/apple-pay-black', to: 'logo/apple-pay', issue: 2343 },
+  { def: 'brand-mark', kind: 'value', axis: 'name', from: 'wallet/google-pay-black', to: 'logo/google-pay', issue: 2343 },
+  { def: 'brand-mark', kind: 'value', axis: 'name', from: 'wallet/paypal', to: 'logo/paypal-wordmark', issue: 2343 },
+  { def: 'brand-mark', kind: 'value', axis: 'name', from: 'wallet/shop-pay', to: 'logo/shop-pay', issue: 2343 },
+  { def: 'brand-mark', kind: 'drop', axis: 'name', value: 'wallet/apple-pay-white', issue: 2343 },
+  { def: 'brand-mark', kind: 'drop', axis: 'name', value: 'wallet/google-pay-white', issue: 2343 },
+  { def: 'brand-mark', kind: 'drop', axis: 'name', value: 'provider/apple-white', issue: 2343 },
   // #2759 PR 2 — Figma property names are lowercase (owner decision Q345 A).
   { def: 'switch-control', kind: 'property-rename', from: 'State icon', to: 'state icon', issue: 2759 },
   { def: 'image-placeholder', kind: 'property-rename', from: 'Marker', to: 'marker', issue: 2759 },

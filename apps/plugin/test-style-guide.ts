@@ -1356,7 +1356,7 @@ const main = async (): Promise<void> => {
     const prim = plan.tables.filter((t) => t.kind === 'primitive');
     ok(JSON.stringify(prim.map((t) => t.title)) === JSON.stringify(['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha', 'Legacy']), '3: primitive tables per palette');
     ok(prim.every((t) => t.page === PRIM), '3: primitive tables go on ↳ Primitive tokens');
-    ok(sem.reduce((n, t) => n + t.rows.length, 0) === 269 && prim.filter((t) => t.title !== 'Legacy').reduce((n, t) => n + t.rows.length, 0) === 164, '3: every color variable is a row (269 + 164)');
+    ok(sem.reduce((n, t) => n + t.rows.length, 0) === 270 && prim.filter((t) => t.title !== 'Legacy').reduce((n, t) => n + t.rows.length, 0) === 164, '3: every color variable is a row (270 + 164; #3049 added foreground.raised)');
     const text = byTitle('semantic', 'Text')!;
     ok(JSON.stringify(text.columns) === JSON.stringify(['Token', 'light', 'Value', 'Contrast', 'dark', 'Value', 'Contrast', 'hc-light', 'Value', 'Contrast', 'hc-dark', 'Value', 'Contrast', 'Description']), '3: a specimen, value and contrast column per mode');
     ok(JSON.stringify(byTitle('primitive', 'Neutral')!.columns) === JSON.stringify(['Token', 'Default', 'Value', 'Description']), '3: a primitive table has no contrast column');
@@ -1658,7 +1658,7 @@ const main = async (): Promise<void> => {
     ok(byTitle('primitive', 'Legacy')!.description === '4 primitive colors in legacy', '8: Legacy header: nothing references it, so it does not say so');
     ok(byTitle('primitive', 'Primary')!.description === '20 primitive colors in core, each referenced by a semantic role', '8: Primary header counts its referenced steps');
     ok(byTitle('primitive', 'Accent')!.description === '20 primitive colors in core', '8: Accent header: no role references it, so it does not say so');
-    ok(byTitle('semantic', 'Foreground')!.description === '13 foreground roles in color, per mode, 5 measured against the ground they are contracted for', '8: Foreground header counts its measured roles');
+    ok(byTitle('semantic', 'Foreground')!.description === '14 foreground roles in color, per mode, 5 measured against the ground they are contracted for', '8: Foreground header counts its measured roles');
 
     const hc = { ...catalog, collections: catalog.collections.map((c) => c.name === 'color' ? { ...c, modes: [...c.modes, { modeId: 'color:9', name: 'L (HC)' }] } : c) };
     ok(planStyleGuide(hc, contract).notes.includes('The L (HC) mode in color matches no mode the brand contracts (light, dark, hc-light, hc-dark), so its contrast reads "—"'), '8: a file mode the engine does not contract is named');
@@ -1746,7 +1746,7 @@ const main = async (): Promise<void> => {
     ok(nTitle.characters === 'Grays' && neu.name === 'Style guide — Neutral — nbds', '9: a title the designer typed is kept');
 
     // A swatch member with layers and no paint anywhere. A FILL swatch still binds: since #2336 the instance paints the
-    // color itself, edge to edge, so the 75 prism3 roles that draw the plain swatch, in four modes, are 300 bound
+    // color itself, edge to edge, so the 76 prism3 roles that draw the plain swatch (#3049 added foreground.raised), in four modes, are 304 bound
     // swatches. A MARK still needs a layer to paint: a text member with a group and no text binds nothing, and the
     // verdict says how many: 61 text roles (a `text` segment first among text, icon and border, counted in the emitted
     // color.light.json), in four modes, 244.
@@ -1758,7 +1758,7 @@ const main = async (): Promise<void> => {
     const u = await draw(makeShim([fc, sgc, sem], prism3Variables().cols, prism3Variables().vars).api, contract, { collections: ['color'] });
     const us = styleGuideSummary(u);
     const plainBound = tablesOn(sem).flatMap((w) => gridOf(w).children.filter((k) => k.mainComponent?.name === 'type=Default' && boundId(k.fills) !== undefined));
-    ok(plainBound.length === 300, `9: a plain swatch with no layer that takes a fill still binds: the instance paints the color itself (#2336) (${plainBound.length} of 300)`);
+    ok(plainBound.length === 304, `9: a plain swatch with no layer that takes a fill still binds: the instance paints the color itself (#2336) (${plainBound.length} of 304)`);
     ok(u.unbound === 244 && !us.ok && us.headline === '⚠ 244 swatches unbound', `9: unbound swatches are not a pass — headline "${us.headline}"`);
     ok(us.summary.includes('244 swatches in type=Text have no layer that takes a fill'), `9: the summary counts them per variant (${us.summary.slice(0, 120)})`);
 
@@ -2994,7 +2994,7 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(cat.tables.map((t) => t.title)) === JSON.stringify(PRISM3_TITLES) && cat.tables.every((t) => t.kind === 'color')
       && cat.tables.filter((t) => t.page === 'Semantic tokens').length === 19 && cat.tables.filter((t) => t.page === 'Primitive tokens').length === 11,
       `26: the page is offered the 30 tables in draw order, all color, 19 semantic and 11 primitive, named without "↳" (${cat.tables.slice(0, 3).map((t) => `${t.title}@${t.page}`).join(', ')}…)`);
-    ok(JSON.stringify(cat.collections.map((c) => `${c.name}:${c.modes.join('/')}:${c.items.length}`)) === JSON.stringify(['core:Default:164', 'color:light/dark/hc-light/hc-dark:269', 'legacy:Value:4']),
+    ok(JSON.stringify(cat.collections.map((c) => `${c.name}:${c.modes.join('/')}:${c.items.length}`)) === JSON.stringify(['core:Default:164', 'color:light/dark/hc-light/hc-dark:270', 'legacy:Value:4']),
       `26: every collection, its modes and every variable in it (${cat.collections.map((c) => `${c.name} ${c.items.length}`).join(', ')})`);
     const item = (n: string) => cat.collections.flatMap((c) => c.items).find((i) => i.name === n);
     ok(cat.tables[item('pds3/color/text/primary')!.table]?.title === 'Text' && cat.tables[item('pds3/core/palette/primary/500')!.table]?.title === 'Primary'

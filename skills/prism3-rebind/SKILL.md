@@ -103,11 +103,31 @@ decision for the owner (section 6), and most become component work.
 13. **Steps only the owner can do.** The session can be refused some steps even after approval in
     chat; edits to a shared library are a common one. Tell the owner at the start which steps they will
     do themselves, and re-read the current state before asking.
+14. **Inventory a large source page by structure.** Group every frame by step × state × breakpoint before
+    choosing anything. Row labels can sit at the vertical middle of their row, so assign each frame to the
+    nearest label center; "nearest label above" shifts every row by one. Screenshots may live in their own
+    section with their own labels; mark the steps that exist only as screenshots or only as frames. Read
+    each frame's content bounds, not its size: a frame can clip its own content. Name each frame's state
+    from the texts unique to it within its row.
+15. **Key screens.** List the distinct patterns, then pick the fewest frames that cover each pattern once
+    per breakpoint. Build the one that defines the shared shell first.
+16. **Keys without the library file.** Instances already placed in the consuming file (a stickersheet, an
+    earlier rebuild) give each main's key and variant axes through `getMainComponentAsync()`. That finds
+    only what something instances; anything else still needs a key or a dragged-in instance.
+17. **A source in another typeface.** Map text by role and size, not by font family, and read the
+    library's own type guidance (an overview page, if it has one) before deciding the headings.
+18. **Keep the source copy exactly,** typos and odd spacing included, and list them as an owner question.
+    Fixing them in the build is a copy decision, not a technical one.
+19. **Plugin widgets inside a design frame** (a research-tool card, a third-party embed) are designer
+    artifacts. Leave them out of the inventory and the build, and report them.
 
 ## 3. Running a screen
 
 - **One representative screen per pattern.** Rebinding every similar screen proves nothing more. The goal
   is to show that Prism3 bindings and component swaps work, and to find the gaps.
+- **Fill each breakpoint from its own source.** Cloning the desktop build to start the mobile one carries the
+  desktop's content; the mobile source can show different items. Re-read the mobile source after cloning,
+  and run the text check per breakpoint.
 - **Do one screen first and compare it with the original** before running the rest. Fix the runner, then
   rerun that screen from a fresh copy. Never patch a half-built one.
 - **Each run starts from a fresh copy, in one call:** delete the previous copy, clone or instance the parked
@@ -192,6 +212,12 @@ decision for the owner (section 6), and most become component work.
 | `resetOverrides()` renames a nested slot | The slot takes its main's name, and lookups by name break | Rename it back, or look slots up by their property reference |
 | Setting a property to its current value records no override | The value doesn't survive a later update to the main component | Set the other value, then set it back; confirm it in the parent's overrides |
 | There is no single-field override reset | `resetOverrides()` clears every override on the instance, including slot swaps and their content, so it can't remove one stale override | Leave an override that equals the main's current value: it is inert. Report it rather than rebuilding the instance to clear it |
+| Changing a frame's layout direction keeps its sizing | A frame switched from horizontal to vertical stays FIXED in height and clips its new rows; a child's `layoutGrow=1` now means fill *height*, so fields collapse to 1px | After changing `layoutMode`, set the frame's sizing to HUG and reset each child's `layoutGrow` and sizing |
+| FILL text inside a wrapping row collapses | A text set to FILL inside a `layoutWrap='WRAP'` row shrinks to about 2px wide | Give the text a fixed width equal to the row's |
+| A pending import blocks other calls | While a library import is pending, remote text-style calls and later plugin calls queue behind it; calls that timed out resume later and add their nodes a second time | Reload the plugin UI, wait, then dedupe by layer name keeping the first. Don't start a write while any import is pending |
+| `exportAsync` hangs while another call is stuck | Exporting placeholder images (marks, buttons) never resolves | Export each image once, one at a time, with nothing else queued, and reuse its image hash everywhere |
+| A collapsed component exposes no slot | A collapsed disclosure has no content slot node, so its content can't be placed until it is expanded | Author the expanded state separately, and report it |
+| A text property may not drive a nested kind's label | Setting an item's `label` leaves a nested part's own label showing its default | After setting properties, read the visible text back; set the nested instance's property where needed |
 | A large result doesn't fit through the bridge's reply | Returning a snapshot of hundreds of instances can run to megabytes, far beyond what an agent should read | Keep the data on `globalThis` and return it in one call; if your harness writes an oversized result to a file, process that file with a script instead of reading it |
 | Sticky isn't settable | The plugin can't make a layer Sticky: the pinned typings have no property for it. Fixed is settable, through the parent frame's `numberOfFixedChildren`. | An owner step in the UI: Prototype, then Sticky |
 | Screenshots render the active file only | A second connected file can't be screenshotted | Read its geometry back through the bridge, in that file |

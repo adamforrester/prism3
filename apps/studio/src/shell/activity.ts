@@ -3,7 +3,7 @@
  * §3.9; the owner's F2, and v5 Q9 for the 4 s collapse).
  *
  * WHAT IT HOLDS SINCE S11: concept v6's activity model. One row per operation that has run in this session
- * (Apply Theme, Build set, Set up file, Style guides, Prune stale, Read-back), each with its verdict, the
+ * (Apply Theme, Build set, Set up file, Style guides, Prune stale, Read-back, Specs), each with its verdict, the
  * time it started, a body that says what it is doing or what it found, and its earlier results. An
  * operation an agent ran is tagged Agent, running and after (#1788). The drawer's bar row is v6's: the
  * newest operation's title and phase or verdict, its time, and how many are running or need attention.
@@ -77,6 +77,8 @@ export const HISTORY_MAX = 5;
 export const OP_TITLE: Readonly<Record<OpKey, string>> = {
   // "Style guides" since S11.2 (owner decision P11), matching the Build style guides page.
   'apply': 'Apply Theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guides', prune: 'Prune stale', readback: 'Read-back',
+  // #2830 Q713 A: Documentation › Specs' Draw specs, a row of its own. DRAFT wording (Q685 A).
+  specs: 'Specs',
 };
 
 // ── the open drawer's height (#2176, the owner's AD1–AD3, 2026-10-05) ───────────────────────────────

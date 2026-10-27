@@ -794,8 +794,8 @@ export type PartDef = {
   aspectRatio?: string;
   /** For `slot` and `nest` parts: the part's width FOLLOWS ITS CONTENT'S OWN PROPORTION (#2343 PR 2). The part
    *  binds `height` alone, and both executors lock the instance to the proportion of the component it is an
-   *  instance of, so Figma derives the width. The case is a brand mark: a card mark is 8:5 and a wallet lockup
-   *  is as wide as its provider drew it, so a square `size` binding would stretch it. The box form of the same
+   *  instance of, so Figma derives the width. The case is a brand mark: a payment tile is 8:5 and a logo
+   *  is as wide as its artwork, so a square `size` binding would stretch it. The box form of the same
    *  lock is `aspectRatio`, whose proportion is a variant axis; a slot's proportion belongs to whatever the
    *  designer swaps in, so it is read from that component when the instance is built, never stated here.
    *
@@ -811,6 +811,20 @@ export type PartDef = {
    *
    *  Refused on any other kind and beside `paintSlot` (a part cannot both keep its own paint and name an ink). */
   fixedPaint?: true;
+  /** For a `vector` drawn inline: the TILE EDGE ITS OWN FRAME DRAWS around artwork exported full-bleed (#2343, owner
+   *  decision Q720 A). A payment mark is a tile, and its files arrive with square corners and no
+   *  border, so the component draws both: at the coordinates `when` names, the GLYPH's frame (the artboard the importer
+   *  returns, which is the node a host instances and resizes) binds its four corner radii to `radius` and its stroke
+   *  weight to `strokeWidth`, takes the def's `border` paint as its stroke, and clips the artwork to the rounded corners.
+   *  Bound rather than drawn into the file, so every tile has the same corner and the same 1px edge at every size a
+   *  host binds, and in every mode: a radius or a stroke baked into the SVG would scale with the artwork.
+   *
+   *  `when` is a presence gate in `presentWhen`'s grammar, on variant axes only: a def whose members are not all tiles
+   *  (`brand-mark`, where square marks and logos carry no edge) names the members that are. A coordinate it names
+   *  must resolve a `border` paint, or the projection throws: a weight with no stroke is an edge that draws nothing.
+   *  Refused on any other kind, on an icon-set glyph (an instance, whose frame is the icon component's), and beside
+   *  `radius`, `strokeWidth`, `paintSlots` or `clipsContent`, which say the same things for a box. */
+  tileEdge?: { when: Record<string, readonly string[]>; radius: string; strokeWidth: string };
   /** For `vector` parts: WHICH glyph, by its name in the icon vocabulary (#864).
    *
    *  A NAME, resolved against `ICON_PATHS` at projection — never the path data itself. Two reasons, and
@@ -4196,7 +4210,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
       .filter((k): k is string => typeof k === 'string');
   // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
   // pressed and focus-visible and the plain one at rest, so its text style moves with the interaction state while
@@ -5124,6 +5138,31 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // it, so on any other kind it validates clean, is silently ignored, and reaches no node.
     if (p.kind !== 'box' && p.clipsContent !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'clipsContent' — only a 'box' becomes a frame that can crop its overflow; every other kind is a leaf whose content is its own`);
+    // ---- `tileEdge`, the full-bleed artwork's host-drawn edge (#2343, Q720 A) ----
+    // The vector form of a box's radius, stroke and crop, so it gets their wrong-kind rule, and a gate in
+    // `presentWhen`'s grammar (variant axes only, declared values, never every value).
+    if (p.tileEdge !== undefined) {
+      if (p.kind !== 'vector')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'tileEdge' — only a 'vector' drawn inline is built as its own artboard frame; a box says the same with 'radius', 'strokeWidth' and 'clipsContent'`);
+      const gates = Object.entries(p.tileEdge.when ?? {});
+      if (!gates.length)
+        e.push(`anatomy part '${n}' declares 'tileEdge' with an empty 'when' — name the members that are tiles, or the edge is drawn on none`);
+      for (const [axis, values] of gates) {
+        const declared = variantsOf(def)[axis];
+        if (axis === 'size' || axis === STATE_GATE || !declared) {
+          e.push(`anatomy part '${n}' gates its tileEdge on '${axis}', which is not one of this def's variant axes [${Object.keys(variantsOf(def)).join(', ') || 'none'}] — the edge would be drawn at no coordinate`);
+          continue;
+        }
+        if (!Array.isArray(values) || !values.length)
+          e.push(`anatomy part '${n}' gates its tileEdge on '${axis}' with no values — the edge would be drawn at no coordinate`);
+        for (const v of values ?? [])
+          if (!declared.includes(v))
+            e.push(`anatomy part '${n}' gates its tileEdge on ${axis}='${v}', which is not a declared value of that axis — that member does not exist, so its edge is never drawn`);
+      }
+      for (const k of ['radius', 'strokeWidth', 'paintSlots', 'clipsContent'] as const)
+        if (p[k] !== undefined)
+          e.push(`anatomy part '${n}' declares both 'tileEdge' and '${k}' — the edge stated twice, and the projection would keep whichever wrote last`);
+    }
     // ---- `minWidth`, the BOX kind's auto-layout width FLOOR (#1343a, #1345) ----
     // Figma applies `minWidth` only to an auto-layout frame, so it is refused on a non-box and on a box
     // with no `layout`: either way the executor would not carry it onto an auto-layout frame, and the

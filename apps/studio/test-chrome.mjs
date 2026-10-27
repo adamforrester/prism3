@@ -4,6 +4,17 @@
  *
  *   npm run -w @prism3/studio build && npm run -w @prism3/plugin build
  *   npm run -w @prism3/studio test:chrome [screenshot-dir]
+ *   CHROME_SHARD=<n> npm run -w @prism3/studio test:chrome     one CI shard (#2898)
+ *
+ * SECTIONS AND SHARDS (#2898). The suite is one top-level script in numbered sections, and each section's statements
+ * run under `if (runs('<id>'))` (the guards are not indented, so the sections read as before). With no `CHROME_SHARD`
+ * every section runs, in order, then the end-of-run checks: `npm run verify` and a local run are the whole suite. CI
+ * runs it as parallel shards, each running the sections `chrome-shards.mjs` gives it and leaving the end-of-run
+ * checks, which read the whole sweep, to `test:chrome-shards`, which also holds every section to exactly one shard.
+ * A new section needs a new id in its guards and a place in `chrome-shards.mjs`; `test:chrome-shards` fails by name
+ * until it has one. A declaration a later section reads stays outside every guard and must stay free of side effects,
+ * so a section skipped leaves the others as they were; state that crosses sections (the check-box counts, the hooks
+ * seen, the exemptions, the lowest readings) is the record's to carry to the merge.
  *
  * It drives BOTH built bundles: the studio's `dist/main.js` and the plugin's `dist/ui.html` (loaded
  * top-level, with Figma's theme stubbed the way `apps/plugin/test-start-screen.mjs` stubs it). So it runs
@@ -469,7 +480,7 @@
  * new page's own pill. Section 26 holds the Pages menu's absence on both hosts, by its accessible name.
  */
 import { createServer } from 'node:http';
-import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -477,17 +488,58 @@ import { hookGuard } from './test-hooks.mjs';
 import { INPUT_MS, makeBounded, watchStalls } from './test-bounded.mjs';
 import { P, loadModes, resolve as resolveToken } from './chrome/tokens.mjs';
 import { assertBundleFresh, PLUGIN_UI_SOURCE_ROOTS, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
+import { SHARDS } from './chrome-shards.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
-const SHOTS = process.argv[2] ? resolve(process.argv[2]) : null;
+const SHOTS_ARG = process.argv.slice(2).find((a) => !a.startsWith('--'));
+const SHOTS = SHOTS_ARG ? resolve(SHOTS_ARG) : null;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 const hooks = hookGuard(import.meta.url);
 
 let failed = 0;
 let executed = 0;
+// ── sections and shards (#2898) ──────────────────────────────────────────────────────────────────
+// Each numbered section's statements run under `if (runs('<id>'))`; the declarations a later section reads stay at
+// the top level, unguarded and side-effect free, so a skipped section leaves every other one as it was. The guards are
+// not indented, so the sections read as they did. Three modes:
+//   · the whole suite (the default, `npm run verify`, and CI before #2898): every section, then the end-of-run checks;
+//   · one shard (`CHROME_SHARD=<n>`, CI): the sections `chrome-shards.mjs` gives shard n, and no end-of-run checks,
+//     which read the whole sweep: the shard writes what they read to its record, and `--merge` runs them once;
+//   · `--list` and `--merge`, with no browser: every section is reached and none runs. `--list` prints the section ids
+//     (the expected list `test-chrome-shards.mjs` holds the shards to), `--merge` runs the end-of-run checks over the
+//     shards' records.
+// Every run in the first two modes writes its record, each assertion under the section it ran in, to
+// `chrome-record/` (`all.json`, or `shard-<n>.json`; `--merge` writes `merge.json`).
+const MODE = process.argv.includes('--list') ? 'list' : process.argv.includes('--merge') ? 'merge' : 'run';
+const SHARD = MODE === 'run' ? (process.env.CHROME_SHARD ?? '') : '';
+if (SHARD && !Object.hasOwn(SHARDS, SHARD)) {
+  console.error(`✗ CHROME_SHARD=${SHARD} names no shard in chrome-shards.mjs (it has ${Object.keys(SHARDS).join(', ')}).`);
+  process.exit(1);
+}
+const RECORD_DIR = join(HERE, 'chrome-record');
+const REACHED = [];
+const SECTION = new Map();
+let current = null;
+let currentAt = performance.now();
+const enter = (id) => {
+  const now = performance.now();
+  if (current) SECTION.get(current).ms += now - currentAt;
+  current = id;
+  currentAt = now;
+  if (id && !SECTION.has(id)) SECTION.set(id, { id, ms: 0, assertions: [] });
+};
+/** Whether this run runs section `id`. Every guard of a section asks, so the section's time is the time between. */
+const runs = (id) => {
+  if (!REACHED.includes(id)) REACHED.push(id);
+  const go = MODE === 'run' && (!SHARD || SHARDS[SHARD].includes(id));
+  enter(go ? id : null);
+  return go;
+};
 const ok = (cond, label) => {
   executed++;
+  if (!current) enter('unsectioned');
+  SECTION.get(current).assertions.push(String(label));
   if (cond) return;
   failed++;
   console.error(`  ✗ ${label}`);
@@ -884,7 +936,7 @@ const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect
 // ── servers: the studio, and the plugin with Figma's theme stubbed ──────────────────────────────────
 const STUDIO = HERE;
 let pluginHtml;
-try { pluginHtml = readFileSync(join(REPO, 'apps/plugin/dist/ui.html'), 'utf8'); } catch {
+if (MODE === 'run') try { pluginHtml = readFileSync(join(REPO, 'apps/plugin/dist/ui.html'), 'utf8'); } catch {
   console.error('✗ apps/plugin/dist/ui.html is missing: run `npm run -w @prism3/plugin build` first.');
   process.exit(1);
 }
@@ -892,9 +944,9 @@ try { pluginHtml = readFileSync(join(REPO, 'apps/plugin/dist/ui.html'), 'utf8');
 // The figma host loads `apps/plugin/dist/ui.html` and the web host `apps/studio/dist/main.js`. A rebuild of
 // one after an edit leaves the other stale, and that arm then measures the old UI and reports it as this one.
 // The check, its roots and why they are literal: `test-bundle-freshness.mjs`.
-assertBundleFresh({ repo: REPO, bundle: 'apps/plugin/dist/ui.html', roots: PLUGIN_UI_SOURCE_ROOTS, label: 'ui.html freshness',
+if (MODE === 'run') assertBundleFresh({ repo: REPO, bundle: 'apps/plugin/dist/ui.html', roots: PLUGIN_UI_SOURCE_ROOTS, label: 'ui.html freshness',
   effect: 'the figma host would test the old UI', build: 'npm run -w @prism3/plugin build' });
-assertBundleFresh({ repo: REPO, bundle: 'apps/studio/dist/main.js', roots: STUDIO_SOURCE_ROOTS, label: 'main.js freshness',
+if (MODE === 'run') assertBundleFresh({ repo: REPO, bundle: 'apps/studio/dist/main.js', roots: STUDIO_SOURCE_ROOTS, label: 'main.js freshness',
   effect: 'the web host would test the old UI', build: 'npm run -w @prism3/studio build' });
 const FIGMA = {
   light: { cls: 'figma-light', vars: { '--figma-color-bg': '#ffffff', '--figma-color-text': '#000000e5' } },
@@ -924,7 +976,7 @@ const server = createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const ORIGIN = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch();
+const browser = MODE === 'run' ? await chromium.launch() : null;
 
 /** A booted app on the opening page, Color › Palettes (the two panes, from S2). Studio: from the start
  *  screen's prism3 chip (or `brand`'s), the OS scheme emulated, `query` (web only) appended to the page URL.
@@ -1617,9 +1669,9 @@ const report = (m, where) => {
 // =============================================================================================
 // 1. Every column: host × theme × width, on the opening page, then focus rings
 // =============================================================================================
-console.log(`\nChrome — host × theme × width\n${'='.repeat(78)}`);
+if (runs('1')) console.log(`\nChrome — host × theme × width\n${'='.repeat(78)}`);
 const lows = { text: Infinity, edge: Infinity, focus: Infinity, target: Infinity };
-for (const host of ['web', 'figma']) {
+if (runs('1')) for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     for (const { w, h } of WIDTHS) {
       const where = `${host} ${theme} ${w}`;
@@ -1823,6 +1875,7 @@ const LOCAL_SWITCHES = () => [...document.querySelectorAll('.p3-switchseg, [role
 // =============================================================================================
 // 2. Every place: the legacy map, the layout, and the chrome on each (1280, light and dark)
 // =============================================================================================
+if (runs('2')) {
 console.log(`\nPlaces — the tab row and the legacy frame\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
@@ -1849,10 +1902,12 @@ for (const host of ['web', 'figma']) {
     await ctx.close();
   }
 }
+} // 2
 
 // =============================================================================================
 // 3. Q2: one header line across the split (1280, light and dark, with and without the sub-nav)
 // =============================================================================================
+if (runs('3')) {
 console.log(`\nQ2 — the tab row and the preview title row share one divider\n${'='.repeat(78)}`);
 // MEASURED ON COLOR › PALETTES, FOR REAL (S2): the first page that renders the two panes. S1.2 and S1.3 forced
 // `data-layout="panes"` here because no page did; that force is gone. Q2 also asks for a page WITHOUT the
@@ -1881,6 +1936,7 @@ for (const theme of ['light', 'dark']) {
   }
   await ctx.close();
 }
+} // 3
 
 /** The Build style guides page in the sweep (S11.2): a small file, typed here, with one table of each kind, so every
  *  option group draws; and the page's own controls the sweep must reach, its switch and its title box's fold. */
@@ -1902,6 +1958,7 @@ const SG_RING_CATALOG = {
 // =============================================================================================
 // 4. #1031 in a dark theme: a field keeps an ink it can be read in
 // =============================================================================================
+if (runs('4')) {
 console.log(`\n#1031 — fields in a dark theme\n${'='.repeat(78)}`);
 // RE-HOSTED IN H12 (#2289, owner Q107 A). #1031 was a field drawing the UA's dark-scheme ink on a light ground. Its last
 // host, the old Style guide page's Customize fold, went with that page; the Build style guides page that replaced it is
@@ -1952,10 +2009,12 @@ console.log(`\n#1031 — fields in a dark theme\n${'='.repeat(78)}`);
   ok(bad.length === 0, `${where}: every field resolves its own ground's color-scheme and inks its value at ${TEXT_MIN}:1${bad.length ? ` — ${bad.map((x) => `${x.name} "${x.value}" ${x.scheme} on a ${x.darkGround ? 'dark' : 'light'} ground ${x.r}:1`).join(' | ')}` : ''}`);
   await ctx.close();
 }
+} // 4
 
 // =============================================================================================
 // 5. Behavior: tabs by key, the theme toggle, Figma's theme live, the theme menu's own chrome
 // =============================================================================================
+if (runs('5')) {
 console.log(`\nBehavior\n${'='.repeat(78)}`);
 {
   const { ctx, page } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
@@ -2001,15 +2060,17 @@ console.log(`\nBehavior\n${'='.repeat(78)}`);
   ok(toggle === 'Appearance: Match Figma', `the plugin's Appearance menu starts on Match Figma ("${toggle}")`);
   await ctx.close();
 }
+} // 5
 
 // =============================================================================================
 // 6. Search (the owner's QA note Q3): typed in order, caret kept, filtered, closed back to its icon
 // =============================================================================================
-console.log(`\nSearch (Q3)\n${'='.repeat(78)}`);
+if (runs('6')) console.log(`\nSearch (Q3)\n${'='.repeat(78)}`);
 const manifest = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/lever-manifest.json'), 'utf8'));
 const labelOf = (key) => manifest.levers.find((l) => l.key === key)?.label;
 // S7: Shape moved to the two panes, so the search runs on its levers, found by their hooks (the radius softness and
 // density levers; the studio names radius softness in its own words, E2, so the label is not the manifest's).
+if (runs('6')) {
 const RADIUS = '[data-p3="lever-radius-scale"]';
 const DENSITY = '[data-p3="lever-density"]';
 for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
@@ -2075,11 +2136,12 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
   ok(after.hidden === 0 && after.focus === 'search-open', `search palettes: Escape shows every lever again and returns to the magnifier (${JSON.stringify(after)})`);
   await ctx.close();
 }
+} // 6
 
 // =============================================================================================
 // 7. One home per page (V1): every place names its literal home, and nothing but a place change moves it
 // =============================================================================================
-console.log(`\nHomes (V1, V12) — one home per page, never moved by scroll or focus\n${'='.repeat(78)}`);
+if (runs('7')) console.log(`\nHomes (V1, V12) — one home per page, never moved by scroll or focus\n${'='.repeat(78)}`);
 /** Concept v6's homes, typed here (never imported from `src/shell/pages.ts`): each place's view id and the
  *  title the preview header shows for it. */
 const EXPECT_HOME = {
@@ -2091,7 +2153,7 @@ const previewView = (page) => page.evaluate(() => ({
   view: document.querySelector('[data-p3="preview-body"]')?.dataset.view ?? null,
   title: document.querySelector('[data-p3="preview-title"]')?.textContent ?? null,
 }));
-for (const host of ['web', 'figma']) {
+if (runs('7')) for (const host of ['web', 'figma']) {
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
   // Visit every place twice, in two orders, so a home that follows the previous page cannot pass.
   for (const place of [...Object.keys(PLACE_CLICKS), ...Object.keys(PLACE_CLICKS).reverse()]) {
@@ -2141,7 +2203,7 @@ for (const host of ['web', 'figma']) {
 // =============================================================================================
 // 8. Inspect (F1): over the legacy frame, from the verdict; its three views; back to where it was
 // =============================================================================================
-console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
+if (runs('8')) console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
 /** The verdict, as the owner decided it (v4 review Q2, v5 Q2) and concept v6 words it: literals. */
 const VERDICT_LINE = 'All 884 pairs at or above floor';
 const HEALTH_LINE = 'All 884 pairs at or above floor.';
@@ -2149,8 +2211,10 @@ const HEALTH_MODES = ['Light: 221 of 221 at or above', 'Dark: 221 of 221 at or a
 /** #2909 Q2909.7 A: the Decisions log, Inspect's third view, is cut; its two notes no lever said are on their levers
  *  (section "IA v2 phase 2" holds them). The notes still ship: the committed default theme still records them. */
 const INSPECT_TABS = ['Contrast', 'Tokens'];
+if (runs('8')) {
 const DECISIONS = JSON.parse(readFileSync(join(REPO, 'packages/engine/out/prism3.tokens.json'), 'utf8')).$extensions?.prism3?.decisions ?? [];
 ok(DECISIONS.length >= 10, `Q2909.7 A: the committed default theme still records its ${DECISIONS.length} decisions, though no view lists them (floor 10, so an empty read fails)`);
+} // 8
 /** Inspect › Tokens' oracle (orchestrator review of #1923: the check read only "a table is there"). One
  *  primitive and one semantic, by literal path, with the value each must show read from the committed
  *  `out/prism3.tokens.json`, never from the page or the renderer. The list opens on Primitives; its own
@@ -2160,6 +2224,7 @@ const OUT_ROOT = OUT.$extensions?.prism3?.root;
 const TOK_PRIMITIVE = { cat: 'core', path: 'palette.neutral.950' };
 const TOK_SEMANTIC = { cat: 'color', path: 'text.primary' };
 const at = (cat, path) => path.split('.').reduce((n, k) => n?.[k], OUT[OUT_ROOT]?.[cat]);
+if (runs('8')) {
 const TOK_PRIMITIVE_HEX = at(TOK_PRIMITIVE.cat, TOK_PRIMITIVE.path)?.$extensions?.prism3?.hex;
 const TOK_SEMANTIC_ALIAS = at(TOK_SEMANTIC.cat, TOK_SEMANTIC.path)?.$extensions?.prism3?.aliasOf?.replace(`${OUT_ROOT}.`, '');
 ok(/^#[0-9a-f]{6}$/i.test(TOK_PRIMITIVE_HEX ?? '') && /^core\.palette\./.test(TOK_SEMANTIC_ALIAS ?? ''),
@@ -2295,17 +2360,19 @@ for (const host of ['web', 'figma']) {
   ok(!s.open && s.page && s.view === 'type', `a tab change closes Inspect and shows the new page, Type in the two panes (${JSON.stringify({ open: s.open, page: s.page, view: s.view })})`);
   await ctx.close();
 }
+} // 8
 
 // =============================================================================================
 // 9. The preview header in the two-pane layout, on Color › Palettes (S2: for real, nothing forced)
 // =============================================================================================
-console.log(`\nThe preview header — the mode control and Inspect (Color › Surfaces & fills)\n${'='.repeat(78)}`);
+if (runs('9')) console.log(`\nThe preview header — the mode control and Inspect (Color › Surfaces & fills)\n${'='.repeat(78)}`);
 /** The default theme's modes, as the mode control must show them, and which are derived (hatched): the
  *  owner's mode model (Q1, model B) and the engine's mode registry, typed here. */
 const EXPECT_MODES = [['light', 'Light', false], ['dark', 'Dark', false], ['hc-light', 'HC light', true], ['hc-dark', 'HC dark', true]];
 /** How many of the mode control's radios and select are held (`disabled` or `aria-disabled`): 0 where it is live. */
 const modeHeld = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-option"], [data-p3="mode-select"]')]
   .filter((n) => n.disabled || n.getAttribute('aria-disabled') === 'true').length);
+if (runs('9')) {
 const modeState = (page) => page.evaluate(() => ({
   radios: [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => ({
     mode: b.dataset.mode, label: b.querySelector('.p3-mode-name')?.textContent, checked: b.getAttribute('aria-checked'), role: b.getAttribute('role'),
@@ -2432,11 +2499,12 @@ for (const { w, h } of WIDTHS) {
     }
   }
 }
+} // 9
 
 // =============================================================================================
 // 10. S1.4: the Activity drawer (F2), the Figma menu and the Agent chip (IA-3, D6)
 // =============================================================================================
-console.log(`\nActivity, the Figma menu and the Agent chip (S1.4)\n${'='.repeat(78)}`);
+if (runs('10')) console.log(`\nActivity, the Figma menu and the Agent chip (S1.4)\n${'='.repeat(78)}`);
 /** F2 and v5 Q9, as the owner decided them: a success collapses the drawer 4 s after it lands. Literal. */
 const COLLAPSE_MS = 4000;
 /** What each of the plugin's writes must post, observed: the write message the old control posted, typed here from
@@ -2448,7 +2516,9 @@ const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-set
 const UPDATE_LABEL = 'Update file';
 const UPDATE_RUNNING = '\u2026 Updating\u2026';
 /** The drawer's note, per host: concept v6's plugin line, and the studio's own. Literal. */
+if (runs('10')) {
 const DRAWER_NOTE = { figma: 'Results of Apply, Build and Prune appear here after they run.', web: 'Nothing has run in this session.' };
+} // 10
 /** An agent-link state the main thread could publish, and the status line it must read as (today's words). */
 const AGENT_ON = { v: 1, on: true, since: '2026-10-01T09:00:00.000Z', engineVersion: 'x', build: 'x', pollMs: 1000, transports: { mailbox: true, bridge: false }, lastCommand: null, inboxError: null };
 /** What each write must carry on the wire, worked out without the UI: the brand the page loaded is the
@@ -2467,7 +2537,7 @@ const recordPosts = (page) => page.evaluate(() => {
   window.__writes = [];
   window.addEventListener('message', (e) => {
     const m = e.data?.pluginMessage;
-    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link', 'minimize-ui'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
+    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link', 'minimize-ui', 'draw-specs'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
   });
 });
 /** The messages posted since the last call. A post is delivered as a task, so one task is let through first. */
@@ -2510,6 +2580,7 @@ const stopped = (e) => {
   return [lines[0], waiting, reason === waiting ? null : reason].filter(Boolean).map(cap).join(' · ');
 };
 const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+if (runs('10')) {
 const drawerState = (page) => page.evaluate(() => {
   const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
   const d = document.querySelector('[data-p3="activity-drawer"]');
@@ -2930,6 +3001,134 @@ for (const host of ['web', 'figma']) {
           const landed = area === 'components' ? at.place === 'components' && at.levers && at.build === 0 : at.layout === 'page' && at.docs;
           ok(landed && px.length === 0, `${area} ${where}: the rail opens the ${area} area and writes nothing — ${JSON.stringify(at)}, posted ${JSON.stringify(px)}`);
         }
+        // #2830 Q2830.3 A: Documentation › Specs is a real control. Draw specs posts the panel's `draw-specs` (for the
+        // current page; the host picks the page) and nothing else, reads as drawing until the host answers, and then shows
+        // the host's verdict as its result line. The verdict is planted as the main thread posts one.
+        if (narrow) await page.locator('[data-p3="docs-select"]').selectOption('specs');
+        else await hooks.click(page.locator('[data-p3="docs-tab-specs"]'), WAIT);
+        await hooks.need(page, '[data-p3="docs-specs-draw"]');
+        const sp0 = await page.evaluate(() => { const b = document.querySelector('[data-p3="docs-specs-draw"]'); const r = document.querySelector('[data-p3="docs-specs-result"]');
+          return { label: b?.querySelector('[data-p3="label-idle"]')?.textContent ?? null, off: b?.getAttribute('aria-disabled') ?? null, result: r && !r.hidden ? r.textContent : null }; });
+        ok(sp0.label === 'Draw specs' && sp0.off === null && sp0.result === null, `${where}: #2830 Q2830.3 A: Specs offers Draw specs, available, with no result yet (${JSON.stringify(sp0)})`);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="docs-specs-draw"]'), WAIT);
+        const spW = await takeWrites(page);
+        const spBusy = await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-busy') ?? null);
+        ok(spW.length === 1 && canon(spW[0]) === canon({ type: 'draw-specs' }) && spBusy === 'true',
+          `${where}: #2830 Q2830.3 A: Draw specs posts draw-specs alone and reads as drawing (${JSON.stringify(spW)}, busy ${spBusy})`);
+        // Q713 A: Draw specs has its own Specs row in Activity, like Style guides: it runs, reading "Drawing specs…"
+        // (literal), while the Build set row neither runs nor carries the words. Its verdict lands on the Specs row below.
+        await settle(page);
+        const spD = await drawerState(page);
+        const spA = spD.ops['specs'];
+        const spTitle = await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="specs"] b')?.textContent ?? null);
+        ok(spA?.state === 'running' && spA.phase === 'Drawing specs…' && spTitle === 'Specs',
+          `${where}: #2830 Q713 A: while Draw specs is out, Activity's own Specs row runs, reading "Drawing specs…" (row ${JSON.stringify(spA)}, title ${JSON.stringify(spTitle)})`);
+        const spC = spD.ops['components'];
+        ok(spC?.state !== 'running' && spC?.phase !== 'Drawing specs…',
+          `${where}: #2830 Q713 A: while Draw specs is out, the Build set row does not run it (row ${JSON.stringify(spC ?? null)})`);
+        // The review of #3034 (C3): the verdict is a `component-update-result`, which any components write sends, so no
+        // other may start while the specs draw. The plugin builds through Update file's sets step (Q2909.5 A): with one set
+        // ticked and the theme not, its run posts no build and ends on the step's refusal.
+        await openUpdate({ present: [], setUp: true });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        // #3028 (#3023 Q701 B): a Theme toggle asks the file again, so answer it before the sets step is drawn.
+        await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+        await hooks.need(page, '[data-p3="update-set"]', WAIT);
+        await hooks.click(page.locator('[data-p3="update-set"]').first(), WAIT);
+        const spT = await page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
+          sets: [...document.querySelectorAll('[data-p3="update-set"]')].filter((n) => n.getAttribute('aria-checked') === 'true').length }));
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+        await settle(page);
+        const spBW = await takeWrites(page);
+        const spBU = await updBtn();
+        ok(spT.theme === 'false' && spT.sets === 1 && spBW.length === 0 && !spBU.busy,
+          `${where}: #3034 review C3: while Draw specs is out, Update file's sets step builds nothing, and its run ends (ticked ${JSON.stringify(spT)}, posted ${JSON.stringify(spBW.map(keyOf))}, Update file ${JSON.stringify(spBU)})`);
+        if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
+        if (narrow) await page.locator('[data-p3="docs-select"]').selectOption('specs');
+        else await hooks.click(page.locator('[data-p3="docs-tab-specs"]'), WAIT);
+        await hooks.need(page, '[data-p3="docs-specs-draw"]');
+        await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ drew 2 spec panels', summary: 'Drew 2 of 2.', lines: ['Drew 2 of 2.'] });
+        await page.waitForFunction(() => { const r = document.querySelector('[data-p3="docs-specs-result"]'); return !!r && !r.hidden; }, null, { timeout: 5000 }).catch(() => {});
+        const sp1 = await page.evaluate(() => { const b = document.querySelector('[data-p3="docs-specs-draw"]'); const r = document.querySelector('[data-p3="docs-specs-result"]');
+          return { busy: b?.getAttribute('aria-busy') ?? null, result: r && !r.hidden ? r.textContent : null }; });
+        ok(sp1.busy === null && sp1.result === '✓ drew 2 spec panels. Drew 2 of 2.', `${where}: #2830 Q2830.3 A: the host's verdict ends the drawing and is Specs' result line (${JSON.stringify(sp1)})`);
+        await settle(page);
+        const spVD = await drawerState(page);
+        const spV = spVD.ops['specs'];
+        ok(spV?.state === 'ok' && spV.verdict === '✓ drew 2 spec panels',
+          `${where}: #2830 Q713 A: the verdict ends the Specs row's run and is its verdict (row ${JSON.stringify(spV)})`);
+        const spVC = spVD.ops['components'];
+        ok(spVC?.verdict !== '✓ drew 2 spec panels' && spVC?.state !== 'running',
+          `${where}: #2830 Q713 A: Draw specs' verdict does not land on the Build set row (row ${JSON.stringify(spVC ?? null)})`);
+        // The review of #3034 (C2, C4): with an agent's components run out, Draw specs reads unavailable and a click posts
+        // nothing; with the control's attribute stripped, as a stale paint would leave it, the draw's own guard still posts
+        // nothing. Clicks are activated in the page, as above.
+        await postMsg(page, { type: 'agent-started', id: 'sp1', cmd: 'build-components' });
+        await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const spG = await page.evaluate(() => { const b = document.querySelector('[data-p3="docs-specs-draw"]'); return { off: b?.getAttribute('aria-disabled') ?? null, busy: b?.getAttribute('aria-busy') ?? null }; });
+        await takeWrites(page);
+        await page.evaluate(() => { const n = document.querySelector('[data-p3="docs-specs-draw"]'); if (n) HTMLElement.prototype.click.call(n); });
+        const spGW = await takeWrites(page);
+        ok(spG.off === 'true' && spG.busy === null && spGW.length === 0,
+          `${where}: #3034 review C2: with an agent's components run out, Draw specs reads unavailable and a click posts nothing (${JSON.stringify(spG)}, posted ${JSON.stringify(spGW)})`);
+        await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.removeAttribute('aria-disabled'));
+        await page.evaluate(() => { const n = document.querySelector('[data-p3="docs-specs-draw"]'); if (n) HTMLElement.prototype.click.call(n); });
+        const spGW2 = await takeWrites(page);
+        ok(spGW2.length === 0, `${where}: #3034 review C4: with an agent's components run out, the draw's own guard posts nothing even from a control left available (posted ${JSON.stringify(spGW2)})`);
+        await postMsg(page, { type: 'agent-finished', id: 'sp1', cmd: 'build-components' });
+        await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === null, null, { timeout: 5000 }).catch(() => {});
+        // Q713 A: an agent's `draw-specs` is the same operation: it runs on the Specs row, not the Build set row, and holds
+        // Draw specs unavailable until it finishes.
+        await postMsg(page, { type: 'agent-started', id: 'sp2', cmd: 'draw-specs' });
+        await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === 'true', null, { timeout: 5000 }).catch(() => {});
+        await settle(page);
+        const spAg = await drawerState(page);
+        const spAgOff = await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') ?? null);
+        ok(spAgOff === 'true' && spAg.ops['specs']?.state === 'running' && spAg.ops['specs']?.phase === 'Drawing specs…' && spAg.ops['components']?.state !== 'running',
+          `${where}: #2830 Q713 A: an agent's draw-specs runs on the Specs row, not the Build set row, and holds Draw specs unavailable (Draw specs ${spAgOff}, Specs ${JSON.stringify(spAg.ops['specs'] ?? null)}, Build set ${JSON.stringify(spAg.ops['components'] ?? null)})`);
+        await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ drew 3 spec panels', summary: 'Drew 3 of 3.', lines: ['Drew 3 of 3.'] });
+        await postMsg(page, { type: 'agent-finished', id: 'sp2', cmd: 'draw-specs' });
+        await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === null, null, { timeout: 5000 }).catch(() => {});
+        // The review of #3034 @ 4291c315 (M1): during Update file's setup and theme steps `componentBusy()` is false, so the
+        // run itself holds Draw specs. Go closes the dialog and the run carries on; Documentation › Specs, opened then, reads
+        // unavailable and posts nothing, even from a control left available, until the step's verdict ends the run.
+        for (const [step, setUp, end] of [
+          ['setup', false, { type: 'file-setup-result', ok: false, headline: '✗ file setup failed', summary: 'file setup failed.' }],
+          ['theme', true, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' }],
+        ]) {
+          await openUpdate({ present: [], setUp });
+          await takeWrites(page);
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+          const urW = (await takeWrites(page)).map(keyOf);
+          if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+          await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
+          if (narrow) await page.locator('[data-p3="docs-select"]').selectOption('specs');
+          else await hooks.click(page.locator('[data-p3="docs-tab-specs"]'), WAIT);
+          await hooks.need(page, '[data-p3="docs-specs-draw"]');
+          const urG = await page.evaluate(() => { const b = document.querySelector('[data-p3="docs-specs-draw"]'); return { off: b?.getAttribute('aria-disabled') ?? null, busy: b?.getAttribute('aria-busy') ?? null }; });
+          const urU = await updBtn();
+          await page.evaluate(() => { const n = document.querySelector('[data-p3="docs-specs-draw"]'); if (n) HTMLElement.prototype.click.call(n); });
+          const urGW = await takeWrites(page);
+          await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.removeAttribute('aria-disabled'));
+          await page.evaluate(() => { const n = document.querySelector('[data-p3="docs-specs-draw"]'); if (n) HTMLElement.prototype.click.call(n); });
+          const urGW2 = await takeWrites(page);
+          ok(JSON.stringify(urW) === JSON.stringify([step === 'setup' ? 'file-setup' : 'apply-theme']) && urU.busy && urG.off === 'true' && urG.busy === null && urGW.length === 0 && urGW2.length === 0,
+            `${where}: #3034 review M1: with Update file's ${step} step out and its dialog closed, Draw specs reads unavailable and posts nothing, even from a control left available (run posted ${JSON.stringify(urW)}, Update file busy ${urU.busy}, ${JSON.stringify(urG)}, posted ${JSON.stringify(urGW.concat(urGW2))})`);
+          await postMsg(page, end);
+          await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === null, null, { timeout: 5000 }).catch(() => {});
+          const urE = await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') ?? null);
+          const urEU = await updBtn();
+          ok(urE === null && !urEU.busy, `${where}: #3034 review M1: once the ${step} step's verdict ends the run, Draw specs is available again (aria-disabled ${urE}, Update file busy ${urEU.busy})`);
+          await takeWrites(page);
+          if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        }
+        if (!narrow) {
+          const msp = await measure(page, `${where} / Documentation › Specs`, host, w);
+          check(msp, `${where} / Documentation › Specs`, columnOf(host, w), PLACE_FLOOR, { state: 'area', only: ['[data-p3="docs-specs-draw"]'] });
+        }
         const bad2 = errors.filter((e) => !/WebSocket/.test(e));
         ok(bad2.length === 0, `${where} S1.4: 0 console errors (the agent link's bridge socket aside)${bad2.length ? ` — ${bad2.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
@@ -2942,11 +3141,12 @@ for (const host of ['web', 'figma']) {
     }
   }
 }
+} // 10
 
 // =============================================================================================
 // 11. S2: specimens sit on the brand's page color for the previewed mode (Palettes: always Light, #2321), never on the chrome's card
 // =============================================================================================
-console.log(`\nSpecimen grounds — Color › Palettes and Brand (plan §6.1, §9.1)\n${'='.repeat(78)}`);
+if (runs('11')) console.log(`\nSpecimen grounds — Color › Palettes and Brand (plan §6.1, §9.1)\n${'='.repeat(78)}`);
 /** THE ORACLE, resolved in Node from the engine's committed emission, never from the page: a mode's role (under
  *  `color.`), its alias chain followed through the base tree with that mode's overlay. */
 const EMITTED_AT = (() => {
@@ -2974,10 +3174,12 @@ const EMITTED_AT = (() => {
 const EMITTED = Object.fromEntries(['light', 'dark', 'hc-light', 'hc-dark'].map((m) => [m, EMITTED_AT(m, 'background.primary')]));
 /** PM1 B (#2321): Palettes always shows Light, so its opacity scale's ink is Light's `color.text.primary`. */
 const EMITTED_LIGHT_INK = EMITTED_AT('light', 'text.primary');
+if (runs('11')) {
 ok(/^#[0-9a-f]{6}$/.test(EMITTED_LIGHT_INK ?? '') && EMITTED_LIGHT_INK !== EMITTED_AT('dark', 'text.primary'),
   `the oracle resolved Light's text.primary (${EMITTED_LIGHT_INK}) from the emission, and Dark's differs (${EMITTED_AT('dark', 'text.primary')}), so an opacity scale in the wrong mode can fail`);
 ok(Object.values(EMITTED).every((x) => /^#[0-9a-f]{6}$/.test(x ?? '')), `the oracle resolved background.primary for every mode from the emission (${JSON.stringify(EMITTED)})`);
 ok(EMITTED.light !== EMITTED.dark, `the oracle's light and dark page colors differ (${EMITTED.light}, ${EMITTED.dark}), so a specimen on the wrong ground can fail`);
+} // 11
 /** EXPECTED, by name (represented, not counted; docs/34): every strip the default theme's Palettes preview
  *  draws at 1280, as palette-strip, where each must be a specimen root on the page color. prism3 emits seven
  *  ramps of 20 steps (two strips of ten each), and the opacity scale's 12 steps make two strips more. The
@@ -3011,6 +3213,7 @@ const groundsOf = (page) => page.evaluate(() => {
  *  DRAFT). */
 const STYLE_GUIDE_ROOTS = ['Type sample', 'Radius and shadow sample', 'Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
 /** Each moved place's preview whose specimens follow the previewed mode, with the specimens it must draw, by name. */
+if (runs('11')) {
 const SPECIMEN_PLACES = { brand: ['brand', STYLE_GUIDE_ROOTS] };
 /** The opacity scale's squares, each as its computed paint (`#rrggbb`; the scale's opacity is a separate property). */
 const opacityInksOf = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="opacity-scale"] .p3-sq')].map((q) => {
@@ -3068,11 +3271,12 @@ for (const host of ['web', 'figma']) {
     await ctx.close();
   }
 }
+} // 11
 
 // =============================================================================================
 // 12. S2: the Palettes levers, represented and not counted (plan §6.1)
 // =============================================================================================
-console.log(`\nControls represented — the Palettes levers\n${'='.repeat(78)}`);
+if (runs('12')) console.log(`\nControls represented — the Palettes levers\n${'='.repeat(78)}`);
 /** The manifest keys v6 homes on Color › Palettes, and the tier each sits in (R2: the manifest flag decides
  *  on Palettes), with the hook each must render. Literal: the decision, never read from `pages.ts`. The fourth
  *  field marks a lever whose block is drawn only while pinned (#2175, owner PN1 B): unpinned, `neutral.anchor`'s
@@ -3086,6 +3290,7 @@ const PALETTES_LEVERS = [
 ];
 /** The hook rule, written here (the `leverHook` contract: dots to dashes, camel case to kebab case). */
 const kebabHook = (k) => `lever-${k.replace(/\./g, '-').replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
+if (runs('12')) {
 for (const [key, hook, adv] of PALETTES_LEVERS) {
   const lev = manifest.levers.find((l) => l.key === key);
   ok(!!lev, `the manifest has the Palettes lever ${key}`);
@@ -3121,10 +3326,12 @@ for (const host of ['web', 'figma']) {
   if (SHOTS) await page.screenshot({ path: join(SHOTS, `s2-${host === 'web' ? 'studio' : 'plugin'}-light-1280-advanced.png`), fullPage: false });
   await ctx.close();
 }
+} // 12
 
 // =============================================================================================
 // 13. S2: an edit repaints the preview by subscription, and moves nothing (V1)
 // =============================================================================================
+if (runs('13')) {
 console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78)}`);
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
@@ -3209,6 +3416,7 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   ok(errors.length === 0, `edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
+} // 13
 
 // =============================================================================================
 // 13b. A status color switched to Custom starts from the color the role resolves to (owner, 2026-10-01)
@@ -3218,6 +3426,7 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
 // light-mode `foreground.<role>` read off it. It never calls `statusSeedHex`. The page's own preview is a
 // second witness: the oracle's hex must be one of the squares the preview draws for the palette the role
 // draws from, so the oracle and the page are resolving the same brand.
+if (runs('13b')) {
 console.log(`\nStatus seed — Custom starts from the role's resolved color\n${'='.repeat(78)}`);
 {
   const esbuild = await import('esbuild');
@@ -3273,6 +3482,7 @@ console.log(`\nStatus seed — Custom starts from the role's resolved color\n${'
     await ctx.close();
   }
 }
+} // 13b
 
 // =============================================================================================
 // 13c. Removing a brand color asks first, in place (owner, 2026-10-01)
@@ -3282,6 +3492,7 @@ console.log(`\nStatus seed — Custom starts from the role's resolved color\n${'
 // out here for this brand, by hand, from what the removal has always done (S2's cascade, docs/24 #53): the
 // color leaves `brandColors`, a status role that borrowed it goes back to Auto, and a gradient stop on it
 // moves to primary. It never calls `removalEffects` or `cascadeRemove`.
+if (runs('13c')) {
 console.log(`\nRemove a brand color — the confirm\n${'='.repeat(78)}`);
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
@@ -3342,10 +3553,12 @@ console.log(`\nRemove a brand color — the confirm\n${'='.repeat(78)}`);
   ok(errors.length === 0, `confirm: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
+} // 13c
 
 // =============================================================================================
 // 14. S2: the step picker (V9), on a test-only fixture page (it ships unmounted until S4's fill rows)
 // =============================================================================================
+if (runs('14')) {
 console.log(`\nThe step picker — on its fixture\n${'='.repeat(78)}`);
 {
   const esbuild = await import('esbuild');
@@ -3497,6 +3710,7 @@ console.log(`\nThe step picker — on its fixture\n${'='.repeat(78)}`);
   }
   fx.close();
 }
+} // 14
 
 // =============================================================================================
 // THE GLIDE LOG (#2042): an eased scroll read on frame time, never on the wall clock.
@@ -3581,6 +3795,7 @@ const atOnce = (g) => g.steps === 1 && !g.inFrames;
 // 15. THE Q4 TRIAL (QA note Q4, for the owner's decision): an EDIT reveals the palette it changes; focus,
 //     scrolling and the mode never move the preview (V1 still holds for them)
 // =============================================================================================
+if (runs('15')) {
 console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
@@ -3669,12 +3884,13 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   ok(errors.length === 0, `Q4: 0 console errors${errors.length ? ` — ${errors[0]}` : ''}`);
   await ctx.close();
 }
+} // 15
 
 // =============================================================================================
 // 16. S3: Brand — its levers represented, Identity side by side, the namespace warning, Personality, the
 //     modes (Q3), and the Style guide lent into the preview
 // =============================================================================================
-console.log(`\nBrand — the levers, the namespace, the modes (S3)\n${'='.repeat(78)}`);
+if (runs('16')) console.log(`\nBrand — the levers, the namespace, the modes (S3)\n${'='.repeat(78)}`);
 /** The schema inputs v6 homes on Brand, with the hook each lever block must render once. Literal: the
  *  decision (IA-1: Brand holds identity, personality and modes), never read from `pages.ts`. None is a
  *  manifest lever, so the hook rule is `leverHook`'s, applied here by hand. */
@@ -3705,6 +3921,7 @@ const VOCAB = await (async () => {
   return import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`);
 })();
 const ENGINE_WORDS = Object.keys(VOCAB.TRAITS ?? {});
+if (runs('16')) {
 ok(ENGINE_WORDS.length === PERSONALITY.length, `the engine's vocabulary carries ${ENGINE_WORDS.length} personality words (the decision lists ${PERSONALITY.length})`);
 // Represented, and side by side (v5 answer 4) at every width, on both hosts.
 for (const host of ['web', 'figma']) {
@@ -3873,10 +4090,12 @@ for (const host of ['web', 'figma']) {
     await ctx.close();
   }
 }
+} // 16
 
 // =============================================================================================
 // 17. S3 review: the mode control never clips an option, with 5 and 6 modes (a custom mode or two)
 // =============================================================================================
+if (runs('17')) {
 console.log(`\nThe mode control with 5 and 6 modes (S3 review)\n${'='.repeat(78)}`);
 /** What a user can choose in the preview header: each radio drawn wholly inside the control's visible box, or,
  *  when the select is shown instead, its options. A radio cut off by the control's edge counts as not choosable. */
@@ -3890,6 +4109,18 @@ const choosable = (page) => page.evaluate(() => {
   return { radios: radios.length, clipped: radios.filter((r) => !whole.includes(r)).map((r) => r.dataset.mode),
     modes: shown(sel) ? [...sel.options].map((o) => o.value) : whole.map((r) => r.dataset.mode), select: shown(sel), selected: shown(sel) ? sel.value : null };
 });
+/** #3033: `fit` picks radios or the select in a frame after the header resizes, so a read made straight after
+ *  the pane toggle can land before it and see a radio the select is about to replace. Read until the control
+ *  has settled (the select shown, or radios with none clipped), a frame apart, for at most 2 s; a control that
+ *  never settles is still read and reported as it stands. */
+const settled = async (page) => {
+  for (const end = Date.now() + 2000; Date.now() < end;) {
+    const c = await choosable(page);
+    if (c.select || (c.radios > 0 && c.clipped.length === 0)) return c;
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+  }
+  return choosable(page);
+};
 for (const { w, h } of WIDTHS) {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w, h });
   try {
@@ -3899,20 +4130,10 @@ for (const { w, h } of WIDTHS) {
     // scroll hid one; the select shows them all).
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
     // The control fits itself one frame after its header resizes (`modeControl`'s observer), and revealing the
-    // preview pane is that resize. Wait the two frames the 5- and 6-mode checks below already wait, or the radios
-    // are measured before they give way to the select (web light 380 flaked on main at d61c9e23).
-    await settle(page);
-    // The pane just shown lays its header out after the click, and the control's fit (radios or the select) follows its
-    // width, so the reading waits (bounded) for every radio to sit inside it or the select to show. A radio still cut
-    // off at the bound fails the arm below, as before.
-    await page.waitForFunction(() => {
-      const g = document.querySelector('[data-p3="mode-control"]'), sel = document.querySelector('[data-p3="mode-select"]');
-      if (sel && sel.getClientRects().length > 0 && getComputedStyle(sel).visibility !== 'hidden') return true;
-      if (!g || !g.getClientRects().length) return false;
-      const b = g.getBoundingClientRect();
-      return [...g.querySelectorAll('[data-p3="mode-option"]')].every((r) => { const x = r.getBoundingClientRect(); return x.left >= b.left - 0.5 && x.right <= b.right + 0.5; });
-    }, null, { timeout: 3000 }).catch(() => {});
-    const c4 = await choosable(page);
+    // preview pane is that resize. Read it once it has settled, or the radios are measured before they give way
+    // to the select (web light 380 flaked on main at d61c9e23, #3033); a fixed two frames is not enough under a
+    // slow frame. `settled` also stands in for #3028's bounded wait, which checked the same condition here.
+    const c4 = await settled(page);
     ok(c4.clipped.length === 0 && JSON.stringify(c4.modes) === JSON.stringify(want), `web light ${w} / brand, 4 modes: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c4)}`);
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
     for (const n of [1, 2]) {
@@ -3920,8 +4141,7 @@ for (const { w, h } of WIDTHS) {
       want.push(`custom-${n}`);
       await page.waitForFunction((k) => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === k, want.length);
       if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
-      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-      const c = await choosable(page);
+      const c = await settled(page);
       const where = `web light ${w} / brand, ${want.length} modes`;
       ok(c.clipped.length === 0 && JSON.stringify(c.modes) === JSON.stringify(want), `${where}: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c)}`);
       if (c.select) {
@@ -3939,12 +4159,13 @@ for (const { w, h } of WIDTHS) {
     ok(false, `S3 mode control ${w}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 17
 
 // =============================================================================================
 // 18. S4a: Color › Surfaces & fills — specimens on the page color, levers represented, the step picker
 //     mounted, edits and the gradient stops, and the chrome on both hosts, both themes, at every width
 // =============================================================================================
-console.log(`\nColor › Surfaces & fills (S4a)\n${'='.repeat(78)}`);
+if (runs('18')) console.log(`\nColor › Surfaces & fills (S4a)\n${'='.repeat(78)}`);
 /** EXPECTED, by name (represented, not counted; docs/34): the specimen roots the default theme's Surfaces &
  *  fills preview draws, each a section of the Style guide on the brand's page color, plus its gradients (the
  *  default theme ships two). Literal: the owner's decision Q5 names the five sections. */
@@ -4013,8 +4234,10 @@ const EMITTED_FLOOR = (() => {
     return [m, { step, hex, fills, roles }];
   }));
 })();
+if (runs('18')) {
 ok(Object.values(EMITTED_FLOOR).every((x) => /^#[0-9a-f]{6}$/.test(x.hex ?? '')), `the oracle resolved the contrast floor for every mode from the emission (${JSON.stringify(EMITTED_FLOOR)})`);
 ok(Object.entries(EMITTED_FLOOR).some(([m, x]) => x.hex !== EMITTED[m]), `the oracle's contrast floor differs from the page in at least one mode, so a Foreground on the page can fail (${JSON.stringify(EMITTED_FLOOR)} vs ${JSON.stringify(EMITTED)})`);
+} // 18
 /** The manifest keys v6 homes on Surfaces & fills, with their hooks. R2: every lever on this page is shown. */
 const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', '[data-p3="lever-gradients"]'],
   // S4f (QA-I10): the Icon section's pairing control is the icon contrast lever's block, as Interactive drew it.
@@ -4075,7 +4298,7 @@ const FIELD_ROW_ROLES = (() => {
   walk(OUT[OUT_ROOT]?.color?.inverse?.field, ['inverse', 'field']);
   return out;
 })();
-ok(FIELD_ROW_ROLES.length === 8 && FIELD_ROW_ROLES.includes('field.fill') && FIELD_ROW_ROLES.includes('inverse.field.placeholder'),
+if (runs('18-readonly')) ok(FIELD_ROW_ROLES.length === 8 && FIELD_ROW_ROLES.includes('field.fill') && FIELD_ROW_ROLES.includes('inverse.field.placeholder'),
   `the emission names the eight field roles the Fields section must carry (read ${FIELD_ROW_ROLES.join(', ')})`);
 /** The emission's own palette steps, the oracle for a pick (an override repoints a role to a step, so the
  *  step's hex is what the role must paint). */
@@ -4110,6 +4333,7 @@ const fillsGrounds = (page) => page.evaluate(() => {
  *  the emission's own `core.palette.neutral.025`. In the light theme the rendered levers panel is held to the
  *  same value, so the expectation is also the panel the owner compared against. */
 const LEVERS_GRAY = String(OUT[OUT_ROOT]?.core?.palette?.neutral?.['025']?.$value ?? '').toLowerCase();
+if (runs('18-readonly')) {
 ok(/^#[0-9a-f]{6}$/.test(LEVERS_GRAY) && LEVERS_GRAY !== '#ffffff', `the oracle read the levers panel's light gray from the emission's neutral 025 (${LEVERS_GRAY})`);
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
@@ -4346,6 +4570,7 @@ for (const host of ['web', 'figma']) {
   ok(errors.length === 0, `${host} Surfaces & fills levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
+} // 18-readonly
 // =============================================================================================
 // S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
 // fills read-only in a derived mode, the Unpair button included (Q56, Q59)
@@ -4380,6 +4605,7 @@ const fillsControls = (page) => page.evaluate(DERIVED_CONTROLS, [FILLS_SCOPE, DE
  *  hc-light, hc-dark and wireframe on both hosts (printed per mode), so a page that drew less fails. */
 const DERIVED_CONTROLS_FLOOR = 140;
 /** At least this many of them enabled in Light: all but the 31 icon rows locked while paired. 114 measured. */
+if (runs('18-s4d')) {
 const LIGHT_ENABLED_FLOOR = 110;
 for (const host of ['web', 'figma']) {
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
@@ -4676,6 +4902,7 @@ for (const host of ['web', 'figma']) {
   ok(errors.length === 0, `Q61 re-pair with an override: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
+} // 18-s4d
 // =============================================================================================
 // S4f (the owner's QA of 2026-10-02 on Surfaces & fills): the lock on the icon pairing button follows the state
 // (QA-B12); the gradients switch in its block's header (QA-B13), no gradient drawn in the levers (QA-B14), room around
@@ -4685,6 +4912,7 @@ for (const host of ['web', 'figma']) {
 // ground each is drawn on, computed HERE, and to the chrome themes' own success and danger icon colors, read off probe
 // elements stamped with each theme, never off the module that picks.
 // =============================================================================================
+if (runs('18-s4f')) {
 {
   /** The shut and the open shackle, as drawn (`lock` and `unlock` in `shell/dom.ts`), by their path data. Literal. */
   const SHUT = 'M5.4 7.2V5.2a2.6 2.6 0 0 1 5.2 0v2';
@@ -5114,12 +5342,13 @@ for (const { w, h } of WIDTHS) {
     }
   }
 }
+} // 18-s4f
 
 // =============================================================================================
 // 19. S5.2: Color › Interactive — specimens on the page color, levers and rows represented, every column in
 //     order, jump links, the Text row against the emission, ratio badges, the previewed mode, the chrome
 // =============================================================================================
-console.log(`\nColor › Interactive (S5.2)\n${'='.repeat(78)}`);
+if (runs('19')) console.log(`\nColor › Interactive (S5.2)\n${'='.repeat(78)}`);
 /** EXPECTED, by name (represented, not counted; docs/34): the preview's specimen roots, each a section on the
  *  brand's page color. Literal: the shared Interactive and Disabled sections (Q32), and Links. No Icons section
  *  since S5.3 (the owner's QA-I10). */
@@ -5139,7 +5368,7 @@ const COLUMN_ROWS = (c) => [
 ];
 const INTERACTIVE_ROW_ROLES = [...INTERACTIVE_COLUMNS.flatMap(([c]) => COLUMN_ROWS(c)),
   'text.link.default', 'inverse.text.link.default', 'icon.link.default', 'inverse.icon.link.default'];
-ok(INTERACTIVE_ROW_ROLES.length === 3 * 22 + 4, `the literal row list names ${INTERACTIVE_ROW_ROLES.length} rows (3 columns × 22, and 4 link families)`);
+if (runs('19')) ok(INTERACTIVE_ROW_ROLES.length === 3 * 22 + 4, `the literal row list names ${INTERACTIVE_ROW_ROLES.length} rows (3 columns × 22, and 4 link families)`);
 /** THE ORACLE for a role in a mode, from the committed emission, never from the page: its hex (an 8-digit hex
  *  for a wash), the contrast the engine measured, and what it measured it against. */
 const EMIT = (() => {
@@ -5161,7 +5390,7 @@ const EMIT = (() => {
     return { hex: at.aliasOf ? hexOf(at.aliasOf) : (leaf.$value ?? '').toLowerCase(), contrast: at.contrast, against: at.against, min: at.min };
   };
 })();
-ok(/^#[0-9a-f]{6}$/.test(EMIT('dark', 'interactive.primary.text.hover')?.hex ?? '') && /^#[0-9a-f]{8}$/.test(EMIT('light', 'interactive.primary.overlay.hover')?.hex ?? ''),
+if (runs('19')) ok(/^#[0-9a-f]{6}$/.test(EMIT('dark', 'interactive.primary.text.hover')?.hex ?? '') && /^#[0-9a-f]{8}$/.test(EMIT('light', 'interactive.primary.overlay.hover')?.hex ?? ''),
   `the oracle resolves a role and a wash per mode from the emission (${EMIT('dark', 'interactive.primary.text.hover')?.hex}, ${EMIT('light', 'interactive.primary.overlay.hover')?.hex})`);
 /** Composite an `#rrggbb[aa]` over an opaque `#rrggbb`, as a hex. */
 const overHex = (fg, bg) => {
@@ -5190,6 +5419,7 @@ const chooseMode = async (page, mode) => {
   await pickMode(page, mode);
 };
 // Specimen grounds: both hosts, both chrome themes, every mode.
+if (runs('19')) {
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
@@ -5445,6 +5675,7 @@ for (const host of ['web', 'plugin']) {
     ok(false, `S5.2 Interactive edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 19
 // Owner copy (Q51, Q53, Q58, Q57, APPROVED, literal): the lever sections are the preview's, in its order; the
 // button-set strings; the Links and Icons descriptions, the same in the levers and the preview.
 const EXPECT_INTERACTIVE_SECTIONS = [
@@ -5466,7 +5697,7 @@ const chooseAnyMode = async (page, mode) => {
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
     || document.querySelector('[data-p3="mode-select"]')?.value === m, mode);
 };
-{
+if (runs('19')) {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
     await goPlace(page, 'color-interactive');
@@ -5581,6 +5812,7 @@ const chooseAnyMode = async (page, mode) => {
 // =============================================================================================
 // 19b. S5.3: the Interactive page polish (the owner's QA, evening 2026-10-02: QA-I1 to QA-I10)
 // =============================================================================================
+if (runs('19b')) {
 console.log(`\nColor › Interactive polish (S5.3)\n${'='.repeat(78)}`);
 /** THE ORACLE for the badge marks (QA-I2): the chrome's status icon tokens, read from the token tree the chrome is
  *  built from (`chrome/tokens.mjs` over the committed emission), for each chrome theme. Never the page's own
@@ -5908,11 +6140,12 @@ for (const { w, h } of WIDTHS) {
     }
   }
 }
+} // 19b
 
 // =============================================================================================
 // 20. Type (S6.2, S6.3): Font families in the two panes, the type sample and the preview's sections
 // =============================================================================================
-console.log(`\nType (S6.2, S6.3)\n${'='.repeat(78)}`);
+if (runs('20')) console.log(`\nType (S6.2, S6.3)\n${'='.repeat(78)}`);
 /** EXPECTED, by name (represented, not counted; docs/34): the Type preview's specimen roots, each a section on the
  *  brand's page color. Literal: the shared type sample (#1942), then one section per lever section (Q23), then the
  *  read-only Building blocks (Q73). */
@@ -5936,7 +6169,7 @@ const TYPE_FACE_OF = (g) => {
   for (let i = 0; typeof v === 'string' && v.startsWith('{') && i < 8; i++) v = v.slice(1, -1).replace(`${OUT_ROOT}.`, '').split('.').reduce((n, k) => n?.[k], OUT[OUT_ROOT])?.$value;
   return v;
 };
-ok(TYPE_FACE_OF('body') === 'Inter' && TYPE_FACE_OF('display') === 'Playfair Display', `the oracle resolves the default theme's faces from the emission (body ${TYPE_FACE_OF('body')}, display ${TYPE_FACE_OF('display')})`);
+if (runs('20')) ok(TYPE_FACE_OF('body') === 'Inter' && TYPE_FACE_OF('display') === 'Playfair Display', `the oracle resolves the default theme's faces from the emission (body ${TYPE_FACE_OF('body')}, display ${TYPE_FACE_OF('display')})`);
 /** The preview's Faces copy. DRAFT, typed here. The levers drew it too (Q23) until TY1 A and HP2 (#2190, 2026-10-06) split
  *  their section into the two below, each titled by its lever's own name; both reveal the preview's Font families. */
 const FACES_COPY = ['Font families', 'The font families in the brand, and the family each text type uses.'];
@@ -5952,6 +6185,7 @@ const sectionGrounds = (page, hk) => page.evaluate((hostHook) => {
     sections: [...(host?.querySelectorAll('.psec') ?? [])].map((x) => ({ name: x.querySelector('.psec-t')?.textContent ?? '?', bg: hex(groundOf(x)) })) };
 }, hk);
 // Specimen grounds and Q24's gray containers: both hosts, both themes, every mode.
+if (runs('20')) {
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
@@ -6214,6 +6448,7 @@ for (const { w, h } of WIDTHS) {
     }
   }
 }
+} // 20
 
 // =============================================================================================
 // 20b. Type (S6.3): Scale, Scale limits, Weights and styles, Line height and letter spacing — represented, their
@@ -6228,6 +6463,7 @@ for (const { w, h } of WIDTHS) {
 //      writes modeLevers.dark.weights.strong and not the brand value …`; Layout's responsive section left in →
 //      `typography.responsive is drawn on Type only — also on Layout …`.
 // =============================================================================================
+if (runs('20b')) {
 console.log(`\nType (S6.3)\n${'='.repeat(78)}`);
 /** Q23: each lever section, in order, and the preview section it pairs with (Scale limits with Scale, scope §3; TY1 A's two
  *  font family sections with Font families). */
@@ -6676,6 +6912,7 @@ for (const host of ['web', 'figma']) {
     ok(false, `S6.3 responsive home ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 20b
 
 // =============================================================================================
 // 20c. #1993: the Type preview's availability marks (● ○), in the Weights table and its key, are drawn by the
@@ -6690,6 +6927,7 @@ for (const host of ['web', 'figma']) {
 //      Mutations this fails by name: drop the `.tpw-mark` / `.tpw-key` rule from `chrome.css` →
 //      `#1993 (web): every availability mark is drawn by Inter, never a device font …`.
 // =============================================================================================
+if (runs('20c')) {
 console.log(`\n#1993 — the Type preview's availability marks, drawn by the embedded face\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) {
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
@@ -6721,6 +6959,7 @@ for (const host of ['web', 'figma']) {
     await ctx.close();
   }
 }
+} // 20c
 
 // =============================================================================================
 // 20d. #2103: the plugin's font status, on the brand's page, in the brand's own status text roles. The figma host's
@@ -6742,6 +6981,7 @@ for (const host of ['web', 'figma']) {
 //      Mutation (#2103): the label painted in the old fixed colors (`stat.style.color = st.ok ? 'var(--ok)' :
 //      'var(--ink)'` in `faces.ts`, both bundles rebuilt) fails this section by name.
 // =============================================================================================
+if (runs('20d')) {
 console.log(`\n#2103 — the plugin's font status, in the brand's status text roles on its page\n${'='.repeat(78)}`);
 /** The figma host's three labels, literal. `lists` names which of the two posted font lists draw it. */
 const FIGMA_FONT_STATUS = [
@@ -6850,6 +7090,7 @@ const figmaStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { draw
     console.log(`  font status "${lab.text}" (figma, #2103): drawn in ${cells.length - unseen.length} of ${cells.length} brand × mode states, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'}`);
   }
 }
+} // 20d
 
 // =============================================================================================
 // 21. QA-B9, QA-B17, QA-I11 (owner decisions, 2026-10-02): an edit on Surfaces & fills and Interactive eases the
@@ -6872,6 +7113,7 @@ const figmaStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { draw
 //     does not move the preview …`; no restore → `QA-I11: back on Surfaces & fills, both panes are where they
 //     were …`; a wrong label → `QA-B17: … the jump links' visible label reads "Jump to:" …`.
 // =============================================================================================
+if (runs('21')) {
 console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembered scroll\n${'='.repeat(78)}`);
 {
   /** The lever section → the preview section it reveals, as the owner decided them (typed, not imported). */
@@ -7210,6 +7452,7 @@ console.log(`\n#2832 — the edit reveal anchors to the token's own card\n${'='.
     ok(false, `#2832: the no-card case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 21
 
 // =============================================================================================
 // 22. The shared styling pass (the owner's QA, evening 2026-10-02: QA-B2, B5, B8, B11, B18, I12, R1), read from the RENDERED layout on both hosts and in both chrome themes.
@@ -7228,7 +7471,7 @@ console.log(`\n#2832 — the edit reveal anchors to the token's own card\n${'='.
 //     `QA-B11: … every swatch is 40×40 …`; Continue back to the ghost button → `QA-I12: … Continue is the filled
 //     primary button …`.
 // =============================================================================================
-console.log(`\nShared styling (QA-B2, B5, B8, B11, B18, I12, R1)\n${'='.repeat(78)}`);
+if (runs('22')) console.log(`\nShared styling (QA-B2, B5, B8, B11, B18, I12, R1)\n${'='.repeat(78)}`);
 /** THE ORACLE: the chrome's own tokens, per chrome theme, from the token tree the chrome is built from. */
 const STYLE = (() => {
   const m = loadModes();
@@ -7241,6 +7484,7 @@ const STYLE = (() => {
     ink: { light: rgb(v(m.light, 'color.inverse.text.primary')), dark: rgb(v(m.dark, 'color.inverse.text.primary')) },
   };
 })();
+if (runs('22')) {
 ok(STYLE.rowGap === 24 && STYLE.swatch === 40 && STYLE.rowText === 12 && /^rgb\(/.test(STYLE.fill.light) && STYLE.fill.light !== STYLE.fill.dark,
   `shared styling oracle: space.300, core.dimension.40 and core.font.size.12 resolve to px, and the inverse fill per theme (${JSON.stringify(STYLE)})`);
 /** A caret is within this many px of its control's right edge (the task's allowance, literal). */
@@ -7425,6 +7669,7 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
     ok(false, `QA-R1: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 22
 
 // =============================================================================================
 // 23. Depth & motion (S9.2): the page in the two panes, its preview, the previewed mode, the playback
@@ -7439,7 +7684,7 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
 //     reduced motion → `D9: under reduced motion, a Motion edit plays nothing …`; a section drawn on the chrome card →
 //     `specimen ground: depth … is the chrome card`.
 // =============================================================================================
-console.log(`\nDepth & motion (S9.2)\n${'='.repeat(78)}`);
+if (runs('23')) console.log(`\nDepth & motion (S9.2)\n${'='.repeat(78)}`);
 /** The preview's two sections (V4), each a specimen root on the brand's page; and each lever section with the preview
  *  section it pairs with (Q23; Shadow tint is drawn inside Elevation, D8 A, so it pairs with Elevation too). */
 const EXPECT_DEPTH_SPECIMENS = ['Elevation', 'Motion'];
@@ -7485,6 +7730,7 @@ const openTint = async (page) => {
 /** Move a slider to `v` the way a drag does: the value, then `input`. */
 // A set as a user's ends: `input`, then the release (`change`). Since #2487 PR 2 a drag stores on its release, so an
 // `input` alone would read the stored brand before the write.
+if (runs('23')) {
 const slide = (page, hk, v) => page.evaluate(([h, x]) => { const n = document.querySelector(`[data-p3="${h}"]`); n.value = String(x); n.dispatchEvent(new Event('input', { bubbles: true })); n.dispatchEvent(new Event('change', { bubbles: true })); }, [hk, v]);
 /** Every dot the traces draw, and the animation each runs now. */
 const dotAnims = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="depth-style-guide"] [data-p3="transition-dot"]')].map((d) => d.style.animation || ''));
@@ -7721,6 +7967,7 @@ for (const host of ['web', 'figma']) {
     }
   }
 }
+} // 23
 
 // =============================================================================================
 // 25. S10: Layout — moved to the two panes. Specimens on the page color, its levers represented with no Show
@@ -7736,6 +7983,7 @@ for (const host of ['web', 'figma']) {
 //     at 0 …`; Continue routed by the legacy page key → `T8: web: Continue to Components lands on the Components tab …`;
 //     a lever behind a Show advanced → `Layout: … renders its hook … once, with no Show advanced`.
 // =============================================================================================
+if (runs('25')) {
 console.log(`\nLayout (S10)\n${'='.repeat(78)}`);
 /** The manifest keys homed on Layout, from the committed manifest (its `layout` group), never from the page. */
 const LAYOUT_MANIFEST = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/lever-manifest.json'), 'utf8')).levers.filter((l) => l.group === 'layout').map((l) => l.key);
@@ -8062,6 +8310,7 @@ for (const host of ['web', 'figma']) {
     ok(false, `S10 derived modes: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 25
 
 // =============================================================================================
 // 24. Shape (S7): the two panes, Density, Radius and Base radius represented once each; the preview's Density, Radius,
@@ -8083,7 +8332,7 @@ for (const host of ['web', 'figma']) {
 //     Medium button height reads "Medium button · 44px" …`; the hairline switch drawn back → `#2053: … no Hairline radius
 //     switch …`.
 // =============================================================================================
-console.log(`\nShape (S7)\n${'='.repeat(78)}`);
+if (runs('24')) console.log(`\nShape (S7)\n${'='.repeat(78)}`);
 /** The lever keys the owner's D1 A places on Shape, by hook (represented, not counted). `radiusHairline` is retired. */
 // #2905 Q578 B: Field style (#2695) and Tag style (#2887) are no longer on Shape: their homes are Components › Field
 // options and › Tag options (#2931 Q579 A), so "every lever renders once" fails by name (`also drawn lever-field-style`,
@@ -8134,7 +8383,7 @@ const EMITTED_ROLE = (() => {
   return (role, mode) => resolve(withOverlay(mode), `${root}.color.${role}`);
 })();
 const shapeRgb = (hx) => (hx ? `rgb(${parseInt(hx.slice(1, 3), 16)}, ${parseInt(hx.slice(3, 5), 16)}, ${parseInt(hx.slice(5, 7), 16)})` : null);
-ok(['foreground.secondary', 'border.primary'].every((r) => /^#[0-9a-f]{6}$/.test(EMITTED_ROLE(r, 'light') ?? '') && /^#[0-9a-f]{6}$/.test(EMITTED_ROLE(r, 'dark') ?? '')),
+if (runs('24')) ok(['foreground.secondary', 'border.primary'].every((r) => /^#[0-9a-f]{6}$/.test(EMITTED_ROLE(r, 'light') ?? '') && /^#[0-9a-f]{6}$/.test(EMITTED_ROLE(r, 'dark') ?? '')),
   `the oracle resolves foreground.secondary and border.primary in Light and Dark from the emission (${['light', 'dark'].map((m) => `${EMITTED_ROLE('foreground.secondary', m)}/${EMITTED_ROLE('border.primary', m)}`).join(', ')})`);
 /** The emission's control height for a size step, in px (Light; the default theme sets no per-mode density). */
 const HEIGHT_PX = (step) => OUT[OUT_ROOT]?.size?.[step]?.height?.$extensions?.prism3?.px;
@@ -8145,6 +8394,7 @@ const openShapeAdvanced = async (page) => {
   await hooks.need(page, '[data-p3="lever-base-md"]');
 };
 // Specimen grounds, Q24's gray containers and D2's sample colors: both hosts, both themes, every mode.
+if (runs('24')) {
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
@@ -8475,6 +8725,7 @@ for (const { w, h } of WIDTHS) {
     }
   }
 }
+} // 24
 
 // =============================================================================================
 // 26. Components (S8.2): moved to the two panes on both hosts. The Button options represented once each (G6 A), the way
@@ -8494,6 +8745,7 @@ for (const { w, h } of WIDTHS) {
 //     page key → section 10's `Figma menu …: Build set… opens the components tab and writes nothing — nothing opened`; Set
 //     up file drawn on the page → `G8: … no Set up file control or words on the Components page …`.
 // =============================================================================================
+if (runs('26')) {
 console.log(`\nComponents (S8.2)\n${'='.repeat(78)}`);
 /** The lever keys pages.ts places on Components (G6 A), by hook. Literal. */
 const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-text-hover', 'lever-button-min-width-multiplier',
@@ -8505,6 +8757,8 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
   'lever-control-shape',
   // #2958: Dialog options draws Dialog title size the same way, its home Components › Dialog.
   'lever-dialog-title-size',
+  // #3049: and Dialog surface below it, the same block, the same home.
+  'lever-raised-surface',
   // #2924: Banner options draws Banner style the same way, its home Components › Banner.
   'lever-banner-style'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
@@ -8698,7 +8952,7 @@ for (const host of ['web', 'figma']) {
           },
           dialog: {
             line: document.querySelector('[data-p3="dialog-options-derived"]')?.textContent ?? null,
-            chips: [...document.querySelectorAll('[data-p3="dialog-options"] [data-p3^="dialog-title-size-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
+            chips: [...document.querySelectorAll('[data-p3="dialog-options"] [data-p3^="dialog-title-size-choice-"], [data-p3="dialog-options"] [data-p3^="dialog-surface-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           banner: {
             line: document.querySelector('[data-p3="banner-options-derived"]')?.textContent ?? null,
@@ -8721,8 +8975,8 @@ for (const host of ['web', 'figma']) {
         `#2931 Q59: previewing ${label}, Tag options carry the derived line and hold Tag style's chips (${JSON.stringify(d.tag)})`);
       ok(d.search.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.search.chips.length === 3 && d.search.chips.every(Boolean),
         `#2952 Q59: previewing ${label}, Search options carry the derived line and hold Search field style's chips (${JSON.stringify(d.search)})`);
-      ok(d.dialog.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.dialog.chips.length === 3 && d.dialog.chips.every(Boolean),
-        `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's chips (${JSON.stringify(d.dialog)})`);
+      ok(d.dialog.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.dialog.chips.length === 6 && d.dialog.chips.every(Boolean),
+        `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's and Dialog surface's chips (#3049) (${JSON.stringify(d.dialog)})`);
       ok(d.banner.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.banner.chips.length === 2 && d.banner.chips.every(Boolean),
         `#2924 Q59: previewing ${label}, Banner options carry the derived line and hold Banner style's chips (${JSON.stringify(d.banner)})`);
       ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
@@ -8976,6 +9230,7 @@ for (const host of ['web', 'figma']) {
           dO: dO ? {
             title: dO.querySelector('[data-p3="dialog-options-title"]')?.textContent ?? null, desc: dO.querySelector('[data-p3="dialog-options-desc"]')?.textContent ?? null,
             chips: [...dO.querySelectorAll('[data-p3^="dialog-title-size-choice-"]')].map((n) => n.textContent),
+            surface: [...dO.querySelectorAll('[data-p3^="dialog-surface-choice-"]')].map((n) => n.textContent),
           } : null,
           bO: bO ? {
             title: bO.querySelector('[data-p3="banner-options-title"]')?.textContent ?? null, desc: bO.querySelector('[data-p3="banner-options-desc"]')?.textContent ?? null,
@@ -8999,8 +9254,11 @@ for (const host of ['web', 'figma']) {
       ok(!!D && JSON.stringify(D.ids) === JSON.stringify(['dialog']) && D.folds + D.families === 0,
         `#2958: ${host} ${w}: the Dialog section lists Dialog as a row, with no family row and no fold (${JSON.stringify({ ids: D?.ids, folds: D?.folds, families: D?.families })})`);
       // The copy is the DRAFT posted on #2958 (Q1), held here as literals so a change to it is a decision, not drift.
-      ok(!!r.dO && r.dO.title === 'Dialog options' && r.dO.desc === 'How dialogs size their title.' && JSON.stringify(r.dO.chips) === JSON.stringify(['Large', 'Medium', 'Small']),
+      ok(!!r.dO && r.dO.title === 'Dialog options' && r.dO.desc === 'How dialogs size their title and the surface they sit on.' && JSON.stringify(r.dO.chips) === JSON.stringify(['Large', 'Medium', 'Small']),
         `#2958: ${host} ${w}: Dialog options: its drafted title and description, and Dialog title size's chips (${JSON.stringify(r.dO)})`);
+      // #3049: Dialog surface's chips, the drafted option labels (Q3049.6 on the build PR), below the title size.
+      ok(!!r.dO && JSON.stringify(r.dO.surface) === JSON.stringify(['Card', 'Page', 'White']),
+        `#3049: ${host} ${w}: Dialog options carries Dialog surface's chips, Card, Page and White (${JSON.stringify(r.dO?.surface)})`);
       const BN = r.banners;
       ok(!!BN && JSON.stringify(BN.ids) === JSON.stringify(['banner']) && BN.folds + BN.families === 0,
         `#2924: ${host} ${w}: the Banner section lists Banner as a row, with no family row and no fold (${JSON.stringify({ ids: BN?.ids, folds: BN?.folds, families: BN?.families })})`);
@@ -9088,6 +9346,15 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-large"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-large"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         ok((await persisted(page))?.dialogTitleSize === 'large', `#2958: Dialog options' Large writes dialogTitleSize: large (${(await persisted(page))?.dialogTitleSize})`);
+        // #3049: Dialog surface is brand-wide too: White from Dark writes the brand value, Card restores it.
+        await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-surface-choice-white"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-surface-choice-white"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const dlgW = await persisted(page);
+        ok(dlgW?.raisedSurface === 'white' && JSON.stringify(dlgW?.modeLevers) === JSON.stringify(before?.modeLevers),
+          `#3049 Q54: previewing Dark, Dialog options' White writes raisedSurface: white and no per-mode value (${dlgW?.raisedSurface}, ${JSON.stringify(dlgW?.modeLevers)})`);
+        await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-surface-choice-card"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-surface-choice-card"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        ok((await persisted(page))?.raisedSurface === 'card', `#3049: Dialog options' Card writes raisedSurface: card (${(await persisted(page))?.raisedSurface})`);
         // #2924: Banner style is brand-wide too: Outlined from Dark writes the brand value, Tinted restores it.
         await hooks.click(page.locator('[data-p3="banner-options"] [data-p3="banner-style-choice-outlined"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="banner-options"] [data-p3="banner-style-choice-outlined"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
@@ -9171,6 +9438,7 @@ for (const { w, h } of WIDTHS) {
     }
   }
 }
+} // 26
 
 // =============================================================================================
 // 29. S13.1 (owner decisions G18 A, N-2 A): the top bar's last old-code pieces in the new chrome — the brand menu,
@@ -9196,6 +9464,7 @@ for (const { w, h } of WIDTHS) {
 //     the file's actions on the second; and, at 1280 and 380, the top row's last control at the page content's right
 //     edge within 1px (on the web, Export). 29b holds Contrast's mark per verdict and the plugin's Theme choice.
 // =============================================================================================
+if (runs('29')) {
 console.log('\n29. S13.1: the brand menu, Export and the error strip in the chrome');
 const S131_REFUSED = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
   id: 'refused-brand', overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
@@ -9539,6 +9808,7 @@ for (const { w, h } of WIDTHS) {
     }
   }
 }
+} // 29
 
 // =============================================================================================
 // 29b. The owner's "A · Menu bar" (2026-10-05), three behaviors held directly, both hosts, both themes:
@@ -9556,13 +9826,14 @@ for (const { w, h } of WIDTHS) {
 //   Mutation: the `.p3-agent-tile[data-on="true"]` arm dropped from the on-fill rule in `chrome.css` → `29b … Q738 A: with
 //     the link on, …`.
 // =============================================================================================
-console.log('\n29b. The menu bar: Contrast per verdict, the plugin Theme menu');
+if (runs('29b')) console.log('\n29b. The menu bar: Contrast per verdict, the plugin Theme menu');
 const LOW_FIXTURE = {
   light: { 'text.secondary': { palette: 'neutral', step: '100' }, 'icon.secondary': { palette: 'neutral', step: '550' } },
   dark: { 'text.secondary': { palette: 'neutral', step: '900' }, 'icon.secondary': { palette: 'neutral', step: '450' } },
 };
 const LOW_BRAND = { root: 'lo', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
   id: 'low-brand', overrides: { light: LOW_FIXTURE.light } };
+if (runs('29b')) {
 const CONTRAST_PROBE = () => {
   const b = document.querySelector('[data-p3="verdict"]');
   const g = b.querySelector('.p3-tile-mark svg.p3-ico');
@@ -9668,6 +9939,7 @@ for (const host of ['web', 'figma']) {
     }
   }
 }
+} // 29b
 
 // =============================================================================================
 // 29c. The export dialog's rules reach no other dialog (the owner's demo, 2026-10-05). The S12 start window (#2142) and
@@ -9678,6 +9950,7 @@ for (const host of ['web', 'figma']) {
 //      export dialog, is laid out by none of its rules.
 //   Mutation: the export dialog's body rule unscoped (`.p3-bardlg-body, .p3-dialog-body { … }`) → `29c … dialog scope: …`.
 // =============================================================================================
+if (runs('29c')) {
 console.log('\n29c. The export dialog and the start window, in one page');
 for (const host of ['web', 'figma']) {
   const where = `29c ${host} light 1280`;
@@ -9727,6 +10000,7 @@ for (const host of ['web', 'figma']) {
     ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 29c
 
 // =============================================================================================
 // 27. #2144 (owner decision FR1 A, 2026-10-05): every chrome focus ring, on every place, both hosts, both themes, draws
@@ -9747,6 +10021,7 @@ for (const host of ['web', 'figma']) {
 //   · B2 (#2487): the legacy controls' ring dropped from styles.css (`:is(.seg-b, …, .select):focus-visible`) → `#2144 web
 //     light 1280: every focused chrome control draws its ring … — 10 miss: brand style-guide-ground: color #101010, …,
 //     1px wide, … | depth motion-play: … | depth motion-slowmo: … | inspect token list …`, each host and theme.
+if (runs('27')) {
 console.log(`\n#2144 — every chrome focus ring on ${FOCUS_RING_TOKEN} (light ${FOCUS_HEX.light}, dark ${FOCUS_HEX.dark})\n${'='.repeat(78)}`);
 /** The least number of chrome rings the whole sweep must read, per host (both themes). */
 const FOCUS_SWEEP_FLOOR = { web: 820, figma: 870 };
@@ -9866,12 +10141,13 @@ for (const host of ['web', 'figma']) {
   console.log(`  #2144 ${host}: ${hostTotal} rings read, light and dark`);
   ok(hostTotal >= FOCUS_SWEEP_FLOOR[host], `#2144 ${host}: the sweep read ${hostTotal} chrome focus rings across every place, light and dark (floor ${FOCUS_SWEEP_FLOOR[host]})`);
 }
+} // 27
 
 // =============================================================================================
 // 28. The start window (UI redesign S12): today's four cards, restyled, in a window over the studio, on both hosts,
 //     in both themes, at 1280 and 380. Every decision the owner made for it, each against a literal typed here.
 // =============================================================================================
-console.log(`\nThe start window (S12)\n${'='.repeat(78)}`);
+if (runs('28')) console.log(`\nThe start window (S12)\n${'='.repeat(78)}`);
 /** The owner's decisions, as literals (S1, S3, S5, S6, S7, S8, S10, G13, G14, G15, G17). */
 const START = {
   heading: { web: 'Start a brand', figma: 'Start a brand in this file' },                   // G17
@@ -9907,7 +10183,7 @@ const DESTRUCTIVE = (() => {
   return Object.fromEntries(['light', 'dark'].map((t) => [t, {
     fill: res(t, `${root}.color.interactive.destructive.fill.rest`), on: res(t, `${root}.color.interactive.destructive.on-fill`) }]));
 })();
-ok(Object.values(DESTRUCTIVE).every((d) => /^#[0-9a-f]{6}$/.test(d.fill ?? '') && /^#[0-9a-f]{6}$/.test(d.on ?? '')),
+if (runs('28')) ok(Object.values(DESTRUCTIVE).every((d) => /^#[0-9a-f]{6}$/.test(d.fill ?? '') && /^#[0-9a-f]{6}$/.test(d.on ?? '')),
   `S5: the oracle resolved Prism3's destructive fill and on-fill from the emission (${JSON.stringify(DESTRUCTIVE)})`);
 /** #2560 (the owner's Q486 A, Q613 8 A): the start window's scrim is Stance's modal scrim, `color.scrim.default`, per theme,
  *  walked from the committed emission and its dark overlay to the palette step it aliases, as computed style writes it.
@@ -9932,7 +10208,7 @@ const START_SCRIM = (() => {
   };
   return Object.fromEntries(['light', 'dark'].map((t) => [t, rgba(res(t, `${root}.color.scrim.default`))]));
 })();
-ok(START_SCRIM.light === 'rgba(0, 0, 0, 0.4)' && START_SCRIM.dark === 'rgba(0, 0, 0, 0.6)',
+if (runs('28')) ok(START_SCRIM.light === 'rgba(0, 0, 0, 0.4)' && START_SCRIM.dark === 'rgba(0, 0, 0, 0.6)',
   `#2560: the oracle resolved scrim.default from the emission as black 40% light and black 60% dark, the wireframe's scrim A (${JSON.stringify(START_SCRIM)})`);
 const startRgb = (hx) => `rgb(${parseInt(hx.slice(1, 3), 16)}, ${parseInt(hx.slice(3, 5), 16)}, ${parseInt(hx.slice(5, 7), 16)})`;
 const START_SIZES = [{ w: 1280, h: 900 }, { w: 380, h: 420 }];
@@ -9956,6 +10232,7 @@ const openFirstRun = async ({ host, theme, w, h }) => {
   return { ctx, page, errors };
 };
 /** Everything a designer can read about the start, from the rendered DOM. */
+if (runs('28')) {
 const readStartWindow = (page) => page.evaluate(() => {
   const q = (s) => document.querySelector(s);
   const dlg = q('[data-p3="start-screen"]');
@@ -10299,6 +10576,7 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+} // 28
 
 // =============================================================================================
 // 28b. The homes and the start window's X (#2879; the owner's Q485 C, and Q613 A on all ten wireframe questions), plus
@@ -10311,6 +10589,7 @@ for (const host of ['web', 'figma']) {
 // over the home, on scrim.default; the X returns to the home, focus on the button that opened it; and the minimal home,
 // where the X lands on a first run, meets the same floors. Then forced colors (1280): the window's edge, its title and
 // the X's ring are drawn apart from the window's ground, and the home's switch keeps its track's edge.
+if (runs('28b')) {
 console.log(`\nThe homes and the X (#2879)\n${'='.repeat(78)}`);
 const HOME_LIT = {
   library: { name: 'Product Library', versions: ['0.237.0'], instances: 142, bindings: 318 },
@@ -10474,11 +10753,12 @@ for (const theme of ['light', 'dark']) {
     ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 28b
 
 // =============================================================================================
 // X4 A (#2155) and Q28 a (#2154): a disabled button is Prism3's disabled button; no disabled control answers hover
 // =============================================================================================
-console.log(`\nX4 A, Q28 a — disabled buttons in Prism3's skin; no hover on a disabled control\n${'='.repeat(78)}`);
+if (runs('x4a')) console.log(`\nX4 A, Q28 a — disabled buttons in Prism3's skin; no hover on a disabled control\n${'='.repeat(78)}`);
 /** What a control draws, read off the page: its fill, four edges and ink, the ink of every label and glyph inside it,
  *  every dashed or dotted edge on it or inside it, and the colors and edges of it and everything inside it (so a hover
  *  that moves any of them shows). Runs in the page. */
@@ -10536,6 +10816,7 @@ const skinVerdict = (r, scheme) => {
 // way the app switches a button off (`disabled`). Each must draw exactly its appearance's Prism3 disabled roles, no
 // dashed edge, and nothing on hover; switched back on, the same control answers hover (the control arm). With a
 // screenshot directory, each is saved as `2155-{web,plugin}-{light,dark}-{appearance}.png`.
+if (runs('x4a')) {
 const X4_SHOT = async (page, sel, name) => {
   if (!SHOTS) return;
   const box = await page.locator(sel).boundingBox();
@@ -10592,6 +10873,7 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+} // x4a
 
 // 2. Q28 a: one control of each kind the chrome draws, switched off the way the app switches that kind off, changes
 // nothing under the pointer: no color, no edge, no fill, on itself or anything inside it, and it draws no dashed
@@ -10633,6 +10915,7 @@ const HOVER_TOUR = [
   ['type', openTypeAdvanced],
   ['color-fills', async (page) => { await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="fill-pick"]').first()); await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]'); }],
 ];
+if (runs('x4a')) {
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const where = `Q28 a: ${host} ${theme}`;
@@ -10747,6 +11030,7 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+} // x4a
 
 // =============================================================================================
 // 29. #2175 (owner decision PN1 B, 2026-10-05): Pinned is the third neutral source on Color › Palettes
@@ -10759,6 +11043,7 @@ for (const host of ['web', 'figma']) {
 // THE ORACLES, independent of the panel: the PERSISTED brand (web: `prism3:brandInput`, read from storage) and the
 // PREVIEW's neutral anchor pill (both hosts), a separate render path from the levers. The labels, the state line,
 // the typed gray and the section titles are literals here, never read from the source.
+if (runs('29-pinned')) {
 console.log(`\n#2175 — Pinned, the third neutral source\n${'='.repeat(78)}`);
 {
   const PN_LABELS = ['Follow primary', 'Custom tint', 'Pinned'];
@@ -10892,6 +11177,7 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+} // 29-pinned
 
 // =============================================================================================
 // 29d. #2214, the bar's fit (the owner's BL1 A+B, BL2 A, BL3 A and Q83 A, 2026-10-06), both hosts, both themes, swept
@@ -10921,6 +11207,7 @@ for (const host of ['web', 'figma']) {
 // for #2262, (g) the narrow tier's early return put back, (h) no tooltip while the name is cut at the narrow tier. See
 // the progress entries.
 // =============================================================================================
+if (runs('29d')) {
 console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
 {
   const LONG_NAME = 'northwind-outdoor-supply-co';
@@ -10991,6 +11278,7 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
     } finally { await ctx.close(); }
   }
 }
+} // 29d
 
 // =============================================================================================
 // 30. The heading rule (heading pass 1 of 2, TY2 A, approved 2026-10-06): three levels on every page, both hosts, both
@@ -11073,7 +11361,7 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
 //     the style-guides page, which the audit's list names — measured ["brand",…,"components"]` (4, with 16 from its floors);
 //   · one lever name at fw-strong → `TY2 A figma light 1280 / style-guides: L3 "Aliases" (option name) fw 600, want
 //     fw-emphasis 500` (4).
-console.log(`\nThe heading rule (TY2 A, heading pass 1)\n${'='.repeat(78)}`);
+if (runs('30')) console.log(`\nThe heading rule (TY2 A, heading pass 1)\n${'='.repeat(78)}`);
 /** The chrome tokens the rule names, each to its emitted path (a literal map, typed from `chrome/tokens.mjs`'s rows on
  *  2026-10-06; deliberately not imported, so the build's map and this oracle stay two derivations). */
 const HEADING_TOKEN_PATHS = {
@@ -11111,10 +11399,12 @@ const HT = (() => {
   const ink = (name, mode) => { const v = walk(mode, `${root}.${HEADING_TOKEN_PATHS[name]}`); return typeof v === 'string' ? v.toLowerCase() : null; };
   return { ...t, ink: { text: { light: ink('text', 'light'), dark: ink('text', 'dark') }, 'text-2': { light: ink('text-2', 'light'), dark: ink('text-2', 'dark') } } };
 })();
+if (runs('30')) {
 ok(HT['ls-tighter']?.em === -0.03 && HT['ls-snugger']?.em === -0.015, `#2322: the oracle resolved L1's and L2's tracking from the emission, tighter −3% and snugger −1.5% (${JSON.stringify([HT['ls-tighter'], HT['ls-snugger']])})`);
 ok(HT['fs-14'] === 14 && HT['fs-16'] === 16 && HT['fw-strong'] === 600 && HT['fw-emphasis'] === 500 && HT['fw-default'] === 400
   && HT['lh-compact'] === 1.25 && HT['space-150'] === 12 && HT['hit-min'] >= 24 && Object.values(HT.ink).every((m) => /^#[0-9a-f]{6}$/.test(m.light ?? '') && /^#[0-9a-f]{6}$/.test(m.dark ?? '') && m.light !== m.dark),
   `TY2 A: the oracle resolved the rule's chrome tokens from the emission (${JSON.stringify(HT)})`);
+} // 30
 /** Each level's type, as chrome tokens. */
 const LEVEL_TYPE = {
   L1: { fs: 'fs-16', fw: 'fw-strong', ls: 'ls-tighter' },
@@ -11242,7 +11532,7 @@ const openStyleGuides = async (page) => {
   await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
   await settle(page);
 };
-ok(HEADING_EXEMPT.every(([sel, why]) => typeof sel === 'string' && sel && typeof why === 'string' && why.trim().length >= 20),
+if (runs('30')) ok(HEADING_EXEMPT.every(([sel, why]) => typeof sel === 'string' && sel && typeof why === 'string' && why.trim().length >= 20),
   `TY2 A: every heading exemption names a selector and a reason of 20 characters or more (${JSON.stringify(HEADING_EXEMPT)})`);
 /** HEADING PASS 2 (BG1 A #2181, HP5 #2218, TY1 A and HP2 #2190, approved 2026-10-06): the sections whose lever was named
  *  as the section, per page, each with the help text its ⓘ opened BEFORE the pass, typed here from the source of 2026-10-06
@@ -11262,7 +11552,7 @@ const PROMOTED = {
   },
   layout: { Breakpoints: manifest.levers.find((l) => l.key === 'layout.breakpoints')?.description },
 };
-ok(Object.values(PROMOTED).every((p) => Object.values(p).every((t) => typeof t === 'string' && t.length > 20)), `BG1 A: every promoted lever's help text is typed or read from the manifest (${JSON.stringify(PROMOTED)})`);
+if (runs('30')) ok(Object.values(PROMOTED).every((p) => Object.values(p).every((t) => typeof t === 'string' && t.length > 20)), `BG1 A: every promoted lever's help text is typed or read from the manifest (${JSON.stringify(PROMOTED)})`);
 /** BG1 A's subgroup labels, the owner's approved words, exactly (not by their start). */
 const BG1_SUBS = ['Default', 'Inverse'];
 /** TY1 A: each Type section and the lever hook it must hold (and the one it must not); HP2: the old title and description,
@@ -11410,6 +11700,7 @@ const near = (a, b, tol = 0.5) => typeof a === 'number' && Math.abs(a - b) <= to
 const headingCounts = {};
 /** At the narrow tier the levers and the preview are one pane each, behind the pane toggle. */
 const showLevers = async (page, w) => { if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]')); };
+if (runs('30')) {
 for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const where = `TY2 A ${host} ${theme} ${w}`;
@@ -11681,13 +11972,14 @@ console.log(`\nThe view and card titles (#2322)\n${'='.repeat(78)}`);
     await ctx.close();
   }
 }
+} // 30
 
 // =============================================================================================
 // 31. #2213 (owner decisions N1 A and AS1 A, 2026-10-06): the agent link's status in the Activity drawer. The closed
 //     row's short status at its far right, beside the caret; the full status line as the open drawer's first line; and
 //     every text run in the row on one baseline. Plugin, light and dark, 1280 and 380; the web's row for the baseline.
 // =============================================================================================
-console.log(`\nThe agent link's status in the Activity drawer (#2213)\n${'='.repeat(78)}`);
+if (runs('31')) console.log(`\nThe agent link's status in the Activity drawer (#2213)\n${'='.repeat(78)}`);
 /** THE FULL LINE, from the plugin's own formatter, bundled for Node from its source and called here with each state
  *  below. Never read off the page. The SHORT STATUS is not bundled: its words are the owner's (AS1 A), typed below. */
 const LINK_TEXT = await (async () => {
@@ -11706,6 +11998,7 @@ const LINK_STATES = {
 /** What each state must draw, typed from the owner's AS1 A: the closed row's short status and its ink (the chrome
  *  tokens' roles, resolved below from the committed emission, never the stylesheet), or none; and whether the open
  *  drawer's first line shows the full line (while the link is on, or while it holds an inbox error). Literals. */
+if (runs('31')) {
 const LINK_WANT = {
   off: { short: null, full: false },
   // #2909 (Q2909.22 A): while listening, the drawer's right end adds the last command and how long ago it finished, in
@@ -11934,6 +12227,7 @@ for (const theme of ['light', 'dark']) {
     } finally { await ctx.close(); }
   }
 }
+} // 31
 
 // =============================================================================================
 // 33. #2275 (owner decision Q86 B, 2026-10-07: announce errors only): the agent link's short status, announced. When it
@@ -11970,6 +12264,7 @@ for (const theme of ['light', 'dark']) {
 //   On today's code before #2275 (no region): `#2275 figma light 1280: the live region is present from mount, empty and
 //   visually hidden, before any state is posted (read null)` and every step after it (66).
 // =============================================================================================
+if (runs('33')) {
 console.log(`\nThe agent link's status, announced (#2275)\n${'='.repeat(78)}`);
 /** Two states that differ from `LINK_STATES.listening` and `.error` in the full line only. Literals. */
 const LINK_LISTENING_LATER = { ...LINK_STATES.listening, lastCommand: { id: 'c2', cmd: 'apply', ok: true, finishedAt: '2026-10-06T16:41:07.000Z', headline: '✓ applied' } };
@@ -12076,6 +12371,7 @@ for (const theme of ['light', 'dark']) {
     ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 33
 
 // =============================================================================================
 // 30b. #2192 (owner QA, 2026-10-05): Type › Italic styles draws single-select chips, not a segmented control, on both
@@ -12123,6 +12419,7 @@ for (const theme of ['light', 'dark']) {
 //   · a pick that leaves a full-page layer over the chips → `#2192 web light 1280: the case stopped at a step that threw —
 //     locator.click: Timeout 10000ms exceeded. · waiting for locator(…"italic-choice-only"…) · <div class="p3-veil"></div>
 //     intercepts pointer events`. Before #2460 that label ended at "exceeded.".
+if (runs('30b')) {
 console.log(`\nItalic styles chips (#2192)\n${'='.repeat(78)}`);
 /** #2909: the plugin's theme write is Update file's theme step: open it, answer its read with a set-up file, and run the
  *  default checklist (the theme alone, Q2909.2 A). Each step bounded, as a click is. */
@@ -12290,6 +12587,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}${e.applyState ? ` · Apply as it stood (#2486): ${e.applyState}` : ''}`);
   } finally { await ctx.close(); }
 }
+} // 30b
 
 // =============================================================================================
 // #2232: a click on blank space inside the S12 start window keeps focus in the window, and Tab and Shift+Tab then stay
@@ -12303,6 +12601,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
 //   window inert, both keys from <body> land on a control in the window. They hold the behavior once focus is in the
 //   window; they are not evidence for the mutation.
 // =============================================================================================
+if (runs('2232')) {
 console.log('\n#2909 Q2995.2 A. The rail at the plugin\'s least height');
 // The owner's Q2995.2 A: at the plugin's least window height (420, `MIN_SIZE` in apps/plugin/src/main.ts), every rail
 // tile keeps its label and lies inside the window; the logo hides to make the room. EXPECTED is the window's own edge and
@@ -12414,6 +12713,7 @@ for (const { name, patch, keep, why } of NO_HUE_CASES) {
     ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 2232
 
 // =============================================================================================
 // 32. #2176 (the owner's AD1–AD3, 2026-10-05): drag the Activity drawer's top edge to make it taller. Both hosts, both
@@ -12439,7 +12739,7 @@ for (const { name, patch, keep, why } of NO_HUE_CASES) {
 //   (c) the arrow keys ignored                            → `32 … Arrow Up steps the drawer 24px taller …`
 //   (d) the handle shown at 380 (the narrow rule dropped) → `32 … 380: the open sheet draws no handle …`
 //   (e) the pill on the border, not inside it             → `32 … the pill sits inside the drawer, below its top border …`
-console.log('\n32. #2176: drag the Activity drawer taller (AD1–AD3)');
+if (runs('32')) console.log('\n32. #2176: drag the Activity drawer taller (AD1–AD3)');
 /** AD3, approved: the handle's accessible name. Literal. */
 const GRIP_NAME = 'Resize Activity';
 /** One Arrow Up or Arrow Down, in CSS pixels. Literal. */
@@ -12506,6 +12806,7 @@ const openDrawer = async (page) => {
 const fx = (n) => (typeof n === 'number' ? Math.round(n * 10) / 10 : n);
 // #2909 Q2909.9 A: the studio's drawer is never drawn (no Activity tile on its rail, and it runs no write), so its kept
 // height is the plugin's alone to hold.
+if (runs('32')) {
 for (const host of ['figma']) for (const theme of ['light', 'dark']) {
   const where = `32 ${host} ${theme} 1280`;
   const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
@@ -12684,6 +12985,7 @@ for (const [form, pin] of [['stored hue 0', { l: 0.3211, c: 1.2e-8, h: 0 }], ['l
     ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 32
 
 // =============================================================================================
 // 34. #2272: the switcher's tooltip follows the name's own cut, not the `trim` step. The frame picks a step from one
@@ -12776,6 +13078,7 @@ const roShowMode = async (page, mode) => {
 };
 /** Under the levers pane, from the accessibility tree: the controls it reports enabled (with their hook, read off the
  *  DOM node the tree names) and how many it reports disabled, and every name it holds. */
+if (runs('35')) {
 const roAxUnderPane = async (page) => {
   const cdp = await page.context().newCDPSession(page);
   try {
@@ -13178,6 +13481,7 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+} // 35
 // =============================================================================================
 // 36. #2321 (owner decisions Q111 and PM1 B, 2026-10-08): on Palettes the mode control is held, in the standard
 //     disabled skin, and Palettes always shows Light; leaving it puts back the mode the person had
@@ -13199,6 +13503,7 @@ for (const host of ['web', 'figma']) {
 // Mutations, each in a `wip:` commit, each failing by name (the PR records the lines): (a) the control left live on
 // Palettes; (b) the control held on Surfaces & fills; (c) the Light pin dropped, so Palettes draws Dark; (d) the mode
 // the person had not put back on the way out.
+if (runs('36')) {
 const PM_FROM = ['dark', 'hc-light', 'hc-dark'];
 const PM_LIVE_PLACES = ['brand', 'color-fills', 'color-interactive', 'type', 'depth', 'shape', 'layout', 'components'];
 const PM_LINE = 'Palettes always show Light. Ramps are the same in every mode.';
@@ -13337,6 +13642,7 @@ for (const host of ['web', 'figma']) {
     }
   }
 }
+} // 36
 // =============================================================================================
 // 37. #2212: every page's heading outline, read from the browser's accessibility tree
 // =============================================================================================
@@ -13348,6 +13654,7 @@ for (const host of ['web', 'figma']) {
 // Mutations, each failing here by name (the PR records the lines): the frame's h1 left out; a levers section title back
 // at h3; a row list's sub-heading back at h4; the preview's sub-head back at h3 is not a skip (3 then 3) and is not
 // asserted here: the level rule is "no skip", and section 30 holds the levers' visual levels.
+if (runs('37')) {
 const PAGE_H1 = { brand: 'Brand', 'color-palettes': 'Palettes', 'color-fills': 'Surfaces & fills', 'color-interactive': 'Interactive',
   type: 'Type', shape: 'Shape', depth: 'Depth & motion', layout: 'Layout', components: 'Components' };
 /** #2909: the plugin's Build style guides page became the Documentation area's Style guides tab, under the area's h1. */
@@ -13413,6 +13720,7 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+} // 37
 // =============================================================================================
 // 40. #1821: the current page, the current Color page and the previewed mode, as assistive technology reads them
 // =============================================================================================
@@ -13437,6 +13745,7 @@ for (const host of ['web', 'figma']) {
 // here, never read from `pages.ts`, `frame.ts` or `preview.ts`. Every case is counted, so a skipped one fails.
 // Mutations, each in a `wip:` commit, each failing here by name (the PR records the lines): (a) the tab row's selection
 // left out; (b) the sub-row's selection left out; (c) two tabs marked selected.
+if (runs('40')) {
 const CS_TABS = ['Brand', 'Color', 'Type', 'Shape', 'Depth & motion', 'Layout', 'Components'];
 const CS_SUBS = ['Palettes', 'Surfaces & fills', 'Interactive'];
 /** Each place: the domain the tab row must report, and the Color page the sub-row must report (null: no sub-row). */
@@ -13640,6 +13949,7 @@ for (const host of ['web', 'figma']) {
     } finally { await page.close(); }
   }
 }
+} // 40
 // =============================================================================================
 // 38. #1975 and #2105: the two panes at the widths between the tiers, and the narrow plugin's bar over its error line
 // =============================================================================================
@@ -13652,6 +13962,7 @@ for (const host of ['web', 'figma']) {
 // `#1975 web light 640: interactive (color-sub-interactive) takes a pointer at its center — is under another element at
 // its center, …`; the segmented choices' wrap removed → `#1975 web light 640: the levers fit their pane on every moved
 // page (9 read) — color-palettes scrollWidth 405 > clientWidth 268 | …`.
+if (runs('38')) {
 const SUB_TABS_1975 = [['color-palettes', 'color-sub-palettes'], ['color-fills', 'color-sub-fills'], ['color-interactive', 'color-sub-interactive']];
 const MOVED_1975 = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
 console.log(`\nThe two panes between the tiers (#1975) and the narrow plugin's error line (#2105)\n${'='.repeat(78)}`);
@@ -13729,6 +14040,7 @@ for (const [theme, H] of [['light', 420], ['dark', 420], ['light', 300]]) {
     ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 38
 // =============================================================================================
 // 41. #2383: the preview header's mode select shows its whole selected label, and the header never runs sideways
 // =============================================================================================
@@ -13749,6 +14061,7 @@ for (const [theme, H] of [['light', 420], ['dark', 420], ['light', 300]]) {
 // Mutation (in a `wip:` commit): the select's wrap given back `flex: 0 1 auto; min-width: 0` and the select `width:
 // 100%`, so it shrinks below its text → `#2383 web light 640 on color-interactive in light: the mode select shows its
 // whole label …` fails by name.
+if (runs('41')) {
 console.log(`\n#2383: the preview header's mode select shows its whole label\n${'='.repeat(78)}`);
 /** The select's chosen option reads this, then " · " and the mode's verdict (which this check does not read). Literal. */
 const MS_LABEL = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light (derived)', 'hc-dark': 'HC dark (derived)' };
@@ -13849,6 +14162,7 @@ for (const host of ['web', 'figma']) {
     }
   }
 }
+} // 41
 // =============================================================================================
 // 39. #1855: forced colors (Windows High Contrast). Every state the chrome draws by a fill, an edge or an ink alone
 //     survives, in the system's colors; the brand's color specimens keep their real colors; only a selected control
@@ -13893,6 +14207,7 @@ for (const host of ['web', 'figma']) {
 // white; (d) the opt-out taken off the selected chip, so the backplate hides its label (only the drawn check sees it);
 // (e) the opt-out on every value and step, selected or not; (f) the selected value's sample rule dropped, so the chrome's
 // ink sits on the Highlight fill.
+if (runs('39')) {
 const FC_KEYS = ['Canvas', 'CanvasText', 'Highlight', 'HighlightText', 'GrayText'];
 /** Each case, by name; every one must run on every host and theme (Agent and Activity on the plugin only). */
 const FC_CASES = ['oracle', 'segment', 'tab', 'held modes', 'palettes specimens', 'controls opt in', 'chip', 'mode check', 'focus rings',
@@ -14285,6 +14600,7 @@ for (const host of ['web', 'figma']) {
     }
   }
 }
+} // 39
 // =============================================================================================
 // 42. #2233: the choice rows' accessibility, on Type › Type scale (the rows `choice()` draws and `stateLine` annotates).
 //     Both hosts, light, 1280. Five arms, one per defect:
@@ -14338,6 +14654,7 @@ for (const host of ['web', 'figma']) {
 //   #2472: (g) `syncLive` puts a new region in the holder before `sayLines` fills it → `§42 web light 1280 Aurora: (5) back
 //     on Type, the Type scale row's new region is put in the document already saying the refused-Compact line, …`.
 // =============================================================================================
+if (runs('42')) {
 console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after Release (#2233)\n${'='.repeat(78)}`);
 {
   const CLASH = 'Some sizes you set would clash at this scale. Release them to switch.';
@@ -14524,6 +14841,7 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
     }
   }
 }
+} // 42
 // =============================================================================================
 // 43. #2451 (owner decision RS1 A, 2026-10-10): the three refusals that said their reason only in `title` draw it as a
 //     hint line under their chips, only while the chip is refused, and that line describes the chips' group, as Type
@@ -14555,6 +14873,7 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //   · (c) the line sent to the live region (drawn as a warning) → `§43 web light 1280 Title floor 16px under Compact: (iii) a
 //     hint doesn't announce: the drawn reason is in no live region (drawn 1, 1 live region(s) carrying it)`, each case (12).
 // =============================================================================================
+if (runs('43')) {
 console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only (#2451)\n${'='.repeat(78)}`);
 {
   const COMPACT = 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.';
@@ -14666,6 +14985,7 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only 
     } finally { await ctx.close(); }
   }
 }
+} // 43
 // =============================================================================================
 // 44. #2487 PR 1 (A1, A2, A5, A6, A8, A11, A12): a committed field writes once and keeps focus; a page change, a host
 //     update, a failure sheet or a progress repaint leaves focus on a control, never on BODY. Light, prism3.
@@ -14702,6 +15022,7 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only 
 //   · `frame.ts`'s refocus removed → both A5 arms; `activity.ts`'s focus move → the A8 toggle arm; its Escape → the A8
 //     Escape arm; `figma.ts`'s refocus → both A11 arms; the summary's `data-key`, or its kept open state → the A12 arm.
 // =============================================================================================
+if (runs('44')) {
 console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`);
 {
   const BOUND = { timeout: 10000 };
@@ -14911,6 +15232,7 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
     } finally { await ctx.close(); }
   }
 }
+} // 44
 // =============================================================================================
 // 45. #2487 PR 4 (findings D2, D5, D6, B2's Q195, and owner decisions Q196, Q197): names, landmarks, the selected
 //     segment and the display-only specimens, as the browser's accessibility tree and the keyboard read them. Both hosts,
@@ -14941,6 +15263,7 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
 //   · `b.inert = true` removed (preview/sections/interactive.ts) → `#2487 web light 1280 / color-interactive: Q196 Tab
 //     never lands on a specimen …` and `… the accessibility tree exposes no specimen as a button …`, on Brand too.
 // The 2px ring on the legacy controls (B2) is section 27's: its sweep reads them by name (B2_RING_NEEDS).
+if (runs('45')) {
 console.log(`\n#2487 names, landmarks, the selected segment and the display-only specimens\n${'='.repeat(78)}`);
 {
   const LANDMARK_ROLES = ['banner', 'navigation', 'region', 'main', 'complementary', 'contentinfo', 'form', 'search'];
@@ -15094,6 +15417,7 @@ console.log(`\n#2487 names, landmarks, the selected segment and the display-only
     }
   }
 }
+} // 45
 // =============================================================================================
 // §46 — DRAG AND REBUILD SPEED (#2487 PR 2: B1, A9, A10, A13; the merged review, comment 6098371348 §4)
 // =============================================================================================
@@ -15118,6 +15442,7 @@ console.log(`\n#2487 names, landmarks, the selected segment and the display-only
 // the re-measure arm; `onCommitted` reading the field when its task runs → the capture arm; `perFrame` running every
 // input at once → the picker's re-resolve arm; the export dialog rebuilt on every paint → the A10 arm (figma 1280).
 // =============================================================================================
+if (runs('46')) {
 console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
 {
   const BOUND = { timeout: 10000 };
@@ -15268,6 +15593,7 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
   } finally { await ctx.close(); }
 }
 }
+} // 46
 // =============================================================================================
 // 47. #2487 PR 5 (B3 and A16; Lane D's M2, M4 and M5, Lane A's K2): every control the chrome draws has a computed name,
 //     the pane toggle's pressed state follows the pane shown, a menu's or a dialog's controls draw the ring, and a
@@ -15292,6 +15618,7 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
 // removed (nameless at 380, where its words are hidden); K2, `.p3-menu-item` dropped from the ring rule; and a hover
 // that draws a filled button's hovered fill too light for its ink.
 /** The roles that must carry a name: every control role the tree gives (`RO_AX_CONTROLS`), and the composites. */
+if (runs('47')) {
 const PR5_NAMED = new Set([...RO_AX_CONTROLS, 'tablist', 'radiogroup', 'menu', 'dialog']);
 /** Left out by hook: the lent legacy views. Brand content (`[data-content]`) is left out too. */
 const PR5_SKIP = new Set(INSPECT_LEGACY.map((s) => hooks.role(s)));
@@ -15586,6 +15913,7 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+} // 47
 // =============================================================================================
 // §47 — ONE MENU BUTTON (#2487 PR 6, B5: the menu button's three copies had drifted)
 // =============================================================================================
@@ -15599,6 +15927,7 @@ for (const host of ['web', 'figma']) {
 // `stopPropagation` removed → every `Escape … goes no further` arm; one menu back on its own copy without either → its
 // own two arms (Theme, the drift the review found).
 // =============================================================================================
+if (runs('47-menu')) {
 console.log(`\nOne menu button (#2487 PR 6)\n${'='.repeat(78)}`);
 for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], ['Inspect', 'inspect-open', 'inspect-menu']]], ['figma', [['Theme', 'theme-toggle', 'theme-menu'], ['Inspect', 'inspect-open', 'inspect-menu']]]]) {
   const where = `§47 ${host} light 1280`;
@@ -15636,6 +15965,7 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+} // 47-menu
 // =============================================================================================
 // IA v2 phase 2 (#2909): the tiers, one home per lever, the engine's warnings on their levers, and what is due
 // =============================================================================================
@@ -15663,6 +15993,7 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
 //     the run checks the fewer sets again against the file's stored brand …` (#3023);
 //   · the re-tick from a toggle's answer (`if (rechecking && ticks) …`) deleted → `IA2 figma … a Theme toggle ticks the
 //     due sets from its own answer …` (#3023).
+if (runs('ia2')) {
 console.log(`\nIA v2 phase 2 (#2909) — tiers, lever homes, engine warnings, what is due\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
   const where = `IA2 ${host} ${theme} 1280`;
@@ -15869,18 +16200,70 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
-// #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
-for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
-hooks.report(ok);
-// THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
-{
-  const hit = EXEMPTIONS.filter(([, n]) => n > 0);
-  const total = hit.reduce((a, [, n]) => a + n, 0);
-  console.log(`\nContrast exemption (inactive controls, WCAG 2.2 SC 1.4.3 and 1.4.11; F1 A, X4 A): ${total} node(s) exempted in ${hit.length} of ${EXEMPTIONS.length} probes.`);
-  for (const [where, n, what] of hit) console.log(`  ${where}: ${n} — ${what.join(', ')}`);
+} // ia2
+// ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
+// The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
+// readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
+// shards saw, and runs them once, where the whole suite runs them itself.
+enter('end');
+if (MODE === 'list') {
+  console.log(`SECTIONS ${JSON.stringify(REACHED)}`);
+  server.close();
+  process.exit(0);
 }
-console.log(`\nLowest chrome text ${lows.text}:1, lowest edge or indicator ${lows.edge}:1, lowest focus ring ${lows.focus}:1, smallest target ${lows.target.toFixed(1)}px.`);
-console.log(`${executed - failed}/${executed} chrome assertions passed.`);
-await browser.close();
+let shardRecords = [];
+if (MODE === 'merge') {
+  let files = [];
+  try { files = readdirSync(RECORD_DIR).filter((f) => /^shard-.+\.json$/.test(f)).sort(); } catch {}
+  if (!files.length) {
+    console.error(`✗ --merge found no shard record (shard-<n>.json) in ${relative(REPO, RECORD_DIR)}: run the shards first.`);
+    process.exit(1);
+  }
+  shardRecords = files.map((f) => JSON.parse(readFileSync(join(RECORD_DIR, f), 'utf8')));
+  for (const r of shardRecords) {
+    for (const k of Object.keys(BOXES_BY)) BOXES_BY[k] += r.boxes[k] ?? 0;
+    hooks.saw(r.hooksSeen);
+    EXEMPTIONS.push(...r.exemptions);
+    for (const k of Object.keys(lows)) lows[k] = Math.min(lows[k], r.lows[k] ?? Infinity);
+  }
+  console.log(`\nThe end-of-run checks over ${files.length} shard record(s): ${files.join(', ')}\n${'='.repeat(78)}`);
+}
+if (!SHARD) {
+  // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
+  for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
+  hooks.report(ok);
+  // THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
+  {
+    const hit = EXEMPTIONS.filter(([, n]) => n > 0);
+    const total = hit.reduce((a, [, n]) => a + n, 0);
+    console.log(`\nContrast exemption (inactive controls, WCAG 2.2 SC 1.4.3 and 1.4.11; F1 A, X4 A): ${total} node(s) exempted in ${hit.length} of ${EXEMPTIONS.length} probes.`);
+    for (const [where, n, what] of hit) console.log(`  ${where}: ${n} — ${what.join(', ')}`);
+  }
+  console.log(`\nLowest chrome text ${lows.text}:1, lowest edge or indicator ${lows.edge}:1, lowest focus ring ${lows.focus}:1, smallest target ${lows.target.toFixed(1)}px.`);
+}
+enter(null);
+console.log(`${executed - failed}/${executed} chrome assertions passed${SHARD ? ` in shard ${SHARD} (sections ${SHARDS[SHARD].join(', ')})` : ''}.`);
+if (MODE === 'merge') {
+  const all = shardRecords.reduce((a, r) => a + r.executed, executed);
+  const bad = shardRecords.reduce((a, r) => a + r.failed, failed);
+  console.log(`${all - bad}/${all} chrome assertions passed across the ${shardRecords.length} shard(s) and the end-of-run checks.`);
+}
+// A shard map that names a section the suite does not have would run nothing for it and say nothing.
+const unknown = SHARD ? SHARDS[SHARD].filter((id) => !REACHED.includes(id)) : [];
+for (const id of unknown) console.error(`✗ chrome-shards.mjs gives shard ${SHARD} section "${id}", which this suite does not have.`);
+// THE RECORD (#2898): every assertion this run made, under its section, and what the end-of-run checks read.
+const record = {
+  run: MODE === 'merge' ? 'merge' : SHARD ? `shard ${SHARD}` : 'all', sections: [...SECTION.values()].map((x) => ({ ...x, ms: Math.round(x.ms) })),
+  boxes: BOXES_BY, hooksSeen: [...hooks.seen].sort(), exemptions: EXEMPTIONS,
+  lows: Object.fromEntries(Object.entries(lows).map(([k, v]) => [k, Number.isFinite(v) ? v : null])), executed, failed,
+};
+const recordFile = MODE === 'merge' ? 'merge.json' : SHARD ? `shard-${SHARD}.json` : 'all.json';
+// A whole run replaces every record; a shard replaces the records of runs it is not part of.
+if (MODE === 'run' && !SHARD) rmSync(RECORD_DIR, { recursive: true, force: true });
+if (SHARD) for (const f of ['all.json', 'merge.json']) rmSync(join(RECORD_DIR, f), { force: true });
+mkdirSync(RECORD_DIR, { recursive: true });
+writeFileSync(join(RECORD_DIR, recordFile), `${JSON.stringify(record)}\n`);
+console.log(`Record: ${relative(REPO, join(RECORD_DIR, recordFile))}.`);
+await browser?.close();
 server.close();
-if (failed) process.exit(1);
+if (failed || unknown.length) process.exit(1);

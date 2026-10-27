@@ -1692,6 +1692,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-docs-cardtitle { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); }
 .p3-docs-card > p { margin: 0; }
 .p3-docs-card > [hidden] { display: none; }
+.p3-docs-card > .p3-btn { justify-self: start; }
 
 /* ── Export as an area (#2909): the export dialog's parts as a page, never modal ─────────────────────── */
 .p3-export-host { display: contents; }

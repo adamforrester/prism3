@@ -41,8 +41,8 @@ export type SgRunTable = { readonly key: string; readonly title: string; readonl
 /** Whose detail row is open, at most one. */
 export type DetailKey = 'apply' | 'components' | 'filesetup' | 'styleguide';
 /** The operations the Activity drawer shows (UI redesign S11): the four writes with a verdict slot, the
- *  prune, and the boot read-back. */
-export type OpKey = DetailKey | 'prune' | 'readback';
+ *  prune, the boot read-back, and Draw specs (#2830, owner decision Q713 A: a row of its own, like Style guides). */
+export type OpKey = DetailKey | 'prune' | 'readback' | 'specs';
 /** The operation an agent command runs, by the command's name. `status` writes nothing and posts no
  *  verdict, so it has none. Keyed by the plugin's `AgentCmd` names, which arrive as strings. */
 export const AGENT_OP: Readonly<Record<string, OpKey>> = {
@@ -51,6 +51,8 @@ export const AGENT_OP: Readonly<Record<string, OpKey>> = {
   // #2265: the update's dry run and the baseline capture read every set and hold the build's guard, so they
   // are the components operation. Only the agent link sends them today.
   'update-components': 'components', 'capture-baseline': 'components', 'adopt-members': 'components',
+  // #2830 Q713 A: Draw specs is its own row. It holds the build's guard (`run-guard.ts`), so a refusal names the build.
+  'draw-specs': 'specs',
 };
 /** Which operation's verdict a host message is. */
 const VERDICT_OP: Partial<Record<HostMessage['kind'], OpKey>> = {
@@ -110,6 +112,11 @@ export interface HostSession {
   readonly componentUpdate: Verdict | null;
   /** Which of the two the components operation last reported (#2265), so the Activity row shows the newer one. */
   readonly componentLatest: 'build' | 'update' | null;
+  /** Documentation › Specs' Draw specs (#2830 Q2830.3 A): `pending` from its post to its verdict, which the host sends
+   *  as a `component-update-result` (the agent's `draw-specs` verdict, one action), or to a refusal; then that verdict.
+   *  The panel posts no other components write while it is pending (`componentBusy`), so the next one is its own.
+   *  An agent's `draw-specs` verdict lands here too, as an agent's style guide lands in `styleGuideState`. */
+  readonly specsState: ActionState;
   /** The state of the file-setup scaffold (#1558) — same shape, its own slot, for the same reason
    *  `componentState` is separate from `applyState`: three actions, three buttons, three verdicts. A
    *  file-setup verdict cannot report into the theme or component write's pill without claiming something
@@ -230,6 +237,7 @@ export const initialHostSession = (): HostSession => ({
   componentState: null,
   componentUpdate: null,
   componentLatest: null,
+  specsState: null,
   fileSetupState: null,
   styleGuideState: null,
   componentProgress: null,
@@ -266,13 +274,17 @@ const unpend = (op: OpKey, s: HostSession): Partial<HostSession> => {
     case 'styleguide': return s.styleGuideState === 'pending' ? { styleGuideState: null, styleGuideProgress: null } : {};
     case 'prune': return s.pruneBusy === 'delete' ? { pruneBusy: false } : {};
     case 'readback': return {};
+    // A refusal names the build's guard, never Specs; a declined Draw specs gets its result in `refused` itself.
+    case 'specs': return {};
   }
 };
 
 /** The session with the agent's run marked settled, when `m` is that run's verdict. */
 const settleAgent = (s: HostSession, m: HostMessage): HostSession => {
   const r = s.agentRun;
-  return r && !r.settled && VERDICT_OP[m.kind] === r.op ? { ...s, agentRun: { ...r, settled: true, progress: null } } : s;
+  // Draw specs' verdict is a `component-update-result`, the components operation's kind; on its run it is its own.
+  const op = r?.op === 'specs' && m.kind === 'component-update-result' ? 'specs' : VERDICT_OP[m.kind];
+  return r && !r.settled && op === r.op ? { ...s, agentRun: { ...r, settled: true, progress: null } } : s;
 };
 
 /**
@@ -317,10 +329,14 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'refused': {
       const op = AGENT_OP[m.cmd];
       if (!op || op === 'readback') return s;
-      const next = { ...s, refused: { op, message: m.message, agent: m.agent, n: (s.refused?.n ?? 0) + 1 } };
+      // Draw specs, declined: it gets no verdict, so the host's words are its result.
+      const specs = op === 'components' && !m.agent && s.specsState === 'pending' ? { specsState: { ok: false, headline: '✗ not drawn', summary: m.message } } : {};
+      const next = { ...s, ...specs, refused: { op, message: m.message, agent: m.agent, n: (s.refused?.n ?? 0) + 1 } };
       // The panel's own request, declined behind an agent's run: it posted, set `pending`, and will get no
       // verdict. A panel request declined behind the panel's own run leaves `pending` to that run's verdict.
-      if (m.agent || s.agentRun?.op !== op) return next;
+      // An agent's Draw specs holds the build's guard, so it declines the panel's components request too.
+      const holds = s.agentRun?.op === 'specs' ? 'components' : s.agentRun?.op;
+      if (m.agent || holds !== op) return next;
       return { ...next, ...unpend(op, s) };
     }
     case 'restore-input-error':
@@ -340,6 +356,9 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       return { ...s, componentState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, openDetail: m.ok ? null : 'components', componentProgress: null, componentDef: null, setBuilds, componentLatest: 'build' };
     }
     case 'component-update-result':
+      // Draw specs' verdict, the panel's or an agent's, is Specs' alone (Q713 A): the components row never shows it.
+      if (s.specsState === 'pending' || (prev.agentRun?.op === 'specs' && !prev.agentRun.settled))
+        return { ...s, specsState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines } };
       // The build's slot, its progress and its set record are left alone: a check is not a build.
       return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, publish: m.publish }, componentLatest: 'update' };
     case 'file-setup-result':

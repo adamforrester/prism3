@@ -90,7 +90,7 @@ export const SEARCH_DESC = 'How Search field draws its edge, apart from the othe
 // #2905 Q10 A: wireframe v2's words, as Field options' and Button options' are.
 export const TAG_DESC = 'How tags draw their shape.';
 // #2958: DRAFT for the owner (Q1 on #2958), in Tag's pattern.
-export const DIALOG_DESC = 'How dialogs size their title.';
+export const DIALOG_DESC = 'How dialogs size their title and the surface they sit on.';
 // #2924: DRAFT for the owner (Q2 on #2924), the wireframe's section line.
 export const BANNER_DESC = 'How banners draw their surface and edge.';
 // #2909 Q2909.4 A: DRAFT for the owner (Q2909.10 A), after the round-4 wireframe's block.
@@ -373,7 +373,8 @@ export const DOMAINS = [
       // Q578 part 2 (A): Tag style's one home, drawn in the Tag section's Tag options block (`domains/tag-options.ts`).
       { title: 'Tag', desc: TAG_DESC, rows: [{ ctl: 'chips', keys: ['tagStyle'], drive: 'tag' }] },
       // #2958: Dialog title size's one home, drawn in the Dialog section's Dialog options block (`domains/dialog-options.ts`).
-      { title: 'Dialog', desc: DIALOG_DESC, rows: [{ ctl: 'chips', keys: ['dialogTitleSize'], drive: 'dialog' }] },
+      // #3049: Dialog surface's one home, the same block, below it.
+      { title: 'Dialog', desc: DIALOG_DESC, rows: [{ ctl: 'chips', keys: ['dialogTitleSize'], drive: 'dialog' }, { ctl: 'chips', keys: ['raisedSurface'], drive: 'dialog' }] },
       // #2924: Banner style's one home, drawn in the Banner section's Banner options block (`domains/banner-options.ts`).
       { title: 'Banner', desc: BANNER_DESC, rows: [{ ctl: 'chips', keys: ['bannerStyle'], drive: 'banner' }] },
       { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },

@@ -757,6 +757,16 @@ export const GATES: Gate[] = [
     timeoutS: 5400,
   },
   {
+    // #2898: CI runs the suite above in shards; this holds what they ran to the sections the unsharded suite lists,
+    // each exactly once, then runs the suite's end-of-run checks over every shard. Here it reads the whole run's
+    // record (`apps/studio/chrome-record/all.json`), which must name every section once and its own end-of-run checks.
+    id: 'chrome-shards',
+    ciStep: 'Every chrome section ran in exactly one shard (#2898)',
+    cmd: ws('@prism3/studio', 'test:chrome-shards'),
+    after: ['chrome'],
+    why: 'it reads the record the chrome suite writes',
+  },
+  {
     // #2351 gap 1: the web and plugin token exports of every committed brand are byte-identical to each
     // other and to out/<id>.tokens.json. It downloads from BOTH built bundles, so it runs after both builds.
     id: 'export-parity',

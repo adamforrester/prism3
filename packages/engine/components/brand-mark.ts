@@ -2,7 +2,7 @@
  * Brand mark — a provider's own mark, drawn as the provider supplies it (#2316, #2343 proposal §1).
  *
  * No KB brief. Category `foundations`, beside Icon: it is the second icon type, a glyph other components
- * carry (a sign-in button's provider glyph, a card field's network mark, a footer's social links), never a
+ * carry (a sign-in button's provider glyph, a payment field's card mark, a footer's social links), never a
  * control of its own. The proposal on #2343 (2026-10-25) and the owner's calls on it (2026-10-26) are the
  * source; its open points are in `notes`.
  *
@@ -17,13 +17,25 @@
  * folds into an assets-panel folder. The projector resolves this def's glyph against the mark vocabulary
  * (`BRAND_MARK_DOCUMENTS`) rather than the icon set, and writes the document with its literal fills.
  *
- * NO COUNT IN THE PROSE. The owner will supply about a dozen providers (Q-B7 amended); the list is data, so
- * nothing here states how many marks there are. `lint-icon-count.ts` holds this def's prose to that.
+ * A PAYMENT MARK IS A TILE, AND THE COMPONENT DRAWS ITS EDGE (owner decisions Q720 A, Q780 A). The `payment/` files are
+ * full-bleed: square corners, no border, the tile's ground kept, because a colored ground is part of the provider's
+ * mark. The glyph's own frame rounds the corners and draws the 1px edge from the theme (`tileEdge`), and clips the
+ * artwork to the rounded corners. Bound, not baked, so the corner and the edge are the same at every height a host
+ * binds and in every mode; baked into the file, they would scale with the artwork. Square marks and logos have no
+ * edge. Two gates hold the two halves: `lint-mark-colors.ts` the edge bound on every payment tile (TILE EDGE), and
+ * `lint-glyph-geometry.ts` no tile file baking one (TILE BAKED, TILE BORDER BAKED).
+ *
+ * NO COUNT IN THE PROSE. The provider list is data (Q-B7 amended), so nothing here states how many marks there are. `lint-icon-count.ts` holds this def's prose to that.
  */
 import { ComponentDef } from '../component-schema';
 // The vocabulary, imported rather than restated: `emit-marks.ts` proves it matches the authored mapping and
 // the folder in both directions, and that every file has a provenance record.
 import { BRAND_MARK_NAMES } from '../brand-mark-glyphs';
+import { BRAND_MARK_KINDS } from '../brand-mark-set';
+
+/** The marks drawn on the tile artboard, read from the vocabulary by kind, so a payment provider added to the set is a
+ *  tile the day it lands: the tile edge below names these members and no other. */
+const TILE_MARKS = BRAND_MARK_NAMES.filter((n) => BRAND_MARK_KINDS[n.split('/')[0]] === 'tile');
 
 export const brandMark: ComponentDef = {
   id: 'brand-mark',
@@ -31,13 +43,13 @@ export const brandMark: ComponentDef = {
   aliases: ['logo-mark', 'provider-logo', 'payment-mark', 'social-mark'],
   category: 'foundations',
   status: 'draft',
-  summary: 'A provider\'s own mark, in its own colors: sign-in, wallet, card and social. Never retinted.',
+  summary: 'A provider\'s own mark, in its own colors: sign-in, payment and social. Never retinted.',
   description:
-    'A provider\'s mark, drawn as the provider supplies it: the glyph a sign-in or wallet button carries, a card network\'s mark in a payment field, a social network\'s mark in a footer link. The colors are the provider\'s and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, card marks 32 by 20, and wallet lockups 24 high at the provider\'s width.',
+    'A provider\'s mark, drawn as the provider supplies it: the glyph a sign-in button carries, a payment provider\'s tile or logo, a social network\'s mark in a footer link. The colors are the provider\'s and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, payment tiles 32 by 20, and logos 24 high at their own width. A payment tile\'s corners and its edge come from the theme, the same at every size.',
 
   props: [
-    { name: 'name', type: 'enum: BrandMarkName', values: [...BRAND_MARK_NAMES], required: true, description: 'Which mark, as kind and provider: card/visa, provider/google, social/instagram-mono. The list is generated from the mark set, so an unknown name fails at compile time, and a provider added to the set reaches the list the day it lands.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The height: 20, 24 or 32px, from the icon size tokens. The width follows from the mark\'s own proportion, so a card mark stays 8 by 5 and a wallet lockup keeps its width.' },
+    { name: 'name', type: 'enum: BrandMarkName', values: [...BRAND_MARK_NAMES], required: true, description: 'Which mark, as kind and provider: payment/visa, logo/apple-pay, provider/google, social/instagram-mono. The list is generated from the mark set, so an unknown name fails at compile time, and a provider added to the set reaches the list the day it lands.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The height: 20, 24 or 32px, from the icon size tokens. The width follows from the mark\'s own proportion, so a payment tile stays 8 by 5 and a logo keeps its width.' },
     { name: 'label', type: 'string', required: false, description: 'The accessible name, when the mark carries information the page states nowhere else, as in a row of accepted cards: the mark then has role="img" and aria-label. Without a label it is decorative and hidden from assistive tech, which is right inside a button or link whose own text or label names the provider.' },
   ],
 
@@ -54,7 +66,14 @@ export const brandMark: ComponentDef = {
     'size.small': 'icon.size.sm',
     'size.medium': 'icon.size.md',
     'size.large': 'icon.size.lg',
+    // A payment tile's edge (Q720 A), existing roles only: the brand's small corner, the hairline, and the default
+    // decorative border, so a white tile still reads as a card on a white page.
+    'tile.radius': 'radius.sm',
+    'tile.border-width': 'border-width.hairline',
+    'tile.border': 'color.border.primary',
   },
+  // The one paint this def binds is the tile's edge. The artwork takes none: the projector skips this def's glyph ink.
+  paintKeys: ['tile.{slot}'],
 
   anatomy: {
     root: 'glyph',
@@ -64,13 +83,14 @@ export const brandMark: ComponentDef = {
         role: 'target',
         // Resolved against the mark vocabulary, by the member's own name.
         glyph: '{name}',
-        note: 'The mark itself, on its kind\'s artboard, in the provider\'s colors. It takes no ink from the component around it.',
+        tileEdge: { when: { name: TILE_MARKS }, radius: 'tile.radius', strokeWidth: 'tile.border-width' },
+        note: 'The mark itself, on its kind\'s artboard, in the provider\'s colors. It takes no ink from the component around it. On a payment tile the frame rounds the corners and draws a 1px edge from the theme, over artwork drawn full-bleed.',
       },
     },
     codeOnly: [
       'label routing — the accessibility contract is a DOM shape: with a label, role="img" and aria-label; without one, aria-hidden="true". Figma has no accessibility tree, and the two are pixel-identical, so the Figma leg cannot carry it.',
       'forced colors — under forced-colors mode the browser would repaint the mark in system colors, which is the retint the provider forbids. The mark sets forced-color-adjust: none on itself only, so the text and focus ring around it still follow the user\'s colors.',
-      'swapping the artwork in code — the package exports the marks as a name-to-SVG map, and an app may pass its own map with the same names to a BrandMarkProvider, so a brand\'s licensed artwork replaces the placeholders without forking a component (proposal §1.3, owner decision Q-B3 A).',
+      'swapping the artwork in code — the package exports the marks as a name-to-SVG map, and an app may pass its own map with the same names to a BrandMarkProvider, so a brand\'s licensed artwork replaces these without forking a component (proposal §1.3, owner decision Q-B3 A).',
       'gradient ids — a mark with a gradient names it by id inside its own SVG. Two copies inline on one page share the id, and the second resolves to the first, so the code projection makes each instance\'s ids unique. Figma imports each mark once, where the collision cannot happen.',
       'width from the proportion — the host binds the height; the width is the height times the mark\'s artboard ratio. In code the SVG keeps its viewBox and width: auto. In Figma the host\'s slot is locked to the ratio (#2343 PR 2).',
     ],
@@ -120,7 +140,7 @@ export const brandMark: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Show a provider\'s mark, in the provider\'s colors and proportion, decorative or named.',
-    whenToUse: 'Wherever a provider\'s service is named: in a sign-in or wallet button, a card field or a social link, and on its own, named by label, in a row of accepted cards.',
+    whenToUse: 'Wherever a provider\'s service is named: in a sign-in or wallet button, a payment field or a social link, and on its own, named by label, in a row of accepted payments.',
     avoidWhen:
       'For a generic concept glyph, use Icon: a mark identifies one provider and is never retinted. Never as a button on its own: a sign-in or social action is a button or link whose label names the provider, with the mark inside it, decorative. Never for a provider whose artwork is not in the set.',
     commonPartners: ['icon', 'link', 'button'],
@@ -143,17 +163,19 @@ export const brandMark: ComponentDef = {
 
   notes: {
     contested: [
-      'Which providers ship: the owner will supply about a dozen (Q-B7 amended), and the list is data. Today every mark but card/generic is a neutral placeholder named for the proposal\'s first set.',
+      'social/google-mono ships because the owner asked for the full social set in full color and one color (Q782), while Google publishes no one-color G for sign-in (Q-B2 A). Flagged on PR 3 of #2343; the brand trims the set once it confirms what it uses.',
       'Where the artwork lives if the repository goes public: committed today (Q-B1 B); refactored to placeholders plus recorded terms (Q-B1 A) before any publication. Recorded in marks/NOTICE.md and marks/provenance.json.',
     ],
     unverified: [
-      'The social networks\' brand-resource terms have not been read; the gates check only what provenance.json records, so the terms arrive with the provider files (PR 3 of #2343).',
+      'The artwork\'s original sources and their terms are not recorded (owner decision, 2026-10-27): the owner assembled it from several public sources and hand-edited it. It is committed for internal use (Q-B1 B), and the gates check only what provenance.json records.',
     ],
     evolution: [
       'Proposed on #2343 (2026-10-25) as a second icon type, after #2316 asked for provider marks the core set could not carry. The owner chose two swap routes, by name (Q-B3 A), separate one-color files only where the provider publishes them (Q-B2 A), and committed artwork for internal use (Q-B1 B).',
+      'Payment tiles (Q720 A, 2026-10-26): the tile files are full-bleed, square corners and no border, and the component draws the corner radius and the edge from tokens, so every tile has the same edge at every size and mode. The placeholders were re-exported full-bleed before the provider files arrive.',
+      'The owner\'s artwork (PR 3 of #2343, 2026-10-27) replaced the placeholders, with four kinds: payment (32 by 20 tiles, renamed from card, Q780 A), logo (24 high, hugging the artwork, renamed from wallet, Q783 A), social (the full set, each with a one-color form, Q782) and provider (the sign-in glyphs). payment/generic is the owner\'s own card, a silhouette with no ground, so its record says it is not full-bleed.',
     ],
     projection: [
-      'In Figma each mark is a standalone brand-mark/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink.',
+      'In Figma each mark is a standalone brand-mark/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink. A payment tile\'s frame is the one exception, and it is the frame, not the artwork: its corner radii and stroke weight are bound variables, its stroke the border color, and it clips the artwork to its corners.',
     ],
   },
 };

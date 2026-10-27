@@ -1118,7 +1118,7 @@ npx tsx packages/engine/lint-mark-provenance.ts     # every brand mark under mar
                                                     # ACTUAL the records a person typed, both directions.
                                                     # Each record carries source, rightsHolder,
                                                     # dateRetrieved, terms, usage, colors, allowedForms
-                                                    # and placeholder (width for a wallet lockup), and the
+                                                    # and placeholder (width for a logo), and the
                                                     # repository-visibility note (owner decision Q-B1 B)
                                                     # survives in provenance.json and marks/NOTICE.md.
                                                     # A self-check feeds bad records first (docs/34
@@ -1337,7 +1337,15 @@ npm run test:chrome  -w @prism3/studio      # the new shell's chrome, measured a
                                             #   represented by hook, the IA-2 layer order, and the
                                             #   legacy frame map. Its colors are read from the render;
                                             #   lint:contrast reads the declaration — partners, not
-                                            #   copies. Same one-off browser as test:smoke
+                                            #   copies. Same one-off browser as test:smoke. CI runs
+                                            #   it in shards (#2898, chrome-shards.mjs); every run
+                                            #   writes its record to apps/studio/chrome-record/
+npm run test:chrome-shards -w @prism3/studio # #2898: AFTER test:chrome. Every section the unsharded
+                                            #   suite lists (test-chrome.mjs --list) ran exactly once
+                                            #   across the records, by name: a section in no shard or
+                                            #   in two fails. Over CI's shard records it then runs the
+                                            #   suite's end-of-run checks once (--merge); over a whole
+                                            #   local run it checks that run made them itself
 npm run test:export-parity -w @prism3/studio # #2351 gap 1: the web and plugin token exports of every
                                             #   committed brand a UI can load are BYTE-IDENTICAL to each
                                             #   other and to out/<id>.tokens.json. Downloads from BOTH
