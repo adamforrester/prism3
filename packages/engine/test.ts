@@ -22341,6 +22341,38 @@ arm: {
         `#2428 paste: Code input's character carries its size's text style from the paste executor at every size, untrimmed, nothing discarded (${bad.join(' | ') || 'clean'})`);
     }
 
+    // ---- #2343 Q720 A: a card mark's frame draws the tile's corners and edge through the PASTE executor ----
+    // The plugin leg is in test-write-components. Names typed from the decision (the roles held as Q-T1 and Q-T2 on
+    // the PR), not read from the plan; a bound weight counts on the scalar or on all four per-side keys (#1332).
+    {
+      const markDef = componentDefs.find((x) => x.id === 'brand-mark')!;
+      const CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
+      const bad: string[] = [];
+      let tiles = 0, pasted = 0;
+      for (const name of ['card/visa', 'card/generic', 'social/x-mono', 'wallet/paypal']) {
+        const plan = figmaAnatomyPlan(markDef, undefined, { name } as never);
+        const page: StubPage = { children: [] };
+        const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: [], comps: [], page });
+        const walk = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(walk)];
+        const frame = page.children.flatMap((c) => walk(c as Record<string, unknown>)).find((n) => n.name === 'glyph' || String(n.name).includes(name));
+        const bv = (frame?.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
+        const v = (k: string) => bv[k]?.id?.replace(/^V:/, '') ?? null;
+        const sides = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'].map(v);
+        const weight = v('strokeWeight') ?? (sides.every((x) => x && x === sides[0]) ? sides[0] : null);
+        const strokes = (frame?.strokes ?? []) as Array<{ boundVariables?: { color?: { id?: string } } }>;
+        const got = [...CORNERS.map(v), weight, strokes[0]?.boundVariables?.color?.id?.replace(/^V:/, '') ?? null, String(frame?.clipsContent)];
+        const edgeMisses = run.misses.filter((m) => /Radius|stroke|clips|THREW/i.test(m));
+        pasted++;
+        if (name.startsWith('card/')) {
+          tiles++;
+          const want = [...CORNERS.map(() => 'radius/sm'), 'border-width/hairline', 'color/border/primary', 'true'];
+          if (!frame || JSON.stringify(got) !== JSON.stringify(want) || edgeMisses.length) bad.push(`${name}: ${frame ? got.join(' / ') : 'no frame'}${edgeMisses.length ? `; ${edgeMisses[0]}` : ''}`);
+        } else if (!frame || strokes.length || frame.clipsContent || CORNERS.some((k) => bv[k]) || weight) bad.push(`${name} (not a tile): ${frame ? got.join(' / ') : 'no frame'}`);
+      }
+      ok(pasted === 4 && tiles === 2 && bad.length === 0,
+        `#2343 Q720 A paste executor: a card mark's frame reads back with radius/sm corners, a border-width/hairline edge in color/border/primary, and clips; a square or wallet mark's has no edge (${bad.join(' | ') || 'clean'})`);
+    }
+
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------
     // The stub stores `minHeight` via `Math.fround`, as the host does. At the live metrics (16px at 165%, 3 rows
     // = 79.2, read back 79.19999694824219) an exact compare in PAYLOAD_MIN_LINES reports a kept floor DISCARDED.

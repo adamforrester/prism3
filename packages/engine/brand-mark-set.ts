@@ -56,7 +56,7 @@
 export const BRAND_MARK_ARTBOARDS = {
   /** Social and sign-in glyphs. */
   square: { width: 24, height: 24 },
-  /** Card networks, 8:5. */
+  /** Card networks, 8:5, drawn full-bleed: the component draws the tile's corners and edge (Q720 A). */
   card: { width: 32, height: 20 },
   /** Wallet logo lockups: 24 high, width per mark. Figma stand-ins for a provider-drawn button only. */
   wallet: { width: 'per-mark', height: 24 },

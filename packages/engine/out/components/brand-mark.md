@@ -9,7 +9,7 @@
 
 ## Overview
 
-A provider's mark, drawn as the provider supplies it: the glyph a sign-in or wallet button carries, a card network's mark in a payment field, a social network's mark in a footer link. The colors are the provider's and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, card marks 32 by 20, and wallet lockups 24 high at the provider's width.
+A provider's mark, drawn as the provider supplies it: the glyph a sign-in or wallet button carries, a card network's mark in a payment field, a social network's mark in a footer link. The colors are the provider's and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, card marks 32 by 20, and wallet lockups 24 high at the provider's width. A card mark is a tile: its corners and its edge come from the theme, the same at every size.
 
 - **Purpose:** Show a provider's mark, in the provider's colors and proportion, decorative or named.
 - **Use when:** Wherever a provider's service is named: in a sign-in or wallet button, a card field or a social link, and on its own, named by label, in a row of accepted cards.
@@ -19,7 +19,7 @@ A provider's mark, drawn as the provider supplies it: the glyph a sign-in or wal
 
 Shown on the default member: name `card/amex`.
 
-1. **Glyph** — The mark itself, on its kind's artboard, in the provider's colors. It takes no ink from the component around it.
+1. **Glyph** — The mark itself, on its kind's artboard, in the provider's colors. It takes no ink from the component around it. On a card mark the frame rounds the corners and draws a 1px edge from the theme, over artwork drawn full-bleed.
 
 ## Styles
 
@@ -106,6 +106,30 @@ Keyed by nothing: one row covers every member.
 ### Color
 
 Keyed by `name`.
+
+**name=card/amex**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=card/generic**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=card/mastercard**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=card/visa**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
 
 ---
 
