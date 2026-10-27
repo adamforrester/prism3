@@ -117,6 +117,12 @@
             ]
           },
           {
+            "name": "↳ Card number field",
+            "components": [
+              "card-number-field"
+            ]
+          },
+          {
             "name": "↳ Textarea",
             "components": [
               "textarea"
@@ -2837,8 +2843,8 @@
         "name": "CardNumberField",
         "figmaName": "card-number-field",
         "kind": "component set",
-        "page": null,
-        "section": null,
+        "page": "↳ Card number field",
+        "section": "Components",
         "members": 84,
         "variantProperties": [
           {
@@ -3511,7 +3517,8 @@
       "_slider-thumb",
       "slider",
       "code-input-cell",
-      "code-input"
+      "code-input",
+      "card-number-field"
     ],
     "templates": [
       {

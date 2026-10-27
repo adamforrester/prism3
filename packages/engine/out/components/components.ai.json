@@ -380,7 +380,8 @@
         "commonPartners": [
           "icon",
           "link",
-          "button"
+          "button",
+          "card-number-field"
         ],
         "triggerKeywords": [
           "brand mark",
@@ -409,8 +410,7 @@
         "planned": [
           "sign-in-button",
           "wallet-button",
-          "payment-field",
-          "card-number-field"
+          "payment-field"
         ],
         "replacesPatterns": [
           "provider logos pasted into a design as images",
@@ -2756,6 +2756,7 @@
           "text-field",
           "password-field",
           "search-field",
+          "card-number-field",
           "textarea",
           "select",
           "checkbox-group",
@@ -10427,7 +10428,7 @@
         "aria": "The host wires the label, aria-describedby and aria-invalid as TextField does. The tile is aria-hidden. The detected network's name is a visually hidden description on the input, added to aria-describedby and never a live region, so typing is not interrupted by speech. Reformatting is not announced. With a hosted input, the label text is also passed to the provider's own label option, because a label outside the frame cannot name the input inside it."
       },
       "content": {
-        "labelPattern": "Noun phrase, sentence case, no trailing colon: \"Card number\". Never an acronym for the security code in this field's neighbors either: \"Security code\", not \"CVV\".",
+        "labelPattern": "Noun phrase, sentence case, no trailing colon: \"Card number\". Its neighbors spell out their names too: \"Expiration date\" and \"Security code\", never an acronym.",
         "errorPattern": "What is wrong and how to fix it: \"Enter the card number.\" · \"Check the card number. It doesn't match a valid card.\" · \"This card type isn't accepted. Use Visa, Mastercard or American Express.\" (the accepted list, from the app).",
         "emptyPattern": "The label plus an optional format example as the placeholder, \"1234 1234 1234 1234\", and the generic tile."
       },

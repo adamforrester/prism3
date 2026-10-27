@@ -89,7 +89,7 @@ Use for a payment card's number in a checkout or a saved-card form. The field ne
 
 Label = "Card number", sentence case, no trailing colon. Placeholder = a format example only. Helper = "The card type shows when you start typing." Error says what is wrong and how to fix it.
 
-- **Labels:** Noun phrase, sentence case, no trailing colon: "Card number". Never an acronym for the security code in this field's neighbors either: "Security code", not "CVV".
+- **Labels:** Noun phrase, sentence case, no trailing colon: "Card number". Its neighbors spell out their names too: "Expiration date" and "Security code", never an acronym.
 - **Errors:** What is wrong and how to fix it: "Enter the card number." · "Check the card number. It doesn't match a valid card." · "This card type isn't accepted. Use Visa, Mastercard or American Express." (the accepted list, from the app).
 - **Empty states:** The label plus an optional format example as the placeholder, "1234 1234 1234 1234", and the generic tile.
 
