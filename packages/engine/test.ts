@@ -9952,10 +9952,11 @@ arm: {
       if (u.body_text_alternative !== undefined && lowest(u.body_text_alternative) < 4.5) primBad.push(`${b} ${k}: body_text_alternative ${u.body_text_alternative} is itself below 4.5:1 in some mode`);
       if (!String(e.avoid_when).includes('Large text (24px and up, or 18.66px bold), icons and non-essential text only')) primBad.push(`${b} ${k}: usage_limit not stated in avoid_when`);
     }
-    // AI/D-2 (owner decision): the modal over a scrim is `foreground.primary`, not an inverse surface.
+    // AI/D-2 (owner decision): the modal over a scrim is a page-polarity surface, not an inverse one; since #3049
+    // (Q721 A) it is `foreground.raised`, the modal's own role.
     for (const [k, e] of Object.entries<any>(ai.color)) if (k.startsWith('scrim.')) {
       if (RELS.some((f) => (e[f] ?? []).some((p: string) => p.startsWith('inverse.')))) pairBad.push(`${b} ${k}: relates the scrim to an inverse role`);
-      if (!(e.tracks ?? []).includes('foreground.primary')) pairBad.push(`${b} ${k}: does not name foreground.primary as the modal surface`);
+      if (!(e.tracks ?? []).includes('foreground.raised')) pairBad.push(`${b} ${k}: does not name foreground.raised as the modal surface`);
     }
 
     // ── arm 3: every primitive entry carries its required fields (and the typography tier its own) ──

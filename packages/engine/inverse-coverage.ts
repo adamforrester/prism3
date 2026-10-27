@@ -95,6 +95,15 @@ export const INVERSE_GAPS: InverseGap[] = [
       + 'holding it, which is the job it was built for.',
   },
   {
+    paths: ['color.foreground.raised'],
+    reason:
+      'STRUCTURAL, not undecided (#3049, owner Q721 A). This is the panel a dialog or sheet draws over the scrim, '
+      + 'and a dialog renders in the top layer, above the whole page, never inside an inverse band. So no '
+      + 'component places it on an inverse ground, and an `inverse.foreground.raised` would be a name no '
+      + 'variant could bind. A panel set inside an inverse band is not over the scrim, and takes '
+      + '`inverse.foreground.primary`.',
+  },
+  {
     paths: ['color.glass.surface'],
     reason:
       'UNDECIDED, deliberately (#2869). Glass is the fill behind a background blur over a PHOTOGRAPH, and it '

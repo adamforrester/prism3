@@ -58,7 +58,7 @@
 import { LARGE_TEXT_ONLY, BODY_TEXT_FLOOR } from './figma-description';
 import { RGB, contrast, hex, hexToRgb, composite, deltaE2000, emittedAlpha, luminance } from './color';
 import { Step } from './ramp';
-import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role } from './theme';
+import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role, RaisedSurface } from './theme';
 
 // The five built-in appearance modes — the closed set the engine ships with autocomplete.
 export type BuiltinModeName = 'light' | 'dark' | 'hc-light' | 'hc-dark' | 'wireframe';
@@ -597,6 +597,29 @@ export function withFillStateTwins(ov: ModeOverrides | undefined): ModeOverrides
 }
 
 /**
+ * THE RAISED SURFACE (#3049, owner Q721 A; Q3049.2 A, Q3049.4). `foreground.raised` is the panel a dialog or sheet
+ * draws over the scrim. The `raisedSurface` lever chooses it in the LIGHT family only (light, hc-light, and a custom
+ * mode cloned from light): the card surface (`card`, the default), the page (`page`) or the palette's white (`white`).
+ * The DARK family always takes the card, whatever the lever says, so a dialog keeps its lift above a dark page.
+ * Under `card` the role aliases the card's own palette step (Q3049.3 A), so every brand that leaves the lever unset
+ * emits a value identical to `foreground.primary` in every mode. Exported so `test.ts` can hold the rule.
+ */
+export const raisedChoice = (family: 'light' | 'dark', lever: RaisedSurface | undefined): RaisedSurface =>
+  family === 'light' ? lever ?? 'card' : 'card';
+
+/**
+ * THE CARD → RAISED OVERRIDE TWIN (#3049). The override layer rewrites one role, so an override on
+ * `foreground.primary` alone would move the card and leave `foreground.raised` on the derived step, and a dialog
+ * would stop matching the card it is meant to hold. So where the raised surface follows the card in this mode, a
+ * `foreground.primary` override is carried to it, unless `foreground.raised` carries its own, which wins. Applied
+ * before derivation (the `asGround` reads) and in the post-derivation layer, so both see the same value.
+ */
+export function withRaisedTwin(ov: ModeOverrides | undefined, followsCard: boolean): ModeOverrides | undefined {
+  if (!ov || !followsCard || !('foreground.primary' in ov) || 'foreground.raised' in ov) return ov;
+  return { ...ov, 'foreground.raised': ov['foreground.primary'] };
+}
+
+/**
  * THE ENGINE'S DEFINITION OF A GROUND (#985) — every role whose colour some other role's `ratio`
  * depends on. Named and exported so the one definition the override refusal reads has a place to be
  * checked against, rather than living inline where a second reader could quietly diverge from it.
@@ -711,7 +734,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
    * assumption is the binding one"* are different steps. The binding property here was never
    * ordering — it was that the override value is an INPUT, not a result.
    */
-  const ovRefs = theme.overrides?.[mode] ?? {};
+  const raisedAs = raisedChoice(cfg.family, theme.raisedSurface);
+  const ovRefs = withRaisedTwin(theme.overrides?.[mode], raisedAs === 'card') ?? {};
   const ovRgb = new Map<string, RGB>();
   for (const [rolePath, ref] of Object.entries(ovRefs)) {
     const steps = ramps.get(ref.palette);
@@ -1226,6 +1250,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   putSurf('foreground.primary', cfg.fg.primary, 'Default surface placed on the page — a card');
   putSurf('foreground.secondary', cfg.fg.secondary, 'A second surface — a panel / nested container');
   putSurf('foreground.tertiary', cfg.fg.tertiary, 'A third surface step');
+  // #3049 — the panel over the scrim; `raisedChoice` holds the rule. It has no inverse twin: a dialog renders in
+  // the top layer, never inside an inverse band.
+  putSurf('foreground.raised', raisedAs === 'page' ? cfg.bg.primary : raisedAs === 'white' ? cand(`${ns}.white`, WHITE) : cfg.fg.primary,
+    'Raised surface — the panel a dialog or sheet draws over the scrim. The card surface (foreground.primary) unless the brand sets it to the page or to white; in dark modes it is always the card surface');
   putSurf('inverse.foreground.primary', cfg.fgInverse.primary, 'Inverse / bold surface — the opposite-polarity fill (dark on a light page, light on a dark page)');
   putSurf('inverse.foreground.secondary', cfg.fgInverse.secondary, 'Inverse surface, second tier');
   // THE BOLD NEUTRAL FILL (#1745). Badge paints its bold neutral member with this surface under
@@ -1460,10 +1488,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   };
 
   // THE PRIMARY AND LINK INKS CLEAR EVERY SURFACE A COMPONENT PLACES THEM ON (#2817, owner Q415 A, narrowed by
-  // Q419 A). An outline or text primary Button and a link are drawn on the page, on Dialog's panel
-  // (`foreground.primary`, its footer's Button group) and on a status tint (`foreground.<status>-subtle`, Banner's
-  // actions, #2786; resolves Q398). Gated on the page alone, the action ink measured 3.76:1 on `foreground.primary`
-  // and 3.30:1 on a tint in a light mode. So both picks take these seven grounds as `alsoClear` (the semantic-ink
+  // Q419 A). An outline or text primary Button and a link are drawn on the page, on a card (`foreground.primary`),
+  // on Dialog's panel (`foreground.raised` since #3049, its footer's Button group) and on a status tint
+  // (`foreground.<status>-subtle`, Banner's actions, #2786; resolves Q398). Gated on the page alone, the action ink
+  // measured 3.76:1 on `foreground.primary` and 3.30:1 on a tint in a light mode. So both picks take these eight grounds as `alsoClear` (the semantic-ink
   // and `border.tertiary` mechanism): the anchor stays where it clears them all, otherwise the nearest step on the
   // SAME ramp that does — darker in a light mode, lighter in a dark one, so the hue holds and only the depth
   // moves. The page keeps the mode's own bar (7:1 in HC); every other surface is held to the 4.5:1 body floor
@@ -1476,7 +1504,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // fails by name if one is missing from its own literal list, and measures every ink × surface cell from the
   // emitted hexes against those literals, never this list, so dropping a ground here fails it by name.
   const INK_SURFACES = [
-    'background.primary', 'foreground.primary',
+    'background.primary', 'foreground.primary', 'foreground.raised',
     ...SEMANTICS.map((r) => `foreground.${r}-subtle`),
   ];
   const inkSurfaceRgbs = (): RGB[] => INK_SURFACES.map((k) => asGround(k, rgbByRole.get(k)!));
@@ -2206,7 +2234,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // border names), and — as `alsoAgainst` — against whichever of the other five grounds it measures LOWEST
   // on, the binding one. A brand whose ramp cannot clear every ground is named by the contrast sweep there.
   // `test.ts` (#2569) measures all six grounds from the emitted hexes, never from this list.
-  const edgeGrounds = (['background.secondary', 'background.tertiary', 'foreground.primary', 'foreground.secondary', 'foreground.tertiary'] as const)
+  const edgeGrounds = (['background.secondary', 'background.tertiary', 'foreground.primary', 'foreground.secondary', 'foreground.tertiary', 'foreground.raised'] as const)
     .map((k) => ({ k, rgb: asGround(k, rgbByRole.get(k)!) }));
   const borderTertiary = pickClosest(ramp, baseRgb, cfg.borderTertiaryTarget, cfg.nonTextMin, edgeGrounds.map((g) => g.rgb));
   put('border.tertiary', borderTertiary, `Accessible border — the first edge that clears ${cfg.nonTextMin}:1 (SC 1.4.11) on every page and surface tier`, 'background.primary', cfg.nonTextMin);
@@ -2344,7 +2372,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // because a ref naming a role absent in this mode is skipped, so the input and what applied are not
   // the same set.
   const overridden = new Set<string>();
-  const ov = withFillStateTwins(withIconTwins(theme.overrides?.[mode], roles, theme.iconContrast));
+  const ov = withFillStateTwins(withIconTwins(withRaisedTwin(theme.overrides?.[mode], raisedAs === 'card'), roles, theme.iconContrast));
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
       const existing = roles[rolePath];

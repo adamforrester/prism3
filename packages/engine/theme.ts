@@ -238,6 +238,10 @@ export type LinkStateRungs = { hover?: number; pressed?: number; visited?: numbe
 export const CORE_TIER = 'core';
 
 /** Everything the emitter and the modes engine need to be brand-agnostic. */
+/** The `raisedSurface` lever's values (#3049, owner Q3049.4): the card surface (default), the page, or white. */
+export const RAISED_SURFACE_VALUES = ['card', 'page', 'white'] as const;
+export type RaisedSurface = typeof RAISED_SURFACE_VALUES[number];
+
 export type Theme = {
   id: string;
   root: string;                      // 'nbds' | 'prism' (brand root namespace)
@@ -317,6 +321,9 @@ export type Theme = {
   // Neutral interactive emphasis (docs/20 §10). 'subtle' (default): a light-grey neutral
   // fill; 'strong': a bold near-black (light) / near-white (dark) neutral fill.
   neutralEmphasis: 'subtle' | 'strong';
+  // The raised surface (#3049, owner Q721 A, Q3049.1 C–Q3049.4): what `color.foreground.raised`, Dialog's panel,
+  // holds in the light-family modes. Unset reads as `card`. The dark family always holds the card, whatever this says.
+  raisedSurface?: RaisedSurface;
   // Strict interactive contrast (#1389, B4a). false (default): the inverse PRIMARY filled button
   // carries the vivid brand `on-fill` ink (#1244), which clears AA at `rest` but may dip below it on
   // the TRANSIENT hover / pressed states now that the fill steps toward the ground. true: primary's and
@@ -537,6 +544,10 @@ export type BrandInput = {
   /** Neutral interactive emphasis (docs/20 §10). 'subtle' (default) is a light-grey
    *  neutral fill; 'strong' is a bold near-black/near-white neutral fill. */
   neutralEmphasis?: 'subtle' | 'strong';
+  /** The raised surface (#3049): what a dialog's panel, `color.foreground.raised`, sits on in light and hc-light.
+   *  'card' (default) is the card surface, `foreground.primary`; 'page' is the page, `background.primary`; 'white'
+   *  is the palette's white. Dark and hc-dark always take the card surface, so a dialog keeps its lift there. */
+  raisedSurface?: RaisedSurface;
   /** Strict interactive contrast (#1389, B4a). OPTIONAL, OPT-IN (off by default). The inverse filled
    *  button steps its fill per state; the primary and destructive labels' brand ink (#1244/#1384) clears AA at
    *  `rest` but dips on the transient hover/pressed steps. Off keeps the brand ink (rest AA held, later states
@@ -2571,6 +2582,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'disabledStrategy', value: input.disabledStrategy, options: ['full', 'reduced', 'accessible', 'conventional'] },
     { path: 'outlineInteraction', value: input.outlineInteraction, options: ['overlay-neutral', 'solid-tint', 'none'] },
     { path: 'neutralEmphasis', value: input.neutralEmphasis, options: ['subtle', 'strong'] },
+    { path: 'raisedSurface', value: input.raisedSurface, options: RAISED_SURFACE_VALUES },
   ];
   for (const { path, value, options } of enumLevers) {
     if (value !== undefined && !(options as readonly unknown[]).includes(value))
@@ -3265,6 +3277,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     iconContrast: input.iconContrast ?? 'text',
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
     neutralEmphasis, strictInteractiveContrast, interactivePalettes,
+    ...(input.raisedSurface ? { raisedSurface: input.raisedSurface } : {}),
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
     linkStateRungs: input.linkStateRungs,
     dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, []), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
@@ -3320,6 +3333,8 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     linkPalette: 'red', linkAnchorStep: 550,   // NB links follow its action palette (brand red) — unset lever, byte-identical (#1496)
     disabledStrategy: 'reduced', disabledMin: 3, iconContrast: 'text', outlineInteraction: 'overlay-neutral',
     neutralEmphasis: 'subtle', strictInteractiveContrast: false, interactivePalettes: [],
+    // The reference brand's own designs put dialogs on white (#3049, owner Q3049.4), not on its card surface.
+    raisedSurface: 'white',
     dims, motion: buildMotion(),
     // The label category always ships the `default` role (Q225 A, Q226 A), here as in every brand.
     typography: buildTypography(withLabelDefault(undefined)),

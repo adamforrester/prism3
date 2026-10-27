@@ -347,6 +347,7 @@ Every bump after 14.0.0 has added guaranteed paths and removed or retyped none, 
 | 14.7.0 | #2590 (#2586) | `type.label.{sm,md,lg}.line-box` |
 | 14.9.0 | #2973 (#2971) | `container.min`, the 320px narrowest column Banner's width floor binds |
 | 14.10.0 | #2792 (#2669) | `border-width.x-heavy`, the 6px track of the large Slider |
+| 14.12.0 | #3049 | `color.foreground.raised`, the panel over the scrim that Dialog binds: the card surface unless the brand's `raisedSurface` says otherwise |
 
 ## Change classification
 
