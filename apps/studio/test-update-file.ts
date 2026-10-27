@@ -19,7 +19,7 @@
  * steps: … the in-place update runs before the new sets are added`; a hand-edited set read as Up to date → `Q2909.8 A
  * status: a hand-edited set reads Hand-edited …`.
  */
-import { defaultTicks, dueCount, dueSetsOf, newSetsOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, defaultTicks, dueCount, engineWhy, dueSetsOf, newSetsOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 
 let failed = 0;
@@ -64,7 +64,7 @@ ok(startUpdate([], []).done, 'run: a run with no steps is done at once');
 const CAT2 = [entry('button'), entry('tag'), entry('badge'), entry('select'), entry('icon')] as unknown as Catalog;
 const DUE = {
   present: ['button', 'tag', 'badge', 'select'], setUp: true, error: null,
-  due: { button: { state: 'due', reason: 'definition' }, tag: { state: 'current' }, badge: { state: 'unrecorded' }, select: { state: 'due', reason: 'engine' } },
+  due: { button: { state: 'due', reason: 'definition' }, tag: { state: 'current' }, badge: { state: 'unrecorded' }, select: { state: 'due', reason: 'engine', moved: { parts: [], added: [], dropped: [], set: true } } },
 } as const;
 ok(same(dueSetsOf(CAT2, DUE), ['button', 'select']), 'Q2909.8 A due: the sets the ledger reads as due, in catalog order');
 ok(same(unrecordedOf(CAT2, DUE), ['badge']), 'Q2909.8 A unrecorded: the sets the file holds with no ledger entry');
@@ -91,6 +91,16 @@ ok(same(statusesOf('tag', { ...DUE, due: { ...DUE.due } }, new Map(), 'done'), [
 ok(same(statusesOf('tag', null, hand, 'done'), []), 'Q2909.8 A status: nothing before the host has answered');
 const ru = startUpdate(['update', 'sets'], ['icon'], { defs: ['button'], previewHash: 'h', handEdits: 'keep' });
 ok(stepOf(ru) === 'update' && same(ru.update, { defs: ['button'], previewHash: 'h', handEdits: 'keep' }), 'Q2909.8 A run: the update step carries its sets, the check\'s hash and the hand-edit choice');
+
+// ── #3082 Q811 A: a due set's one-line reason, from what moved ─────────────────────────────────────────────────────
+// The expected lines are typed here, DRAFT words (Q2909.10 A); the moved lists are planted.
+ok(engineWhy({ parts: [{ part: 'focus-ring', facets: ['size'] }], added: [], dropped: [], set: false }) === 'Engine update: focus ring size',
+  'Q811 A why: an engine update names the part and what moved in it');
+ok(engineWhy({ parts: [{ part: 'label', facets: ['type', 'color'] }], added: ['leading-icon'], dropped: ['dot'], set: true }) === 'Engine update: label text and color, adds leading icon, drops dot, 1 more',
+  'Q811 A why: parts added and dropped are named, three at most, then how many more');
+ok(engineWhy({ parts: [], added: [], dropped: [], set: false }) === 'Engine update: its drawing changed', 'Q811 A why: a move with nothing to name still reads as an engine update');
+ok(UPDATE_COPY.dueWhy({ state: 'due', reason: 'executor' }) === 'Engine update: Prism3 draws components differently' && UPDATE_COPY.dueWhy({ state: 'due', reason: 'definition' }) === 'Due · its settings changed',
+  'Q811 A why: the executor and a setting each have their own line');
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

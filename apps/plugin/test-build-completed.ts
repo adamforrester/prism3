@@ -42,7 +42,10 @@
  * `panelBeside` read as `true`) → `docs/panels off`; Set up file ignoring Cover off (`main.ts` `fileSetup`, its
  * `readDocSettings(figma.root).cover` test never taken) → `docs/cover off`. The as-built ledger (#2909 Q2909.8 A): Build
  * recording nothing (`main.ts`, its `recordSets` after `applyComponentPlan`) → `ledger/build`; the Update recording
- * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. Q699 A
+ * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. #3082 Q811 A
+ * (section 1a'): `fileSets` calling `restampQuiet` → `q811/load: the read records nothing`; `restampQuiet` a no-op →
+ * `q811/restamp`; the update's record without its print AND `restampQuiet` a no-op → `ledger/print` (either alone is
+ * covered by the other: the quiet re-record gives a no-print entry its print). Q699 A
  * (section 6): `main.ts`'s `brandOf` reading the stored brand whatever the panel sends → `q699/due` and `q699/update`
  * ("Nothing was updated: the file changed since the check"). #3023 Q701 B (section 6b): the panel's `brandFor` sending its own brand with
  * Theme unticked → `q701/update writes A`, `q701/next load`. The hand-edit pass (section 7): `stale()` cut to
@@ -211,7 +214,7 @@ const ask = async (msg: Record<string, unknown>, type: string, until: (m: any) =
   }
   return posted.filter((m) => m?.type === type);
 };
-const ledger = (): Record<string, { def: string; rev: number; engine: string }> => { try { return JSON.parse(pluginData.get('prism3:asBuilt') ?? '{}').sets ?? {}; } catch { return {}; } };
+const ledger = (): Record<string, { def: string; rev: number; engine: string; print?: { plan: string } }> => { try { return JSON.parse(pluginData.get('prism3:asBuilt') ?? '{}').sets ?? {}; } catch { return {}; } };
 ok(typeof ledger().badge?.def === 'string', `ledger/build: the build records the set it landed (${JSON.stringify(ledger().badge)})`);
 const fs1 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
 ok(fs1?.present?.includes('badge') && fs1?.due?.badge?.state === 'current', `ledger/due: file-sets reads the set just built as current (${JSON.stringify(fs1?.due)})`);
@@ -262,6 +265,30 @@ ok(chk?.previewHash === hash, `update-check: the panel's scoped check hashes as 
 // The apply records the set it acted on, so the ledger reads it current again.
 const fs3 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
 ok(fs3?.due?.badge?.state === 'current' && ledger().badge?.def !== 'another-def', `ledger/update: the update records the set it acted on, current again (${JSON.stringify(fs3?.due)})`);
+
+// 1a'. #3082 Q811 A, through the real `main.ts`: an entry from an older engine whose plans print as they do now reads
+//      current, and the read writes nothing; an entry whose print differs reads due for the engine, naming the part and
+//      facet planted; the next write (a build of another set) records the quiet one under today's engine. The entries
+//      are planted from the one the update just recorded; the expected states and the moved part are literals.
+const asRecorded = ledger().badge as { def: string; rev: number; engine: string; print?: { plan: string; parts: Record<string, string>; set: string } };
+ok(!!asRecorded?.print && /^[0-9a-f]{16}$/.test(asRecorded.print.plan) && Object.keys(asRecorded.print.parts).length > 0,
+  `ledger/print: after the update, the set's entry carries the print of the plans it laid (its own record, else the quiet re-record after it) (${JSON.stringify(asRecorded?.print)?.slice(0, 120)})`);
+const OLD = '0.0.0-before';
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, engine: OLD } } }));
+const fsQ = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsQ?.due?.badge) === JSON.stringify({ state: 'current' }), `q811/load: an engine bump with an identical plan reads current (${JSON.stringify(fsQ?.due?.badge)})`);
+ok(ledger().badge?.engine === OLD, `q811/load: the read records nothing; the quiet re-record waits for a write (${ledger().badge?.engine})`);
+const part = Object.keys(asRecorded.print!.parts)[0];
+const chunk = asRecorded.print!.parts[part];
+const movedPrint = { plan: '0'.repeat(16), set: asRecorded.print!.set, parts: { ...asRecorded.print!.parts, [part]: (chunk.slice(0, 4) === 'ffff' ? '0000' : 'ffff') + chunk.slice(4) } };
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, engine: OLD, print: movedPrint } } }));
+const fsM = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsM?.due?.badge) === JSON.stringify({ state: 'due', reason: 'engine', moved: { parts: [{ part, facets: ['size'] }], added: [], dropped: [], set: false } }),
+  `q811/load: a changed plan reads due for the engine, naming the part and facet that moved (${JSON.stringify(fsM?.due?.badge)})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, engine: OLD } } }));
+await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
+ok(ledger().badge?.engine !== OLD && ledger().badge?.print?.plan === asRecorded.print!.plan,
+  `q811/restamp: the next write records the quiet set under today's engine, its print kept (${JSON.stringify({ engine: ledger().badge?.engine, plan: ledger().badge?.print?.plan })})`);
 
 // 1c. Q284.3 A: a run that skipped furniture for a missing template is a WARNING, the state every partial result takes:
 //     `ok: false` and a `⚠` headline, never `✓`. The build still made its set, so it stays `completed`.

@@ -74,7 +74,7 @@ import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { materializeForBrand, materializerFor } from './brand-def';
-import { dueOf, entryFor, readLedger, recordSets, type LedgerEntry } from './as-built-ledger';
+import { dueOf, entryFor, needsPrint, printOf, quietOf, readLedger, recordSets, type LedgerEntry, type PlanPrint } from './as-built-ledger';
 import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
 import { button } from '@prism3/engine/components/button';
@@ -774,7 +774,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // THE AS-BUILT LEDGER (#2909 Q2909.8 A): a set this build landed whole, every member fresh or already this plan's,
       // is recorded as built from the def it was materialized to. A set holding a member from another plan (`stale`) is
       // not: it still is what it was, and its entry says so. CAUGHT: the set is built, and the record is bookkeeping.
-      if (built.id && built.stale === 0) { try { recordSets(figma.root, { [target.id]: entryFor(materializeForBrand(target, brandInput)) }); } catch { /* read as unrecorded */ } }
+      if (built.id && built.stale === 0) { try { recordSets(figma.root, { [target.id]: entryFor(materializeForBrand(target, brandInput), project(target)) }); } catch { /* read as unrecorded */ } }
       // AFTER the set lands and BEFORE the run's headers, so a first build's header measures the labels too.
       const drawn = await furnishSet(target.id, built.id, project(target));
       if (drawn) furniture.push(drawn);
@@ -1021,11 +1021,53 @@ const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) =>
     try { return d ? entryFor(mat(d)) : null; } catch { return null; }
   };
 };
+/** The print of the plans each def would be drawn from now, against `input`'s brand (#3082 Q811 A): the plans a build
+ *  hands the executor (`project` in `buildComponents`). Memoized per call; a def the engine cannot plan has none. */
+const printNow = (input?: BrandInput): ((def: string) => PlanPrint | null) => {
+  const mat = materializerFor(brandOf(input));
+  const memo = new Map<string, PlanPrint | null>();
+  return (id) => {
+    if (memo.has(id)) return memo.get(id)!;
+    const d = componentDefs.find((x) => x.id === id);
+    let p: PlanPrint | null = null;
+    try { p = d ? printOf(figmaAnatomySet(mat(d), { swapTarget: SWAP_TARGET })) : null; } catch { p = null; }
+    memo.set(id, p);
+    return p;
+  };
+};
+/**
+ * THE QUIET RE-RECORD (#3082 Q811 A), after a write: each set whose entry names another engine (or carries no print, an
+ * entry from before Q811 A) and whose plans print now as they did when it was drawn is recorded again under today's
+ * engine, against the file's stored brand, which the write has just left. Never at load: a read that wrote the file's
+ * root would make opening the plugin an edit of the document, refused on a file the person can only view, and the
+ * panel's read carries a brand not yet applied. Until a write records it, the read prints the set and calls it current.
+ * One root read; a set's plans are projected only when its entry is stale. CAUGHT: the write is done, and this is
+ * bookkeeping.
+ */
+const restampQuiet = (): void => {
+  try {
+    const ledger = readLedger(figma.root);
+    const now = ledgerNow();
+    const stale = Object.keys(ledger).filter((id) => { const e = now(id); return !!e && (e.engine !== ledger[id].engine || !ledger[id].print); });
+    if (!stale.length) return;
+    const print = printNow();
+    recordSets(figma.root, quietOf(ledger, dueOf(ledger, stale, now, print), (id) => { const e = now(id); const p = print(id); return e && p ? { ...e, print: p } : null; }));
+  } catch { /* read as current by print until the next write */ }
+};
+/** `fn`, then the quiet re-record (Q811 A): for Theme and the build, two writes Update file runs. The in-place update
+ *  calls it after its apply only, since its check is a read. */
+const thenRestamp = <A extends unknown[]>(fn: (...a: A) => Promise<void>) => async (...a: A): Promise<void> => { try { await fn(...a); } finally { restampQuiet(); } };
 const fileSets = async (input?: BrandInput): Promise<void> => {
   try {
     const present = await presentDefs();
     // #2909 Q2909.8 A: what is due, from the as-built ledger, one root read (`as-built-ledger.ts`), against the panel's brand.
-    postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due: dueOf(readLedger(figma.root), present, ledgerNow(input)) });
+    // #3082 Q811 A: a set whose engine moved is printed, a set at a time with the thread handed back, and is due only
+    // when its plans moved.
+    const ledger = readLedger(figma.root);
+    const now = ledgerNow(input);
+    const print = printNow(input);
+    for (const id of needsPrint(ledger, present, now)) { print(id); await breathe(); }
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due: dueOf(ledger, present, now, print) });
   } catch (e) {
     postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, error: (e as Error)?.message ?? String(e) });
   }
@@ -1141,9 +1183,16 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // THE AS-BUILT LEDGER (#2909 Q2909.8 A): each set the apply acted on is recorded as built from today's def, under the
     // brand its plans were laid from (the panel's, which the run's Theme step applied). A refused set, or an apply
     // refused whole (the file moved since the check), records nothing. CAUGHT, as the build's is.
+    // #3082 Q811 A: with the print of the plans the apply laid, the target's own.
     const now = ledgerNow(input);
-    const acted = Object.fromEntries(r.outcomes.filter((o) => !o.refused).flatMap((o) => { const e = now(o.def); return e ? [[o.def, e] as const] : []; }));
+    const acted = Object.fromEntries(r.outcomes.filter((o) => !o.refused).flatMap((o) => {
+      const e = now(o.def);
+      const plans = targets.find((t) => t.def === o.def)?.plans;
+      return e && plans ? [[o.def, { ...e, print: printOf(plans) }] as const] : [];
+    }));
     try { recordSets(figma.root, acted); } catch { /* read as due again; the next update records it */ }
+    // Q811 A: the apply is a write, so the sets that are current by their print are recorded now too. Not the check above.
+    restampQuiet();
     sink.data({ update: { mode: 'apply', ...r, furniture } });
     // #2858: the library publish description, which the Activity drawer offers with a Copy button.
     postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture), ...(r.publish ? { publish: r.publish } : {}) }, sink);
@@ -1531,8 +1580,8 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
  * Exported for that test only; nothing in the plugin imports it.
  */
 export const ACTIONS: AgentActions = {
-  applyTheme: guarded('apply-theme', applyTheme),
-  buildComponents: guarded('build-components', buildComponents),
+  applyTheme: guarded('apply-theme', thenRestamp(applyTheme)),
+  buildComponents: guarded('build-components', thenRestamp(buildComponents)),
   fileSetup: guarded('file-setup', fileSetup),
   styleGuide: guarded('style-guide', styleGuide),
   prune: guarded('prune', prune, (_input, confirm) => confirm),

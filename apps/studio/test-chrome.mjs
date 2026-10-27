@@ -16084,7 +16084,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       // What is due (Q2909.8 A), planted as the main thread answers: two sets due, one hand-edited, one not recorded.
       step = 'what is due';
       await page.evaluate(() => { window.__ia2 = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && ['update-check-request', 'update-sets', 'file-sets-request'].includes(m.type)) window.__ia2.push(JSON.parse(JSON.stringify(m))); }); });
-      const DUE = { button: { state: 'due', reason: 'definition' }, select: { state: 'due', reason: 'engine' }, tag: { state: 'current' }, badge: { state: 'unrecorded' } };
+      const DUE = { button: { state: 'due', reason: 'definition' }, select: { state: 'due', reason: 'engine', moved: { parts: [{ part: 'focus-ring', facets: ['size'] }], added: [], dropped: [], set: false } }, tag: { state: 'current' }, badge: { state: 'unrecorded' } };
       const FILE = { type: 'file-sets', present: ['button', 'select', 'tag', 'badge'], setUp: true, due: DUE };
       await postMsg(page, FILE);
       await postMsg(page, { type: 'hand-edits', def: 'tag', members: 24, edited: 3 });
@@ -16127,8 +16127,8 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         hand: [...document.querySelectorAll('[data-p3="update-hand-edits"] [role="radio"]')].map((b) => [b.dataset.key, b.getAttribute('aria-checked')]),
         unrec: document.querySelector('[data-p3="update-unrecorded"]')?.textContent ?? null, saves: !!document.querySelector('[data-p3="update-saves"]'),
       }));
-      ok(JSON.stringify(ck.rows) === JSON.stringify([{ id: 'button', on: 'true', why: 'Due · its settings changed' }, { id: 'select', on: 'true', why: 'Due · Prism3 changed' }]),
-        `${where}: Q2909.8 A: the due sets are listed first, ticked, each with why it is due (${JSON.stringify(ck.rows)})`);
+      ok(JSON.stringify(ck.rows) === JSON.stringify([{ id: 'button', on: 'true', why: 'Due · its settings changed' }, { id: 'select', on: 'true', why: 'Engine update: focus ring size' }]),
+        `${where}: Q2909.8 A, #3082 Q811 A: the due sets are listed first, ticked, each with why it is due, an engine update naming what moved (${JSON.stringify(ck.rows)})`);
       ok(ck.lines[0] === '12 of 648 members change · 2 edited by hand' && ck.lines[1] === 'No member changes', `${where}: Q2909.8 A: each due set says what the check found (${JSON.stringify(ck.lines)})`);
       ok(JSON.stringify(ck.breaks) === JSON.stringify([['button', 'Breaks library consumers: 1 layer removed.']]), `${where}: #2831: a published set's consumer-breaking line sits under its row, and only under it (${JSON.stringify(ck.breaks)})`);
       ok(JSON.stringify(ck.hand) === JSON.stringify([['hand=keep', 'true'], ['hand=overwrite', 'false'], ['hand=accept', 'false']]), `${where}: Q2909.8 A: the update keeps hand edits by default (${JSON.stringify(ck.hand)})`);

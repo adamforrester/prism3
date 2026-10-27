@@ -24,7 +24,7 @@
  * `ok`), or after the step running when Stop is asked for. `main.ts` starts each step and reports its verdict here.
  */
 import type { Catalog } from './component-catalog';
-import type { CheckedSetView, SetDueView } from '../write-adapter';
+import type { CheckedSetView, FacetView, MovedView, SetDueView } from '../write-adapter';
 
 /** `update` is the in-place update of the due sets (Q2909.8 A); `sets` adds the sets the file lacks. */
 export type StepKey = 'setup' | 'theme' | 'update' | 'sets' | 'guides';
@@ -118,6 +118,22 @@ export const stepDone = (r: UpdateRun, ok: boolean, headline: string): UpdateRun
 /** Stop after the step running. */
 export const stopUpdate = (r: UpdateRun): UpdateRun => (r.done ? r : { ...r, stopping: true });
 
+/** A facet of a part, as the reason line names it. DRAFT (Q2909.10 A). */
+const FACET_WORD: Readonly<Record<FacetView, string>> = { size: 'size', color: 'color', type: 'text', effect: 'effects', layout: 'layout', content: 'contents' };
+const partWord = (p: string): string => p.replace(/[-_]+/g, ' ').trim();
+/** What an engine update moved, in one line (#3082 Q811 A): each part and what moved in it, each part added or
+ *  dropped, then the variants; three at most, then how many more. DRAFT (Q2909.10 A). */
+export const engineWhy = (m: MovedView): string => {
+  const items = [
+    ...m.parts.map((p) => `${partWord(p.part)} ${p.facets.map((f) => FACET_WORD[f]).join(' and ')}`),
+    ...m.added.map((p) => `adds ${partWord(p)}`),
+    ...m.dropped.map((p) => `drops ${partWord(p)}`),
+    ...(m.set ? ['variants'] : []),
+  ];
+  if (!items.length) return 'Engine update: its drawing changed';
+  return `Engine update: ${items.slice(0, 3).join(', ')}${items.length > 3 ? `, ${items.length - 3} more` : ''}`;
+};
+
 /** The checklist's words, DRAFT placeholders until the owner words them (Q2909.10 A). */
 export const UPDATE_COPY = {
   button: 'Update file',
@@ -139,7 +155,9 @@ export const UPDATE_COPY = {
   updateStep: 'Update sets in place',
   /** Q2909.8 A: the due sets and the hand-edit choice. DRAFT placeholders (Q2909.10 A). */
   setsDueSub: (due: number, fresh: number): string => [due ? `${due} to update in place.` : '', fresh ? `${fresh} not in this file.` : ''].filter(Boolean).join(' ') || 'Every component set is in this file and up to date.',
-  dueWhy: (reason: 'definition' | 'engine'): string => (reason === 'engine' ? 'Due · Prism3 changed' : 'Due · its settings changed'),
+  /** A due set's one-line reason (#3082 Q811 A): a setting it follows, or what an engine update moved in its drawing. */
+  dueWhy: (d: Extract<SetDueView, { state: 'due' }>): string => (d.reason === 'engine' ? engineWhy(d.moved)
+    : d.reason === 'executor' ? 'Engine update: Prism3 draws components differently' : 'Due · its settings changed'),
   checkingSets: 'Checking what changes…',
   checkError: 'Couldn’t check the sets. Close this and try again.',
   checked: (c: CheckedSetView): string => c.blocked ? 'Can’t be updated in place yet; the agent’s update check says why'

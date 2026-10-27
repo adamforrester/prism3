@@ -194,6 +194,15 @@ accepts('style-guide-result with a malformed stopped leaves it off', { type: 'st
   accepts('update-check with a malformed breaks line leaves it off', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, breaks: 7 }] },
     { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
 }
+// #3082 Q811 A: an engine update's due reading carries what moved; the executor's has no list; malformed entries in the
+// list are dropped and the set still reads due.
+{
+  const moved = { parts: [{ part: 'focus-ring', facets: ['size'] }], added: ['icon'], dropped: [], set: false };
+  accepts('file-sets with an engine and an executor due reading', { type: 'file-sets', present: ['button', 'tag'], setUp: true, due: { button: { state: 'due', reason: 'engine', moved }, tag: { state: 'due', reason: 'executor' } } },
+    { kind: 'file-sets', present: ['button', 'tag'], setUp: true, error: null, due: { button: { state: 'due', reason: 'engine', moved }, tag: { state: 'due', reason: 'executor' } } });
+  accepts('file-sets with a malformed moved list keeps the set due and drops the bad entries', { type: 'file-sets', present: ['button'], setUp: true, due: { button: { state: 'due', reason: 'engine', moved: { parts: [{ part: 'label', facets: ['nope'] }, { part: 3, facets: ['size'] }], added: [7, 'x'], set: 'yes' } } } },
+    { kind: 'file-sets', present: ['button'], setUp: true, error: null, due: { button: { state: 'due', reason: 'engine', moved: { parts: [], added: ['x'], dropped: [], set: false } } } });
+}
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);
