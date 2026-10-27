@@ -1017,7 +1017,8 @@ export const locateSets = (host: { root: { findAllWithCriteria(c: { types: strin
  *   - THE WHOLE FILE is searched (Q109 C), as the build's own lookup does, so an icon moved to another page is still
  *     found and updated in place, not rebuilt as a second one.
  *   - Each `<component>/<value>` is the member `<axis>=<value>`: one axis, so the mapping back is exact. A name with a
- *     further `/` is no member value, and is listed under `others`, never read.
+ *     further `/` is no member value, and is listed under `others`, never read, unless that value is one of the def's
+ *     own plan coordinates: a brand mark's value is `<kind>/<name>` (`brand-mark/card/visa`, #2343).
  *   - OWNERSHIP IS THE STAMP, NEVER THE NAME: the dry run's own reading (`ownedView`, #2300) decides. A hand-made
  *     icon, even one carrying a Prism3 glyph's exact name, is unstamped: it holds its coordinate, so that glyph is
  *     never built beside it (Q109 A), and it is never written.
@@ -1029,6 +1030,7 @@ export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?
   const prefix = `${component}/`;
   const first = t.plans[0] ? coordKey(planComponentName(t.plans[0])) : null;
   const axis = first ? coordPairs(first)[0][0] : 'name';
+  const known = new Set(t.plans.map((p) => String(p.coord[axis])));
   const comps = (host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly unknown[]).filter((c) => {
     const x = c as { name?: unknown; parent?: { type?: unknown } | null };
     let parentType: unknown;
@@ -1042,7 +1044,7 @@ export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?
     if (breathe && ++k % 24 === 0) await breathe();
     const nodeName = String((c as { name?: unknown }).name ?? '');
     const value = nodeName.slice(prefix.length);
-    if (!value || value.includes('/') || value.includes(', ') || value.includes('=')) { others.push(nodeName); continue; }
+    if (!value || (value.includes('/') && !known.has(value)) || value.includes(', ') || value.includes('=')) { others.push(nodeName); continue; }
     members.push(await readMember(c, `${axis}=${value}`, nodeName, drawVars));
   }
   const page = comps.length ? pageOf(comps[0]) : '';

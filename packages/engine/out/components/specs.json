@@ -598,6 +598,182 @@
       "nesting": [],
       "properties": []
     },
+    "brand-mark": {
+      "id": "brand-mark",
+      "name": "BrandMark",
+      "members": 19,
+      "axes": [
+        {
+          "name": "name",
+          "figmaName": "name",
+          "values": [
+            "card/amex",
+            "card/generic",
+            "card/mastercard",
+            "card/visa",
+            "provider/apple",
+            "provider/apple-white",
+            "provider/facebook",
+            "provider/google",
+            "social/facebook",
+            "social/facebook-mono",
+            "social/instagram",
+            "social/instagram-mono",
+            "social/x-mono",
+            "wallet/apple-pay-black",
+            "wallet/apple-pay-white",
+            "wallet/google-pay-black",
+            "wallet/google-pay-white",
+            "wallet/paypal",
+            "wallet/shop-pay"
+          ],
+          "kind": "variant"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "glyph",
+          "kind": "glyph",
+          "members": 19
+        }
+      ],
+      "redlineKey": [],
+      "redlines": [
+        {
+          "where": {},
+          "parts": []
+        }
+      ],
+      "typeKey": [],
+      "type": [
+        {
+          "where": {},
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "name"
+      ],
+      "colors": [
+        {
+          "where": {
+            "name": "card/amex"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "card/generic"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "card/mastercard"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "card/visa"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "provider/apple"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "provider/apple-white"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "provider/facebook"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "provider/google"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "social/facebook"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "social/facebook-mono"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "social/instagram"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "social/instagram-mono"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "social/x-mono"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "wallet/apple-pay-black"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "wallet/apple-pay-white"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "wallet/google-pay-black"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "wallet/google-pay-white"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "wallet/paypal"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "wallet/shop-pay"
+          },
+          "parts": []
+        }
+      ],
+      "nesting": [],
+      "properties": []
+    },
     "focus-ring": {
       "id": "focus-ring",
       "name": "FocusRing",

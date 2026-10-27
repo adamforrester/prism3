@@ -224,7 +224,7 @@ for (const id of Object.keys(PREDICATE_CASES))
  * that is the very thing it exists to remember.
  */
 const MUST_PROJECT = [
-  'icon', 'focus-ring',
+  'icon', 'brand-mark', 'focus-ring',
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',

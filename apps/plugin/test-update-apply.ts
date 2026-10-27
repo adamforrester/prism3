@@ -1079,6 +1079,57 @@ const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { 
   ok(applyVerdict(res).ok && dump() === before && res.outcomes[0]?.skipped.some((x) => x.member === 'name=my-logo' && x.reason === 'not built by Prism3'),
     `single/owner: the owner's hand-made icon is left exactly as it is, and named (${JSON.stringify(res.outcomes[0]?.skipped)})`);
 }
+// THE BRAND MARKS (#2343): single components too, and each value carries its kind, `brand-mark/card/visa`, so a
+// value with a `/` is still a member when it is one of the def's own coordinates. The icon set cannot catch a reader
+// that drops one: an icon's name has no second slash. The read is asserted on every mark; the update on the square
+// ones, because the shim sizes a vector from the path's numbers read as alternating x and y and misreads `H`/`V`, so
+// a non-square placeholder reads back here as content drift that Figma's importer does not have.
+section('single, marks — the brand marks, read and updated in place as single components (#2343)');
+{
+  const plans = plansOf('brand-mark');
+  const w = await singleWorld(plans);
+  const pre = (await previewUpdate(w.host, [{ def: 'brand-mark', plans, single: true }])).sets[0];
+  ok(plans.length > 0 && pre?.counts.members === plans.length && pre.counts.add === 0 && w.comps().length === plans.length,
+    `marks/read: the dry run reads every brand mark as a member, and adds none (${plans.length} planned; ${JSON.stringify(pre?.counts)})`);
+}
+{
+  const glyphOf = (n: PlanNode): PlanNode | undefined => n.glyphSvg ? n : (n.children ?? []).map(glyphOf).find(Boolean);
+  const square = plansOf('brand-mark').filter((p) => { const g = glyphOf(p.root)!; return g.glyphViewBox![0] === g.glyphViewBox![1]; });
+  const MARK = 'provider/google';
+  const w = await singleWorld(square);
+  const t0 = { def: 'brand-mark', plans: square, single: true };
+  const pre0 = (await previewUpdate(w.host, [t0])).sets[0];
+  ok(square.length >= 2 && square.some((p) => p.coord.name === MARK) && pre0?.counts.current === square.length,
+    `premise: every square mark reads current as built (${square.length}; ${JSON.stringify(pre0?.counts)})`);
+  const before = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
+  const next = square.map((p) => {
+    if (p.coord.name !== MARK) return p;
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const g = glyphOf(q.root)!;
+    g.glyphSvg = g.glyphSvg!.replace('#9AA0A6', '#1A73E8');
+    return q;
+  });
+  ok(JSON.stringify(next) !== JSON.stringify(square), 'premise: the recolor changes the plan');
+  const t = { def: 'brand-mark', plans: next, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  ok(pre.sets[0]?.counts.update === 1 && pre.sets[0].counts.add === 0, `marks/dry run: the recolored mark is the one read out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const v = applyVerdict(res);
+  ok(v.ok && res.outcomes[0]?.updated.length === 1 && res.outcomes[0].added === 0, `marks/apply: the recolor is taken in place (${v.headline}; ${JSON.stringify(res.outcomes[0]?.updated)})`);
+  // The stamp alone passes with the old colors kept, so the mark's vector must carry the new fill. Mutation: the
+  // fills dropped from the in-place glyph signature (`ownPaint` false) → `marks/apply: … carries the new fill`.
+  const vectorsOf = (n: Node): Node[] => [...(n.type === 'VECTOR' ? [n] : []), ...((n.children as Node[]) ?? []).flatMap(vectorsOf)];
+  const hexes = (n: Node): string[] => ((n.fills as { color?: { r: number; g: number; b: number } }[]) ?? [])
+    .flatMap((f) => (f.color ? [[f.color.r, f.color.g, f.color.b].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('').toUpperCase()] : []));
+  const marked = w.comps().find((c) => String(c.name) === `brand-mark/${MARK}`);
+  const fills = marked ? vectorsOf(marked).flatMap(hexes) : [];
+  ok(fills.includes('1A73E8') && !fills.includes('9AA0A6'),
+    `marks/apply: the recolored mark's vector carries the new fill, #1A73E8, and not the old #9AA0A6 (${JSON.stringify(fills)})`);
+  const after = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
+  ok(after.size === square.length && [...before].every(([n, b]) => after.get(n)?.key === b.key && after.get(n)?.id === b.id), 'marks/keys: every mark keeps its key and id');
+  const post = (await previewUpdate(w.host, [t])).sets[0];
+  ok(post.counts.current === square.length, `marks/settled: a second dry run reads every mark current (${JSON.stringify(post.counts)})`);
+}
 {
   // A GLYPH THAT KEEPS ITS OWN PAINT, RECOLORED BY THE PLAN (#2343 PR 2): a brand mark whose provider changed a color
   // and not a path. Its vectors take no host ink, so the in-place glyph must compare their fills too, or the update

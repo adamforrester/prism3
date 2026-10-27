@@ -79,6 +79,9 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Primitive tokens', defs: [] },
         { page: 'Semantic tokens', defs: [] },
         { page: 'Icons & assets', defs: ['icon'] },
+        // Brand marks (#2343): the second icon type, on a page of its own beside the icon set, so each Foundations page
+        // holds one set and its row reads by the set's name. DRAFT placement, held for the owner on #2343 (Q-B12).
+        { page: 'Brand marks', defs: ['brand-mark'] },
         { page: 'Grids & layouts', defs: [] },
       ],
     },

@@ -19,7 +19,7 @@ A message that sits in the page flow and stays until the user dismisses it or th
 
 Shown on the default member: tone `info`, width `contained`.
 
-1. **Container** — The banner: the tone's tinted surface with a 1px edge in the tone's border color, drawn inside so it adds no size. Contained: rounded, edged all round. Full width: a square bar, edged top and bottom only.
+1. **Container** — The banner: the tone's tinted surface (the page color when the brand's Banner style is Outlined) with a 1px edge in the tone's border color, drawn inside so it adds no size. Contained: rounded, edged all round. Full width: a square bar, edged top and bottom only.
 2. **Info glyph** (optional) — The info glyph, an i in a circle, hidden from assistive technology: the text carries the meaning, and the shape tells the tones apart without color.
 3. **Success glyph** (optional) — The success glyph, a check in a circle, hidden from assistive technology: the text carries the meaning, and the shape tells the tones apart without color.
 4. **Warning glyph** (optional) — The warning glyph, an exclamation in a circle, hidden from assistive technology: the text carries the meaning, and the shape tells the tones apart without color.
@@ -42,7 +42,7 @@ Shown on the default member: tone `info`, width `contained`.
 
 ## Usage guidelines
 
-Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one.
+Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one. The brand's Banner style sets the surface for every banner: Tinted fills it with the tone's tint, Outlined with the page color, and both keep the edge in the tone. It is a brand setting, not a prop.
 
 ### Do
 

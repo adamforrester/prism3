@@ -401,6 +401,76 @@
       "sizes": []
     },
     {
+      "id": "brand-mark",
+      "name": "BrandMark",
+      "category": "foundations",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "name": [
+          "card/amex",
+          "card/generic",
+          "card/mastercard",
+          "card/visa",
+          "provider/apple",
+          "provider/apple-white",
+          "provider/facebook",
+          "provider/google",
+          "social/facebook",
+          "social/facebook-mono",
+          "social/instagram",
+          "social/instagram-mono",
+          "social/x-mono",
+          "wallet/apple-pay-black",
+          "wallet/apple-pay-white",
+          "wallet/google-pay-black",
+          "wallet/google-pay-white",
+          "wallet/paypal",
+          "wallet/shop-pay"
+        ]
+      },
+      "props": [
+        {
+          "name": "name",
+          "values": [
+            "card/amex",
+            "card/generic",
+            "card/mastercard",
+            "card/visa",
+            "provider/apple",
+            "provider/apple-white",
+            "provider/facebook",
+            "provider/google",
+            "social/facebook",
+            "social/facebook-mono",
+            "social/instagram",
+            "social/instagram-mono",
+            "social/x-mono",
+            "wallet/apple-pay-black",
+            "wallet/apple-pay-white",
+            "wallet/google-pay-black",
+            "wallet/google-pay-white",
+            "wallet/paypal",
+            "wallet/shop-pay"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "label"
+        }
+      ],
+      "sizes": [],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "breadcrumb-item",
       "name": "BreadcrumbItem",
       "category": "navigation",
@@ -6762,6 +6832,9 @@
         "id": "badge"
       },
       {
+        "id": "brand-mark"
+      },
+      {
         "id": "breadcrumb-item"
       },
       {
@@ -7011,6 +7084,30 @@
       }
     ],
     "name": [
+      {
+        "id": "brand-mark",
+        "values": [
+          "card/amex",
+          "card/generic",
+          "card/mastercard",
+          "card/visa",
+          "provider/apple",
+          "provider/apple-white",
+          "provider/facebook",
+          "provider/google",
+          "social/facebook",
+          "social/facebook-mono",
+          "social/instagram",
+          "social/instagram-mono",
+          "social/x-mono",
+          "wallet/apple-pay-black",
+          "wallet/apple-pay-white",
+          "wallet/google-pay-black",
+          "wallet/google-pay-white",
+          "wallet/paypal",
+          "wallet/shop-pay"
+        ]
+      },
       {
         "id": "checkbox-group"
       },
@@ -7662,6 +7759,15 @@
         "values": [
           "small",
           "medium"
+        ]
+      },
+      {
+        "id": "brand-mark",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
         ]
       },
       {
