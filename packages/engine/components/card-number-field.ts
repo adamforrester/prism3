@@ -54,9 +54,9 @@ const GENERIC = 'generic';
  *  (Q780 A) and no card number ever detects them. */
 type CardNetwork = typeof GENERIC | 'amex' | 'diners-club' | 'discover' | 'maestro' | 'mastercard' | 'visa';
 const CARD_NETWORKS: readonly CardNetwork[] = [GENERIC, 'amex', 'diners-club', 'discover', 'maestro', 'mastercard', 'visa'];
-const missing = CARD_NETWORKS.filter((n) => !TILES.includes(`${TILE_KIND}/${n}`));
-if (missing.length)
-  throw new Error(`card-number-field: the card networks ${JSON.stringify(missing)} have no tile in the mark set's ${TILE_KIND}/ kind; the field shows each network's own tile`);
+const tileless = CARD_NETWORKS.filter((n) => !(TILES as readonly string[]).includes(`${TILE_KIND}/${n}`));
+if (tileless.length)
+  throw new Error(`card-number-field: the card networks ${JSON.stringify(tileless)} have no tile in the mark set's ${TILE_KIND}/ kind; the field shows each network's own tile`);
 
 export const cardNumberField: ComponentDef = makeTextField({
   id: 'card-number-field',
