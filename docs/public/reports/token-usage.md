@@ -16,12 +16,13 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### `border-width.hairline`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `border-width` | surface | every member (40 of 40) |
 | banner | `border-width`, `width.contained.edge-side` | container | every member (8 of 8) |
+| brand-mark | `tile.border-width` | glyph | name: card/amex, card/generic, card/mastercard, card/visa (4 of 19) |
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
@@ -192,12 +193,13 @@ Type: color. Bound by 2 component(s).
 
 ### `color.border.primary`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | _slider-thumb | `border.hover`, `border.pressed`, `fill.pressed` | hoverHalo | state: hover, pressed (6 of 15) |
 |  |  | pressHalo | state: pressed (3 of 15) |
+| brand-mark | `tile.border` | glyph | name: card/amex, card/generic, card/mastercard, card/visa (4 of 19) |
 | tabs | `fill` | baseline | every member (6 of 6) |
 
 ### `color.border.secondary`
@@ -2664,11 +2666,12 @@ Type: dimension. Bound by 13 component(s).
 
 ### `radius.sm`
 
-Type: dimension. Bound by 9 component(s).
+Type: dimension. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `status.radius` | surface | type: status (30 of 40) |
+| brand-mark | `tile.radius` | glyph | name: card/amex, card/generic, card/mastercard, card/visa (4 of 19) |
 | code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | container | size: large, medium, small (21 of 28) |
 | counter | `radius` | control | every member (18 of 18) |
 | password-field | `radius` | control | every member (84 of 84) |
@@ -3474,9 +3477,9 @@ Declared, not drawn: `color.border.focus`
 
 ### brand-mark
 
-3 token(s); 19 design-file member(s).
+6 token(s); 19 design-file member(s).
 
-`icon.size.lg`, `icon.size.md`, `icon.size.sm`
+`border-width.hairline`, `color.border.primary`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.sm`
 
 Declared, not drawn: `icon.size.lg`, `icon.size.md`, `icon.size.sm`
 

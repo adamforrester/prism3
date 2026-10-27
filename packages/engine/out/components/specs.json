@@ -660,25 +660,45 @@
           "where": {
             "name": "card/amex"
           },
-          "parts": []
+          "parts": [
+            {
+              "part": "glyph",
+              "stroke": "color.border.primary"
+            }
+          ]
         },
         {
           "where": {
             "name": "card/generic"
           },
-          "parts": []
+          "parts": [
+            {
+              "part": "glyph",
+              "stroke": "color.border.primary"
+            }
+          ]
         },
         {
           "where": {
             "name": "card/mastercard"
           },
-          "parts": []
+          "parts": [
+            {
+              "part": "glyph",
+              "stroke": "color.border.primary"
+            }
+          ]
         },
         {
           "where": {
             "name": "card/visa"
           },
-          "parts": []
+          "parts": [
+            {
+              "part": "glyph",
+              "stroke": "color.border.primary"
+            }
+          ]
         },
         {
           "where": {

@@ -270,7 +270,7 @@
       "category": "foundations",
       "status": "draft",
       "summary": "A provider's own mark, in its own colors: sign-in, wallet, card and social. Never retinted.",
-      "description": "A provider's mark, drawn as the provider supplies it: the glyph a sign-in or wallet button carries, a card network's mark in a payment field, a social network's mark in a footer link. The colors are the provider's and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, card marks 32 by 20, and wallet lockups 24 high at the provider's width.",
+      "description": "A provider's mark, drawn as the provider supplies it: the glyph a sign-in or wallet button carries, a card network's mark in a payment field, a social network's mark in a footer link. The colors are the provider's and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, card marks 32 by 20, and wallet lockups 24 high at the provider's width. A card mark is a tile: its corners and its edge come from the theme, the same at every size.",
       "props": [
         {
           "name": "name",
