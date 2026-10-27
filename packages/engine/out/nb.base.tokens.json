@@ -3947,8 +3947,8 @@
         },
         "margin": {
           "$type": "dimension",
-          "$value": "{nbds.space.300}",
-          "$description": "grid md margin — 24px (spacing-scale alias)"
+          "$value": "{nbds.core.dimension.44}",
+          "$description": "grid md margin — 44px (dimension alias: no spacing step has this value)"
         }
       },
       "lg": {

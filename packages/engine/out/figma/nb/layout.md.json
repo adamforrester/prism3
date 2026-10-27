@@ -79,11 +79,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Grid margin by breakpoint: sm 16px · md–lg 24px · xl 32px · 2xl 48px",
-      "value": 24,
+      "description": "Grid margin by breakpoint: sm 16px · md 44px · lg 24px · xl 32px · 2xl 48px",
+      "value": 44,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/space/300"
+        "name": "nbds/core/dimension/44"
       }
     },
     {

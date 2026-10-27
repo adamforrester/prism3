@@ -708,6 +708,7 @@ const NOTE_SWEEP: [string, Record<string, unknown>][] = [
   ['links on neutral', { linkPalette: 'neutral' }],
   ['link set apart from a rebased action', { brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }], roleColors: { action: 'accent' }, linkPalette: 'primary' }],
   ['a named stop', { radiusScale: 'soft' }],
+  ['grid margins off the spacing scale (#3052)', { layout: { marginOverrides: { md: 44, lg: 45 } } }],
   ['a trait pre-empted by another', { personality: ['soft', 'sharp'] }],
   // Every trait the schema advertises, so each trait's approved `why` is scanned too.
   ...((Array.isArray(traitEnum) ? traitEnum : []) as string[]).map((t): [string, Record<string, unknown>] => [`personality '${t}'`, { personality: [t] }]),
@@ -756,6 +757,9 @@ const PRODUCERS: Producer[] = [
   { id: 'gradient', re: /^gradient: \d+ brand gradient/, kind: 'site' },
   { id: 'gradient: none', re: /^gradient: none — /, kind: 'site' },
   { id: 'layout', re: /^layout: \d+ breakpoints \([^)]*\); \d+-column grid/, kind: 'site' },
+  { id: 'layout: dimension link', re: /^layout: the \S+ (gutter|margin) is [\d.]+px, which is not a spacing step, so it links to core dimension [\d.]+\.$/, kind: 'site' },
+  { id: 'layout: off-scale', re: /^layout: the \S+ (gutter|margin) is [\d.]+px, which is on neither the spacing scale nor the dimension grid, so it ships as a plain value, flagged off-scale\.$/, kind: 'site' },
+  { id: 'layout: except as noted', re: /from the spacing scale except as noted below; /, kind: 'fragment' },
   { id: 'control label weight', re: /^control label weight: /, kind: 'site' },
   { id: 'typography', re: /^typography: \d+-step size ladder \([^)]+\), a fixed set rather than a ratio/, kind: 'site' },
   { id: 'typography: title.2xs included', re: /^typography: .*title\.2xs is included/, kind: 'fragment' },
@@ -797,8 +801,8 @@ const PRODUCERS: Producer[] = [
 const NOTES_UNREACHABLE = ['typography: empty display tier (the "below the usual 15–25" clause)'];
 // The push sites, counted in the SOURCE (comments dropped), as a tripwire for a new producer the sweep
 // never reaches: one the sweep reaches is an unclaimed note already. A literal per file, written here.
-// theme.ts: 44 note pushes + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
-const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme.ts': 46, 'packages/engine/vocabulary.ts': 2 };
+// theme.ts: 45 note pushes (#3052 added the grid-link notes' spread) + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
+const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme.ts': 47, 'packages/engine/vocabulary.ts': 2 };
 // The rules a NOTE must also pass, beyond §2 and `normative`. Each is a thing an engine note has carried.
 const ALLCAPS_OK = new Set(['AA', 'AAA', 'WCAG', 'OKLCH', 'HC']);
 const NOTE_RULES: { rule: string; re: RegExp }[] = [

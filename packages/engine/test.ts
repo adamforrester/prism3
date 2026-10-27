@@ -13369,21 +13369,22 @@ arm: {
   }
   ok(scopeMismatch.length === 0, 'figma layout: scopes narrow per family (grid.columns→none, #2602; grid.gutter/margin→GAP; container/*+breakpoint/*→WIDTH_HEIGHT)' + (scopeMismatch.length ? ` — ${scopeMismatch.slice(0, 3).join('; ')}` : ''));
 
-  // (e) grid/gutter + grid/margin are ALIASES into space/* (per-mode — the
-  // point of the mode column is that gutter+margin grow with the breakpoint).
-  // Every alias must resolve to a real space var in the emitted dims artifact.
+  // (e) grid/gutter + grid/margin are ALIASES (per-mode — the point of the mode column is that
+  // gutter+margin grow with the breakpoint): into space/* when a spacing step has the value, else into
+  // core/dimension/* (#3052, Q785 A — NB's md margin 44). Every alias must resolve to a real var in the
+  // emitted dims artifact. Which of the two it SHOULD be is gated in (19g); this arm holds resolution.
   const spaceNames = new Set(dims.space.variables.map((v) => v.name));
+  const dimensionNames = new Set(dims.dimension.variables.map((v) => v.name));
   const aliasBad: string[] = [];
   for (const l of layout) for (const v of l.variables) {
     if (v.name === nbVar('grid/gutter') || v.name === nbVar('grid/margin')) {
       if (!v.alias) { aliasBad.push(`${l.$mode}:${v.name} has no alias`); continue; }
-      if (!v.alias.name.startsWith(nbVar('space/'))) aliasBad.push(`${l.$mode}:${v.name} → ${v.alias.name} (want ${nbVar('space/')}*)`);
-      if (!spaceNames.has(v.alias.name)) aliasBad.push(`${l.$mode}:${v.name} → ${v.alias.name} (not in space collection)`);
+      if (!spaceNames.has(v.alias.name) && !dimensionNames.has(v.alias.name)) aliasBad.push(`${l.$mode}:${v.name} → ${v.alias.name} (in neither the space nor the dimension collection)`);
     }
   }
   const aliasRowsSeen = layout.flatMap((l) => l.variables.filter((v) => v.name === nbVar('grid/gutter') || v.name === nbVar('grid/margin'))).length;
   ok(aliasBad.length === 0 && aliasRowsSeen === layout.length * 2,
-    `figma layout: grid/gutter + grid/margin alias into ${nbVar('space/')}* (per-mode) and every target resolves (${aliasRowsSeen}/${layout.length * 2} rows selected)`
+    `figma layout: grid/gutter + grid/margin alias into ${nbVar('space/')}* or ${nbVar('core/dimension/')}* (per-mode) and every target resolves (${aliasRowsSeen}/${layout.length * 2} rows selected)`
       + (aliasBad.length ? ` — ${aliasBad.slice(0, 3).join('; ')}` : ''));
 
   // (f) grid/columns is a plain FLOAT (no alias — it's a count, not a
@@ -13569,7 +13570,7 @@ arm: {
   type Row = { bp: string; count: number; gutter: number; margin: number };
   const EXPECT: Row[] = [
     { bp: 'sm', count: 4, gutter: 16, margin: 16 },
-    { bp: 'md', count: 8, gutter: 16, margin: 24 },
+    { bp: 'md', count: 8, gutter: 16, margin: 44 },   // #3052: NB's md margin is the brand's 44, not the ladder's 24
     { bp: 'lg', count: 12, gutter: 24, margin: 24 },
     { bp: 'xl', count: 12, gutter: 24, margin: 32 },
     { bp: '2xl', count: 12, gutter: 32, margin: 48 },
@@ -13666,7 +13667,7 @@ arm: {
 // (keyed by breakpoint name, like #1532's columnOverrides) let a brand pin a breakpoint's gutter/margin over
 // the GUTTER_PX/MARGIN_PX ladder. UNLIKE columns (rounded + clamped), an override must be a SPACING-SCALE
 // STEP: gutter and margin emit as aliases to space/* (grid/gutter·grid/margin, emit-figma-dims + tree.ts's
-// gridSpaceAlias), so an off-ladder value has no space token to alias and is REJECTED by name (`resolveGap`).
+// gridSpaceAlias). #1593 REJECTED an off-ladder value by name; #3052 (Q785 A) relaxed that to link-or-flag (19g).
 // The scale reaches space/050 = 4px, so a 4px mobile gutter (the concrete NB case) is reachable rather than
 // flooring at the derived 16px.
 //
@@ -13682,8 +13683,8 @@ arm: {
 //   M1 (override application) `buildLayout`'s `resolveGap(gutterOverrides[b.name], …)` → the ladder value
 //      (ignore the map). sm's emitted gutter falls back to 16 ≠ 4 AND its DTCG alias stays {…space.200}, so
 //      the APPLY and ALIAS arms fail BY NAME while unset breakpoints stay green.
-//   M2 (on-ladder guard) `resolveGap`'s off-ladder throw → return the raw px. The off-ladder 5px no longer
-//      throws, so the THROW arm fails BY NAME.
+//   M2 (#3052 relaxed the on-ladder guard) restore `resolveGap`'s off-ladder throw. The 5px build throws,
+//      so the NO-THROW arm fails BY NAME.
 {
   const BASE: BrandInput = { id: 'gapovr', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
   // NB's default 5-floor gutter/margin ladders, hand-authored from theme.ts's GUTTER_PX/MARGIN_PX sliced to 5.
@@ -13727,16 +13728,158 @@ arm: {
   ok(a.value === `{${a.root}.space.${key4}}`,
     `#1593: an on-ladder 4px gutter override emits as an ALIAS to space/${key4} (got ${JSON.stringify(a.value)})`);
 
-  // THROW (M2): an OFF-LADDER override is rejected by name at build. 5px is not a spacing step at base 8.
+  // NO THROW (M2, relaxed by #3052 / Q785 A): an OFF-LADDER override builds — it is linked or flagged, never
+  // refused and never snapped. 5px is not a spacing step at base 8; the brand still gets exactly 5px.
   let threw: string | null = null;
-  try { brandTheme({ ...BASE, layout: { gutterOverrides: { md: 5 } } } as BrandInput); } catch (e) { threw = (e as Error).message; }
-  ok(threw !== null && /gutterOverrides/.test(threw) && /md/.test(threw),
-    `#1593: an off-ladder gutter override (5px) THROWS by name (naming gutterOverrides + the breakpoint)${threw === null ? ' — did NOT throw' : ` — got: ${threw}`}`);
-  // A margin off-ladder value throws the same way (the marginOverrides map runs the same guard).
-  let threwM: string | null = null;
-  try { brandTheme({ ...BASE, layout: { marginOverrides: { sm: 7 } } } as BrandInput); } catch (e) { threwM = (e as Error).message; }
-  ok(threwM !== null && /marginOverrides/.test(threwM),
-    `#1593: an off-ladder margin override (7px) THROWS naming marginOverrides${threwM === null ? ' — did NOT throw' : ''}`);
+  let five: Record<string, { gutter: number; margin: number }> = {};
+  try { five = emittedGaps({ gutterOverrides: { md: 5 } }); } catch (e) { threw = (e as Error).message; }
+  ok(threw === null && five.md?.gutter === 5,
+    `#1593/#3052: an off-ladder gutter override (5px) builds and ships exactly 5px, never snapped${threw === null ? ` (got ${five.md?.gutter})` : ` — THREW: ${threw}`}`);
+  // A value that is not a length is still refused by name (the only refusal left).
+  let threwNeg: string | null = null;
+  try { brandTheme({ ...BASE, layout: { marginOverrides: { sm: -8 } } } as BrandInput); } catch (e) { threwNeg = (e as Error).message; }
+  ok(threwNeg !== null && /marginOverrides/.test(threwNeg) && /sm/.test(threwNeg),
+    `#1593/#3052: a negative margin override (-8) THROWS naming marginOverrides + the breakpoint${threwNeg === null ? ' — did NOT throw' : ''}`);
+}
+
+// (19g) #3052 — GRID MARGIN/GUTTER LINKS (owner decision Q785 A, 2026-10-27). A per-brand gutter/margin
+// links to the FIRST that exists: (1) a `space/*` step with that px; (2) the brand's `core/dimension/*` step;
+// (3) nothing — a plain px, flagged off-scale. The reference brand's md margin is 44: no spacing step, so it
+// links to `core/dimension/44`. The md grid STYLE carries the same px as its offset. Binding the style's
+// offset to `grid/margin` was considered and not done: a grid style is a STATIC per-breakpoint copy (its
+// description says so), while a variable bound inside it would resolve in whatever layout mode the frame
+// sits in, so the `md` style would show `sm`'s margin on an `sm` frame. Agreement is gated instead (G1).
+//
+// INDEPENDENCE (docs/34). G1 compares TWO emitters that read different inputs — `buildFigmaLayout` reads the
+// DTCG tree's grid node, `buildFigmaGridStyles` reads `theme.layout` — so a drift between them fails it.
+// G2 and G4 are HAND-PINNED literals (the owner's 44; the link table every other brand shipped on main
+// before this change), never read from the engine. G3's expected link is read from a DIFFERENT emitted
+// collection (the Figma `space` collection's own values), never from `gridGapLink`.
+//
+// MUTATION REGISTER (each applied to the SUBJECT from a `wip:` commit, the suite re-run, the named
+// assertion confirmed among the failures, then reverted):
+//   M1 (G1) `buildFigmaGridStyles` `offset: g.marginPx` → `offset: g.marginPx === 44 ? 24 : g.marginPx`
+//      (the style keeps the ladder value). G1 fails BY NAME for nb md and nb-redesign md.
+//   M2 (G2) `nbThemeFrom`'s `marginOverrides: { md: 44 }` dropped. G2 fails BY NAME (md 24 → space/300).
+//   M3 (G3) `gridGapLink` checks the dimension grid BEFORE the spacing scale (a 24 margin links to
+//      `core/dimension/24`). G3 fails BY NAME for every brand; G4 fails too.
+//   M4 (G3, raw arm) tree.ts's off-scale leaf loses `offScale: true`. G3's flag arm fails BY NAME.
+//   M5 (19f NO-THROW) `resolveGap` throws again for an off-ladder GUTTER. The 19f NO-THROW arm fails BY NAME,
+//      and `synth-45` is reported as a brand that did not resolve. (Restoring the throw for margins too makes
+//      the reference brand itself unbuildable: the suite stops at load, red, before any arm runs.)
+{
+  type Brand = { id: string; theme: Theme };
+  const fromMd = (id: string): Brand | undefined => {
+    const theme = exampleTheme(id, () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, `./examples/${id}.design.md`), 'utf8')).input));
+    return theme ? { id, theme } : undefined;
+  };
+  const wendys = exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input));
+  const BASE: BrandInput = { id: 'gaplink', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
+  // Synthetic brands for the arms no shipped brand reaches: a 44 margin (dimension), a 45 margin (raw).
+  const synth = (id: string, layout: BrandInput['layout']): Brand[] => {
+    const theme = exampleTheme(id, () => brandTheme({ ...BASE, id, layout } as BrandInput));
+    return theme ? [{ id, theme }] : [];
+  };
+  const brands: Brand[] = [
+    { id: 'nb', theme: nbTheme() },
+    ...(['prism3', 'aurora', 'harbor', 'nb-redesign'].map(fromMd).filter(Boolean) as Brand[]),
+    ...(wendys ? [{ id: 'wendys', theme: wendys }] : []),
+    ...synth('synth-44', { marginOverrides: { md: 44 } }),
+    ...synth('synth-45', { marginOverrides: { lg: 45 }, gutterOverrides: { sm: 51 } }),
+  ];
+  ok(brands.length === 8, `#3052: every brand under the grid-link gates loaded (got ${brands.map((b) => b.id).join(', ')})`);
+
+  // Per brand: the emitted layout rows { mode → { gutter, margin } } as { value, alias } and the grid styles.
+  const rowsOf = (theme: Theme) => {
+    const layout = buildFigmaLayout(theme);
+    const out: Record<string, Record<'gutter' | 'margin', { value: number; alias: string | null }>> = {};
+    for (const l of layout) {
+      const find = (k: string) => l.variables.find((v) => tailOf(v.name) === `grid/${k}`);
+      const g = find('gutter'), m = find('margin');
+      out[l.$mode] = {
+        gutter: { value: g?.value as number, alias: g?.alias?.name ?? null },
+        margin: { value: m?.value as number, alias: m?.alias?.name ?? null },
+      };
+    }
+    return out;
+  };
+
+  // G1 — the margin (and gutter) variable equals its grid style's offset (gutterSize), per brand × mode.
+  const g1: string[] = [];
+  let g1Seen = 0;
+  for (const { id, theme } of brands) {
+    const rows = rowsOf(theme);
+    const styles = buildFigmaGridStyles(theme).styles;
+    for (const [mode, row] of Object.entries(rows)) {
+      const st = styles.find((x) => x.name === mode);
+      if (!st) { g1.push(`${id} ${mode}: no grid style`); continue; }
+      g1Seen++;
+      if (st.layoutGrids[0].offset !== row.margin.value) g1.push(`${id} ${mode}: grid/margin ${row.margin.value} ≠ style offset ${st.layoutGrids[0].offset}`);
+      if (st.layoutGrids[0].gutterSize !== row.gutter.value) g1.push(`${id} ${mode}: grid/gutter ${row.gutter.value} ≠ style gutterSize ${st.layoutGrids[0].gutterSize}`);
+    }
+    if (styles.length !== Object.keys(rows).length) g1.push(`${id}: ${styles.length} grid styles for ${Object.keys(rows).length} layout modes`);
+  }
+  ok(g1.length === 0 && g1Seen >= 30,
+    `#3052 G1: every brand's grid/margin equals its grid style's offset (and grid/gutter its gutterSize), per mode (${g1Seen} brand×mode rows)${g1.length ? ` — ${g1.slice(0, 4).join('; ')}` : ''}`);
+
+  // G2 — the reference brand's md margin is 44 and links to core/dimension/44 (legacy fixture AND the redesign
+  // seed); its sm margin is unchanged (16 → space/200). Hand-pinned from the owner's decision.
+  const g2: string[] = [];
+  for (const id of ['nb', 'nb-redesign']) {
+    const b = brands.find((x) => x.id === id);
+    if (!b) { g2.push(`${id}: not loaded`); continue; }
+    const rows = rowsOf(b.theme);
+    if (rows.md?.margin.value !== 44) g2.push(`${id} md margin ${rows.md?.margin.value} ≠ 44`);
+    if (rows.md?.margin.alias !== 'nbds/core/dimension/44') g2.push(`${id} md margin → ${rows.md?.margin.alias} (want nbds/core/dimension/44)`);
+    if (rows.sm?.margin.value !== 16 || rows.sm?.margin.alias !== 'nbds/space/200') g2.push(`${id} sm margin ${rows.sm?.margin.value} → ${rows.sm?.margin.alias} (want 16 → nbds/space/200)`);
+    const { tree } = buildTree(b.theme);
+    const dt = (tree as any).nbds?.grid?.md?.margin?.$value;
+    if (dt !== '{nbds.core.dimension.44}') g2.push(`${id} DTCG grid.md.margin ${JSON.stringify(dt)} (want {nbds.core.dimension.44})`);
+  }
+  ok(g2.length === 0, `#3052 G2: the reference brand's md margin is 44 and links to core/dimension/44; sm stays 16 on space/200${g2.length ? ` — ${g2.join('; ')}` : ''}`);
+
+  // G3 — a margin/gutter links to core/dimension/* ONLY when no space/* step has its value; to nothing only
+  // when neither has it, and then it is flagged off-scale (DTCG `offScale: true` and a decisions note).
+  // The space and dimension px sets are read from the EMITTED Figma collections, not from `gridGapLink`.
+  const g3: string[] = [];
+  let dimLinks = 0, rawLinks = 0;
+  for (const { id, theme } of brands) {
+    const dims = buildFigmaDims(theme);
+    const spacePx = new Set(dims.space.variables.map((v) => v.value as number));
+    const dimPx = new Set(dims.dimension.variables.map((v) => v.value as number));
+    const { tree } = buildTree(theme);
+    const root = Object.keys(tree)[0];
+    for (const [mode, row] of Object.entries(rowsOf(theme))) for (const k of ['gutter', 'margin'] as const) {
+      const { value, alias } = row[k];
+      const where = `${id} ${mode} ${k} ${value}`;
+      const tail = alias ? tailOf(alias) : null;
+      if (spacePx.has(value)) { if (!tail?.startsWith('space/')) g3.push(`${where}: a spacing step has it, but → ${alias}`); continue; }
+      if (dimPx.has(value)) { dimLinks++; if (tail !== `core/dimension/${value}`) g3.push(`${where}: no spacing step, on the dimension grid, but → ${alias}`); continue; }
+      rawLinks++;
+      if (alias !== null) g3.push(`${where}: on neither scale, but → ${alias}`);
+      if ((tree as any)[root].grid[mode][k].$extensions?.prism3?.offScale !== true) g3.push(`${where}: off-scale but not flagged offScale`);
+      if (!theme.notes.some((n) => n.includes(`${mode} ${k} is ${value}px`) && n.includes('off-scale'))) g3.push(`${where}: off-scale but no decisions note names it`);
+    }
+  }
+  ok(g3.length === 0 && dimLinks >= 3 && rawLinks >= 2,
+    `#3052 G3: a grid margin/gutter links to core/dimension/* only when no space/* step has its value, and is a flagged plain value only when neither has it (${dimLinks} dimension, ${rawLinks} off-scale rows)${g3.length ? ` — ${g3.slice(0, 4).join('; ')}` : ''}`);
+
+  // G4 — every other brand's links are unchanged: the table each one shipped on main before #3052, pinned.
+  const PIN: Record<string, string> = {
+    prism3: 'sm 200/200 · md 200/300 · lg 300/300 · xl 300/400 · 2xl 400/600',
+    harbor: 'sm 200/200 · md 200/300 · lg 300/300 · xl 300/400 · 2xl 400/600',
+    wendys: 'sm 200/200 · md 200/300 · lg 300/300 · xl 300/400 · 2xl 400/600',
+    aurora: 'xs 200/200 · sm 200/300 · md 300/300 · lg 300/400 · xl 400/600 · 2xl 400/600',
+  };
+  const g4: string[] = [];
+  for (const [id, want] of Object.entries(PIN)) {
+    const b = brands.find((x) => x.id === id);
+    if (!b) { g4.push(`${id}: not loaded`); continue; }
+    const step = (a: string | null) => (a && tailOf(a).startsWith('space/') ? tailOf(a).slice('space/'.length) : `<${a}>`);
+    const got = Object.entries(rowsOf(b.theme)).map(([m, r]) => `${m} ${step(r.gutter.alias)}/${step(r.margin.alias)}`).join(' · ');
+    if (got !== want) g4.push(`${id}: ${got} (want ${want})`);
+  }
+  ok(g4.length === 0, `#3052 G4: every other brand's grid gutter/margin links are unchanged (space/* steps as shipped)${g4.length ? ` — ${g4.join('; ')}` : ''}`);
 }
 
 // (20) EMIT-FIGMA MODE OPT-OUT (post-#42 follow-up; #45 audit; reviewer flag on #46).
