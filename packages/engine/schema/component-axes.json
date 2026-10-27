@@ -514,13 +514,19 @@
         "middle-inset",
         "none"
       ],
+      "labeled": [
+        "false",
+        "true"
+      ],
       "orientation": [
         "horizontal",
         "vertical"
       ]
     },
-    "members": 5,
-    "properties": {}
+    "members": 6,
+    "properties": {
+      "label": "TEXT"
+    }
   },
   "field-label": {
     "axes": {

@@ -301,7 +301,7 @@ Keyed by `expansion`, `iconPosition`, `indicator`, `state`.
 ### Nesting and properties
 
 - `container/header/titleRow/leadingIndicator/leadingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `indicator`, `expansion`, `size`
-- `container/divider` nests `divider` at `orientation=horizontal, inset=none`
+- `container/divider` nests `divider` at `orientation=horizontal, inset=none, labeled=false`
 - `container/header/focusRing` nests `focus-ring` at `surface=default`
 - `container/header/titleRow/trailingIndicator/trailingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `indicator`, `expansion`, `size`
 - `container/content` is a slot

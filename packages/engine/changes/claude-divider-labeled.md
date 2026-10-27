@@ -1,0 +1,4 @@
+---
+engine: minor
+---
+Divider: a labeled variant, the rule broken by a short centered label such as "Or" (#3051, owner Q3051.1–.7, all A). A new `labeled: false | true` variant axis (the name Pagination.Item already uses) adds one member, horizontal with inset none, so the set goes from five members to six. The labeled member draws a line, the label and a line in one row, `space.300` apart and centered on the label's line box (`type.label.md.line-box`); the label is `type.label.md.default` in `color.text.secondary` behind a `label` text property, default "Or". In code a `label` string prop makes the labeled divider; the wrapper takes no role, both lines are aria-hidden and the label is read as plain text. The schema gains `paintGroup`, a declared admission to the one-box-per-paint-slot rule for one surface drawn in pieces. Accordion and Dialog name `labeled: false` on their nested dividers.

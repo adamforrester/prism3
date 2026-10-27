@@ -3967,6 +3967,8 @@ for (const b of brands) {
       // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
       // glyph-to-message gap. The action-to-close 4px is not listed: it stays at the floor.
       toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
+      // Divider (#3051): the labeled divider's label-to-line gap.
+      divider: { keys: [], sizes: [], bare: ['gap'] },
       'breadcrumb-item': { keys: ['gap'], sizes: ['small', 'medium'] },
       breadcrumbs: { bare: ['back-gap'], keys: ['gap'], sizes: ['small', 'medium'] },
     };
@@ -4002,6 +4004,8 @@ for (const b of brands) {
       banner: { compact: 'bare 12/8/8', comfortable: 'bare 16/12/12', spacious: 'bare 20/16/16' },
       // Toast (#2668, the proposal's §8 approved by call 13 A): comfortable is 8/16/8 padding, 8 to the controls, 12 glyph to message.
       toast: { compact: 'bare 6/12/6/6/8', comfortable: 'bare 8/16/8/8/12', spacious: 'bare 12/20/12/12/16' },
+      // Divider (#3051, Q3051.4 A): the label-to-line gap. Comfortable is the owner's space.300, 24px.
+      divider: { compact: 'bare 20', comfortable: 'bare 24', spacious: 'bare 32' },
       // Breadcrumbs (#2666, DRAFT): the label-to-separator gap, repeated between items, and the parent path's
       // chevron-to-link gap (Link's own icon gap). Comfortable is the proposal's space.050 / space.100; compact clamps
       // the small gap at space.050, as Link's does.
@@ -4050,6 +4054,8 @@ for (const b of brands) {
       // Banner (#2579): the glyph→content gap and the fixed title→body gap (one action since Q533.1, so no action gap).
       banner: ['gap', 'content-gap'],
       toast: ['gap', 'glyph-gap', 'controls-gap'],
+      // #3051: the labeled divider's label-to-line gap (the plain rule's zero gap does not follow density).
+      divider: ['gap'],
       // #2709: the three defs with a density-following gap that joined after this list was written.
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2888: the Search field, TextField's gap through the shared field factory.
@@ -29670,7 +29676,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -31176,6 +31182,10 @@ arm: {
     // truncates on one line), so the separator centers against the only line, in Figma and in code.
     'breadcrumb-item.container':
       "a breadcrumb step is one text line tall and never wraps (breadcrumb-item.ts codeOnly), so the separator centers against the only line.",
+    // `divider` (#3051, Q3051.4 A): the labeled divider centers its two hairlines on the label's line box. The label is
+    // one short word that never wraps (divider.ts codeOnly), and the root is exactly one label line box tall.
+    'divider.container':
+      "a labeled divider's label is one short word that never wraps and the root is one label line box tall, so the two lines center against the only line; the plain rule stretches across and is not moved by it.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -34867,6 +34877,8 @@ arm: {
     // #2666 (owner call 11 A): code has no path prop. `responsive` (default true) swaps the trail for the parent link
     // below 480px by a container query, and either value renders the trail at every wider width, so the code default
     // path is the full trail whatever `responsive` holds.
+    // #3051 (owner Q3051.1 A): code has no labeled prop. A non-empty `label` is the labeled divider; unset, the plain rule.
+    'divider.labeled': { prop: 'label', map: { undefined: 'false' }, reason: 'a divider is labeled by setting `label`; with no label it is the plain rule' },
     'breadcrumbs.path': { prop: 'responsive', map: { undefined: 'full', false: 'full', true: 'full' }, reason: 'Breadcrumbs renders the trail by default; `responsive` only swaps in the parent link below 480px' },
   };
   // NO RECORDED EXCEPTIONS (#2752, owner decisions Q1 B and Q2 A, 2026-10-16): every size ladder leads with medium and
@@ -34960,14 +34972,15 @@ arm: {
     'vertical/none': ['space/0', 'space/0', 'space/0', 'space/0'],
     'vertical/middle-inset': ['space/100', 'space/0', 'space/100', 'space/0'],
   };
-  ok(JSON.stringify(divider.variants) === JSON.stringify({ orientation: ['horizontal', 'vertical'], inset: ['none', 'inset', 'middle-inset'] }),
-    `#2455 divider: two axes, orientation = [horizontal, vertical] and inset = [none, inset, middle-inset], each default first so it is the code default and Figma's default member (got ${JSON.stringify(divider.variants)})`);
+  // #3051 added the third axis, `labeled` (its own arm below); the five plain members are read at labeled=false.
+  ok(JSON.stringify(divider.variants) === JSON.stringify({ orientation: ['horizontal', 'vertical'], inset: ['none', 'inset', 'middle-inset'], labeled: ['false', 'true'] }),
+    `#2455 divider: three axes, orientation = [horizontal, vertical], inset = [none, inset, middle-inset] and labeled = [false, true] (#3051), each default first so it is the code default and Figma's default member (got ${JSON.stringify(divider.variants)})`);
   ok(divider.states.length === 0, `#2455 divider: no states, because it is not interactive (got [${divider.states.join(', ')}])`);
-  ok(figmaVariantCount(divider) === 5,
-    `#2455 divider inset: the Figma set is five members — vertical takes none and middle-inset only (got ${figmaVariantCount(divider)})`);
+  ok(figmaVariantCount(divider) === 6,
+    `#2455 divider inset: the Figma set is six members — five plain (vertical takes none and middle-inset only) and one labeled (#3051) (got ${figmaVariantCount(divider)})`);
   for (const [coord, pad] of Object.entries(INSET)) {
     const [o, inset] = coord.split('/');
-    const root = figmaAnatomyPlan(divider, undefined, { orientation: o, inset } as never).root as any;
+    const root = figmaAnatomyPlan(divider, undefined, { orientation: o, inset, labeled: 'false' } as never).root as any;
     const rule = (root.children ?? [])[0];
     const got = [root.bound?.paddingTop, root.bound?.paddingRight, root.bound?.paddingBottom, root.bound?.paddingLeft];
     ok(JSON.stringify(got) === JSON.stringify(pad),
@@ -34980,7 +34993,7 @@ arm: {
       `#2455 divider ${o} inset=${inset}: the rule's color is color/border/secondary and it fills the root's content box (grow along, stretch across) (got fills ${rule?.paints?.fills}, grow ${rule?.layoutGrow}, align ${rule?.layoutAlign})`);
   }
   let threw = false;
-  try { figmaAnatomyPlan(divider, undefined, { orientation: 'vertical', inset: 'inset' } as never); } catch { threw = true; }
+  try { figmaAnatomyPlan(divider, undefined, { orientation: 'vertical', inset: 'inset', labeled: 'false' } as never); } catch { threw = true; }
   ok(threw, '#2455 divider inset: vertical × inset is not a member, so it has no plan');
   const inset = divider.props.find((p) => p.name === 'inset');
   ok(inset?.default === 'none' && JSON.stringify(inset?.values) === JSON.stringify(['none', 'inset', 'middle-inset']),
@@ -34992,6 +35005,90 @@ arm: {
     '#2455 divider decorative: no Figma property (it changes no pixel), and the codeOnly list says so in an entry that leads with it');
   ok(/^none with aria-hidden="true" by default\b/.test(divider.accessibility.role) && /decorative=false, separator\b/.test(divider.accessibility.role),
     `#2455 divider decorative: the code role is none with aria-hidden by default, and separator with decorative=false (got '${divider.accessibility.role}')`);
+}
+
+// ------------------------------------------------------------------- #3051: the labeled divider
+// The owner's seven calls (Q3051.1–.7, all A), each held against a literal typed HERE from the issue and the owner's
+// comment, never read off the def (docs/34 shape 1). ACTUAL is the projected plan, the def's props and prose, and the
+// resolved roles of every example brand, so a rebind, a regated part or a reworded contract fails by name.
+{
+  const D3051 = '#3051 divider labeled';
+  const findIn = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findIn(c, name)).find(Boolean));
+  const set = figmaAnatomySet(divider);
+  const labeledPlans = set.filter((p) => (p.coord as any).labeled === 'true');
+  const plainPlans = set.filter((p) => (p.coord as any).labeled === 'false');
+  // Q3051.3 A + Q3051.6 A: one labeled member, horizontal, inset none, centered (no alignment axis).
+  ok(labeledPlans.length === 1 && (labeledPlans[0].coord as any).orientation === 'horizontal' && (labeledPlans[0].coord as any).inset === 'none'
+    && plainPlans.length === 5 && !('alignment' in (divider.variants ?? {})),
+    `${D3051}: exactly one labeled member, horizontal with inset none, and five plain ones; no alignment axis, center only (got labeled at ${JSON.stringify(labeledPlans.map((p) => p.coord))}, ${plainPlans.length} plain)`);
+  // Label present ONLY when labeled=true: the three labeled cells on the labeled member and on no plain one, and the
+  // plain `rule` on every plain member and not on the labeled one.
+  const LABELED_CELLS = ['leadingRule', 'label', 'trailingRule'];
+  const wrongPresence: string[] = [];
+  for (const p of set) {
+    const names = ((p.root as any).children ?? []).map((c: any) => c.name);
+    const want = (p.coord as any).labeled === 'true' ? LABELED_CELLS : ['rule'];
+    if (JSON.stringify(names) !== JSON.stringify(want)) wrongPresence.push(`${planComponentName(p)}: [${names.join(', ')}]`);
+  }
+  ok(wrongPresence.length === 0,
+    `${D3051}: the label and its two lines are present only when labeled=true, in the order line, label, line; every plain member draws the one rule${wrongPresence.length ? ` — WRONG: ${wrongPresence.join('; ')}` : ''}`);
+  const lp = labeledPlans[0];
+  if (lp) {
+    const root = lp.root as any;
+    const label = findIn(root, 'label'), lead = findIn(root, 'leadingRule'), trail = findIn(root, 'trailingRule');
+    // Q3051.4 A + Q3051.5 A: the label's ink and size bound to the tokens the owner picked.
+    ok(label?.type === 'TEXT' && label?.paints?.fills === 'color/text/secondary' && label?.textStyle === 'label/md/default',
+      `${D3051}: the label is text in color/text/secondary at the label/md/default style (Q3051.4 A, Q3051.5 A) (got ${label?.type}, ink ${label?.paints?.fills}, style ${label?.textStyle})`);
+    // Q3051.7 A: "Or", sentence case, driven by the `label` text property.
+    ok(label?.characters === 'Or' && label?.propertyRef?.prop === 'label',
+      `${D3051}: the label's placeholder is "Or", sentence case, driven by the label text property (Q3051.7 A) (got "${label?.characters}", property ${label?.propertyRef?.prop})`);
+    const textProp = planSetProperties(set as any).find((p: any) => p.name === 'label');
+    ok(textProp?.type === 'TEXT' && textProp?.default === 'Or',
+      `${D3051}: the set carries one TEXT property, label, default "Or" (got ${JSON.stringify(textProp)})`);
+    // Lines FILL and never overlap the label: in flow, on either side of it, each growing along the row while the
+    // label hugs, with the 24px gap between each line and the label, and the row centering all three across.
+    const lineOk = (l: any) => l?.type === 'FRAME' && l?.layoutGrow === 1 && l?.layoutPositioning !== 'ABSOLUTE' && l?.layoutAlign !== 'STRETCH'
+      && l?.paints?.fills === 'color/border/secondary' && l?.bound?.height === 'border-width/hairline';
+    ok(lineOk(lead) && lineOk(trail),
+      `${D3051}: both lines fill (grow along the row), stay in flow, keep the rule's color/border/secondary and the border-width/hairline thickness (got lead grow ${lead?.layoutGrow} fill ${lead?.paints?.fills} h ${lead?.bound?.height}; trail grow ${trail?.layoutGrow} fill ${trail?.paints?.fills} h ${trail?.bound?.height})`);
+    ok(!label?.layoutGrow && label?.layoutPositioning !== 'ABSOLUTE' && label?.layoutAlign !== 'STRETCH' && !label?.textAutoResize?.startsWith?.('NONE'),
+      `${D3051}: the label hugs its word in flow, between the two lines, so neither line runs under it (got grow ${label?.layoutGrow}, positioning ${label?.layoutPositioning}, align ${label?.layoutAlign})`);
+    ok(root.layoutMode === 'HORIZONTAL' && root.counterAxisAlignItems === 'CENTER' && root.bound?.itemSpacing === 'space/300'
+      && root.bound?.height === 'type/label/md/line-box' && root.bound?.width === 'container/narrow' && !root.paints?.fills,
+      `${D3051}: the root is a row one label line box tall (type/label/md/line-box), centered across, space/300 between the label and each line, painting nothing (got ${root.layoutMode}, align ${root.counterAxisAlignItems}, gap ${root.bound?.itemSpacing}, h ${root.bound?.height}, w ${root.bound?.width})`);
+    // The gap follows density but never reaches zero (the lines would touch the label).
+    const gapAt = ['compact', 'comfortable', 'spacious'].map((d) => applySpacingDensity(divider, d as never).tokens['gap']);
+    ok(gapAt[1] === 'space.300' && gapAt.every((g) => g && g !== 'space.0'),
+      `${D3051}: the label-to-line gap is space.300 at comfortable and follows density without collapsing (got ${gapAt.join(' / ')})`);
+  }
+  // Q3051.1 A: the code API is a label string prop, and no separate labeled prop.
+  const labelProp = divider.props.find((p) => p.name === 'label');
+  ok(labelProp?.type === 'string' && labelProp.default === undefined && !divider.props.some((p) => p.name === 'labeled'),
+    `${D3051}: the code API is a label string prop with no default, and no labeled prop (Q3051.1 A) (got ${JSON.stringify(labelProp)})`);
+  // Q3051.2 A, the a11y contract: no role on the wrapper, the lines aria-hidden, the label read as text, and never a
+  // separator around the label.
+  const a11y = `${divider.accessibility.role} ${divider.accessibility.aria}`;
+  const sem = (divider.anatomy?.codeOnly ?? []).find((c) => c.startsWith('the labeled divider\'s semantics — ')) ?? '';
+  ok(/a labeled divider takes no role/.test(divider.accessibility.role) && /two lines set aria-hidden="true"/.test(divider.accessibility.aria)
+    && /label is plain text in the reading order/.test(divider.accessibility.aria) && !/labeled divider[^.]*role="separator" aria-label/.test(a11y)
+    && /wrapper takes no role/.test(sem) && /both lines are `aria-hidden="true"`/.test(sem) && /not focusable/i.test(sem),
+    `${D3051}: the a11y contract — no role on the wrapper, both lines aria-hidden, the label read as plain text, not focusable (Q3051.2 A) (role '${divider.accessibility.role}')`);
+  // Q3051.5 A, held for EVERY brand, not only the default: text.secondary clears 4.5:1 against the two page tiers in
+  // every mode. Recomputed from the roles' own colors (the lint-ratio-truth lesson), never read off a reported ratio.
+  const under: string[] = [];
+  for (const [id, input] of Object.entries(exampleBrands())) {
+    for (const m of resolveAllModes(brandTheme(input as BrandInput))) {
+      const ink = m.roles['text.secondary'];
+      for (const g of ['background.primary', 'background.secondary']) {
+        const ground = m.roles[g];
+        if (!ink || !ground) { under.push(`${id} ${m.mode} ${g}: role absent`); continue; }
+        const c = contrast(hexToRgb(ink.hex), hexToRgb(ground.hex));
+        if (!(c >= 4.5)) under.push(`${id} ${m.mode} text.secondary on ${g}: ${c.toFixed(2)}`);
+      }
+    }
+  }
+  ok(under.length === 0,
+    `${D3051}: the label ink text.secondary clears 4.5:1 against background.primary and background.secondary in every mode of every example brand${under.length ? ` — UNDER: ${under.slice(0, 4).join('; ')}` : ''}`);
 }
 
 // ---- centered Tabs (#2518, owner decision Q222 A) ----
