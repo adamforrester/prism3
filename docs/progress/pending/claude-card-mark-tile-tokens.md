@@ -20,8 +20,9 @@ provider artwork), so the owner's files drop in full-bleed.
   coordinates `when` names. `brand-mark` names its card members, read from the vocabulary by kind (`CARD_MARKS`), so a
   network added to the set is a tile the day it lands. Square and wallet plans are byte-identical.
 - **Tokens:** `tile.radius` → `radius.sm`, `tile.border-width` → `border-width.hairline`, `tile.border` →
-  `color.border.primary` (through `paintKeys: ['tile.{slot}']`; the artwork still takes no ink, by def id). The step and
-  the color role are held for the owner in the PR (Q-T1, Q-T2).
+  `color.border.primary` (through `paintKeys: ['tile.{slot}']`; the artwork still takes no ink, by def id). **Owner
+  decision Q-T1 A, Q-T2 A, Q-T3 A (2026-10-27, on #3047):** `radius.sm`, `color.border.primary`, and the 1px hairline
+  on every tile, as built.
 - **Both executors already carry it**, which is why there is no executor diff: each applies a node's `bound` and
   `paints.strokes` on any node type, and each `claimDefaults` reads `clipsContent` from the plan on every FRAME and
   leaves a bound corner alone. The GLYPH's artboard is a FRAME. Shown by mutation, below.
