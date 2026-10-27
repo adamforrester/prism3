@@ -2,14 +2,14 @@
  * The left rail (#2909 IA v2 phase 1; the owner's decisions of 2026-10-24 on the round-3 wireframe, and the round-4
  * wireframe's drafts): a 60px column of tiles, each its icon over a one-word label, the pattern Figma's own left rail
  * uses. On both hosts since phase 2 (Q2909.9 A): the web's rail holds Theme, Components and Export (`railAreas`), with
- * Help and Appearance at its foot and no Agent.
+ * Help and Appearance at its foot and no Minimize.
  *
  * WHAT IT HOLDS, top to bottom:
  *   · the product mark (the logo; its name is the mark's accessible name);
  *   · the four areas, Theme · Components · Documentation · Export (`RAIL_AREAS`, `pages.ts`), each a place the panel
  *     opens: the area's current tile is filled and carries `aria-current="page"`;
- *   · at the foot, after a divider, the nodes the frame places: the Agent tile's slot (the plugin's own entry mounts the
- *     one-click toggle there, `apps/plugin/src/agent-link-ui.ts`; it fills and shows a green dot while the link is on),
+ *   · at the foot, after a divider, the nodes the frame places: Minimize's slot (the plugin's own entry mounts Minimize
+ *     there, `apps/plugin/src/agent-link-ui.ts`; Q731 put it where the Agent tile was, the Agent tile on the top bar),
  *     Help (the old bar's Docs, renamed so it does not collide with Documentation) and Appearance (the old bar's Theme
  *     menu, renamed so it does not collide with the Theme area).
  * Update file is not a rail item: it is the top bar's one global action (Q668 A).
@@ -33,7 +33,7 @@ export type Rail = {
 };
 
 /** Mount the rail. `areas` is the host's areas, in order (`railAreas`); `foot` is the frame's own nodes for the rail's
- *  foot, in order (the plugin's Agent slot, Help, Appearance). */
+ *  foot, in order (the plugin's Minimize slot, Help, Appearance). */
 export const mountRail = (opts: { readonly logo: HTMLElement; readonly areas: readonly RailArea[]; readonly go: (area: AreaId) => void; readonly foot: readonly HTMLElement[] }): Rail => {
   const RAIL_AREAS = opts.areas;
   const node = hook(h('nav', 'p3-rail'), 'rail');

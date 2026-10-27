@@ -943,14 +943,19 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "divider",
     "name": "Divider",
     "category": "foundations",
-    "summary": "A thin rule between groups of content. Horizontal or vertical, and it fills its container.",
+    "summary": "A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.",
     "unit": "variants",
-    "spacing": [],
+    "spacing": [
+      {
+        "key": "gap",
+        "ref": "space.300"
+      }
+    ],
     "page": "Divider",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 5,
+    "members": 6,
     "nests": []
   },
   {
