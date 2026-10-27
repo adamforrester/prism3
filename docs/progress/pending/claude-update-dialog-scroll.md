@@ -21,8 +21,9 @@ owner's open question and is untouched here.
   there too. With the restore removed, both fail by name (`#3082: ticking a set below the fold keeps the body's scroll`,
   `#3082: a host answer's repaint keeps the body's scroll`).
 
-### Trap for whoever re-verifies
+### The narrow tier
 
-- At the narrow tier, `.p3-frame[data-w="narrow"] .p3-bardlg-col { overflow: visible }` outranks `.p3-upd-body`'s
-  `overflow: auto`, so the body does not scroll there and the fix has nothing to keep. The arm runs at 1280, where the
-  body is the scroller.
+- At the narrow tier, `.p3-frame[data-w="narrow"] .p3-bardlg-col { overflow: visible }` would stop the body scrolling,
+  but `chrome.css`'s `.p3-frame[data-w="narrow"] .p3-bardlg-col.p3-upd-body` rule restores `overflow-y: auto`, so the
+  body stays the scroller there too. Measured at 400×700: the arm passes, and fails without the restore. The arm now
+  runs that narrow pass as well as 1280×900.
