@@ -73,6 +73,18 @@
         "sha256": "ed45123e87275d034e31c41fcf31c77e19b1884bc89780a25a045160e5e73e3c"
       }
     },
+    "wallet-button": {
+      "set": {
+        "members": 20,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "grid": {
+        "members": 20,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
     "icon-button": {
       "set": {
         "members": 216,

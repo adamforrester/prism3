@@ -149,10 +149,14 @@ const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<Shi
   // the same file (`liveRoot`), so each nested instance has the properties its set really declared, `#id` suffixes and
   // all. Against a catalog name with nothing behind it there is no property to set, and the round-trip would be
   // measuring the harness.
-  const overrides = plans.some((p) => JSON.stringify(p.root).includes('"nestOverrides"'));
+  // So is a plan that LOCKS a nested instance to its main's proportion (#2343 PR 2, WalletButton's logo, PR 4): the
+  // executor reads the proportion off the main component, and a bare catalog name has no size to read, so the built
+  // standalone components answer as themselves (`liveComponents`), as Figma's do.
+  const locks = plans.some((p) => JSON.stringify(p.root).includes('"aspectLock"'));
+  const overrides = locks || plans.some((p) => JSON.stringify(p.root).includes('"nestOverrides"'));
   // Only the FPO swap target is a catalog name then: a nested def's own name must answer as the set built here, never as
   // a bare component of that name, which a plain-component lookup would find first.
-  const shim = makeShim({ ...fullFor(overrides ? [...plans, ...ALL_PLANS()] : plans), ...(overrides ? { comps: [SWAP_TARGET], liveRoot: true } : {}), page, ...extra });
+  const shim = makeShim({ ...fullFor(overrides ? [...plans, ...ALL_PLANS()] : plans), ...(overrides ? { comps: [SWAP_TARGET], liveRoot: true } : {}), ...(locks ? { liveComponents: true } : {}), page, ...extra });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
   if (overrides) await prebuildDependencies(def, { defs: componentDefs, project: (d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), host: shim as any, build: (d) => applyComponentPlan(figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }) });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
@@ -347,6 +351,15 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
           const main = n.mainComponent as { name?: unknown; parent?: { name?: unknown; type?: unknown } | null } | null | undefined;
           const owner = main?.parent?.type === 'COMPONENT_SET' ? String(main.parent.name) : String(main?.name);
           if (entry?.kind === 'fixed') { if (!entry.components.includes(owner)) miss(h.name, path, 'nesting', `one of ${entry.components.join(', ')}`, `host instance of ${owner}`); }
+          else if (entry?.kind === 'instance' && owner.startsWith(`${entry.component}/`)) {
+            // A standalone-component nest (#2343 PR 4): the model names the def; this member's component is
+            // `<def>/<value>`, the variant moved by `when` at this member's own coordinate.
+            const coord = Object.fromEntries(String(h.name).split(', ').map((kv) => kv.split('=')));
+            const v: Record<string, string> = { ...entry.variant };
+            for (const [axis, byValue] of Object.entries(entry.when ?? {})) if (byValue[coord[axis]]) Object.assign(v, byValue[coord[axis]]);
+            const want = `${entry.component}/${Object.values(v)[0]}`;
+            if (Object.keys(v).length !== 1 || owner !== want) miss(h.name, path, 'nesting', `an instance of ${want}`, `host instance of ${owner}`);
+          }
           else if (entry?.kind !== 'instance' || entry.component !== owner) miss(h.name, path, 'nesting', `an instance of ${owner}`, entry ? JSON.stringify(entry) : 'ABSENT from the model');
           else {
             if (!!n.isExposedInstance !== entry.exposes.length > 0) miss(h.name, path, 'exposes', JSON.stringify(entry.exposes), `host isExposedInstance=${String(n.isExposedInstance)}`);
