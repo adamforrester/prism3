@@ -255,6 +255,20 @@
       "default": "card",
       "description": "OPTIONAL. The raised surface (#3049): what `color.foreground.raised`, the panel a dialog or sheet draws over the scrim, holds in light and hc-light. 'card' (default): the card surface, `foreground.primary`. 'page': the page, `background.primary`. 'white': pure white. Dark and hc-dark always take the card surface, so a dialog keeps its lift there."
     },
+    "glassRoles": {
+      "type": "object",
+      "description": "OPTIONAL. Brand-added glass roles (#3073): `color.glass.<name>`, each a translucent fill beside the shipped `color.glass.surface` (white or black glass). The key is the role name, lower-case kebab-case, never `surface`. Each names exactly one color source, `role` (a semantic role whose palette color is read per mode, such as `foreground.primary`, the card ground) or `palette` (one palette color, such as `neutral.050`, `white` or `black`), plus `alpha`, a whole percent from 1 to 99. The engine emits it as a palette alpha step, so a Figma fill bound to it stays translucent. Brand-dependent: never part of the guaranteed token names.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["alpha"],
+        "properties": {
+          "role": { "type": "string", "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)+$" },
+          "palette": { "type": "string", "pattern": "^(white|black|[a-z][a-z0-9-]*\\.[0-9]+)$" },
+          "alpha": { "type": "integer", "minimum": 1, "maximum": 99 }
+        }
+      }
+    },
     "strictInteractiveContrast": {
       "type": "boolean",
       "default": false,
