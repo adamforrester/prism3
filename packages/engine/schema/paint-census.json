@@ -15,14 +15,14 @@
     },
     "brand-mark": {
       "set": {
-        "members": 19,
-        "assignments": 4,
-        "sha256": "5554dbd41a7b2cb965d0079aa77a1ceb365a9fabfcf60f0d5bacad27ac80c5c9"
+        "members": 74,
+        "assignments": 15,
+        "sha256": "5a164dae5f5b46f8e73a117d8beae237bec8fb3dd71996313609165a0fece2b0"
       },
       "grid": {
-        "members": 19,
-        "assignments": 4,
-        "sha256": "7a08e3e33de2324feda9549722702003040cc5544c330806971a82f438a647c5"
+        "members": 74,
+        "assignments": 15,
+        "sha256": "5192cbcb6014d2ba1ada7293368deae23336eddc50d822a2bf2f5ec3ea144a95"
       }
     },
     "focus-ring": {
@@ -71,6 +71,18 @@
         "members": 336,
         "assignments": 1200,
         "sha256": "ed45123e87275d034e31c41fcf31c77e19b1884bc89780a25a045160e5e73e3c"
+      }
+    },
+    "wallet-button": {
+      "set": {
+        "members": 20,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "grid": {
+        "members": 20,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }
     },
     "icon-button": {

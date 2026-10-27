@@ -59,6 +59,13 @@
             "usagePanelLead": "icon-button"
           },
           {
+            "name": "↳ Wallet button",
+            "components": [
+              "wallet-button"
+            ],
+            "usagePanelLead": "wallet-button"
+          },
+          {
             "name": "↳ Checkbox",
             "components": [
               "checkbox-control",
@@ -749,8 +756,8 @@
         "name": "WalletButton",
         "figmaName": "wallet-button",
         "kind": "component set",
-        "page": null,
-        "section": null,
+        "page": "↳ Wallet button",
+        "section": "Components",
         "members": 20,
         "variantProperties": [
           {

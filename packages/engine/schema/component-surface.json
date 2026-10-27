@@ -226,6 +226,11 @@
         "label:TEXT"
       ]
     },
+    "wallet-button": {
+      "members": 20,
+      "sha256": "5311205b13362415e3043556589b18baac592ea206226ea44efa35d4c598b472",
+      "properties": []
+    },
     "icon-button": {
       "members": 216,
       "sha256": "4724cde09169b3cf5ab137114bd9c3cf9ec9fccfd24e724fb9c5a8df7332ef8c",

@@ -1517,5 +1517,26 @@
     },
     "members": 30,
     "properties": {}
+  },
+  "wallet-button": {
+    "axes": {
+      "provider": [
+        "apple-pay",
+        "google-pay",
+        "paypal",
+        "shop-pay"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "focus-visible",
+        "rest"
+      ]
+    },
+    "members": 20,
+    "properties": {}
   }
 }
