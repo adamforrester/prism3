@@ -36625,7 +36625,7 @@ arm: {
 // token block plus exactly the tile's three height keys (20 / 20 / 24, #2429 §2), the tile at the box's trailing edge in
 // place of TextField's trailing glyph (Q7 a), built shown and starting at the generic tile (Q10 a; the owner's generic
 // artwork, 2026-10-27), and the panel. That the tile is never retinted is `lint-mark-colors.ts`'s; that the slot takes
-// tiles only is `lint-mark-slots.ts`'s. EXPECTED is typed here; ACTUAL is the def and its projected plans.
+// card networks' tiles only is `lint-mark-slots.ts`'s. EXPECTED is typed here; ACTUAL is the def and its projected plans.
 {
   const cf = cardNumberField;
   const cfPlans = figmaAnatomySet(cf, { swapTarget: 'FPO-default-icon' });

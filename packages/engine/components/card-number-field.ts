@@ -18,9 +18,11 @@
  *  · IT STARTS AT THE GENERIC TILE (owner, 2026-10-27: the generic tile is the owner's "no card type yet" artwork, which
  *    replaces the core `bank-card` glyph the 2026-10-25 proposal planned). Named through the mark set, never as a path:
  *    the tile kind is whichever kind the set draws on the tile artboard (`payment/` since PR 3's rename of `card/`).
- *  · THE MARK SLOT TAKES TILES ONLY. The `brand` prop's values are the tile kind's marks, read from the set by artboard,
- *    so a network added to the set is a value the day it lands, and no square, logo or social mark can be named.
- *    `lint-card-mark-slot.ts` holds the outcome against the folder.
+ *  · THE MARK SLOT TAKES CARD NETWORKS ONLY (Q-C7 A, awaiting the owner). The tile kind is every "accepted payments"
+ *    tile (Q780 A), wallets and pay-later services included, and card-number detection can only ever name a card
+ *    network. So the `brand` prop's values are the typed `CARD_NETWORKS` list below, each checked here to be a tile in
+ *    the set. A network the owner adds to `payment/` joins by one line here and one in `lint-mark-slots.ts`, which
+ *    keeps its own literal list and holds the outcome against the folder. No wallet, logo or social mark can be named.
  *  · TRAILING, FOLLOWING TEXT DIRECTION (#2429 Q7 a), never flipped. No position axis.
  *  · size(3) × status(4) × state(7) = 84 members, TextField's count; medium first (#2429 Q4 b, the fields' exception).
  *  · The code-side contract (formatting, detection, hosted fields, the hidden network name) is in `codeOnly`,
@@ -39,18 +41,22 @@ import { BRAND_MARK_KINDS } from '../brand-mark-set';
 import { makeTextField } from './text-field';
 
 /** The payment tiles: every mark the set draws on the tile artboard, by kind, so a kind renamed in the set (`card/` →
- *  `payment/`, PR 3) and a network added to it both reach this field without an edit. */
+ *  `payment/`, PR 3) reaches this field without an edit. */
 const TILES = BRAND_MARK_NAMES.filter((n) => BRAND_MARK_KINDS[n.split('/')[0]] === 'tile');
 /** The tile kind, the first segment every tile shares. */
 const TILE_KIND = TILES[0]?.split('/')[0];
 if (!TILE_KIND || TILES.some((n) => !n.startsWith(`${TILE_KIND}/`)))
   throw new Error(`card-number-field: the mark set draws its tile-artboard marks under ${JSON.stringify([...new Set(TILES.map((n) => n.split('/')[0]))])}; the field needs exactly one tile kind`);
-/** Each tile's network, the `brand` value: the name after the kind. */
-const NETWORKS = TILES.map((n) => n.slice(TILE_KIND.length + 1));
 /** The network the field shows before it can tell: the generic tile. */
 const GENERIC = 'generic';
-if (!NETWORKS.includes(GENERIC))
-  throw new Error(`card-number-field: the mark set has no ${TILE_KIND}/${GENERIC} tile, which the field shows before it knows the card network`);
+/** The card networks the field can show, the `brand` values (Q-C7 A): the tiles card-number detection or a payment
+ *  provider's card-brand event can name. Never a wallet or a pay-later service: those tiles are in the same kind
+ *  (Q780 A) and no card number ever detects them. */
+type CardNetwork = typeof GENERIC | 'amex' | 'diners-club' | 'discover' | 'maestro' | 'mastercard' | 'visa';
+const CARD_NETWORKS: readonly CardNetwork[] = [GENERIC, 'amex', 'diners-club', 'discover', 'maestro', 'mastercard', 'visa'];
+const missing = CARD_NETWORKS.filter((n) => !TILES.includes(`${TILE_KIND}/${n}`));
+if (missing.length)
+  throw new Error(`card-number-field: the card networks ${JSON.stringify(missing)} have no tile in the mark set's ${TILE_KIND}/ kind; the field shows each network's own tile`);
 
 export const cardNumberField: ComponentDef = makeTextField({
   id: 'card-number-field',
@@ -73,7 +79,7 @@ export const cardNumberField: ComponentDef = makeTextField({
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. A disabled field also disables a hosted input. The tile keeps its own colors.' },
     { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Focusable, copyable and submitted, and passes contrast, as on TextField. For a saved card, show the last four digits in a read-only display instead of this field.' },
-    { name: 'brand', type: `enum: ${NETWORKS.map((n) => `'${n}'`).join(' | ')}`, values: [...NETWORKS], default: GENERIC, required: false, description: 'The card network the field shows, from the payment tiles in the mark set: generic until the leading digits tell the network, then that network\'s tile. Set it from the card-type detection, or from the payment provider\'s brand event when the provider hosts the input. A network added to the mark set becomes a value here; no other kind of mark can be named.' },
+    { name: 'brand', type: `enum: ${CARD_NETWORKS.map((n) => `'${n}'`).join(' | ')}`, values: [...CARD_NETWORKS], default: GENERIC, required: false, description: 'The card network the field shows: generic until the leading digits tell the network, then that network\'s tile. Set it from the card-type detection, or from the payment provider\'s card-brand event when the provider hosts the input. Card networks only: a wallet or pay-later tile is never a value, because no card number names one.' },
     { name: 'brandName', type: 'string', required: false, description: 'The detected network\'s name in the app\'s own words, such as "Visa". It goes in a visually hidden description on the input, linked by aria-describedby, so the network is never conveyed by the tile alone. Leave it empty while brand is generic.' },
     { name: 'showCardMark', type: 'boolean', default: true, required: false, description: 'Whether the tile shows. On by default; the field shows the generic tile before it knows the network.' },
     { name: 'renderInput', type: 'function', required: false, description: 'Returns the payment provider\'s mount point, the element its hosted input mounts into. With it, the field draws the label, box, tile, focus ring and message around the provider\'s input and never renders the card number input itself. Without it, the field renders a native input, which puts the page outside the lightest card-data compliance scope.' },
@@ -99,7 +105,7 @@ export const cardNumberField: ComponentDef = makeTextField({
     'CARD-TYPE DETECTION and the TILE (#2429 §5, Q10 A) — detection reads the leading digits and sets `brand`; there is never a manual card-type select. The tile swaps in place, generic until the network is known. The tile is decorative (`aria-hidden="true"` on the mark), and the network is stated in text: `brandName` goes in a visually hidden element linked by `aria-describedby`, NOT a live region, so typing never triggers speech. A network the merchant does not accept keeps its detected tile, and the field shows the error. In forced-colors mode the tile alone sets `forced-color-adjust: none`, so it keeps the provider\'s colors and the field around it follows the user\'s.',
     'the HOSTED INPUT (#2429 §6, Q12 b, hosted the documented default) — most checkouts take the number in the payment provider\'s hosted input, an iframe the provider serves, which keeps the merchant in the lightest card-data compliance scope (PCI DSS SAQ A). With `renderInput`, the field is a shell: it draws the label, box, tile, focus ring and message outside the frame, driven by the provider\'s state events (focus, invalid, complete, empty) and brand event, and the provider owns the input, its value, its caret, its formatting and its detection. A host `<label for>` cannot reach inside an iframe, so the visible label wraps the mount point, clicking it calls the provider\'s `focus()`, and the label text is passed into the provider\'s own label or `title` option. `aria-describedby` cannot cross the frame either, so the validation text is mirrored into the provider\'s message API where it has one. The typed text\'s font, size and ink are passed through the provider\'s styling API from the same tokens the shell binds. Without `renderInput` the field renders a native input, for prototypes and providers that tokenize page inputs; the docs say plainly that such a page is outside SAQ A.',
     'VALIDATION (#2429 §5, the pre-work §3.3) — empty ("Enter the card number."), a number that fails the Luhn checksum (a warning, not an error, because some UnionPay numbers fail it: "Check the card number. It doesn\'t match a valid card."), and a network the merchant does not accept (built from the accepted list). Validate on blur, then on input once the field shows an error, as TextField does; never mid-IME-composition. A decline from the processor belongs to the card group, not this field.',
-    'the TILE in Figma — a swap slot that starts at the generic tile and binds only its height (`size.{size}.mark-height`, the icon rung); both executors lock the instance to its own component\'s proportion, so a 32×20 tile is about 38×24 at large. It takes no ink from the field at any state, disabled included (`fixedPaint`). The tile\'s rounded corners and edge belong to the brand-mark component. The `card mark` switch shows or hides it; `↳ swap card mark` picks the network, from the payment tiles.',
+    'the TILE in Figma — a swap slot that starts at the generic tile and binds only its height (`size.{size}.mark-height`, the icon rung); both executors lock the instance to its own component\'s proportion, so a 32×20 tile is about 38×24 at large. It takes no ink from the field at any state, disabled included (`fixedPaint`). The tile\'s rounded corners and edge belong to the brand-mark component. The `card mark` switch shows or hides it; `↳ swap card mark` picks the card network\'s tile.',
     'RIGHT TO LEFT — the label, the box and the tile\'s position mirror, so the tile sits at the box\'s left end. The digits stay left to right (`dir="ltr"` on the input), and the tile\'s artwork is never flipped. One provider turns off number grouping in right-to-left layouts; the hosted adapter states that limit rather than hiding it.',
     'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage and the hidden network name into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
     'the KEYBOARD MODEL — native text editing and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
@@ -183,7 +189,7 @@ export const cardNumberField: ComponentDef = makeTextField({
       'Proposed on #2429 (2026-10-09, refreshed 2026-10-12) as TextField with a card-shaped trailing slot, then restated on #2343 (2026-10-25) once the brand-mark type existed. The owner took the 16 recommendations as a block (Q-B10 A), committed artwork for internal use (Q-B1 B), made card tiles full-bleed with the component drawing the edge (Q720 A), renamed the card kind to payment (Q780 A), and gave the generic tile the owner\'s own artwork (2026-10-27), which replaced the planned core card glyph.',
     ],
     projection: [
-      'In Figma the tile is a swap that starts at the generic payment tile; a designer picks the detected network from the payment tiles with the swap card mark property. Its height is bound and its width follows the tile\'s proportion; it takes no ink from the field.',
+      'In Figma the tile is a swap that starts at the generic payment tile; a designer picks the detected card network\'s tile with the swap card mark property. Its height is bound and its width follows the tile\'s proportion; it takes no ink from the field.',
     ],
   },
 });

@@ -1133,10 +1133,12 @@ npx tsx packages/engine/lint-mark-colors.ts         # a brand mark is NEVER RETI
                                                     # paint variable into a brand-mark/* instance, and each
                                                     # states fixedPaint; the hosts are listed by hand, both
                                                     # ways (the Card number field is the first).
-npx tsx packages/engine/lint-mark-slots.ts          # a PAYMENT-TILE SLOT takes tiles only (#2343 PR 4).
-                                                    # The tiles are read from the marks folder by the
-                                                    # gate's own viewBox reader (32x20); the host's code
-                                                    # prop offers exactly them, defaults to generic, and
+npx tsx packages/engine/lint-mark-slots.ts          # a PAYMENT-TILE SLOT takes card networks only (#2343
+                                                    # PR 4, Q-C7 A). The tiles are read from the marks
+                                                    # folder by the gate's own viewBox reader (32x20); the
+                                                    # host's code prop offers exactly the gate's own
+                                                    # literal card-network list, each such a tile (never
+                                                    # a wallet or pay-later tile), defaults to generic, and
                                                     # every member's slot (and the set's swap property)
                                                     # starts at brand-mark/<tile folder>/generic, binding
                                                     # its height alone under the aspect lock.

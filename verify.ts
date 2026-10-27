@@ -1002,7 +1002,7 @@ export const GATES: Gate[] = [
   },
   {
     id: 'lint-mark-slots',
-    ciStep: 'A payment-tile slot takes tiles only and starts at the generic tile',
+    ciStep: 'A payment-tile slot takes card networks only and starts at the generic tile',
     cmd: engine('lint-mark-slots.ts'),
   },
   {

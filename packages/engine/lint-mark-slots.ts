@@ -1,5 +1,5 @@
 /**
- * Prism3 engine — A PAYMENT-TILE SLOT HOLDS PAYMENT TILES, AND STARTS AT THE GENERIC ONE (#2343 PR 4, #2429).
+ * Prism3 engine — A CARD-NUMBER TILE SLOT HOLDS CARD NETWORKS' TILES, AND STARTS AT THE GENERIC ONE (#2343 PR 4, #2429).
  *
  *   npx tsx packages/engine/lint-mark-slots.ts
  *
@@ -7,9 +7,12 @@
  * not a box that happens to hold a logo, and each is checked here against the marks FOLDER, never against the set
  * or the def that produced the plan:
  *
- *   (a) TILES ONLY — the code prop that names the mark (`brand`) offers exactly the tiles the folder holds: every
- *       file drawn on the 32×20 tile artboard, in the one folder that holds them, and nothing else. A square sign-in
- *       glyph, a logo or a social mark named there fails, and so does a tile the prop forgot.
+ *   (a) NETWORKS ONLY — the code prop that names the mark (`brand`) offers exactly the card networks listed for the
+ *       host here, and each is a tile in the folder: a file drawn on the 32×20 tile artboard, in the one folder that
+ *       holds them. The tile folder also holds wallets and pay-later services (Q780 A), which no card number detects,
+ *       so the list is the owner's call (Q-C7 A), typed here and not read from the folder. A wallet tile, a square
+ *       sign-in glyph, a logo or a social mark named there fails; so does a listed network the prop forgot, and a
+ *       listed network with no tile.
  *   (b) GENERIC FIRST — the prop defaults to `generic`, and on every projected member the slot's swap, and the set's
  *       swap property, start at `brand-mark/<tile folder>/generic`, a file that exists. The generic tile is what the
  *       field shows before the number tells the network.
@@ -24,8 +27,9 @@
  * ── INDEPENDENCE (docs/34) ──────────────────────────────────────────────────────────────────────────
  *
  * The tile set is read from the folder with this file's own `viewBox` reader; it never imports `brand-mark-set.ts` or
- * `brand-mark-glyphs.ts`, which the def reads to build the prop. The tile artboard (32×20), the generic name, the hosts,
- * their part and prop names and the height rungs are literals typed here. The def and its projected plans are the
+ * `brand-mark-glyphs.ts`, which the def reads to check its list. The tile artboard (32×20), the generic name, the
+ * hosts, their part and prop names, their card networks and the height rungs are literals typed here; the networks
+ * are never imported from the def's `CARD_NETWORKS`, so a network added to (or dropped from) one list fails here. The def and its projected plans are the
  * subjects. Reading the tile list off the set would only prove the def agrees with the set it was built from.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -42,10 +46,15 @@ const TILE_VIEWBOX = '0 0 32 20';
 /** The tile a payment field shows before it knows the network (owner, 2026-10-27). */
 const GENERIC = 'generic';
 const MARK_PREFIX = 'brand-mark/';
-/** Every def with a payment-tile slot, its slot part, the code prop that names the tile, and the variable its slot's
- *  height binds at each size. */
-const HOSTS: Record<string, { part: string; prop: string; height: Record<string, string> }> = {
-  'card-number-field': { part: 'cardMark', prop: 'brand', height: { small: 'icon/size/sm', medium: 'icon/size/sm', large: 'icon/size/md' } },
+/** Every def with a payment-tile slot, its slot part, the code prop that names the tile, the card networks that prop
+ *  offers (Q-C7 A: card networks only, never a wallet or pay-later tile), and the variable its slot's height binds at
+ *  each size. */
+const HOSTS: Record<string, { part: string; prop: string; networks: string[]; height: Record<string, string> }> = {
+  'card-number-field': {
+    part: 'cardMark', prop: 'brand',
+    networks: [GENERIC, 'amex', 'diners-club', 'discover', 'maestro', 'mastercard', 'visa'],
+    height: { small: 'icon/size/sm', medium: 'icon/size/sm', large: 'icon/size/md' },
+  },
 };
 
 /** A document's `viewBox`, normalized to single spaces, or undefined. Pure. */
@@ -116,15 +125,19 @@ for (const def of componentDefs) {
     continue;
   }
   if (!carrying) failures.push(`${def.id}: is listed as a payment-tile host and no member swaps in a tile — the slot arm would check nothing`);
-  // (a) the code prop offers the tiles, and only the tiles; (b) it starts at generic.
+  // (a) the code prop offers the listed card networks, and only those, each a tile; (b) it starts at generic.
+  const want = [...host.networks].sort();
+  if (!want.includes(GENERIC)) failures.push(`${def.id}: NETWORKS ONLY — this gate's network list for the host omits '${GENERIC}'`);
+  const tileless = want.filter((v) => !tileNames.includes(v));
+  if (tileless.length) failures.push(`${def.id}: NETWORKS ONLY — the card networks ${JSON.stringify(tileless)} have no tile in marks/${folder}/`);
   const prop = def.props?.find((p) => p.name === host.prop);
   const values = [...(prop?.values ?? [])].sort();
-  const want = [...tileNames].sort();
-  if (!prop) failures.push(`${def.id}: TILES ONLY — has no '${host.prop}' prop to name the tile`);
+  if (!prop) failures.push(`${def.id}: NETWORKS ONLY — has no '${host.prop}' prop to name the tile`);
   else {
     if (JSON.stringify(values) !== JSON.stringify(want)) {
       const extra = values.filter((v) => !want.includes(v)), missing = want.filter((v) => !values.includes(v));
-      failures.push(`${def.id}: TILES ONLY — '${host.prop}' offers ${JSON.stringify(values)}, and marks/${folder}/ holds the tiles ${JSON.stringify(want)}${extra.length ? `; not tiles: ${JSON.stringify(extra)}` : ''}${missing.length ? `; tiles missing: ${JSON.stringify(missing)}` : ''}`);
+      const tilesNotNetworks = extra.filter((v) => tileNames.includes(v)), notTiles = extra.filter((v) => !tileNames.includes(v));
+      failures.push(`${def.id}: NETWORKS ONLY — '${host.prop}' offers ${JSON.stringify(values)}, and the card networks are ${JSON.stringify(want)}${tilesNotNetworks.length ? `; tiles that are not card networks: ${JSON.stringify(tilesNotNetworks)}` : ''}${notTiles.length ? `; not tiles: ${JSON.stringify(notTiles)}` : ''}${missing.length ? `; networks missing: ${JSON.stringify(missing)}` : ''}`);
     }
     if (prop.default !== GENERIC) failures.push(`${def.id}: GENERIC FIRST — '${host.prop}' defaults to ${JSON.stringify(prop.default)}, not '${GENERIC}'`);
   }
@@ -149,8 +162,8 @@ console.log(`Mark slots — ${tileNames.length} tile(s) in marks/${folder}/, ${O
 if (failures.length) {
   console.error(`\n❌ ${failures.length} payment-tile slot problem(s):\n`);
   for (const f of failures) console.error(`    ${f}`);
-  console.error('\n  A payment-tile slot names tiles only, starts at the generic tile, and keeps the tile\'s proportion.');
+  console.error('\n  A card-number tile slot names card networks\' tiles only, starts at the generic tile, and keeps the tile\'s proportion.');
   process.exit(1);
 }
-console.log('  ✓ clean — every payment-tile slot offers exactly the folder\'s tiles, starts at the generic tile on every');
-console.log('    member and in its swap property, and binds its height alone under the aspect lock.');
+console.log('  ✓ clean — every payment-tile slot offers exactly its listed card networks, each a tile in the folder, starts at');
+console.log('    the generic tile on every member and in its swap property, and binds its height alone under the aspect lock.');

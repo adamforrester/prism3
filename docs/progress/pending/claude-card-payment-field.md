@@ -14,9 +14,12 @@ the follow-up, the proposal's PR 4b.
 - **It starts at the generic tile**, the owner's "no card type yet" artwork, which replaced the core `bank-card` glyph
   the 2026-10-25 proposal planned. `swapDefault` on a `fixedPaint` slot now names a brand mark and projects as
   `brand-mark/<kind>/<name>`; an icon name there throws at projection.
-- **No path is hard-coded.** The field reads its tiles from the mark set by artboard (`BRAND_MARK_KINDS`), so PR 3's
-  `card/` → `payment/` rename and any network the owner adds reach the `brand` prop and the slot's default without an
-  edit here.
+- **Card networks only (Q-C7 A, awaiting the owner).** PR 3's tile kind holds every accepted-payments tile (Q780 A),
+  wallets and pay-later services included, and a card number only ever detects a network. So the `brand` prop takes a
+  typed list in the def (`generic`, `amex`, `diners-club`, `discover`, `maestro`, `mastercard`, `visa`), each checked
+  against the mark set's tiles. The tile kind is still read by artboard (`BRAND_MARK_KINDS`), so PR 3's `card/` →
+  `payment/` rename reached the slot's default without an edit. A network the owner adds joins by one line in the def
+  and one in the gate.
 - **The code contract** (in `codeOnly`, `accessibility` and the props): `cc-number`, `inputmode="numeric"`, never
   `type="number"`, `dir="ltr"`; grouping as the user types with digits-only values; detection from the leading digits;
   the network named in a visually hidden `aria-describedby` description, never a live region; a hosted-input shell
@@ -25,7 +28,8 @@ the follow-up, the proposal's PR 4b.
 ### Gates
 
 - **`lint-mark-slots.ts`** (new, in CI): the tiles are read from the marks folder by the gate's own `viewBox` reader
-  (32×20). TILES ONLY: the host's `brand` prop offers exactly them. GENERIC FIRST: it defaults to `generic`, and every
+  (32×20). NETWORKS ONLY: the host's `brand` prop offers exactly the gate's own literal card-network list, each a tile
+  in the folder, so a wallet tile fails. GENERIC FIRST: it defaults to `generic`, and every
   member's slot and the set's swap property start at `brand-mark/<tile folder>/generic`. A TILE'S SHAPE: height alone,
   the listed icon rung per size, under the aspect lock. Every def that swaps in a tile is a listed host, both ways.
 - **`lint-mark-colors.ts`** host arm (d): a carried mark takes no `descendantFills`, no fill or stroke paint and no paint
@@ -49,4 +53,5 @@ the follow-up, the proposal's PR 4b.
 ### Held for the owner (Q-blocks in the PR, A built)
 
 The tile keeps its colors at the disabled member; the `card mark` switch; the page placement ("Card number field" under
-Components); the draft wording; the PaymentField group as the follow-up.
+Components); the draft wording; the PaymentField group as the follow-up; which tiles the field can show (Q-C7, the
+reviewer's question: card networks only).

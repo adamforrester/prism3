@@ -1231,20 +1231,12 @@
           "name": "brand",
           "default": "generic",
           "values": [
-            "affirm",
-            "amazon-pay",
+            "generic",
             "amex",
-            "apple-pay",
             "diners-club",
             "discover",
-            "generic",
-            "google-pay",
-            "klarna",
             "maestro",
             "mastercard",
-            "paypal",
-            "shop-pay",
-            "venmo",
             "visa"
           ]
         },
@@ -6333,20 +6325,12 @@
         "id": "card-number-field",
         "default": "generic",
         "values": [
-          "affirm",
-          "amazon-pay",
+          "generic",
           "amex",
-          "apple-pay",
           "diners-club",
           "discover",
-          "generic",
-          "google-pay",
-          "klarna",
           "maestro",
           "mastercard",
-          "paypal",
-          "shop-pay",
-          "venmo",
           "visa"
         ]
       }

@@ -10418,27 +10418,19 @@
         },
         {
           "name": "brand",
-          "type": "enum: 'affirm' | 'amazon-pay' | 'amex' | 'apple-pay' | 'diners-club' | 'discover' | 'generic' | 'google-pay' | 'klarna' | 'maestro' | 'mastercard' | 'paypal' | 'shop-pay' | 'venmo' | 'visa'",
+          "type": "enum: 'generic' | 'amex' | 'diners-club' | 'discover' | 'maestro' | 'mastercard' | 'visa'",
           "default": "generic",
           "required": false,
           "values": [
-            "affirm",
-            "amazon-pay",
+            "generic",
             "amex",
-            "apple-pay",
             "diners-club",
             "discover",
-            "generic",
-            "google-pay",
-            "klarna",
             "maestro",
             "mastercard",
-            "paypal",
-            "shop-pay",
-            "venmo",
             "visa"
           ],
-          "description": "The card network the field shows, from the payment tiles in the mark set: generic until the leading digits tell the network, then that network's tile. Set it from the card-type detection, or from the payment provider's brand event when the provider hosts the input. A network added to the mark set becomes a value here; no other kind of mark can be named."
+          "description": "The card network the field shows: generic until the leading digits tell the network, then that network's tile. Set it from the card-type detection, or from the payment provider's card-brand event when the provider hosts the input. Card networks only: a wallet or pay-later tile is never a value, because no card number names one."
         },
         {
           "name": "brandName",

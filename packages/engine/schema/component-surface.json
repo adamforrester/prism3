@@ -758,7 +758,7 @@
     },
     "card-number-field": {
       "members": 84,
-      "sha256": "9adcc0c266415d9fec89e515c98e7b81c4a925d5507baee801a62d64ad8c7145",
+      "sha256": "778283cf9be742332b722c2d0d96fc6bee5d70370115cab74838fa23108e61fe",
       "properties": [
         "card mark:BOOLEAN",
         "leading icon:BOOLEAN",
