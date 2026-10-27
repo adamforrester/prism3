@@ -68,7 +68,7 @@ ok(typeof (globalThis as { document?: unknown }).document === 'undefined', 'prem
 
 const init = initialHostSession();
 ok(same(plain(init), {
-  seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null,
+  seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
   pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null, docSettings: null, fileSets: null,
   handEdits: [], handPass: 'idle', updateCheck: null,
@@ -291,6 +291,32 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   const rebuilt = step({ ...v.next, componentState: 'pending' }, { kind: 'component-result', ok: true, completed: true, headline: 'H', summary: 'S' });
   ok(rebuilt.next.componentLatest === 'build' && same(rebuilt.next.componentUpdate, v.next.componentUpdate),
     'component-result after a check: the build is latest again, and the check\'s verdict is kept');
+  ok(v.next.specsState === null, 'component-update-result: with no Draw specs out, Specs\' slot stays empty');
+}
+
+// ---- Documentation › Specs' Draw specs (#2830 Q2830.3 A) ------------------------------------------------
+// Its verdict is the host's `component-update-result`, the agent's `draw-specs` one; a refusal is its result instead.
+{
+  const drawing = { ...init, specsState: 'pending' as const };
+  const d = step(drawing, { kind: 'component-update-result', ok: true, headline: '✓ drew 2 spec panels', summary: 'Drew 2 of 2.', lines: ['Drew 2 of 2.'] });
+  ok(same(d.next.specsState, { ok: true, headline: '✓ drew 2 spec panels', summary: 'Drew 2 of 2.', lines: ['Drew 2 of 2.'] }),
+    'specs: the verdict that lands while Draw specs is out is Specs\' result');
+  // Q713 A: the Specs row is its own; the verdict never reaches the components operation's slots (the Build set row).
+  ok(d.next.componentLatest === null && d.next.componentUpdate === null,
+    `specs/Q713 A: Draw specs' verdict is not the Build set row's (componentLatest ${d.next.componentLatest}, componentUpdate ${JSON.stringify(d.next.componentUpdate)})`);
+  // An agent's `draw-specs` is the Specs operation: its run, and its verdict, are Specs', not the components row's.
+  const ag = step(init, { kind: 'agent-started', id: 'a1', cmd: 'draw-specs' });
+  ok(ag.next.agentRun?.op === 'specs', `specs/Q713 A: an agent's draw-specs runs the Specs operation (op ${ag.next.agentRun?.op})`);
+  const agV = step(ag.next, { kind: 'component-update-result', ok: true, headline: '✓ drew 5 spec panels', summary: 'Drew 5 of 5.' });
+  ok(agV.next.agentRun?.settled === true && agV.next.componentLatest === null && same(agV.next.specsState, { ok: true, headline: '✓ drew 5 spec panels', summary: 'Drew 5 of 5.', lines: undefined }),
+    `specs/Q713 A: an agent's draw-specs verdict settles its run and is Specs' result, not the Build set row's (${JSON.stringify(agV.next.specsState)}, componentLatest ${agV.next.componentLatest})`);
+  // The panel's build declined behind an agent's Draw specs (it holds the build's guard) leaves no build pending.
+  const agB = step({ ...ag.next, componentState: 'pending' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: 'Build set is already running.' });
+  ok(agB.next.componentState === null, `specs/Q713 A: a panel build declined behind an agent's Draw specs is not left pending (${JSON.stringify(agB.next.componentState)})`);
+  const r = step(drawing, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: 'An agent is building.' });
+  ok(same(r.next.specsState, { ok: false, headline: '✗ not drawn', summary: 'An agent is building.' }), 'specs: a refusal of the panel\'s Draw specs is its result, in the host\'s words');
+  const a = step(drawing, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: true, message: 'The panel is drawing.' });
+  ok(a.next.specsState === 'pending', 'specs: an agent\'s refused command leaves the panel\'s Draw specs out');
 }
 
 // ---- a declined second write (#1957) ---------------------------------------------------------------------
