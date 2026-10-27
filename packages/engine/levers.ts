@@ -103,6 +103,12 @@ export const leverManifest: Lever[] = [
     description: 'Optional measured override; omit to synthesize from the canonical blue hue.' },
   { key: 'surfaces', group: 'color', kind: 'value', label: 'Page surfaces', control: 'object', advanced: true,
     description: 'Non-default page and inverse surfaces per mode. The contrast floor follows the second tier.' },
+  // #3049 (owner Q721 A; Q3049.1 C, Q3049.2 A, Q3049.4) — label, option labels and description are a DRAFT for the owner
+  // (Q3049.6 on the build PR). It moves a token value, not a binding: Dialog binds `color.foreground.raised` once, and
+  // this sets what that token holds in light and hc-light. Its home in the Studio is Components › Dialog (Q578).
+  { key: 'raisedSurface', group: 'color', kind: 'value', label: 'Dialog surface', control: 'enum', default: 'card',
+    options: enumOpts(['card', 'Card'], ['page', 'Page'], ['white', 'White']),
+    description: 'The surface of every dialog and sheet in light mode: the card color, the page color, or white. Dark mode always uses the card color, so the panel stays lifted.' },
   { key: 'strictInteractiveContrast', group: 'color', kind: 'value', label: 'Strict interactive contrast', control: 'toggle', advanced: true, default: false,
     description: 'Opt-in (off by default). The inverse filled button steps its fill per state; the primary and destructive labels’ colored ink clears AA at rest but dips on the transient hover/pressed steps. On swaps both inverse labels to the neutral high-contrast ink so every state clears AA — guaranteed legibility over brand color.' },
   { key: 'linkStateRungs', group: 'color', kind: 'value', label: 'Link states', control: 'object', advanced: true,

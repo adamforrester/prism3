@@ -33,6 +33,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.primary | neutral.050 | — | — | · |
 | foreground.secondary | neutral.100 | — | — | · |
 | foreground.tertiary | neutral.150 | — | — | · |
+| foreground.raised | white | — | — | · |
 | inverse.foreground.primary | neutral.900 | — | — | · |
 | inverse.foreground.secondary | neutral.850 | — | — | · |
 | inverse.foreground.tertiary | neutral.800 | 13.89 | 3 | ✅ |
@@ -307,6 +308,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.primary | neutral.900 | — | — | · |
 | foreground.secondary | neutral.850 | — | — | · |
 | foreground.tertiary | neutral.800 | — | — | · |
+| foreground.raised | neutral.900 | — | — | · |
 | inverse.foreground.primary | neutral.050 | — | — | · |
 | inverse.foreground.secondary | neutral.100 | — | — | · |
 | inverse.foreground.tertiary | neutral.150 | 12.33 | 3 | ✅ |
@@ -581,6 +583,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.primary | white | — | — | · |
 | foreground.secondary | white | — | — | · |
 | foreground.tertiary | white | — | — | · |
+| foreground.raised | white | — | — | · |
 | inverse.foreground.primary | black | — | — | · |
 | inverse.foreground.secondary | black | — | — | · |
 | inverse.foreground.tertiary | black | 21.00 | 4.5 | ✅ |
@@ -855,6 +858,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.primary | black | — | — | · |
 | foreground.secondary | black | — | — | · |
 | foreground.tertiary | black | — | — | · |
+| foreground.raised | black | — | — | · |
 | inverse.foreground.primary | white | — | — | · |
 | inverse.foreground.secondary | white | — | — | · |
 | inverse.foreground.tertiary | white | 21.00 | 4.5 | ✅ |
@@ -1204,6 +1208,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.primary | neutral.050 | — | — | · |
 | foreground.secondary | neutral.100 | — | — | · |
 | foreground.tertiary | neutral.150 | — | — | · |
+| foreground.raised | neutral.050 | — | — | · |
 | inverse.foreground.primary | neutral.900 | — | — | · |
 | inverse.foreground.secondary | neutral.850 | — | — | · |
 | inverse.foreground.tertiary | neutral.800 | 13.94 | 3 | ✅ |
@@ -1478,6 +1483,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.primary | neutral.900 | — | — | · |
 | foreground.secondary | neutral.850 | — | — | · |
 | foreground.tertiary | neutral.800 | — | — | · |
+| foreground.raised | neutral.900 | — | — | · |
 | inverse.foreground.primary | neutral.050 | — | — | · |
 | inverse.foreground.secondary | neutral.100 | — | — | · |
 | inverse.foreground.tertiary | neutral.150 | 12.35 | 3 | ✅ |
@@ -1752,6 +1758,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.primary | white | — | — | · |
 | foreground.secondary | white | — | — | · |
 | foreground.tertiary | white | — | — | · |
+| foreground.raised | white | — | — | · |
 | inverse.foreground.primary | black | — | — | · |
 | inverse.foreground.secondary | black | — | — | · |
 | inverse.foreground.tertiary | black | 21.00 | 4.5 | ✅ |
@@ -2026,6 +2033,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.primary | black | — | — | · |
 | foreground.secondary | black | — | — | · |
 | foreground.tertiary | black | — | — | · |
+| foreground.raised | black | — | — | · |
 | inverse.foreground.primary | white | — | — | · |
 | inverse.foreground.secondary | white | — | — | · |
 | inverse.foreground.tertiary | white | 21.00 | 4.5 | ✅ |
@@ -2377,6 +2385,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.primary | neutral.050 | — | — | · |
 | foreground.secondary | neutral.100 | — | — | · |
 | foreground.tertiary | neutral.150 | — | — | · |
+| foreground.raised | neutral.050 | — | — | · |
 | inverse.foreground.primary | neutral.900 | — | — | · |
 | inverse.foreground.secondary | neutral.850 | — | — | · |
 | inverse.foreground.tertiary | neutral.800 | 13.92 | 3 | ✅ |
@@ -2651,6 +2660,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.primary | neutral.900 | — | — | · |
 | foreground.secondary | neutral.850 | — | — | · |
 | foreground.tertiary | neutral.800 | — | — | · |
+| foreground.raised | neutral.900 | — | — | · |
 | inverse.foreground.primary | neutral.050 | — | — | · |
 | inverse.foreground.secondary | neutral.100 | — | — | · |
 | inverse.foreground.tertiary | neutral.150 | 12.36 | 3 | ✅ |
@@ -2925,6 +2935,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.primary | white | — | — | · |
 | foreground.secondary | white | — | — | · |
 | foreground.tertiary | white | — | — | · |
+| foreground.raised | white | — | — | · |
 | inverse.foreground.primary | black | — | — | · |
 | inverse.foreground.secondary | black | — | — | · |
 | inverse.foreground.tertiary | black | 21.00 | 4.5 | ✅ |
@@ -3199,6 +3210,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.primary | black | — | — | · |
 | foreground.secondary | black | — | — | · |
 | foreground.tertiary | black | — | — | · |
+| foreground.raised | black | — | — | · |
 | inverse.foreground.primary | white | — | — | · |
 | inverse.foreground.secondary | white | — | — | · |
 | inverse.foreground.tertiary | white | 21.00 | 4.5 | ✅ |
@@ -3549,6 +3561,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.primary | neutral.100 | — | — | · |
 | foreground.secondary | neutral.150 | — | — | · |
 | foreground.tertiary | neutral.200 | — | — | · |
+| foreground.raised | neutral.100 | — | — | · |
 | inverse.foreground.primary | neutral.900 | — | — | · |
 | inverse.foreground.secondary | neutral.850 | — | — | · |
 | inverse.foreground.tertiary | neutral.800 | 11.44 | 3 | ✅ |
@@ -3823,6 +3836,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.primary | neutral.900 | — | — | · |
 | foreground.secondary | neutral.850 | — | — | · |
 | foreground.tertiary | neutral.800 | — | — | · |
+| foreground.raised | neutral.900 | — | — | · |
 | inverse.foreground.primary | neutral.050 | — | — | · |
 | inverse.foreground.secondary | neutral.100 | — | — | · |
 | inverse.foreground.tertiary | neutral.150 | 12.36 | 3 | ✅ |
@@ -4097,6 +4111,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.primary | white | — | — | · |
 | foreground.secondary | white | — | — | · |
 | foreground.tertiary | white | — | — | · |
+| foreground.raised | white | — | — | · |
 | inverse.foreground.primary | black | — | — | · |
 | inverse.foreground.secondary | black | — | — | · |
 | inverse.foreground.tertiary | black | 21.00 | 4.5 | ✅ |
@@ -4371,6 +4386,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.primary | black | — | — | · |
 | foreground.secondary | black | — | — | · |
 | foreground.tertiary | black | — | — | · |
+| foreground.raised | black | — | — | · |
 | inverse.foreground.primary | white | — | — | · |
 | inverse.foreground.secondary | white | — | — | · |
 | inverse.foreground.tertiary | white | 21.00 | 4.5 | ✅ |

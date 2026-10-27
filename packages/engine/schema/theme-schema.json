@@ -249,6 +249,12 @@
       "default": "subtle",
       "description": "OPTIONAL. The neutral interactive fill's boldness (docs/20 §10). 'subtle' (default): a light-gray neutral fill (a surface). 'strong': a bold near-black (light) / near-white (dark) neutral fill that clears the non-text floor."
     },
+    "raisedSurface": {
+      "type": "string",
+      "enum": ["card", "page", "white"],
+      "default": "card",
+      "description": "OPTIONAL. The raised surface (#3049): what `color.foreground.raised`, the panel a dialog or sheet draws over the scrim, holds in light and hc-light. 'card' (default): the card surface, `foreground.primary`. 'page': the page, `background.primary`. 'white': pure white. Dark and hc-dark always take the card surface, so a dialog keeps its lift there."
+    },
     "strictInteractiveContrast": {
       "type": "boolean",
       "default": false,

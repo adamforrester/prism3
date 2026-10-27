@@ -117,6 +117,25 @@
       }
     },
     {
+      "name": "nbds/color/foreground/raised",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Panel over the scrim — dialogs and sheets. A card uses foreground/primary",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/900"
+      }
+    },
+    {
       "name": "nbds/color/foreground/brand",
       "resolvedType": "COLOR",
       "scopes": [

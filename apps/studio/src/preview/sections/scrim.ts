@@ -12,7 +12,7 @@ const checkeredScrimCard = (c: SgCtx, k: string): HTMLElement => {
   const cw = el('div', 'sg-cw');
   const card = hook(el('div', 'sg-card sg-scrimcard p3-checker'), 'scrim-checker');
   const dim = c.painted(hook(el('div', 'sg-scrimdim'), 'scrim-wash'), k, 'background'); dim.style.background = paint(cur, k);
-  const panel = c.painted(el('div', 'sg-scrimpanel'), 'foreground.primary', 'background'); panel.style.background = paint(cur, 'foreground.primary');
+  const panel = c.painted(el('div', 'sg-scrimpanel'), 'foreground.raised', 'background'); panel.style.background = paint(cur, 'foreground.raised');   // the modal's own role (#3049)
   const lab = c.painted(el('div', 'sg-lab', 'Modal'), 'text.primary', 'color'); specimen(lab).style.color = paint(cur, 'text.primary');
   panel.append(lab); dim.append(panel); card.append(dim);
   cw.append(card, c.pills(...c.chip(k)));

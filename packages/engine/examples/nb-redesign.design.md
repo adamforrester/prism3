@@ -49,6 +49,10 @@ neutralEmphasis: strong
 # (Hue matches, so no mismatch flag; the engine still re-derives + re-gates danger on the ramp.)
 roleColors: { danger: primary }
 
+# Dialogs sit on WHITE, not on the card surface (#3049, owner Q3049.4): the brand's own designs draw the end drawer
+# and the full-screen panel as #FFFFFF over the scrim. Light only, as this seed is; a dark mode would keep the card.
+raisedSurface: white
+
 # ── GEOMETRY ─────────────────────────────────────────────────────────────────────────
 # Sharp corners — radius scale 0 collapses the soft rungs (only the pill survives).
 radiusScale: 0

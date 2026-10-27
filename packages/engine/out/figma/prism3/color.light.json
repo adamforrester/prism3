@@ -117,6 +117,25 @@
       }
     },
     {
+      "name": "pds3/color/foreground/raised",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Panel over the scrim — dialogs and sheets. A card uses foreground/primary",
+      "value": {
+        "r": 0.9137254953384399,
+        "g": 0.9137254953384399,
+        "b": 0.9137254953384399,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/050"
+      }
+    },
+    {
       "name": "pds3/color/foreground/brand",
       "resolvedType": "COLOR",
       "scopes": [

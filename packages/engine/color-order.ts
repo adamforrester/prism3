@@ -57,7 +57,8 @@ const OPEN_SEGMENTS = new Set(['interactive.0']);
 /** Per family, the sibling order at each depth below the family segment. */
 const SEGMENT_ORDER: Record<string, string[][]> = {
   background: [INK_ROLES],
-  foreground: [INK_ROLES],
+  // #3049: the raised surface, the panel over the scrim, follows the three surface tiers it is chosen from.
+  foreground: [['primary', 'secondary', 'tertiary', 'raised', ...INK_ROLES.slice(3)]],
   text: [INK_ROLES, LINK_STATES],
   icon: [INK_ROLES, LINK_STATES],
   border: [INK_ROLES],
