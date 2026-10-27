@@ -58,9 +58,11 @@
  * their own gate, `lint-figma-descriptions.ts`), `$extensions.prism3.css`, `responsive.web`,
  * `$extensions.generator.*`, and the `.ai.json` surface-keyed `modifiers.*` (owner Q167 call 3: a
  * per-surface instruction under a key named for the surface). Those keys are simply never read by the
- * TOOL-NAME arm; nothing is allow-listed by word. One textual carve-out, stated rather than hidden: a
+ * TOOL-NAME arm; nothing is allow-listed by word. Two textual carve-outs, stated rather than hidden. The first is a
  * FILE NAME (`<brand>.tokens.json`) is removed before matching, because the `.ai.json` file note names its
  * companion tree and one example brand's id is the product's own name.
+ * The second is a BRAND-MARK NAME (`social/figma`, #2343 PR 3), the mark vocabulary's `<kind>/<name>` with its kinds
+ * typed here: the owner's social set holds Figma's own mark, so the brand-mark page lists a provider's name.
  *
  * ── THE WORD LIST, AND ITS TRAPS ────────────────────────────────────────────────────────────────
  *
@@ -90,6 +92,9 @@ const TOOL_WORDS: readonly string[] = [
 const TOOL_PHRASES: readonly string[] = ['engine-generated'];
 const TOOL_RE = new RegExp(`\\b(?:${TOOL_WORDS.join('|')})\\b|${TOOL_PHRASES.join('|')}`, 'i');
 const FILE_NAME_RE = /[\w.-]+\.json\b/g;
+/** A BRAND-MARK NAME (#2343 PR 3): `<kind>/<provider>[-<style>]`, the kinds typed here. The owner's full social set
+ *  holds Figma's own mark, `social/figma`, which names a provider, not a tool this prose addresses. */
+const MARK_NAME_RE = /\b(?:payment|logo|provider|social)\/[a-z0-9]+(?:-[a-z0-9]+)*/g;
 /** WCAG 1.4.3 body text. Typed here; the emitter's own constant is not read. */
 const BODY_TEXT_FLOOR = 4.5;
 /** Floors on what was read (measured on the commit that added this gate, then set below it). */
@@ -98,14 +103,16 @@ const FLOOR = { brands: 5, dtcgStrings: 10000, aiStrings: 12000, componentString
 const problems: string[] = [];
 const fail = (s: string) => problems.push(s);
 
-const toolNameIn = (text: string): string | undefined => TOOL_RE.exec(text.replace(FILE_NAME_RE, ''))?.[0];
+const toolNameIn = (text: string): string | undefined => TOOL_RE.exec(text.replace(FILE_NAME_RE, '').replace(MARK_NAME_RE, ''))?.[0];
 
 // ── self-check (docs/34 shape 9): the matcher fires on known-bad text and stays quiet on the traps ──
 {
   const mustFire = ['a strikethrough override on the style in Figma.', 'built by the Style  Dictionary exporter',
-    'Prism3 has none', 'the Plugin API only', 'danger status, engine-generated red ramp', 'see the MCP tool'];
+    'Prism3 has none', 'the Plugin API only', 'danger status, engine-generated red ramp', 'see the MCP tool',
+    'social/figma, the mark Figma uses', 'a figma/social mark'];
   const mustPass = ['Compose the label beside the field.', 'the field chrome', 'a variable font', 'on the web',
-    'Companion to prism3.tokens.json.', 'iOS Safari zooms a field under 16px', 'a `<del>` in HTML'];
+    'Companion to prism3.tokens.json.', 'iOS Safari zooms a field under 16px', 'a `<del>` in HTML',
+    '`social/figma`, `social/figma-mono`'];
   for (const s of mustFire) if (!toolNameIn(s)) fail(`SELF-CHECK the matcher missed a tool name in "${s}"`);
   for (const s of mustPass) { const w = toolNameIn(s); if (w) fail(`SELF-CHECK the matcher fired on "${w}" in allowed text "${s}"`); }
 }
