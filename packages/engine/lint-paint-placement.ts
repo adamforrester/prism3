@@ -97,6 +97,8 @@ const allowed = (p: PartDef): Record<Prop, boolean> => {
     return { fills: declared.some((s) => s !== 'border'), strokes: declared.includes('border'), gradientFill: !!p.gradient && declared.includes('fill') };
   }
   if (p.kind === 'text') return { fills: true, strokes: false, gradientFill: false };
+  // A full-bleed tile's edge (#2343, Q720 A) is the one stroke a vector declares: on its own frame, never a fill.
+  if (p.kind === 'vector' && p.tileEdge) return { fills: false, strokes: true, gradientFill: false };
   return { fills: false, strokes: false, gradientFill: false };
 };
 
@@ -170,7 +172,7 @@ const compare = (label: string, parts: Record<string, PartDef>, byPart: Map<stri
     const want = allowed(p);
     const got = byPart.get(name);
     checkedParts++;
-    const declares = p.kind === 'box' ? `paintSlots ${p.paintSlots ? `[${p.paintSlots.join(', ')}]` : 'ABSENT'}` : `kind '${p.kind}'`;
+    const declares = p.kind === 'box' ? `paintSlots ${p.paintSlots ? `[${p.paintSlots.join(', ')}]` : 'ABSENT'}` : `kind '${p.kind}'${p.tileEdge ? ' with a tileEdge' : ''}`;
     if (!got) {
       // Represented-in-what-was-actually-projected. A part the grid never produced is a part this gate
       // reports on without having looked at, which is the shape `typecheck-components.ts` had to add its

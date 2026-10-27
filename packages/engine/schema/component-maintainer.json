@@ -110,10 +110,11 @@
           "The social networks' brand-resource terms have not been read; the gates check only what provenance.json records, so the terms arrive with the provider files (PR 3 of #2343)."
         ],
         "evolution": [
-          "Proposed on #2343 (2026-10-25) as a second icon type, after #2316 asked for provider marks the core set could not carry. The owner chose two swap routes, by name (Q-B3 A), separate one-color files only where the provider publishes them (Q-B2 A), and committed artwork for internal use (Q-B1 B)."
+          "Proposed on #2343 (2026-10-25) as a second icon type, after #2316 asked for provider marks the core set could not carry. The owner chose two swap routes, by name (Q-B3 A), separate one-color files only where the provider publishes them (Q-B2 A), and committed artwork for internal use (Q-B1 B).",
+          "Card tiles (Q720 A, 2026-10-26): the card files are full-bleed, square corners and no border, and the component draws the corner radius and the edge from tokens, so every tile has the same edge at every size and mode. The placeholders were re-exported full-bleed before the provider files arrive."
         ],
         "projection": [
-          "In Figma each mark is a standalone brand-mark/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink."
+          "In Figma each mark is a standalone brand-mark/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink. A card mark's frame is the one exception, and it is the frame, not the artwork: its corner radii and stroke weight are bound variables, its stroke the border color, and it clips the artwork to its corners."
         ]
       },
       "docGaps": [

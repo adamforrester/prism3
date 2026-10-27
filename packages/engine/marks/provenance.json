@@ -2,12 +2,13 @@
   "_note": [
     "One record per file under marks/. Authored, never generated: lint-mark-provenance.ts compares it with the folder listing in both directions, and lint-mark-colors.ts compares each record's colors with the fills it re-parses from the file.",
     "Owner decision on #2343, Q-B1 B (2026-10-26): every mark the owner supplies is committed, because the repository is for internal use for now. IF THE REPOSITORY GOES PUBLIC, refactor to the Q-B1 A model before it does: commit a mark only when its source terms permit this use, recorded here, and keep a same-name neutral placeholder for every other mark (the artwork stays in the Figma library and in the client code).",
-    "Every record today but card/generic.svg (Prism3 artwork that stands for no network) is a neutral placeholder (placeholder: true). PR 3 of #2343 replaces each placeholder file and record with the provider file and its terms; the names do not move."
+    "Every record today but card/generic.svg (Prism3 artwork that stands for no network) is a neutral placeholder (placeholder: true). PR 3 of #2343 replaces each placeholder file and record with the provider file and its terms; the names do not move.",
+    "Card files are full-bleed (owner decision Q720 A, 2026-10-26): square corners, no border, the tile's ground kept. The brand-mark component draws each card tile's corner radius and its edge from tokens, so a card file never bakes either. lint-mark-colors.ts checks the edge is bound on every card member; lint-glyph-geometry.ts checks no card file bakes a corner or a border."
   ],
   "marks": {
     "card/amex.svg": {
       "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
+      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1), re-exported full-bleed for Q720 A (square corners, no border); replaced by the provider artwork in PR 3",
       "rightsHolder": "Prism3 (placeholder, no provider artwork)",
       "dateRetrieved": "2026-10-26",
       "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
@@ -22,7 +23,7 @@
     },
     "card/generic.svg": {
       "placeholder": false,
-      "source": "Drawn in this repository: the neutral card that stands for no network. Prism3 artwork, not a provider mark, so it stays when the provider files arrive",
+      "source": "Drawn in this repository: the neutral card that stands for no network. Prism3 artwork, not a provider mark, so it stays when the provider files arrive. Full-bleed since Q720 A: the component draws its corners and its edge",
       "rightsHolder": "Prism3",
       "dateRetrieved": "2026-10-26",
       "terms": "Prism3 artwork, under the repository license",
@@ -38,7 +39,7 @@
     },
     "card/mastercard.svg": {
       "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
+      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1), re-exported full-bleed for Q720 A (square corners, no border); replaced by the provider artwork in PR 3",
       "rightsHolder": "Prism3 (placeholder, no provider artwork)",
       "dateRetrieved": "2026-10-26",
       "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
@@ -54,7 +55,7 @@
     },
     "card/visa.svg": {
       "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
+      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1), re-exported full-bleed for Q720 A (square corners, no border); replaced by the provider artwork in PR 3",
       "rightsHolder": "Prism3 (placeholder, no provider artwork)",
       "dateRetrieved": "2026-10-26",
       "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",

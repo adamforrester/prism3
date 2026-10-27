@@ -11,6 +11,10 @@ the provider's own colors, a provider-shaped artboard, and no ink from the compo
   changes files, never names.
 - **Artboards** by kind: square 24×24 (`social`, `provider`), card 32×20 (`card`), and wallet, 24 high
   with the width per mark (`wallet`).
+- **Card files are full-bleed** (owner decision Q720 A): square corners, no border, the tile's ground kept, because a
+  colored ground is part of the provider's mark. The `brand-mark` component rounds the corners and draws the edge
+  from tokens, the same at every size and mode, so a card file that rounds or borders itself fails
+  `lint-glyph-geometry.ts` (CARD TILE BAKED, CARD BORDER BAKED).
 - **Colors** are the provider's, copied verbatim. A mark is never retinted, and a one-color form is its
   own file, drawn by the provider, only where the provider publishes one.
 - **Every file has a record** in `provenance.json`: where it came from, who holds the rights, when it was
