@@ -321,6 +321,7 @@
           "pagination",
           "progress",
           "search-field",
+          "card-number-field",
           "banner",
           "toast",
           "_breadcrumb-separator",
