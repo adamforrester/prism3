@@ -3794,6 +3794,18 @@ const choosable = (page) => page.evaluate(() => {
   return { radios: radios.length, clipped: radios.filter((r) => !whole.includes(r)).map((r) => r.dataset.mode),
     modes: shown(sel) ? [...sel.options].map((o) => o.value) : whole.map((r) => r.dataset.mode), select: shown(sel), selected: shown(sel) ? sel.value : null };
 });
+/** #3033: `fit` picks radios or the select in a frame after the header resizes, so a read made straight after
+ *  the pane toggle can land before it and see a radio the select is about to replace. Read until the control
+ *  has settled (the select shown, or radios with none clipped), a frame apart, for at most 2 s; a control that
+ *  never settles is still read and reported as it stands. */
+const settled = async (page) => {
+  for (const end = Date.now() + 2000; Date.now() < end;) {
+    const c = await choosable(page);
+    if (c.select || (c.radios > 0 && c.clipped.length === 0)) return c;
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+  }
+  return choosable(page);
+};
 for (const { w, h } of WIDTHS) {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w, h });
   try {
@@ -3803,20 +3815,10 @@ for (const { w, h } of WIDTHS) {
     // scroll hid one; the select shows them all).
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
     // The control fits itself one frame after its header resizes (`modeControl`'s observer), and revealing the
-    // preview pane is that resize. Wait the two frames the 5- and 6-mode checks below already wait, or the radios
-    // are measured before they give way to the select (web light 380 flaked on main at d61c9e23).
-    await settle(page);
-    // The pane just shown lays its header out after the click, and the control's fit (radios or the select) follows its
-    // width, so the reading waits (bounded) for every radio to sit inside it or the select to show. A radio still cut
-    // off at the bound fails the arm below, as before.
-    await page.waitForFunction(() => {
-      const g = document.querySelector('[data-p3="mode-control"]'), sel = document.querySelector('[data-p3="mode-select"]');
-      if (sel && sel.getClientRects().length > 0 && getComputedStyle(sel).visibility !== 'hidden') return true;
-      if (!g || !g.getClientRects().length) return false;
-      const b = g.getBoundingClientRect();
-      return [...g.querySelectorAll('[data-p3="mode-option"]')].every((r) => { const x = r.getBoundingClientRect(); return x.left >= b.left - 0.5 && x.right <= b.right + 0.5; });
-    }, null, { timeout: 3000 }).catch(() => {});
-    const c4 = await choosable(page);
+    // preview pane is that resize. Read it once it has settled, or the radios are measured before they give way
+    // to the select (web light 380 flaked on main at d61c9e23, #3033); a fixed two frames is not enough under a
+    // slow frame. `settled` also stands in for #3028's bounded wait, which checked the same condition here.
+    const c4 = await settled(page);
     ok(c4.clipped.length === 0 && JSON.stringify(c4.modes) === JSON.stringify(want), `web light ${w} / brand, 4 modes: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c4)}`);
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
     for (const n of [1, 2]) {
@@ -3824,8 +3826,7 @@ for (const { w, h } of WIDTHS) {
       want.push(`custom-${n}`);
       await page.waitForFunction((k) => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === k, want.length);
       if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
-      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-      const c = await choosable(page);
+      const c = await settled(page);
       const where = `web light ${w} / brand, ${want.length} modes`;
       ok(c.clipped.length === 0 && JSON.stringify(c.modes) === JSON.stringify(want), `${where}: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c)}`);
       if (c.select) {
