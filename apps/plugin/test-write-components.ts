@@ -5694,11 +5694,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, liveComponents: true, page }) as any;
   const wb = defs.find((d) => d.id === 'wallet-button')!;
   const build = (d: ComponentDef) => applyComponentPlan(project(d), shim, { emitAsComponents: d.figmaProperties?.emitAsComponents });
-  await prebuildDependencies(wb, { defs, project, host: shim, build });
-  const r = await build(wb);
+  let misses: string[] = [];
+  try { await prebuildDependencies(wb, { defs, project, host: shim, build }); misses = (await build(wb)).misses; }
+  catch (err) { misses = [`threw: ${(err as Error).message.slice(0, 200)}`]; }
   const set = page.children.find((c) => c.name === 'wallet-button' && c.type === 'COMPONENT_SET') as Node | undefined;
   const members = (set?.children as Node[] | undefined) ?? [];
-  ok(members.length === 20 && r.misses.length === 0, `wallet build: the set builds 20 members with 0 misses (${members.length}; ${r.misses[0] ?? 'none'})`);
+  ok(members.length === 20 && misses.length === 0, `wallet build: the set builds 20 members with 0 misses (${members.length}; ${misses[0] ?? 'none'})`);
   const marks = new Map(page.children.filter((c) => String(c.name).startsWith('brand-mark/')).map((c) => [String(c.name), c] as const));
   const off: string[] = [];
   for (const m of members) {
