@@ -12119,6 +12119,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Dark lands on 650 (~2.4:1), a full 100 from `border/primary`'s 750 (owner Q270.2), not 700.
   { mode: 'light', name: 'color/border/secondary', nb: 'palette/neutral/400', engine: 'palette/neutral/250' },
   { mode: 'dark', name: 'color/border/secondary', nb: 'palette/neutral/500', engine: 'palette/neutral/650' },
+  // NINTH group (#3050, owner Q825 B): the scrim. The frozen export carries the scrim at 40 / 60 / 60 / 70; the reference
+  // brand's own dialog designs put a heavy black backdrop behind the end drawer and the full-screen panel, so it sets
+  // `scrimStrength: strong`, which moves the alias to the existing 80 step in light and dark and 90 in high contrast.
+  // A value lever: the variable's name is unchanged, so this is a divergence of an EXISTING var, in all four modes.
+  { mode: 'light', name: 'color/scrim/default', nb: 'palette/black-alpha/40', engine: 'palette/black-alpha/80' },
+  { mode: 'dark', name: 'color/scrim/default', nb: 'palette/black-alpha/60', engine: 'palette/black-alpha/80' },
+  { mode: 'hc-light', name: 'color/scrim/default', nb: 'palette/black-alpha/60', engine: 'palette/black-alpha/90' },
+  { mode: 'hc-dark', name: 'color/scrim/default', nb: 'palette/black-alpha/70', engine: 'palette/black-alpha/90' },
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
@@ -36604,6 +36612,95 @@ arm: {
     }
   }
   ok(emitBad.length === 0, `#3049 committed emission: the reference brand's raised surface is white in light and its card elsewhere; every other brand's equals its card in every mode${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
+}
+
+// ------------------------------------------------------------------- #3050: the scrim's strength
+// Owner decisions (2026-10-27, on #3050): a per-brand value lever, `scrimStrength: standard | strong` (Q3050.1 A,
+// Q3050.2 A). `standard`, the default, keeps the steps before the lever; `strong` is the EXISTING 80% step in light and
+// dark (Q825 B, replacing A's 75), with high contrast one step heavier where the ramp allows, so 90 in both. No step is
+// added, so no token name moves. EXPECTED is typed here, from the decision; ACTUAL is the resolved roles and the
+// committed emission, never `SCRIM_STEPS` (docs/34 shape 1: a gate built on the table it checks agrees with any bug).
+{
+  const EXPECTED: Record<'unset' | 'standard' | 'strong', Record<string, number>> = {
+    unset: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
+    standard: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
+    strong: { light: 80, dark: 80, 'hc-light': 90, 'hc-dark': 90 },
+  };
+  type V = keyof typeof EXPECTED;
+  const strip = (i: BrandInput): BrandInput => { const { scrimStrength: _drop, ...rest } = i as BrandInput & { scrimStrength?: string }; return rest as BrandInput; };
+  const withLever = (i: BrandInput, v: V): BrandInput => (v === 'unset' ? strip(i) : { ...strip(i), scrimStrength: v } as BrandInput);
+  const wendysIn = standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input;
+  const seedIn = readExampleBrand('./examples/nb-redesign.design.md');
+  const INPUTS: [string, BrandInput][] = [...EXAMPLE_IDS.map((ex) => [ex, exampleBrands()[ex] as BrandInput] as [string, BrandInput]), ['wendys', wendysIn], ['nb-redesign', seedIn]];
+  const themeFor = (name: string, v: V): Theme | undefined => name === 'nb'
+    ? (() => { const t = { ...nbTheme() } as Theme & { scrimStrength?: string }; if (v === 'unset') delete t.scrimStrength; else t.scrimStrength = v; return t as Theme; })()
+    : exampleTheme(`${name} (scrimStrength ${v})`, () => brandTheme(withLever(INPUTS.find(([n]) => n === name)![1], v)));
+  const NAMES = ['nb', ...INPUTS.map(([n]) => n)];
+  // THE STEP PER MODE, every brand × option × mode: the alias names `black-alpha.<step>`, the role is black, and its
+  // alpha is the step, so the swatch a UI renders and the token a consumer resolves say the same thing.
+  const bad: Record<V, string[]> = { unset: [], standard: [], strong: [] };
+  const cells: Record<V, number> = { unset: 0, standard: 0, strong: 0 };
+  for (const name of NAMES) for (const v of Object.keys(EXPECTED) as V[]) {
+    const th = themeFor(name, v);
+    if (!th) continue;
+    for (const M of resolveAllModes(th)) {
+      const want = EXPECTED[v][M.mode];
+      if (want === undefined) continue;   // a custom mode is not in the decision's table
+      const r = (M.roles as Record<string, { path: string; hex: string; alpha?: number } | undefined>)['scrim.default'];
+      cells[v]++;
+      const at = `${name}/${M.mode}`;
+      if (!r) { bad[v].push(`${at}: scrim.default UNRESOLVED`); continue; }
+      if (r.path !== `${th.namespace}.black-alpha.${want}` || r.hex.toLowerCase() !== '#000000' || r.alpha !== want / 100)
+        bad[v].push(`${at}: ${r.path} ${r.hex} alpha ${r.alpha}, want black-alpha.${want}`);
+    }
+  }
+  // Six brands carry the four modes; the redesign seed ships light alone, so it adds one cell per option.
+  const minCells = (NAMES.length - 1) * 4 + 1;
+  ok(cells.unset >= minCells && bad.unset.length === 0,
+    `#3050 scrim unset: scrim.default holds black-alpha 40 light / 60 dark / 60 hc-light / 70 hc-dark in every brand (${cells.unset} cells${bad.unset.length ? `; WRONG: ${bad.unset.slice(0, 4).join('; ')}` : ''})`);
+  ok(cells.standard >= minCells && bad.standard.length === 0,
+    `#3050 scrim standard: scrim.default holds black-alpha 40 / 60 / 60 / 70 in every brand (${cells.standard} cells${bad.standard.length ? `; WRONG: ${bad.standard.slice(0, 4).join('; ')}` : ''})`);
+  ok(cells.strong >= minCells && bad.strong.length === 0,
+    `#3050 scrim strong: scrim.default holds black-alpha 80 light / 80 dark / 90 hc-light / 90 hc-dark in every brand (${cells.strong} cells${bad.strong.length ? `; WRONG: ${bad.strong.slice(0, 4).join('; ')}` : ''})`);
+
+  // NO TOKEN NAME MOVES (Q825 B): `strong` aliases an existing step, so a brand's emitted names are the same set under
+  // either option, and the only leaf whose value differs is `color.scrim.default`.
+  {
+    const leaves = (o: any, pre = '', out: Map<string, string> = new Map()): Map<string, string> => {
+      for (const [k, v] of Object.entries(o ?? {})) {
+        if (k.startsWith('$')) continue;
+        const p = pre ? `${pre}.${k}` : k;
+        if (v && typeof v === 'object' && '$value' in (v as object)) out.set(p, JSON.stringify([(v as any).$value, (v as any).$extensions?.prism3?.modes]));
+        else if (v && typeof v === 'object') leaves(v, p, out);
+      }
+      return out;
+    };
+    const base = exampleBrands()['prism3'] as BrandInput;
+    const std = leaves(buildTree(brandTheme(withLever(base, 'standard'))).tree);
+    const str = leaves(buildTree(brandTheme(withLever(base, 'strong'))).tree);
+    const namesSame = std.size === str.size && [...std.keys()].every((k) => str.has(k));
+    const moved = [...std.keys()].filter((k) => str.get(k) !== std.get(k));
+    ok(std.size > 500 && namesSame && moved.length === 1 && moved[0].endsWith('.color.scrim.default'),
+      `#3050 no new token names: standard and strong emit the same ${std.size} names, and only color.scrim.default changes value (moved: ${moved.join(', ') || 'none'})`);
+  }
+
+  // THE REFERENCE BRAND IS STRONG in both inputs, and the committed emission shows it; every other committed brand
+  // leaves the lever unset, so its emission holds today's steps (byte-identical: `regen --check` holds the artifacts).
+  ok((nbTheme() as Theme & { scrimStrength?: string }).scrimStrength === 'strong' && (seedIn as BrandInput & { scrimStrength?: string }).scrimStrength === 'strong',
+    `#3050: the reference brand's legacy fixture and its redesign seed design.md both set scrimStrength: strong`);
+  const emitBad: string[] = [];
+  for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
+    const t = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const root = Object.keys(t)[0];
+    const sc = t[root]?.color?.scrim?.default;
+    const modeVal = (n: any, m: string): string | undefined => m === 'light' ? n?.$value : n?.$extensions?.prism3?.modes?.[m]?.$value ?? n?.$value;
+    for (const m of ['light', 'dark', 'hc-light', 'hc-dark']) {
+      const want = `{${root}.core.palette.black-alpha.${EXPECTED[b === 'nb' ? 'strong' : 'unset'][m]}}`;
+      const got = modeVal(sc, m);
+      if (got !== want) emitBad.push(`${b}/${m}: ${got} ≠ ${want}`);
+    }
+  }
+  ok(emitBad.length === 0, `#3050 committed emission: the reference brand's scrim is 80 / 80 / 90 / 90, every other brand's 40 / 60 / 60 / 70${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #3073: brand glass roles

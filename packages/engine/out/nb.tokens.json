@@ -10265,35 +10265,34 @@
       "scrim": {
         "default": {
           "$type": "color",
-          "$value": "{nbds.core.palette.black-alpha.40}",
-          "$description": "Scrim — black backdrop behind modals and drawers; opacity 40%",
+          "$value": "{nbds.core.palette.black-alpha.80}",
+          "$description": "Scrim — black backdrop behind modals and drawers; opacity 80%",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.core.palette.black-alpha.40",
+              "aliasOf": "nbds.core.palette.black-alpha.80",
               "contrast": 1,
               "against": "self",
               "modes": {
                 "dark": {
-                  "$value": "{nbds.core.palette.black-alpha.60}",
-                  "aliasOf": "nbds.core.palette.black-alpha.60",
+                  "$value": "{nbds.core.palette.black-alpha.80}",
+                  "aliasOf": "nbds.core.palette.black-alpha.80",
                   "contrast": 1,
-                  "against": "self",
-                  "description": "Scrim — black backdrop behind modals and drawers; opacity 60%"
+                  "against": "self"
                 },
                 "hc-light": {
-                  "$value": "{nbds.core.palette.black-alpha.60}",
-                  "aliasOf": "nbds.core.palette.black-alpha.60",
+                  "$value": "{nbds.core.palette.black-alpha.90}",
+                  "aliasOf": "nbds.core.palette.black-alpha.90",
                   "contrast": 1,
                   "against": "self",
-                  "description": "Scrim — black backdrop behind modals and drawers; opacity 60%"
+                  "description": "Scrim — black backdrop behind modals and drawers; opacity 90%"
                 },
                 "hc-dark": {
-                  "$value": "{nbds.core.palette.black-alpha.70}",
-                  "aliasOf": "nbds.core.palette.black-alpha.70",
+                  "$value": "{nbds.core.palette.black-alpha.90}",
+                  "aliasOf": "nbds.core.palette.black-alpha.90",
                   "contrast": 1,
                   "against": "self",
-                  "description": "Scrim — black backdrop behind modals and drawers; opacity 70%"
+                  "description": "Scrim — black backdrop behind modals and drawers; opacity 90%"
                 }
               },
               "figma": {

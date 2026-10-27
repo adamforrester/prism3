@@ -53,6 +53,10 @@ roleColors: { danger: primary }
 # and the full-screen panel as #FFFFFF over the scrim. Light only, as this seed is; a dark mode would keep the card.
 raisedSurface: white
 
+# The backdrop behind a dialog is the STRONG scrim (#3050, owner Q825 B): the brand's own designs put a heavy black
+# backdrop behind the end drawer and the full-screen panel. 80% in light, the nearest existing alpha step.
+scrimStrength: strong
+
 # Card glass (#3073, owner Q807 A, 70% per the owner's correction of 2026-10-27): a glass band set on a card takes the
 # card ground's color (`foreground.primary`'s palette color) at 70%, so it reads as the card and only the blurred photo
 # shows through. `color.glass.surface`, the white glass, is unchanged.
