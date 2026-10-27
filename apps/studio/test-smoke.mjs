@@ -5526,6 +5526,84 @@ for (const c of REFUSED_CASES) {
   await ctx.close();
 }
 
+// ---- #2942: the Custom underline switch, its two % fields and the Link line (owner Q800 A, Q801 A) ----------
+// The panel half of the underline lever, driven as a designer would. Every expected value is typed HERE: the switch
+// starts at 5% and 25% (Q800 A), stored as shares 0.05 and 0.25; 40 typed in thickness and 60 in offset come back as
+// the bounds 20 and 50 (Q801 A: thickness 1–20%, offset 0–50%), and the export carries 0.2 and 0.5; off stores nothing
+// and exports no `core.font.underline`. None is read from `UNDERLINE_ON_DEFAULT` or `UNDERLINE_BOUNDS` (docs/34): a
+// switch that stored whole percents (5 for 0.05) fails here by name, as the engine clamps it silently to 20% and 50%.
+console.log(`\n#2942 — Custom underline: the switch, the two % fields and the Link line\n${'='.repeat(78)}`);
+{
+  // An auto brand: the committed Prism3 example sets no underline.
+  const brand = BRANDS.find((b) => b.toLowerCase() === 'prism3') ?? BRANDS[0];
+  const id = brand.toLowerCase();
+  const { ctx, page, drain } = await openBrand(brand);
+  const stored = () => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.typography?.underline ?? null; } catch { return 'unreadable'; } });
+  const settle = (was) => page.waitForFunction((w) => { try { return JSON.stringify(JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.typography?.underline ?? null) !== w; } catch { return false; } }, JSON.stringify(was), { timeout: 5000 }).catch(() => {});
+  const FIELD_SEL = { thickness: '[data-p3="type-underline-thickness"]', offset: '[data-p3="type-underline-offset"]' };
+  const field = (f) => page.locator(FIELD_SEL[f]);
+  const linkLine = async () => {
+    await tabClick(page, 'components');
+    await hooks.need(page, '[data-p3="components-levers"]');
+    const t = page.locator('[data-p3="cp-opts-toggle"][data-key="opts=links"]');
+    if ((await t.getAttribute('aria-expanded')) !== 'true') await hooks.click(t);
+    await hooks.need(page, '[data-p3="components-link-underline"]');
+    const text = (await page.locator('[data-p3="components-link-underline"] .p3-readout').textContent())?.trim() ?? null;
+    await gotoType(page);
+    return text;
+  };
+  const exportedUnderline = async () => {
+    await hooks.click(page.locator('[data-p3="rail-export"]'));
+    await hooks.need(page, '[data-p3="export-page"]');
+    const set = await downloadSet(page, id);
+    const base = set[`${id}.base.tokens.json`];
+    const root = base ? base[Object.keys(base).find((k) => !k.startsWith('$'))] : undefined;
+    await gotoType(page);
+    return base ? (root?.core?.font?.underline ?? null) : 'no base file';
+  };
+  await gotoType(page);
+  const sw = page.locator('[data-p3="type-underline-switch"]');
+  await hooks.need(page, '[data-p3="type-underline-switch"]');
+  ok((await sw.getAttribute('aria-checked')) === 'false' && (await page.locator('[data-p3="type-underline-fields"]').count()) === 0 && (await stored()) === null,
+    `#2942 ${brand}: Custom underline starts off, with no fields and no stored underline (stored ${JSON.stringify(await stored())})`);
+
+  await hooks.click(sw);
+  await settle(null);
+  await hooks.need(page, '[data-p3="type-underline-fields"]');
+  const on = await stored();
+  ok(JSON.stringify(on) === JSON.stringify({ thickness: 0.05, offset: 0.25 }) && (await field('thickness').inputValue()) === '5' && (await field('offset').inputValue()) === '25',
+    `#2942 Q800 A: ${brand}: switching Custom underline on stores { thickness: 0.05, offset: 0.25 } and the fields read 5 and 25 (stored ${JSON.stringify(on)}; fields ${await field('thickness').inputValue()} / ${await field('offset').inputValue()})`);
+  const lineOn = await linkLine();
+  ok(lineOn === '5% thick · 25% offset', `#2942 Q3 A: ${brand}: Components › Link reads "5% thick · 25% offset" with the switch on (read ${JSON.stringify(lineOn)})`);
+
+  for (const [f, typed, back] of [['thickness', '40', '20'], ['offset', '60', '50']]) {
+    const was = await stored();
+    await field(f).fill(typed);
+    await field(f).press('Enter');
+    await settle(was);
+    await page.waitForFunction(([sel, v]) => document.querySelector(sel)?.value === v, [FIELD_SEL[f], back], { timeout: 5000 }).catch(() => {});
+    const now = await field(f).inputValue();
+    ok(now === back, `#2942 Q801 A: ${brand}: ${typed} typed in ${f} reads back as ${back}, the bound (read ${now})`);
+  }
+  const clampedOut = await exportedUnderline();
+  ok(clampedOut?.thickness?.$value === 0.2 && clampedOut?.offset?.$value === 0.5 && clampedOut?.thickness?.$type === 'number',
+    `#2942 Q801 A: ${brand}: the export carries core.font.underline.thickness 0.2 and .offset 0.5, $type number (got ${JSON.stringify([clampedOut?.thickness?.$value, clampedOut?.offset?.$value, clampedOut?.thickness?.$type])})`);
+
+  const wasOn = await stored();
+  await hooks.click(page.locator('[data-p3="type-underline-switch"]'));
+  await settle(wasOn);
+  const off = await stored();
+  ok(off === null && (await page.locator('[data-p3="type-underline-fields"]').count()) === 0,
+    `#2942 Q800 A: ${brand}: switching it off unsets typography.underline and hides the fields (stored ${JSON.stringify(off)})`);
+  const offOut = await exportedUnderline();
+  ok(offOut === null, `#2942 Q5 A: ${brand}: off, the export carries no core.font.underline (got ${JSON.stringify(offOut)})`);
+  const lineOff = await linkLine();
+  ok(lineOff === 'Auto', `#2942: ${brand}: Components › Link reads "Auto" with the switch off (read ${JSON.stringify(lineOff)})`);
+  const errs = drain();
+  ok(errs.length === 0, `#2942 ${brand}: 0 console errors across the underline edits${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
 // ---- #2080: keyboard focus survives the mode control's repaint ------------------------------------------------
 // The preview header's mode control repaints on every mode AND every brand (verdict) update: one `paint`, subscribed
 // to both (`shell/preview.ts`). A paint changes a button's `data-sig` and replaces its CHILDREN, but keeps the button

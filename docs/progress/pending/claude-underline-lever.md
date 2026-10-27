@@ -31,4 +31,4 @@ assumes the alphabetic baseline and a percent of the font size, which is CSS's z
 
 **Gates.** `test.ts` #2942 (clamp table, the clamp reaching the tokens, off = no token and AUTO rows, on = 18 rows at
 5/25, other brands' committed files untouched, paste-path read-back); `apps/plugin/test-write-typography.ts` #2942
-(read-back on 18 built `-link` styles, plain styles untouched, re-applying an auto brand writes AUTO).
+(read-back on 18 built `-link` styles, plain styles untouched, re-applying an auto brand writes AUTO); `apps/studio/test-smoke.mjs` #2942 (the switch stores 0.05 / 0.25, 40 and 60 read back 20 and 50 and export 0.2 and 0.5, off exports no underline, the Components › Link line follows). The TokenPress reader's gap is #3085.

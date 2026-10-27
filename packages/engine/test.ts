@@ -37240,6 +37240,10 @@ arm: {
   ok(nbFile.length === 18 && nbFile.every((x) => JSON.stringify(x.properties.textDecorationThickness) === JSON.stringify({ bindable: false, value: { unit: 'PERCENT', value: 5 } })
     && JSON.stringify(x.properties.textDecorationOffset) === JSON.stringify({ bindable: false, value: { unit: 'PERCENT', value: 25 } })),
     `#2942 underline: the reference brand's committed text-styles.json carries PERCENT 5 / 25 on all 18 -link styles (${nbFile.length})`);
+  // And on nothing else: a style that is not underlined carries neither field (the reviewer's R1, #3075).
+  const plainCarry = committedNb.styles.filter((x) => x.properties.textDecoration?.value !== 'UNDERLINE' && ('textDecorationThickness' in x.properties || 'textDecorationOffset' in x.properties));
+  ok(committedNb.styles.length > nbFile.length && plainCarry.length === 0,
+    `#2942 underline: no style in the reference brand's committed text-styles.json that is not underlined carries a thickness or offset (${committedNb.styles.length - nbFile.length} plain; ${plainCarry.length} carry one${plainCarry.length ? `: ${plainCarry.slice(0, 3).map((x) => x.name).join(', ')}` : ''})`);
 
   // THE PASTE PATH: run its text-styles pass into the file shim and read the styles back.
   const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<{ skipped: unknown[] }>;
