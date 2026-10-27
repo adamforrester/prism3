@@ -232,8 +232,6 @@ const LEVER_ROLES: Record<string, string> = {
   'background.tertiary': 'Tertiary, surfaces.<mode>.tertiary',
   'inverse.background.secondary': 'Inverse secondary, surfaces.<mode>.inverseSecondary',
   'inverse.background.tertiary': 'Inverse tertiary, surfaces.<mode>.inverseTertiary',
-  // #3049: the panel over the scrim, set by Dialog surface (`raisedSurface`), whose home is Components › Dialog.
-  'foreground.raised': 'Dialog surface, raisedSurface (Components › Dialog)',
 };
 /** Read-only, each with its declared reason. Literal. */
 const VEILS = ['dark.subtle', 'dark.medium', 'dark.strong', 'dark.clear', 'light.subtle', 'light.medium', 'light.strong', 'light.clear'].map((v) => `veil.${v}`);
@@ -242,6 +240,9 @@ const READ_ONLY: Record<string, string> = {
   ...Object.fromEntries(VEILS.map((v) => [v, 'a wash: no ramp step to swap in'])),
   'border.focus': 'the focus ring, customizable in #1966 (a read-only row)',
   'inverse.border.focus': 'the focus ring, customizable in #1966 (a read-only row)',
+  // #3049: the panel over the scrim. Its control is Dialog surface (`raisedSurface`), whose one home is Components ›
+  // Dialog, so this page draws no row for it.
+  'foreground.raised': 'set by Dialog surface, in Components › Dialog',
 };
 ok(fillsRoles.length > 100 && fillsRoles.some((e) => e.role === 'icon.on-brand') && fillsRoles.some((e) => e.role === 'inverse.border.info'),
   `the emission gives Surfaces & fills' roles to classify (read ${fillsRoles.length})`);
