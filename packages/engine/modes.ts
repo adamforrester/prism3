@@ -487,6 +487,16 @@ export const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as co
  * them all; this table only decides whether the message can point somewhere useful or has to say
  * "file one". Adding a row without adding the input behind it would make the error a dead end.
  */
+/**
+ * The palette family a brand glass role's alpha step lives in (#3073): the source palette color with `-alpha`, the
+ * shape of `white-alpha` / `black-alpha`. `<ns>.neutral.050` → `neutral-050-alpha`; `<ns>.white` → `white-alpha`.
+ * `tree.ts` mints the leaf under this family, and both read this one function, so the alias always resolves.
+ */
+export const glassAlphaFamily = (palettePath: string, ns: string): string => {
+  if (!palettePath.startsWith(`${ns}.`)) throw new Error(`glassAlphaFamily: '${palettePath}' is not a palette path under '${ns}'`);
+  return `${palettePath.slice(ns.length + 1).replace(/\./g, '-')}-alpha`;
+};
+
 export const GROUND_INPUT: Record<string, string> = {
   'background.primary': 'base',
   'inverse.background.primary': 'inverseBase',
@@ -2374,6 +2384,13 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the same set.
   const overridden = new Set<string>();
   const ov = withFillStateTwins(withIconTwins(withRaisedTwin(theme.overrides?.[mode], raisedAs === 'card'), roles, theme.iconContrast));
+  // A brand glass role (#3073) is put after this layer, from its source's final color, so an override aimed at one
+  // would be skipped as "absent in this mode" without a word. Refused instead, pointing at the source.
+  for (const key of Object.keys(ov ?? {})) {
+    const name = key.startsWith('glass.') ? key.slice('glass.'.length) : undefined;
+    const g = name !== undefined ? theme.glassRoles?.[name] : undefined;
+    if (g) throw new Error(`overrides[${mode}]: '${key}' is a brand glass role, set by \`glassRoles.${name}\` (#3073), and cannot be overridden on its own. Change its source (${g.role ? `override '${g.role}'` : `\`glassRoles.${name}.palette\``}) and the glass follows it.`);
+  }
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
       const existing = roles[rolePath];
@@ -2465,6 +2482,44 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // or to confess. #964 offered "removed, or kept for a case that provably remains"; measured across
     // the 18 input-less grounds, 32 dependents move with their ground and 27 are washes with no ladder
     // to move along, leaving ZERO genuinely stale. So it is removed rather than kept.
+  }
+
+  /*
+   * BRAND GLASS ROLES (#3073, owner Q806, Q807 A). A brand may add glass fills beside `glass.surface`, named
+   * `glass.<name>`, each a palette color at an alpha. Put here, after the override layer, so a role sourced from a
+   * semantic role (`foreground.primary`, the card ground) reads that role's FINAL palette step in this mode,
+   * override included. Like `glass.surface` the alpha lives in the value, aliasing a palette alpha step
+   * (`<palette>-<step>-alpha.<n>`, which `tree.ts` mints, or the existing `white-alpha` / `black-alpha` ramp), because
+   * Figma renders a bound paint with paint opacity opaque (#3073, the 10/27 finding). Not contrast-gated: the
+   * brand chose the color and the alpha, and the role carries no ink of its own.
+   */
+  for (const [name, g] of Object.entries(theme.glassRoles ?? {})) {
+    const key = `glass.${name}`;
+    let path: string, rgb: RGB, from: string;
+    if (g.role) {
+      const src = roles[g.role];
+      if (!src) throw new Error(`glassRoles.${name}.role: '${g.role}' is not a color role in ${mode}`);
+      const rest = src.path.slice(ns.length + 1);
+      if (!src.path.startsWith(`${ns}.`) || src.alpha !== undefined || /-alpha(?:\.|$)/.test(rest) || rest === 'transparent')
+        throw new Error(`glassRoles.${name}.role: '${g.role}' resolves to '${src.path}' in ${mode}, not an opaque palette color, so it has no alpha step to take`);
+      path = src.path; rgb = rgbByRole.get(g.role)!; from = `${g.role}'s color`;
+    } else {
+      const [pal, step] = g.palette!.split('.');
+      if (pal === 'white' || pal === 'black') {
+        path = `${ns}.${pal}`; rgb = pal === 'white' ? WHITE : BLACK;
+      } else {
+        const st = ramps.get(pal)?.find((x) => x.key === step);
+        if (!st) throw new Error(`glassRoles.${name}.palette: '${g.palette}' is not a palette step (have: ${[...ramps.keys()].join(', ')})`);
+        path = `${ns}.${pal}.${step}`; rgb = st.rgb;
+      }
+      from = g.palette!;
+    }
+    const family = glassAlphaFamily(path, ns);
+    if ((family === 'white-alpha' || family === 'black-alpha') && !OPACITY_STEPS.includes(g.alpha))
+      throw new Error(`glassRoles.${name}: in ${mode} the color is ${family.replace('-alpha', '')}, whose alpha ramp has the steps ${OPACITY_STEPS.filter((x) => x > 0 && x < 100).join(', ')}; ${g.alpha} is not one`);
+    put(key, { path: `${ns}.${family}.${g.alpha}`, rgb, ratio: 1 },
+      `Glass ${name} — ${from} at ${g.alpha}% behind the glass background blur, a glass fill this brand adds`, 'self', 0);
+    roles[key].alpha = g.alpha / 100;
   }
 
   // ---- the contrast sweep (#956) ----

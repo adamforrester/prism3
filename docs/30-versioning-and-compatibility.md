@@ -321,6 +321,18 @@ materialized for the setting, binds something the setting doesn't emit. Its head
 not sweep: sliders, structured levers and combinations. `typography.weights`, the structured lever
 that removes paths, is covered by the `minimal-weights` and `minimal-weight-swap` corpus members instead (#1632, #1639, above).
 
+#### Decided (2026-10-27, #3073): a brand's own glass roles are brand-dependent
+
+Prism3 ships one glass role, `color.glass.surface` (white or black glass by mode), in every brand, and it
+stays guaranteed. A brand adds its own through the `glassRoles` lever as `color.glass.<name>` (owner Q806,
+Q807 A), each a palette color or a semantic role's palette color at an alpha, emitted as a palette alpha
+step (`core.palette.<palette>-<step>-alpha.<n>`). Those roles and the alpha steps behind them exist only
+for the brands that add them, so they're `brandDependent`: adding or removing one never moves
+`CONTRACT_VERSION`. The reference brand adds `color.glass.card`; it and its two alpha steps are listed in
+the baseline's `brandDependent`, and `token-contract --check` reads level `none`. A component that binds a
+brand glass role binds a name only that brand emits, so an engine def binds `glass.surface` or nothing.
+`test.ts` holds the guaranteed set's glass group to `color.glass.surface` alone.
+
 ### The spacing tokens leave the size tier (14.0.0, the spacing model)
 
 The owner's spacing model (`docs/28` §5.4, 2026-09-29) removes the shared size scale's spacing:
