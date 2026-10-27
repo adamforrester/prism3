@@ -745,6 +745,43 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button-neutral.md"
       },
       {
+        "id": "wallet-button",
+        "name": "WalletButton",
+        "figmaName": "wallet-button",
+        "kind": "component set",
+        "page": null,
+        "section": null,
+        "members": 20,
+        "variantProperties": [
+          {
+            "name": "provider",
+            "values": [
+              "apple-pay",
+              "google-pay",
+              "paypal",
+              "shop-pay"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "focus-visible"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/wallet-button.md"
+      },
+      {
         "id": "icon-button",
         "name": "IconButton",
         "figmaName": "icon-button",

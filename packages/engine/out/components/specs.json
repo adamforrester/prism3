@@ -9818,6 +9818,276 @@
         }
       ]
     },
+    "wallet-button": {
+      "id": "wallet-button",
+      "name": "WalletButton",
+      "members": 20,
+      "axes": [
+        {
+          "name": "provider",
+          "figmaName": "provider",
+          "values": [
+            "apple-pay",
+            "google-pay",
+            "paypal",
+            "shop-pay"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "focus-visible"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 20
+        },
+        {
+          "part": "container/mark",
+          "kind": "instance",
+          "members": 20
+        },
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "members": 10,
+          "when": {
+            "state": [
+              "focus-visible"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.lg"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "provider",
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "provider": "apple-pay",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple-pay",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google-pay",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google-pay",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "shop-pay",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "shop-pay",
+            "state": "focus-visible"
+          },
+          "parts": []
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/mark",
+          "kind": "instance",
+          "component": "brand-mark/logo/apple-pay",
+          "variant": {
+            "name": "logo/apple-pay"
+          },
+          "when": {
+            "provider": {
+              "apple-pay": {
+                "name": "logo/apple-pay"
+              },
+              "google-pay": {
+                "name": "logo/google-pay"
+              },
+              "paypal": {
+                "name": "logo/paypal-wordmark"
+              },
+              "shop-pay": {
+                "name": "logo/shop-pay"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "component": "focus-ring",
+          "variant": {
+            "surface": "default"
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": []
+    },
     "icon-button": {
       "id": "icon-button",
       "name": "IconButton",
