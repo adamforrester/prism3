@@ -815,7 +815,7 @@ const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-h
  *  controls, for the previewed mode (owner decision Q22). */
 const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor-pick"]',
   '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="surface-secondary-pick"]', '[data-p3="surface-tertiary-pick"]',
-  '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
+  '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="raised-surface-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
   '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="fills-continue"]'];
@@ -4408,8 +4408,9 @@ const ICON_ROW_ROLES = [...inks('icon'), ...SEM_INK.map((s) => `icon.on-${s}`), 
 /** The Fields rows (S4c, owner decision Q29): one per field role the default theme EMITS, page and inverse,
  *  read from the committed emission rather than from the page, so a role the engine adds needs a row too. The
  *  count is held to the eight Q29 names, so an empty read fails. */
-/** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick. */
-const READONLY_ROW_ROLES = ['scrim.default', 'border.focus', 'inverse.border.focus'];
+/** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick; and (#3093) the
+ *  panel over it, whose control is Dialog surface in Components, so its row links there. */
+const READONLY_ROW_ROLES = ['scrim.default', 'border.focus', 'inverse.border.focus', 'foreground.raised'];
 const FIELD_ROW_ROLES = (() => {
   const out = [];
   const walk = (n, path) => { if (!n || typeof n !== 'object') return; if ('$value' in n) { out.push(path.join('.')); return; } for (const [k, v] of Object.entries(n)) if (!k.startsWith('$')) walk(v, [...path, k]); };
@@ -4723,6 +4724,8 @@ const fillsControls = (page) => page.evaluate(DERIVED_CONTROLS, [FILLS_SCOPE, DE
  *  controls, Unpair and the default theme's two gradient editors. Set below the measured count, 145 in each of
  *  hc-light, hc-dark and wireframe on both hosts (printed per mode), so a page that drew less fails. */
 const DERIVED_CONTROLS_FLOOR = 140;
+/** RX1 A's "way to" link on this page (#3093): it edits nothing, so a derived mode leaves it live. */
+const FILLS_STAYS_LIVE = ['raised-surface-link'];
 /** At least this many of them enabled in Light: all but the 31 icon rows locked while paired. 114 measured. */
 if (runs('18-s4d')) {
 const LIGHT_ENABLED_FLOOR = 110;
@@ -4762,7 +4765,9 @@ for (const host of ['web', 'figma']) {
     await showMode(page, mode);
     await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode && document.querySelector('[data-p3="levers-pane"] .p3-state')?.textContent?.includes('auto-derived'), mode, { timeout: 5000 }).catch(() => {});
     const cs = await fillsControls(page);
-    const live = cs.filter((c) => !c.disabled);
+    const live = cs.filter((c) => !c.disabled && !FILLS_STAYS_LIVE.includes(c.hook));
+    const ways = cs.filter((c) => FILLS_STAYS_LIVE.includes(c.hook));
+    ok(ways.length === FILLS_STAYS_LIVE.length && ways.every((c) => !c.disabled), `#3093: ${host} ${mode}: the Dialog panel row's link stays live (${JSON.stringify(ways)})`);
     const unpair = cs.find((c) => c.hook === 'icons-unpair');
     console.log(`  ${host} ${mode}: ${cs.length} controls on Surfaces & fills, ${live.length} enabled`);
     ok(cs.length >= DERIVED_CONTROLS_FLOOR && live.length === 0,
@@ -13188,6 +13193,8 @@ const RO_EXCEPTIONS = [
   'shape-see-components', 'components-density-link', 'type-fluid-layout',
   // #2909 Q2909.3 A: Control shape's read-only line on Shape only opens its home.
   'shape-control-shape-link',
+  // #3093: the panel over the scrim's read-only row on Surfaces & fills only opens Dialog surface's home.
+  'raised-surface-link',
   'fills-continue', 'interactive-continue', 'type-continue', 'depth-continue', 'shape-continue', 'layout-continue',
 ];
 /** The studio's boxed note (RX2 A), by its classes. */

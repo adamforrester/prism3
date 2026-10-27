@@ -55,6 +55,10 @@ Mutations, each on a `wip:` commit, each failing by name:
 - The link's words change → `…its "Set by Dialog surface" a link`.
 - The manifest's words are dropped from `said` → Page surfaces, Font families and Disabled contrast.
 
+The new row joins the suite's existing literal lists: `READONLY_ROW_ROLES` (section 18) and `FILLS_LEVERS_CONTROLS`, and,
+as a "way to" link that edits nothing, the derived-mode exceptions (`RO_EXCEPTIONS`, section 35; `FILLS_STAYS_LIVE` in
+section 18's Q59 arm, which also asserts the link stays live).
+
 ### Left as is
 
 Search is still per page, as S1.2 built it. A lever is found on its home page, not from another page. Cross-page
