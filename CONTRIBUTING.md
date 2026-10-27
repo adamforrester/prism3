@@ -1109,6 +1109,29 @@ npx tsx packages/engine/lint-icon-count.ts          # the icon def's METADATA PR
                                                     # (version.ts, docs/00-progress.md) legitimately states
                                                     # the count of its moment and is out of scope, and so
                                                     # is field-message.ts's dated "#920 landed 39 glyphs".
+                                                    # The brand-mark def (#2343) is held one notch
+                                                    # stricter: its prose states NO count of marks at all,
+                                                    # because the provider list is data (Q-B7 amended).
+npx tsx packages/engine/lint-mark-provenance.ts     # every brand mark under marks/ has one record in
+                                                    # marks/provenance.json and every record a file
+                                                    # (#2343): EXPECTED is the folder walked from disk,
+                                                    # ACTUAL the records a person typed, both directions.
+                                                    # Each record carries source, rightsHolder,
+                                                    # dateRetrieved, terms, usage, colors, allowedForms
+                                                    # and placeholder (width for a wallet lockup), and the
+                                                    # repository-visibility note (owner decision Q-B1 B)
+                                                    # survives in provenance.json and marks/NOTICE.md.
+                                                    # A self-check feeds bad records first (docs/34
+                                                    # shape 9). No count of marks is asserted anywhere.
+npx tsx packages/engine/lint-mark-colors.ts         # a brand mark is NEVER RETINTED (#2343). Fills
+                                                    # re-parsed from each source SVG by the gate's own
+                                                    # reader, against (a) the record's colors, (b) the
+                                                    # emitted brand-mark-glyphs.ts, in order and spelled
+                                                    # as supplied, and (c) the brand-mark Figma plans,
+                                                    # where no node binds a variable or names a paint;
+                                                    # and (d) no host pushes descendantFills into a
+                                                    # brand-mark/* instance (vacuous until a host carries
+                                                    # one, so its detector is proven live by a self-check).
 npx tsx packages/engine/lint-nesting.ts             # the component NESTING graph (anatomy.parts[*].nests)
                                                     # resolves and is acyclic (#1226 PR-A). Two arms,
                                                     # each mutation-proven BY NAME: nest-resolves — every
@@ -1314,7 +1337,15 @@ npm run test:chrome  -w @prism3/studio      # the new shell's chrome, measured a
                                             #   represented by hook, the IA-2 layer order, and the
                                             #   legacy frame map. Its colors are read from the render;
                                             #   lint:contrast reads the declaration — partners, not
-                                            #   copies. Same one-off browser as test:smoke
+                                            #   copies. Same one-off browser as test:smoke. CI runs
+                                            #   it in shards (#2898, chrome-shards.mjs); every run
+                                            #   writes its record to apps/studio/chrome-record/
+npm run test:chrome-shards -w @prism3/studio # #2898: AFTER test:chrome. Every section the unsharded
+                                            #   suite lists (test-chrome.mjs --list) ran exactly once
+                                            #   across the records, by name: a section in no shard or
+                                            #   in two fails. Over CI's shard records it then runs the
+                                            #   suite's end-of-run checks once (--merge); over a whole
+                                            #   local run it checks that run made them itself
 npm run test:export-parity -w @prism3/studio # #2351 gap 1: the web and plugin token exports of every
                                             #   committed brand a UI can load are BYTE-IDENTICAL to each
                                             #   other and to out/<id>.tokens.json. Downloads from BOTH

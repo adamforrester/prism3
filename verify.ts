@@ -509,7 +509,7 @@ export const environmentProblems = async (): Promise<string[]> => {
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 220;
+const EXPECTED_ARTIFACTS = 222;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -757,6 +757,16 @@ export const GATES: Gate[] = [
     timeoutS: 5400,
   },
   {
+    // #2898: CI runs the suite above in shards; this holds what they ran to the sections the unsharded suite lists,
+    // each exactly once, then runs the suite's end-of-run checks over every shard. Here it reads the whole run's
+    // record (`apps/studio/chrome-record/all.json`), which must name every section once and its own end-of-run checks.
+    id: 'chrome-shards',
+    ciStep: 'Every chrome section ran in exactly one shard (#2898)',
+    cmd: ws('@prism3/studio', 'test:chrome-shards'),
+    after: ['chrome'],
+    why: 'it reads the record the chrome suite writes',
+  },
+  {
     // #2351 gap 1: the web and plugin token exports of every committed brand are byte-identical to each
     // other and to out/<id>.tokens.json. It downloads from BOTH built bundles, so it runs after both builds.
     id: 'export-parity',
@@ -979,6 +989,16 @@ export const GATES: Gate[] = [
     id: 'lint-icon-count',
     ciStep: "The icon def's metadata states no stale glyph count",
     cmd: engine('lint-icon-count.ts'),
+  },
+  {
+    id: 'lint-mark-provenance',
+    ciStep: 'Every brand mark has a provenance record and every record a file',
+    cmd: engine('lint-mark-provenance.ts'),
+  },
+  {
+    id: 'lint-mark-colors',
+    ciStep: 'A brand mark keeps its own colors from file to plan',
+    cmd: engine('lint-mark-colors.ts'),
   },
   {
     id: 'lint-nesting',

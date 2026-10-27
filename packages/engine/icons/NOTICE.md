@@ -71,3 +71,16 @@ for the need, and both are covered by this repository's own license, not by `LIC
   the same 24px grid, a 2px stroke like the chevrons, with no Remix artwork in it. The owner made it a permanent
   member of the icon set on 2026-10-22, with a standing rule: a glyph a component needs and the library lacks is
   added to the icon set when the component is built.
+
+## Brand marks are not in this set, and cannot be
+
+Provider marks (sign-in glyphs, wallet lockups, card networks, social marks) live in `marks/`, a second
+icon type with its own vocabulary (`brand-mark-set.ts`), emitter (`emit-marks.ts`) and per-file
+provenance (`marks/provenance.json`). They are not Remix glyphs: §3.3 above prohibits Remix icons as a
+logo, trademark or brand identifier, so no mark is ever drawn from this set. Read `marks/NOTICE.md` for
+the marks' own terms.
+
+**If this repository goes public, refactor the marks first** (owner decision on #2343, Q-B1 B,
+2026-10-26). The owner's marks are committed because the repository is for internal use for now. Before
+it is published, move to the Q-B1 A model: commit a mark only where its source's terms permit it,
+recorded in `marks/provenance.json`, and keep a same-name neutral placeholder for every other mark.
