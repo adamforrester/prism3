@@ -74,7 +74,7 @@ for the need, and both are covered by this repository's own license, not by `LIC
 
 ## Brand marks are not in this set, and cannot be
 
-Provider marks (sign-in glyphs, wallet lockups, card networks, social marks) live in `marks/`, a second
+Provider marks (sign-in glyphs, payment tiles and logos, social marks) live in `marks/`, a second
 icon type with its own vocabulary (`brand-mark-set.ts`), emitter (`emit-marks.ts`) and per-file
 provenance (`marks/provenance.json`). They are not Remix glyphs: §3.3 above prohibits Remix icons as a
 logo, trademark or brand identifier, so no mark is ever drawn from this set. Read `marks/NOTICE.md` for

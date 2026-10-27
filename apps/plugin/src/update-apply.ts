@@ -222,7 +222,7 @@ const namesFor = (t: UpdateTarget): { coordOf: (host: string) => string; hostOf:
 /** The file's live "set" for a target: the set node, or for a single-component def (#2296) a stand-in whose
  *  children are its components, found anywhere in the file. */
 const liveFor = async (host: ApplyHost, t: UpdateTarget, name: string, ledger?: readonly ComponentRename[]): Promise<LiveSet | undefined> => {
-  if (t.single) return (await readSingleView(host, t)).set as LiveSet;
+  if (t.single) return (await readSingleView(host, t, undefined, undefined, ledger)).set as LiveSet;
   const now = (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => String(s.name ?? '') === name);
   // #2759 — before its rename, the set is under an earlier def id (the dry run's `setRename`).
   return now ?? (locateSets(host, t, ledger).found[0] as unknown as LiveSet | undefined);

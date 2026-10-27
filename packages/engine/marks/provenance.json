@@ -2,298 +2,1342 @@
   "_note": [
     "One record per file under marks/. Authored, never generated: lint-mark-provenance.ts compares it with the folder listing in both directions, and lint-mark-colors.ts compares each record's colors with the fills it re-parses from the file.",
     "Owner decision on #2343, Q-B1 B (2026-10-26): every mark the owner supplies is committed, because the repository is for internal use for now. IF THE REPOSITORY GOES PUBLIC, refactor to the Q-B1 A model before it does: commit a mark only when its source terms permit this use, recorded here, and keep a same-name neutral placeholder for every other mark (the artwork stays in the Figma library and in the client code).",
-    "Every record today but card/generic.svg (Prism3 artwork that stands for no network) is a neutral placeholder (placeholder: true). PR 3 of #2343 replaces each placeholder file and record with the provider file and its terms; the names do not move."
+    "Every record is the owner's artwork (#2343 PR 3, 2026-10-27), assembled from several public sources and hand-edited; the original sources and their terms are not recorded, so each record says so and names the provider as rights holder. payment/generic is the owner's own card and names no provider.",
+    "Payment tiles are full-bleed (owner decision Q720 A, 2026-10-26): square corners, no border, the tile's ground kept. The brand-mark component draws each tile's corner radius and its edge from tokens, so a tile file never bakes either. lint-mark-colors.ts checks the edge is bound on every payment member; lint-glyph-geometry.ts checks no tile file bakes a corner or a border. A record with fullBleed: false (payment/generic, a silhouette with no ground) skips only the ground check.",
+    "A record's normalized list states each change made so the file passes emit-marks.ts, and why. No step changes a color: a keyword is written as its hex. A logo's width is its artwork's (Q781 A)."
   ],
   "marks": {
-    "card/amex.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+    "logo/affirm.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Affirm, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#DADCE0",
-        "#5F6368"
+        "#060809",
+        "#0FA0EA"
       ],
       "allowedForms": [
         "full-color"
+      ],
+      "width": 32.5,
+      "normalized": [
+        "dropped the frame clip path (32.5x24) and set the artboard to it: the export rounded the 32.5-wide frame up to width 33, and a logo hugs its artwork (Q781 A)"
       ]
     },
-    "card/generic.svg": {
+    "logo/amazon-pay.svg": {
       "placeholder": false,
-      "source": "Drawn in this repository: the neutral card that stands for no network. Prism3 artwork, not a provider mark, so it stays when the provider files arrive",
-      "rightsHolder": "Prism3",
-      "dateRetrieved": "2026-10-26",
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Amazon.com, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#000000",
+        "#FF9900"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 34,
+      "normalized": [
+        "wrote the color keyword(s) black as #000000 (the same color; the emitter takes hex only)"
+      ]
+    },
+    "logo/amex.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "American Express Company",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#1F72CD"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 34.97,
+      "normalized": [
+        "dropped the frame clip path (34.97x24) and set the artboard to it: the export rounded the 34.97-wide frame up to width 35, and a logo hugs its artwork (Q781 A)"
+      ]
+    },
+    "logo/apple-pay.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Apple Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#000000"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 25.51,
+      "normalized": [
+        "dropped the frame clip path (25.51x24) and set the artboard to it: the export rounded the 25.51-wide frame up to width 26, and a logo hugs its artwork (Q781 A)",
+        "wrote the color keyword(s) black as #000000 (the same color; the emitter takes hex only)"
+      ]
+    },
+    "logo/diners-club.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Diners Club International Ltd.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#0079BE",
+        "#FFFFFF"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 18.75,
+      "normalized": [
+        "dropped the frame clip path (18.75x24) and set the artboard to it: the export rounded the 18.75-wide frame up to width 19, and a logo hugs its artwork (Q781 A)",
+        "inlined 4 <use> references as the paths they name, in drawing order (the emitter refuses <use>)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "logo/discover.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Discover Financial Services",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#F34F26",
+        "#F69E35",
+        "#000000"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 53.85,
+      "normalized": [
+        "dropped the frame clip path (53.85x24) and set the artboard to it: the export rounded the 53.85-wide frame up to width 54, and a logo hugs its artwork (Q781 A)",
+        "wrote the color keyword(s) black as #000000 (the same color; the emitter takes hex only)",
+        "moved the gradient <defs> before the paths, the order the emitter writes them (no visual change)"
+      ]
+    },
+    "logo/google-pay.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Google LLC",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#3C4043",
+        "#4285F4",
+        "#34A853",
+        "#FBBC04",
+        "#EA4335"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 25.5,
+      "normalized": [
+        "dropped the frame clip path (25.5x24) and set the artboard to it: the export rounded the 25.5-wide frame up to width 26, and a logo hugs its artwork (Q781 A)"
+      ]
+    },
+    "logo/klarna.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Klarna Bank AB",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#17120F"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 36
+    },
+    "logo/mastercard.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Mastercard International Incorporated",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#ED0006",
+        "#FF5E00",
+        "#F9A000"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 24
+    },
+    "logo/paypal.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "PayPal, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#27346A",
+        "#2790C3",
+        "#1F264F"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 10.17,
+      "normalized": [
+        "dropped the frame clip path (10.17x24) and set the artboard to it: the export rounded the 10.17-wide frame up to width 11, and a logo hugs its artwork (Q781 A)"
+      ]
+    },
+    "logo/paypal-wordmark.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "PayPal, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#2790C3",
+        "#27346A",
+        "#1F264F"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 49.49,
+      "normalized": [
+        "dropped the frame clip path (49.49x24) and set the artboard to it: the export rounded the 49.49-wide frame up to width 50, and a logo hugs its artwork (Q781 A)"
+      ]
+    },
+    "logo/shop-pay.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Shopify Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#5A31F4"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 27.27,
+      "normalized": [
+        "dropped the frame clip path (27.27x24) and set the artboard to it: the export rounded the 27.27-wide frame up to width 28, and a logo hugs its artwork (Q781 A)"
+      ]
+    },
+    "logo/venmo.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "PayPal, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#008CFF"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 39.75,
+      "normalized": [
+        "dropped the frame clip path (39.75x24) and set the artboard to it: the export rounded the 39.75-wide frame up to width 40, and a logo hugs its artwork (Q781 A)"
+      ]
+    },
+    "logo/visa.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Visa Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#1434CB"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "width": 27.4,
+      "normalized": [
+        "dropped the frame clip path (27.4x24) and set the artboard to it: the export rounded the 27.4-wide frame up to width 28, and a logo hugs its artwork (Q781 A)"
+      ]
+    },
+    "payment/affirm.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Affirm, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FFFFFF",
+        "#060809",
+        "#0FA0EA"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "payment/amazon-pay.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Amazon.com, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FFFFFF",
+        "#000000",
+        "#FF9900"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) black as #000000, white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "payment/amex.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "American Express Company",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#1F72CD",
+        "#FFFFFF"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "payment/apple-pay.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Apple Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FFFFFF",
+        "#000000"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) black as #000000, white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "payment/diners-club.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Diners Club International Ltd.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FFFFFF",
+        "#0079BE"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "payment/discover.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Discover Financial Services",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FFFFFF",
+        "#FD6020",
+        "#000000"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) black as #000000, white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "payment/generic.svg": {
+      "placeholder": false,
+      "source": "The owner's own artwork: the card a payment field shows before it can tell the brand (owner decision on #2343, 2026-10-27). It replaces Prism3's neutral card/generic",
+      "rightsHolder": "Prism3 (the owner's artwork; it names no provider)",
+      "dateRetrieved": "2026-10-27",
       "terms": "Prism3 artwork, under the repository license",
       "usage": "No provider guideline: it names no brand",
       "colors": [
-        "#DADCE0",
-        "#9AA0A6",
-        "#5F6368"
+        "#545454"
       ],
       "allowedForms": [
         "full-color"
-      ]
+      ],
+      "fullBleed": false
     },
-    "card/mastercard.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+    "payment/google-pay.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Google LLC",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#DADCE0",
-        "#9AA0A6",
-        "#5F6368"
+        "#FFFFFF",
+        "#3C4043",
+        "#4285F4",
+        "#34A853",
+        "#FBBC04",
+        "#EA4335"
       ],
       "allowedForms": [
         "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
       ]
     },
-    "card/visa.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+    "payment/klarna.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Klarna Bank AB",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#DADCE0",
-        "#5F6368"
+        "#FEB4C7",
+        "#17120F"
       ],
       "allowedForms": [
         "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)"
       ]
     },
-    "provider/apple-white.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+    "payment/maestro.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Mastercard International Incorporated",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
+        "#FFFFFF",
+        "#ED0006",
+        "#0099DF",
+        "#6C6BBD"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "payment/mastercard.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Mastercard International Incorporated",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FFFFFF",
+        "#ED0006",
+        "#F9A000",
+        "#FF5E00"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "payment/paypal.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "PayPal, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FFFFFF",
+        "#28356A",
+        "#298FC2",
+        "#22284F"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "payment/shop-pay.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Shopify Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#5A31F4",
         "#FFFFFF"
       ],
       "allowedForms": [
-        "mono-white"
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "payment/venmo.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "PayPal, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#008CFF",
+        "#FFFFFF"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "payment/visa.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Visa Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FFFFFF",
+        "#1434CB"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the 32x20 ground <rect> as the same rectangle in a <path> (outlines only)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
       ]
     },
     "provider/apple.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Apple Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#000000"
+        "#FFFFFF"
       ],
       "allowedForms": [
-        "mono-black"
+        "mono-white"
+      ],
+      "normalized": [
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
       ]
     },
     "provider/facebook.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Meta Platforms, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#5F6368",
         "#FFFFFF"
       ],
       "allowedForms": [
-        "full-color"
+        "mono-white"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
       ]
     },
     "provider/google.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Google LLC",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#9AA0A6",
-        "#5F6368"
+        "#4285F4",
+        "#34A853",
+        "#FBBC05",
+        "#EA4335"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/apple.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Apple Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#000000"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)",
+        "wrote the color keyword(s) black as #000000 (the same color; the emitter takes hex only)"
+      ]
+    },
+    "social/apple-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Apple Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/discord.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Discord Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#5865F2"
       ],
       "allowedForms": [
         "full-color"
       ]
     },
-    "social/facebook-mono.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+    "social/discord-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Discord Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#000000"
+        "#24262D"
       ],
       "allowedForms": [
         "mono-black"
+      ]
+    },
+    "social/dribbble.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Dribbble Holdings Ltd.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#EA4C89",
+        "#C32361"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/dribbble-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Dribbble Holdings Ltd.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
       ]
     },
     "social/facebook.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Meta Platforms, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#5F6368",
+        "#1877F2",
         "#FFFFFF"
       ],
       "allowedForms": [
         "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
       ]
     },
-    "social/instagram-mono.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+    "social/facebook-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Meta Platforms, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#000000"
+        "#24262D"
       ],
       "allowedForms": [
         "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/figma.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Figma, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#0ACF83",
+        "#A259FF",
+        "#F24E1E",
+        "#FF7262",
+        "#1ABCFE"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/figma-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Figma, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ]
+    },
+    "social/github.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "GitHub, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24292F"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/github-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "GitHub, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/google.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Google LLC",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#4285F4",
+        "#34A853",
+        "#FBBC05",
+        "#EA4335"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/google-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Google LLC",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
       ]
     },
     "social/instagram.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Meta Platforms, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#5F6368",
-        "#9AA0A6"
+        "#000100"
       ],
       "allowedForms": [
         "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/instagram-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Meta Platforms, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/linkedin.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "LinkedIn Corporation",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#0A66C2"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/linkedin-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "LinkedIn Corporation",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/medium.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "A Medium Corporation",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#000000"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the color keyword(s) black as #000000 (the same color; the emitter takes hex only)"
+      ]
+    },
+    "social/medium-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "A Medium Corporation",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ]
+    },
+    "social/messenger.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Meta Platforms, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#0099FF",
+        "#A033FF",
+        "#FF5280",
+        "#FF7061",
+        "#FFFFFF"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)",
+        "flattened gradientTransform translate(4.02 24) scale(26.4) into cx=4.02 cy=24 r=26.4 (the same circle; the emitter refuses gradientTransform)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)",
+        "moved the gradient <defs> before the paths, the order the emitter writes them (no visual change)"
+      ]
+    },
+    "social/messenger-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Meta Platforms, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/pinterest.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Pinterest, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FFFFFF",
+        "#E60019"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)",
+        "clamped 3 path coordinate(s) to the 24x24 artboard, the furthest by 0.0198: the dropped artboard clip trimmed that ink (the outline now stays inside the artboard)"
+      ]
+    },
+    "social/pinterest-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Pinterest, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/reddit.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Reddit, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FF4500",
+        "#FFFFFF"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)",
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "social/reddit-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Reddit, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/snapchat.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Snap Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FFFFFF",
+        "#000000"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)",
+        "wrote the color keyword(s) black as #000000, white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "social/snapchat-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Snap Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/spotify.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Spotify AB",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#1ED760"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/spotify-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Spotify AB",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/tiktok.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "TikTok Ltd.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FF004F",
+        "#000000",
+        "#00F2EA"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the color keyword(s) black as #000000 (the same color; the emitter takes hex only)"
+      ]
+    },
+    "social/tiktok-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "TikTok Ltd.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ]
+    },
+    "social/tumblr.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Tumblr, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#001935"
+      ],
+      "allowedForms": [
+        "full-color"
+      ]
+    },
+    "social/tumblr-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Tumblr, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ]
+    },
+    "social/twitch.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Twitch Interactive, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FFFFFF",
+        "#9146FF"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+      ]
+    },
+    "social/twitch-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Twitch Interactive, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ]
+    },
+    "social/whatsapp.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Meta Platforms, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#25D366"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/whatsapp-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Meta Platforms, Inc.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
+      ]
+    },
+    "social/x.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "X Corp.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#000000"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "supplied as twitter.svg in social/; renamed x: the file is the X glyph, not the bird",
+        "wrote the color keyword(s) black as #000000 (the same color; the emitter takes hex only)"
       ]
     },
     "social/x-mono.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "X Corp.",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#000000"
+        "#24262D"
+      ],
+      "allowedForms": [
+        "mono-black"
+      ],
+      "normalized": [
+        "supplied as twitter-mono.svg in social/; renamed x-mono: the file is the X glyph, not the bird"
+      ]
+    },
+    "social/youtube.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Google LLC",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#FF0302",
+        "#FEFEFE"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)",
+        "clamped 5 path coordinate(s) to the 24x24 artboard, the furthest by 0.0238: the dropped artboard clip trimmed that ink (the outline now stays inside the artboard)"
+      ]
+    },
+    "social/youtube-mono.svg": {
+      "placeholder": false,
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "rightsHolder": "Google LLC",
+      "dateRetrieved": "2026-10-27",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#24262D"
       ],
       "allowedForms": [
         "mono-black"
       ]
-    },
-    "wallet/apple-pay-black.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
-      "colors": [
-        "#000000",
-        "#FFFFFF"
-      ],
-      "allowedForms": [
-        "mono-black"
-      ],
-      "width": 48
-    },
-    "wallet/apple-pay-white.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
-      "colors": [
-        "#FFFFFF",
-        "#000000"
-      ],
-      "allowedForms": [
-        "mono-white"
-      ],
-      "width": 48
-    },
-    "wallet/google-pay-black.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
-      "colors": [
-        "#000000",
-        "#9AA0A6",
-        "#FFFFFF"
-      ],
-      "allowedForms": [
-        "mono-black"
-      ],
-      "width": 56
-    },
-    "wallet/google-pay-white.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
-      "colors": [
-        "#FFFFFF",
-        "#5F6368",
-        "#000000"
-      ],
-      "allowedForms": [
-        "mono-white"
-      ],
-      "width": 56
-    },
-    "wallet/paypal.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
-      "colors": [
-        "#DADCE0",
-        "#5F6368"
-      ],
-      "allowedForms": [
-        "full-color"
-      ],
-      "width": 60
-    },
-    "wallet/shop-pay.svg": {
-      "placeholder": true,
-      "source": "Drawn in this repository as a neutral placeholder (#2343 PR 1); replaced by the provider artwork in PR 3",
-      "rightsHolder": "Prism3 (placeholder, no provider artwork)",
-      "dateRetrieved": "2026-10-26",
-      "terms": "Placeholder geometry with no trademark; the provider terms arrive with the provider file",
-      "usage": "Placeholder only: no provider usage guideline applies until the provider file replaces it",
-      "colors": [
-        "#5F6368",
-        "#FFFFFF"
-      ],
-      "allowedForms": [
-        "full-color"
-      ],
-      "width": 56
     }
   }
 }

@@ -41,6 +41,7 @@ export const USED_BY = {
         "Slider"
       ],
       "radius.sm": [
+        "BrandMark",
         "TextField",
         "Textarea",
         "Select",
@@ -88,6 +89,7 @@ export const USED_BY = {
         "Slider"
       ],
       "radius.sm": [
+        "BrandMark",
         "TextField",
         "Textarea",
         "Select",
@@ -140,6 +142,7 @@ export const USED_BY = {
         "Slider"
       ],
       "radius.sm": [
+        "BrandMark",
         "Badge",
         "SegmentedControl",
         "PasswordField",
@@ -190,6 +193,7 @@ export const USED_BY = {
         "Slider"
       ],
       "radius.sm": [
+        "BrandMark",
         "Badge",
         "SegmentedControl",
         "PasswordField",

@@ -1118,7 +1118,7 @@ npx tsx packages/engine/lint-mark-provenance.ts     # every brand mark under mar
                                                     # ACTUAL the records a person typed, both directions.
                                                     # Each record carries source, rightsHolder,
                                                     # dateRetrieved, terms, usage, colors, allowedForms
-                                                    # and placeholder (width for a wallet lockup), and the
+                                                    # and placeholder (width for a logo), and the
                                                     # repository-visibility note (owner decision Q-B1 B)
                                                     # survives in provenance.json and marks/NOTICE.md.
                                                     # A self-check feeds bad records first (docs/34

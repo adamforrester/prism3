@@ -1801,6 +1801,9 @@ export const figmaAnatomyPlan = (
         : []);
     const kids = childNames.map((c) => node(c, a.parts[c]));
 
+    // THE TILE EDGE (#2343, Q720 A), at the coordinates its gate names: `PartDef.tileEdge`.
+    const tileEdge = p.kind === 'vector' && p.tileEdge && Object.entries(p.tileEdge.when).every(([ax, vs]) => vs.includes(String(axisValue(ax))))
+      ? p.tileEdge : undefined;
     if (p.kind === 'box') {
       if (p.gap) bound.itemSpacing = varOf(p.gap);
       if (p.height) bound.height = varOf(p.height);
@@ -1912,6 +1915,11 @@ export const figmaAnatomyPlan = (
       if (p.kind === 'nest' && p.height) bound.height = varOf(p.height);
       // A SLOT UNDER `aspectLock` (#2343 PR 2) binds its height too, and only its height: the lock derives the width.
       if (p.kind === 'slot' && p.aspectLock && p.height) bound.height = varOf(p.height);
+      // A FULL-BLEED TILE'S EDGE (#2343, Q720 A), on the glyph's own frame: its corners and its stroke weight, bound.
+      if (tileEdge) {
+        for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(tileEdge.radius);
+        bound.strokeWeight = varOf(tileEdge.strokeWidth);
+      }
     }
 
     // THE TYPE KEY, resolved from the coordinate like every other binding key (#1248). This lookup
@@ -2004,6 +2012,14 @@ export const figmaAnatomyPlan = (
       // later still cannot reach the artwork.
       const ink = def.id === BRAND_MARK_DEF_ID ? undefined : paintOf(p.paintSlot ?? 'icon');
       if (ink) descendantFills = ink;
+      // THE TILE'S EDGE IS THE FRAME'S STROKE, never the artwork's: on the artboard, where a fill would be a square
+      // behind the mark, a stroke drawn inside is the tile's border. It throws unpainted: a bound weight with no
+      // stroke is an edge that draws nothing, the silent-loss shape.
+      if (tileEdge) {
+        const edge = paintOf('border');
+        if (!edge) throw new Error(`${def.id}: anatomy part '${name}' draws a tileEdge at ${JSON.stringify(paintCoord)} and the def resolves no 'border' paint there — the edge would bind its weight and draw nothing`);
+        paints.strokes = edge;
+      }
     } else if (p.kind === 'slot' || p.kind === 'overlay') {
       // There is no `color/interactive/{intent}/icon` variable — icon ink routes through `on-fill` /
       // `text.rest` under the def's `.icon` slot key. It lands on the vector INSIDE the instance,
@@ -2089,6 +2105,8 @@ export const figmaAnatomyPlan = (
     // `glyphInset` of the frame by the executor, with SCALE constraints so a re-themed box scales it along.
     // See `FigmaNodePlan.glyphInset`.
     const scale = p.kind === 'vector' && p.glyphScale !== undefined && p.glyphScale !== 1 ? p.glyphScale : undefined;
+    if (tileEdge && iconTarget)
+      throw new Error(`${def.id}: anatomy part '${name}' declares a tileEdge, but its glyph '${glyphName}' is an icon-set glyph, built as an instance of the icon component — the edge belongs on a frame this def draws, so only a glyph drawn inline can carry it`);
     if (scale !== undefined && !iconTarget)
       throw new Error(`${def.id}: anatomy part '${name}' declares glyphScale, but its glyph '${glyphName}' is not an icon-set glyph — the inset is applied to an instance of the icon component, so only an icon-set glyph can carry it`);
     const glyphInset = iconTarget ? scale : undefined;
@@ -2136,7 +2154,7 @@ export const figmaAnatomyPlan = (
       ...((p.kind === 'slot' || p.kind === 'overlay' || p.kind === 'nest') && p.fixedPaint ? { fixedPaint: true as const } : {}),
       // The crop flag (#1316), carried ONLY when true so every existing box's plan is byte-identical —
       // both executors read `n.clipsContent ?? false`, which is the literal `false` they hardcoded before.
-      ...(p.kind === 'box' && p.clipsContent ? { clipsContent: true as const } : {}),
+      ...((p.kind === 'box' && p.clipsContent) || tileEdge ? { clipsContent: true as const } : {}),
       // THE ROOT'S BUILD WIDTH (#1757), carried ONLY on a root that declares it — see `placementWidth`.
       ...(p.kind === 'box' && name === a.root && p.placementWidth !== undefined ? { placementWidth: p.placementWidth } : {}),
       // ITS HEIGHT TWIN (#2609), carried ONLY on a root built at a height too — see `PartDef.builtSize`.
