@@ -15,7 +15,7 @@
 import { bandPhrase } from './figma-description';
 import { RGB, contrast, hex, hexToRgb, emittedAlpha } from './color';
 import { Step } from './ramp';
-import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, SWEEP_ROLE, BODY_XS_DESCRIPTION, gridGapLink } from './theme';
+import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, ResolvedUnderline, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, SWEEP_ROLE, BODY_XS_DESCRIPTION, gridGapLink } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
 import { resolveAllModes, ModeResult, OPACITY_STEPS } from './modes';
 import { orderedRoleKeys } from './color-order';
@@ -300,7 +300,18 @@ const fluidClamp = (minPx: number, maxPx: number, minVW: number, maxVW: number):
   const preferred = `${interceptRem}rem + ${slopeVw}vw`;
   return { clamp: `clamp(${round(minPx / 16, 4)}rem, ${preferred}, ${round(maxPx / 16, 4)}rem)`, preferred };
 };
-const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; italicDefault?: true; facePin?: FacePin; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string>; sizeByMode?: Record<string, number>; sizeMinByMode?: Record<string, number> }, face: string, minVW: number, maxVW: number): Token => {
+/** #2942 — the link underline: a unitless share of the font size, the line-height shape (`lineHeightLeaf`). Figma takes
+ *  it as a PERCENT written into every `-link` text style (neither field takes a variable), CSS as `em`. Emitted only for
+ *  a field the brand sets; auto emits nothing. */
+const UNDERLINE_FIELD = { thickness: 'textDecorationThickness', offset: 'textDecorationOffset' } as const;
+const underlineLeaf = (key: keyof typeof UNDERLINE_FIELD, pct: number): Token => ({
+  $type: 'number', $value: pct / 100,
+  $description: key === 'thickness'
+    ? `Link underline thickness: ${pct}% of the font size (${pct / 100}em in CSS). Every underlined text style draws it.`
+    : `Link underline offset, below the baseline: ${pct}% of the font size (${pct / 100}em in CSS). Every underlined text style draws it.`,
+  $extensions: { prism3: { generated: true, unitless: true, figma: { kind: 'style-part', field: UNDERLINE_FIELD[key], unit: 'PERCENT', percent: pct } } },
+});
+const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; italicDefault?: true; facePin?: FacePin; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string>; sizeByMode?: Record<string, number>; sizeMinByMode?: Record<string, number> }, face: string, minVW: number, maxVW: number, underline: ResolvedUnderline): Token => {
   const a = (seg: string) => `{${root}.${CORE_TIER}.font.${seg}}`;
   const value: Record<string, unknown> = {
     fontFamily: a(`family.${c.group}`),      // #415 — a composite's family IS its category
@@ -366,7 +377,7 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
     // body/xs carries the owner's words instead (#2266, Q101 A): its use is not its group's. Its link variants keep
     // the link guidance every other link variant carries, beside those words (owner Q117 A).
     $description: c.group === 'body' && c.variant === 'xs' ? `${BODY_XS_DESCRIPTION}${c.link ? ' Underlined (link — pair with text.link.* color).' : ''}` : `${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} — ${isFluid ? `${c.sizeMinPx}→${c.sizePx}px fluid` : `${c.sizePx}px`} ${face}, ${c.lineHeight} line-height, ${c.weightRole} weight${slanted ? ', italic' : ''}, ${c.tracking} tracking${c.textCase !== 'none' ? `, ${c.textCase}` : ''}${c.link ? (c.group === 'label' ? ", underlined (a text button's label)" : ', underlined (link — pair with text.link.* color)') : ''}`,
-    $extensions: { prism3: { role: 'composite', ...modeVariants, group: c.group, variant: c.variant, weightRole: c.weightRole, sizePx: c.sizePx, ...(c.italic ? { italic: true } : {}), ...(c.link ? { link: true } : {}), ...(c.textCase !== 'none' ? { textCase: c.textCase } : {}), ...(c.facePin ? { facePin: c.facePin } : {}), responsive, figma: { kind: 'text-style', styleType: 'TEXT', binds: ['fontFamily', 'fontSize', 'fontStyle'], baked: ['lineHeight', 'letterSpacing', ...(c.textCase !== 'none' ? ['textCase'] : []), ...(c.link ? ['textDecoration'] : [])] } } },
+    $extensions: { prism3: { role: 'composite', ...modeVariants, group: c.group, variant: c.variant, weightRole: c.weightRole, sizePx: c.sizePx, ...(c.italic ? { italic: true } : {}), ...(c.link ? { link: true } : {}), ...(c.textCase !== 'none' ? { textCase: c.textCase } : {}), ...(c.facePin ? { facePin: c.facePin } : {}), responsive, figma: { kind: 'text-style', styleType: 'TEXT', binds: ['fontFamily', 'fontSize', 'fontStyle'], baked: ['lineHeight', 'letterSpacing', ...(c.textCase !== 'none' ? ['textCase'] : []), ...(c.link ? ['textDecoration', ...(['thickness', 'offset'] as const).filter((k) => underline[k] !== 'auto').map((k) => UNDERLINE_FIELD[k])] : [])] } } },
   };
 };
 
@@ -1075,9 +1086,13 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     if (Object.keys(modes).length) (leaf.$extensions as any).prism3.modes = modes;
     letterSpacingRole[ls.key] = leaf;
   }
+  // #2942 — only the fields a brand sets, so an auto brand's `font` node is byte-identical.
+  const underline: Record<string, Token> = {};
+  for (const k of ['thickness', 'offset'] as const) { const v = ty.underline[k]; if (v !== 'auto') underline[k] = underlineLeaf(k, v); }
   const font = { typeface, family, size: fsize, weight: fweight, 'weight-role': weightRole,
     'line-height': lineHeight, 'line-height-role': lineHeightRole,
-    'letter-spacing': letterSpacing, 'letter-spacing-role': letterSpacingRole };
+    'letter-spacing': letterSpacing, 'letter-spacing-role': letterSpacingRole,
+    ...(Object.keys(underline).length ? { underline } : {}) };
 
   // ---- typography semantic composites (Phase 2) ----
   // Consumer-facing type styles under `type.*`. Two composites may share a size
@@ -1087,7 +1102,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const faceOf: Record<string, string> = Object.fromEntries(ty.families.map((f) => [f.group, f.stack[0]]));
   const typeGroup: Record<string, any> = {};
   for (const c of ty.composites) {
-    const leaf = typographyLeaf(root, c, faceOf[c.group], ty.minViewport, ty.maxViewport);
+    const leaf = typographyLeaf(root, c, faceOf[c.group], ty.minViewport, ty.maxViewport, ty.underline);
     // Nest by the full composite path (group / size? / weight / link?).
     const parts = c.path.split('.');
     let node: Record<string, any> = typeGroup;

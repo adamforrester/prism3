@@ -432,6 +432,10 @@ export type TextStyleRow = {
   letterSpacingPct: number;
   textCase: 'ORIGINAL' | 'UPPER' | 'LOWER';
   textDecoration: 'NONE' | 'UNDERLINE';
+  /** #2942 — UNDERLINE rows only: a whole percent of the font size, or 'AUTO'. The executors write AUTO explicitly,
+   *  because a style is reused by name: a brand that goes back to auto must not keep the last brand's percent. */
+  underlineThicknessPct?: number | 'AUTO';
+  underlineOffsetPct?: number | 'AUTO';
 };
 export type TextStylePlan = TextStyleRow[];
 
@@ -505,6 +509,9 @@ const textStylePlanFrom = (
       letterSpacingPct: bakedNum(p.letterSpacing),
       textCase: p.textCase.value,
       textDecoration: p.textDecoration.value,
+      ...(p.textDecoration.value === 'UNDERLINE'
+        ? { underlineThicknessPct: p.textDecorationThickness?.value.value ?? 'AUTO', underlineOffsetPct: p.textDecorationOffset?.value.value ?? 'AUTO' }
+        : {}),
     };
   });
 };

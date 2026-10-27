@@ -1044,6 +1044,8 @@ export type Typography = {
   fluid: boolean;                                     // responsive sizing on (Phase 3)
   minViewport: number;                                // px — fluid clamp() interpolation floor
   maxViewport: number;                                // px — fluid clamp() interpolation ceiling
+  /** #2942 — the link underline, each field a whole percent of the font size, or 'auto' (see `resolveUnderline`). */
+  underline: ResolvedUnderline;
   // Per-mode typography levers (Phase D) — only modes whose `modeLevers.families`/`weights` deviate
   // the baseline. Each carries the RE-DERIVED primitives (via the same helpers buildTypography uses):
   // family stacks per family-role, weight-role → numeric per weight-role. Every typography COMPOSITE
@@ -1293,6 +1295,12 @@ export type TypographyInput = {
   /** Which roles get an underlined `.link` variant for every size×weight. Default
    *  `['body','caption']`. Underline is baked; the link colour stays `text.link.*`. */
   links?: TypeGroup[];
+  /** #2942 (owner Q1/Q4/Q5/Q800/Q801 A) — the underline every `-link` style draws: thickness and offset, each a
+   *  unitless SHARE OF THE FONT SIZE (0.05 = 5%), or `'auto'`, which leaves it to the font. Default auto for both,
+   *  so a brand that never sets it is byte-identical. A set value is held to a whole percent and CLAMPED to its
+   *  bound (thickness 1–20%, offset 0–50%), corrected rather than refused, like the per-breakpoint column count
+   *  (`resolveUnderline`). A set field emits `core.font.underline.<field>` (`$type: number`); auto emits nothing. */
+  underline?: { thickness?: number | 'auto'; offset?: number | 'auto' };
   /** Which roles ship an `.*-italic` variant for every size×weight (and, for link
    *  roles, an italic-link too — italic and link are orthogonal). Italic is a
    *  weight-PAIRED modifier (`strong` + `strong-italic`), NOT a weight role; it
@@ -1429,6 +1437,23 @@ export const TYPE_LINK_DEFAULT: readonly TypeGroup[] = ['body', 'caption'];
  *  the text appearance underlines its label at rest and in every state, and the underline is fixed, not a brand
  *  setting. Its color is the button's own ink (`interactive.<family>.text.*`), not `text.link.*`. */
 export const TYPE_LINK_ALWAYS: readonly TypeGroup[] = ['label'];
+/** #2942 (owner Q801 A) — the underline bounds, in whole percents of the font size. A set value outside them is
+ *  corrected to the nearest bound, not refused: the Studio's number field can reach it, and the column-count clamp
+ *  set that precedent for a UI knob. The Studio's two fields read these bounds from here, so the panel and the clamp
+ *  cannot disagree; `test.ts` (#2942) states the four numbers itself. */
+export const UNDERLINE_BOUNDS = { thickness: { min: 1, max: 20 }, offset: { min: 0, max: 50 } } as const;
+/** #2942 (owner Q800 A) — what the "Custom underline" switch starts at when turned on, in whole percents. */
+export const UNDERLINE_ON_DEFAULT = { thickness: 5, offset: 25 } as const;
+export type ResolvedUnderline = { thickness: number | 'auto'; offset: number | 'auto' };
+/** Input share (0.05) → a whole, clamped percent (5), or 'auto'. Unset, null or non-finite reads as auto. */
+export const resolveUnderline = (u: TypographyInput['underline']): ResolvedUnderline => {
+  const pct = (v: number | 'auto' | undefined, k: keyof typeof UNDERLINE_BOUNDS): number | 'auto' => {
+    if (v === undefined || v === null || v === 'auto' || typeof v !== 'number' || !Number.isFinite(v)) return 'auto';
+    const { min, max } = UNDERLINE_BOUNDS[k];
+    return Math.max(min, Math.min(max, Math.round(v * 100)));
+  };
+  return { thickness: pct(u?.thickness, 'thickness'), offset: pct(u?.offset, 'offset') };
+};
 const TYPE_TRACK_DEFAULT: Record<TypeGroup, string> = {
   display: 'tight', title: 'snug', label: 'normal', eyebrow: 'wider',
   body: 'normal', caption: 'normal', code: 'normal',
@@ -2005,6 +2030,7 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
     // to the comparison's default alone left every test green and refused against a range the theme never had.
     minViewport: vpMin,
     maxViewport: vpMax,
+    underline: resolveUnderline(t.underline),
   };
 };
 
@@ -3359,7 +3385,8 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     raisedSurface: 'white',
     dims, motion: buildMotion(),
     // The label category always ships the `default` role (Q225 A, Q226 A), here as in every brand.
-    typography: buildTypography(withLabelDefault(undefined)),
+    // #2942 (owner, 2026-10-27): the reference brand's link underline is 5% thick, 25% below the baseline.
+    typography: buildTypography(withLabelDefault({ underline: { thickness: 0.05, offset: 0.25 } })),
     shadow: buildShadow(s.neutralHue.hue, { tint: { amount: 0 } }),  // NB ships pure-black shadows
     // NB caps at 1920 + narrow 720. Its md margin is 44 (#3052, Q785 A): at 1440 with 24 columns and 16px
     // gutters that gives whole-pixel 41px columns. 44 is no spacing step, so `grid/margin` md links to
@@ -3371,7 +3398,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
       // heavier inverse shadows: lift-primary is the field's common choice.
       'reference brand: anchors measured from the shipped system; the brand red also serves as danger, since the brand hue is its danger hue.',
       `dimensions: ${baseUnit}px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius ${baseMd}px).`,
-      'typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900.',
+      'typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900; link underline 5% thick, 25% offset, as the reference sets it.',
       'shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference\'s heavier dark shadows.',
       'layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale, except the md margin: 44px, as the reference sets it, which is not a spacing step, so it links to core dimension 44.',
     ],

@@ -93,6 +93,8 @@ export const TAG_DESC = 'How tags draw their shape.';
 export const DIALOG_DESC = 'How dialogs size their title and the surface they sit on.';
 // #2924: DRAFT for the owner (Q2 on #2924), the wireframe's section line.
 export const BANNER_DESC = 'How banners draw their surface and edge.';
+// #2942: DRAFT placeholder for the owner (Q2 A), in Banner's pattern.
+export const LINK_DESC = 'How links draw their underline.';
 // #2909 Q2909.4 A: DRAFT for the owner (Q2909.10 A), after the round-4 wireframe's block.
 export const SHARED_DESC = 'Settings every component family follows. Density is set in Theme.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
@@ -272,6 +274,8 @@ export const DOMAINS = [
         title: 'Weights and styles', desc: WEIGHTS_DESC, advanced: true, rows: [
           { ctl: 'weightRoles', keys: ['typography.weightRoles'] },
           { ctl: 'weights', keys: ['typography.weights', 'typography.links'] },
+          // #2942 (owner Q3 A): beside Underlined link styles, because it writes tokens and the -link text styles.
+          { ctl: 'underline', keys: ['typography.underline'] },
           { ctl: 'italics', keys: ['typography.italics', 'typography.italicDefault'] },
           // S6.3: Pin a font cut (Q64), a schema input.
           { ctl: 'facePins', schemaOnly: ['typography.faces'] },
@@ -377,6 +381,8 @@ export const DOMAINS = [
       { title: 'Dialog', desc: DIALOG_DESC, rows: [{ ctl: 'chips', keys: ['dialogTitleSize'], drive: 'dialog' }, { ctl: 'chips', keys: ['raisedSurface'], drive: 'dialog' }] },
       // #2924: Banner style's one home, drawn in the Banner section's Banner options block (`domains/banner-options.ts`).
       { title: 'Banner', desc: BANNER_DESC, rows: [{ ctl: 'chips', keys: ['bannerStyle'], drive: 'banner' }] },
+      // #2942 (owner Q3 A): the underline's read-only line; its one home is Theme › Type › Weights and styles.
+      { title: 'Link', desc: LINK_DESC, rows: [{ ctl: 'underlineLink' }] },
       { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },
     ],
     status: 'new',

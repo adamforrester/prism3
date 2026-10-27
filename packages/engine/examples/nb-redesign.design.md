@@ -101,6 +101,8 @@ typography:
   # plugin during the manual pass if the finished NB needs a bespoke heading leading.
   # Fluid heading sizes on, clamped between NB's mobile (402) and desktop (1440) viewports.
   responsive: { fluid: true, minViewport: 402, maxViewport: 1440 }
+  # Link underline (#2942): 5% of the font size thick, 25% below the baseline, on every -link style.
+  underline: { thickness: 0.05, offset: 0.25 }
 ---
 
 # New Balance — redesign seed brief

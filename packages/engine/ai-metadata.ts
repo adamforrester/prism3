@@ -521,6 +521,7 @@ const primMeaning = (seg: string[]): string => {
     if (seg[1] === 'line-height') return `Line-height multiplier — ${seg[2]} (unitless)`;
     if (seg[1] === 'letter-spacing') return `Letter-spacing primitive — ${seg[2]} (em)`;
     if (seg[1] === 'typeface') return `Typeface primitive — ${seg[2]}`;
+    if (seg[1] === 'underline') return `Link underline ${seg[2]} — a share of the font size (unitless; \`em\` in a stylesheet)`;
     return `Typography primitive — ${seg.slice(1).join(' ')}`;
   }
   if (seg[0] === 'shadow') return `Shadow / elevation composite — ${seg[1]} (2-layer, mode-aware)`;
@@ -793,7 +794,10 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
       meaning: primMeaning(seg),
       ...(intent ? { intent } : {}),
       tier: 'primitive',
-      consume: CONSUME[seg[0]] ?? 'Private primitive — prefer a semantic token.',
+      // #2942 — no composite carries the underline (DTCG's typography type has no field for it), so code reads it here.
+      consume: seg[0] === 'font' && seg[1] === 'underline'
+        ? `Consumable — multiply it by \`1em\` for \`${seg[2] === 'thickness' ? 'text-decoration-thickness' : 'text-underline-offset'}\` on every underlined link type style. Absent when the brand leaves it to the font, which reads as auto.`
+        : CONSUME[seg[0]] ?? 'Private primitive — prefer a semantic token.',
     };
     const by = aliasedBy[path];
     if (by && by.length) p.aliased_by = [...new Set(by)].sort();

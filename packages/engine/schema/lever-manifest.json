@@ -648,6 +648,20 @@
       "description": "Which text types get an underlined link style. The default is body and caption. Labels are always included: a text button’s label is underlined."
     },
     {
+      "key": "typography.underline",
+      "group": "type",
+      "kind": "value",
+      "label": "Underline thickness and offset",
+      "control": "object",
+      "advanced": true,
+      "default": {
+        "thickness": "auto",
+        "offset": "auto"
+      },
+      "unit": "% of font size",
+      "description": "The underline on every link style, as a share of the font size: 5% thickness is 0.8px on 16px text, and 25% offset is 4px below the baseline. Auto leaves it to the font."
+    },
+    {
       "key": "typography.italics",
       "group": "type",
       "kind": "value",

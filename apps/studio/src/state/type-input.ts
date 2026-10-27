@@ -30,7 +30,7 @@
  */
 import {
   brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS,
-  LINE_HEIGHT_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS,
+  LINE_HEIGHT_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS, UNDERLINE_ON_DEFAULT,
 } from '@prism3/engine/theme';
 import type { BrandInput, Theme, TypographyInput, PerModeSizeGroup, FacePin } from '@prism3/engine/theme';
 import { brandState, theme, getPath, setPath, setModeLever } from './store';
@@ -148,6 +148,20 @@ export const setLink = (g: string, on: boolean, current: ReadonlySet<string>): v
   // writing it would make a list that is otherwise the default read as a change.
   const next = toggled(g, on, current).filter((x) => !(TYPE_LINK_ALWAYS as readonly string[]).includes(x));
   setPath(brandState, 'typography.links', isLinkDefault(next) ? undefined : next);
+};
+
+/** #2942 (owner Q800 A) — the "Custom underline" switch. On writes the starting values, 5% thickness and 25% offset,
+ *  as shares of the font size; off UNSETS `typography.underline`, which is auto for both (#2006: an unset key is the
+ *  engine's default, so an auto brand's file carries nothing). */
+export const setCustomUnderline = (on: boolean): void => {
+  setPath(brandState, 'typography.underline', on
+    ? { thickness: UNDERLINE_ON_DEFAULT.thickness / 100, offset: UNDERLINE_ON_DEFAULT.offset / 100 }
+    : undefined);
+};
+/** One underline field, in whole percents of the font size (Q801 A). The engine clamps it to its bounds, so a value
+ *  past a bound is written as typed and comes back corrected on the repaint. */
+export const setUnderlinePct = (field: 'thickness' | 'offset', pct: number): void => {
+  setPath(brandState, `typography.underline.${field}`, Math.round(pct) / 100);
 };
 
 /** A text type's italic style, as the three chips name it (owner decision Q6): `'upright'` (no italic styles),
