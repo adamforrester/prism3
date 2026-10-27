@@ -136,6 +136,9 @@ export type SetOutcome = {
   earlierRecord?: string[];
   /** Hand edits, by member and path, and what this run did with them (`choices.handEdits`). */
   kept: { member: string; path: string }[];
+  /** #3086 — the plan's bindings the build found absent on a node kept as a hand edit, by member, part and field: the
+   *  edit kept, as asked, never a miss. Absent when none. */
+  keptBound?: { member: string; part: string; field: string }[];
   handEdits: HandEditChoice;
   /** Verify (a): every identity change the dry run did not list. */
   identity: string[];
@@ -503,6 +506,20 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   // as it is, with a sibling is about that member, not about a write the update could not finish.
   const known = [...before.keys(), ...out.updated, ...out.skipped.map((k) => k.member)];
   out.misses = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x) && !out.skipped.some((k) => namesMember(x, k.member, known)));
+  // A KEPT HAND EDIT IS NOT A MISS (#3086). A node kept as a hand edit is not written, so the build's bound read-back
+  // finds the plan's binding absent there: a dot a designer resized by hand reads `bound <member>/dot.width ->
+  // DISCARDED`. That is the edit kept, as asked, so it is moved to `keptBound` and the verdict names it with the hand
+  // edits kept. A binding not held on a node no one edited stays a miss.
+  const keptBound: { member: string; part: string; field: string }[] = [];
+  out.misses = out.misses.filter((x) => {
+    for (const [member, { keep }] of work.members) {
+      if (!keep.size || !x.startsWith(`bound ${member}/`)) continue;
+      const m = /^(.+)\.([A-Za-z]+) -> DISCARDED \(/.exec(x.slice(`bound ${member}/`.length));
+      if (m && [...keep].some((k) => k === m[1] || k.endsWith(`/${m[1]}`))) { keptBound.push({ member, part: m[1], field: m[2] }); return false; }
+    }
+    return true;
+  });
+  if (keptBound.length) out.keptBound = keptBound;
 
   // ── VERIFY (a): IDENTITY, OFF THE HOST ─────────────────────────────────────────────────────────────────────
   const now = t.single ? (await liveFor(host, t, p.set)) ?? live
@@ -832,6 +849,13 @@ export const applyUpdate = async (
 
 const n = (k: number, one: string, many = `${one}s`): string => `${k} ${k === 1 ? one : many}`;
 
+/** DRAFT wording for the owner (#3086): the properties a kept hand edit holds against the plan's bindings, each once,
+ *  as "dot size" (a width or height reads as the part's size). Empty when the build found none. */
+const keptProps = (o: SetOutcome): string => {
+  const said = [...new Set((o.keptBound ?? []).map((b) => `${b.part} ${b.field === 'width' || b.field === 'height' ? 'size' : b.field}`))];
+  return said.length ? ` (${said.join(', ')})` : '';
+};
+
 const NOT_RECORDED = '.asBuilt -> NOT RECORDED';
 /** The members the build wrote but could not finish: each one's as-built record was refused, so `finishUpdated` left its
  *  stamp as it was and the next dry run reads it out of date (#2477). Named only when the build also listed it as
@@ -894,7 +918,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
       // Wording approved, Q246 A (#2542, Q245.2 A), the dry run's "moves to its place on the page" as done.
       o.setMoved ? 'the set moved to its place on the page' : '',
       ...furnitureParts(o.furniture, 'drawn', 'cleared'),
-      o.kept.length ? `${n(o.kept.length, 'hand edit')} ${o.handEdits === 'overwrite' ? 'overwritten' : o.handEdits === 'accept' ? 'accepted as built' : 'kept'}` : '',
+      o.kept.length ? `${n(o.kept.length, 'hand edit')} ${o.handEdits === 'overwrite' ? 'overwritten' : o.handEdits === 'accept' ? 'accepted as built' : 'kept'}${keptProps(o)}` : '',
       o.unrecorded.length - (o.earlierRecord?.length ?? 0) ? `${o.unrecorded.length - (o.earlierRecord?.length ?? 0)} of them without an as-built record` : '',
       // The owner's wording (2026-10-09).
       o.earlierRecord?.length ? `${o.earlierRecord.length} of them recorded by an earlier plugin version` : '',

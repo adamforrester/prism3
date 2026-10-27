@@ -59,6 +59,11 @@
  *                  back as its plan, and reads current after.
  *   choices/…      `overwrite` writes the plan over a hand edit; `accept` keeps it as the new record (§5).
  *                  Mutations: overwrite ignored → `hand/overwrite`; accept ignored → `hand/accept`.
+ *   kept report/…  a radio dot whose bound size a designer edited, updated under `keep`: the verdict names it with the
+ *                  hand edits kept ("dot size") and lists no part not written; a binding the host drops on a node no one
+ *                  edited is still a part not written (#3086). Mutations: the kept-edit split dropped → `kept report/no
+ *                  miss`, `kept report/named`; the property left unnamed →
+ *                  `kept report/named`; the split taking every bound miss → `kept report/real discard`.
  *   drop/description  the deprecation prefix leads and the member's own description follows (owner Q104 A).
  *                  Mutation: the description replaced → `drop/description`.
  *   keys/record id an updated member's record names its own node (#2300). Mutation: the id left out of the update's
@@ -527,6 +532,64 @@ section('keep — every hand-edited path survives an update that rewrites its me
   ok(await fillVar(m) === changed, `keep/root written: the edited member's root still takes the plan's new fill (${await fillVar(m)})`);
   ok(await fillVar(member(PLAIN)) === changed && JSON.stringify(plainRing()) === JSON.stringify(plainCorners),
     `keep/plain updated: a member with no hand edits takes the new fill, and its ring is re-cornered from its host as before (${await fillVar(member(PLAIN))}; ${JSON.stringify(plainRing())})`);
+}
+
+/* ── keep, reported (#3086) ──────────────────────────────────────────────────────────────────────────── */
+section('keep, reported — a kept hand edit on a bound size is a hand edit kept, never a part not written (#3086)');
+{
+  // A radio whose dot a designer resized by hand: the dot's bound width and height unbound and set to 14. The run is told
+  // to keep hand edits, so the dot keeps the designer's size, and the build's bound read-back finds the plan's binding
+  // absent there. That is the edit kept, as asked, not a binding the host dropped. The plan gives the root a new fill so
+  // the member is written in place. Every expected line below is typed here, never read from the verdict code.
+  // Mutation: the kept-edit split dropped from `applySet` → `kept report/no miss`, `kept report/named`.
+  const plans = plansOf('radio-control');
+  const w = await world('radio-control', plans, { extraVars: ['color/keep/changed'] });
+  const EDITED = 'selection=checked, status=default, size=medium, state=rest';
+  const m = membersOf(w.set()).find((x) => x.name === EDITED)!;
+  ok(!!m && !!childNamed(m, 'dot'), `premise: the set holds ${EDITED} with a dot`);
+  const dot = childNamed(m, 'dot');
+  for (const f of ['width', 'height']) (dot.setBoundVariable as (f: string, v: null) => void)(f, null);
+  (dot.resize as (w: number, h: number) => void)(14, 14);
+  const next = plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' };
+    return q;
+  });
+  const { pre, res } = await confirm(w, [{ def: 'radio-control', plans: next }]);
+  ok(JSON.stringify(pre.sets[0].handEdits.filter((h) => h.member === EDITED).map((h) => h.path)) === JSON.stringify(['dot']),
+    `premise: the dry run lists the dot as the one hand edit (${JSON.stringify(pre.sets[0].handEdits)})`);
+  const o = res.outcomes[0];
+  const bv = dot.boundVariables as Record<string, unknown>;
+  ok(o.updated.includes(EDITED) && !bv.width && !bv.height && dot.width === 14 && dot.height === 14,
+    `premise: the member is updated in place and its dot keeps the designer's 14, unbound (${o.updated.length} updated; ${JSON.stringify([bv.width ?? null, bv.height ?? null, dot.width, dot.height])})`);
+  const v = applyVerdict(res);
+  ok(!v.lines.some((l) => l.includes('not written as planned')) && !o.misses.some((x) => x.includes(`${EDITED}/dot`)),
+    `kept report/no miss: the kept dot is no part not written as planned (${JSON.stringify(o.misses.slice(0, 3))}; ${JSON.stringify(v.lines)})`);
+  ok(v.lines[0] === 'radio-control: 60 updated in place, 1 hand edit kept (dot size).' && v.ok && v.headline === '✓ updated 60 in place',
+    `kept report/named: the hand edit kept names the property it kept (${JSON.stringify(v)})`);
+}
+{
+  // A BINDING THE HOST DROPPED, NO HAND EDIT. Every member as built, so nothing is kept; the host accepts the dot's
+  // width binding on one member and does not keep it. That is a genuine miss, and it is still reported, with its own
+  // reason, the set not verified. Mutation: the kept-edit split taking every bound miss → `kept report/real discard`.
+  const plans = plansOf('radio-control');
+  const w = await world('radio-control', plans, { extraVars: ['color/keep/changed'] });
+  const PLAIN = 'selection=checked, status=default, size=medium, state=rest';
+  const dot = childNamed(membersOf(w.set()).find((x) => x.name === PLAIN)!, 'dot');
+  const set = dot.setBoundVariable as (f: string, v: unknown) => void;
+  (dot as Record<string, unknown>).setBoundVariable = (f: string, v: unknown): void => { set(f, f === 'width' ? null : v); };
+  const next = plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' };
+    return q;
+  });
+  const { pre, res } = await confirm(w, [{ def: 'radio-control', plans: next }]);
+  ok(pre.sets[0].handEdits.length === 0, `premise: the dry run lists no hand edit (${JSON.stringify(pre.sets[0].handEdits)})`);
+  const v = applyVerdict(res);
+  const want = `bound ${PLAIN}/dot.width -> DISCARDED (set control/size/md/dot, not retained on the live node)`;
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want))
+    && res.outcomes[0].misses.includes(want) && !res.outcomes[0].keptBound && !v.lines[0].includes('hand edit'),
+    `kept report/real discard: a binding the host dropped on a node no one edited is still a part not written (${JSON.stringify(v)})`);
 }
 
 /* ── drop ────────────────────────────────────────────────────────────────────────────────────────────── */
