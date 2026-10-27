@@ -4,6 +4,8 @@
 node_modules/
 apps/studio/dist/
 apps/studio/public/
+# The chrome suite's run records (#2898), read by test:chrome-shards: written by every test:chrome run.
+apps/studio/chrome-record/
 apps/plugin/dist/
 apps/plugin/release/
 apps/tokenpress/dist/

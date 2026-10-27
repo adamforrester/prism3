@@ -186,5 +186,9 @@ export const hookGuard = (suiteUrl) => {
     return m[1];
   };
 
-  return { used, watch, need, click, absent, report, role };
+  /** A suite run in shards (#2898) reports once over every shard: `seen` is what this process saw, and `saw` adds what
+   *  another process saw, read from its record. */
+  const saw = (roles) => { for (const r of roles) seen.add(r); };
+
+  return { used, seen, saw, watch, need, click, absent, report, role };
 };
