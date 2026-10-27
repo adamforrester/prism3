@@ -2349,7 +2349,7 @@ Type: dimension. Bound by 1 component(s).
 
 ### `focus.ring.offset`
 
-Type: dimension. Bound by 20 component(s).
+Type: dimension. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2373,6 +2373,7 @@ Type: dimension. Bound by 20 component(s).
 | switch-control | `ring-offset` | focusRing | state: focus-visible (8 of 40) |
 | tab-item | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
 | tag | `ring-offset` | focusRing | state: focus-visible (9 of 45) |
+| wallet-button | `ring-offset` | focusRing | state: focus-visible (10 of 20) |
 
 ### `focus.ring.offset-field`
 
@@ -2401,7 +2402,7 @@ Type: strokeStyle. Bound by 1 component(s).
 
 ### `focus.ring.width`
 
-Type: dimension. Bound by 27 component(s).
+Type: dimension. Bound by 28 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2432,10 +2433,11 @@ Type: dimension. Bound by 27 component(s).
 | tag | `ring-width` | focusRing | state: focus-visible (9 of 45) |
 | text-field | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | textarea | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
+| wallet-button | `ring-width` | focusRing | state: focus-visible (10 of 20) |
 
 ### `icon.size.lg`
 
-Type: dimension. Bound by 7 component(s).
+Type: dimension. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2450,10 +2452,11 @@ Type: dimension. Bound by 7 component(s).
 | list-item | `size.large.icon` | icon | size: large · type: icon (1 of 9) |
 | spinner | `size.large` | frame | size: large (1 of 4) |
 |  |  | ringGlyph | size: large (1 of 4) |
+| wallet-button | `size.large.mark` | mark | provider: apple-pay, google-pay, shop-pay · size: large (6 of 20) |
 
 ### `icon.size.md`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2507,10 +2510,11 @@ Type: dimension. Bound by 22 component(s).
 | tag | `size.large.icon` | checkGlyph | selection: selected · size: large · type: select (5 of 45) |
 |  |  | dismissGlyph | selection: unselected · size: large · type: dismissible (5 of 45) |
 |  |  | leadingVisual | size: large (15 of 45) |
+| wallet-button | `size.medium.mark` | mark | size: medium (8 of 20) |
 
 ### `icon.size.sm`
 
-Type: dimension. Bound by 26 component(s).
+Type: dimension. Bound by 27 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2565,6 +2569,7 @@ Type: dimension. Bound by 26 component(s).
 | text-field | `icon-size` | leadingVisual | every member (84 of 84) |
 |  |  | trailingVisual | every member (84 of 84) |
 | toast | `glyph-size` | checkCircleGlyph | intent: success (1 of 2) |
+| wallet-button | `size.small.mark` | mark | provider: apple-pay, google-pay, paypal · size: small (6 of 20) |
 
 ### `icon.size.xl`
 
@@ -2648,7 +2653,7 @@ Type: dimension. Bound by 1 component(s).
 
 ### `radius.md`
 
-Type: dimension. Bound by 9 component(s).
+Type: dimension. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2661,6 +2666,7 @@ Type: dimension. Bound by 9 component(s).
 | icon-button-neutral | `radius.square` | container | shape: square (108 of 216) |
 | pagination-item | `radius` | container | every member (87 of 87) |
 | segmented-control | `radius` | track | every member (3 of 3) |
+| wallet-button | `radius` | container | every member (20 of 20) |
 
 ### `radius.none`
 
@@ -2743,7 +2749,7 @@ Type: shadow. Bound by 1 component(s).
 
 ### `size.lg.height`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2770,10 +2776,11 @@ Type: dimension. Bound by 22 component(s).
 | tag | `size.large.height` | container | size: large (15 of 45) |
 |  |  | dismiss | selection: unselected · size: large · type: dismissible (5 of 45) |
 | text-field | `size.large.height` | control | size: large (28 of 84) |
+| wallet-button | `size.large.height` | container | provider: apple-pay, google-pay, shop-pay · size: large (6 of 20) |
 
 ### `size.md.height`
 
-Type: dimension. Bound by 19 component(s).
+Type: dimension. Bound by 20 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2797,6 +2804,7 @@ Type: dimension. Bound by 19 component(s).
 | tab-item | `size.medium.height` | container | size: medium (10 of 30) |
 | tag | `size.medium.height` | container | size: medium (15 of 45) |
 |  |  | dismiss | selection: unselected · size: medium · type: dismissible (5 of 45) |
+| wallet-button | `size.medium.height` | container | size: medium (8 of 20) |
 
 ### `size.md.min-height`
 
@@ -2814,7 +2822,7 @@ Type: dimension. Bound by 7 component(s).
 
 ### `size.sm.height`
 
-Type: dimension. Bound by 17 component(s).
+Type: dimension. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2836,6 +2844,7 @@ Type: dimension. Bound by 17 component(s).
 | tab-item | `size.small.height` | container | size: small (10 of 30) |
 | tag | `size.small.height` | container | size: small (15 of 45) |
 |  |  | dismiss | selection: unselected · size: small · type: dismissible (5 of 45) |
+| wallet-button | `size.small.height` | container | provider: apple-pay, google-pay, paypal · size: small (6 of 20) |
 
 ### `space.0`
 
@@ -3910,6 +3919,12 @@ Declared, not drawn: `color.border.focus`
 9 token(s); 30 design-file member(s).
 
 `color.veil.dark.clear`, `color.veil.dark.medium`, `color.veil.dark.strong`, `color.veil.dark.subtle`, `color.veil.light.clear`, `color.veil.light.medium`, `color.veil.light.strong`, `color.veil.light.subtle`, `container.narrow`
+
+### wallet-button
+
+9 token(s); 20 design-file member(s).
+
+`focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`
 
 ## Tokens no component binds
 

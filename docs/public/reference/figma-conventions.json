@@ -59,6 +59,13 @@
             "usagePanelLead": "icon-button"
           },
           {
+            "name": "↳ Wallet button",
+            "components": [
+              "wallet-button"
+            ],
+            "usagePanelLead": "wallet-button"
+          },
+          {
             "name": "↳ Checkbox",
             "components": [
               "checkbox-control",
@@ -749,6 +756,43 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button-neutral.md"
+      },
+      {
+        "id": "wallet-button",
+        "name": "WalletButton",
+        "figmaName": "wallet-button",
+        "kind": "component set",
+        "page": "↳ Wallet button",
+        "section": "Components",
+        "members": 20,
+        "variantProperties": [
+          {
+            "name": "provider",
+            "values": [
+              "apple-pay",
+              "google-pay",
+              "paypal",
+              "shop-pay"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "focus-visible"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/wallet-button.md"
       },
       {
         "id": "icon-button",
@@ -3585,7 +3629,8 @@
       "slider",
       "code-input-cell",
       "code-input",
-      "card-number-field"
+      "card-number-field",
+      "wallet-button"
     ],
     "templates": [
       {

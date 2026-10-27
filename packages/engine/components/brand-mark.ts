@@ -143,7 +143,7 @@ export const brandMark: ComponentDef = {
     whenToUse: 'Wherever a provider\'s service is named: in a sign-in or wallet button, a payment field or a social link, and on its own, named by label, in a row of accepted payments.',
     avoidWhen:
       'For a generic concept glyph, use Icon: a mark identifies one provider and is never retinted. Never as a button on its own: a sign-in or social action is a button or link whose label names the provider, with the mark inside it, decorative. Never for a provider whose artwork is not in the set.',
-    commonPartners: ['icon', 'link', 'button', 'card-number-field'],
+    commonPartners: ['icon', 'link', 'button', 'card-number-field', 'wallet-button'],
     triggerKeywords: ['brand mark', 'logo', 'provider logo', 'payment logo', 'card network logo', 'social icon', 'sign in with', 'wallet logo'],
     generationPriority: 3,
   },
@@ -152,7 +152,7 @@ export const brandMark: ComponentDef = {
     composesWith: [],
     alternativeTo: ['icon'],
     replacesPatterns: ['provider logos pasted into a design as images', 'a provider logo recolored to match the palette'],
-    planned: ['sign-in-button', 'wallet-button', 'payment-field'],
+    planned: ['sign-in-button', 'payment-field'],
   },
 
   motion: {

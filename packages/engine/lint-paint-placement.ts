@@ -292,7 +292,7 @@ else {
 // purpose — deriving them from `componentDefs` would compare the corpus with itself (docs/34 shape 1).
 // History, as history: five defs had an anatomy and three painted at #933; seven and four at #910.
 const EXPECT_ANATOMY = [
-  'icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
+  'icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'wallet-button', 'icon-button', 'icon-button-destructive',
   'icon-button-neutral', 'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row',
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
   'image-placeholder', 'spinner', 'badge', 'tag', 'tab-item', 'tabs', 'divider', '_accordion-indicator', 'accordion',

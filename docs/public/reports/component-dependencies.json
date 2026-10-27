@@ -1843,6 +1843,26 @@
         "surface": "inverse",
         "state": "rest"
       }
+    },
+    {
+      "from": "wallet-button",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "wallet-button",
+      "to": "brand-mark",
+      "part": "mark",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "name": "logo/apple-pay"
+      }
     }
   ],
   "components": {
@@ -1929,8 +1949,12 @@
     "brand-mark": {
       "nests": [],
       "nestsTransitively": [],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "wallet-button"
+      ],
+      "affectedByChange": [
+        "wallet-button"
+      ],
       "inheritedBy": []
     },
     "breadcrumb-item": {
@@ -2334,7 +2358,8 @@
         "tab-item",
         "tag",
         "text-field",
-        "textarea"
+        "textarea",
+        "wallet-button"
       ],
       "affectedByChange": [
         "_slider-thumb",
@@ -2379,7 +2404,8 @@
         "tag",
         "text-field",
         "textarea",
-        "toast"
+        "toast",
+        "wallet-button"
       ],
       "inheritedBy": []
     },
@@ -2821,6 +2847,19 @@
       "nestedBy": [],
       "affectedByChange": [],
       "inheritedBy": []
+    },
+    "wallet-button": {
+      "nests": [
+        "brand-mark",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "brand-mark",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
     }
   },
   "depth": {
@@ -2881,6 +2920,7 @@
     "text-field": 1,
     "textarea": 1,
     "toast": 2,
-    "veil": 0
+    "veil": 0,
+    "wallet-button": 1
   }
 }

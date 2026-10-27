@@ -238,7 +238,7 @@ const ZERO_OK: Record<string, string> = {
  * set. A count would read that as a pass.
  */
 const MUST_COVER = [
-  'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing',
+  'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing', 'wallet-button.focusRing',
   'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing', 'search-field.focusRing', 'card-number-field.focusRing',
@@ -259,7 +259,7 @@ const MUST_COVER = [
  * flush again.
  */
 const MUST_CLEAR_STROKE = [
-  'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing',
+  'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing', 'wallet-button.focusRing',
   'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing', 'search-field.focusRing', 'card-number-field.focusRing',

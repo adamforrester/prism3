@@ -5045,6 +5045,65 @@
         }
       ],
       "sizes": []
+    },
+    {
+      "id": "wallet-button",
+      "name": "WalletButton",
+      "category": "form",
+      "states": [
+        "rest",
+        "focus-visible"
+      ],
+      "projectedStates": [
+        "rest",
+        "focus-visible"
+      ],
+      "axes": {
+        "provider": [
+          "apple-pay",
+          "google-pay",
+          "paypal",
+          "shop-pay"
+        ],
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "provider",
+          "values": [
+            "apple-pay",
+            "google-pay",
+            "paypal",
+            "shop-pay"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "type",
+          "default": "plain"
+        },
+        {
+          "name": "buttonStyle"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
     }
   ],
   "peerGroups": [
@@ -5266,7 +5325,8 @@
       "tab-item",
       "tag",
       "text-field",
-      "textarea"
+      "textarea",
+      "wallet-button"
     ],
     "focus-visible-filled": [
       "card-number-field",
@@ -5403,7 +5463,8 @@
       "tab-item",
       "tag",
       "text-field",
-      "textarea"
+      "textarea",
+      "wallet-button"
     ]
   },
   "axisVocabulary": {
@@ -5664,6 +5725,19 @@
         ]
       }
     ],
+    "provider": [
+      {
+        "values": [
+          "apple-pay",
+          "google-pay",
+          "paypal",
+          "shop-pay"
+        ],
+        "components": [
+          "wallet-button"
+        ]
+      }
+    ],
     "ratio": [
       {
         "values": [
@@ -5813,7 +5887,8 @@
           "tabs",
           "tag",
           "text-field",
-          "textarea"
+          "textarea",
+          "wallet-button"
         ]
       },
       {
@@ -6346,6 +6421,11 @@
     "brandName": [
       {
         "id": "card-number-field"
+      }
+    ],
+    "buttonStyle": [
+      {
+        "id": "wallet-button"
       }
     ],
     "checked": [
@@ -7780,6 +7860,17 @@
         "default": "Previous"
       }
     ],
+    "provider": [
+      {
+        "id": "wallet-button",
+        "values": [
+          "apple-pay",
+          "google-pay",
+          "paypal",
+          "shop-pay"
+        ]
+      }
+    ],
     "ratio": [
       {
         "id": "image-placeholder",
@@ -8568,6 +8659,15 @@
           "medium",
           "large"
         ]
+      },
+      {
+        "id": "wallet-button",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
       }
     ],
     "spellCheck": [
@@ -8986,6 +9086,10 @@
           "search",
           "password"
         ]
+      },
+      {
+        "id": "wallet-button",
+        "default": "plain"
       }
     ],
     "validation": [
@@ -9588,9 +9692,10 @@
         "tabs",
         "tag",
         "text-field",
-        "textarea"
+        "textarea",
+        "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -10038,12 +10143,20 @@
       "detail": "textarea declares its sizes as [medium, small, large], not smallest first"
     },
     {
+      "kind": "size order",
+      "subject": "wallet-button",
+      "components": [
+        "wallet-button"
+      ],
+      "detail": "wallet-button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
       "kind": "size default",
       "subject": "field-label",
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 46 of 47 sized components default to medium"
+      "detail": "field-label defaults size to small; 47 of 48 sized components default to medium"
     },
     {
       "kind": "prop default",

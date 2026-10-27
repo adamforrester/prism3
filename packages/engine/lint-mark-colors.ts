@@ -18,8 +18,8 @@
  *   (d) HOSTS — every node in every other def's plan that instances or swaps in a `brand-mark/*` component
  *       pushes no `descendantFills` into it, names no fill or stroke paint, binds no paint variable, and states
  *       `fixedPaint` (#2343 PR 2's mechanism; this is the outcome). At every member: a disabled host keeps the
- *       mark's colors too. The Card number field is the first host (#2343 PR 4), and `MARK_HOSTS` lists every host
- *       by hand, both ways, so the arm cannot pass by reading no host (docs/34 shape 9).
+ *       mark's colors too. The Card number field and WalletButton are the hosts (#2343 PR 4), and `MARK_HOSTS` lists
+ *       every host by hand, both ways, so the arm cannot pass by reading no host (docs/34 shape 9).
  *   (e) THE PAYMENT TILE (owner decisions Q720 A, Q780 A) — a payment tile is full-bleed, and the component draws the
  *       tile's corners and edge. On every `payment/*` member, the frame that holds the artwork binds all four corner
  *       radii to a `radius/*` variable and its stroke weight to a `border-width/*` variable, strokes in a
@@ -50,7 +50,7 @@ const MARK_DEF = 'brand-mark';
 const MARK_PREFIX = 'brand-mark/';
 /** Every def that carries a brand mark in a slot or a nest, typed here: (d) reads each one, and a def that carries a
  *  mark without being listed fails. */
-const MARK_HOSTS = ['card-number-field'];
+const MARK_HOSTS = ['card-number-field', 'wallet-button'];
 
 /** The colors a document paints, in document order: each path's hex `fill` (not a `url(#…)` reference, and
  *  not the wrapper's `fill="none"`) and each gradient `stop-color`. Pure. */

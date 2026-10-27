@@ -367,12 +367,13 @@ export const FIELDS: Record<string, FieldCheck> = {
       return Math.abs(ratio - (p as number)) < 1e-6 ? null : `${got.x}:${got.y}`;
     },
   },
-  // A HOSTED INSTANCE'S OWN PROPORTION (#2343 PR 2, first carried by the Card number field's tile, PR 4): the plan does
-  // not state the proportion, because it belongs to whatever component the designer swaps in, so the reader holds the
-  // one thing the plan does promise: the built instance is LOCKED, to a real {x, y} ratio. That the ratio is the tile's
-  // own is `test-roundtrip.ts`'s tile block, which reads the main component's extent from the host.
+  // #2343 PR 2, first projected by WalletButton (PR 4) and the Card number field's tile (PR 4): a slot or nest locked to
+  // its main component's own proportion. The plan states no number (the proportion is the main's, read when the instance
+  // is built, and for a swap slot whatever the designer swaps in), so this asks the host only that the instance IS
+  // locked, to a real `{x, y}` ratio; which ratio is the executors' tests' to measure (`test-roundtrip.ts`'s tile block
+  // reads the main component's extent from the host).
   aspectLock: {
-    show: () => 'aspect ratio locked to the instance\'s own component',
+    show: () => 'locked to its main component\'s proportion',
     check: (_p, n) => {
       const got = n.targetAspectRatio as { x?: unknown; y?: unknown } | number | null | undefined;
       if (got === undefined || got === null) return 'NOT LOCKED (no targetAspectRatio)';
@@ -689,6 +690,7 @@ export const FIELDS: Record<string, FieldCheck> = {
   },
   nestPrefer: { reason: 'read with `nestTarget`, which accepts an instance of this set or of `nestTarget`: which one the file had is the file\'s fact, not the plan\'s (#2661)' },
   nestItemPrefer: { reason: 'which of the two sets a default item of the nested instance came from is the file\'s fact, not the plan\'s, and the item is a sublayer of another component\'s instance that this reader does not descend into; the executors\' tests read the swapped item off the built page (#2661, Q418)' },
+  fixedPaint: { reason: 'a promise that the plan carries NO paint into the part (no descendantFills, no paint binding), so the host has nothing of the plan\'s to echo; the paint fields this reader does check would show any ink an executor wrote, and lint-mark-colors.ts and the provider-rule arms hold the plan side (#2343 PR 2, PR 4)' },
   nestVariant: { reason: 'which VARIANT the nested instance resolved to is an id on the host; the executor resolves it by name at write time and reports a miss, and this reader has no independent name for it' },
   // #1330 — HOST-TRUTH for exposure. The plan's `nestExpose` names the child axes the consumer drives;
   // Figma exposes them by marking the nested instance `isExposedInstance`. This reads that marking back off
@@ -791,7 +793,6 @@ export const FIELDS: Record<string, FieldCheck> = {
       return bad.length ? bad.join(', ') : null;
     },
   },
-  fixedPaint: { reason: 'a promise about what the executor does NOT write: no descendantFills on this node, which the plan already omits and `lint-mark-colors.ts` holds on every host plan; the paint inside an instance is the importer\'s nodes, which this reader does not name (as descendantFills)' },
   descendantFills: { reason: 'applies to nodes the SVG importer created, which this reader does not name; the executor read-back at write time is the only thing that can address them' },
 };
 

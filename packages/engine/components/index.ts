@@ -49,6 +49,7 @@ import { iconButton, iconButtonDestructive, iconButtonNeutral } from './icon-but
 import { flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral } from './flush-icon-button';
 import { icon } from './icon';
 import { brandMark } from './brand-mark';
+import { walletButton } from './wallet-button';
 import { focusRing } from './focus-ring';
 import { fieldLabel } from './field-label';
 import { fieldMessage } from './field-message';
@@ -99,7 +100,7 @@ import { progress } from './progress';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, brandMark, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, brandMark, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider, walletButton };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -118,6 +119,9 @@ export const componentDefs: readonly ComponentDef[] = [
   // because they share its composition (nest `focus-ring`, swap `icon`).
   buttonDestructive,
   buttonNeutral,
+  // #2343 PR 4 — the express-checkout button a wallet provider draws. It nests `brand-mark` (a provider's logo) and
+  // `focus-ring`.
+  walletButton,
   iconButton,
   // #1225 — the two sibling icon-button components, split from `icon-button`'s former `intent` axis (the
   // icon-only counterpart of #1223/#1224's Button split). Same factory, same square anatomy; only the

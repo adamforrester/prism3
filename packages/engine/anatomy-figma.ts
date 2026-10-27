@@ -1777,6 +1777,17 @@ export const figmaAnatomyPlan = (
     const parentLayout = parentName ? a.parts[parentName]?.layout : undefined;
     const parentMain = parentLayout ? mainAxisOf(parentLayout.direction) : undefined;
     const fillAxes = (['x', 'y'] as const).filter((a) => fillsAxis(def, name, a));
+    // The member component a nest of a standalone-component def resolves to (#2343 PR 4), or undefined.
+    const standaloneNest = ((): string | undefined => {
+      if (p.kind !== 'nest' || !p.nests || (p.nesting?.kind !== 'nest-fixed' && p.nesting?.kind !== 'nest-exposed')) return undefined;
+      const nested = componentDefs.find((d) => d.id === p.nests);
+      if (!nested?.figmaProperties?.emitAsComponents) return undefined;
+      const axis = nested.figmaProperties.variantAxes[0];
+      const value = nestVariantOf(p.nesting)[axis];
+      if (value === undefined || !((nested.variants as Record<string, readonly string[] | undefined>)[axis] ?? []).includes(value))
+        throw new Error(`${def.id}: anatomy part '${name}' nests '${p.nests}' at ${axis}='${String(value)}', which is not one of its members — a standalone component is nested by its own name, <id>/<value>`);
+      return `${p.nests}/${value}`;
+    })();
     // A ROOT BUILT AT ITS PLACEMENT WIDTH (#1757) is FIXED across as well — see `placementWidth`.
     const ownMode = (ax: Axis): 'AUTO' | 'FIXED' =>
       (p.layout?.sizing[ax] === 'fixed' || fillAxes.includes(ax) || (ax === 'x' && name === a.root && p.placementWidth !== undefined)
@@ -2245,14 +2256,17 @@ export const figmaAnatomyPlan = (
       // not a bound token. It replaces the `size` binding for a marker that must read at a proportion of a
       // large frame, past every icon rung and CONTRACT-free (no token minted).
       ...(p.kind === 'vector' && p.glyphPx !== undefined ? { glyphPx: p.glyphPx } : {}),
-      ...((p.kind === 'absolute' || p.kind === 'nest') && p.nests ? { nestTarget: p.nests } : {}),
+      // A nest of a STANDALONE-COMPONENT def (#2343 PR 4: WalletButton's logo, a `brand-mark/logo/<name>`): that def
+      // builds no set, so there is no coordinate to resolve inside one. The target is the member's own component,
+      // `<id>/<value>` of its one axis, named exactly as `nestedSwapTarget` names a swap's; no `nestVariant` is written.
+      ...((p.kind === 'absolute' || p.kind === 'nest') && p.nests ? { nestTarget: standaloneNest ? standaloneNest : p.nests } : {}),
       ...(p.kind === 'nest' && p.nests && p.prefersWhenBuilt ? { nestPrefer: nestPreferOf(def.id, name, p) } : {}),
       ...(p.kind === 'nest' && p.nests && p.nestItemPrefers ? { nestItemPrefer: nestItemPrefersOf(def.id, name, p) } : {}),
       // The def's chosen coordinate — the member the instance starts at. Projected for BOTH `nest-fixed`
       // (the def's final choice) and `nest-exposed` (the DEFAULT, from which the consumer drives the
       // exposed axes — #1330). `swap` has no variants at all and writes no coordinate here. An exposed
       // nest ADDS `nestExpose` below; a fixed one does not, which is the field that tells them apart.
-      ...((p.kind === 'absolute' || p.kind === 'nest') && (p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') ? { nestVariant: nestVariantOf(p.nesting) } : {}),
+      ...((p.kind === 'absolute' || p.kind === 'nest') && !standaloneNest && (p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') ? { nestVariant: nestVariantOf(p.nesting) } : {}),
       // The exposed child axes (#1330), ONLY for `nest-exposed`, so every fixed-nest plan is byte-identical.
       // These surface as Figma exposed nested-instance properties; the executors mark the instance exposed.
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nesting?.kind === 'nest-exposed' ? { nestExpose: p.nesting.expose } : {}),
@@ -5337,6 +5351,8 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'code-input-cell', 'code-input',
   // #2343 PR 4: the Card number field, a set with headers like every field's.
   'card-number-field',
+  // #2343 PR 4: WalletButton, a set with headers like Button's.
+  'wallet-button',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

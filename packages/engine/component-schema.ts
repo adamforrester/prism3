@@ -3567,6 +3567,17 @@ export type State = (typeof STATES)[number];
  * axis. `lint-axis-values.ts` carries the two values, shared by Breadcrumbs, its item and the separator.
  */
 /*
+ * ── `provider`: THE THIRTY-THIRD NAME, FOR WALLETBUTTON (#2343 proposal §2.3, owner decisions Q-B4 A and Q-B5 A) ──
+ *
+ * `provider` (`apple-pay | google-pay | paypal | shop-pay`) is WHOSE BUTTON the slot holds: the payment provider that
+ * draws it, and whose rules set its logo, colors, wording and height range. The proposal's axis table named it, and
+ * SignInButton (PR 5) takes it for its sign-in providers. It clears the bar with the nearest defeated: `name` is which
+ * glyph or mark a single-member component is (`icon`, `brand-mark`), not a third party that owns a whole control;
+ * `type` is a content format, and on a wallet button the provider's own wording list is a code setting called type;
+ * `kind` is a role a part plays by its place (a breadcrumb step). None says "this control belongs to another
+ * company, under its rules". An AUTHORING axis. `lint-axis-values.ts` carries the four values as a `sole` set.
+ */
+/*
  * ── `labeled`: THE TWENTY-EIGHTH NAME, FOR PAGINATION'S PREVIOUS AND NEXT (owner decision Q414 A, 2026-10-18, #2665) ──
  *
  * `labeled` (`false | true`) is WHETHER a control shows its word beside its icon: Pagination.Item's previous and next
@@ -3585,7 +3596,7 @@ export const VARIANT_AXES = [
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer', 'layout', 'labeled', 'kind', 'path', 'separator',
+  'placement', 'footer', 'layout', 'labeled', 'kind', 'path', 'separator', 'provider',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
