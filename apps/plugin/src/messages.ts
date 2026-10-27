@@ -147,6 +147,10 @@ export type UiToMain =
    *  against (Q699 A): a lever changed in the panel shows its sets as due before Apply
    *  Theme writes it. Absent (the main thread's own read at load), the file's stored brand. */
   | { type: 'file-sets-request'; input?: BrandInput }
+  /** #3081 Q810 A: Update file's badge, recounted live: what is due against `input`, the brand the panel holds, and
+   *  whether the file holds that brand. Answered with one `file-due` carrying the same `seq`. A read; never refused by the
+   *  run guard. The panel sends it debounced, after a setting changes and after a write's verdict. */
+  | { type: 'due-request'; input?: BrandInput; seq: number }
   /** #2909 Q2909.8 A: the background hand-edit pass, after load. Answered with one `hand-edits` per set the file holds,
    *  then one with `done`. A read; a later request, or a write starting, ends an earlier pass. */
   | { type: 'hand-edits-request' }
@@ -489,6 +493,10 @@ export type MainToUi =
   | { type: 'file-sets'; present: string[]; setUp: boolean; error?: string;
       /** #2909 Q2909.8 A: each present set read against the as-built ledger (`as-built-ledger.ts` `dueOf`). */
       due: Record<string, SetDue> }
+  /** #3081 Q810 A: the answer to `due-request`, by its `seq`: the sets the file holds (as the last `file-sets` read found
+   *  them, or read again after a write), each read against the ledger under the panel's brand, and `theme`: the file does
+   *  not hold that brand, so Apply Theme would change it. `error` when the file could not be read. */
+  | { type: 'file-due'; seq: number; present: string[]; theme: boolean; due: Record<string, SetDue>; error?: string }
   /** #2909 Q2909.8 A: one set's hand edits from the background pass (`handEditsOf`), or the pass's end (`done`). */
   | { type: 'hand-edits'; def: string; members: number; edited: number }
   | { type: 'hand-edits'; done: true }

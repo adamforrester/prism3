@@ -68,7 +68,7 @@ import { listFamilyStyleCounts } from './list-fonts';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
 import { verifyReadback } from '@prism3/engine/read-back';
-import { restoreInput } from './persist-figma';
+import { holdsInput, restoreInput } from './persist-figma';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
@@ -1001,8 +1001,13 @@ const panelBeside = async (f: FurnitureOutcome, setId: string, defId: string): P
 const presentDefs = async (): Promise<string[]> => {
   await figma.loadAllPagesAsync();
   const names = presentNames(figma as unknown as Parameters<typeof presentNames>[0]);
-  return componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
+  presentCache = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
+  return presentCache;
 };
+/** #3081 Q810 A: the sets the last `presentDefs` found. The badge's live recount (`fileDue`) reuses them, so a change
+ *  in the panel never loads every page or walks the file: that is the costly part on a large file. A write starting and
+ *  ending clears them (`guarded`), so the next recount reads the file again. */
+let presentCache: string[] | null = null;
 /** The brand a due read, a scoped check or the panel's update measures against (#2909, Q699 A, built on its
  *  recommendation): the brand the panel holds when it sends one, so the counts shown are what the run writes after its
  *  Theme step stores that brand, and a lever not yet applied shows its sets as due on the first opening. Absent (the
@@ -1028,6 +1033,20 @@ const fileSets = async (input?: BrandInput): Promise<void> => {
     postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due: dueOf(readLedger(figma.root), present, ledgerNow(input)) });
   } catch (e) {
     postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, error: (e as Error)?.message ?? String(e) });
+  }
+};
+
+/** #3081 Q810 A: the badge's live recount. It counts what is due against the panel's brand, and whether the file holds
+ *  that brand, so Theme counts as one item until Apply Theme stores it. It runs one root read for the ledger and one for
+ *  the stored brand, and materializes each present set once. It never runs the full check, and it reuses the sets the
+ *  last read found (`presentCache`). The panel debounces its requests; `seq` lets it drop an answer a newer one has
+ *  replaced. */
+const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void> => {
+  try {
+    const present = presentCache ?? await presentDefs();
+    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(readLedger(figma.root), present, ledgerNow(input)) });
+  } catch (e) {
+    postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, error: (e as Error)?.message ?? String(e) });
   }
 };
 
@@ -1518,7 +1537,10 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
     // Every action's sink is its last argument.
     const sink = a[a.length - 1] as ActionSink;
     if (guard.busy(cmd)) { sink.post(refusal(cmd, sink !== uiSink)); return Promise.resolve(); }
-    return guard.run(cmd, () => fn(...a));
+    // #3081: a write may add or remove sets, so the live recount reads the file again after it (`presentCache`). It is
+    // cleared as the write starts too: the write's verdict posts before the write's promise settles.
+    presentCache = null;
+    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; });
   };
 
 /**
@@ -1621,6 +1643,10 @@ onUiMessage((msg: UiToMain) => {
       // #2909: Update file's checklist — which sets the file holds, whether it is set up, and what is due. A read: never
       // guarded.
       void fileSets(msg.input);
+      return;
+    case 'due-request':
+      // #3081 Q810 A: the badge's live recount, against the brand the panel holds. A read: never guarded.
+      void fileDue(msg.input, msg.seq);
       return;
     case 'hand-edits-request':
       // #2909 Q2909.8 A: the background pass after load. A read: never guarded; a write starting ends it.

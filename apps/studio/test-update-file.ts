@@ -18,9 +18,18 @@
  * sets unticked by default → `Q2909.8 A ticks: every due set is ticked …`; the `update` step after `sets` → `Q2909.8 A
  * steps: … the in-place update runs before the new sets are added`; a hand-edited set read as Up to date → `Q2909.8 A
  * status: a hand-edited set reads Hand-edited …`.
+ *
+ * THE BADGE, LIVE (#3081, the owner's decision Q810 A): it counts everything Update file would change. That is the sets
+ * due against the brand the panel holds, by the live recount (`file-due`) once one has answered, plus one item for Theme
+ * changes the file does not hold. The recount's newest answer wins, so an answer overtaken by a newer request never
+ * shows. Mutations that fail here by name: the Theme item dropped from `badgeCount` → `Q810 A badge: unapplied Theme
+ * changes count as one item …`; `badgeCount` reading the load's read over the recount → `Q810 A badge: it rises when a
+ * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
+ * answer overtaken by a newer request never shows`.
  */
-import { defaultTicks, dueCount, dueSetsOf, newSetsOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { badgeCount, defaultTicks, dueCount, dueSetsOf, newSetsOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
+import { initialHostSession, reduce } from './src/state/host-session';
 
 let failed = 0;
 let executed = 0;
@@ -91,6 +100,27 @@ ok(same(statusesOf('tag', { ...DUE, due: { ...DUE.due } }, new Map(), 'done'), [
 ok(same(statusesOf('tag', null, hand, 'done'), []), 'Q2909.8 A status: nothing before the host has answered');
 const ru = startUpdate(['update', 'sets'], ['icon'], { defs: ['button'], previewHash: 'h', handEdits: 'keep' });
 ok(stepOf(ru) === 'update' && same(ru.update, { defs: ['button'], previewHash: 'h', handEdits: 'keep' }), 'Q2909.8 A run: the update step carries its sets, the check\'s hash and the hand-edit choice');
+
+// ── #3081 Q810 A: the badge counts everything Update file would change, live ─────────────────────────────────────────
+// At load: the ledger's read against the stored brand, nothing due (DUE with every set current), no recount yet.
+const CALM = { ...DUE, due: { button: { state: 'current' }, tag: { state: 'current' }, badge: { state: 'unrecorded' }, select: { state: 'current' } } } as const;
+const live = (due: Record<string, unknown>, theme: boolean, error: string | null = null) => ({ present: DUE.present, theme, error, due: due as typeof DUE.due });
+ok(badgeCount(CAT2, CALM, null) === 0 && badgeCount(CAT2, DUE, null) === 2,
+  'Q810 A badge: before the first recount it reads the ledger at load, with no Theme item (0 on a calm file, 2 with two due)');
+ok(badgeCount(CAT2, CALM, live(DUE.due, false)) === 2,
+  'Q810 A badge: it rises when a setting changes: the recount against the panel\'s brand finds two sets due where the load read none');
+ok(badgeCount(CAT2, CALM, live(CALM.due, true)) === 1 && badgeCount(CAT2, CALM, live(DUE.due, true)) === 3,
+  'Q810 A badge: unapplied Theme changes count as one item, alone (1) and beside two due sets (3)');
+ok(badgeCount(CAT2, DUE, live(CALM.due, false)) === 0,
+  'Q810 A badge: it drops after a run: the recount after it finds nothing due and the file holding the panel\'s brand (0, though the load read 2)');
+ok(badgeCount(CAT2, DUE, live({}, true, 'x')) === 2, 'Q810 A badge: a recount that could not read the file falls back to the load\'s read, with no Theme item');
+ok(badgeCount(CAT2, CALM, { ...live({ ...DUE.due, icon: { state: 'due', reason: 'definition' } }, false), present: [...DUE.present] }) === 2,
+  'Q810 A badge: only sets the file holds count (a due reading for a set not present is not counted)');
+// The reduce keeps the newest answer: a slow answer to an older request never replaces a newer one.
+const fd = (seq: number, theme: boolean) => ({ kind: 'file-due' as const, seq, present: DUE.present, theme, error: null, due: DUE.due });
+const s2 = reduce(reduce(initialHostSession(), fd(2, true)), fd(1, false));
+ok(s2.liveDue?.seq === 2 && s2.liveDue.theme === true, `Q810 A recount: an answer overtaken by a newer request never shows (held seq ${s2.liveDue?.seq})`);
+ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control): a newer answer replaces the one held');
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

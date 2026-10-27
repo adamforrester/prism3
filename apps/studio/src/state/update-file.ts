@@ -49,8 +49,21 @@ export const newSetsOf = (catalog: Catalog, f: FileSets): string[] => catalog.fi
 export const dueSetsOf = (catalog: Catalog, f: FileSets): string[] => catalog.filter((e) => f.present.includes(e.id) && f.due[e.id]?.state === 'due').map((e) => e.id);
 /** The sets the file holds that the ledger has no entry for, in catalog order: only the full check can tell. */
 export const unrecordedOf = (catalog: Catalog, f: FileSets): string[] => catalog.filter((e) => f.present.includes(e.id) && (f.due[e.id]?.state ?? 'unrecorded') === 'unrecorded').map((e) => e.id);
-/** How many things the badge on Update file counts (Q2909.8 A): the due sets. */
+/** How many due sets a ledger read finds (Q2909.8 A). */
 export const dueCount = (catalog: Catalog, f: FileSets | null): number => (f && !f.error ? dueSetsOf(catalog, f).length : 0);
+
+/** The badge's live recount (#3081 Q810 A, `file-due`): what is due against the brand the panel holds, and `theme`:
+ *  the file does not hold that brand, so Apply Theme would change it. */
+export type LiveDue = { readonly present: readonly string[]; readonly theme: boolean; readonly error: string | null; readonly due: FileSets['due'] };
+/** How many things the badge on Update file counts (#3081 Q810 A): everything Update file would change. That is each
+ *  due set, plus one item for unapplied Theme changes. It reads the live recount once one has answered, so a changed
+ *  setting moves it before the checklist opens. Before that, or when the recount could not read the file, it reads the
+ *  ledger read at load, with no Theme item, because only the recount compares the file's brand with the panel's. */
+export const badgeCount = (catalog: Catalog, f: FileSets | null, live: LiveDue | null): number =>
+  live && !live.error ? dueCount(catalog, { present: live.present, setUp: true, error: null, due: live.due }) + (live.theme ? 1 : 0) : dueCount(catalog, f);
+/** How long the panel waits after the last change before it asks for the recount (#3081): one ask for a burst of
+ *  edits, such as a slider drag or typing, never one a keystroke. */
+export const DUE_DEBOUNCE_MS = 250;
 
 /** The ticks the checklist opens with (Q2909.2 A, Q2909.5 A, Q2909.8 A): the theme always, and every due set, keeping
  *  hand edits; on a file that is not set up, the setup, every new set and the style guides too. */

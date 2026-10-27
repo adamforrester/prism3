@@ -16013,7 +16013,14 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
 //   · the run's re-check (`startStep`, no `previewHash`) sending `panelBrand(true)` → `IA2 figma … with Theme unticked,
 //     the run checks the fewer sets again against the file's stored brand …` (#3023);
 //   · the re-tick from a toggle's answer (`if (rechecking && ticks) …`) deleted → `IA2 figma … a Theme toggle ticks the
-//     due sets from its own answer …` (#3023).
+//     due sets from its own answer …` (#3023);
+//   · #3081 Q810 A, the badge, live: `recountDue` (`main.ts`) not debounced, asking at once → `IA2 figma … three quick
+//     changes ask for the count once …`; no recount on `brand` → the same arm; `DUE_AFTER` emptied → `IA2 figma … after a
+//     run, the panel asks for the count again …` and `… the badge drops after a run …`; the shell painting `dueCount`
+//     over the live recount → `IA2 figma … the badge rises on a setting change …`; Theme's item dropped from
+//     `badgeCount` → the same arm and `IA2 figma … Theme counts as one item …`; the checklist reading the live answer for
+//     its ticks → `IA2 figma … #3028 Q701 B: with Theme unticked, a live answer landing …`; `liveShown` (`main.ts`)
+//     reduced to `!restoreFailure` → `IA2 figma … before a brand is chosen …`.
 if (runs('ia2')) {
 console.log(`\nIA v2 phase 2 (#2909) — tiers, lever homes, engine warnings, what is due\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
@@ -16215,6 +16222,130 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
       await postMsg(page, FILE);
       await postMsg(page, { type: 'hand-edits', done: true });
+      // #3081 Q810 A: THE BADGE, LIVE. It counts everything Update file would change: the sets due against the brand the
+      // panel holds, recounted when a setting changes, plus one item for Theme changes the file does not hold. The host's
+      // answers (`file-due`) are planted as the main thread posts them; what is read is what the panel asks and draws.
+      step = 'the live badge';
+      await page.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(JSON.parse(JSON.stringify(m))); }); });
+      const badgeNow = () => page.evaluate(() => { const b = document.querySelector('[data-p3="update-badge"]');
+        return { text: b && !b.hidden ? b.textContent : null, name: document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-label') ?? null }; });
+      const nextAsk = async () => {
+        await page.waitForFunction(() => window.__due.length > 0, null, { timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(400);
+        return page.evaluate(() => window.__due.splice(0));
+      };
+      const CURRENT = Object.fromEntries(Object.keys(DUE).map((k) => [k, k === 'badge' ? DUE.badge : { state: 'current' }]));
+      const answer = (seq, theme, due) => postMsg(page, { type: 'file-due', seq, present: FILE.present, theme, due });
+      // The run above ended; the panel asks again after it. A calm answer: nothing due, and the file holds the panel's brand.
+      const settled = await nextAsk();
+      await answer(settled.at(-1)?.seq ?? 0, false, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+      const calm = await badgeNow();
+      ok(settled.length >= 1 && calm.text === null && calm.name === null,
+        `${where}: Q810 A: after a run, the panel asks for the count again, and with nothing to change the badge is gone and the name is the label alone (${settled.length} asked; ${JSON.stringify(calm)})`);
+      // A burst of three changes on the shared block, as a drag or quick clicks make: one ask, after the last, carrying the
+      // brand the panel then holds; never the file's sets read again, and never the full check.
+      await goPlace(page, 'components');
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await page.evaluate(() => { for (const sel of ['[data-p3="cp-shared"] [data-p3="control-shape-choice-rounded"]', '[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]', '[data-p3="cp-shared"] [data-p3="control-shape-choice-boxed"]']) { const n = document.querySelector(sel); if (n) HTMLElement.prototype.click.call(n); } });
+      const burst = await nextAsk();
+      const heavy = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'file-sets-request' || m.type === 'update-check-request').map((m) => m.type));
+      const BOXED = { ...BOOT_INPUT, controlShape: 'boxed' };
+      ok(burst.length === 1 && canon(burst[0].input) === canon(BOXED) && heavy.length === 0,
+        `${where}: Q810 A: three quick changes ask for the count once, after the last, with the brand the panel holds; the file is not read again and the full check is not run (${burst.length} asked${burst[0] ? `, ${wireDiff(burst[0].input, BOXED)}` : ''}; heavier reads ${JSON.stringify(heavy)})`);
+      // The answer: the two sets that change moves are due, and the file does not hold this brand: 2 + Theme's one item.
+      await answer(burst[0]?.seq ?? 0, true, DUE);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '3', null, { timeout: 5000 }).catch(() => {});
+      const risen = await badgeNow();
+      ok(risen.text === '3' && risen.name === 'Update file, 3 due',
+        `${where}: Q810 A: the badge rises on a setting change, before the checklist opens: 2 due sets and Theme as one item read 3, and the accessible name says the same count (${JSON.stringify(risen)})`);
+      // An answer to an older ask, landing late, never replaces the newer one.
+      await answer((burst[0]?.seq ?? 1) - 1, false, CURRENT);
+      await page.waitForTimeout(150);
+      ok((await badgeNow()).text === '3', `${where}: Q810 A: a late answer to an older ask does not move the badge (${JSON.stringify(await badgeNow())})`);
+      // Theme alone: nothing due, the brand not applied, reads 1 and says so.
+      await hooks.click(page.locator('[data-p3="cp-shared"] [data-p3="control-shape-choice-hairline"]'));
+      const one = await nextAsk();
+      await answer(one.at(-1)?.seq ?? 0, true, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '1', null, { timeout: 5000 }).catch(() => {});
+      const alone = await badgeNow();
+      ok(one.length === 1 && alone.text === '1' && alone.name === 'Update file, 1 due',
+        `${where}: Q810 A: Theme counts as one item: with no set due and the brand not applied, the badge reads 1, and so does the name (${JSON.stringify(alone)})`);
+      // #3028 (#3023 Q701 B) holds: the checklist, with Theme unticked, reads its own answers. A live answer landing while it
+      // is open changes neither its rows nor what it asks.
+      step = 'the live badge with Theme unticked';
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      const rowsOf = () => page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
+        rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => [b.dataset.id, b.getAttribute('aria-checked'), b.querySelector('[data-p3="update-set-due"]')?.textContent ?? null]),
+        go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null }));
+      const before = await rowsOf();
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      // The answer held (Theme alone, 1) is answered again with another reading: nothing due, Theme applied.
+      await answer(one.at(-1)?.seq ?? 0, false, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+      const liveLanded = (await badgeNow()).text === null;
+      const afterLive = await rowsOf();
+      const askedLive = await page.evaluate(() => window.__ia2.map((m) => m.type));
+      ok(liveLanded && before.theme === 'false' && canon(afterLive) === canon(before) && JSON.stringify(before.rows) === JSON.stringify([['button', 'true', 'Due · its settings changed'], ['select', 'true', 'Due · Prism3 changed']]) && askedLive.length === 0,
+        `${where}: #3028 Q701 B: with Theme unticked, a live answer landing while the checklist is open moves the badge (to none) but none of the checklist's rows or their Due tags, and asks nothing (${JSON.stringify({ landed: liveLanded, before, after: afterLive, asked: askedLive })})`);
+      await hooks.click(page.locator('[data-p3="update-cancel"]'));
+      // A run with Theme ticked: Apply Theme, then the update. The panel asks for the count after each verdict, and the
+      // host's answer after it (the file now holds the panel's brand, the sets written) takes the badge to nothing.
+      step = 'the live badge after a run';
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      await hooks.click(page.locator('[data-p3="update-go"]'));
+      await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
+      await page.waitForFunction(() => window.__ia2.filter((m) => m.type === 'file-sets-request').length >= 2, null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { ...FILE, due: CURRENT });
+      const ran = await nextAsk();
+      const HAIRLINE = { ...BOOT_INPUT, controlShape: 'hairline' };
+      await answer(ran.at(-1)?.seq ?? 0, false, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+      const dropped = await badgeNow();
+      ok(ran.length >= 1 && ran.every((m) => canon(m.input) === canon(HAIRLINE)) && dropped.text === null && dropped.name === null,
+        `${where}: Q810 A: the badge drops after a run: the panel asks for the count after the run's verdicts, and the answer (the brand applied, the sets written) leaves no badge and the label alone as the name (${ran.length} asked; ${JSON.stringify(dropped)})`);
+      // No brand chosen yet: a fresh plugin page, the load's read landing before the host's restore answers (its library
+      // probe can be slow), then the start moment. The panel holds only the boot placeholder, so it asks nothing, and a
+      // live answer planted anyway is not shown: the badge keeps the load's read (2). Choosing a brand starts the asks.
+      step = 'the live badge before a brand is chosen';
+      const p2 = await ctx.newPage();
+      await hooks.watch(p2);
+      await p2.goto(`${ORIGIN}/plugin?figma=${theme}`, { waitUntil: 'load' });
+      await p2.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(m.seq); }); });
+      await postMsg(p2, FILE);
+      await p2.waitForTimeout(600);
+      const early = await p2.evaluate(() => window.__due.length);
+      await postMsg(p2, { type: 'restore-input-empty' });
+      await p2.waitForTimeout(600);
+      await postMsg(p2, { type: 'file-due', seq: 1, present: FILE.present, theme: true, due: DUE });
+      await p2.waitForTimeout(300);
+      const atStart = await p2.evaluate(() => ({ asked: window.__due.length, badge: document.querySelector('[data-p3="update-badge"]')?.textContent ?? null }));
+      await hooks.click(p2.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
+      await p2.waitForFunction(() => window.__due.length > 0, null, { timeout: 5000 }).catch(() => {});
+      const chosen = await p2.evaluate(() => window.__due.length);
+      ok(early === 0 && atStart.asked === 0 && (atStart.badge === null || atStart.badge === '2') && chosen >= 1,
+        `${where}: Q810 A: before a brand is chosen (the boot placeholder, then the start moment), the panel asks for no count and shows no live answer; choosing one starts the asks (${JSON.stringify({ early, atStart, chosen })})`);
+      await p2.close();
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {

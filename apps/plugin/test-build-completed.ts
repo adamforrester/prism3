@@ -49,7 +49,10 @@
  * `mine !== handPass`, so a write starting no longer ends it → `hand-edits/guard`. `panelFor` drawing the spec panel
  * after the usage panel (Q2830.3 A: specs are drawn on request only) → `specs/never on build`, `specs/never on update`.
  * The panel's Draw specs (section 8) scoped to the file, not the current page (`main.ts`'s `draw-specs` case passing
- * `'file'`, or `specTargets` ignoring `page`) → `specs/this page`.
+ * `'file'`, or `specTargets` ignoring `page`) → `specs/this page`. #3081 Q810 A (section 6c): the live recount
+ * (`fileDue`) reading the stored brand whatever the panel sends → `q810/rises`; it reading the file's sets again each time
+ * (`presentCache` unused) → `q810/cheap`; `guarded` keeping the sets it caches after a write → `q810/after a write`; its
+ * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -446,6 +449,49 @@ ok(!!updU && !String(updU.headline).startsWith('✗') && recordedU === entryFor(
 const nextLoad = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
 ok(nextLoad?.due?.[LEVER_DEF]?.state === 'current', `q701/next load: after that update, the next load reads ${LEVER_DEF} current, not due (${JSON.stringify(nextLoad?.due?.[LEVER_DEF])})`);
 ok(brandFor(true, brandB) === brandB, 'q701/control: with Theme ticked, the panel measures against its own brand (Q699 A)');
+
+// 6c. #3081, the owner's decision Q810 A: Update file's badge, recounted live (`due-request`). The file stores A and holds
+//    the set built under A (6b). The recount must say what is due against the brand the PANEL sends, say whether the file
+//    holds that brand (Theme's one item), answer with the request's `seq`, and never load the pages: it reuses the sets
+//    the last `file-sets` found. The pages loaded are counted on the host. A write ending makes it read the file again.
+//    Expected values are literals.
+let pageLoads = 0;
+const loadAll = shim.loadAllPagesAsync;
+shim.loadAllPagesAsync = async () => { pageLoads++; return loadAll?.(); };
+const fsAt = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+pageLoads = 0;
+const dA = (await ask({ type: 'due-request', input: brandA, seq: 1 }, 'file-due'))[0];
+ok(dA?.seq === 1 && dA.theme === false && dA.due?.[LEVER_DEF]?.state === 'current' && JSON.stringify(dA.present) === JSON.stringify(fsAt?.present),
+  `q810/control: with the panel on the stored brand A, nothing is due and Theme has nothing to apply (${JSON.stringify({ seq: dA?.seq, theme: dA?.theme, due: dA?.due?.[LEVER_DEF] })})`);
+const dB = (await ask({ type: 'due-request', input: brandB, seq: 2 }, 'file-due'))[0];
+ok(dB?.seq === 2 && dB.theme === true && dB.due?.[LEVER_DEF]?.state === 'due' && dB.due[LEVER_DEF].reason === 'definition',
+  `q810/rises: a lever changed in the panel and not applied: the set it moves is due, and Theme counts (${JSON.stringify({ seq: dB?.seq, theme: dB?.theme, due: dB?.due?.[LEVER_DEF] })})`);
+ok(pageLoads === 0, `q810/cheap: the live recount loads no page and walks no file, reusing the sets the last read found (${pageLoads} page loads)`);
+// Key order is not a change: the stored A, its keys reversed, is the brand the file holds.
+const reversed = Object.fromEntries(Object.entries(brandA as Record<string, unknown>).reverse()) as BrandInput;
+const dR = (await ask({ type: 'due-request', input: reversed, seq: 3 }, 'file-due'))[0];
+ok(dR?.theme === false, `q810/theme: the stored brand with its keys in another order has nothing to apply (theme ${dR?.theme})`);
+// Theme stores B, as the run's Theme step does: Theme's item drops, the set stays due until the update writes it.
+persistInput(root as never, brandB);
+const dS = (await ask({ type: 'due-request', input: brandB, seq: 4 }, 'file-due'))[0];
+ok(dS?.theme === false && dS.due?.[LEVER_DEF]?.state === 'due', `q810/after apply: once Theme stores B, Theme has nothing to apply; the set B moves is still due (${JSON.stringify({ theme: dS?.theme, due: dS?.due?.[LEVER_DEF] })})`);
+// A fresh file holds no brand: Theme would write one, so it counts.
+const held = sharedData.get('prism3:brandInput');
+sharedData.delete('prism3:brandInput');
+const dN = (await ask({ type: 'due-request', input: brandB, seq: 5 }, 'file-due'))[0];
+ok(dN?.theme === true, `q810/no brand: a file that holds no brand counts Theme (theme ${dN?.theme})`);
+if (held !== undefined) sharedData.set('prism3:brandInput', held);
+// A write ending clears the sets the recount reuses, so the next recount reads the file again.
+await build('badge');
+// The verdict posts before the write's promise settles; the panel asks after its debounce, so this waits a little too.
+await new Promise((res) => realTimeout(res, 100));
+pageLoads = 0;
+const dW = (await ask({ type: 'due-request', input: brandB, seq: 6 }, 'file-due'))[0];
+ok(pageLoads === 1 && dW?.present?.includes('badge'), `q810/after a write: a write ending makes the next recount read the file's sets again (${pageLoads} page loads, ${JSON.stringify(dW?.present)})`);
+pageLoads = 0;
+await ask({ type: 'due-request', input: brandB, seq: 7 }, 'file-due');
+ok(pageLoads === 0, `q810/cheap again: the recount after that reuses the sets read (${pageLoads} page loads)`);
+shim.loadAllPagesAsync = loadAll;
 
 // 7. #2909 S2: the background hand-edit pass stops when a write starts (`handEditsPass`'s `stale()`, the run guard). A
 //    build is held mid-run (its page switch waits on a promise this test releases), the pass is asked for, and no set's
