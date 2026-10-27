@@ -72,9 +72,12 @@ controlShape: rounded
 # `radiusHairline: true` here if the finished NB wants the 1px rung engine-side.
 
 # ── LAYOUT ───────────────────────────────────────────────────────────────────────────
-# The brand's md grid margin is 44px (brand spec, #3052): at 1440 wide with 24 columns and
-# 16px gutters, (1440 − 2×44 − 23×16) / 24 = 41px whole-pixel columns. 44 is no spacing step,
-# so `grid/margin` md links to `core/dimension/44` (Q785 A). sm keeps the engine's 16.
+# The brand's md grid margin is 44px (brand spec, #3052). The 41px figure is the brand's
+# desktop spec in its own two-mode layout, where md carries the 24-column, 16px-gutter grid:
+# (1440 − 2×44 − 23×16) / 24 = 41px whole-pixel columns. It is not a property of the
+# engine's 5-breakpoint grid, where md is 8 columns and a 44 margin gives 71px columns at
+# 768 (#3070). 44 is no spacing step, so `grid/margin` md links to `core/dimension/44`
+# (Q785 A). sm keeps the engine's 16.
 layout: { marginOverrides: { md: 44 } }
 
 # ── TYPOGRAPHY ───────────────────────────────────────────────────────────────────────

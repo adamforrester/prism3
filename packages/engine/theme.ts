@@ -3418,9 +3418,11 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     // The label category always ships the `default` role (Q225 A, Q226 A), here as in every brand.
     typography: buildTypography(withLabelDefault(undefined)),
     shadow: buildShadow(s.neutralHue.hue, { tint: { amount: 0 } }),  // NB ships pure-black shadows
-    // NB caps at 1920 + narrow 720. Its md margin is 44 (#3052, Q785 A): at 1440 with 24 columns and 16px
-    // gutters that gives whole-pixel 41px columns. 44 is no spacing step, so `grid/margin` md links to
-    // `core/dimension/44`.
+    // NB caps at 1920 + narrow 720. Its md margin is 44 (#3052, Q785 A). The 41px figure behind it is the
+    // brand's desktop spec in its own two-mode layout, where md carries the 24-column, 16px-gutter grid:
+    // whole-pixel 41px columns at 1440. It is not a property of this fixture's 5-breakpoint grid, where md
+    // is 8 columns and a 44 margin gives 71px columns at 768 (#3070). 44 is no spacing step, so
+    // `grid/margin` md links to `core/dimension/44`.
     layout: buildLayout({ containerMax: 1920, marginOverrides: { md: 44 } }),
     gradient: { gradients: [] },                                     // NB ships no gradients (it had none)
     notes: [
