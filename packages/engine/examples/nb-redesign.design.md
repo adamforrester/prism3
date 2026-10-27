@@ -78,8 +78,23 @@ typography:
   # body/label/caption/eyebrow on Suisse Int'l (NB's workhorse grotesque). A lone name is
   # auto-padded with a system fallback stack. From the brand type spec.
   families: { display: ITC Garamond Std, title: ITC Garamond Std, body: "Suisse Int'l", label: "Suisse Int'l", caption: "Suisse Int'l", eyebrow: "Suisse Int'l" }
-  # Pinned sizes from the NB redesign spec: title tops out at 36 (xl), display hero at 56 (md).
-  sizes: { title: { xl: 36 }, display: { md: 56 } }
+  # Sizes, in line with the brand's stored typography (#3077): display 64/72/80/96/128 up to
+  # 2xl; title 24/32/36/40/48/56, each one ladder step smaller on mobile; caption xs 8 (sizeFloor 8).
+  # title.2xs is 20px (16px titleFloor adds the rung; owner request), 18px on mobile (Q802 A).
+  # caption.md is 10px (caption A, owner decision 2026-10-27): a brand-level size, the same in every mode.
+  displayCeiling: 2xl
+  titleFloor: 16
+  sizeFloor: 8
+  sizes:
+    display: { sm: 64, md: 72 }
+    title: { 2xs: 20, xs: 24, sm: 32, md: 36, lg: 40, xl: 48, 2xl: 56 }
+    caption: { md: 10 }
+  sizeOverrides:
+    title: { 2xs: { mobile: 18 }, sm: { mobile: 24 }, md: { mobile: 28 }, lg: { mobile: 32 }, xl: { mobile: 36 }, 2xl: { mobile: 40 } }
+  # Letter spacing (#3077, tracking A; Q803 B): display, title, body, caption and label are pinned to
+  # `open` (+1%) at every size; eyebrow keeps its nudge, one step in from `wider`, so `wide` (+2%).
+  tracking: { display: open, title: open, body: open, caption: open, label: open }
+  trackingShift: { eyebrow: -1 }
   # Per-role weight sets. Display/title run on the LIGHT (`subtle`, 300) Garamond cut; body and
   # caption ship default + emphasis. From the brand type spec.
   weights: { display: [subtle], title: [subtle], body: [default, emphasis], caption: [default, emphasis] }

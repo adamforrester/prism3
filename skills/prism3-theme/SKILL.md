@@ -84,7 +84,7 @@ minimal — read both, they are the reference; the directory also holds a standa
 | `radiusHairline` | `true` \| `false` | **retired — do not set it.** The fixed 1px `radius.hairline` rung now ships for every brand, so this changes nothing; it is accepted only so older brand files still load. For 1px-cornered controls, use `controlShape: hairline` |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed }` | brand energy → motion pace |
-| `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, captionFloor, sizeFloor, responsive: { fluid, minViewport, maxViewport } }` | custom faces / weight remap / fluid type; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **an omitted category takes the engine default (Inter, or JetBrains Mono for `code`), with a system fallback stack appended** |
+| `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, captionFloor, sizeFloor, responsive: { fluid, minViewport, maxViewport }, sizes, tracking }` | custom faces / weight remap / fluid type; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **an omitted category takes the engine default (Inter, or JetBrains Mono for `code`), with a system fallback stack appended**. `sizes` and `tracking`: see the note under this table |
 | `typography.captionFloor` | `11` \| `10` | opt-in (off by default) — `10` adds **caption.sm = 10px**, a fine-print rung (10 is already on the size ladder). Floors caption at 11px otherwise; opt in for dense legal / footer / product-attribute text |
 | `typography.sizeFloor` | `10` \| `8` | opt-in **escape hatch** (off by default) — `8` pushes the size ladder to an **8px floor** and adds **caption.xs = 8px**. 8px sits below the size range the system's contrast ratios were reasoned about, so the engine **flags it in the decisions notes**. Ship it only for genuine fine print that has an accessible alternative |
 | `shadow` | `{ softness, tint: { hue, amount } }` | softer marketing elevation, tinted to the brand |
@@ -92,6 +92,19 @@ minimal — read both, they are the reference; the directory also holds a standa
 | `layout.marginOverrides` / `layout.gutterOverrides` | `{ <breakpoint>: px }`, e.g. `{ md: 44 }` | the brand specifies its own grid margin or gutter at a breakpoint (keyed by the breakpoint name, `sm`…`2xl`); an unset breakpoint keeps the engine's value. The value is never rounded to a step. `grid/margin` (or `grid/gutter`) links to the first of these that exists: **(1)** the `space/*` step with that px; **(2)** otherwise the brand's `core/dimension/*` step with that px (44 → `core/dimension/44`); **(3)** otherwise a plain px, flagged off-scale in its description and in the decisions notes. Spacing always comes first, so 24 links to `space/300`, never to `core/dimension/24`. The Figma grid style for that breakpoint carries the same px as its offset |
 | `gradients` | `[{ name, kind: linear\|radial, angle/center/shape, stops: [{ palette, step, position }] }]` | opt-in brand gradients (most systems ship none — omit) |
 | `disabledStrategy` | `full` \| `reduced` (legacy aliases: `accessible`, `conventional`) | `reduced` (default) — disabled ink clears a dialable `disabledMin` floor (3–4.5, default 3); `full` promises a fixed 4.5:1 (AA text) instead. Neither goes below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption, so there is no sub-AA "exempt" look to select. (`accessible`/`conventional` are accepted as legacy aliases; both normalize to `reduced` — they do not select `full` and `conventional` no longer means low-contrast.) |
+
+
+**Exact type sizes and one letter spacing per text type** (both off by default):
+
+- `sizes: { title: { xs: 24 }, caption: { md: 10 } }` sets exact sizes. Heading groups (display, title, eyebrow) take any
+  rung they ship, as the desktop size; caption takes md and lg, at the brand level only, so a caption keeps one size
+  on every screen and in every mode. Every value is a step on the size ladder, at or above its group's floor (caption
+  10px), and each group's sizes stay strictly increasing. The xs and sm captions come only from `sizeFloor` and
+  `captionFloor`.
+- `tracking: { display: open, body: open }` gives every size of a text type one letter spacing name, any of
+  tightest, tighter, tight, snugger, snug, normal, open, wide or wider. It replaces the size-based letter spacing and
+  the `trackingShift` nudge for that text type only. Use it when a nudge can't land the value: no nudge reaches open
+  (+1%), and display's letter spacing changes at 96px, so a nudge can't make display one value.
 
 ## How to author
 

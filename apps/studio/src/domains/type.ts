@@ -54,8 +54,9 @@ import {
   setSizePin, setMobileSize, setFluid, setResponsiveViewport, viewportRefusal, setDisplayCeiling, ceilingPx, ceilingBlocked, titleFloorBlocked, fluidBlocked, setTitleFloor, setCaptionFloor, setSizeFloor,
   setWeightRole, toggleCategoryWeight, categoryWeightLock, setLink, linkLock, setItalicStyle, italicStyleOf, setFacePin,
   setRungBinding, setRepoint, setShift, nudgeSteps, resolvedRungs, type ItalicStyle, type RungField,
+  CAPTION_SIZE_RUNGS, captionSizePin, setCaptionSize, trackingPinOf, setTrackingPin,
 } from '../state/type-input';
-import { HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '@prism3/engine/theme';
+import { HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, LETTER_SPACING_KEYS, CAPTION_SIZE_FLOOR } from '@prism3/engine/theme';
 import type { FacePin } from '@prism3/engine/theme';
 import { faceStatus, WEIGHT_NAME, type HostFonts } from '../ui/fonts';
 import { valuePicker, type ValuePickerOpts } from '../ui/value-picker';
@@ -197,6 +198,21 @@ export const S63 = {
   nudgeTip: 'Moves a text type’s line height or letter spacing along the names, for every size it ships. Larger headings start tighter.',
   nudgeOpt: (v: number): string => (v === 0 ? 'Default' : `${Math.abs(v)} ${Math.abs(v) === 1 ? 'step' : 'steps'} ${v > 0 ? 'looser' : 'tighter'}`),
   landsOn: (names: string): string => `Uses ${names}`,
+} as const;
+/** #3077 (owner decisions 2026-10-27: caption A, tracking A): the caption sizes and the letter spacing pin. Every
+ *  string here is a DRAFT, pending the owner's approval. */
+export const TYPE_PIN_COPY = {
+  captionLabel: 'Caption sizes',
+  captionTip: 'Set caption md or lg directly. A caption keeps one size on every screen and in every mode.',
+  captionName: (v: string): string => `Caption ${v}`,
+  captionHint: 'Caption sizes stay in order, on the size ladder, at 10px or more.',
+  trackLabel: 'Letter spacing for each text type',
+  trackTip: 'Pin a text type to one letter spacing at every size. A pinned text type no longer follows its size or its nudge.',
+  trackField: (g: string): string => `${g}, letter spacing`,
+  trackFollow: 'Follows size',
+  trackOpt: (name: string, pct: string): string => `${name} · ${pct}`,
+  /** Under a pinned text type's letter spacing nudge, which the pin replaces. */
+  trackPinned: (name: string): string => `Pinned to ${name}. Clear the pin to use the nudge.`,
 } as const;
 /** The italic chips (owner decision Q6, APPROVED). */
 const ITALIC_CHIPS: readonly { v: ItalicStyle; l: string }[] = [{ v: 'upright', l: 'Upright' }, { v: 'both', l: 'Upright + italic' }, { v: 'only', l: 'Italic only' }];
@@ -834,6 +850,47 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       floor16 ? '16' : '18', (v) => setTitleFloor(v === '16'), null, floorRefused && { ...floorRefused, id: 'p3-tfloor-why', hk: 'title-floor-refused' });
     chips('typography.captionFloor', S63.captionFloorLabel, S63.captionFloorTip, 'caption-floor', [{ v: '11', l: '11px' }, { v: '10', l: '10px' }],
       (getPath(brandState, 'typography.captionFloor') ?? 11) === 10 ? '10' : '11', (v) => setCaptionFloor(v === '10' ? 10 : 11));
+    // #3077 (caption A): caption md and lg, each one size on every screen and in every mode, picked from the ladder.
+    // A size the engine refuses (below 10px, or out of order with the caption sizes beside it) is shown disabled.
+    {
+      const b = leverBlock('typography.sizes.caption', { label: TYPE_PIN_COPY.captionLabel, desc: TYPE_PIN_COPY.captionTip, group: true });
+      const caps = ty.composites.filter((c) => c.group === 'caption')
+        .reduce((acc: { v: string; px: number }[], c) => (acc.some((a) => a.v === c.variant) ? acc : [...acc, { v: c.variant, px: c.sizePx }]), [])
+        .sort((a, z) => a.px - z.px);
+      const rows = hook(h('div', 'p3-fillrows'), 'caption-size-rows');
+      for (const v of CAPTION_SIZE_RUNGS) {
+        const i = caps.findIndex((c) => c.v === v);
+        if (i < 0) continue;
+        const cur = caps[i].px, pin = captionSizePin(v);
+        const key = `size:caption.${v}`, id = `p3-size-caption-${v}`;
+        const row = hook(h('div', 'p3-tweight'), 'caption-size-row');
+        row.dataset.variant = v;
+        const btn = pickButton(key, id, 'caption-size', TYPE_PIN_COPY.captionName(v), `${cur}px`, pin !== undefined);
+        btn.dataset.variant = v;
+        row.append(tokenLabel(`type.caption.${v}`, TYPE_PIN_COPY.captionName(v), id), btn);
+        rows.append(row);
+        const lower = i > 0 ? caps[i - 1] : null, upper = i + 1 < caps.length ? caps[i + 1] : null;
+        const pk = pickerFor(key, id, {
+          name: TYPE_PIN_COPY.captionName(v),
+          hint: TYPE_PIN_COPY.captionHint,
+          current: cur,
+          values: ty.sizesPx.filter((px) => px <= 18).map((px) => ({
+            v: px, label: `${px}px`,
+            sample: (e: HTMLElement) => { e.textContent = 'Ag'; e.style.fontFamily = stackOf('caption'); e.style.fontSize = `${px}px`; },
+            refuse: px < CAPTION_SIZE_FLOOR ? S63.belowFloor('Caption', CAPTION_SIZE_FLOOR)
+              : lower && px <= lower.px ? S63.notAbove(`caption.${lower.v}`, lower.px)
+                : upper && px >= upper.px ? S63.notBelow(`caption.${upper.v}`, upper.px) : undefined,
+          })),
+          reset: { label: S63.toDefault, enabled: pin !== undefined },
+          onPick: (px) => edit('typography.sizes.caption', () => setCaptionSize(v, px)),
+          onReset: () => edit('typography.sizes.caption', () => setCaptionSize(v, undefined)),
+        });
+        if (pk) rows.append(pk);
+      }
+      b.ctl.append(rows);
+      el.append(b.el);
+      out.push({ el: b.el, said: `${b.said} caption md lg`.toLowerCase(), key: 'typography.sizes.caption', block: b });
+    }
     const eight = (getPath(brandState, 'typography.sizeFloor') ?? 10) === 8;
     chips('typography.sizeFloor', S63.sizeFloorLabel, S63.sizeFloorTip, 'size-floor', [{ v: '10', l: '10px' }, { v: '8', l: '8px' }],
       eight ? '8' : '10', (v) => setSizeFloor(v === '8' ? 8 : 10), eight ? hook(stateLine(S63.eightWarn, 'warn'), 'size-floor-warn') : null);
@@ -1080,6 +1137,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       row.append(tokenLabel(`type.${g}`, S63.groupName(g)));
       for (const field of ['leadingShift', 'trackingShift'] as const) {
         const cur = (getPath(brandState, `typography.${field}.${g}`) as number | undefined) ?? 0;
+        // #3077: a letter spacing pin replaces the nudge, so the nudge is held and says why.
+        const pin = field === 'trackingShift' ? trackingPinOf(g) : undefined;
         const steps = nudgeSteps(g, field, ty);
         const opts = steps.map((v) => ({ v: String(v), l: S63.nudgeOpt(v) }));
         // A hand-authored shift the steps don't reach is shown as itself, never silently rewritten (#411).
@@ -1088,8 +1147,9 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
         const s = selectField(`p3-nudge-${field}-${g}`, `${S63.groupName(g)}, ${lab}`, field === 'leadingShift' ? 'nudge-lh' : 'nudge-ls', (v) => edit('typography.leadingShift', () => setShift(g, field, Number(v))));
         s.select.dataset.group = g;
         s.set(opts, String(cur));
+        if (pin) s.select.disabled = true;
         const f = h('div', 'p3-field');
-        f.append(s.el, hook(h('span', cur ? 'p3-sub p3-tnudge-set' : 'p3-sub', S63.landsOn(resolvedRungs(g, field, cur, ty))), 'nudge-lands'));
+        f.append(s.el, hook(h('span', cur && !pin ? 'p3-sub p3-tnudge-set' : 'p3-sub', pin ? TYPE_PIN_COPY.trackPinned(pin) : S63.landsOn(resolvedRungs(g, field, cur, ty))), 'nudge-lands'));
         row.append(f);
       }
       rows.append(row);
@@ -1098,9 +1158,31 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     return { el: b.el, said: `${b.said} ${S63.lhLabel} ${S63.lsLabel}`.toLowerCase(), key: 'typography.leadingShift', block: b };
   };
 
+  /** #3077 (tracking A): each text type's letter spacing, following its size (and nudge) until pinned to one name.
+   *  Each name shows its step in this brand. Brand-wide. */
+  const trackingPins = (): Item => {
+    const ty = theme.typography;
+    const b = leverBlock('typography.tracking', { label: TYPE_PIN_COPY.trackLabel, desc: TYPE_PIN_COPY.trackTip, group: true });
+    const rows = hook(h('div', 'p3-fillrows'), 'track-pin-rows');
+    const em = new Map(ty.letterSpacings.map((l) => [l.key, l.em]));
+    for (const g of TYPE_GROUP_ORDER) {
+      if (!ty.composites.some((c) => c.group === g)) continue;
+      const row = hook(h('div', 'p3-titalic'), 'track-pin-row');
+      row.dataset.group = g;
+      const id = `p3-track-pin-${g}`;
+      const sel = selectField(id, TYPE_PIN_COPY.trackField(S63.groupName(g)), 'track-pin', (v) => edit('typography.tracking', () => setTrackingPin(g, v || undefined)));
+      sel.select.dataset.group = g;
+      sel.set([{ v: '', l: TYPE_PIN_COPY.trackFollow }, ...LETTER_SPACING_KEYS.map((k) => ({ v: k, l: TYPE_PIN_COPY.trackOpt(k, emToPercentLabel(em.get(k) ?? 0)) }))], trackingPinOf(g) ?? '');
+      row.append(tokenLabel(`type.${g}`, S63.groupName(g), id, { onLine: true }), sel.el);
+      rows.append(row);
+    }
+    b.ctl.append(rows);
+    return { el: b.el, said: `${b.said} ${LETTER_SPACING_KEYS.join(' ')}`.toLowerCase(), key: 'typography.tracking', block: b };
+  };
+
   const spacing = (s: Section): { el: HTMLElement; items: Item[] } => {
     const el = sectionShell(s.title, s.desc, 5);
-    const out: Item[] = [spacingNames('lineHeights'), spacingNames('letterSpacings'), nudges()];
+    const out: Item[] = [spacingNames('lineHeights'), spacingNames('letterSpacings'), nudges(), trackingPins()];
     for (const it of out) el.append(it.el);
     return { el, items: out };
   };

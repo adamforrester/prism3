@@ -265,6 +265,8 @@ export const DOMAINS = [
           { ctl: 'displayCeiling', keys: ['typography.displayCeiling'] },
           { ctl: 'titleFloor', keys: ['typography.titleFloor'] },
           { ctl: 'floorChips', keys: ['typography.captionFloor'] },
+          // #3077 (caption A): caption md and lg, a schema input beside the caption floor.
+          { ctl: 'captionSizes', schemaOnly: ['typography.sizes'] },
           { ctl: 'floorChips', keys: ['typography.sizeFloor'] },
         ],
       },
@@ -284,6 +286,8 @@ export const DOMAINS = [
           { ctl: 'lineHeights', schemaOnly: ['typography.lineHeights'] },
           { ctl: 'letterSpacings', schemaOnly: ['typography.letterSpacings'] },
           { ctl: 'nudges', schemaOnly: ['typography.leadingShift', 'typography.trackingShift'] },
+          // #3077 (tracking A): each text type's letter spacing pin, a schema input.
+          { ctl: 'trackingPins', schemaOnly: ['typography.tracking'] },
         ],
       },
     ],
