@@ -63,7 +63,8 @@
  *                  hand edits kept ("dot size") and lists no part not written; a binding the host drops on a node no one
  *                  edited is still a part not written (#3086). Mutations: the kept-edit split dropped → `kept report/no
  *                  miss`, `kept report/named`; the property left unnamed →
- *                  `kept report/named`; the split taking every bound miss → `kept report/real discard`.
+ *                  `kept report/named`; the split taking every bound miss → `kept report/real discard`; the split
+ *                  matching any member's kept path → `kept report/two members`.
  *   drop/description  the deprecation prefix leads and the member's own description follows (owner Q104 A).
  *                  Mutation: the description replaced → `drop/description`.
  *   keys/record id an updated member's record names its own node (#2300). Mutation: the id left out of the update's
@@ -590,6 +591,42 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want))
     && res.outcomes[0].misses.includes(want) && !res.outcomes[0].keptBound && !v.lines[0].includes('hand edit'),
     `kept report/real discard: a binding the host dropped on a node no one edited is still a part not written (${JSON.stringify(v)})`);
+}
+{
+  // A KEPT EDIT AND A DROPPED BINDING IN ONE RUN, ON TWO MEMBERS (#3086 review). One member's dot is resized by hand and
+  // kept; the host drops the dot's width binding on another member no one edited. The kept edit is the first member's
+  // only: the other member's dropped binding stays a part not written, the set not verified. Mutation: the split
+  // matching a kept path against every member's misses, not only its own → `kept report/two members`.
+  const plans = plansOf('radio-control');
+  const w = await world('radio-control', plans, { extraVars: ['color/keep/changed'] });
+  const EDITED = 'selection=checked, status=default, size=medium, state=rest';
+  const OTHER = 'selection=checked, status=default, size=medium, state=hover';
+  const members = membersOf(w.set());
+  const em = members.find((x) => x.name === EDITED);
+  const om = members.find((x) => x.name === OTHER);
+  ok(!!em && !!childNamed(em, 'dot') && !!om && !!childNamed(om, 'dot'), `premise: the set holds ${EDITED} and ${OTHER}, each with a dot`);
+  const dot = childNamed(em!, 'dot');
+  for (const f of ['width', 'height']) (dot.setBoundVariable as (f: string, v: null) => void)(f, null);
+  (dot.resize as (w: number, h: number) => void)(14, 14);
+  const other = childNamed(om!, 'dot');
+  const set = other.setBoundVariable as (f: string, v: unknown) => void;
+  (other as Record<string, unknown>).setBoundVariable = (f: string, v: unknown): void => { set(f, f === 'width' ? null : v); };
+  const next = plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' };
+    return q;
+  });
+  const { pre, res } = await confirm(w, [{ def: 'radio-control', plans: next }]);
+  ok(JSON.stringify(pre.sets[0].handEdits.map((h) => [h.member, h.path])) === JSON.stringify([[EDITED, 'dot']]),
+    `premise: the dry run lists ${EDITED}'s dot as the one hand edit (${JSON.stringify(pre.sets[0].handEdits)})`);
+  const o = res.outcomes[0];
+  const v = applyVerdict(res);
+  const want = `bound ${OTHER}/dot.width -> DISCARDED (set control/size/md/dot, not retained on the live node)`;
+  const kept = JSON.stringify((o.keptBound ?? []).map((b) => [b.member, b.part, b.field]).sort());
+  ok(o.misses.includes(want) && !o.misses.some((x) => x.includes(`${EDITED}/dot`))
+    && kept === JSON.stringify([[EDITED, 'dot', 'height'], [EDITED, 'dot', 'width']])
+    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want)),
+    `kept report/two members: ${EDITED}'s kept dot does not hide the binding the host dropped on ${OTHER}'s dot (${JSON.stringify({ misses: o.misses, keptBound: o.keptBound, v })})`);
 }
 
 /* ── drop ────────────────────────────────────────────────────────────────────────────────────────────── */
