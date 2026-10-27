@@ -96,6 +96,27 @@ const genMeaning = (group: string, variant: string): string => {
   if (group === 'glass') return 'Frosted band over a photograph';
   return `${cap(group)} role`;
 };
+/**
+ * Glass (#2869, #3073). `glass.surface` is described by `describe`; a brand-added `glass.<name>` (the `glassRoles`
+ * lever) is described from its input, and `glass.surface` then points glass on that role's surface at it.
+ */
+const describeGlass = (variant: string, roles: Theme['glassRoles'], shipped: Described): Described => {
+  const added = Object.keys(roles ?? {});
+  if (variant === 'surface') {
+    if (!added.length) return shipped;
+    const list = added.map((n) => `\`glass.${n}\``).join(' or ');
+    return { ...shipped, avoid_when: `${shipped.avoid_when} Where this brand made its own glass for the surface underneath, use ${list}.` };
+  }
+  const g = roles?.[variant];
+  if (!g) return shipped;
+  const source = g.role ? `\`${g.role}\`'s color` : `\`${g.palette}\``;
+  return {
+    when_to_use: `A glass fill this brand adds: ${source} at ${g.alpha}%, for a glass band that should read as the surface it sits on, so only the blurred image shows through. Pair it with a background blur of \`blur.glass\`. Text on it uses the page roles, such as \`text.primary\`.`,
+    avoid_when: `Do not use for glass over a photograph or a surface it was not made for (use \`glass.surface\`), without the background blur, or as an opaque surface${g.role ? ` (use \`${g.role}\`)` : ''}.`,
+    ...(g.role ? { tracks: [g.role] } : {}),
+  };
+};
+
 // the on-color target an on-* label sits on. Every `on-<x>` is a STATUS FILL since #1140 — `on-inverse`
 // is retired, because an inverse surface is a context and `on-` names a ground that gets painted.
 const onTarget = (x: string): string => `foreground.${x}`;
@@ -482,6 +503,8 @@ const colorIntent = (seg: string[], node: any): string | undefined => {
   if (seg[1] === 'white') return 'Pure highlight base — default light surface / on-color text';
   if (seg[1] === 'black') return 'Shadow base — scrim & shadow source / on-color text';
   if (seg[1] === 'black-alpha' || seg[1] === 'white-alpha') return 'Overlay / scrim / shadow compositing (alpha — composites over any surface)';
+  // #3073: a palette color's alpha step, minted only for a brand glass role (`neutral-050-alpha`).
+  if (/-alpha$/.test(seg[1])) return 'Brand glass fill — a palette color at a glass alpha; reach it through its `glass.*` role';
   const ext = node.$extensions?.prism3 ?? {};
   if (!ext.band) return undefined;
   // Usage-framed tails (what the step UNLOCKS) — distinct from the identity the
@@ -509,6 +532,7 @@ const primMeaning = (seg: string[]): string => {
     if (seg[1] === 'white' || seg[1] === undefined) return 'Pure white primitive';
     if (seg.length === 2) return `Pure ${seg[1]} primitive`;
     if (seg[1] === 'black-alpha' || seg[1] === 'white-alpha') return `${seg[1].startsWith('black') ? 'Black' : 'White'} at ${seg[2]}% alpha (composites over any surface)`;
+    if (/-alpha$/.test(seg[1])) return `${seg[1].replace(/-alpha$/, '').replace(/-/g, ' ')} at ${seg[2]}% alpha — a brand glass fill`;
     return `${seg[1]} ramp — raw step ${seg[2]}`;
   }
   if (seg[0] === 'opacity') return 'Opacity scale primitive';
@@ -649,6 +673,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     // interactive.<color>.<slot>.<state?> carries a 4th segment — describe it whole.
     const base = group === 'interactive'
       ? describeInteractive(variant, state, pageKey.split('.')[3], ctx, inverse)
+      : group === 'glass' ? describeGlass(variant, theme.glassRoles, describe(group, variant, state, ctx))
       : describe(group, variant, state, ctx);
     const d = inverse
       ? onInverseGround(base, pageKey, known)
