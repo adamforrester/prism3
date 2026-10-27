@@ -48,7 +48,7 @@ plugin reader change (the Update reads a mark under a renamed value), no executo
   `fullBleed`.
 - `emit-marks.ts`: `logo/visa`'s width stated 28 → refused, by file.
 - `lint-icon-count.ts`: "74 marks" in the description → fails by field. Its brand-mark scope reads `description`,
-  props, part notes and `codeOnly`, not `summary`, `docs`, `ai` or `notes`, which also ship; filed separately.
+  props, part notes and `codeOnly`, not `summary`, `docs`, `ai` or `notes`, which also ship; filed as #3062.
 - `test-update-apply.ts`, new section: a payment tile and a logo built under their former names are renamed in place,
   keys and ids kept. Mutation: the ledger values dropped from `readSingleView` → `marks/rename: dry run` (2 adds, 0
   renames).
