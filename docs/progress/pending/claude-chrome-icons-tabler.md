@@ -26,6 +26,11 @@ glyph moves to it in one pass, on both hosts.
   last path, since Tabler draws the body first), the boxed note's warning (RX3 A) and the stray-ⓘ scan (HP3). The HP3 scan
   is a negative arm, so against the new drawing it would have passed on nothing; a mutation that draws an ⓘ in a hint line
   fails it by name, as a swapped glyph fails each of the others.
+- **#1855's value pickers read the label alone.** CI's first run went red on the weight picker's forced-colors arm:
+  HighlightText ink at 1.5% against a 1.5% floor. That arm read the whole selected value's text box, which spans the key's
+  check glyph and the weight's type sample, and on CI's rendering the old 2px check was carrying the ratio. It now reads
+  the key (`.p3-vpick-key`), the label it names: 7.5% to 10.8% locally, green on CI, and it still fails by name when the
+  picker loses its forced-colors opt-out.
 - **A trap for whoever re-verifies:** the vendored-set arm holds the DOM to `tabler.ts`, so it cannot see a hand edit made
   inside `tabler.ts` itself. The generator and the file's header are the guard there; regenerate rather than edit.
 - **Held for the owner:** the 16px glyphs. A 1.5 stroke on the 24 grid draws a 1.0px line at 16, measurably lighter than
