@@ -141,7 +141,7 @@ Keyed by `provider`, `state`.
 
 ### Nesting and properties
 
-- `container/mark` nests `brand-mark/logo/apple-pay` at `name=logo/apple-pay`; `provider=apple-pay` takes `name=logo/apple-pay`, `provider=google-pay` takes `name=logo/google-pay`, `provider=paypal` takes `name=logo/paypal-wordmark`, `provider=shop-pay` takes `name=logo/shop-pay`
+- `container/mark` nests `brand-mark` at `name=logo/apple-pay`; `provider=apple-pay` takes `name=logo/apple-pay`, `provider=google-pay` takes `name=logo/google-pay`, `provider=paypal` takes `name=logo/paypal-wordmark`, `provider=shop-pay` takes `name=logo/shop-pay`
 - `container/focusRing` nests `focus-ring` at `surface=default`
 
 ---

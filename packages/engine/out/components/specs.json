@@ -10052,7 +10052,7 @@
         {
           "part": "container/mark",
           "kind": "instance",
-          "component": "brand-mark/logo/apple-pay",
+          "component": "brand-mark",
           "variant": {
             "name": "logo/apple-pay"
           },
