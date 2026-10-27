@@ -518,7 +518,7 @@
         "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option, and type and buttonStyle through unchanged.",
         "the height limits — Shop Pay's 40px floor and PayPal's 55px ceiling: a small Shop Pay button is drawn at 40 and a large PayPal button at 55, and the design file has no member for either.",
         "the width — the container fills its column, with a 120px floor. Apple Pay's titled buttons need 140, so a titled Apple Pay button takes the larger floor; Shop Pay's \"Buy with\" button needs 193.",
-        "hover — not projected: the provider's element owns hover, pressed and disabled and draws them itself, and the design file cannot show them without copying the button. The component adds only the focus ring, outside the provider's element, at focus-visible.",
+        "the provider's own states — the provider's element owns hover, pressed and disabled and draws them itself, and the design file cannot show them without copying the button. The component adds only the focus ring, outside the provider's element, at focus-visible.",
         "the accessible name — the provider's element names itself (\"Apple Pay\", \"Buy with Google Pay\"). The component adds no label, so nothing is announced twice.",
         "loading — the slot keeps its height before the provider's script has drawn the button, so the page does not move when it arrives.",
         "RTL — the provider's element lays out its own wording. The container mirrors nothing."

@@ -34924,6 +34924,9 @@ arm: {
     // #2666 (owner call 11 A): code has no path prop. `responsive` (default true) swaps the trail for the parent link
     // below 480px by a container query, and either value renders the trail at every wider width, so the code default
     // path is the full trail whatever `responsive` holds.
+    // #2343 PR 4: a wallet button always names its provider, so the prop is required and has no default to match. Figma
+    // still needs a first member; apple-pay leads, in the proposal's order.
+    'wallet-button.provider': { prop: 'provider', map: { undefined: 'apple-pay' }, reason: 'provider is required in code (a wallet button always names its wallet), so Figma\'s first member stands in: apple-pay, the proposal\'s first' },
     'breadcrumbs.path': { prop: 'responsive', map: { undefined: 'full', false: 'full', true: 'full' }, reason: 'Breadcrumbs renders the trail by default; `responsive` only swaps in the parent link below 480px' },
   };
   // NO RECORDED EXCEPTIONS (#2752, owner decisions Q1 B and Q2 A, 2026-10-16): every size ladder leads with medium and

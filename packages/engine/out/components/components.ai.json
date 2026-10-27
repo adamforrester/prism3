@@ -490,7 +490,8 @@
         "commonPartners": [
           "icon",
           "link",
-          "button"
+          "button",
+          "wallet-button"
         ],
         "triggerKeywords": [
           "brand mark",
@@ -518,7 +519,6 @@
         "supersededBy": [],
         "planned": [
           "sign-in-button",
-          "wallet-button",
           "payment-field",
           "card-number-field"
         ],
