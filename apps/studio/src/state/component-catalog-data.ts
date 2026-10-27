@@ -253,6 +253,23 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "wallet-button",
+    "name": "WalletButton",
+    "category": "form",
+    "summary": "Express checkout with Apple Pay, Google Pay, PayPal or Shop Pay, drawn by the provider.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Wallet button",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 20,
+    "nests": [
+      "brand-mark",
+      "focus-ring"
+    ]
+  },
+  {
     "id": "icon-button",
     "name": "IconButton",
     "category": "form",
