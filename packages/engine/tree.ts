@@ -692,8 +692,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const controlLeaf = (px: number, description: string): Token =>
     gridSet.has(px)
       ? dimAlias(`${root}.${CORE_TIER}.dimension.${px}`, description, { px, density: theme.dims.density })
-      // Unreachable while buildDims feeds the control px into the grid; kept so a future grid change
-      // degrades to a literal rather than emitting a dangling alias.
+      // A literal rather than a dangling alias. Unreachable for every field `buildDims` feeds into the grid; reachable for
+      // the radio dot since #3086, whose setting is deliberately not fed (no new primitive), so an off-grid dot lands here.
       : dimLeaf(px, description);
   // #1201 — the LABEL's line-box height per rung, baked to a fixed px. A selection control
   // (checkbox / radio / switch) sits in a box exactly one line-box tall and centers WITHIN it, so it
@@ -795,7 +795,13 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // mark is a `vector` whose optical inset is already inside the glyph artboard, so it draws full
     // bleed at `height` and a second dimension would inset it twice. A switch's traveling mark is
     // `thumb`, a separate, larger ratio (#1425) — a switch is not a radio scaled down.
-    const dotLeaf = controlLeaf(c.dot, `control.size.${c.name} dot — ${c.dot}px inner mark for a radio's dot (half the ${c.height}px box edge, leaving a ${(c.height - c.dot) / 2}px gap to the boundary). A control whose mark is a glyph draws it full-bleed at \`height\`; a switch's traveling thumb reads \`thumb\` instead.`);
+    // The radio dot setting (#3086, owner Q816 A) moves this leaf's VALUE only. At the default the prose is the #910
+    // line to the byte; off it, the line names the brand's share, and `share` rides the extension so the Figma line
+    // (`figmaControlDescription`) can say the same without re-deriving it from a snapped px.
+    const dotShare = theme.radioDot;
+    const dotLeaf = controlLeaf(c.dot, `control.size.${c.name} dot — ${c.dot}px inner mark for a radio's dot (${dotShare ? `${dotShare / 100} × the ${c.height}px box edge by the brand's radio dot setting, snapped to 2px and inside the 2px ring` : `half the ${c.height}px box edge`}, leaving a ${(c.height - c.dot) / 2}px gap to the boundary${dotShare && !gridSet.has(c.dot) ? `; a plain px, as no dimension step holds ${c.dot}px` : ''}). A control whose mark is a glyph draws it full-bleed at \`height\`; a switch's traveling thumb reads \`thumb\` instead.`);
+    // An off-grid dot is a literal (`controlLeaf`), flagged `offScale` as an off-scale grid gap is (#3052).
+    if (dotShare) Object.assign(dotLeaf.$extensions.prism3, { share: dotShare, ...(gridSet.has(c.dot) ? {} : { offScale: true }) });
     // THE SWITCH TRACK HEIGHT (#1425) — the switch's own cross-axis edge, DISTINCT from the square box
     // `height` above. Grounded on Prism 2's `toggle-switch.json` (a 32px track at the default `md`), so a
     // track that holds a traveling thumb is sized as a track rather than borrowed from a checkbox square.

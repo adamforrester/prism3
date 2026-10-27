@@ -93,6 +93,8 @@ export const TAG_DESC = 'How tags draw their shape.';
 export const DIALOG_DESC = 'How dialogs size their title and the surface they sit on.';
 // #2924: DRAFT for the owner (Q2 on #2924), the wireframe's section line.
 export const BANNER_DESC = 'How banners draw their surface and edge.';
+// #3086: DRAFT for the owner, in Banner's pattern.
+export const RADIO_DESC = 'How big the dot in a selected radio is.';
 // #2909 Q2909.4 A: DRAFT for the owner (Q2909.10 A), after the round-4 wireframe's block.
 export const SHARED_DESC = 'Settings every component family follows. Density is set in Theme.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
@@ -377,6 +379,8 @@ export const DOMAINS = [
       { title: 'Dialog', desc: DIALOG_DESC, rows: [{ ctl: 'chips', keys: ['dialogTitleSize'], drive: 'dialog' }, { ctl: 'chips', keys: ['raisedSurface'], drive: 'dialog' }] },
       // #2924: Banner style's one home, drawn in the Banner section's Banner options block (`domains/banner-options.ts`).
       { title: 'Banner', desc: BANNER_DESC, rows: [{ ctl: 'chips', keys: ['bannerStyle'], drive: 'banner' }] },
+      // #3086: Radio dot size's one home, drawn in the Radio section's Radio options block (`domains/radio-options.ts`).
+      { title: 'Radio', desc: RADIO_DESC, rows: [{ ctl: 'chips', keys: ['radioDot'], drive: 'radio' }] },
       { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },
     ],
     status: 'new',

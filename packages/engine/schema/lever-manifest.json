@@ -370,6 +370,33 @@
       "description": "The surface of every banner. Tinted fills it with the tone’s tint; Outlined draws the edge in the tone on the page color. Either way the edge and glyph clear 3:1."
     },
     {
+      "key": "radioDot",
+      "group": "form",
+      "kind": "value",
+      "label": "Radio dot size",
+      "control": "enum",
+      "default": 50,
+      "options": [
+        {
+          "value": 50,
+          "label": "Default"
+        },
+        {
+          "value": 60,
+          "label": "60%"
+        },
+        {
+          "value": 70,
+          "label": "70%"
+        },
+        {
+          "value": 80,
+          "label": "80%"
+        }
+      ],
+      "description": "How big the dot in a selected radio is, as a share of the radio, at every size. Default is half. The dot rounds to a 2px step and never covers the ring. List bullets and badge dots follow it."
+    },
+    {
       "key": "buttonIcons",
       "group": "form",
       "kind": "structural",

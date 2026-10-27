@@ -21136,14 +21136,15 @@
           },
           "dot": {
             "$type": "dimension",
-            "$value": "{nbds.core.dimension.8}",
-            "$description": "control.size.sm dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$value": "{nbds.core.dimension.12}",
+            "$description": "control.size.sm dot — 12px inner mark for a radio's dot (0.7 × the 16px box edge by the brand's radio dot setting, snapped to 2px and inside the 2px ring, leaving a 2px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.dimension.8",
-                "px": 8,
-                "density": "comfortable"
+                "aliasOf": "nbds.core.dimension.12",
+                "px": 12,
+                "density": "comfortable",
+                "share": 70
               }
             }
           },
@@ -21241,14 +21242,14 @@
           },
           "dot": {
             "$type": "dimension",
-            "$value": "{nbds.core.dimension.10}",
-            "$description": "control.size.md dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$value": "14px",
+            "$description": "control.size.md dot — 14px inner mark for a radio's dot (0.7 × the 20px box edge by the brand's radio dot setting, snapped to 2px and inside the 2px ring, leaving a 3px gap to the boundary; a plain px, as no dimension step holds 14px). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
-                "role": "semantic",
-                "aliasOf": "nbds.core.dimension.10",
-                "px": 10,
-                "density": "comfortable"
+                "generated": true,
+                "px": 14,
+                "share": 70,
+                "offScale": true
               }
             }
           },
@@ -21346,14 +21347,15 @@
           },
           "dot": {
             "$type": "dimension",
-            "$value": "{nbds.core.dimension.12}",
-            "$description": "control.size.lg dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$value": "{nbds.core.dimension.16}",
+            "$description": "control.size.lg dot — 16px inner mark for a radio's dot (0.7 × the 24px box edge by the brand's radio dot setting, snapped to 2px and inside the 2px ring, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.dimension.12",
-                "px": 12,
-                "density": "comfortable"
+                "aliasOf": "nbds.core.dimension.16",
+                "px": 16,
+                "density": "comfortable",
+                "share": 70
               }
             }
           },

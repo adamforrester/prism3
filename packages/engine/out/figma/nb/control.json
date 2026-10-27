@@ -34,11 +34,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Radio dot — 8px (half the 16px box)",
-      "value": 8,
+      "description": "Radio dot — 12px (0.7 × the 16px box, on the 2px grid)",
+      "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/dimension/8"
+        "name": "nbds/core/dimension/12"
       }
     },
     {
@@ -135,12 +135,9 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Radio dot — 10px (half the 20px box)",
-      "value": 10,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/dimension/10"
-      }
+      "description": "Radio dot — 14px (0.7 × the 20px box, on the 2px grid)",
+      "value": 14,
+      "alias": null
     },
     {
       "name": "nbds/control/size/md/line-box",
@@ -236,11 +233,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Radio dot — 12px (half the 24px box)",
-      "value": 12,
+      "description": "Radio dot — 16px (0.7 × the 24px box, on the 2px grid)",
+      "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/dimension/12"
+        "name": "nbds/core/dimension/16"
       }
     },
     {

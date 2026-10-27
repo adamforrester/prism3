@@ -255,6 +255,12 @@
       "default": "card",
       "description": "OPTIONAL. The raised surface (#3049): what `color.foreground.raised`, the panel a dialog or sheet draws over the scrim, holds in light and hc-light. 'card' (default): the card surface, `foreground.primary`. 'page': the page, `background.primary`. 'white': pure white. Dark and hc-dark always take the card surface, so a dialog keeps its lift there."
     },
+    "radioDot": {
+      "type": "integer",
+      "enum": [50, 60, 70, 80],
+      "default": 50,
+      "description": "OPTIONAL. The radio dot (#3086): the checked radio's dot as a share of the radio's box edge, in percent, at sm, md and lg alike. 50 (default) is half the edge. Snapped to the 2px sub-grid and never wider than the box minus its 2px ring. It moves the value of `control.size.{sm,md,lg}.dot` only, which list bullets and the badge dot also bind; no token is added."
+    },
     "strictInteractiveContrast": {
       "type": "boolean",
       "default": false,

@@ -8053,10 +8053,10 @@
       "resolves_to": "{nbds.core.dimension.48}"
     },
     "control.size.sm.dot": {
-      "$description": "control.size.sm dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "$description": "control.size.sm dot — 12px inner mark for a radio's dot (0.7 × the 16px box edge by the brand's radio dot setting, snapped to 2px and inside the 2px ring, leaving a 2px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "meaning": "Selection-control geometry, sm step — dot",
       "when_to_use": "The dot of a checkbox, radio or switch at the sm step.",
-      "resolves_to": "{nbds.core.dimension.8}"
+      "resolves_to": "{nbds.core.dimension.12}"
     },
     "control.size.sm.inset": {
       "$description": "control.size.sm inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
@@ -8101,10 +8101,10 @@
       "resolves_to": "{nbds.core.dimension.64}"
     },
     "control.size.md.dot": {
-      "$description": "control.size.md dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "$description": "control.size.md dot — 14px inner mark for a radio's dot (0.7 × the 20px box edge by the brand's radio dot setting, snapped to 2px and inside the 2px ring, leaving a 3px gap to the boundary; a plain px, as no dimension step holds 14px). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "meaning": "Selection-control geometry, md step — dot",
       "when_to_use": "The dot of a checkbox, radio or switch at the md step.",
-      "resolves_to": "{nbds.core.dimension.10}"
+      "resolves_to": "14px"
     },
     "control.size.md.inset": {
       "$description": "control.size.md inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
@@ -8149,10 +8149,10 @@
       "resolves_to": "{nbds.core.dimension.80}"
     },
     "control.size.lg.dot": {
-      "$description": "control.size.lg dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "$description": "control.size.lg dot — 16px inner mark for a radio's dot (0.7 × the 24px box edge by the brand's radio dot setting, snapped to 2px and inside the 2px ring, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "meaning": "Selection-control geometry, lg step — dot",
       "when_to_use": "The dot of a checkbox, radio or switch at the lg step.",
-      "resolves_to": "{nbds.core.dimension.12}"
+      "resolves_to": "{nbds.core.dimension.16}"
     },
     "control.size.lg.inset": {
       "$description": "control.size.lg inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
@@ -10312,7 +10312,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.sm.dot",
         "radius.xl",
         "space.100"
       ]
@@ -10321,10 +10320,7 @@
       "$description": "10px — dimension primitive",
       "meaning": "10px grid primitive",
       "tier": "primitive",
-      "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
-      "aliased_by": [
-        "control.size.md.dot"
-      ]
+      "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.12": {
       "$description": "12px — dimension primitive",
@@ -10332,7 +10328,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.lg.dot",
+        "control.size.sm.dot",
         "radius.2xl",
         "space.150"
       ]
@@ -10343,6 +10339,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
+        "control.size.lg.dot",
         "control.size.sm.height",
         "grid.md.gutter",
         "grid.sm.gutter",
