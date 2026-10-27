@@ -162,7 +162,7 @@
     "scrim.default": {
       "$description": "Scrim — black backdrop behind modals and drawers; opacity 40%",
       "meaning": "Background dimming / modal focus",
-      "when_to_use": "The dimming layer behind a modal, dialog, or drawer. The modal itself uses `foreground.primary`.",
+      "when_to_use": "The dimming layer behind a modal, dialog, or drawer. The modal itself uses `foreground.raised`.",
       "avoid_when": "Do not use as a solid surface or for any opaque element.",
       "mode_overrides": {
         "light": "{pds3.core.palette.black-alpha.40}",
@@ -171,7 +171,7 @@
         "hc-dark": "{pds3.core.palette.black-alpha.70}"
       },
       "tracks": [
-        "foreground.primary"
+        "foreground.raised"
       ]
     },
     "glass.surface": {
@@ -342,6 +342,25 @@
           "ratio": 3.51,
           "requirement": "MUST clear 3:1 against `border.tertiary` in every mode."
         }
+      ]
+    },
+    "foreground.raised": {
+      "$description": "Raised surface — the panel a dialog or sheet draws over the scrim. The card surface (foreground.primary) unless the brand sets it to the page or to white; in dark modes it is always the card surface",
+      "meaning": "Surface / fill on the canvas",
+      "when_to_use": "The panel over the scrim — a dialog, bottom sheet, full-screen panel or end drawer. It is the card surface unless the brand sets it to the page or to white in light modes; in dark modes it is always the card surface, so the panel keeps its lift.",
+      "avoid_when": "Do not use for a card, sheet or panel that is not over the scrim (use `foreground.primary`), for the page itself (use `background.*`) or for ink (use `text.*` or `icon.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.neutral.050}",
+        "dark": "{pds3.core.palette.neutral.900}",
+        "hc-light": "{pds3.core.palette.white}",
+        "hc-dark": "{pds3.core.palette.black}"
+      },
+      "carries": [
+        "text.primary"
+      ],
+      "tracks": [
+        "scrim.default",
+        "foreground.primary"
       ]
     },
     "inverse.foreground.primary": {
@@ -8864,6 +8883,7 @@
         "color.background.secondary",
         "color.background.tertiary",
         "color.foreground.primary",
+        "color.foreground.raised",
         "color.foreground.secondary",
         "color.foreground.tertiary",
         "color.icon.on-brand",
@@ -8914,6 +8934,7 @@
         "color.background.secondary",
         "color.background.tertiary",
         "color.foreground.primary",
+        "color.foreground.raised",
         "color.foreground.secondary",
         "color.foreground.tertiary",
         "color.icon.on-brand",
@@ -9646,6 +9667,7 @@
       "aliased_by": [
         "color.background.secondary",
         "color.foreground.primary",
+        "color.foreground.raised",
         "color.inverse.background.secondary",
         "color.inverse.foreground.primary",
         "color.inverse.interactive.destructive.fill.focused",
@@ -9716,6 +9738,7 @@
       "aliased_by": [
         "color.background.secondary",
         "color.foreground.primary",
+        "color.foreground.raised",
         "color.inverse.background.secondary",
         "color.inverse.foreground.primary"
       ]

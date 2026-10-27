@@ -5087,6 +5087,48 @@
             }
           }
         },
+        "raised": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.neutral.050}",
+          "$description": "Raised surface — the panel a dialog or sheet draws over the scrim. The card surface (foreground.primary) unless the brand sets it to the page or to white; in dark modes it is always the card surface",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "pds3.core.palette.neutral.050",
+              "contrast": 1,
+              "against": "self",
+              "modes": {
+                "dark": {
+                  "$value": "{pds3.core.palette.neutral.900}",
+                  "aliasOf": "pds3.core.palette.neutral.900",
+                  "contrast": 1,
+                  "against": "self"
+                },
+                "hc-light": {
+                  "$value": "{pds3.core.palette.white}",
+                  "aliasOf": "pds3.core.palette.white",
+                  "contrast": 1,
+                  "against": "self"
+                },
+                "hc-dark": {
+                  "$value": "{pds3.core.palette.black}",
+                  "aliasOf": "pds3.core.palette.black",
+                  "contrast": 1,
+                  "against": "self"
+                }
+              },
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ]
+              }
+            }
+          }
+        },
         "brand": {
           "$type": "color",
           "$value": "{pds3.core.palette.primary.600}",
