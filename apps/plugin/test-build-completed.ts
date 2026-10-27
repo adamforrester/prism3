@@ -52,7 +52,8 @@
  * `'file'`, or `specTargets` ignoring `page`) → `specs/this page`. #3081 Q810 A (section 6c): the live recount
  * (`fileDue`) reading the stored brand whatever the panel sends → `q810/rises`; it reading the file's sets again each time
  * (`presentCache` unused) → `q810/cheap`; `guarded` keeping the sets it caches after a write → `q810/after a write`; its
- * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`.
+ * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`; `guarded` keeping the sets a recount
+ * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7).
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -511,10 +512,24 @@ const heldResult = (async () => { for (let j = 0; j < 600; j++) { const r = post
 const duringHold = await ask({ type: 'hand-edits-request' }, 'hand-edits', (m) => m.done === true);
 // `ask` waits up to 6 s for `done`; a pass the guard ends posts neither a set nor `done`.
 ok(!duringHold.some((m) => typeof m.def === 'string'), `hand-edits/guard: while a build holds the guard, the pass reports no set before done (${JSON.stringify(duringHold)})`);
+// #3081 Q810 A: a setting changed during a long write. The write's start cleared the cached sets, so whatever fills the
+// cache now (the live recount asked while the build holds the guard, or the hand-edit pass just above) holds a mid-write
+// list. The write ending must clear it, so the recount after it reads the file once more. Page loads are counted on the
+// host, as in 6c.
+let midLoads = 0;
+const loadAll7 = shim.loadAllPagesAsync;
+shim.loadAllPagesAsync = async () => { midLoads++; return loadAll7?.(); };
+const dMid = (await ask({ type: 'due-request', input: brandB, seq: 8 }, 'file-due'))[0];
+const loadsMid = midLoads;
 shim.setCurrentPageAsync = setPage;
 release();
 await heldResult;
 await new Promise((res) => realTimeout(res, 50));
+midLoads = 0;
+const dEnd = (await ask({ type: 'due-request', input: brandB, seq: 9 }, 'file-due'))[0];
+ok(dMid?.seq === 8 && dEnd?.seq === 9 && midLoads === 1,
+  `q810/mid-write: a recount asked during a write answers from the sets cached mid-write, and the write ending clears them, so the recount after reads the file again (${loadsMid} page loads during, ${midLoads} after)`);
+shim.loadAllPagesAsync = loadAll7;
 let afterHold: any[] = [];
 for (let i = 0; i < 100 && !afterHold.some((m) => typeof m.def === 'string'); i++) {
   afterHold = await ask({ type: 'hand-edits-request' }, 'hand-edits', (m) => m.done === true);

@@ -16020,7 +16020,8 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
 //     over the live recount → `IA2 figma … the badge rises on a setting change …`; Theme's item dropped from
 //     `badgeCount` → the same arm and `IA2 figma … Theme counts as one item …`; the checklist reading the live answer for
 //     its ticks → `IA2 figma … #3028 Q701 B: with Theme unticked, a live answer landing …`; `liveShown` (`main.ts`)
-//     reduced to `!restoreFailure` → `IA2 figma … before a brand is chosen …`.
+//     reduced to `!restoreFailure` → `IA2 figma … before a brand is chosen …`; `!restoreFailure &&` dropped from `liveShown`
+//     → `IA2 figma … after a failed restore …` (#3096 review, MC).
 if (runs('ia2')) {
 console.log(`\nIA v2 phase 2 (#2909) — tiers, lever homes, engine warnings, what is due\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
@@ -16346,6 +16347,31 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       ok(early === 0 && atStart.asked === 0 && (atStart.badge === null || atStart.badge === '2') && chosen >= 1,
         `${where}: Q810 A: before a brand is chosen (the boot placeholder, then the start moment), the panel asks for no count and shows no live answer; choosing one starts the asks (${JSON.stringify({ early, atStart, chosen })})`);
       await p2.close();
+      // A failed restore: the file's stored brand loads but the engine refuses it in resolution (`unresolved`), so the
+      // brand on screen is not one the panel can count against and Update file's writes are off. A setting change then
+      // asks for no count, and a live answer planted anyway is not shown: the badge keeps the load's read (2). The brand
+      // is typed here, not read from section 38's, so this section runs in a shard without it (#2898).
+      step = 'the live badge after a failed restore';
+      const REFUSED_3081 = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true }, id: 'refused-brand',
+        overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
+      const p3 = await ctx.newPage();
+      await hooks.watch(p3);
+      await p3.goto(`${ORIGIN}/plugin?figma=${theme}`, { waitUntil: 'load' });
+      await p3.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(m.seq); }); });
+      await postMsg(p3, FILE);
+      await postMsg(p3, { type: 'restore-input', input: REFUSED_3081 });
+      await p3.waitForFunction(() => /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+      await goPlace(p3, 'components');
+      await p3.evaluate(() => { const n = document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]'); if (n) HTMLElement.prototype.click.call(n); });
+      await p3.waitForTimeout(600);
+      const failedAt = await p3.evaluate(() => ({ asked: window.__due.length, unresolved: /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''),
+        changed: document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]')?.getAttribute('aria-checked') ?? null }));
+      await postMsg(p3, { type: 'file-due', seq: 1, present: FILE.present, theme: true, due: { ...DUE, tag: { state: 'due', reason: 'definition' } } });
+      await p3.waitForTimeout(300);
+      const failedBadge = await p3.evaluate(() => { const b = document.querySelector('[data-p3="update-badge"]'); return b && !b.hidden ? b.textContent : null; });
+      ok(failedAt.unresolved && failedAt.changed === 'true' && failedAt.asked === 0 && failedBadge === '2',
+        `${where}: Q810 A: after a failed restore (the stored brand does not resolve), a setting change asks for no count and a live answer is not shown: the badge keeps the load's read, 2 (${JSON.stringify({ ...failedAt, badge: failedBadge })})`);
+      await p3.close();
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {

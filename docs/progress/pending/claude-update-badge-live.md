@@ -25,7 +25,8 @@
   Apply counts the same way, because the answer reads the file, not the panel's own record.
 - **No count before a brand is chosen.** On a fresh or library file the load's `file-sets` can land before the host's
   restore answers, while the panel holds only the boot placeholder. The panel neither asks nor shows a live answer until
-  a brand is chosen and resolves (`liveShown`). Found by the independent review.
+  a brand is chosen and resolves (`liveShown`). Found by the independent review. The same holds after a failed restore
+  (a stored brand the engine refuses in resolution): a setting change asks nothing, and the badge keeps the load's read.
 - **The checklist is untouched.** It still reads its own `file-sets` and `update-check` answers, so #3028's Theme-unticked
   behavior (Q701 B) holds. A live answer landing while the checklist is open moves the badge and nothing in the
   checklist.
@@ -57,6 +58,8 @@ Each mutation was made on a committed tree and failed by name:
 | The shell paints the load's read (`badgeCount(…, null)`) | `test:chrome`: "IA2 figma … Q810 A: the badge rises on a setting change …" |
 | The checklist reads the live answer for its due sets | `test:chrome`: "IA2 figma … #3028 Q701 B: with Theme unticked, a live answer landing while the checklist is open …" |
 | `liveShown` reduced to `!restoreFailure` (asks with the boot placeholder) | `test:chrome`: "IA2 figma … Q810 A: before a brand is chosen … the panel asks for no count and shows no live answer …" ("early":1) |
+| `!restoreFailure &&` dropped from `liveShown` (review's MC) | `test:chrome`: "IA2 figma … Q810 A: after a failed restore (the stored brand does not resolve), a setting change asks for no count …" ("asked":1, badge "4"), light and dark |
+| `guarded`'s end-of-write clear dropped, the start clear kept (review's MF) | `test-build-completed.ts`: "q810/mid-write: a recount asked during a write answers from the sets cached mid-write …" (0 page loads after) |
 
 The chrome rows ran as mutated builds in the same worktree, each rebuilt and restored, never pushed.
 
