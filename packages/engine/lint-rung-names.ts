@@ -409,6 +409,7 @@ const DEFAULT_FIRST: Record<string, string> = {
   button: Q1B,
   'button-destructive': Q1B,
   'button-neutral': Q1B,
+  'wallet-button': Q1B,
   'icon-button': Q1B,
   'icon-button-destructive': Q1B,
   'icon-button-neutral': Q1B,
@@ -483,7 +484,7 @@ const SIZE_BY_BUILT_WIDTH: Record<string, string> = {
  */
 const MUST_COVER = [
   'icon', 'brand-mark', 'spinner', 'progress',
-  'button', 'button-destructive', 'button-neutral',
+  'button', 'button-destructive', 'button-neutral', 'wallet-button',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter', 'slider', '_slider-thumb',

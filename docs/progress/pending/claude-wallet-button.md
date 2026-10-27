@@ -1,0 +1,92 @@
+## (2026-10-27) — WalletButton: the provider's express-checkout button, as a sized slot and a layout stand-in (#2343 PR 4)
+
+**Status:** new def `wallet-button` (20 members), a new axis name `provider`, one projector change (a nest of a
+standalone-component def names the member component), and the spec model and roundtrip taught that nest. ENGINE minor (change note). CONTRACT unchanged: only existing
+roles are bound. No executor change, so `EXECUTOR_REVISION` stays. PR 3 (the owner's marks) and #3047 have merged.
+
+### What was built, and the calls held for the owner
+
+- **Owner decisions it rests on:** two components from one factory (Q-B4 A), and in code a slot that mounts the provider's own element, Prism3 adding only the focus
+  ring and layout (Q-B8 A). The proposal's §2.1 rule table is the source for the limits. Q-B5 A decided valid
+  provider × **style** pairs only; with the style axis held by Q-W1, the build reads it onto provider × size (the two
+  height exclusions), so Q-B5 A is in effect deferred by Q-W1 A.
+- **Q-W1, the Figma member (built as A):** a layout stand-in, the provider's area at its size and corner with the
+  provider's logo nested unaltered, and no fill. Two findings decided it: none of the four providers publishes its
+  button colors as values (Google Pay says "dark and light"; PayPal's v6 reference says "gold" and "white with
+  border"), and all four forbid a hand-drawn copy of the button, which a Prism3-painted ground would be. Every logo in
+  the owner's set is drawn for a light ground (Apple Pay and Shop Pay one ink, Google Pay five colors, the PayPal
+  wordmark three), so a dark-style stand-in would need a light logo the set does not hold.
+  B: the owner supplies each provider's own button artwork per style, and a `style` axis draws it. C: Prism3 paints the
+  fills, which needs a literal-paint engine field (`gradientFill`'s path through both executors) and colors the
+  providers do not publish.
+- **Q-W2, heights (built as A):** a size outside a provider's range has no member: Shop Pay starts at medium (40
+  floor), PayPal stops at medium (55 ceiling); the code clamps. Density moves every rung (harbor: compact 28/36/44,
+  spacious 44/56/68), so the exclusions hold at comfortable only, and at compact and spacious the code's clamp is what
+  keeps the provider's range; the Figma member shows the brand's rung. B: density-invariant wallet heights, which need
+  a token the tier does not have.
+- **Q-W3, the factory:** SignInButton is PR 5, so the shared factory lands with its second component, not as an
+  abstraction with one user.
+- **Q-W5, shape (built as A):** no shape axis; the corner is the brand's `radius.md`. The proposal's §2.3 gave
+  WalletButton `shape: rectangle | pill`. B: a `shape` axis whose pill binds `radius.capsule`, clamped to half the
+  height for Google Pay.
+- **Q-W4, the page:** "Wallet button", its own page under Components (DRAFT). Brand mark now has one consumer, so it
+  joins `STANDALONE_NESTED` to keep its Foundations page (Q-B12).
+- **Tier 2** generation priority (a top-level component placed on its own); width floor 120 (the largest provider
+  minimum, Shop Pay's logo button; Apple Pay plain needs 100); radius `radius.md`. Harbor's is inside Google Pay's
+  half-height cap at every density, but a soft brand's is not (`baseMd` 12 × `radiusScale` 2 gives 24px against a
+  28px compact small), so the code clamps Google Pay's `buttonRadius` to `min(radius, height / 2)`.
+
+### The engine change
+
+`figmaAnatomySet` wrote `nestTarget: 'brand-mark'` and `nestVariant: { name }` for a nest of `brand-mark`, which an
+executor resolves inside a component SET. `brand-mark` emits standalone components, so there is no set, and the nest
+missed. The projector now resolves such a nest to the member's own component, `brand-mark/logo/apple-pay`, and writes
+no `nestVariant`, the way `nestedSwapTarget` names a swap's. Both executors already make an instance from a component
+found by name, and `build-deps.ts` already maps `<id>/<value>` to its def, so neither moved. No other def nests a
+standalone-component def, so no other surface digest moved.
+
+### What the first full run found, and the fixes
+
+- **The spec model and the roundtrip had never met a standalone nest.** `component-specs.ts` recorded the first
+  member's `nestTarget` as the nested component, so the model said every provider nests `brand-mark/logo/apple-pay`.
+  It now names the def (`brand-mark`) with its variant and `when`, and `test-roundtrip.ts`'s spec read-back resolves
+  each member's own `<def>/<value>` from them.
+- **PR 2's `aspectLock` and `fixedPaint` had never been projected by a shipped def,** so the roundtrip's field floor
+  had not classified them. `aspectLock` is now CHECKED in `anatomy-readback.ts` (the host must hold a
+  `targetAspectRatio`). `fixedPaint` is declared unchecked with its reason: it promises the plan carries no paint, so
+  the host has nothing of the plan's to echo. The roundtrip harness builds a def that locks to its main with the
+  nested components pre-built and answering as themselves (`liveComponents`). Against a bare catalog name the
+  executor has no size to read, reports a miss and leaves the instance unlocked. Mutation: the plugin executor's
+  `lockAspectRatio` call dropped → the roundtrip fails `aspectLock` on all 20 members.
+- **Hand lists a new set joins:** `CANVAS_FURNITURE` (headers like Button's), `test-canvas-furniture.ts` (55 sets),
+  the studio's component groups (a "Wallet button" row) and `used-by.ts`, and the ecosystem map's definitions.
+- **`test.ts` floors:** Figma's default member must carry the code default on every axis. `provider` is required in
+  code (a wallet button always names its wallet), so a recorded BRIDGE entry says apple-pay stands in.
+  `brand-mark`'s `planned` list loses `wallet-button`, now registered, which moves to its `ai.commonPartners`. A
+  `codeOnly` entry that read like a state admission ("hover — not projected") now leads with "the provider's own
+  states".
+
+### Gates, and the mutations that fail them by name
+
+`packages/engine/test.ts`, `#2343 PR 4 provider rules`, its rules typed from the providers' guidelines, never read off
+the def. Each mutation was made on the def and fails its arm by name:
+- PayPal's large exclusion removed → **HEIGHT** (`provider=paypal, size=large … at 56`);
+- `minWidth: 90` → **WIDTH**;
+- `radius.capsule` → **RADIUS** (Google Pay, `radius 999 over height 36` at compact);
+- `fixedPaint` dropped from the logo → **COLOR**;
+- PayPal's logo pointed at the monogram → **MARK** (`nests brand-mark/logo/paypal`);
+- the Google Pay clamp removed from codeOnly → **RADIUS (every brand)** (`radiusScale 2 × baseMd 12`, members over
+  half their height);
+- an inked `label` text part added → **WORDING** (it was caught only under COLOR before);
+- the a11y contract inverted (aria-label on the container to the provider name) → **NAME** (nothing failed before).
+The def joined `lint-hit-target` (INTERACTIVE, SMALL_SIZE), `lint-rung-names` (MUST_COVER, DEFAULT_FIRST),
+`lint-axis-values` (`provider` sole, `size` canonical), `lint-standalone-floor`, `lint-paint-placement`,
+`lint-absolute-inset` (MUST_COVER, MUST_CLEAR_STROKE) and the `generationPriority` tier list. `regen --check` counts
+223 artifacts (the new docs page): `verify.ts` and `ci.yml` together.
+
+### Traps
+
+- A projected plan's `coord` carries the variant axes the grid does not lay out; the size is `plan.size`, not
+  `plan.coord.size`. The first HEIGHT arm read `coord.size` and found every member missing.
+- A new def file must be `git add`-ed before `lint-axis-values.ts` sees it: it counted 57 defs and passed while the
+  file was untracked.

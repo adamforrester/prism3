@@ -423,6 +423,17 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'provider list is data, so a provider added to the set is a line here in the same PR, as a glyph is above.',
   },
   {
+    axis: 'provider',
+    values: ['apple-pay', 'google-pay', 'paypal', 'shop-pay'],
+    defs: ['wallet-button'],
+    relation: 'sole',
+    reason:
+      'Whose button WalletButton holds (#2343 PR 4, owner decisions Q-B4 A, Q-B5 A): the wallet provider that draws it. '
+      + 'Each value is the provider\'s product name in kebab-case. `apple-pay` LEADS only because Figma needs a first '
+      + 'member; the code prop has no default, a wallet is always named. SignInButton\'s providers (PR 5) are a '
+      + 'different set under the same name.',
+  },
+  {
     axis: 'labeled',
     values: ['false', 'true'],
     defs: ['pagination-item', 'divider'],
@@ -508,7 +519,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
