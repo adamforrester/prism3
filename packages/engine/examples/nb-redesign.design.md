@@ -78,11 +78,21 @@ typography:
   # body/label/caption/eyebrow on Suisse Int'l (NB's workhorse grotesque). A lone name is
   # auto-padded with a system fallback stack. From the brand type spec.
   families: { display: ITC Garamond Std, title: ITC Garamond Std, body: "Suisse Int'l", label: "Suisse Int'l", caption: "Suisse Int'l", eyebrow: "Suisse Int'l" }
-  # Pinned sizes from the NB redesign spec: title tops out at 36 (xl), display hero at 56 (md).
-  sizes: { title: { xl: 36 }, display: { md: 56 } }
-  # Per-role weight sets. Display/title run on the LIGHT (`subtle`, 300) Garamond cut; body and
-  # caption ship default + emphasis. From the brand type spec.
-  weights: { display: [subtle], title: [subtle], body: [default, emphasis], caption: [default, emphasis] }
+  # Sizes follow the brand's stored typography (its finished Figma file, synced 2026-10-27): the
+  # title ramp 24→56 with its own mobile endpoints, display sm/md 64/72, display capped at 2xl.
+  # `titleFloor: 16` opens the title.2xs rung and `sizes.title.2xs` sets it to 20px (owner ask,
+  # 2026-10-27); its mobile size is the engine's (20, small titles do not shrink). Caption md at
+  # 10px and a uniform +1% tracking are NOT expressible with today's levers and wait on an engine
+  # change; tracking below is the stored nudge set, unchanged.
+  titleFloor: 16
+  sizes: { title: { 2xs: 20, xs: 24, sm: 32, md: 36, lg: 40, xl: 48, 2xl: 56 }, display: { sm: 64, md: 72 } }
+  sizeOverrides: { title: { 2xl: { mobile: 40 }, xl: { mobile: 36 }, lg: { mobile: 32 }, md: { mobile: 28 }, sm: { mobile: 24 } } }
+  displayCeiling: 2xl
+  # Opt-in 8px floor: adds caption.xs (8px) for fine print. The engine flags it in notes.
+  sizeFloor: 8
+  # Per-role weight sets. Display/title run on the LIGHT (`subtle`, 300) Garamond cut; body,
+  # caption and label ship default + emphasis. From the brand type spec.
+  weights: { display: [subtle], title: [subtle], body: [default, emphasis], caption: [default, emphasis], label: [default, emphasis] }
   # NB's Medium is 500, not the engine's default 600 — remap the `emphasis` weight-role numeric.
   weightRoles: { emphasis: 500 }
   # CONDENSED FACE (#1368) — NB's display/title headings are set in ITC Garamond Std *Light
@@ -95,12 +105,13 @@ typography:
   faces:
     display: { subtle: { family: ITC Garamond Std, style: Light Condensed } }
     title: { subtle: { family: ITC Garamond Std, style: Light Condensed } }
-  # Line heights: PRISM DEFAULTS (owner decision 2026-09-09 — "stay with prism line heights").
-  # The pasted source truncated this line; rather than reconstruct an NB-specific ramp, this seed
-  # OMITS `lineHeights` entirely so the engine's curated default leading applies. Adjust in the
-  # plugin during the manual pass if the finished NB needs a bespoke heading leading.
-  # Fluid heading sizes on, clamped between NB's mobile (402) and desktop (1440) viewports.
-  responsive: { fluid: true, minViewport: 402, maxViewport: 1440 }
+  # Leading and tracking from the stored typography: compact 1.25 and snug 1.20 rungs, one rung
+  # more open on display/title/body; display one rung wider, body/label/caption/eyebrow one tighter.
+  lineHeights: { compact: 1.25, snug: 1.2 }
+  leadingShift: { display: 1, title: 1, body: 1 }
+  trackingShift: { display: 1, body: -1, label: -1, caption: -1, eyebrow: -1 }
+  # Fluid heading sizes on, clamped between the 375 and 1440 viewports.
+  responsive: { fluid: true, minViewport: 375, maxViewport: 1440 }
 ---
 
 # New Balance — redesign seed brief
@@ -118,8 +129,8 @@ grotesque.
 
 ## Owner finishing checklist (what this seed deliberately leaves for the manual pass)
 
-1. **Heading leading.** Uses the engine's default (prism) line heights — owner decision, no
-   NB-specific override. Set a bespoke heading leading in the plugin if the finished NB wants one.
+1. **Heading leading.** Now the stored leading from the finished file (`lineHeights`,
+   `leadingShift`), replacing the earlier prism-default decision.
 2. **1px hairline corners.** NB uses 1px corners in places. The engine reaches 1px only via
    the opt-in `radiusHairline: true` lever (#1362), left OFF here on purpose. Flip it on if
    the finished NB wants the 1px rung engine-side.
@@ -128,5 +139,9 @@ grotesque.
    slot each category ships (`typography.faces`), so headings emit ITC Garamond Std *Light
    Condensed* directly — no longer a manual plugin step. (A brand needing a fuller condensed
    weight ramp would pin more slots; NB ships the single Light cut.)
+4. **Type changes waiting on the engine (2026-10-27).** Caption md at 10px (caption is not a
+   `sizes` group) and +1% tracking on every display, title, body and caption style (no nudge
+   reaches the +1% rung, and display's two default rungs cannot share one nudge). Title 2xs
+   at 20px is in.
 
 *(Prose is authoring latitude — the MVP CLI consumes the frontmatter only.)*

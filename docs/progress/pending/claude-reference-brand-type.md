@@ -1,0 +1,9 @@
+## (2026-10-27) — The reference brand's seed: typography synced to the stored input, title 2xs at 20px (#3077)
+
+The owner asked for three type changes on the reference brand. One of them can be done with today's levers. `titleFloor: 16` opens the `title.2xs` rung, and `sizes.title.2xs: 20` sets it to 20px. Its mobile size is the engine's: 20, because titles at 20px or less don't shrink. #3077 proposes 18 instead.
+
+The redesign seed brief could not take that rung on its own. Its old title ramp (xs 18 / sm 20) has no room for a 20px rung below xs. So its typography block now mirrors the brand's stored typography input (its finished Figma file): the title ramp 24→56 with per-rung mobile sizes, display 64/72 capped at 2xl, the 8px floor, label weights, and the stored leading and tracking. The face pins are kept. This replaces the seed's earlier "prism default line heights" note. The sync is a separate decision from the ask, and the owner can drop it.
+
+Two asks wait on the engine. **Caption md at 10px:** caption isn't a `sizes` group, and `captionFloor: 10` adds `caption.sm` rather than moving md. **+1% tracking on display/title/body/caption:** no `trackingShift` step lands on `open` (+1%), and display's two default rungs (`tight` below 96px, `tighter` from 96px) can't share one nudge. Re-anchoring `tight`/`snug`/`normal` does hit every value today, but it makes those role names mean something else for this brand, so it is held as the owner's call. #3077 has the exact patches, the before/after table, and the two proposed engine changes (`sizes.caption`, and a per-category `typography.tracking` pin). Both were prototyped and produce the full ask.
+
+The seed emits no committed artifact, so `regen --check` doesn't move. The every-example-compiles arm in `test.ts` covers the brief.
