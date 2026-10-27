@@ -1455,6 +1455,9 @@ console.log(`\nColor › Palettes — the moved page, against each brand's emiss
 /** Emitted palettes the preview does not draw as ramps: the fixed white, black and transparent, and the two
  *  alpha ramps, which it draws from the engine's constant step set on a checkerboard. Literal. */
 const NOT_RAMPS = ['white', 'black', 'transparent', 'black-alpha', 'white-alpha'];
+/** The card glass's alpha steps (#3073), `<palette>-<step>-alpha`: one or two leaves minted for `color.glass.card`, not
+ *  a ramp, so the preview does not draw them. A rule rather than names, because the card ground's step is per brand. */
+const CARD_GLASS_ALPHA = /^[a-z]+(?:-[a-z]+)*-\d+-alpha$/;
 /** EXPECTED, by name (represented, not counted; docs/34): every strip each corpus brand's Palettes preview
  *  draws at this suite's 1440px, as palette-strip (1-based), each a specimen root on the page color. Every
  *  emitted ramp has 20 steps, two strips of ten; the opacity scale's 12 steps make two more. Literal, per
@@ -1469,7 +1472,7 @@ const EXPECT_STRIPS = {
 const emittedRamps = async (brand) => {
   const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
   const emitted = tree[Object.keys(tree)[0]].core.palette;
-  return Object.fromEntries(Object.entries(emitted).filter(([k]) => !NOT_RAMPS.includes(k))
+  return Object.fromEntries(Object.entries(emitted).filter(([k]) => !NOT_RAMPS.includes(k) && !CARD_GLASS_ALPHA.test(k))
     .map(([k, steps]) => [k, Object.fromEntries(Object.entries(steps).filter(([s]) => !s.startsWith('$')).map(([s, v]) => [s, String(v.$value).toLowerCase()]))]));
 };
 /** What the preview draws: per ramp, each step's label hex and its SQUARE's computed color (in step order,

@@ -12310,6 +12310,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const ENGINE_ADDED_VARS = [
       // #3049 — the panel over the scrim, Dialog's own surface. An exact name in `foreground`, a family NB exports.
       'color/foreground/raised',
+      // #3073 — the card glass's alpha steps of the card ground (light neutral.050, dark neutral.900). Exact names, not
+      // a `palette/` prefix: NB exports that family, and only the steps some mode's `glass.card` reads are minted.
+      'palette/neutral-050-alpha/70', 'palette/neutral-900-alpha/70',
       // #1140 — the third rung of the neutral edge ladder, on both grounds. `border` was the only
       // surface/ink category stopping at secondary. Two exact names rather than any prefix: `border` is
       // a family NB fully defines, so the whole value of pinning it is that a spurious sibling fails.
@@ -12945,6 +12948,52 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
   }
 
+  // (13b-iii) CARD GLASS (#3073, owner decision 2026-10-27: keep the white glass and add a card glass). `color.glass.card`
+  // is the card ground's own color at the glass alpha, so a band on a card reads as the card and only the blurred photo
+  // shows through. Independent of the subject: the card ground is read off `color.foreground.primary`'s OWN resolved
+  // value (never through `glass.card`'s alias or the minted primitive's description), the alpha per mode is SPELLED
+  // (70 light/dark, 90 high contrast — the white glass's steps, so the two differ only in hue), and the contrast math
+  // is the WCAG 2 arithmetic of the arm above, over the same spelled worst-case grounds (every gray 0–255) at the same
+  // 4.5:1 floor. Pointing card glass at white, or at any color but the card's, fails the first assertion by name.
+  {
+    const CARD_ALPHA: Record<string, number> = { light: 0.7, dark: 0.7, 'hc-light': 0.9, 'hc-dark': 0.9 };
+    const lin = (c: number) => { const s = c / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+    const lum = ([r, g, b]: number[]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    const wcag = (a: number[], b: number[]) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    const rgba = (h: string) => {
+      const m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(h);
+      if (m) { const n = parseInt(m[1], 16); return { rgb: [n >> 16 & 255, n >> 8 & 255, n & 255], a: m[2] ? parseInt(m[2], 16) / 255 : 1 }; }
+      const f = /^rgba?\(\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\s*\)$/.exec(h);
+      return f ? { rgb: [Number(f[1]), Number(f[2]), Number(f[3])], a: f[4] === undefined ? 1 : Number(f[4]) } : null;
+    };
+    for (const f of dtcgBrands) {
+      const brand = f.replace('.tokens.json', '');
+      const tr = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+      const root = Object.keys(tr).find((k) => !k.startsWith('$'))!;
+      const inMode = (role: any, m: string) => String(m === 'light' ? role?.$value : role?.$extensions?.prism3?.modes?.[m]?.$value ?? role?.$value);
+      const leafOf = (ref: string): any => { let v: any = ref; for (let i = 0; i < 8 && /^\{.+\}$/.test(String(v)); i++) v = String(v).slice(1, -1).split('.').reduce((n: any, k) => n?.[k], tr)?.$value; return v; };
+      const card = tr[root].color?.glass?.card, ground = tr[root].color?.foreground?.primary, text = tr[root].color?.text?.primary;
+      const seen = ['light', ...Object.keys(card?.$extensions?.prism3?.modes ?? {})];
+      ok(seen.length === 4 && seen.every((m) => m in CARD_ALPHA), `card glass ${brand}: color.glass.card exists, in exactly light, dark, hc-light, hc-dark (got ${card ? seen.join(', ') : 'no color.glass.card'})`);
+      const hue: string[] = [], alpha: string[] = [], floor: string[] = [];
+      for (const m of Object.keys(CARD_ALPHA)) {
+        const g = rgba(String(leafOf(inMode(card, m)))), c = rgba(String(leafOf(inMode(ground, m)))), t = rgba(String(leafOf(inMode(text, m))));
+        if (!g || !c || !t) { hue.push(`${m}: unresolved (card glass ${!!g}, card ${!!c}, text ${!!t})`); continue; }
+        if (g.rgb.join() !== c.rgb.join()) hue.push(`${m}: card glass rgb(${g.rgb.join(', ')}) via ${inMode(card, m)}, card ground rgb(${c.rgb.join(', ')})`);
+        if (Math.abs(g.a - CARD_ALPHA[m]) > 0.005) alpha.push(`${m}: ${g.a.toFixed(3)}, want ${CARD_ALPHA[m]}`);
+        let worst = Infinity, at = -1;
+        for (let k = 0; k <= 255; k++) {
+          const r = wcag(t.rgb, g.rgb.map((x) => x * g.a + k * (1 - g.a)));
+          if (r < worst) { worst = r; at = k; }
+        }
+        if (!(worst >= 4.5)) floor.push(`${m}: ${worst.toFixed(2)}:1 over gray ${at}`);
+      }
+      ok(hue.length === 0, `card glass ${brand}: color.glass.card's opaque color equals the card ground (color.foreground.primary) in every mode${hue.length ? ` — ${hue.join('; ')}` : ''}`);
+      ok(alpha.length === 0, `card glass ${brand}: color.glass.card carries the glass alpha — 70% in light and dark, 90% in high contrast${alpha.length ? ` — ${alpha.join('; ')}` : ''}`);
+      ok(floor.length === 0, `card glass ${brand}: text.primary reads ≥ 4.5:1 on color.glass.card composited over the worst-case ground (every gray 0–255) in every mode${floor.length ? ` — ${floor.join('; ')}` : ''}`);
+    }
+  }
+
   const figmaBrands = readdirSync(resolve(HERE, './out/figma'));
   ok(figmaBrands.length >= 4, `glass: every committed Figma brand is read (${figmaBrands.length})`);
   for (const b of figmaBrands) {
@@ -12968,6 +13017,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       return !(gv?.alias?.name && /\/core\/palette\/(?:white|black)-alpha\/\d+$/.test(gv.alias.name) && gv.value.a > 0.5 && gv.value.a < 1);
     });
     ok(colorModes.length >= 1 && unbound.length === 0, `glass ${b}: color/glass/surface aliases a translucent alpha primitive in every color mode (${colorModes.length})${unbound.length ? ` — NOT IN: ${unbound.join(', ')}` : ''}`);
+    // #3073: card glass in Figma — bound to an alpha primitive (never a raw value: the alpha must live in the value,
+    // Figma forces a bound paint opaque) whose color is the card variable's own, in every color mode.
+    const offCard = colorModes.filter((x) => {
+      const vars = JSON.parse(readFileSync(resolve(dir, x), 'utf8')).variables;
+      const gv = vars.find((y: any) => y.name === `${root}/color/glass/card`), cv = vars.find((y: any) => y.name === `${root}/color/foreground/primary`);
+      const same = gv && cv && ['r', 'g', 'b'].every((k) => Math.abs(gv.value[k] - cv.value[k]) < 1e-6);
+      return !(gv?.alias?.name && /\/core\/palette\/[a-z0-9-]+-alpha\/\d+$/.test(gv.alias.name) && same && gv.value.a > 0.5 && gv.value.a < 1);
+    });
+    ok(colorModes.length >= 1 && offCard.length === 0, `glass ${b}: color/glass/card aliases a translucent alpha primitive of color/foreground/primary's color in every color mode (${colorModes.length})${offCard.length ? ` — NOT IN: ${offCard.join(', ')}` : ''}`);
   }
 }
 
@@ -14030,7 +14088,8 @@ arm: {
     if (v.alias?.name !== wantName) mismatchedAliases.push(`${v.name} → ${v.alias?.name} (want ${wantName})`);
     if (typeof tintColor === 'string') continue;
     const neutralPrefix = `${wf.root}/core/palette/`;
-    if (v.alias && !v.alias.name.startsWith(`${neutralPrefix}neutral/`) && !v.alias.name.startsWith(`${neutralPrefix}white`) && !v.alias.name.startsWith(`${neutralPrefix}black`) && v.alias.name !== `${neutralPrefix}transparent`) {
+    // `neutral-<step>-alpha/` (#3073) is card glass: a neutral step at the glass alpha, as colorless as its step.
+    if (v.alias && !v.alias.name.startsWith(`${neutralPrefix}neutral/`) && !/^neutral-\d+-alpha\//.test(v.alias.name.slice(neutralPrefix.length)) && !v.alias.name.startsWith(`${neutralPrefix}white`) && !v.alias.name.startsWith(`${neutralPrefix}black`) && v.alias.name !== `${neutralPrefix}transparent`) {
       // Wireframe is a greyscale mode — every chromatic role should route to the neutral
       // ramp (or pure white/black/transparent, the colorless primitives: transparent carries no
       // hue, so a transparent field fill (#1341) satisfies the greyscale contract trivially).

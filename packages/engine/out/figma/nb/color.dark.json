@@ -2505,6 +2505,25 @@
       }
     },
     {
+      "name": "nbds/color/glass/card",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Card glass fill behind the glass blur — the card color at 70% (90% in high-contrast modes)",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
+        "a": 0.699999988079071
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral-900-alpha/70"
+      }
+    },
+    {
       "name": "nbds/color/veil/dark/subtle",
       "resolvedType": "COLOR",
       "scopes": [

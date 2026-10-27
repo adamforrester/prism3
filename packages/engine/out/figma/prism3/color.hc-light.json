@@ -2505,6 +2505,25 @@
       }
     },
     {
+      "name": "pds3/color/glass/card",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Card glass fill behind the glass blur — the card color at 70% (90% in high-contrast modes)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.9019607901573181
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/90"
+      }
+    },
+    {
       "name": "pds3/color/veil/dark/subtle",
       "resolvedType": "COLOR",
       "scopes": [

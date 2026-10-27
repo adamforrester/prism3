@@ -447,6 +447,21 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // a second path; the rename gives every role the short name directly, including the 113 inverse ones
   // that never got a pointer at all (`docs/20` §9.9).
   const modes = resolveAllModes(theme);
+  // CARD GLASS (#3073) — the alpha step each mode's `glass.card` aliases, minted the way the white/black alpha
+  // steps are (`alphaLeaf`), and only the steps some mode reads: a card ground is one palette color per mode, so a
+  // full ramp per color would be dozens of primitives nobody binds. A white or black card reads the existing ramp.
+  let cardGlassLeaves = 0;
+  for (const m of modes) {
+    const r = m.roles['glass.card'];
+    if (!r) continue;
+    const [family, step] = r.path.slice(theme.namespace.length + 1).split('.');
+    if (family === 'white-alpha' || family === 'black-alpha') continue;
+    const node = (palette[family] ??= {});
+    if (node[step]) continue;
+    const ground = m.roles['foreground.primary'].path.slice(theme.namespace.length + 1);
+    node[step] = alphaLeaf(theme, rgbFromHex(m.roles['foreground.primary'].hex), r.alpha!, `${ground} at ${step}% — alpha, the card glass fill`);
+    cardGlassLeaves++;
+  }
   // light is canonical ($value); the rest carry per-mode overrides — only those the brand
   // opted into (docs/11 Pillar 1). A light-only brand emits no mode overrides.
   const OVERRIDE_MODES = theme.modes.filter((m) => m !== 'light');
@@ -1113,7 +1128,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // carries it to CSS as-is and code writes `backdrop-filter: blur(var(--…-blur-glass))`; in Figma it is a
   // FLOAT variable the `glass` Effect Style's radius binds (`emit-figma-styles.ts`). The fill half is the
   // color role `glass.surface`, whose alpha lives in its value (`modes.ts`).
-  const blur = { glass: dimLeaf(GLASS_BLUR_PX, `blur glass — ${GLASS_BLUR_PX}px background blur behind a glass band over a photograph; pair it with color.glass.surface`) };
+  const blur = { glass: dimLeaf(GLASS_BLUR_PX, `blur glass — ${GLASS_BLUR_PX}px background blur behind a glass band over a photograph; pair it with color.glass.surface, or color.glass.card on a card`) };
 
   // ---- gradient axis (brand-opt-in; empty for brands that declare none) ----
   const gradient: Record<string, Token> = {};
@@ -1257,7 +1272,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // `+ 1` for `white-alpha.0` (#1318) — the one alpha leaf outside the 5–90 ramp steps.
   const alphaLeaves = 2 * ALPHA_STEPS.filter((s) => s > 0 && s < 100).length + 1;
   // 3 base swatches: white, black, and the alpha-0 `transparent` primitive (#1341).
-  const colorLeaves = 3 + theme.palettes.reduce((n, p) => n + p.steps.length, 0) + alphaLeaves;
+  // `+ cardGlassLeaves` — the card ground's alpha steps (#3073), one per distinct card color the modes read.
+  const colorLeaves = 3 + theme.palettes.reduce((n, p) => n + p.steps.length, 0) + alphaLeaves + cardGlassLeaves;
   return { tree, modes, stats: { colorLeaves, dimLeaves: theme.dims.grid.length, spaceTokens: theme.dims.space.length, radiusTokens: theme.dims.radius.length, sizeSteps: theme.dims.sizes.length, fontSizes: theme.typography.sizesPx.length, fontWeights: theme.typography.weightsRef.length, typeComposites: theme.typography.composites.length, aliases: aliases.length, resolved: aliases.length - broken.length, broken, modeChecks, modePass } };
 };
 

@@ -104,13 +104,15 @@ export const INVERSE_GAPS: InverseGap[] = [
       + '`inverse.foreground.primary`.',
   },
   {
-    paths: ['color.glass.surface'],
+    paths: ['color.glass.surface', 'color.glass.card'],
     reason:
       'UNDECIDED, deliberately (#2869). Glass is the fill behind a background blur over a PHOTOGRAPH, and it '
       + 'follows the page polarity so the page text roles read on it. Whether a glass band set inside an '
       + 'inverse band should take the band\'s polarity instead has not been asked: the source comp is a '
       + 'product card on the page. Adding `inverse.glass.surface` is a MINOR the day a design needs it; '
-      + 'until then this register holds the question rather than an invented answer.',
+      + 'until then this register holds the question rather than an invented answer. The card glass (#3073) '
+      + 'follows the card ground (`foreground.primary`), which has an inverse twin; whether it should follow '
+      + '`inverse.foreground.primary` inside a band is the same unasked question.',
   },
   {
     paths: [

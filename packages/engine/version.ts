@@ -681,7 +681,14 @@ export const ENGINE_VERSION = '0.237.0';
  * the card surface's palette step unless the brand's `raisedSurface` sets it to the page or white, in light and
  * hc-light only. One added path; an added path cannot break a reference. Nothing is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.12.0';
+/**
+ * 14.13.0 (#3073, owner decision 2026-10-27: keep the white glass and add a card glass): MINOR. `color.glass.card` joins
+ * the guaranteed surface: the glass fill for a band set on a card, the card ground's (`foreground.primary`'s) palette
+ * color at the glass alpha (70%, 90% in high contrast). It aliases a minted `<palette>-<step>-alpha.<n>` primitive, or
+ * the existing white/black alpha step where the card is white or black. `color.glass.surface` is unchanged. Added
+ * paths only (the role, and the alpha primitives every corpus brand mints); nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.13.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

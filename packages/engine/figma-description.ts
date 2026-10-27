@@ -170,6 +170,8 @@ export const figmaColorDescription = (f: ColorFacts): string => {
     case 'scrim':
       return `Modal and drawer backdrop — black, ${pct}`;
     case 'glass':
+      // #3073: the card glass is the card's own color, so it names the card rather than a polarity.
+      if (seg[1] === 'card') return `Card glass fill behind the glass blur — the card color at ${pct}`;
       return `Glass fill behind the glass blur — ${pct}, white or black by mode`;
     case 'veil': {
       const [, tone, rung] = seg;
@@ -221,6 +223,9 @@ export const figmaPaletteDescription = (p: { label: string; key: string; band: s
   return `${cap(p.label)} ${p.key} — ${p.anchor ? 'the brand color, exact' : bandPhrase(p.band, p.bandKeys)}`;
 };
 export const figmaAlphaDescription = (tone: string, pct: number): string => `${cap(tone)} at ${pct}% — composites over any surface`;
+/** A card ground's alpha step (#3073), minted only for card glass: `neutral-050-alpha/70` → `Neutral 050 at 70% — the card glass fill`. */
+export const figmaCardGlassAlphaDescription = (ground: string, pct: number): string =>
+  `${cap(ground.replace(/-/g, ' '))} at ${pct}% — the card glass fill`;
 /** The palette's three literals — the extremes and the no-paint transparent. */
 export const FIGMA_EXTREME: Record<string, string> = {
   white: 'Pure white — the light extreme',

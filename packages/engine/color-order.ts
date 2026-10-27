@@ -65,7 +65,8 @@ const SEGMENT_ORDER: Record<string, string[][]> = {
   interactive: [['primary', 'destructive', 'neutral'], INTERACTIVE_PARTS, INTERACTIVE_STATES],
   disabled: [['fill', 'on-fill', 'text', 'icon', 'border']],
   scrim: [['default']],
-  glass: [['surface']],
+  // #3073: the card glass follows the white glass it is the card-ground twin of.
+  glass: [['surface', 'card']],
   veil: [['dark', 'light'], ['subtle', 'medium', 'strong', 'clear']],
   field: [['fill', 'border', 'placeholder'], ['rest', 'hover']],
 };

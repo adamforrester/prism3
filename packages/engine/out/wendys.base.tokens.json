@@ -941,6 +941,20 @@
             "$value": "#ffffffe6",
             "$description": "White alpha 90% — alpha, composites over any surface"
           }
+        },
+        "neutral-050-alpha": {
+          "70": {
+            "$type": "color",
+            "$value": "#e9e9e9b3",
+            "$description": "neutral.050 at 70% — alpha, the card glass fill"
+          }
+        },
+        "neutral-900-alpha": {
+          "70": {
+            "$type": "color",
+            "$value": "#171718b3",
+            "$description": "neutral.900 at 70% — alpha, the card glass fill"
+          }
         }
       },
       "dimension": {
@@ -2270,6 +2284,11 @@
           "$type": "color",
           "$value": "{wds.core.palette.white-alpha.70}",
           "$description": "Glass — the translucent white fill behind the glass background blur; opacity 70%"
+        },
+        "card": {
+          "$type": "color",
+          "$value": "{wds.core.palette.neutral-050-alpha.70}",
+          "$description": "Card glass — the card surface (foreground.primary) at 70% behind the glass background blur, for glass set on a card"
         }
       },
       "veil": {
@@ -4163,7 +4182,7 @@
       "glass": {
         "$type": "dimension",
         "$value": "32px",
-        "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface"
+        "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface, or color.glass.card on a card"
       }
     },
     "icon": {

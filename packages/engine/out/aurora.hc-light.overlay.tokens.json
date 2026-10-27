@@ -521,6 +521,11 @@
           "$type": "color",
           "$value": "{ads.core.palette.white-alpha.90}",
           "$description": "Glass — the translucent white fill behind the glass background blur; opacity 90%"
+        },
+        "card": {
+          "$type": "color",
+          "$value": "{ads.core.palette.white-alpha.90}",
+          "$description": "Card glass — the card surface (foreground.primary) at 90% behind the glass background blur, for glass set on a card"
         }
       },
       "field": {

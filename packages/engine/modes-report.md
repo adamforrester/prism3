@@ -31,6 +31,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | neutral.050 | — | — | · |
+| glass.card | neutral-050-alpha.70 | — | — | · |
 | foreground.secondary | neutral.100 | — | — | · |
 | foreground.tertiary | neutral.150 | — | — | · |
 | foreground.raised | white | — | — | · |
@@ -306,6 +307,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | neutral.900 | — | — | · |
+| glass.card | neutral-900-alpha.70 | — | — | · |
 | foreground.secondary | neutral.850 | — | — | · |
 | foreground.tertiary | neutral.800 | — | — | · |
 | foreground.raised | neutral.900 | — | — | · |
@@ -581,6 +583,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | white | — | — | · |
+| glass.card | white-alpha.90 | — | — | · |
 | foreground.secondary | white | — | — | · |
 | foreground.tertiary | white | — | — | · |
 | foreground.raised | white | — | — | · |
@@ -856,6 +859,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | black | — | — | · |
+| glass.card | black-alpha.90 | — | — | · |
 | foreground.secondary | black | — | — | · |
 | foreground.tertiary | black | — | — | · |
 | foreground.raised | black | — | — | · |
@@ -1206,6 +1210,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | neutral.050 | — | — | · |
+| glass.card | neutral-050-alpha.70 | — | — | · |
 | foreground.secondary | neutral.100 | — | — | · |
 | foreground.tertiary | neutral.150 | — | — | · |
 | foreground.raised | neutral.050 | — | — | · |
@@ -1481,6 +1486,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | neutral.900 | — | — | · |
+| glass.card | neutral-900-alpha.70 | — | — | · |
 | foreground.secondary | neutral.850 | — | — | · |
 | foreground.tertiary | neutral.800 | — | — | · |
 | foreground.raised | neutral.900 | — | — | · |
@@ -1756,6 +1762,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | white | — | — | · |
+| glass.card | white-alpha.90 | — | — | · |
 | foreground.secondary | white | — | — | · |
 | foreground.tertiary | white | — | — | · |
 | foreground.raised | white | — | — | · |
@@ -2031,6 +2038,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | black | — | — | · |
+| glass.card | black-alpha.90 | — | — | · |
 | foreground.secondary | black | — | — | · |
 | foreground.tertiary | black | — | — | · |
 | foreground.raised | black | — | — | · |
@@ -2383,6 +2391,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | neutral.050 | — | — | · |
+| glass.card | neutral-050-alpha.70 | — | — | · |
 | foreground.secondary | neutral.100 | — | — | · |
 | foreground.tertiary | neutral.150 | — | — | · |
 | foreground.raised | neutral.050 | — | — | · |
@@ -2658,6 +2667,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | neutral.900 | — | — | · |
+| glass.card | neutral-900-alpha.70 | — | — | · |
 | foreground.secondary | neutral.850 | — | — | · |
 | foreground.tertiary | neutral.800 | — | — | · |
 | foreground.raised | neutral.900 | — | — | · |
@@ -2933,6 +2943,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | white | — | — | · |
+| glass.card | white-alpha.90 | — | — | · |
 | foreground.secondary | white | — | — | · |
 | foreground.tertiary | white | — | — | · |
 | foreground.raised | white | — | — | · |
@@ -3208,6 +3219,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | black | — | — | · |
+| glass.card | black-alpha.90 | — | — | · |
 | foreground.secondary | black | — | — | · |
 | foreground.tertiary | black | — | — | · |
 | foreground.raised | black | — | — | · |
@@ -3559,6 +3571,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | neutral.100 | — | — | · |
+| glass.card | neutral-100-alpha.70 | — | — | · |
 | foreground.secondary | neutral.150 | — | — | · |
 | foreground.tertiary | neutral.200 | — | — | · |
 | foreground.raised | neutral.100 | — | — | · |
@@ -3834,6 +3847,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | neutral.900 | — | — | · |
+| glass.card | neutral-900-alpha.70 | — | — | · |
 | foreground.secondary | neutral.850 | — | — | · |
 | foreground.tertiary | neutral.800 | — | — | · |
 | foreground.raised | neutral.900 | — | — | · |
@@ -4109,6 +4123,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | white | — | — | · |
+| glass.card | white-alpha.90 | — | — | · |
 | foreground.secondary | white | — | — | · |
 | foreground.tertiary | white | — | — | · |
 | foreground.raised | white | — | — | · |
@@ -4384,6 +4399,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | veil.light.strong | white-alpha.60 | — | — | · |
 | veil.light.clear | white-alpha.0 | — | — | · |
 | foreground.primary | black | — | — | · |
+| glass.card | black-alpha.90 | — | — | · |
 | foreground.secondary | black | — | — | · |
 | foreground.tertiary | black | — | — | · |
 | foreground.raised | black | — | — | · |

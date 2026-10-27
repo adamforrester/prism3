@@ -2297,6 +2297,34 @@
       },
       "alias": null,
       "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/neutral-050-alpha/70",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "Neutral 050 at 70% — the card glass fill",
+      "value": {
+        "r": 0.9137254953384399,
+        "g": 0.9137254953384399,
+        "b": 0.9137254953384399,
+        "a": 0.7019608020782471
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/neutral-900-alpha/70",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "Neutral 900 at 70% — the card glass fill",
+      "value": {
+        "r": 0.09019608050584793,
+        "g": 0.09019608050584793,
+        "b": 0.0941176488995552,
+        "a": 0.7019608020782471
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
     }
   ]
 }

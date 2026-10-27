@@ -178,7 +178,7 @@
       "$description": "Glass — the translucent white fill behind the glass background blur; opacity 70%",
       "meaning": "Frosted band over a photograph",
       "when_to_use": "The translucent fill of a glass band over a photograph — a caption or footer set over the bottom of an image. Pair it with a background blur of `blur.glass`. Text on it uses the page roles, such as `text.primary`.",
-      "avoid_when": "Do not use without the background blur, as a modal backdrop (use `scrim.default`), or as an opaque surface (use `foreground.primary`).",
+      "avoid_when": "Do not use for glass set on a card (use `glass.card`), without the background blur, as a modal backdrop (use `scrim.default`), or as an opaque surface (use `foreground.primary`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.70}",
         "dark": "{hds.core.palette.black-alpha.70}",
@@ -298,6 +298,21 @@
       ],
       "tracks": [
         "border.primary"
+      ]
+    },
+    "glass.card": {
+      "$description": "Card glass — the card surface (foreground.primary) at 70% behind the glass background blur, for glass set on a card",
+      "meaning": "Frosted band over a photograph",
+      "when_to_use": "The translucent fill of a glass band set on a card — the details over the bottom of a card's photograph. It is the card's own color (`foreground.primary`), so the band matches the card and its neighbors and only the blurred photograph shows through. Pair it with a background blur of `blur.glass`. Text on it uses the page roles, such as `text.primary`.",
+      "avoid_when": "Do not use for glass over a photograph or any surface that is not a card: use `glass.surface`. Do not use without the background blur, or as an opaque surface (use `foreground.primary`).",
+      "mode_overrides": {
+        "light": "{hds.core.palette.neutral-100-alpha.70}",
+        "dark": "{hds.core.palette.neutral-900-alpha.70}",
+        "hc-light": "{hds.core.palette.white-alpha.90}",
+        "hc-dark": "{hds.core.palette.black-alpha.90}"
+      },
+      "tracks": [
+        "foreground.primary"
       ]
     },
     "foreground.secondary": {
@@ -7629,9 +7644,9 @@
       "resolves_to": "21px"
     },
     "blur.glass": {
-      "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface",
+      "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface, or color.glass.card on a card",
       "meaning": "Background-blur radius — glass",
-      "when_to_use": "The background blur behind a glass band over a photograph (`backdrop-filter: blur()` in code). Its fill is `color.glass.surface`.",
+      "when_to_use": "The background blur behind a glass band over a photograph (`backdrop-filter: blur()` in code). Its fill is `color.glass.surface`, or `color.glass.card` on a card.",
       "resolves_to": "32px"
     },
     "icon.size.xs": {
@@ -10251,6 +10266,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.glass.card",
         "color.glass.surface"
       ]
     },
@@ -10368,7 +10384,28 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.glass.card",
         "color.glass.surface"
+      ]
+    },
+    "core.palette.neutral-100-alpha.70": {
+      "$description": "neutral.100 at 70% — alpha, the card glass fill",
+      "meaning": "neutral 100 at 70% alpha — the card glass fill",
+      "intent": "Card glass fill — the card ground's color at the glass alpha; reach it through `glass.card`",
+      "tier": "primitive",
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.glass.card"
+      ]
+    },
+    "core.palette.neutral-900-alpha.70": {
+      "$description": "neutral.900 at 70% — alpha, the card glass fill",
+      "meaning": "neutral 900 at 70% alpha — the card glass fill",
+      "intent": "Card glass fill — the card ground's color at the glass alpha; reach it through `glass.card`",
+      "tier": "primitive",
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.glass.card"
       ]
     },
     "core.dimension.0": {

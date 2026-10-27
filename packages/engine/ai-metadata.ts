@@ -304,7 +304,10 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
   if (group === 'scrim') return { when_to_use: 'The dimming layer behind a modal, dialog, or drawer. The modal itself uses `foreground.raised`.', avoid_when: 'Do not use as a solid surface or for any opaque element.', tracks: ['foreground.raised'] };
   // Glass (#2869): the fill half of the glass treatment; the blur half is `blur.glass`. It follows the page
   // polarity, so the page's own text roles read on it — unlike `veil`, whose ink must hold still.
-  if (group === 'glass') return { when_to_use: 'The translucent fill of a glass band over a photograph — a caption or footer set over the bottom of an image. Pair it with a background blur of `blur.glass`. Text on it uses the page roles, such as `text.primary`.', avoid_when: 'Do not use without the background blur, as a modal backdrop (use `scrim.default`), or as an opaque surface (use `foreground.primary`).' };
+  // Card glass (#3073): the same treatment on a CARD, filled with the card's own color, so the band reads as the
+  // card and only the blurred photograph shows through. White glass stays the choice anywhere but a card.
+  if (group === 'glass' && variant === 'card') return { when_to_use: 'The translucent fill of a glass band set on a card — the details over the bottom of a card\'s photograph. It is the card\'s own color (`foreground.primary`), so the band matches the card and its neighbors and only the blurred photograph shows through. Pair it with a background blur of `blur.glass`. Text on it uses the page roles, such as `text.primary`.', avoid_when: 'Do not use for glass over a photograph or any surface that is not a card: use `glass.surface`. Do not use without the background blur, or as an opaque surface (use `foreground.primary`).', tracks: ['foreground.primary'] };
+  if (group === 'glass') return { when_to_use: 'The translucent fill of a glass band over a photograph — a caption or footer set over the bottom of an image. Pair it with a background blur of `blur.glass`. Text on it uses the page roles, such as `text.primary`.', avoid_when: 'Do not use for glass set on a card (use `glass.card`), without the background blur, as a modal backdrop (use `scrim.default`), or as an opaque surface (use `foreground.primary`).' };
 
   // veil — the media wash (#1030, renamed #1317). `variant` is the polarity, `state` the rung. A rung
   // names an INTENSITY (subtle / medium / strong), so the guidance is decision-shaped: pick the polarity
@@ -482,6 +485,8 @@ const colorIntent = (seg: string[], node: any): string | undefined => {
   if (seg[1] === 'white') return 'Pure highlight base — default light surface / on-color text';
   if (seg[1] === 'black') return 'Shadow base — scrim & shadow source / on-color text';
   if (seg[1] === 'black-alpha' || seg[1] === 'white-alpha') return 'Overlay / scrim / shadow compositing (alpha — composites over any surface)';
+  // #3073: a card ground's alpha step, minted only for card glass (`neutral-050-alpha`).
+  if (/-alpha$/.test(seg[1])) return 'Card glass fill — the card ground\'s color at the glass alpha; reach it through `glass.card`';
   const ext = node.$extensions?.prism3 ?? {};
   if (!ext.band) return undefined;
   // Usage-framed tails (what the step UNLOCKS) — distinct from the identity the
@@ -509,6 +514,7 @@ const primMeaning = (seg: string[]): string => {
     if (seg[1] === 'white' || seg[1] === undefined) return 'Pure white primitive';
     if (seg.length === 2) return `Pure ${seg[1]} primitive`;
     if (seg[1] === 'black-alpha' || seg[1] === 'white-alpha') return `${seg[1].startsWith('black') ? 'Black' : 'White'} at ${seg[2]}% alpha (composites over any surface)`;
+    if (/-alpha$/.test(seg[1])) return `${seg[1].replace(/-alpha$/, '').replace(/-/g, ' ')} at ${seg[2]}% alpha — the card glass fill`;
     return `${seg[1]} ramp — raw step ${seg[2]}`;
   }
   if (seg[0] === 'opacity') return 'Opacity scale primitive';
@@ -563,7 +569,7 @@ const thinRole = (path: string): { tier: 'layout' | 'motion' | 'typography'; mea
   if (s[0] === 'space') return { tier: 'layout', meaning: `Spacing step ${last}`, when: 'Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.' };
   if (s[0] === 'radius') return { tier: 'layout', meaning: `Corner-radius role — ${last}`, when: 'Corner rounding of surfaces and controls.' };
   // #2869: the glass blur is a role with a literal value, the background half of the glass treatment.
-  if (s[0] === 'blur') return { tier: 'layout', meaning: `Background-blur radius — ${last}`, when: 'The background blur behind a glass band over a photograph (`backdrop-filter: blur()` in code). Its fill is `color.glass.surface`.' };
+  if (s[0] === 'blur') return { tier: 'layout', meaning: `Background-blur radius — ${last}`, when: 'The background blur behind a glass band over a photograph (`backdrop-filter: blur()` in code). Its fill is `color.glass.surface`, or `color.glass.card` on a card.' };
   if (s[0] === 'border-width') return { tier: 'layout', meaning: `Border-width role — ${last}`, when: 'Stroke width of borders, dividers and outlines.' };
   if (s[0] === 'focus' && s[1] === 'ring') return { tier: 'layout', meaning: `Focus-ring geometry — ${tail(2)}`, when: 'The keyboard-focus ring drawn around a focused element. Its color is `border.focus`.' };
   if (s[0] === 'size' && s.length === 3) return { tier: 'layout', meaning: `Control size step ${s[1]} — ${s[2]}`, when: `The ${s[2]} of a button, field or other control at the ${s[1]} size step. Take every dimension of one control from the same step.` };

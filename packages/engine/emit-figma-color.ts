@@ -19,7 +19,7 @@ import { Theme, CORE_TIER } from './theme';
 import { buildTree, at } from './tree';
 import { contrast } from './color';
 import { interactiveStateRungs } from './modes';
-import { figmaColorDescription, figmaPaletteDescription, figmaAlphaDescription, FIGMA_EXTREME } from './figma-description';
+import { figmaColorDescription, figmaPaletteDescription, figmaAlphaDescription, figmaCardGlassAlphaDescription, FIGMA_EXTREME } from './figma-description';
 
 export type FigmaColor = { r: number; g: number; b: number; a: number };
 /** An EASING variable's value (#2412), in the shape Figma's `MotionEasing` takes it: a cubic bezier, or a spring
@@ -313,6 +313,9 @@ const paletteDescription = (theme: Theme, [palette, key]: string[], leaf: any): 
   const alpha = /^(black|white)-alpha$/.exec(palette);
   if (alpha) return figmaAlphaDescription(alpha[1], Number(key));
   const p = theme.palettes.find((x) => x.palette === palette);
+  // #3073: a card ground's alpha step, minted for card glass (`neutral-050-alpha`) — a family no ramp builds.
+  const cardAlpha = /^(.+)-alpha$/.exec(palette);
+  if (!p && cardAlpha) return figmaCardGlassAlphaDescription(cardAlpha[1], Number(key));
   if (!p) throw new Error(`emit-figma-color: palette '${palette}' has no PaletteBuild to describe it from`);
   const step = p.steps.find((s) => s.key === key)!;
   return figmaPaletteDescription({

@@ -3167,6 +3167,32 @@
               }
             }
           }
+        },
+        "neutral-050-alpha": {
+          "70": {
+            "$type": "color",
+            "$value": "#e9e9e9b3",
+            "$description": "neutral.050 at 70% — alpha, the card glass fill",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "alpha": 0.7
+              }
+            }
+          }
+        },
+        "neutral-900-alpha": {
+          "70": {
+            "$type": "color",
+            "$value": "#171718b3",
+            "$description": "neutral.900 at 70% — alpha, the card glass fill",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "alpha": 0.7
+              }
+            }
+          }
         }
       },
       "dimension": {
@@ -11167,6 +11193,50 @@
                   "contrast": 1,
                   "against": "self",
                   "description": "Glass — the translucent black fill behind the glass background blur; opacity 90%"
+                }
+              },
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ]
+              }
+            }
+          }
+        },
+        "card": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.neutral-050-alpha.70}",
+          "$description": "Card glass — the card surface (foreground.primary) at 70% behind the glass background blur, for glass set on a card",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "pds3.core.palette.neutral-050-alpha.70",
+              "contrast": 1,
+              "against": "self",
+              "modes": {
+                "dark": {
+                  "$value": "{pds3.core.palette.neutral-900-alpha.70}",
+                  "aliasOf": "pds3.core.palette.neutral-900-alpha.70",
+                  "contrast": 1,
+                  "against": "self"
+                },
+                "hc-light": {
+                  "$value": "{pds3.core.palette.white-alpha.90}",
+                  "aliasOf": "pds3.core.palette.white-alpha.90",
+                  "contrast": 1,
+                  "against": "self",
+                  "description": "Card glass — the card surface (foreground.primary) at 90% behind the glass background blur, for glass set on a card"
+                },
+                "hc-dark": {
+                  "$value": "{pds3.core.palette.black-alpha.90}",
+                  "aliasOf": "pds3.core.palette.black-alpha.90",
+                  "contrast": 1,
+                  "against": "self",
+                  "description": "Card glass — the card surface (foreground.primary) at 90% behind the glass background blur, for glass set on a card"
                 }
               },
               "figma": {
@@ -22254,7 +22324,7 @@
       "glass": {
         "$type": "dimension",
         "$value": "32px",
-        "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface",
+        "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface, or color.glass.card on a card",
         "$extensions": {
           "prism3": {
             "generated": true,

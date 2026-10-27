@@ -487,6 +487,16 @@ export const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as co
  * them all; this table only decides whether the message can point somewhere useful or has to say
  * "file one". Adding a row without adding the input behind it would make the error a dead end.
  */
+/**
+ * The palette family card glass aliases (#3073): the card ground's palette color with `-alpha`, the shape of
+ * `white-alpha` / `black-alpha`. `<ns>.neutral.050` → `neutral-050-alpha`; `<ns>.white` → `white-alpha`.
+ * `tree.ts` mints the leaf under this family; the two read the same function so the alias always resolves.
+ */
+export const cardGlassFamily = (groundPath: string, ns: string): string => {
+  if (!groundPath.startsWith(`${ns}.`)) throw new Error(`cardGlassFamily: '${groundPath}' is not a palette path under '${ns}'`);
+  return `${groundPath.slice(ns.length + 1).replace(/\./g, '-')}-alpha`;
+};
+
 export const GROUND_INPUT: Record<string, string> = {
   'background.primary': 'base',
   'inverse.background.primary': 'inverseBase',
@@ -1248,6 +1258,24 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // `inverse.foreground.*`. (`action` is top-level, below.) `foreground.primary`
   // sits on `background.primary`.
   putSurf('foreground.primary', cfg.fg.primary, 'Default surface placed on the page — a card');
+  /*
+   * CARD GLASS (#3073, owner decision 2026-10-27: keep the white glass and add a card glass). The glass fill for a
+   * band set on a CARD: the card ground's own palette color at the glass step, so the band reads as the card (and
+   * as the photo's background, and its neighbors' details) and only the blurred photograph shows through.
+   * `glass.surface` above stays the white/black glass for glass over photography or any other surface.
+   *
+   * It aliases an alpha step of the card's palette color, `<palette>-<step>-alpha.<n>`, which `tree.ts` mints from
+   * this path; on a white or black card it is the existing `white-alpha` / `black-alpha` step. Same alpha as
+   * `glass.surface` in every mode (70, 90 in high contrast), so the two glasses differ only in hue. It follows
+   * the card through an override too: the override layer below re-puts it when `foreground.primary` moves.
+   */
+  const putCardGlass = () => {
+    const card = roles['foreground.primary'];
+    put('glass.card', { path: `${ns}.${cardGlassFamily(card.path, ns)}.${glassStep}`, rgb: rgbByRole.get('foreground.primary')!, ratio: 1 },
+      `Card glass — the card surface (foreground.primary) at ${glassStep}% behind the glass background blur, for glass set on a card`, 'self', 0);
+    roles['glass.card'].alpha = glassStep / 100;
+  };
+  putCardGlass();
   putSurf('foreground.secondary', cfg.fg.secondary, 'A second surface — a panel / nested container');
   putSurf('foreground.tertiary', cfg.fg.tertiary, 'A third surface step');
   // #3049 — the panel over the scrim; `raisedChoice` holds the rule. It has no inverse twin: a dialog renders in
@@ -2455,6 +2483,13 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       rgbByRole.set(rolePath, outRgb);
       overridden.add(rolePath);
     }
+
+    // Card glass is the card's color at the glass step, never a step of its own (#3073): it follows an overridden
+    // card, and an override aimed at it would mint an opaque fill under a glass name, so that is refused.
+    if (overridden.has('glass.card')) {
+      throw new Error(`overrides[${mode}]: 'glass.card' follows the card surface (foreground.primary) and cannot be set on its own (#3073). Override 'foreground.primary' instead, and the card glass follows it.`);
+    }
+    if (overridden.has('foreground.primary')) putCardGlass();
 
     // #978's dependent-ratio re-derivation and its `staleDependents` warning BOTH LIVED HERE, and are
     // gone (#979). They existed because a dependent could not follow its ground: the ratio was patched

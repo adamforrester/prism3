@@ -357,6 +357,11 @@ for (const brand of brands) {
     `${brand}: [#2869] the glass fill reaches CSS as a reference to an alpha primitive (${glassVar} = ${css.byName[glassVar] ?? 'MISSING'})`);
   ok(base.byName[glassVar] !== undefined && dark.byName[glassVar] !== undefined && base.byName[glassVar] !== dark.byName[glassVar],
     `${brand}: [#2869] the glass fill follows the mode: base and dark differ (${base.byName[glassVar]} vs ${dark.byName[glassVar]})`);
+  // #3073: the card glass reaches CSS the same way — a reference to an alpha primitive (the card ground's minted
+  // `<palette>-<step>-alpha` step, or white/black alpha on a white or black card), never a resolved literal.
+  const cardGlassVar = `--${src.root}-color-glass-card`;
+  ok(/^var\(--[a-z0-9-]+-core-palette-[a-z0-9-]+-alpha-\d+\)$/.test(css.byName[cardGlassVar] ?? ''),
+    `${brand}: [#3073] the card glass fill reaches CSS as a reference to an alpha primitive (${cardGlassVar} = ${css.byName[cardGlassVar] ?? 'MISSING'})`);
 }
 
 // ---- #1296: ITALIC AND WEIGHT REACH THE CONSUMER AS CSS VALUES, NEVER AS A FIGMA STYLE NAME ----

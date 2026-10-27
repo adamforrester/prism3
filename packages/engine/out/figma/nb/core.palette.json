@@ -1737,6 +1737,34 @@
       },
       "alias": null,
       "hiddenFromPublishing": true
+    },
+    {
+      "name": "nbds/core/palette/neutral-050-alpha/70",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "Neutral 050 at 70% — the card glass fill",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
+        "a": 0.699999988079071
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "nbds/core/palette/neutral-900-alpha/70",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "Neutral 900 at 70% — the card glass fill",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
+        "a": 0.699999988079071
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
     }
   ]
 }
