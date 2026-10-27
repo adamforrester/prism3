@@ -97,24 +97,25 @@
       "codeOnly": [
         "label routing — the accessibility contract is a DOM shape: with a label, role=\"img\" and aria-label; without one, aria-hidden=\"true\". Figma has no accessibility tree, and the two are pixel-identical, so the Figma leg cannot carry it.",
         "forced colors — under forced-colors mode the browser would repaint the mark in system colors, which is the retint the provider forbids. The mark sets forced-color-adjust: none on itself only, so the text and focus ring around it still follow the user's colors.",
-        "swapping the artwork in code — the package exports the marks as a name-to-SVG map, and an app may pass its own map with the same names to a BrandMarkProvider, so a brand's licensed artwork replaces the placeholders without forking a component (proposal §1.3, owner decision Q-B3 A).",
+        "swapping the artwork in code — the package exports the marks as a name-to-SVG map, and an app may pass its own map with the same names to a BrandMarkProvider, so a brand's licensed artwork replaces these without forking a component (proposal §1.3, owner decision Q-B3 A).",
         "gradient ids — a mark with a gradient names it by id inside its own SVG. Two copies inline on one page share the id, and the second resolves to the first, so the code projection makes each instance's ids unique. Figma imports each mark once, where the collision cannot happen.",
         "width from the proportion — the host binds the height; the width is the height times the mark's artboard ratio. In code the SVG keeps its viewBox and width: auto. In Figma the host's slot is locked to the ratio (#2343 PR 2)."
       ],
       "notes": {
         "contested": [
-          "Which providers ship: the owner will supply about a dozen (Q-B7 amended), and the list is data. Today every mark but card/generic is a neutral placeholder named for the proposal's first set.",
+          "social/google-mono ships because the owner asked for the full social set in full color and one color (Q782), while Google publishes no one-color G for sign-in (Q-B2 A). Flagged on PR 3 of #2343; the brand trims the set once it confirms what it uses.",
           "Where the artwork lives if the repository goes public: committed today (Q-B1 B); refactored to placeholders plus recorded terms (Q-B1 A) before any publication. Recorded in marks/NOTICE.md and marks/provenance.json."
         ],
         "unverified": [
-          "The social networks' brand-resource terms have not been read; the gates check only what provenance.json records, so the terms arrive with the provider files (PR 3 of #2343)."
+          "The artwork's original sources and their terms are not recorded (owner decision, 2026-10-27): the owner assembled it from several public sources and hand-edited it. It is committed for internal use (Q-B1 B), and the gates check only what provenance.json records."
         ],
         "evolution": [
           "Proposed on #2343 (2026-10-25) as a second icon type, after #2316 asked for provider marks the core set could not carry. The owner chose two swap routes, by name (Q-B3 A), separate one-color files only where the provider publishes them (Q-B2 A), and committed artwork for internal use (Q-B1 B).",
-          "Card tiles (Q720 A, 2026-10-26): the card files are full-bleed, square corners and no border, and the component draws the corner radius and the edge from tokens, so every tile has the same edge at every size and mode. The placeholders were re-exported full-bleed before the provider files arrive."
+          "Payment tiles (Q720 A, 2026-10-26): the tile files are full-bleed, square corners and no border, and the component draws the corner radius and the edge from tokens, so every tile has the same edge at every size and mode. The placeholders were re-exported full-bleed before the provider files arrive.",
+          "The owner's artwork (PR 3 of #2343, 2026-10-27) replaced the placeholders, with four kinds: payment (32 by 20 tiles, renamed from card, Q780 A), logo (24 high, hugging the artwork, renamed from wallet, Q783 A), social (the full set, each with a one-color form, Q782) and provider (the sign-in glyphs). payment/generic is the owner's own card, a silhouette with no ground, so its record says it is not full-bleed."
         ],
         "projection": [
-          "In Figma each mark is a standalone brand-mark/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink. A card mark's frame is the one exception, and it is the frame, not the artwork: its corner radii and stroke weight are bound variables, its stroke the border color, and it clips the artwork to its corners."
+          "In Figma each mark is a standalone brand-mark/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink. A payment tile's frame is the one exception, and it is the frame, not the artwork: its corner radii and stroke weight are bound variables, its stroke the border color, and it clips the artwork to its corners."
         ]
       },
       "docGaps": [

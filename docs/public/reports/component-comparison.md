@@ -584,7 +584,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | min | counter | 0 | — |
 |  | progress | 0 | — |
 |  | slider | 0 | — |
-| name | brand-mark | — | 19 values |
+| name | brand-mark | — | 74 values |
 |  | card-number-field | — | — |
 |  | checkbox-group | — | — |
 |  | code-input | — | — |

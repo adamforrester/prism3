@@ -20322,7 +20322,7 @@ arm: {
     ok(validateComponentDef(host).errors.length === 0,
       `#2343 PR 2: a slot that binds its height under aspectLock and keeps its content's paint validates clean (${validateComponentDef(host).errors.slice(0, 2).join('; ') || 'no errors'})`);
     // At a full coordinate (the set's), where Button's own slot does take its host's ink, so the control can fail.
-    const nodeAt = (d: ComponentDef) => figmaAnatomySet(d, { swapTarget: 'brand-mark/card/visa' }).find((p) => p.slots?.leading)?.root.children?.find((c) => c.name === 'leadingVisual');
+    const nodeAt = (d: ComponentDef) => figmaAnatomySet(d, { swapTarget: 'brand-mark/payment/visa' }).find((p) => p.slots?.leading)?.root.children?.find((c) => c.name === 'leadingVisual');
     const slot = nodeAt(host);
     ok(!!slot && slot.descendantFills === undefined && slot.fixedPaint === true && !slot.paints,
       `#2343 PR 2 fixedPaint: the mark slot carries no descendantFills and states fixedPaint (descendantFills ${String(slot?.descendantFills)}, fixedPaint ${String(slot?.fixedPaint)})`);
@@ -20343,7 +20343,7 @@ arm: {
     ok(validateComponentDef(plainHeight).errors.some((e) => /kind 'slot' but binds 'height'/.test(e)),
       '#2343 PR 2: a slot that binds a height WITHOUT aspectLock is still refused — it would reach no node');
     // THE PASTE EXECUTOR reads the main's proportion and locks before the bind loop, in that order.
-    const js = planToPluginJs(figmaAnatomyPlan(host, 'medium', { leading: true, swapTarget: 'brand-mark/card/visa' }));
+    const js = planToPluginJs(figmaAnatomyPlan(host, 'medium', { leading: true, swapTarget: 'brand-mark/payment/visa' }));
     const lockAt = js.indexOf('if(n.aspectLock)'), bindAt = js.indexOf('for(const [prop,varName] of Object.entries(n.bound))');
     ok(lockAt > 0 && bindAt > lockAt && /if\(n\.aspectLock\)\{const m=await node\.getMainComponentAsync\(\);if\(m&&m\.height\)\{node\.resize\(m\.width\/m\.height,1\);node\.lockAspectRatio\(\);\}/.test(js),
       `#2343 PR 2 paste executor: an aspect-locked instance is resized to its main's proportion and locked BEFORE the bind loop (lock at ${lockAt}, bind at ${bindAt})`);
@@ -22352,7 +22352,7 @@ arm: {
         `#2428 paste: Code input's character carries its size's text style from the paste executor at every size, untrimmed, nothing discarded (${bad.join(' | ') || 'clean'})`);
     }
 
-    // ---- #2343 Q720 A: a card mark's frame draws the tile's corners and edge through the PASTE executor ----
+    // ---- #2343 Q720 A: a payment tile's frame draws its corners and edge through the PASTE executor ----
     // The plugin leg is in test-write-components. Names typed from the decision (the roles held as Q-T1 and Q-T2 on
     // the PR), not read from the plan; a bound weight counts on the scalar or on all four per-side keys (#1332).
     {
@@ -22360,7 +22360,7 @@ arm: {
       const CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
       const bad: string[] = [];
       let tiles = 0, pasted = 0;
-      for (const name of ['card/visa', 'card/generic', 'social/x-mono', 'wallet/paypal']) {
+      for (const name of ['payment/visa', 'payment/generic', 'social/x-mono', 'logo/paypal']) {
         const plan = figmaAnatomyPlan(markDef, undefined, { name } as never);
         const page: StubPage = { children: [] };
         const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: [], comps: [], page });
@@ -22374,14 +22374,14 @@ arm: {
         const got = [...CORNERS.map(v), weight, strokes[0]?.boundVariables?.color?.id?.replace(/^V:/, '') ?? null, String(frame?.clipsContent)];
         const edgeMisses = run.misses.filter((m) => /Radius|stroke|clips|THREW/i.test(m));
         pasted++;
-        if (name.startsWith('card/')) {
+        if (name.startsWith('payment/')) {
           tiles++;
           const want = [...CORNERS.map(() => 'radius/sm'), 'border-width/hairline', 'color/border/primary', 'true'];
           if (!frame || JSON.stringify(got) !== JSON.stringify(want) || edgeMisses.length) bad.push(`${name}: ${frame ? got.join(' / ') : 'no frame'}${edgeMisses.length ? `; ${edgeMisses[0]}` : ''}`);
         } else if (!frame || strokes.length || frame.clipsContent || CORNERS.some((k) => bv[k]) || weight) bad.push(`${name} (not a tile): ${frame ? got.join(' / ') : 'no frame'}`);
       }
       ok(pasted === 4 && tiles === 2 && bad.length === 0,
-        `#2343 Q720 A paste executor: a card mark's frame reads back with radius/sm corners, a border-width/hairline edge in color/border/primary, and clips; a square or wallet mark's has no edge (${bad.join(' | ') || 'clean'})`);
+        `#2343 Q720 A paste executor: a payment tile's frame reads back with radius/sm corners, a border-width/hairline edge in color/border/primary, and clips; a square mark's or a logo's has no edge (${bad.join(' | ') || 'clean'})`);
     }
 
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------
@@ -36548,7 +36548,7 @@ arm: {
     '#2343 PR 4 card-number-field props: brand defaults to generic, showCardMark to true, and there is no trailing glyph or clear action');
   // THE FACTORY refuses a mark edge with no tile, and a tile on another edge.
   const threw = (spec: Record<string, unknown>): boolean => { try { makeTextField({ ...(spec as any) }); return false; } catch (e) { return /'mark' is required with edge 'mark'/.test((e as Error).message); } };
-  ok(threw({ id: 'x', edge: 'mark', props: [], codeOnly: [] }) && threw({ id: 'x', edge: 'trailing-glyph', mark: { start: 'card/generic' }, props: [], codeOnly: [] }),
+  ok(threw({ id: 'x', edge: 'mark', props: [], codeOnly: [] }) && threw({ id: 'x', edge: 'trailing-glyph', mark: { start: 'payment/generic' }, props: [], codeOnly: [] }),
     '#2343 PR 4 field factory: edge mark without a start tile, and a start tile on another edge, are refused by name');
   // A FIXED-PAINT SLOT'S DEFAULT IS A MARK: an icon name there throws at projection, naming the mark vocabulary.
   const iconOnTile = JSON.parse(JSON.stringify(cf)) as ComponentDef; iconOnTile.anatomy!.parts.cardMark.swapDefault = 'check';

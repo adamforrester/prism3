@@ -20,13 +20,13 @@
  *       `fixedPaint` (#2343 PR 2's mechanism; this is the outcome). At every member: a disabled host keeps the
  *       mark's colors too. The Card number field is the first host (#2343 PR 4), and `MARK_HOSTS` lists every host
  *       by hand, both ways, so the arm cannot pass by reading no host (docs/34 shape 9).
- *   (e) THE CARD TILE (owner decision Q720 A, 2026-10-26) — a card file is full-bleed, and the component draws the
- *       tile's corners and edge. On every `card/*` member, the frame that holds the artwork binds all four corner
+ *   (e) THE PAYMENT TILE (owner decisions Q720 A, Q780 A) — a payment tile is full-bleed, and the component draws the
+ *       tile's corners and edge. On every `payment/*` member, the frame that holds the artwork binds all four corner
  *       radii to a `radius/*` variable and its stroke weight to a `border-width/*` variable, strokes in a
  *       `color/border/*` variable, and clips the artwork to the corners; on every other member, none of it. The
  *       plan has no size coordinate: a host binds the mark's height on its instance (20, 24 or 32), and a bound
  *       radius and weight hold their value at every one of them, where a baked edge would scale with the
- *       artwork. That the FILE bakes no edge is `lint-glyph-geometry.ts`'s mark arm (CARD TILE BAKED).
+ *       artwork. That the FILE bakes no edge is `lint-glyph-geometry.ts`'s mark arm (TILE BAKED).
  *       The edge is the frame's, never the artwork's, so (c) admits exactly these properties on exactly that node.
  *
  * ── INDEPENDENCE (docs/34) ──────────────────────────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ export const carriesMark = (n: FigmaNodePlan): boolean =>
 
 /** Which members are tiles: the name's kind, typed here rather than read from `BRAND_MARK_KINDS`, which the def's
  *  own gate reads. Pure. */
-export const isCardMark = (name: string): boolean => name.startsWith('card/');
+export const isTileMark = (name: string): boolean => name.startsWith('payment/');
 /** The frame properties the tile edge binds, and the variable family each must come from (Q720 A). */
 const TILE_EDGE: Record<string, string> = {
   topLeftRadius: 'radius/', topRightRadius: 'radius/', bottomLeftRadius: 'radius/', bottomRightRadius: 'radius/',
@@ -97,7 +97,7 @@ export const tileEdgeErrors = (n: FigmaNodePlan, tile: boolean): string[] => {
   const out: string[] = [];
   const bound = (n.bound ?? {}) as Record<string, unknown>;
   if (!tile) {
-    if (n.clipsContent) out.push('clips its artwork, and only a card tile has corners to clip to');
+    if (n.clipsContent) out.push('clips its artwork, and only a payment tile has corners to clip to');
     return out;
   }
   for (const [prop, family] of Object.entries(TILE_EDGE)) {
@@ -124,7 +124,7 @@ const self: string[] = [];
   if (tileEdgeErrors({ ...tile, bound: { ...edge, topLeftRadius: undefined } } as unknown as FigmaNodePlan, true).length !== 1) self.push('tileEdgeErrors misses an unbound corner');
   if (tileEdgeErrors({ ...tile, paints: {} } as unknown as FigmaNodePlan, true).length !== 1) self.push('tileEdgeErrors misses an unpainted edge');
   if (tileEdgeErrors({ name: 'glyph', type: 'GLYPH' } as FigmaNodePlan, false).length) self.push('tileEdgeErrors reports an edge on a bare non-tile');
-  if (!isCardMark('card/visa') || isCardMark('social/x-mono')) self.push('isCardMark misreads a kind');
+  if (!isTileMark('payment/visa') || isTileMark('social/x-mono') || isTileMark('logo/visa')) self.push('isTileMark misreads a kind');
   if (carriesMark({ name: 'icon', type: 'NESTED_INSTANCE', nestTarget: 'icon/check' } as FigmaNodePlan)) self.push('carriesMark reads an icon as a mark');
 }
 if (self.length) {
@@ -162,12 +162,12 @@ else {
     markPlans++;
     const name = String(plan.coord.name);
     let docs = 0;
-    const tile = isCardMark(name);
+    const tile = isTileMark(name);
     // (e) the tile edge, on the frame that holds the artwork: the plan's GLYPH node, which a host instances.
-    for (const t of tileEdgeErrors(plan.root, tile)) failures.push(`${MARK_PREFIX}${name}: CARD TILE EDGE — the mark's frame '${plan.root.name}' ${t}`);
+    for (const t of tileEdgeErrors(plan.root, tile)) failures.push(`${MARK_PREFIX}${name}: TILE EDGE — the mark's frame '${plan.root.name}' ${t}`);
     if (tile) tileMembers++;
     walk(plan.root, (n) => {
-      // The edge is the one paint a card tile's frame carries, and (e) has judged it: (c) admits exactly those keys there.
+      // The edge is the one paint a payment tile's frame carries, and (e) has judged it: (c) admits exactly those keys there.
       const edgeKeys = tile && n === plan.root ? new Set([...Object.keys(TILE_EDGE).map((k) => `a variable bound to ${k} (`), 'strokes ']) : new Set<string>();
       for (const p of paintOn(n)) if (![...edgeKeys].some((k) => p.startsWith(k))) failures.push(`${MARK_PREFIX}${name}: node '${n.name}' carries ${p} — a mark's colors are its own, and a variable on one follows the theme`);
       if (n.glyphSvg) {
@@ -200,9 +200,9 @@ for (const def of componentDefs) {
 }
 for (const id of MARK_HOSTS) if (!componentDefs.some((d) => d.id === id)) failures.push(`${id}: is in MARK_HOSTS and no such component is registered`);
 
-console.log(`Mark colors — ${sourceColors.size} source file(s), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} card tile(s), ${hosted} host node(s) carrying a mark.`);
+console.log(`Mark colors — ${sourceColors.size} source file(s), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} payment tile(s), ${hosted} host node(s) carrying a mark.`);
 if (markPlans === 0 && markDef) failures.push(`'${MARK_DEF}' projected no plan — the plan arm checked nothing`);
-if (markDef && Object.keys(BRAND_MARK_SOURCES).some(isCardMark) && tileMembers === 0) failures.push(`the set lists card marks and no '${MARK_DEF}' plan was read as a card tile — the tile-edge arm checked nothing`);
+if (markDef && Object.keys(BRAND_MARK_SOURCES).some(isTileMark) && tileMembers === 0) failures.push(`the set lists payment tiles and no '${MARK_DEF}' plan was read as a tile — the tile-edge arm checked nothing`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} mark color problem(s):\n`);
   for (const f of failures) console.error(`    ${f}`);
@@ -211,4 +211,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('  ✓ clean — every mark paints its own colors, from file to record to module to plan, and no host retints one;');
-console.log('    every card tile\'s corners and edge are bound on its frame, and no other mark has an edge.');
+console.log('    every payment tile\'s corners and edge are bound on its frame, and no other mark has an edge.');

@@ -17,8 +17,7 @@
  *    and never retinted (`fixedPaint`). TextField's trailing glyph is gone: the tile takes its place.
  *  · IT STARTS AT THE GENERIC TILE (owner, 2026-10-27: the generic tile is the owner's "no card type yet" artwork, which
  *    replaces the core `bank-card` glyph the 2026-10-25 proposal planned). Named through the mark set, never as a path:
- *    the tile kind is whichever kind the set draws on the card artboard (`card/` today, `payment/` after PR 3's rename),
- *    so the rename moves no line here.
+ *    the tile kind is whichever kind the set draws on the tile artboard (`payment/` since PR 3's rename of `card/`).
  *  · THE MARK SLOT TAKES TILES ONLY. The `brand` prop's values are the tile kind's marks, read from the set by artboard,
  *    so a network added to the set is a value the day it lands, and no square, logo or social mark can be named.
  *    `lint-card-mark-slot.ts` holds the outcome against the folder.
@@ -39,13 +38,13 @@ import { BRAND_MARK_NAMES } from '../brand-mark-glyphs';
 import { BRAND_MARK_KINDS } from '../brand-mark-set';
 import { makeTextField } from './text-field';
 
-/** The payment tiles: every mark the set draws on the card artboard, by kind, so the `card/` → `payment/` rename and a
- *  network added to the set both reach this field without an edit. */
-const TILES = BRAND_MARK_NAMES.filter((n) => BRAND_MARK_KINDS[n.split('/')[0]] === 'card');
+/** The payment tiles: every mark the set draws on the tile artboard, by kind, so a kind renamed in the set (`card/` →
+ *  `payment/`, PR 3) and a network added to it both reach this field without an edit. */
+const TILES = BRAND_MARK_NAMES.filter((n) => BRAND_MARK_KINDS[n.split('/')[0]] === 'tile');
 /** The tile kind, the first segment every tile shares. */
 const TILE_KIND = TILES[0]?.split('/')[0];
 if (!TILE_KIND || TILES.some((n) => !n.startsWith(`${TILE_KIND}/`)))
-  throw new Error(`card-number-field: the mark set draws its card-artboard marks under ${JSON.stringify([...new Set(TILES.map((n) => n.split('/')[0]))])}; the field needs exactly one tile kind`);
+  throw new Error(`card-number-field: the mark set draws its tile-artboard marks under ${JSON.stringify([...new Set(TILES.map((n) => n.split('/')[0]))])}; the field needs exactly one tile kind`);
 /** Each tile's network, the `brand` value: the name after the kind. */
 const NETWORKS = TILES.map((n) => n.slice(TILE_KIND.length + 1));
 /** The network the field shows before it can tell: the generic tile. */

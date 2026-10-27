@@ -1,6 +1,6 @@
 # BrandMark
 
-> A provider's own mark, in its own colors: sign-in, wallet, card and social. Never retinted.
+> A provider's own mark, in its own colors: sign-in, payment and social. Never retinted.
 
 - **ID:** `brand-mark`
 - **Category:** foundations
@@ -9,23 +9,23 @@
 
 ## Overview
 
-A provider's mark, drawn as the provider supplies it: the glyph a sign-in or wallet button carries, a card network's mark in a payment field, a social network's mark in a footer link. The colors are the provider's and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, card marks 32 by 20, and wallet lockups 24 high at the provider's width. A card mark is a tile: its corners and its edge come from the theme, the same at every size.
+A provider's mark, drawn as the provider supplies it: the glyph a sign-in button carries, a payment provider's tile or logo, a social network's mark in a footer link. The colors are the provider's and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, payment tiles 32 by 20, and logos 24 high at their own width. A payment tile's corners and its edge come from the theme, the same at every size.
 
 - **Purpose:** Show a provider's mark, in the provider's colors and proportion, decorative or named.
-- **Use when:** Wherever a provider's service is named: in a sign-in or wallet button, a card field or a social link, and on its own, named by label, in a row of accepted cards.
+- **Use when:** Wherever a provider's service is named: in a sign-in or wallet button, a payment field or a social link, and on its own, named by label, in a row of accepted payments.
 - **Avoid when:** For a generic concept glyph, use Icon: a mark identifies one provider and is never retinted. Never as a button on its own: a sign-in or social action is a button or link whose label names the provider, with the mark inside it, decorative. Never for a provider whose artwork is not in the set.
 
 ## Anatomy
 
-Shown on the default member: name `card/amex`.
+Shown on the default member: name `logo/affirm`.
 
-1. **Glyph** — The mark itself, on its kind's artboard, in the provider's colors. It takes no ink from the component around it. On a card mark the frame rounds the corners and draws a 1px edge from the theme, over artwork drawn full-bleed.
+1. **Glyph** — The mark itself, on its kind's artboard, in the provider's colors. It takes no ink from the component around it. On a payment tile the frame rounds the corners and draws a 1px edge from the theme, over artwork drawn full-bleed.
 
 ## Styles
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `name` | `card/amex`, `card/generic`, `card/mastercard`, `card/visa`, `provider/apple`, `provider/apple-white`, `provider/facebook`, `provider/google`, `social/facebook`, `social/facebook-mono`, `social/instagram`, `social/instagram-mono`, `social/x-mono`, `wallet/apple-pay-black`, `wallet/apple-pay-white`, `wallet/google-pay-black`, `wallet/google-pay-white`, `wallet/paypal`, `wallet/shop-pay` | at runtime | Which mark, as kind and provider: card/visa, provider/google, social/instagram-mono. The list is generated from the mark set, so an unknown name fails at compile time, and a provider added to the set reaches the list the day it lands. |
+| `name` | `logo/affirm`, `logo/amazon-pay`, `logo/amex`, `logo/apple-pay`, `logo/diners-club`, `logo/discover`, `logo/google-pay`, `logo/klarna`, `logo/mastercard`, `logo/paypal`, `logo/paypal-wordmark`, `logo/shop-pay`, `logo/venmo`, `logo/visa`, `payment/affirm`, `payment/amazon-pay`, `payment/amex`, `payment/apple-pay`, `payment/diners-club`, `payment/discover`, `payment/generic`, `payment/google-pay`, `payment/klarna`, `payment/maestro`, `payment/mastercard`, `payment/paypal`, `payment/shop-pay`, `payment/venmo`, `payment/visa`, `provider/apple`, `provider/facebook`, `provider/google`, `social/apple`, `social/apple-mono`, `social/discord`, `social/discord-mono`, `social/dribbble`, `social/dribbble-mono`, `social/facebook`, `social/facebook-mono`, `social/figma`, `social/figma-mono`, `social/github`, `social/github-mono`, `social/google`, `social/google-mono`, `social/instagram`, `social/instagram-mono`, `social/linkedin`, `social/linkedin-mono`, `social/medium`, `social/medium-mono`, `social/messenger`, `social/messenger-mono`, `social/pinterest`, `social/pinterest-mono`, `social/reddit`, `social/reddit-mono`, `social/snapchat`, `social/snapchat-mono`, `social/spotify`, `social/spotify-mono`, `social/tiktok`, `social/tiktok-mono`, `social/tumblr`, `social/tumblr-mono`, `social/twitch`, `social/twitch-mono`, `social/whatsapp`, `social/whatsapp-mono`, `social/x`, `social/x-mono`, `social/youtube`, `social/youtube-mono` | at runtime | Which mark, as kind and provider: payment/visa, logo/apple-pay, provider/google, social/instagram-mono. The list is generated from the mark set, so an unknown name fails at compile time, and a provider added to the set reaches the list the day it lands. |
 
 ## Usage guidelines
 
@@ -83,13 +83,13 @@ Name an informative mark with the provider's own name, spelled the way the provi
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `name` | enum: BrandMarkName (`card/amex`, `card/generic`, `card/mastercard`, `card/visa`, `provider/apple`, `provider/apple-white`, `provider/facebook`, `provider/google`, `social/facebook`, `social/facebook-mono`, `social/instagram`, `social/instagram-mono`, `social/x-mono`, `wallet/apple-pay-black`, `wallet/apple-pay-white`, `wallet/google-pay-black`, `wallet/google-pay-white`, `wallet/paypal`, `wallet/shop-pay`) | — | yes | Which mark, as kind and provider: card/visa, provider/google, social/instagram-mono. The list is generated from the mark set, so an unknown name fails at compile time, and a provider added to the set reaches the list the day it lands. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The height: 20, 24 or 32px, from the icon size tokens. The width follows from the mark's own proportion, so a card mark stays 8 by 5 and a wallet lockup keeps its width. |
+| `name` | enum: BrandMarkName (`logo/affirm`, `logo/amazon-pay`, `logo/amex`, `logo/apple-pay`, `logo/diners-club`, `logo/discover`, `logo/google-pay`, `logo/klarna`, `logo/mastercard`, `logo/paypal`, `logo/paypal-wordmark`, `logo/shop-pay`, `logo/venmo`, `logo/visa`, `payment/affirm`, `payment/amazon-pay`, `payment/amex`, `payment/apple-pay`, `payment/diners-club`, `payment/discover`, `payment/generic`, `payment/google-pay`, `payment/klarna`, `payment/maestro`, `payment/mastercard`, `payment/paypal`, `payment/shop-pay`, `payment/venmo`, `payment/visa`, `provider/apple`, `provider/facebook`, `provider/google`, `social/apple`, `social/apple-mono`, `social/discord`, `social/discord-mono`, `social/dribbble`, `social/dribbble-mono`, `social/facebook`, `social/facebook-mono`, `social/figma`, `social/figma-mono`, `social/github`, `social/github-mono`, `social/google`, `social/google-mono`, `social/instagram`, `social/instagram-mono`, `social/linkedin`, `social/linkedin-mono`, `social/medium`, `social/medium-mono`, `social/messenger`, `social/messenger-mono`, `social/pinterest`, `social/pinterest-mono`, `social/reddit`, `social/reddit-mono`, `social/snapchat`, `social/snapchat-mono`, `social/spotify`, `social/spotify-mono`, `social/tiktok`, `social/tiktok-mono`, `social/tumblr`, `social/tumblr-mono`, `social/twitch`, `social/twitch-mono`, `social/whatsapp`, `social/whatsapp-mono`, `social/x`, `social/x-mono`, `social/youtube`, `social/youtube-mono`) | — | yes | Which mark, as kind and provider: payment/visa, logo/apple-pay, provider/google, social/instagram-mono. The list is generated from the mark set, so an unknown name fails at compile time, and a provider added to the set reaches the list the day it lands. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The height: 20, 24 or 32px, from the icon size tokens. The width follows from the mark's own proportion, so a payment tile stays 8 by 5 and a logo keeps its width. |
 | `label` | string | — | no | The accessible name, when the mark carries information the page states nowhere else, as in a row of accepted cards: the mark then has role="img" and aria-label. Without a label it is decorative and hidden from assistive tech, which is right inside a button or link whose own text or label names the provider. |
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 19 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 74 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -107,25 +107,91 @@ Keyed by nothing: one row covers every member.
 
 Keyed by `name`.
 
-**name=card/amex**
+**name=payment/affirm**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `glyph` | — | `color.border.primary` | — | — |
 
-**name=card/generic**
+**name=payment/amazon-pay**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `glyph` | — | `color.border.primary` | — | — |
 
-**name=card/mastercard**
+**name=payment/amex**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `glyph` | — | `color.border.primary` | — | — |
 
-**name=card/visa**
+**name=payment/apple-pay**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=payment/diners-club**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=payment/discover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=payment/generic**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=payment/google-pay**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=payment/klarna**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=payment/maestro**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=payment/mastercard**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=payment/paypal**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=payment/shop-pay**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=payment/venmo**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | `color.border.primary` | — | — |
+
+**name=payment/visa**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
