@@ -968,7 +968,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
         const now = u[field];
         const t = textField(id, `type-underline-${field}`, {
           describedBy: `${id}-hint`,
-          // Not a number: put back, as the viewport fields do. A number past a bound is written and corrected (Q801 A).
+          // Not a number: put back, as the viewport fields do. A number past a bound is stored corrected (Q801 A).
           onCommit: (v, fld) => {
             const n = Number(v.trim());
             if (!v.trim() || !Number.isFinite(n)) { fld.value = now === 'auto' ? '' : String(now); return; }

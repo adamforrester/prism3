@@ -24,11 +24,14 @@ Figma's API reads both as null when the text is not underlined.
 them as brand-dependent: `token-contract --check` reports no guaranteed move, and `lint-contract-version` refuses a
 raise over a `none` level. The baseline gained the two brand-dependent paths through `--accept` at 14.12.0.
 
-**Assumption for a live file.** Figma does not document what `textDecorationOffset` PERCENT is measured from. The build
-assumes the alphabetic baseline and a percent of the font size, which is CSS's zero position under
-`text-underline-position: auto`, so 25% and 0.25em draw one line and no conversion is applied. To verify: underline
-100px text at offset 25% and measure the line's top 25px below the baseline.
+**Verified in a live file.** Figma does not document what `textDecorationOffset` PERCENT is measured from. A live
+measurement on 100px text (the orchestrator's comment on #3075) settled it: PERCENT is a percent of the font size,
+measured from the alphabetic baseline to the line's top edge, which is CSS's zero position under
+`text-underline-position: auto`. So 25% and 0.25em draw one line, and no conversion is applied or needed.
+
+**Stored corrected.** The Studio's field corrects a value past a bound before it stores it (the orchestrator's call on
+the review's item 4): 40 typed saves 0.2, so a saved brand or an exported design.md never carries an out-of-range share.
 
 **Gates.** `test.ts` #2942 (clamp table, the clamp reaching the tokens, off = no token and AUTO rows, on = 18 rows at
 5/25, other brands' committed files untouched, paste-path read-back); `apps/plugin/test-write-typography.ts` #2942
-(read-back on 18 built `-link` styles, plain styles untouched, re-applying an auto brand writes AUTO); `apps/studio/test-smoke.mjs` #2942 (the switch stores 0.05 / 0.25, 40 and 60 read back 20 and 50 and export 0.2 and 0.5, off exports no underline, the Components › Link line follows). The TokenPress reader's gap is #3085.
+(read-back on 18 built `-link` styles, plain styles untouched, re-applying an auto brand writes AUTO); `apps/studio/test-smoke.mjs` #2942 (the switch stores and exports 0.05 / 0.25, 40 and 60 read back 20 and 50, are stored as 0.2 and 0.5 and export them, off exports no underline, the Components › Link line follows). The TokenPress reader's gap is #3085.

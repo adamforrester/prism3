@@ -5530,7 +5530,8 @@ for (const c of REFUSED_CASES) {
 // The panel half of the underline lever, driven as a designer would. Every expected value is typed HERE: the switch
 // starts at 5% and 25% (Q800 A), stored as shares 0.05 and 0.25; 40 typed in thickness and 60 in offset come back as
 // the bounds 20 and 50 (Q801 A: thickness 1–20%, offset 0–50%), and the export carries 0.2 and 0.5; off stores nothing
-// and exports no `core.font.underline`. None is read from `UNDERLINE_ON_DEFAULT` or `UNDERLINE_BOUNDS` (docs/34): a
+// and exports no `core.font.underline`. The corrected share is what is stored (40 → 0.2), not the typed one (the
+// review's item 4). None is read from `UNDERLINE_ON_DEFAULT` or `UNDERLINE_BOUNDS` (docs/34): a
 // switch that stored whole percents (5 for 0.05) fails here by name, as the engine clamps it silently to 20% and 50%.
 console.log(`\n#2942 — Custom underline: the switch, the two % fields and the Link line\n${'='.repeat(78)}`);
 {
@@ -5573,10 +5574,15 @@ console.log(`\n#2942 — Custom underline: the switch, the two % fields and the 
   const on = await stored();
   ok(JSON.stringify(on) === JSON.stringify({ thickness: 0.05, offset: 0.25 }) && (await field('thickness').inputValue()) === '5' && (await field('offset').inputValue()) === '25',
     `#2942 Q800 A: ${brand}: switching Custom underline on stores { thickness: 0.05, offset: 0.25 } and the fields read 5 and 25 (stored ${JSON.stringify(on)}; fields ${await field('thickness').inputValue()} / ${await field('offset').inputValue()})`);
+  const onOut = await exportedUnderline();
+  ok(onOut?.thickness?.$value === 0.05 && onOut?.offset?.$value === 0.25,
+    `#2942 Q800 A: ${brand}: switched on, the export carries core.font.underline.thickness 0.05 and .offset 0.25 (got ${JSON.stringify([onOut?.thickness?.$value, onOut?.offset?.$value])})`);
   const lineOn = await linkLine();
   ok(lineOn === '5% thick · 25% offset', `#2942 Q3 A: ${brand}: Components › Link reads "5% thick · 25% offset" with the switch on (read ${JSON.stringify(lineOn)})`);
 
-  for (const [f, typed, back] of [['thickness', '40', '20'], ['offset', '60', '50']]) {
+  // Item 4 of the review (the orchestrator's call): the CORRECTED share is what is stored, so a saved brand or an exported
+  // design.md never carries an out-of-range one. 40 → 0.2, 60 → 0.5.
+  for (const [f, typed, back, share] of [['thickness', '40', '20', 0.2], ['offset', '60', '50', 0.5]]) {
     const was = await stored();
     await field(f).fill(typed);
     await field(f).press('Enter');
@@ -5584,6 +5590,8 @@ console.log(`\n#2942 — Custom underline: the switch, the two % fields and the 
     await page.waitForFunction(([sel, v]) => document.querySelector(sel)?.value === v, [FIELD_SEL[f], back], { timeout: 5000 }).catch(() => {});
     const now = await field(f).inputValue();
     ok(now === back, `#2942 Q801 A: ${brand}: ${typed} typed in ${f} reads back as ${back}, the bound (read ${now})`);
+    const kept = (await stored())?.[f];
+    ok(kept === share, `#2942 Q801 A: ${brand}: ${typed} typed in ${f} is stored corrected, as ${share} (stored ${JSON.stringify(kept)})`);
   }
   const clampedOut = await exportedUnderline();
   ok(clampedOut?.thickness?.$value === 0.2 && clampedOut?.offset?.$value === 0.5 && clampedOut?.thickness?.$type === 'number',

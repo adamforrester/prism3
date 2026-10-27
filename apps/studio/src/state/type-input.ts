@@ -31,6 +31,7 @@
 import {
   brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS,
   LINE_HEIGHT_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS, UNDERLINE_ON_DEFAULT,
+  UNDERLINE_BOUNDS,
 } from '@prism3/engine/theme';
 import type { BrandInput, Theme, TypographyInput, PerModeSizeGroup, FacePin } from '@prism3/engine/theme';
 import { brandState, theme, getPath, setPath, setModeLever } from './store';
@@ -158,10 +159,13 @@ export const setCustomUnderline = (on: boolean): void => {
     ? { thickness: UNDERLINE_ON_DEFAULT.thickness / 100, offset: UNDERLINE_ON_DEFAULT.offset / 100 }
     : undefined);
 };
-/** One underline field, in whole percents of the font size (Q801 A). The engine clamps it to its bounds, so a value
- *  past a bound is written as typed and comes back corrected on the repaint. */
+/** One underline field, in whole percents of the font size (Q801 A). A value past a bound is corrected to the nearest
+ *  bound HERE, before it is stored (the review of #3075, item 4): the saved brand, and a design.md exported from it,
+ *  carry the corrected share (40 typed saves 0.2), never an out-of-range one. The engine's `resolveUnderline` clamps
+ *  to the same bounds, so a hand-written brand is corrected on read as well. */
 export const setUnderlinePct = (field: 'thickness' | 'offset', pct: number): void => {
-  setPath(brandState, `typography.underline.${field}`, Math.round(pct) / 100);
+  const { min, max } = UNDERLINE_BOUNDS[field];
+  setPath(brandState, `typography.underline.${field}`, Math.max(min, Math.min(max, Math.round(pct))) / 100);
 };
 
 /** A text type's italic style, as the three chips name it (owner decision Q6): `'upright'` (no italic styles),
