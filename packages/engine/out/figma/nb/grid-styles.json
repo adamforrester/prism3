@@ -23,14 +23,14 @@
     },
     {
       "name": "md",
-      "description": "8-column grid for md — 16px gutter, 24px margin. A static copy of the layout variables.",
+      "description": "8-column grid for md — 16px gutter, 44px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
           "pattern": "COLUMNS",
           "alignment": "STRETCH",
           "count": 8,
           "gutterSize": 16,
-          "offset": 24,
+          "offset": 44,
           "visible": true,
           "color": {
             "r": 1,

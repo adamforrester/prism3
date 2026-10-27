@@ -353,8 +353,8 @@ const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?
   ...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []),
   ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value), ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
 ];
-const buildOnPage = async (id: string) => {
-  const plans = plansOf(id);
+const buildOnPage = async (id: string, keep: (p: AnatomyPlan) => boolean = () => true) => {
+  const plans = plansOf(id).filter(keep);
   const page = makePage(`↳ ${id}`);
   const api = makeShim({
     vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
@@ -642,12 +642,16 @@ for (const [id, wantCols, wantRows] of [
 /* ── a row thinner than its label (#2568, owner decision Q258 A) ─────────────────────────────────────────── */
 section('thin row — Divider: a 1px row draws its label centered, with no bracket');
 {
-  const { plans, page, set } = await buildOnPage('divider');
+  // Divider's PLAIN members (#3051): since the labeled member (16px, one label line box) joined the horizontal row, no
+  // row of the real set is thinner than its label, so the rule is held on the five plain members, the set as it stood.
+  const { plans, page, set } = await buildOnPage('divider', (p) => (p.coord as Record<string, string>).labeled !== 'true');
   // The shim sizes a member from its bindings, not their values, so the live sizes are written here: the horizontal
-  // rule is `border-width.hairline` (1px) tall, the vertical one its nominal length. Literals, as measured live.
+  // rule is `border-width.hairline` (1px) tall, the vertical one its nominal length, and the labeled rule (#3051) one
+  // label line box, `type.label.md.line-box` (16px). Literals, as measured live.
   const members = set.children as FNode[];
   for (const m of members) {
-    const h = valuesOf(String(m.name)).orientation === 'horizontal' ? 1 : 48;
+    const v = valuesOf(String(m.name));
+    const h = v.orientation === 'vertical' ? 48 : v.labeled === 'true' ? 16 : 1;
     Object.defineProperty(m, 'height', { configurable: true, enumerable: true, get: () => h });
   }
   await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'divider');

@@ -2170,21 +2170,39 @@ const resolveColumns = (override: number | undefined, ladder: number): number =>
   return Math.max(COLUMN_MIN, Math.min(COLUMN_MAX, Math.round(override)));
 };
 
-// The spacing-scale px set gutter/margin overrides SNAP to (#1593). Built once from the locked base
-// (`SPACE_BASE`), the same scale `tree.ts`'s `spaceKeyOf` aliases against, so any px this set admits is
-// guaranteed to have a `space/*` token for `grid/gutter`·`grid/margin` to alias — the whole reason the
-// override is snap-to-ladder rather than free px. Reaches down to `space/050`=4px (and `025`=2px, `0`).
-const SPACE_PX_LADDER = spaceScale(SPACE_BASE).map((s) => s.px).sort((a, b) => a - b);
-const SPACE_PX_SET = new Set(SPACE_PX_LADDER);
 // A per-breakpoint gutter/margin override wins over the ladder for that breakpoint; an unset/blank entry
-// keeps the ladder value. Unlike columns (clamped), an off-ladder value is REJECTED by name: only a real
-// spacing step can alias `space/*`, so a free px is a mistake to surface at build, not to silently coerce.
+// keeps the ladder value. #1593 held an override to the spacing scale and THREW off it; Q785 A (owner,
+// 2026-10-27, #3052) relaxes that to a resolution order, applied where the token is built (`gridGapLink`):
+// a `space/*` step with that px, else the brand's `core/dimension/*` step, else a plain value flagged
+// off-scale. The value itself is never snapped, so here only a value that is not a length is refused.
 const resolveGap = (override: number | undefined, ladder: number, field: string, bp: string): number => {
   if (override === undefined || override === null) return ladder;
-  if (!Number.isFinite(override) || !SPACE_PX_SET.has(override))
-    throw new Error(`layout.${field}.${bp}: ${override}px is not a step on the spacing scale (${SPACE_PX_LADDER.join(', ')}) — gutter and margin snap to the ladder so they can alias space/*.`);
+  if (!Number.isFinite(override) || override < 0)
+    throw new Error(`layout.${field}.${bp}: ${override} is not a length in px — a gutter or margin is a number of 0 or more.`);
   return override;
 };
+
+/** Where a grid gutter/margin of `px` links (Q785 A, #3052), first match wins: (1) the `space/*` step with
+ *  that px; (2) the brand's `core/dimension/*` step with that px; (3) nothing — a plain value, flagged
+ *  off-scale. Spacing stays the first choice for every brand, so a value the spacing scale has never
+ *  links to the dimension grid. `tree.ts` builds the token from this and `brandTheme` writes the note. */
+export type GapLink = { to: 'space'; key: string } | { to: 'dimension' } | { to: 'raw' };
+export const gridGapLink = (px: number, dims: Pick<Dims, 'space' | 'grid'>): GapLink => {
+  const step = dims.space.find((s) => s.px === px);
+  if (step) return { to: 'space', key: step.key };
+  return dims.grid.includes(px) ? { to: 'dimension' } : { to: 'raw' };
+};
+/** The note line for every grid gutter/margin that does NOT link to a spacing step, or [] when all do. */
+export const gridGapNotes = (layout: LayoutAxis, dims: Pick<Dims, 'space' | 'grid'>): string[] =>
+  layout.grid.flatMap((g) => (['gutter', 'margin'] as const).map((k) => {
+    const px = k === 'gutter' ? g.gutterPx : g.marginPx;
+    const link = gridGapLink(px, dims);
+    return link.to === 'dimension'
+      ? `layout: the ${g.bp} ${k} is ${n2(px)}px, which is not a spacing step, so it links to core dimension ${n2(px)}.`
+      : link.to === 'raw'
+        ? `layout: the ${g.bp} ${k} is ${n2(px)}px, which is on neither the spacing scale nor the dimension grid, so it ships as a plain value, flagged off-scale.`
+        : '';
+  })).filter(Boolean);
 
 const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   const floors = input.breakpoints ?? [0, 768, 1024, 1440, 1920];
@@ -2950,7 +2968,11 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     notes.push('gradient: none — the brand declares no gradients, and none are added by default.');
   }
   const layout = buildLayout(input.layout);
-  notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${n2(b.px)}`).join(', ')}); ${layout.baseColumns}-column grid (${layout.grid.map((g) => g.columns).join('/')} by breakpoint); gutters ${layout.grid.map((g) => g.gutterPx).join('/')}px and margins ${layout.grid.map((g) => g.marginPx).join('/')}px, from the spacing scale; containers max ${n2(layout.containerMax)}px, narrow ${n2(layout.containerNarrow)}px.`);
+  // #3052 — a gutter/margin off the spacing scale is named, never silent. The dims are the same call the
+  // theme's own `dims` makes below, so the note and the emitted link read one grid.
+  const gapNotes = gridGapNotes(layout, buildDims(baseUnit, spaceBase, density, rScale, baseMd, []));
+  notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${n2(b.px)}`).join(', ')}); ${layout.baseColumns}-column grid (${layout.grid.map((g) => g.columns).join('/')} by breakpoint); gutters ${layout.grid.map((g) => g.gutterPx).join('/')}px and margins ${layout.grid.map((g) => g.marginPx).join('/')}px, ${gapNotes.length ? 'from the spacing scale except as noted below' : 'from the spacing scale'}; containers max ${n2(layout.containerMax)}px, narrow ${n2(layout.containerNarrow)}px.`);
+  notes.push(...gapNotes);
   // The label category always carries the `default` role (Q225 A, Q226 A: Tabs binds it unselected), before the
   // build so the composites, the Figma text styles and `weightAvailability` all see it. A button under
   // `buttonLabelWeight: 'default'` (#1752) rebinds to the same role.
@@ -3339,7 +3361,10 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     // The label category always ships the `default` role (Q225 A, Q226 A), here as in every brand.
     typography: buildTypography(withLabelDefault(undefined)),
     shadow: buildShadow(s.neutralHue.hue, { tint: { amount: 0 } }),  // NB ships pure-black shadows
-    layout: buildLayout({ containerMax: 1920 }),                     // NB caps at 1920 + narrow 720
+    // NB caps at 1920 + narrow 720. Its md margin is 44 (#3052, Q785 A): at 1440 with 24 columns and 16px
+    // gutters that gives whole-pixel 41px columns. 44 is no spacing step, so `grid/margin` md links to
+    // `core/dimension/44`.
+    layout: buildLayout({ containerMax: 1920, marginOverrides: { md: 44 } }),
     gradient: { gradients: [] },                                     // NB ships no gradients (it had none)
     notes: [
       // The regression fixture's own record. Its dark shadows are reduced, not the reference system's
@@ -3348,7 +3373,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
       `dimensions: ${baseUnit}px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius ${baseMd}px).`,
       'typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900.',
       'shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference\'s heavier dark shadows.',
-      'layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale.',
+      'layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale, except the md margin: 44px, as the reference sets it, which is not a spacing step, so it links to core dimension 44.',
     ],
   };
 };

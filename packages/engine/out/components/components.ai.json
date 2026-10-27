@@ -6608,8 +6608,8 @@
       ],
       "category": "foundations",
       "status": "draft",
-      "summary": "A thin rule between groups of content. Horizontal or vertical, and it fills its container.",
-      "description": "A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. It carries no content and has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator.",
+      "summary": "A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.",
+      "description": "A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. A labeled divider breaks a horizontal rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label, and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.",
       "props": [
         {
           "name": "orientation",
@@ -6639,7 +6639,13 @@
           "type": "boolean",
           "default": true,
           "required": false,
-          "description": "Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden=\"true\". Set false when the rule marks a real break in the content: it becomes a separator, an <hr> for a horizontal rule, drawn in border.tertiary so it reaches 3:1 on every background."
+          "description": "Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden=\"true\". Set false when the rule marks a real break in the content: it becomes a separator, an <hr> for a horizontal rule, drawn in border.tertiary so it reaches 3:1 on every background. It has no effect on a labeled divider, where the label marks the break."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": false,
+          "description": "One short word that breaks the rule in the middle, such as Or. Setting it makes a labeled divider: a line on each side, centered on the label. Horizontal with no inset only. Screen readers read the label as plain text and skip the two lines. Pass the translated word."
         }
       ],
       "states": [],
@@ -6658,40 +6664,49 @@
             "middle-inset"
           ],
           "kind": "authoring"
+        },
+        "labeled": {
+          "values": [
+            "false",
+            "true"
+          ],
+          "kind": "authoring"
         }
       },
       "accessibility": {
-        "role": "none with aria-hidden=\"true\" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native <hr> for a horizontal rule, role=\"separator\" with aria-orientation=\"vertical\" for a vertical one)",
+        "role": "none with aria-hidden=\"true\" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native <hr> for a horizontal rule, role=\"separator\" with aria-orientation=\"vertical\" for a vertical one); a labeled divider takes no role, its two lines hidden and its label read as plain text",
         "wcag": [
           "1.3.1 Info and Relationships — a rule that marks a real break in content is a separator, so assistive technology hears the break a sighted reader sees",
-          "1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum. A divider that marks a real boundary (decorative=false) uses border.tertiary, which reaches 3:1 on every background."
+          "1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum. A divider that marks a real boundary (decorative=false) uses border.tertiary, which reaches 3:1 on every background.",
+          "1.4.3 Contrast (Minimum) — a labeled divider's label is text.secondary, which clears 4.5:1 against the primary and secondary page backgrounds in every mode. Its two lines are decorative and need no minimum."
         ],
         "focus": "None. A divider is not focusable and takes no place in the tab order.",
-        "aria": "By default the rule sets aria-hidden=\"true\", so a screen reader does not announce a break that means nothing. With decorative=false, an <hr> needs no attributes, and a vertical rule sets role=\"separator\" and aria-orientation=\"vertical\"."
+        "aria": "By default the rule sets aria-hidden=\"true\", so a screen reader does not announce a break that means nothing. With decorative=false, an <hr> needs no attributes, and a vertical rule sets role=\"separator\" and aria-orientation=\"vertical\". A labeled divider sets no role: a separator hides its own text, so the label would not be read. Its two lines set aria-hidden=\"true\", and the label is plain text in the reading order, read as Or between the two groups. Pass the translated word."
       },
       "content": {
-        "labelPattern": "A divider carries no text. To title the group below it, use a heading, not a label on the rule."
+        "labelPattern": "A labeled divider names the choice between two groups of actions with one short word, such as Or, in sentence case. To title the group below, use a heading."
       },
       "docs": {
-        "usage": "Use a divider to separate groups of related content when spacing alone does not make the groups clear: sections of a page, rows in an accordion or list, or a cluster of controls in a toolbar. Horizontal by default, spanning its container; vertical between items in a row. Inset it from the start to line up with indented content, or from both ends to separate within a section. It is decorative by default; set decorative to false when the rule marks a real break in the content.",
+        "usage": "Use a divider to separate groups of related content when spacing alone does not make the groups clear: sections of a page, rows in an accordion or list, or a cluster of controls in a toolbar. Horizontal by default, spanning its container; vertical between items in a row. Inset it from the start to line up with indented content, or from both ends to separate within a section. It is decorative by default; set decorative to false when the rule marks a real break in the content. Give it a label, such as Or, when it sits between two alternative groups of actions, such as social sign-in above and email sign-in below.",
         "do": [
           "Let the divider span its container, so the break reads as a break between whole groups",
           "Try spacing first, and add a divider when the groups still run together",
           "Use a vertical divider between clusters of controls in a row, such as a toolbar",
-          "Leave a divider decorative unless it marks a real break in the content, so a screen reader is not told about every visual line"
+          "Leave a divider decorative unless it marks a real break in the content, so a screen reader is not told about every visual line",
+          "Use a labeled divider with Or between two alternative ways to do one thing, such as two ways to sign in"
         ],
         "dont": [
           "Put a divider between every item in a list; increase the spacing instead",
-          "Put text or controls inside a divider; title the group with a heading instead",
+          "Put a title, a sentence or controls inside a divider; title the group with a heading, and keep a label to one short word such as Or",
           "Use a divider as the only cue that two groups are separate when the rule is faint; add spacing too",
           "Stack a divider directly against a border, such as the edge of a card, so two lines sit side by side"
         ],
-        "contentGuidelines": "A divider holds no copy."
+        "contentGuidelines": "A plain divider holds no copy. A labeled divider holds one short word, such as Or, in sentence case, with no punctuation."
       },
       "ai": {
         "primaryPurpose": "Separate groups of content with a thin horizontal or vertical rule that spans its container.",
         "whenToUse": "Two groups of content sit next to each other and spacing alone does not separate them: page sections, accordion or list rows, or clusters of controls in a toolbar (vertical).",
-        "avoidWhen": "Spacing already separates the groups, the edge is a container's own border (a card or field draws its own), or the break needs a title (use a heading).",
+        "avoidWhen": "Spacing already separates the groups, the edge is a container's own border (a card or field draws its own), or the break needs a title or more than one short word (use a heading). A labeled divider is for one word, such as Or, between two alternative groups of actions.",
         "commonPartners": [
           "accordion",
           "list"
@@ -6704,7 +6719,10 @@
           "vertical rule",
           "hr",
           "line between sections",
-          "section break"
+          "section break",
+          "or divider",
+          "labeled divider",
+          "text divider"
         ],
         "generationPriority": 3
       },

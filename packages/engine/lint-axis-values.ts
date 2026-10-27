@@ -425,12 +425,14 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'labeled',
     values: ['false', 'true'],
-    defs: ['pagination-item'],
+    defs: ['pagination-item', 'divider'],
     relation: 'sole',
     reason:
-      'Whether Pagination.Item\'s previous or next cell shows its word, "Previous" or "Next", beside the chevron (owner '
-      + 'decision Q414 A: simple\'s two controls are the same cells with a label plus chevron). `false | true` so Figma '
-      + 'draws it as a switch. `false` LEADS, the code default and so Figma\'s default member.',
+      'Whether a control shows its word: Pagination.Item\'s previous or next cell, "Previous" or "Next", beside the '
+      + 'chevron (owner decision Q414 A: simple\'s two controls are the same cells with a label plus chevron), and the '
+      + 'Divider\'s rule broken by a short centered label such as "Or" (#3051, owner Q3051.1 A). One set, the same '
+      + 'meaning in both: whether a word is drawn. `false | true` so Figma draws it as a switch. `false` LEADS, the code '
+      + 'default and so Figma\'s default member.',
   },
   {
     axis: 'offset',
