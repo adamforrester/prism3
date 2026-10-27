@@ -242,6 +242,52 @@ export const CORE_TIER = 'core';
 export const RAISED_SURFACE_VALUES = ['card', 'page', 'white'] as const;
 export type RaisedSurface = typeof RAISED_SURFACE_VALUES[number];
 
+/**
+ * A brand-added glass role (#3073, owner Q806, Q807 A): `color.glass.<name>`, a translucent fill beside the shipped
+ * `color.glass.surface`. Its color is EITHER a semantic role's palette color, resolved per mode (`role:
+ * 'foreground.primary'`, the card ground), OR one palette color (`palette: 'neutral.050'`, or `white` / `black`),
+ * at `alpha` percent in every mode. The engine emits it as a translucent palette alpha step, so the Figma variable
+ * carries the alpha and a fill bound to it stays translucent. Brand-dependent: never in the guaranteed contract.
+ */
+export type GlassRoleInput = { role?: string; palette?: string; alpha: number };
+/** The glass role the engine ships in every brand; a brand role may not take its name. */
+export const SHIPPED_GLASS_ROLE = 'surface';
+/** A glass role name: lower-case kebab, the canon's segment shape (`card`, `card-dark`). */
+export const GLASS_ROLE_NAME = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+
+/**
+ * Validate the `glassRoles` input's shape (#3073). What can only be checked against a resolved mode — that the
+ * role exists there and sits on an opaque palette step — is checked in `modes.ts`, where it resolves.
+ */
+export const validGlassRoles = (raw: unknown): Record<string, GlassRoleInput> | undefined => {
+  if (raw === undefined) return undefined;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw))
+    throw new Error(`glassRoles: must be a map of role name to { role | palette, alpha } (got ${JSON.stringify(raw)})`);
+  const out: Record<string, GlassRoleInput> = {};
+  for (const [name, v] of Object.entries(raw as Record<string, unknown>)) {
+    const at = `glassRoles.${name}`;
+    if (name === SHIPPED_GLASS_ROLE)
+      throw new Error(`${at}: 'surface' is the glass role every brand ships (white or black glass) and cannot be redefined. Name the brand's glass something else, such as 'card'.`);
+    if (!GLASS_ROLE_NAME.test(name))
+      throw new Error(`${at}: a glass role name is lower-case kebab-case, letters and digits, starting with a letter (such as 'card' or 'card-dark')`);
+    if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error(`${at}: must be { role | palette, alpha }`);
+    const { role, palette, alpha, ...rest } = v as Record<string, unknown>;
+    if (Object.keys(rest).length) throw new Error(`${at}: unknown field(s) ${Object.keys(rest).join(', ')} (allowed: role, palette, alpha)`);
+    if ((role === undefined) === (palette === undefined))
+      throw new Error(`${at}: name exactly one color source, a semantic role ('role: foreground.primary') or a palette color ('palette: neutral.050')`);
+    if (role !== undefined && (typeof role !== 'string' || !/^[a-z][a-z0-9-]*(?:\.[a-z0-9-]+)+$/.test(role)))
+      throw new Error(`${at}.role: '${role}' is not a role path (such as 'foreground.primary')`);
+    if (typeof role === 'string' && role.startsWith('glass.'))
+      throw new Error(`${at}.role: a glass role cannot take its color from another glass role ('${role}'), which is already translucent`);
+    if (palette !== undefined && (typeof palette !== 'string' || !/^(?:white|black|[a-z][a-z0-9-]*\.[0-9]+)$/.test(palette)))
+      throw new Error(`${at}.palette: '${palette}' is not a palette color (such as 'neutral.050', 'white' or 'black')`);
+    if (typeof alpha !== 'number' || !Number.isInteger(alpha) || alpha < 1 || alpha > 99)
+      throw new Error(`${at}.alpha: must be a whole percent from 1 to 99 (got ${JSON.stringify(alpha)})`);
+    out[name] = { ...(role !== undefined ? { role: role as string } : { palette: palette as string }), alpha };
+  }
+  return Object.keys(out).length ? out : undefined;
+};
+
 export type Theme = {
   id: string;
   root: string;                      // 'nbds' | 'prism' (brand root namespace)
@@ -324,6 +370,9 @@ export type Theme = {
   // The raised surface (#3049, owner Q721 A, Q3049.1 C–Q3049.4): what `color.foreground.raised`, Dialog's panel,
   // holds in the light-family modes. Unset reads as `card`. The dark family always holds the card, whatever this says.
   raisedSurface?: RaisedSurface;
+  // Brand-added glass roles (#3073, owner Q806, Q807 A), `color.glass.<name>`, validated by `validGlassRoles`. Unset
+  // adds none: the brand ships `color.glass.surface` alone.
+  glassRoles?: Record<string, GlassRoleInput>;
   // Strict interactive contrast (#1389, B4a). false (default): the inverse PRIMARY filled button
   // carries the vivid brand `on-fill` ink (#1244), which clears AA at `rest` but may dip below it on
   // the TRANSIENT hover / pressed states now that the fill steps toward the ground. true: primary's and
@@ -548,6 +597,9 @@ export type BrandInput = {
    *  'card' (default) is the card surface, `foreground.primary`; 'page' is the page, `background.primary`; 'white'
    *  is the palette's white. Dark and hc-dark always take the card surface, so a dialog keeps its lift there. */
   raisedSurface?: RaisedSurface;
+  /** Brand-added glass roles (#3073): `color.glass.<name>`, each a semantic role's palette color (`role`, per mode)
+   *  or one palette color (`palette`), at `alpha` percent. `surface` is the shipped glass and cannot be redefined. */
+  glassRoles?: Record<string, GlassRoleInput>;
   /** Strict interactive contrast (#1389, B4a). OPTIONAL, OPT-IN (off by default). The inverse filled
    *  button steps its fill per state; the primary and destructive labels' brand ink (#1244/#1384) clears AA at
    *  `rest` but dips on the transient hover/pressed steps. Off keeps the brand ink (rest AA held, later states
@@ -2606,6 +2658,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (value !== undefined && !(options as readonly unknown[]).includes(value))
       throw new Error(`${path}: ${JSON.stringify(value)} is invalid — must be one of ${options.join('/')}`);
   }
+  const glassRoles = validGlassRoles(input.glassRoles);
   const rangeLevers: { path: string; value: unknown; min: number; max: number }[] = [
     { path: 'radiusScale', value: input.radiusScale, min: 0, max: 2 },
     { path: 'baseMd', value: input.baseMd, min: 2, max: 12 },
@@ -3300,6 +3353,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
     neutralEmphasis, strictInteractiveContrast, interactivePalettes,
     ...(input.raisedSurface ? { raisedSurface: input.raisedSurface } : {}),
+    ...(glassRoles ? { glassRoles } : {}),
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
     linkStateRungs: input.linkStateRungs,
     dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, []), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
@@ -3357,13 +3411,18 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     neutralEmphasis: 'subtle', strictInteractiveContrast: false, interactivePalettes: [],
     // The reference brand's own designs put dialogs on white (#3049, owner Q3049.4), not on its card surface.
     raisedSurface: 'white',
+    // The reference brand's card glass (#3073, owner Q807 A; 70%, the owner's correction of 2026-10-27): the card
+    // ground, `foreground.primary`'s palette color in each mode, at 70%.
+    glassRoles: { card: { role: 'foreground.primary', alpha: 70 } },
     dims, motion: buildMotion(),
     // The label category always ships the `default` role (Q225 A, Q226 A), here as in every brand.
     typography: buildTypography(withLabelDefault(undefined)),
     shadow: buildShadow(s.neutralHue.hue, { tint: { amount: 0 } }),  // NB ships pure-black shadows
-    // NB caps at 1920 + narrow 720. Its md margin is 44 (#3052, Q785 A): at 1440 with 24 columns and 16px
-    // gutters that gives whole-pixel 41px columns. 44 is no spacing step, so `grid/margin` md links to
-    // `core/dimension/44`.
+    // NB caps at 1920 + narrow 720. Its md margin is 44 (#3052, Q785 A). The 41px figure behind it is the
+    // brand's desktop spec in its own two-mode layout, where md carries the 24-column, 16px-gutter grid:
+    // whole-pixel 41px columns at 1440. It is not a property of this fixture's 5-breakpoint grid, where md
+    // is 8 columns and a 44 margin gives 71px columns at 768 (#3070). 44 is no spacing step, so
+    // `grid/margin` md links to `core/dimension/44`.
     layout: buildLayout({ containerMax: 1920, marginOverrides: { md: 44 } }),
     gradient: { gradients: [] },                                     // NB ships no gradients (it had none)
     notes: [
