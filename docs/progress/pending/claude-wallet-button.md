@@ -1,7 +1,7 @@
 ## (2026-10-27) — WalletButton: the provider's express-checkout button, as a sized slot and a layout stand-in (#2343 PR 4)
 
 **Status:** new def `wallet-button` (20 members), a new axis name `provider`, one projector change (a nest of a
-standalone-component def names the member component). ENGINE minor (change note). CONTRACT unchanged: only existing
+standalone-component def names the member component), and the spec model and roundtrip taught that nest. ENGINE minor (change note). CONTRACT unchanged: only existing
 roles are bound. No executor change, so `EXECUTOR_REVISION` stays. Merges after PR 3 (the owner's marks), which merges
 after #3047.
 
@@ -39,6 +39,27 @@ missed. The projector now resolves such a nest to the member's own component, `b
 no `nestVariant`, the way `nestedSwapTarget` names a swap's. Both executors already make an instance from a component
 found by name, and `build-deps.ts` already maps `<id>/<value>` to its def, so neither moved. No other def nests a
 standalone-component def, so no other surface digest moved.
+
+### What the first full run found, and the fixes
+
+- **The spec model and the roundtrip had never met a standalone nest.** `component-specs.ts` recorded the first
+  member's `nestTarget` as the nested component, so the model said every provider nests `brand-mark/logo/apple-pay`.
+  It now names the def (`brand-mark`) with its variant and `when`, and `test-roundtrip.ts`'s spec read-back resolves
+  each member's own `<def>/<value>` from them.
+- **PR 2's `aspectLock` and `fixedPaint` had never been projected by a shipped def,** so the roundtrip's field floor
+  had not classified them. `aspectLock` is now CHECKED in `anatomy-readback.ts` (the host must hold a
+  `targetAspectRatio`). `fixedPaint` is declared unchecked with its reason: it promises the plan carries no paint, so
+  the host has nothing of the plan's to echo. The roundtrip harness builds a def that locks to its main with the
+  nested components pre-built and answering as themselves (`liveComponents`). Against a bare catalog name the
+  executor has no size to read, reports a miss and leaves the instance unlocked. Mutation: the plugin executor's
+  `lockAspectRatio` call dropped → the roundtrip fails `aspectLock` on all 20 members.
+- **Hand lists a new set joins:** `CANVAS_FURNITURE` (headers like Button's), `test-canvas-furniture.ts` (55 sets),
+  the studio's component groups (a "Wallet button" row) and `used-by.ts`, and the ecosystem map's definitions.
+- **`test.ts` floors:** Figma's default member must carry the code default on every axis. `provider` is required in
+  code (a wallet button always names its wallet), so a recorded BRIDGE entry says apple-pay stands in.
+  `brand-mark`'s `planned` list loses `wallet-button`, now registered, which moves to its `ai.commonPartners`. A
+  `codeOnly` entry that read like a state admission ("hover — not projected") now leads with "the provider's own
+  states".
 
 ### Gates, and the mutations that fail them by name
 
