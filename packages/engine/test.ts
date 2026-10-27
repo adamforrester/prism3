@@ -18367,11 +18367,25 @@ arm: {
     ok(narrow.length === 0, `#2343 PR 4 provider rules WIDTH: every member's width floor clears its provider's minimum (${narrow.map((p) => `${planComponentName(p)}: ${p.root.minWidth}`).join('; ') || 'clean'})`);
     // Radius: Google Pay's at most half the height, at every density.
     const corners = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const;
-    const round = plans.filter((p) => RULES[String(p.coord.provider)]?.halfHeightRadius).flatMap((p) => builds.flatMap((b) => {
+    const overHalf = (bs: typeof builds) => plans.filter((p) => RULES[String(p.coord.provider)]?.halfHeightRadius).flatMap((p) => bs.flatMap((b) => {
       const h = b.px(p.root.bound?.height), rs = corners.map((c) => b.px(p.root.bound?.[c]));
       return rs.every((r) => r <= h / 2) ? [] : [`${planComponentName(p)} @ ${b.density}: radius ${rs[0]} over height ${h}`];
     }));
+    const round = overHalf(builds);
     ok(round.length === 0 && plans.some((p) => p.coord.provider === 'google-pay'), `#2343 PR 4 provider rules RADIUS: Google Pay's corner is at most half its height at every density (${round.join('; ') || 'clean'})`);
+    // ...and in every brand, not only harbor: at the softest corner the levers allow (`radiusScale` and `baseMd` at
+    // their manifest maxima) `radius.md` passes half of a compact small height, so the code must clamp Google Pay's
+    // `buttonRadius` to min(radius, height / 2). The lever bounds come from the manifest, the clamp from codeOnly.
+    const leverMax = (key: string): number => (leverManifest.find((l) => l.key === key) as { max?: number } | undefined)?.max ?? NaN;
+    const softest = (['compact', 'comfortable', 'spacious'] as const).map((density) => {
+      const t = buildTree(brandTheme({ ...harbor, density, radiusScale: leverMax('radiusScale'), baseMd: leverMax('baseMd') })).tree as Record<string, unknown>;
+      const r = Object.keys(t)[0];
+      return { density, px: (v: string | undefined): number => (v ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
+    });
+    const softOver = overHalf(softest);
+    const clamped = (wb.anatomy.codeOnly ?? []).some((c) => /Google Pay/.test(c) && /min\(radius, height \/ 2\)/.test(c));
+    ok(Number.isFinite(leverMax('radiusScale')) && Number.isFinite(leverMax('baseMd')) && (softOver.length === 0 || clamped),
+      `#2343 PR 4 provider rules RADIUS (every brand): where the softest brand's corner passes half the height, the code clamps Google Pay's radius to min(radius, height / 2) (over half at radiusScale ${leverMax('radiusScale')} × baseMd ${leverMax('baseMd')}: ${softOver.length}, e.g. ${softOver[0] ?? 'none'}; clamp in codeOnly: ${clamped})`);
     // Colors not retinted: no node of a member paints, and the logo keeps its own paint.
     type N = AnatomyPlan['root'];
     const nodes = (n: N): N[] => [n, ...(n.children ?? []).flatMap(nodes)];
@@ -18386,6 +18400,16 @@ arm: {
       return why ? [`${planComponentName(p)}: ${why}`] : [];
     });
     ok(altered.length === 0, `#2343 PR 4 provider rules MARK: each member nests its provider's own logo unaltered, height bound and width from its proportion (${altered.slice(0, 3).join('; ') || 'clean'})`);
+    // Wording: the provider's alone. No member draws text of its own, so Prism3 never writes on the button.
+    const worded = plans.flatMap((p) => nodes(p.root).filter((n) => n.type === 'TEXT').map((n) => `${planComponentName(p)}.${n.name}`));
+    ok(worded.length === 0 && wb.props.every((pr) => pr.name !== 'label'), `#2343 PR 4 provider rules WORDING: no member draws a text node and the code takes no label, so the only wording is the provider's (text: ${worded.slice(0, 3).join(', ') || 'none'})`);
+    // The accessible name: the provider's element supplies it, and the component adds no label (it would be announced
+    // twice). Held on both places the contract is written, the shipped aria line and the codeOnly bullet.
+    const nameLine = (wb.anatomy.codeOnly ?? []).find((c) => c.startsWith('the accessible name — ')) ?? '';
+    const a11yText = `${wb.accessibility.aria} ${nameLine}`;
+    ok(/provider's element supplies the role and the accessible name/.test(wb.accessibility.aria) && /Add no label of your own/.test(wb.accessibility.aria)
+      && /provider's element names itself/.test(nameLine) && /component adds no label/.test(nameLine) && !/aria-label/.test(a11yText),
+      `#2343 PR 4 provider rules NAME: the provider's element supplies the accessible name and the component adds no label (aria '${wb.accessibility.aria}'; codeOnly '${nameLine || 'missing'}')`);
   }
   // #2713 — `ai.generationPriority` follows the build-component skill's written scale. Before it, each def's
   // number was set alone, so parts an agent must never generate on their own ranked from 2 to 9 and the

@@ -2,19 +2,20 @@
 
 **Status:** new def `wallet-button` (20 members), a new axis name `provider`, one projector change (a nest of a
 standalone-component def names the member component), and the spec model and roundtrip taught that nest. ENGINE minor (change note). CONTRACT unchanged: only existing
-roles are bound. No executor change, so `EXECUTOR_REVISION` stays. Merges after PR 3 (the owner's marks), which merges
-after #3047.
+roles are bound. No executor change, so `EXECUTOR_REVISION` stays. PR 3 (the owner's marks) and #3047 have merged.
 
 ### What was built, and the calls held for the owner
 
-- **Owner decisions it rests on:** two components from one factory (Q-B4 A), one set enumerating only the valid
-  provider pairs (Q-B5 A), and in code a slot that mounts the provider's own element, Prism3 adding only the focus
-  ring and layout (Q-B8 A). The proposal's §2.1 rule table is the source for the limits.
+- **Owner decisions it rests on:** two components from one factory (Q-B4 A), and in code a slot that mounts the provider's own element, Prism3 adding only the focus
+  ring and layout (Q-B8 A). The proposal's §2.1 rule table is the source for the limits. Q-B5 A decided valid
+  provider × **style** pairs only; with the style axis held by Q-W1, the build reads it onto provider × size (the two
+  height exclusions), so Q-B5 A is in effect deferred by Q-W1 A.
 - **Q-W1, the Figma member (built as A):** a layout stand-in, the provider's area at its size and corner with the
   provider's logo nested unaltered, and no fill. Two findings decided it: none of the four providers publishes its
   button colors as values (Google Pay says "dark and light"; PayPal's v6 reference says "gold" and "white with
   border"), and all four forbid a hand-drawn copy of the button, which a Prism3-painted ground would be. Every logo in
-  the owner's set is one ink, dark on light, so a dark-style stand-in would need a light logo the set does not hold.
+  the owner's set is drawn for a light ground (Apple Pay and Shop Pay one ink, Google Pay five colors, the PayPal
+  wordmark three), so a dark-style stand-in would need a light logo the set does not hold.
   B: the owner supplies each provider's own button artwork per style, and a `style` axis draws it. C: Prism3 paints the
   fills, which needs a literal-paint engine field (`gradientFill`'s path through both executors) and colors the
   providers do not publish.
@@ -25,11 +26,15 @@ after #3047.
   a token the tier does not have.
 - **Q-W3, the factory:** SignInButton is PR 5, so the shared factory lands with its second component, not as an
   abstraction with one user.
+- **Q-W5, shape (built as A):** no shape axis; the corner is the brand's `radius.md`. The proposal's §2.3 gave
+  WalletButton `shape: rectangle | pill`. B: a `shape` axis whose pill binds `radius.capsule`, clamped to half the
+  height for Google Pay.
 - **Q-W4, the page:** "Wallet button", its own page under Components (DRAFT). Brand mark now has one consumer, so it
   joins `STANDALONE_NESTED` to keep its Foundations page (Q-B12).
 - **Tier 2** generation priority (a top-level component placed on its own); width floor 120 (the largest provider
-  minimum, Shop Pay's logo button; Apple Pay plain needs 100); radius `radius.md`, inside Google Pay's half-height cap
-  at every density.
+  minimum, Shop Pay's logo button; Apple Pay plain needs 100); radius `radius.md`. Harbor's is inside Google Pay's
+  half-height cap at every density, but a soft brand's is not (`baseMd` 12 × `radiusScale` 2 gives 24px against a
+  28px compact small), so the code clamps Google Pay's `buttonRadius` to `min(radius, height / 2)`.
 
 ### The engine change
 
@@ -69,7 +74,11 @@ the def. Each mutation was made on the def and fails its arm by name:
 - `minWidth: 90` → **WIDTH**;
 - `radius.capsule` → **RADIUS** (Google Pay, `radius 999 over height 36` at compact);
 - `fixedPaint` dropped from the logo → **COLOR**;
-- PayPal's logo pointed at the monogram → **MARK** (`nests brand-mark/logo/paypal`).
+- PayPal's logo pointed at the monogram → **MARK** (`nests brand-mark/logo/paypal`);
+- the Google Pay clamp removed from codeOnly → **RADIUS (every brand)** (`radiusScale 2 × baseMd 12`, members over
+  half their height);
+- an inked `label` text part added → **WORDING** (it was caught only under COLOR before);
+- the a11y contract inverted (aria-label on the container to the provider name) → **NAME** (nothing failed before).
 The def joined `lint-hit-target` (INTERACTIVE, SMALL_SIZE), `lint-rung-names` (MUST_COVER, DEFAULT_FIRST),
 `lint-axis-values` (`provider` sole, `size` canonical), `lint-standalone-floor`, `lint-paint-placement`,
 `lint-absolute-inset` (MUST_COVER, MUST_CLEAR_STROKE) and the `generationPriority` tier list. `regen --check` counts
