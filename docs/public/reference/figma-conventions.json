@@ -2014,7 +2014,7 @@
         "kind": "component set",
         "page": "↳ Divider",
         "section": "Components",
-        "members": 5,
+        "members": 6,
         "variantProperties": [
           {
             "name": "orientation",
@@ -2030,9 +2030,21 @@
               "inset",
               "middle-inset"
             ]
+          },
+          {
+            "name": "labeled",
+            "values": [
+              "false",
+              "true"
+            ]
           }
         ],
-        "properties": [],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/divider.md"
       },
       {

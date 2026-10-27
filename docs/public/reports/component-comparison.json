@@ -1758,6 +1758,10 @@
           "none",
           "inset",
           "middle-inset"
+        ],
+        "labeled": [
+          "false",
+          "true"
         ]
       },
       "props": [
@@ -1781,6 +1785,9 @@
         {
           "name": "decorative",
           "default": true
+        },
+        {
+          "name": "label"
         }
       ],
       "sizes": []
@@ -5505,6 +5512,7 @@
           "true"
         ],
         "components": [
+          "divider",
           "pagination-item"
         ]
       }
@@ -7051,6 +7059,9 @@
       },
       {
         "id": "counter"
+      },
+      {
+        "id": "divider"
       },
       {
         "id": "field-label"
@@ -9984,6 +9995,14 @@
         "code-input"
       ],
       "detail": "code-input has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "divider",
+      "components": [
+        "divider"
+      ],
+      "detail": "divider has the variant axis labeled and no prop of that name"
     },
     {
       "kind": "axis without prop",

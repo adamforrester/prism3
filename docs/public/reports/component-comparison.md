@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (108)
+## Findings (109)
 
 ### axis values
 
@@ -38,6 +38,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **checkbox-group** — checkbox-group has the variant axis status and no prop of that name
 - **checkbox-row** — checkbox-row has the variant axis status and no prop of that name
 - **code-input** — code-input has the variant axis status and no prop of that name
+- **divider** — divider has the variant axis labeled and no prop of that name
 - **link** — link has the variant axis selection and no prop of that name
 - **pagination-item** — pagination-item has the variant axis selection and no prop of that name
 - **password-field** — password-field has the variant axes style and status and no props of those names
@@ -262,7 +263,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | intensity | medium, strong, subtle | veil |
 | intent | neutral, success | toast |
 | kind | ancestor, current, overflow | breadcrumb-item |
-| labeled | false, true | pagination-item |
+| labeled | false, true | divider, pagination-item |
 | layout | fill, inline, stacked | button-group |
 | offset | control, field | focus-ring |
 | orientation | horizontal, vertical | divider |
@@ -534,6 +535,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | checkbox-row | — | — |
 |  | code-input | — | — |
 |  | counter | — | — |
+|  | divider | — | — |
 |  | field-label | — | — |
 |  | icon | — | — |
 |  | link | — | — |

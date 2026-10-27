@@ -28402,7 +28402,7 @@
     "divider": {
       "id": "divider",
       "name": "Divider",
-      "members": 5,
+      "members": 6,
       "axes": [
         {
           "name": "orientation",
@@ -28422,6 +28422,15 @@
             "middle-inset"
           ],
           "kind": "variant"
+        },
+        {
+          "name": "labeled",
+          "figmaName": "labeled",
+          "values": [
+            "false",
+            "true"
+          ],
+          "kind": "variant"
         }
       ],
       "codeOnlyStates": [],
@@ -28429,23 +28438,60 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 5
+          "members": 6
         },
         {
           "part": "container/rule",
           "kind": "frame",
-          "members": 5
+          "members": 5,
+          "when": {
+            "labeled": [
+              "false"
+            ]
+          }
+        },
+        {
+          "part": "container/leadingRule",
+          "kind": "frame",
+          "members": 1,
+          "when": {
+            "labeled": [
+              "true"
+            ]
+          }
+        },
+        {
+          "part": "container/label",
+          "kind": "text",
+          "members": 1,
+          "when": {
+            "labeled": [
+              "true"
+            ]
+          }
+        },
+        {
+          "part": "container/trailingRule",
+          "kind": "frame",
+          "members": 1,
+          "when": {
+            "labeled": [
+              "true"
+            ]
+          }
         }
       ],
       "redlineKey": [
         "orientation",
-        "inset"
+        "inset",
+        "labeled"
       ],
       "redlines": [
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28462,6 +28508,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.300"
                 },
                 "height": {
                   "token": "border-width.hairline"
@@ -28476,7 +28525,59 @@
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "inset"
+            "inset": "none",
+            "labeled": "true"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.300"
+                },
+                "height": {
+                  "token": "type.label.md.line-box"
+                },
+                "width": {
+                  "token": "container.narrow"
+                }
+              }
+            },
+            {
+              "part": "container/leadingRule",
+              "values": {
+                "height": {
+                  "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/trailingRule",
+              "values": {
+                "height": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28493,6 +28594,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.300"
                 },
                 "height": {
                   "token": "border-width.hairline"
@@ -28507,7 +28611,8 @@
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "middle-inset"
+            "inset": "middle-inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28524,6 +28629,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.300"
                 },
                 "height": {
                   "token": "border-width.hairline"
@@ -28538,7 +28646,8 @@
         {
           "where": {
             "orientation": "vertical",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28555,6 +28664,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.300"
                 },
                 "height": {
                   "token": "size.md.height"
@@ -28569,7 +28681,8 @@
         {
           "where": {
             "orientation": "vertical",
-            "inset": "middle-inset"
+            "inset": "middle-inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28586,6 +28699,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.300"
                 },
                 "height": {
                   "token": "size.md.height"
@@ -28602,18 +28718,25 @@
       "type": [
         {
           "where": {},
-          "parts": []
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.label.md.default"
+            }
+          ]
         }
       ],
       "colorKey": [
         "orientation",
-        "inset"
+        "inset",
+        "labeled"
       ],
       "colors": [
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28625,7 +28748,29 @@
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "inset"
+            "inset": "none",
+            "labeled": "true"
+          },
+          "parts": [
+            {
+              "part": "container/leadingRule",
+              "fill": "color.border.secondary"
+            },
+            {
+              "part": "container/label",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/trailingRule",
+              "fill": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28637,7 +28782,8 @@
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "middle-inset"
+            "inset": "middle-inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28649,7 +28795,8 @@
         {
           "where": {
             "orientation": "vertical",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28661,7 +28808,8 @@
         {
           "where": {
             "orientation": "vertical",
-            "inset": "middle-inset"
+            "inset": "middle-inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28672,7 +28820,13 @@
         }
       ],
       "nesting": [],
-      "properties": []
+      "properties": [
+        {
+          "name": "label",
+          "type": "TEXT",
+          "default": "Or"
+        }
+      ]
     },
     "_accordion-indicator": {
       "id": "_accordion-indicator",
@@ -29756,7 +29910,8 @@
           "component": "divider",
           "variant": {
             "orientation": "horizontal",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "follows": [],
           "exposes": []
@@ -35397,7 +35552,8 @@
           "component": "divider",
           "variant": {
             "orientation": "horizontal",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "follows": [],
           "exposes": []
@@ -35413,7 +35569,8 @@
           "component": "divider",
           "variant": {
             "orientation": "horizontal",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "follows": [],
           "exposes": []
