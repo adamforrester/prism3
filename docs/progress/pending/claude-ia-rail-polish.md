@@ -21,7 +21,12 @@ the chrome).
   fill the rail drew behind an on tile (Q2909.22 A), and keeps the green dot. The fill comes from the same `chrome.css`
   rule as the rail's. On the bar the mark is a square around the 16px glyph, and a negative margin takes back its padding,
   so the tile keeps its size, including the glyph-only 28 x 28 tile at 380.
-- **Mirror glyphs.** Minimize draws `collapse` (`dom.ts`), Restore's two arrows turned inward. The strip's Restore keeps
+- **An edge on the bar's on mark (Q788 C).** The review found `fill-2` is the dark bar's own color (`bar-bg`, 1.00:1) and
+  faint on the light one (1.14:1). So while the link is on, the bar's Agent mark also draws a 1px inset outline in
+  `edge-bar`, the top bar's control edge, which `spec.mjs` already holds at 3:1 on `bar-bg`: 3.18:1 in light, 3.52:1 in
+  dark. It shows on only, at every width, and the rail is unchanged.
+- **Mirror glyphs.** Minimize draws `collapse` (`dom.ts`), Restore's two arrows turned inward, each arrowhead's arms 4 long as
+  Restore's are, so the mirror is exact. The strip's Restore keeps
   the outward pair. `test:chrome` reads both drawn SVG paths, takes each arrowhead's corner as its tip, and checks the
   direction against the shafts' reach. A glyph name can't satisfy that check.
 - **Whole labels (Q732 A).** "Components" and "Appearance" drop the wireframe's manual break. Each fits one line at 9px.
@@ -30,4 +35,5 @@ the chrome).
 `test:chrome` gains an arm for each change, and each was mutated to fail by name. The arms cover: Minimize first at the
 rail's foot and never on the bar; Agent on the bar between the brand and Update file and never on the rail; `BAR_ORDER`;
 the two glyphs differing and pointing the right ways; no hyphen in any rail label; and the bar's Agent tile carrying the
-on fill at 1280 and 380 while the link is on, and not while it is off.
+on fill at 1280 and 380 while the link is on, and not while it is off. That last arm compares the mark with the ground
+it is drawn on: its edge or its fill must clear 3:1 on the first opaque background behind it, in both themes.

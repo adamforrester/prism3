@@ -2769,11 +2769,16 @@ for (const host of ['web', 'figma']) {
           const r = ([px, py]) => Math.hypot(px - 8, py - 8);
           const tips = subs.filter((p) => p.length === 3).map((p) => r(p[1]));
           const shafts = subs.filter((p) => p.length === 2).map((p) => Math.max(r(p[0]), r(p[1])));
-          return tips.length >= 2 && shafts.length >= 2 ? { tips, shafts } : null;
+          const arms = subs.filter((p) => p.length === 3).flatMap((p) => [Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]), Math.hypot(p[2][0] - p[1][0], p[2][1] - p[1][1])]);
+          return tips.length >= 2 && shafts.length >= 2 ? { tips, shafts, arms } : null;
         };
         const rm = reach(mirror.min), rr = reach(mirror.restore);
         const inward = !!rm && Math.max(...rm.tips) < Math.min(...rm.shafts) - 1;
         const outward = !!rr && Math.min(...rr.tips) >= Math.max(...rr.shafts) - 0.5;
+        // The review's nit (2026-10-27): an exact mirror, every arrowhead's arms on both glyphs the same length.
+        // MUTATION: Minimize's heads back to 3.5 long in `dom.ts` → this arm, by name.
+        const armsEq = !!rm && !!rr && [...rm.arms, ...rr.arms].every((a) => Math.abs(a - rr.arms[0]) < 0.01);
+        ok(armsEq, `mirror ${where}: Minimize's and Restore's arrowheads have arms of one length, an exact mirror (Minimize ${JSON.stringify(rm?.arms)}, Restore ${JSON.stringify(rr?.arms)})`);
         ok(mirror.minSvg !== '' && mirror.restoreSvg !== '' && mirror.minSvg !== mirror.restoreSvg,
           `mirror ${where}: Minimize and the strip's Restore draw different glyphs, never the same one (the owner, 2026-10-26) (Minimize ${JSON.stringify(mirror.min)}, Restore ${JSON.stringify(mirror.restore)})`);
         ok(inward && outward,
@@ -9823,8 +9828,10 @@ for (const { w, h } of WIDTHS) {
 //   · THE AGENT TILE'S ON FILL ON THE BAR (Q738 A, the owner, 2026-10-26), the plugin at 1280 and 380: with the link on,
 //     the top bar's Agent tile fills a square mark with the `fill-2` role, read off a probe, and `aria-pressed` is true;
 //     with the link off, the mark is not that color.
+//     Q788 C (the owner, 2026-10-27): that fill is `bar-bg` itself in dark, so an on mark also takes the bar's control edge,
+//     `edge-bar`, and the arm compares the mark with the ground it is drawn on: its edge or its fill at 3:1 on it.
 //   Mutation: the `.p3-agent-tile[data-on="true"]` arm dropped from the on-fill rule in `chrome.css` → `29b … Q738 A: with
-//     the link on, …`.
+//     the link on, …`. The Q788 C edge rule dropped → `29b figma dark … Q788 C: with the link on, …` (and in light, 1.14:1).
 // =============================================================================================
 if (runs('29b')) console.log('\n29b. The menu bar: Contrast per verdict, the plugin Theme menu');
 const LOW_FIXTURE = {
@@ -9913,25 +9920,39 @@ for (const host of ['web', 'figma']) {
           ok(ag.shown && ag.filled && ag.color === ag.okColor && ag.dy <= 0 && ag.dx >= 0 && ag.name === 'Agent' && ag.pressed === 'true',
             `${where}: the Agent tile's dot, while the link is on: filled, at its glyph's top right, in the ok green ${ag.okColor} (${JSON.stringify(ag)})`);
           // Q738 A (the owner, 2026-10-26): on the top bar since Q731, an on Agent tile's mark carries the fill the rail drew
-          // behind an on tile (Q2909.22 A), the `fill-2` role, as a square behind the glyph. The expected color is the role
-          // itself, read off a probe in the frame, never off the tile's rule; off, the mark is not that color.
+          // behind an on tile (Q2909.22 A), the `fill-2` role, as a 24 × 24 square behind the glyph. The expected color is
+          // the role itself, read off a probe in the frame, never off the tile's rule. Q788 C (the owner, 2026-10-27): the
+          // mark is judged against the ground it is drawn on, the first opaque background behind it (the bar's), never
+          // against its own role, since in dark `fill-2` IS `bar-bg`: while on, its edge or its fill clears 3:1 on that
+          // ground; off, it has neither. The theme in the name is the chrome's as read, since 29b's Theme menu step
+          // switches it at 1280.
           const FILL_PROBE = () => {
             const p = document.createElement('div'); p.style.background = 'var(--p3-fill-2)';
             document.querySelector('[data-p3="frame"]').append(p);
             const fill = getComputedStyle(p).backgroundColor; p.remove();
             const b = document.querySelector('[data-p3="top-bar"] [data-p3="agent-toggle"]'), m = b?.querySelector('.p3-tile-mark');
-            const r = m?.getBoundingClientRect();
-            return { fill, mark: m ? getComputedStyle(m).backgroundColor : null, pressed: b?.getAttribute('aria-pressed') ?? null,
-              w: r ? Math.round(r.width * 10) / 10 : null, h: r ? Math.round(r.height * 10) / 10 : null };
+            const r = m?.getBoundingClientRect(), cs = m ? getComputedStyle(m) : null;
+            let ground = null;
+            for (let e = m?.parentElement; e && !ground; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') ground = c; }
+            return { theme: document.documentElement.dataset.theme, fill, mark: cs ? cs.backgroundColor : null, ground,
+              edge: cs && cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0 ? cs.outlineColor : null, edgeW: cs ? cs.outlineWidth : null,
+              pressed: b?.getAttribute('aria-pressed') ?? null, w: r ? Math.round(r.width * 10) / 10 : null, h: r ? Math.round(r.height * 10) / 10 : null };
           };
+          const rgb = (c) => { const v = /^rgba?\(([^)]+)\)$/.exec(c ?? '')?.[1].split(/[,\s/]+/).filter(Boolean).map(Number); return v && (v.length < 4 || v[3] === 1) ? v.slice(0, 3) : null; };
+          const lum = (v) => v.map((x) => { x /= 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }).reduce((t, x, i) => t + x * [0.2126, 0.7152, 0.0722][i], 0);
+          const ratio = (c1, c2) => { const [x, y] = [rgb(c1), rgb(c2)]; if (!x || !y) return null; const [p, q] = [lum(x), lum(y)].sort((u, v) => v - u); return Math.round(((p + 0.05) / (q + 0.05)) * 100) / 100; };
           const f1 = await page.evaluate(FILL_PROBE);
-          ok(f1.fill !== 'rgba(0, 0, 0, 0)' && f1.mark === f1.fill && f1.pressed === 'true' && f1.w > 0 && f1.w === f1.h,
-            `${where}: Q738 A: with the link on, the bar's Agent tile fills a square mark with the on fill, fill-2 ${f1.fill}, as the rail did, aria-pressed true (${JSON.stringify(f1)})`);
+          const at = `29b ${host} ${f1.theme} ${w}`;
+          ok(f1.fill !== 'rgba(0, 0, 0, 0)' && f1.mark === f1.fill && f1.pressed === 'true' && f1.w === 24 && f1.h === 24,
+            `${at}: Q738 A: with the link on, the bar's Agent tile fills a 24 × 24 mark with the on fill, fill-2 ${f1.fill}, as the rail did, aria-pressed true (${JSON.stringify(f1)})`);
+          const onEdge = ratio(f1.edge, f1.ground), onFill = ratio(f1.mark, f1.ground);
+          ok(!!f1.ground && ((onEdge ?? 0) >= 3 || (onFill ?? 0) >= 3),
+            `${at}: Q788 C: with the link on, the bar's Agent mark reads against the ground it is drawn on, ${f1.ground}: its edge or its fill at 3:1 or more (edge ${f1.edge} ${onEdge}:1, fill ${f1.mark} ${onFill}:1)`);
           await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
           await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'false', null, { timeout: 3000 }).catch(() => {});
           const f0 = await page.evaluate(FILL_PROBE);
-          ok(f0.mark !== f0.fill && f0.pressed === 'false',
-            `${where}: Q738 A: with the link off, the bar's Agent tile's mark is not the on fill, aria-pressed false (${JSON.stringify(f0)})`);
+          ok(f0.mark !== f0.fill && f0.edge === null && f0.pressed === 'false' && f0.w === 24 && f0.h === 24,
+            `${at}: Q738 A, Q788 C: with the link off, the bar's Agent mark has neither the on fill nor the edge, the same 24 × 24, aria-pressed false (${JSON.stringify(f0)})`);
         }
       } catch (e) {
         ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);

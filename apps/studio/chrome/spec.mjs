@@ -58,7 +58,7 @@ export const PAIRS = [
   // B1 edges
   ['edge', 'bg-page', 3, 'control edge on the page, a card or a menu'],
   ['edge', 'levers-bg', 3, 'control edge on the levers panel (search, tab-row controls)'],
-  ['edge-bar', 'bar-bg', 3, 'control edge on the top bar (brand, verdict, Export, Figma, agent chip)'],
+  ['edge-bar', 'bar-bg', 3, 'control edge on the top bar (brand, verdict, Export, Figma, agent chip; the on Agent tile\'s mark, Q788 C)'],
   ['field-edge', 'fill-1', 3, 'control edge in an inset (selected segment, picker step, per-mode body)'],
   ['field-edge', 'bg-page', 3, 'edge of a selected segment on a page-colored track (the 380 top row)'],
   ['field-edge-hover', 'bg-page', 3, 'edge on hover; slider thumb edge'],

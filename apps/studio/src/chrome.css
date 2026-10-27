@@ -1658,6 +1658,10 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 /* The on fill, one rule for both places it shows: the rail's current area, and the Agent tile while the link is on, on
    the top bar since Q731 (Q738 A, the owner, 2026-10-26: the fill the rail drew behind an on Agent tile, at every width). */
 .p3-frame[data-shell="rail"] :is(.p3-rail .p3-tile:is([aria-current="page"], [data-on="true"]), .p3-agent-tile[data-on="true"]) > .p3-tile-mark { background: var(--p3-fill-2); }
+/* Q788 C (the owner, 2026-10-27): on the top bar the on fill alone does not read, `fill-2` is the dark bar's own color and
+   faint on the light one. So an on Agent tile's mark also takes the top bar's control edge, `edge-bar`, the role spec.mjs
+   holds at 3:1 on `bar-bg` in both themes, drawn inside the mark so the tile keeps its size. On only; the rail is unchanged. */
+.p3-frame[data-shell="rail"] .p3-bar .p3-agent-tile[data-on="true"] > .p3-tile-mark { outline: var(--p3-bw-hairline) solid var(--p3-edge-bar); outline-offset: calc(-1 * var(--p3-bw-hairline)); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile[aria-current="page"] .p3-tile-label { font-weight: var(--p3-fw-strong); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile-tip { top: 0; right: auto; left: calc(100% + var(--p3-space-050)); }
 /* A menu a rail tile opens (Appearance, at the rail's foot) opens beside the rail, to the right of its tile and level with
