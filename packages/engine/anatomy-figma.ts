@@ -914,6 +914,9 @@ const brandMarkGlyph = (defId: string, part: string, mark: string | undefined): 
   return { svg: doc, dims: [box[0], box[1]] };
 };
 
+/** The component a brand mark is (#2343): `brand-mark/<kind>/<name>`, the name `emitAsComponents` gives each member. */
+export const brandMarkComponentName = (mark: string): string => `${BRAND_MARK_DEF_ID}/${mark}`;
+
 /** The def whose emitted components ARE the icon set: `icon`, which is `emitAsComponents`, so each glyph is
  *  its own top-level component named `icon/<glyph>` (#1012). Every icon-set glyph inside another component is
  *  an instance of one of them (#2380). */
@@ -2077,9 +2080,18 @@ export const figmaAnatomyPlan = (
     // nominated target. Unlike an overlay's own target it keeps its property, which then defaults to this icon.
     // `glyphPath` throws first for a name outside the icon vocabulary.
     let slotDefault: string | undefined;
+    // A SLOT THAT KEEPS ITS CONTENT'S OWN PAINT (`fixedPaint`, #2343 PR 4) hosts a brand mark, never an icon, so its
+    // default is a name in the MARK vocabulary and the swap starts at `brand-mark/<name>`. `brandMarkGlyph` throws for a
+    // name the set does not hold, and an icon name on such a slot is refused the same way: a glyph there would be an
+    // icon the slot then refuses to ink.
     if (p.kind === 'slot' && p.swapDefault !== undefined) {
-      glyphPath(def.id, name, p.swapDefault);
-      slotDefault = iconComponentName(p.swapDefault);
+      if (p.fixedPaint) {
+        brandMarkGlyph(def.id, name, p.swapDefault);
+        slotDefault = brandMarkComponentName(p.swapDefault);
+      } else {
+        glyphPath(def.id, name, p.swapDefault);
+        slotDefault = iconComponentName(p.swapDefault);
+      }
     }
 
     // AN ICON-SET GLYPH IS AN INSTANCE OF ITS ICON COMPONENT (#2380, owner decision Q137 A). A `vector` part
