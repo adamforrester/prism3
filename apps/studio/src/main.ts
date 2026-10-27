@@ -1538,7 +1538,7 @@ const closeOpenDetail = (): void => { if (host.openDetail === null) return; setH
 
 /** The static pending texts, one per write that has one: the page rows' pills and the Activity drawer's
  *  phase line read the same words. */
-const PENDING_TEXT = { apply: 'Writing to Figma…', filesetup: 'Setting up file…', styleguide: 'Drawing the style guide…' } as const;
+const PENDING_TEXT = { apply: 'Writing to Figma…', filesetup: 'Setting up file…', styleguide: 'Drawing the style guide…', specs: 'Drawing specs…' } as const;
 /** The style guide's live pending text (#1778), for the Activity drawer: the table being drawn, counted from 1. Before
  *  the first reading, and from a host build older than this one, the pre-#1778 string. The reading is the panel's own
  *  run's, or else an agent's (owner decision Q19 b): one text for both. */
@@ -1652,6 +1652,9 @@ const activityReading = (): ActivityReading => {
           : pp ? { state: 'ok', ref: pp, verdict: pruneShort({ ok: true, applied: false, count: pp.count }), summary: pp.summary } : null,
         fixed(host.pruneBusy === 'delete' ? 'Removing…' : host.pruneBusy === 'preview' ? 'Checking…' : null)),
       readback: opReading('readback', false, readbackOf(), fixed(null)),
+      // #2830 Q713 A: Documentation › Specs' Draw specs has a row of its own, like Style guides: "Drawing specs…" while
+      // it is out, the panel's or an agent's, then its verdict. The Build set row never shows it.
+      specs: opReading('specs', host.specsState === 'pending', verdictOf(host.specsState), fixed(PENDING_TEXT.specs)),
     },
     detail: host.openDetail,
     refused: host.refused,
@@ -1673,7 +1676,7 @@ const activityReading = (): ActivityReading => {
 const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply');
 const pruneBusy = (): boolean => !!host.pruneBusy || agentRunning('prune');
 const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentRunning('filesetup');
-const componentBusy = (): boolean => host.componentState === 'pending' || agentRunning('components');
+const componentBusy = (): boolean => host.componentState === 'pending' || host.specsState === 'pending' || agentRunning('components') || agentRunning('specs');
 
 /**
  * THE FILE'S BRAND DID NOT RESOLVE (#1989), so Apply Theme and Prune stale are off until a brand does.
@@ -1830,6 +1833,16 @@ const documentationLend: DocumentationLend = {
   read: () => host.docSettings,
   save: (next) => commit.saveDocSettings(next),
   styleGuides: styleGuidesLend,
+  // #2830 Q2830.3 A: Draw specs, for the current page, under the build's guard: never beside another components write.
+  specs: {
+    read: () => ({ state: host.specsState, busy: componentBusy() || !!updateRun, off: restoreFailure ? RESTORE_OFF_HINT : null }),
+    draw: () => {
+      if (componentBusy() || updateRun || restoreFailure) return;
+      setHost({ specsState: 'pending' });
+      hostChanged();
+      commit.postDrawSpecs();
+    },
+  },
 };
 
 // ---- Update file (#2909 IA v2 phase 1) ------------------------------------------------------------------

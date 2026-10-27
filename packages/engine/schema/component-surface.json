@@ -7,8 +7,8 @@
       "properties": []
     },
     "brand-mark": {
-      "members": 19,
-      "sha256": "060f02e51a394980ffd1992105e9f31bd20988ae48e6ed6c46436c6bfc1a68e5",
+      "members": 74,
+      "sha256": "1b20886f91d3dfa9921161e90d0faca901c614b261065b2c1ef8d4702d86fa54",
       "properties": []
     },
     "focus-ring": {
@@ -640,7 +640,7 @@
     },
     "dialog": {
       "members": 24,
-      "sha256": "82ba10e4f2a5c9f553ec24f960ff712bf96bdd305dc63cdcad22588e8805c097",
+      "sha256": "3d270efcc91a14c3c41170a50eaad1606dcd77bf4d0366245cccb6d859f0d087",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",

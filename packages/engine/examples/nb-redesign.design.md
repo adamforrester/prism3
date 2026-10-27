@@ -49,6 +49,10 @@ neutralEmphasis: strong
 # (Hue matches, so no mismatch flag; the engine still re-derives + re-gates danger on the ramp.)
 roleColors: { danger: primary }
 
+# Dialogs sit on WHITE, not on the card surface (#3049, owner Q3049.4): the brand's own designs draw the end drawer
+# and the full-screen panel as #FFFFFF over the scrim. Light only, as this seed is; a dark mode would keep the card.
+raisedSurface: white
+
 # ── GEOMETRY ─────────────────────────────────────────────────────────────────────────
 # Sharp corners — radius scale 0 collapses the soft rungs (only the pill survives).
 radiusScale: 0
@@ -61,6 +65,12 @@ controlShape: rounded
 # path to that near-sharp 1px corner. It is DELIBERATELY LEFT OFF in this seed: the 1px
 # corners are part of the owner's manual finishing pass. Flag for the owner: flip
 # `radiusHairline: true` here if the finished NB wants the 1px rung engine-side.
+
+# ── LAYOUT ───────────────────────────────────────────────────────────────────────────
+# The brand's md grid margin is 44px (brand spec, #3052): at 1440 wide with 24 columns and
+# 16px gutters, (1440 − 2×44 − 23×16) / 24 = 41px whole-pixel columns. 44 is no spacing step,
+# so `grid/margin` md links to `core/dimension/44` (Q785 A). sm keeps the engine's 16.
+layout: { marginOverrides: { md: 44 } }
 
 # ── TYPOGRAPHY ───────────────────────────────────────────────────────────────────────
 typography:

@@ -34,6 +34,11 @@
           "$value": "{hds.core.palette.black}",
           "$description": "A third surface step"
         },
+        "raised": {
+          "$type": "color",
+          "$value": "{hds.core.palette.black}",
+          "$description": "Raised surface — the panel a dialog or sheet draws over the scrim. The card surface (foreground.primary) unless the brand sets it to the page or to white; in dark modes it is always the card surface"
+        },
         "brand": {
           "$type": "color",
           "$value": "{hds.core.palette.primary.300}",

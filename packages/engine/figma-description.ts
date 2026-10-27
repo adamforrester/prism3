@@ -103,6 +103,8 @@ export const figmaColorDescription = (f: ColorFacts): string => {
       if (k === 'primary') return inv ? 'Inverse surface — the opposite-polarity fill' : 'Surface on the page — a card';
       if (k === 'secondary') return inv ? 'Inverse surface, second tier' : 'Second surface — a panel or nested container';
       if (k === 'tertiary') return inv ? 'Inverse surface, third tier' : 'Third surface step';
+      // #3049: the panel over the scrim. It has no inverse twin: a dialog never renders inside an inverse band.
+      if (k === 'raised' && !inv) return 'Panel over the scrim — dialogs and sheets. A card uses foreground/primary';
       if (k.endsWith('-subtle')) return `Subtle ${k.slice(0, -'-subtle'.length)} tint — banners, badges, selected rows`;
       return `Bold ${k} fill — ${claim}`;
     }

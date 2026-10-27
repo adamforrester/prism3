@@ -28,7 +28,7 @@ export const scrimCard = (c: SgCtx, k: string): HTMLElement => {
   const card = c.painted(el('div', 'sg-card sg-scrimcard'), 'background.primary', 'background');
   card.style.background = paint(cur, 'background.primary');
   const dim = el('div', 'sg-scrimdim'); dim.style.background = paint(cur, k);
-  const panel = c.painted(el('div', 'sg-scrimpanel'), 'foreground.primary', 'background'); panel.style.background = paint(cur, 'foreground.primary');
+  const panel = c.painted(el('div', 'sg-scrimpanel'), 'foreground.raised', 'background'); panel.style.background = paint(cur, 'foreground.raised');   // the modal's own role (#3049)
   const lab = c.painted(el('div', 'sg-lab', 'Modal'), 'text.primary', 'color'); specimen(lab).style.color = paint(cur, 'text.primary');
   panel.append(lab); dim.append(panel); card.append(dim);
   cw.append(card, c.pills(...c.chip(k)));

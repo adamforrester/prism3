@@ -6,7 +6,8 @@
  * A provider mark is a trademark. Whether the repository may hold it, and how it may be shown, is a fact
  * about where the file came from and under what terms — so each file under `marks/` carries one record in
  * `marks/provenance.json`: `source`, `rightsHolder`, `dateRetrieved`, `terms`, `usage`, the `colors` as
- * supplied, the `allowedForms`, whether it is a `placeholder`, and for a wallet lockup its `width`.
+ * supplied, the `allowedForms`, whether it is a `placeholder`, for a logo its `width`, and where the file was
+ * normalized for the emitter, the `normalized` steps (each one says what changed and why; a color never does).
  *
  * ── WHAT IT COMPARES (docs/34) ──────────────────────────────────────────────────────────────────────
  *
@@ -39,7 +40,9 @@ const marksDir = resolve(here, 'marks');
 const TEXT_FIELDS = ['source', 'rightsHolder', 'dateRetrieved', 'terms', 'usage'] as const;
 const FORMS = ['full-color', 'mono-black', 'mono-white'];
 /** The folder whose marks take their width from the record. */
-const PER_MARK_WIDTH_FOLDER = 'wallet/';
+const PER_MARK_WIDTH_FOLDER = 'logo/';
+/** The folder whose marks are tiles, the only ones that may say they are not full-bleed. */
+const TILE_FOLDER = 'payment/';
 
 type Rec = Record<string, unknown>;
 
@@ -64,8 +67,12 @@ export const recordProblems = (file: string, r: Rec | undefined, today: string):
   if (!Array.isArray(forms) || forms.length === 0) out.push(`${file}: record lacks 'allowedForms'`);
   else for (const f of forms) if (!FORMS.includes(String(f))) out.push(`${file}: allowedForms names '${String(f)}', which is not one of ${FORMS.join(', ')}`);
   const perMark = file.startsWith(PER_MARK_WIDTH_FOLDER);
-  if (perMark && !(typeof r.width === 'number' && r.width > 0)) out.push(`${file}: a wallet lockup's record lacks 'width' (the provider's width at 24 high)`);
-  if (!perMark && r.width !== undefined) out.push(`${file}: declares a width, and only a wallet lockup takes one (its kind fixes the artboard)`);
+  if (perMark && !(typeof r.width === 'number' && r.width > 0)) out.push(`${file}: a logo's record lacks 'width' (its artwork's width at 24 high)`);
+  if (!perMark && r.width !== undefined) out.push(`${file}: declares a width, and only a logo takes one (its kind fixes the artboard)`);
+  if (r.normalized !== undefined && (!Array.isArray(r.normalized) || r.normalized.length === 0 || r.normalized.some((x) => typeof x !== 'string' || !x.trim())))
+    out.push(`${file}: 'normalized' is not a list of the steps taken (leave it out when the file is as supplied)`);
+  if (r.fullBleed !== undefined && (r.fullBleed !== false || !file.startsWith(TILE_FOLDER)))
+    out.push(`${file}: 'fullBleed' may only be false, and only on a payment tile that draws no ground of its own`);
   return out;
 };
 
@@ -88,17 +95,20 @@ const expectFail = (what: string, file: string, r: Rec | undefined, needle: stri
   const p = recordProblems(file, r, today);
   if (!p.some((x) => x.includes(needle))) self.push(`${what}: expected a problem naming '${needle}', got ${JSON.stringify(p)}`);
 };
-if (recordProblems('card/x.svg', good, today).length) self.push(`a complete record reads as faulty: ${recordProblems('card/x.svg', good, today).join('; ')}`);
-for (const f of TEXT_FIELDS) { const r = { ...good }; delete r[f]; expectFail(`missing ${f}`, 'card/x.svg', r, `lacks '${f}'`); }
-expectFail('no record', 'card/x.svg', undefined, 'has no record');
-expectFail('bad date', 'card/x.svg', { ...good, dateRetrieved: '26/10/2026' }, 'not a YYYY-MM-DD');
-expectFail('future date', 'card/x.svg', { ...good, dateRetrieved: '2999-01-01' }, 'after today');
-expectFail('no colors', 'card/x.svg', { ...good, colors: [] }, "lacks 'colors'");
-expectFail('bad color', 'card/x.svg', { ...good, colors: ['red'] }, 'not a hex color');
-expectFail('bad form', 'card/x.svg', { ...good, allowedForms: ['recolored'] }, 'allowedForms names');
-expectFail('no placeholder flag', 'card/x.svg', { ...good, placeholder: undefined }, "lacks 'placeholder'");
-expectFail('wallet without width', 'wallet/x.svg', good, "lacks 'width'");
-expectFail('card with width', 'card/x.svg', { ...good, width: 40 }, 'declares a width');
+if (recordProblems('payment/x.svg', good, today).length) self.push(`a complete record reads as faulty: ${recordProblems('payment/x.svg', good, today).join('; ')}`);
+for (const f of TEXT_FIELDS) { const r = { ...good }; delete r[f]; expectFail(`missing ${f}`, 'payment/x.svg', r, `lacks '${f}'`); }
+expectFail('no record', 'payment/x.svg', undefined, 'has no record');
+expectFail('bad date', 'payment/x.svg', { ...good, dateRetrieved: '26/10/2026' }, 'not a YYYY-MM-DD');
+expectFail('future date', 'payment/x.svg', { ...good, dateRetrieved: '2999-01-01' }, 'after today');
+expectFail('no colors', 'payment/x.svg', { ...good, colors: [] }, "lacks 'colors'");
+expectFail('bad color', 'payment/x.svg', { ...good, colors: ['red'] }, 'not a hex color');
+expectFail('bad form', 'payment/x.svg', { ...good, allowedForms: ['recolored'] }, 'allowedForms names');
+expectFail('no placeholder flag', 'payment/x.svg', { ...good, placeholder: undefined }, "lacks 'placeholder'");
+expectFail('logo without width', 'logo/x.svg', good, "lacks 'width'");
+expectFail('tile with width', 'payment/x.svg', { ...good, width: 40 }, 'declares a width');
+expectFail('empty normalized', 'payment/x.svg', { ...good, normalized: [] }, "'normalized'");
+expectFail('fullBleed off a tile', 'social/x.svg', { ...good, fullBleed: false }, "'fullBleed'");
+expectFail('fullBleed true', 'payment/x.svg', { ...good, fullBleed: true }, "'fullBleed'");
 if (!coverageProblems(['a.svg'], {}).some((p) => p.includes('has no record'))) self.push('coverage: a file with no record is not reported');
 if (!coverageProblems([], { 'a.svg': good }).some((p) => p.includes('stale record'))) self.push('coverage: a record with no file is not reported');
 if (VISIBILITY.test('the repository is internal')) self.push('the visibility probe matches text that does not state the condition');
@@ -138,7 +148,7 @@ if (failures.length) {
   console.error(`\n❌ ${failures.length} provenance problem(s):\n`);
   for (const f of failures) console.error(`    ${f}`);
   console.error('\n  Every mark under marks/ needs one record in marks/provenance.json, with source, rightsHolder,');
-  console.error('  dateRetrieved, terms, usage, colors, allowedForms and placeholder (and width for a wallet lockup).');
+  console.error('  dateRetrieved, terms, usage, colors, allowedForms and placeholder (and width for a logo).');
   process.exit(1);
 }
 console.log('  ✓ clean — every file has a complete record, and every record a file.');

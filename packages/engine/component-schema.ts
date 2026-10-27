@@ -804,8 +804,8 @@ export type PartDef = {
   aspectRatio?: string;
   /** For `slot` and `nest` parts: the part's width FOLLOWS ITS CONTENT'S OWN PROPORTION (#2343 PR 2). The part
    *  binds `height` alone, and both executors lock the instance to the proportion of the component it is an
-   *  instance of, so Figma derives the width. The case is a brand mark: a card mark is 8:5 and a wallet lockup
-   *  is as wide as its provider drew it, so a square `size` binding would stretch it. The box form of the same
+   *  instance of, so Figma derives the width. The case is a brand mark: a payment tile is 8:5 and a logo
+   *  is as wide as its artwork, so a square `size` binding would stretch it. The box form of the same
    *  lock is `aspectRatio`, whose proportion is a variant axis; a slot's proportion belongs to whatever the
    *  designer swaps in, so it is read from that component when the instance is built, never stated here.
    *
@@ -822,7 +822,7 @@ export type PartDef = {
    *  Refused on any other kind and beside `paintSlot` (a part cannot both keep its own paint and name an ink). */
   fixedPaint?: true;
   /** For a `vector` drawn inline: the TILE EDGE ITS OWN FRAME DRAWS around artwork exported full-bleed (#2343, owner
-   *  decision Q720 A). A card network's mark is a tile, and the provider files arrive with square corners and no
+   *  decision Q720 A). A payment mark is a tile, and its files arrive with square corners and no
    *  border, so the component draws both: at the coordinates `when` names, the GLYPH's frame (the artboard the importer
    *  returns, which is the node a host instances and resizes) binds its four corner radii to `radius` and its stroke
    *  weight to `strokeWidth`, takes the def's `border` paint as its stroke, and clips the artwork to the rounded corners.
@@ -830,7 +830,7 @@ export type PartDef = {
    *  host binds, and in every mode: a radius or a stroke baked into the SVG would scale with the artwork.
    *
    *  `when` is a presence gate in `presentWhen`'s grammar, on variant axes only: a def whose members are not all tiles
-   *  (`brand-mark`, where square and wallet marks carry no edge) names the members that are. A coordinate it names
+   *  (`brand-mark`, where square marks and logos carry no edge) names the members that are. A coordinate it names
    *  must resolve a `border` paint, or the projection throws: a weight with no stroke is an edge that draws nothing.
    *  Refused on any other kind, on an icon-set glyph (an instance, whose frame is the icon component's), and beside
    *  `radius`, `strokeWidth`, `paintSlots` or `clipsContent`, which say the same things for a box. */
