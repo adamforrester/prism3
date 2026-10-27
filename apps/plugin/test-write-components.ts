@@ -5533,15 +5533,15 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
 }
 
-// ── #2343 Q720 A: A CARD MARK'S FRAME DRAWS THE TILE'S CORNERS AND EDGE ON THE HOST ─────────────────────────────────
-// The card files are full-bleed, and the brand-mark component draws the tile: each built `brand-mark/card/*` component
+// ── #2343 Q720 A: A PAYMENT TILE'S FRAME DRAWS ITS CORNERS AND EDGE ON THE HOST ─────────────────────────────────────
+// The payment files are full-bleed tiles, and the brand-mark component draws the tile: each built `brand-mark/payment/*` component
 // reads back with its four corner radii and its stroke weight bound, its stroke painted by a bound variable, and the
 // artwork clipped; every other mark reads back with none of it. Names typed from the decision (the roles held as Q-T1
 // and Q-T2 on the PR), not read from the plan. The paste executor's twin is in packages/engine/test.ts.
-// Which marks are cards comes from the `.svg` files in `marks/card/`, not from the plan or a typed count (Q-B7 amended:
+// Which marks are tiles comes from the `.svg` files in `marks/payment/`, not from the plan or a typed count (Q-B7 amended:
 // no hard-coded provider count): every file there must build as a tile, and the folder must not be empty.
 {
-  const cardFiles = readdirSync(new URL('../../packages/engine/marks/card/', import.meta.url)).filter((f) => f.endsWith('.svg')).map((f) => `brand-mark/card/${f.slice(0, -4)}`).sort();
+  const cardFiles = readdirSync(new URL('../../packages/engine/marks/payment/', import.meta.url)).filter((f) => f.endsWith('.svg')).map((f) => `brand-mark/payment/${f.slice(0, -4)}`).sort();
   const markDef = componentDefs.find((d) => d.id === 'brand-mark')!;
   const plans = figmaAnatomySet(markDef, { swapTarget: SWAP });
   const page: Page = { children: [] };
@@ -5558,7 +5558,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const sides = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'].map((k) => id(bv[k]));
     const weight = id(bv.strokeWeight) ?? (sides.every((v) => v && v === sides[0]) ? sides[0] : null);
     const got = [...CORNERS.map((k) => id(bv[k])), weight, id(strokes[0]?.boundVariables?.color), String(c.clipsContent)];
-    if (String(c.name).startsWith('brand-mark/card/')) {
+    if (String(c.name).startsWith('brand-mark/payment/')) {
       tiles.push(String(c.name));
       const want = [...CORNERS.map(() => 'radius/sm'), 'border-width/hairline', 'color/border/primary', 'true'];
       if (JSON.stringify(got) !== JSON.stringify(want)) off.push(`${c.name}: ${got.join(' / ')}`);
@@ -5567,7 +5567,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const edgeMisses = (r.misses ?? []).filter((m: string) => /Radius|stroke|clips/i.test(m));
   const untiled = cardFiles.filter((n) => !tiles.includes(n)), unfiled = tiles.filter((n) => !cardFiles.includes(n));
   ok(cardFiles.length > 0 && untiled.length === 0 && unfiled.length === 0 && comps.length === plans.length && off.length === 0 && edgeMisses.length === 0,
-    `#2343 Q720 A plugin executor: all ${cardFiles.length} card files in marks/card/ build as tiles (${tiles.length} of ${comps.length} built marks) reading back with radius/sm corners, a border-width/hairline edge in color/border/primary, clipped; no other mark has an edge (off: ${[...off, ...edgeMisses, ...untiled.map((n) => `${n}: no tile`), ...unfiled.map((n) => `${n}: no card file`)].slice(0, 4).join(' | ') || 'none'})`);
+    `#2343 Q720 A plugin executor: all ${cardFiles.length} tile files in marks/payment/ build as tiles (${tiles.length} of ${comps.length} built marks) reading back with radius/sm corners, a border-width/hairline edge in color/border/primary, clipped; no other mark has an edge (off: ${[...off, ...edgeMisses, ...untiled.map((n) => `${n}: no tile`), ...unfiled.map((n) => `${n}: no tile file`)].slice(0, 4).join(' | ') || 'none'})`);
 }
 
 // ── #2428: CODE INPUT'S CHARACTER CARRIES ITS SIZE'S TEXT STYLE ON THE HOST ─────────────────────────────────────────
@@ -5653,7 +5653,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const lv = host.anatomy.parts.leadingVisual;
   delete lv.size;
   Object.assign(lv, { height: 'size.{size}.icon', aspectLock: true, fixedPaint: true });
-  const MARK = 'brand-mark/card/visa';
+  const MARK = 'brand-mark/payment/visa';
   const plans = figmaAnatomySet(host, { swapTarget: MARK }).filter((p) => p.slots?.leading).slice(0, 4);
   const page: Page = { children: [] };
   const f = fullFor(plans);

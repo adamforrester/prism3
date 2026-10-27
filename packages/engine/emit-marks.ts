@@ -172,7 +172,7 @@ for (const [name, source] of Object.entries(BRAND_MARK_SOURCES).sort(([a], [b]) 
   if (typeof board.width === 'number' && board.width !== w) errs.push(`${where}: ${kind} marks are ${board.width} wide, and this one is ${w}`);
   if (board.width === 'per-mark') {
     const declared = provenance[`${source}.svg`]?.width;
-    if (declared !== w) errs.push(`${where}: is ${w} wide and its provenance record declares width ${declared ?? 'nothing'} — a wallet lockup's width is the provider's, stated once in provenance.json`);
+    if (declared !== w) errs.push(`${where}: is ${w} wide and its provenance record declares width ${declared ?? 'nothing'} — a logo's width is its artwork's, stated once in provenance.json`);
   }
 
   // Gradients: id → serialized element, and every fill reference must name one.
