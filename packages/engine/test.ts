@@ -18573,6 +18573,87 @@ arm: {
     const want = d.id === 'button' ? 'icon-button' : d.id.replace(/^button-/, 'icon-button-');
     ok(d.composition?.alternativeTo?.[0] === want, `#1697 ${d.id} names its own family's icon-only alternative (${want}; got ${d.composition?.alternativeTo?.[0]})`);
   }
+  // #2343 PR 4 — WALLETBUTTON HOLDS EACH PROVIDER'S RULES. The rules are typed HERE from the providers' guidelines (the
+  // proposal's §2.1 table, read 2026-10-25), never read off the def, so a def that drifts from them fails by name
+  // (docs/34). Heights are measured on harbor built at comfortable density, the corpus default; compact and spacious
+  // move every rung, and the code clamps there (the def's codeOnly, Q-W2 on the PR). Radius is measured at all three
+  // densities. Each arm's mutation is in the PR's progress entry.
+  {
+    const wb = componentDefs.find((d) => d.id === 'wallet-button')!;
+    type Rule = { minH?: number; maxH?: number; minW?: number; halfHeightRadius?: true; logo: string };
+    const RULES: Record<string, Rule> = {
+      'apple-pay': { minH: 30, minW: 100, logo: 'brand-mark/logo/apple-pay' },
+      'google-pay': { halfHeightRadius: true, logo: 'brand-mark/logo/google-pay' },
+      paypal: { minH: 25, maxH: 55, logo: 'brand-mark/logo/paypal-wordmark' },
+      'shop-pay': { minH: 40, minW: 120, logo: 'brand-mark/logo/shop-pay' },
+    };
+    const harbor = parseDesignMd(readFileSync(new URL('./examples/harbor.design.md', import.meta.url), 'utf8')).input;
+    const builds = (['compact', 'comfortable', 'spacious'] as const).map((density) => {
+      const t = buildTree(brandTheme({ ...harbor, density })).tree as Record<string, unknown>;
+      const r = Object.keys(t)[0];
+      return { density, px: (v: string | undefined): number => (v ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
+    });
+    const comfortable = builds.find((b) => b.density === 'comfortable')!;
+    const plans = figmaAnatomySet(wb, {});
+    const providers = [...new Set(plans.map((p) => String(p.coord.provider)))].sort();
+    ok(JSON.stringify(providers) === JSON.stringify(Object.keys(RULES).sort()), `#2343 PR 4 provider rules: the wallet providers are the four the rules name (${providers.join(', ')})`);
+    // Heights: every member inside its provider's range, and every size inside the range has its member.
+    const height = (p: AnatomyPlan): number => comfortable.px(p.root.bound?.height);
+    const outOfRange = plans.filter((p) => { const r = RULES[String(p.coord.provider)]; const h = height(p); return !(h >= (r?.minH ?? 0) && h <= (r?.maxH ?? Infinity)); });
+    const sizes = (wb.variants.size ?? []);
+    const heightOf = (size: string): number => comfortable.px(wb.tokens[`size.${size}.height`]?.replace(/\./g, '/'));
+    const missing = Object.entries(RULES).flatMap(([prov, r]) => sizes.filter((sz) => heightOf(sz) >= (r.minH ?? 0) && heightOf(sz) <= (r.maxH ?? Infinity) && !plans.some((p) => p.coord.provider === prov && p.size === sz)).map((sz) => `${prov}/${sz}`));
+    ok(outOfRange.length === 0 && missing.length === 0 && plans.every((p) => Number.isFinite(height(p))),
+      `#2343 PR 4 provider rules HEIGHT: every member's height is inside its provider's range, and every size inside it has a member (outside: ${outOfRange.map((p) => `${planComponentName(p)} at ${height(p)}`).join('; ') || 'none'}; missing: ${missing.join(', ') || 'none'})`);
+    // Width: the floor clears the provider's minimum.
+    const narrow = plans.filter((p) => { const w = typeof p.root.minWidth === 'number' ? p.root.minWidth : NaN; return !(w >= (RULES[String(p.coord.provider)]?.minW ?? 0)); });
+    ok(narrow.length === 0, `#2343 PR 4 provider rules WIDTH: every member's width floor clears its provider's minimum (${narrow.map((p) => `${planComponentName(p)}: ${p.root.minWidth}`).join('; ') || 'clean'})`);
+    // Radius: Google Pay's at most half the height, at every density.
+    const corners = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const;
+    const overHalf = (bs: typeof builds) => plans.filter((p) => RULES[String(p.coord.provider)]?.halfHeightRadius).flatMap((p) => bs.flatMap((b) => {
+      const h = b.px(p.root.bound?.height), rs = corners.map((c) => b.px(p.root.bound?.[c]));
+      return rs.every((r) => r <= h / 2) ? [] : [`${planComponentName(p)} @ ${b.density}: radius ${rs[0]} over height ${h}`];
+    }));
+    const round = overHalf(builds);
+    ok(round.length === 0 && plans.some((p) => p.coord.provider === 'google-pay'), `#2343 PR 4 provider rules RADIUS: Google Pay's corner is at most half its height at every density (${round.join('; ') || 'clean'})`);
+    // ...and in every brand, not only harbor: at the softest corner the levers allow (`radiusScale` and `baseMd` at
+    // their manifest maxima) `radius.md` passes half of a compact small height, so the code must clamp Google Pay's
+    // `buttonRadius` to min(radius, height / 2). The lever bounds come from the manifest, the clamp from codeOnly.
+    const leverMax = (key: string): number => (leverManifest.find((l) => l.key === key) as { max?: number } | undefined)?.max ?? NaN;
+    const softest = (['compact', 'comfortable', 'spacious'] as const).map((density) => {
+      const t = buildTree(brandTheme({ ...harbor, density, radiusScale: leverMax('radiusScale'), baseMd: leverMax('baseMd') })).tree as Record<string, unknown>;
+      const r = Object.keys(t)[0];
+      return { density, px: (v: string | undefined): number => (v ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
+    });
+    const softOver = overHalf(softest);
+    const clamped = (wb.anatomy.codeOnly ?? []).some((c) => /Google Pay/.test(c) && /min\(radius, height \/ 2\)/.test(c));
+    ok(Number.isFinite(leverMax('radiusScale')) && Number.isFinite(leverMax('baseMd')) && (softOver.length === 0 || clamped),
+      `#2343 PR 4 provider rules RADIUS (every brand): where the softest brand's corner passes half the height, the code clamps Google Pay's radius to min(radius, height / 2) (over half at radiusScale ${leverMax('radiusScale')} × baseMd ${leverMax('baseMd')}: ${softOver.length}, e.g. ${softOver[0] ?? 'none'}; clamp in codeOnly: ${clamped})`);
+    // Colors not retinted: no node of a member paints, and the logo keeps its own paint.
+    type N = AnatomyPlan['root'];
+    const nodes = (n: N): N[] => [n, ...(n.children ?? []).flatMap(nodes)];
+    const painted = plans.flatMap((p) => nodes(p.root).filter((n) => n.paints?.fills || n.paints?.strokes || n.descendantFills || n.gradientFill).map((n) => `${planComponentName(p)}.${n.name}`));
+    const logoOf = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.nestTarget?.startsWith('brand-mark/'));
+    const unfixed = plans.filter((p) => !logoOf(p)?.fixedPaint).map(planComponentName);
+    ok(painted.length === 0 && unfixed.length === 0, `#2343 PR 4 provider rules COLOR: no member paints over or under the provider's area, and its logo keeps its own paint (painted: ${painted.slice(0, 3).join(', ') || 'none'}; logo without fixedPaint: ${unfixed.slice(0, 3).join(', ') || 'none'})`);
+    // The mark unaltered: the provider's own logo, nested whole, its height set and its width from its proportion.
+    const altered = plans.flatMap((p) => {
+      const n = logoOf(p), want = RULES[String(p.coord.provider)]?.logo;
+      const why = !n ? 'no logo' : n.nestTarget !== want ? `nests ${n.nestTarget}, not ${want}` : n.nestOverrides?.length ? 'carries overrides' : !n.aspectLock ? 'no aspect lock' : n.bound?.width ? 'binds a width' : !n.bound?.height ? 'binds no height' : '';
+      return why ? [`${planComponentName(p)}: ${why}`] : [];
+    });
+    ok(altered.length === 0, `#2343 PR 4 provider rules MARK: each member nests its provider's own logo unaltered, height bound and width from its proportion (${altered.slice(0, 3).join('; ') || 'clean'})`);
+    // Wording: the provider's alone. No member draws text of its own, so Prism3 never writes on the button.
+    const worded = plans.flatMap((p) => nodes(p.root).filter((n) => n.type === 'TEXT').map((n) => `${planComponentName(p)}.${n.name}`));
+    ok(worded.length === 0 && wb.props.every((pr) => pr.name !== 'label'), `#2343 PR 4 provider rules WORDING: no member draws a text node and the code takes no label, so the only wording is the provider's (text: ${worded.slice(0, 3).join(', ') || 'none'})`);
+    // The accessible name: the provider's element supplies it, and the component adds no label (it would be announced
+    // twice). Held on both places the contract is written, the shipped aria line and the codeOnly bullet.
+    const nameLine = (wb.anatomy.codeOnly ?? []).find((c) => c.startsWith('the accessible name — ')) ?? '';
+    const a11yText = `${wb.accessibility.aria} ${nameLine}`;
+    ok(/provider's element supplies the role and the accessible name/.test(wb.accessibility.aria) && /Add no label of your own/.test(wb.accessibility.aria)
+      && /provider's element names itself/.test(nameLine) && /component adds no label/.test(nameLine) && !/aria-label/.test(a11yText),
+      `#2343 PR 4 provider rules NAME: the provider's element supplies the accessible name and the component adds no label (aria '${wb.accessibility.aria}'; codeOnly '${nameLine || 'missing'}')`);
+  }
   // #2713 — `ai.generationPriority` follows the build-component skill's written scale. Before it, each def's
   // number was set alone, so parts an agent must never generate on their own ranked from 2 to 9 and the
   // focus ring sat level with Text field. The tier of each def is a HAND-WRITTEN literal here, not read
@@ -18584,7 +18665,7 @@ arm: {
     const SCALE = [1, 2, 3, 4, 5, 6, 9];
     const TIER: Record<string, number> = {
       button: 1,
-      'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
+      'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
       'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
@@ -35194,6 +35275,9 @@ arm: {
     // #2666 (owner call 11 A): code has no path prop. `responsive` (default true) swaps the trail for the parent link
     // below 480px by a container query, and either value renders the trail at every wider width, so the code default
     // path is the full trail whatever `responsive` holds.
+    // #2343 PR 4: a wallet button always names its provider, so the prop is required and has no default to match. Figma
+    // still needs a first member; apple-pay leads, in the proposal's order.
+    'wallet-button.provider': { prop: 'provider', map: { undefined: 'apple-pay' }, reason: 'provider is required in code (a wallet button always names its wallet), so Figma\'s first member stands in: apple-pay, the proposal\'s first' },
     // #3051 (owner Q3051.1 A): code has no labeled prop. A non-empty `label` is the labeled divider; unset, the plain rule.
     'divider.labeled': { prop: 'label', map: { undefined: 'false' }, reason: 'a divider is labeled by setting `label`; with no label it is the plain rule' },
     'breadcrumbs.path': { prop: 'responsive', map: { undefined: 'full', false: 'full', true: 'full' }, reason: 'Breadcrumbs renders the trail by default; `responsive` only swaps in the parent link below 480px' },
