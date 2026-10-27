@@ -818,7 +818,7 @@ const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base
   '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
-  '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="fills-continue"]'];
+  '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="glass-role-add"]', '[data-p3="fills-continue"]'];
 /** Color › Interactive in the two panes (S5.2): the controls its levers must render, by hook, at the top of the
  *  levers (the jump links, then Actions; the rest of the page is section 19's). */
 const INTERACTIVE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="interactive-jump-link"]', '[data-p3="action-palette-select"]',
@@ -4246,7 +4246,9 @@ ok(Object.entries(EMITTED_FLOOR).some(([m, x]) => x.hex !== EMITTED[m]), `the or
 /** The manifest keys v6 homes on Surfaces & fills, with their hooks. R2: every lever on this page is shown. */
 const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', '[data-p3="lever-gradients"]'],
   // S4f (QA-I10): the Icon section's pairing control is the icon contrast lever's block, as Interactive drew it.
-  ['iconContrast', '[data-p3="lever-icon-contrast"]']];
+  ['iconContrast', '[data-p3="lever-icon-contrast"]'],
+  // #3073: the Glass section is the glassRoles lever's block, holding the shipped glass read-only and the brand's own.
+  ['glassRoles', '[data-p3="lever-glass-roles"]']];
 /** S4f (QA-B1): Background fills' rows, by the role each names: the three page tiers (Primary was "Page", QA-B3),
  *  the contrast floor (a setting, named by its input), and the inverse fill's three tiers. Literal. */
 const SURFACE_ROW_ROLES = ['background.primary', 'background.secondary', 'background.tertiary', 'surfaces.floorStep',
@@ -4295,7 +4297,7 @@ const ICON_ROW_ROLES = [...inks('icon'), ...SEM_INK.map((s) => `icon.on-${s}`), 
  *  read from the committed emission rather than from the page, so a role the engine adds needs a row too. The
  *  count is held to the eight Q29 names, so an empty read fails. */
 /** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick. */
-const READONLY_ROW_ROLES = ['scrim.default', 'border.focus', 'inverse.border.focus'];
+const READONLY_ROW_ROLES = ['scrim.default', 'glass.surface', 'border.focus', 'inverse.border.focus'];
 const FIELD_ROW_ROLES = (() => {
   const out = [];
   const walk = (n, path) => { if (!n || typeof n !== 'object') return; if ('$value' in n) { out.push(path.join('.')); return; } for (const [k, v] of Object.entries(n)) if (!k.startsWith('$')) walk(v, [...path, k]); };
@@ -4466,7 +4468,7 @@ for (const host of ['web', 'figma']) {
   ok(c.icons.length === ICON_ROW_ROLES.length && badLock.length === 0, `${host}: paired, each of the ${ICON_ROW_ROLES.length} icon rows is locked and reads "Follows text.X"${badLock.length ? ` — not: ${badLock.slice(0, 4).map((r) => `${r} ${JSON.stringify(c.icons.find((x) => x.role === r))}`).join(', ')}` : ''}`);
   ok(c.pairNote === 'Icons follow their text color. Unpair them to set icons on their own.' && c.unpair === 'Unpair icons from text', `${host}: the Icon section's note and button are the approved copy — read ${JSON.stringify([c.pairNote, c.unpair])}`);
   // Jump links (Q49): one per section, each to its own section, in order.
-  ok(JSON.stringify(c.jumps.map((j) => j.text)) === JSON.stringify(c.jumps.map((j) => j.to)) && c.jumps.length === 9, `${host}: a jump link to each of the 9 sections, each naming its target — read ${JSON.stringify(c.jumps)}`);
+  ok(JSON.stringify(c.jumps.map((j) => j.text)) === JSON.stringify(c.jumps.map((j) => j.to)) && c.jumps.length === 10, `${host}: a jump link to each of the 10 sections, each naming its target — read ${JSON.stringify(c.jumps)}`);
   ok(JSON.stringify([...c.fieldRows].sort()) === JSON.stringify([...FIELD_ROW_ROLES].sort()), `${host}: the Fields section holds exactly the emitted field roles' rows — holds ${JSON.stringify(c.fieldRows)}`);
   // The approved copy (S4c, owner decisions Q26, Q27, Q29; Q23 for "Text color"), read as rendered. Literal.
   const copy = await page.evaluate(() => ({
@@ -4536,7 +4538,9 @@ for (const host of ['web', 'figma']) {
     `${host}: QA-I10: the icon contrast block carries Interactive's Icons description (ICONS_DESC) — read ${JSON.stringify(copy.iconTip)}`);
   const FILLS_COPY = {
     intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
-    titles: ['Background fills', 'Scrim', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
+    titles: ['Background fills', 'Scrim', 'Glass', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
+    // #3073: DRAFT for the owner, the Glass section's line.
+    Glass: 'The see-through fill behind a background blur. The white glass is fixed; add a glass fill to match a surface, such as a card.',
     // S4f (QA-B10): the scrim left Background fills, so its description is the owner's Q26 intro; Scrim's is APPROVED.
     'Background fills': 'The base page planes and their inverse counterparts.',
     Scrim: "The overlay that dims the page behind a modal. It isn't editable.",
@@ -4558,7 +4562,7 @@ for (const host of ['web', 'figma']) {
     `${host}: Background fills heads its two groups (QA-B7), and Foreground, Foreground fills, Text color, Border and Icon each head their inverse rows "Inverse" — read ${JSON.stringify(copy.subs)}`);
   ok(copy.intro === FILLS_COPY.intro, `${host}: the Surfaces & fills intro is the owner's (Q27) — read ${JSON.stringify(copy.intro)}`);
   ok(JSON.stringify(copy.titles) === JSON.stringify(FILLS_COPY.titles), `${host}: the Surfaces & fills sections are ${FILLS_COPY.titles.join(', ')} — read ${JSON.stringify(copy.titles)}`);
-  for (const t of ['Background fills', 'Scrim', 'Foreground', 'Text color', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
+  for (const t of ['Background fills', 'Scrim', 'Glass', 'Foreground', 'Text color', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
   // Q23: the levers' descriptions are the preview sections' own, read off both sides as rendered, so an edit to one
   // side alone fails here as well as against the literal above. Background fills pairs with the preview's
   // Background (Q26's rename); since S4f Scrim (QA-B10) and Fields (#2016) have preview sections of their own.
@@ -4576,6 +4580,57 @@ for (const host of ['web', 'figma']) {
   await ctx.close();
 }
 } // 18-readonly
+// #3073 (owner Q806, Q807 A): Surfaces & fills › Glass. The shipped glass is read-only (its primitive and opacity, from
+// the emission), and the glassRoles lever's controls write the brand input: Add writes the card color at 70%, the
+// opacity field writes its percent, a name the engine refuses ('surface') marks the block and leaves the last valid
+// theme, and Remove of the last fill drops the key. EXPECTED is typed here; ACTUAL is the persisted brand and the DOM.
+if (runs('18')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    const glassAlias = String(OUT[OUT_ROOT]?.color?.glass?.surface?.$value ?? '').slice(1, -1).split('.');
+    const [gPal, gStep] = glassAlias.slice(-2);
+    const gAlpha = OUT[OUT_ROOT]?.core?.palette?.[gPal]?.[gStep]?.$extensions?.prism3?.alpha;
+    const read0 = await page.evaluate(() => ({
+      read: document.querySelector('[data-p3="levers-pane"] [data-p3="glass-surface-readout"]')?.textContent ?? null,
+      section: document.querySelector('[data-p3="levers-pane"] [data-p3="glass-surface-row"]')?.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent ?? null,
+      added: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="glass-role-row"]').length,
+    }));
+    ok(read0.read === `${gPal} ${gStep} · ${Math.round(gAlpha * 100)}%` && read0.section === 'Glass' && read0.added === 0,
+      `#3073: Surfaces & fills › Glass shows the shipped glass read-only as "${gPal} ${gStep} · ${Math.round(gAlpha * 100)}%" and no added fill on a brand without the lever (${JSON.stringify(read0)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-role-add"]'));
+    await page.waitForFunction(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="glass-role-row"]').length === 1, null, { timeout: 5000 }).catch(() => {});
+    const added = await persisted(page);
+    const row = await page.evaluate(() => { const r = document.querySelector('[data-p3="levers-pane"] [data-p3="glass-role-row"]'); return r ? { role: r.dataset.role, wash: !!r.querySelector('.p3-scrim-wash'), src: r.querySelector('[data-p3="glass-role-source"]')?.value ?? null } : null; });
+    ok(JSON.stringify(added?.glassRoles) === JSON.stringify({ card: { role: 'foreground.primary', alpha: 70 } }) && row?.role === 'glass.card' && row.wash && row.src === 'role:foreground.primary',
+      `#3073: Add glass fill writes glassRoles.card = the card color at 70% and draws its row with a translucent swatch (${JSON.stringify(added?.glassRoles)}, ${JSON.stringify(row)})`);
+    const alpha = page.locator('[data-p3="levers-pane"] [data-p3="glass-role-alpha"]');
+    await alpha.fill('40');
+    await alpha.press('Enter');
+    await alpha.blur();
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.glassRoles?.card?.alpha === 40; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    ok((await persisted(page))?.glassRoles?.card?.alpha === 40, `#3073: the opacity field writes glassRoles.card.alpha (${JSON.stringify((await persisted(page))?.glassRoles)})`);
+    const name = page.locator('[data-p3="levers-pane"] [data-p3="glass-role-name"]');
+    await name.fill('surface');
+    await name.press('Enter');
+    await name.blur();
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="lever-glass-roles"][data-refused="true"], [data-p3="levers-pane"] [data-p3="lever-glass-roles"] .p3-refmark:not([hidden])'), null, { timeout: 5000 }).catch(() => {});
+    const refused = await page.evaluate(() => { const b = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-glass-roles"]'); return !!b && (b.getAttribute('data-refused') === 'true' || !!b.querySelector('.p3-refmark:not([hidden])')); });
+    ok(refused, `#3073: renaming a glass fill to "surface", the shipped glass's name, is refused by the engine and marks the Glass block`);
+    // Back to a valid name, then Remove: the last fill gone drops the key, byte-identical to never having had it.
+    await name.fill('card');
+    await name.press('Enter');
+    await name.blur();
+    await page.waitForTimeout(200);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-role-remove"]'));
+    await page.waitForFunction(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="glass-role-row"]').length === 0, null, { timeout: 5000 }).catch(() => {});
+    const gone = await persisted(page);
+    ok(gone && !('glassRoles' in gone), `#3073: removing the last glass fill drops glassRoles from the brand (${JSON.stringify(gone?.glassRoles)})`);
+    ok(errors.length === 0, `#3073 Glass: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3073 Glass: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 18-glass
 // =============================================================================================
 // S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
 // fills read-only in a derived mode, the Unpair button included (Q56, Q59)
@@ -7172,7 +7227,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     await setTop('preview-body', 0);
     const a0 = await sec(PAIRS_FILLS.Border);
     ok(a0.found && !a0.inView, `QA-B9: on Surfaces & fills the preview's Border section starts below the fold, so the reveal can move (${JSON.stringify(a0)})`);
-    await hooks.click(page.locator('#p3-lsec-fills-5 [data-p3="fill-pick"]').first());
+    await hooks.click(page.locator('#p3-lsec-fills-6 [data-p3="fill-pick"]').first());
     await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
     const opened = await sec(PAIRS_FILLS.Border);
     ok(opened.top === 0, `QA-B9: opening a step picker is not an edit, and does not move the preview (scrollTop ${opened.top}, was 0)`);
@@ -7205,7 +7260,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
       ok(lands(f1), `#2016: editing a Fields step on Surfaces & fills brings the preview's Fields section into view (top at ${f1.rel}px, scrollTop ${f1.top}, in view ${f1.inView})`);
       await page.keyboard.press('Escape');
     }
-    await hooks.click(page.locator('#p3-lsec-fills-5 [data-p3="fill-pick"]').first());
+    await hooks.click(page.locator('#p3-lsec-fills-6 [data-p3="fill-pick"]').first());
     await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
 
     // (c) Under reduced motion it lands at once: in place when the edit returns, in one step taken in the edit
@@ -7223,7 +7278,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
 
     // (d) Focusing a lever (by Tab and by focus()), and changing the mode, never move the preview.
     await setTop('preview-body', 0);
-    await page.locator('#p3-lsec-fills-6 [data-p3="icons-unpair"], #p3-lsec-fills-6 [data-p3="icons-pair"]').first().focus();
+    await page.locator('#p3-lsec-fills-7 [data-p3="icons-unpair"], #p3-lsec-fills-7 [data-p3="icons-pair"]').first().focus();
     await page.keyboard.press('Tab');
     await page.keyboard.press('Shift+Tab');
     const d1 = await frames('preview');
@@ -7254,8 +7309,8 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
       }, i);
       return { f, j };
     };
-    const ja = await jumpTo(5);
-    ok(Math.abs(ja.j.rel) <= 2 && ja.j.focus === 'p3-lsec-fills-5', `QA-B17: the Border jump link lands its section at the top of the levers pane, and focuses it (${JSON.stringify(ja.j)})`);
+    const ja = await jumpTo(6);
+    ok(Math.abs(ja.j.rel) <= 2 && ja.j.focus === 'p3-lsec-fills-6', `QA-B17: the Border jump link lands its section at the top of the levers pane, and focuses it (${JSON.stringify(ja.j)})`);
     ok(ja.f.g.between >= 2, `QA-B17: without reduced motion a jump link glides through positions on its way (${ja.f.g.between} in-between over ${ja.f.g.steps} steps)`);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const jb = await jumpTo(4);
@@ -11446,7 +11501,7 @@ const EXPECT_HEADINGS = {
     L2: ['Primary brand color', 'Additional brand colors', 'Neutral hue', 'Neutral chroma', 'Success color', 'Warning color', 'Danger color', 'Info color'],
   },
   'color-fills': {
-    L1: ['Background fills', 'Scrim', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
+    L1: ['Background fills', 'Scrim', 'Glass', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
     // Heading pass 2 (BG1 A, #2181; HP5, #2218): the Background fills and Gradients levers say their names once, in their
     // section titles, and Background fills' subgroups are "Default" and "Inverse".
     L2: ['Icon contrast floor', 'Default', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse'],

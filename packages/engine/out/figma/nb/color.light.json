@@ -2505,6 +2505,25 @@
       }
     },
     {
+      "name": "nbds/color/glass/card",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Brand glass fill behind the glass blur — 70%",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
+        "a": 0.699999988079071
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral-050-alpha/70"
+      }
+    },
+    {
       "name": "nbds/color/veil/dark/subtle",
       "resolvedType": "COLOR",
       "scopes": [

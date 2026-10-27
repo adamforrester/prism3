@@ -516,6 +516,11 @@
           "$type": "color",
           "$value": "{nbds.core.palette.white-alpha.90}",
           "$description": "Glass — the translucent white fill behind the glass background blur; opacity 90%"
+        },
+        "card": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.white-alpha.70}",
+          "$description": "Glass card — foreground.primary's color at 70% behind the glass background blur, a glass fill this brand adds"
         }
       },
       "field": {
