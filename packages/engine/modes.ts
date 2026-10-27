@@ -1488,10 +1488,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   };
 
   // THE PRIMARY AND LINK INKS CLEAR EVERY SURFACE A COMPONENT PLACES THEM ON (#2817, owner Q415 A, narrowed by
-  // Q419 A). An outline or text primary Button and a link are drawn on the page, on a card (`foreground.primary`),
-  // on Dialog's panel (`foreground.raised` since #3049, its footer's Button group) and on a status tint
-  // (`foreground.<status>-subtle`, Banner's actions, #2786; resolves Q398). Gated on the page alone, the action ink
-  // measured 3.76:1 on `foreground.primary` and 3.30:1 on a tint in a light mode. So both picks take these eight grounds as `alsoClear` (the semantic-ink
+  // Q419 A). An outline or text primary Button and a link are drawn on the page, on Dialog's panel
+  // (`foreground.raised`, its footer's Button group; it was `foreground.primary` until #3049 gave the panel its own
+  // role) and on a status tint (`foreground.<status>-subtle`, Banner's actions, #2786; resolves Q398). Gated on the
+  // page alone, the action ink measured 3.76:1 on the card surface and 3.30:1 on a tint in a light mode. So both picks
+  // take these seven grounds as `alsoClear` (the semantic-ink
   // and `border.tertiary` mechanism): the anchor stays where it clears them all, otherwise the nearest step on the
   // SAME ramp that does — darker in a light mode, lighter in a dark one, so the hue holds and only the depth
   // moves. The page keeps the mode's own bar (7:1 in HC); every other surface is held to the 4.5:1 body floor
@@ -1504,7 +1505,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // fails by name if one is missing from its own literal list, and measures every ink × surface cell from the
   // emitted hexes against those literals, never this list, so dropping a ground here fails it by name.
   const INK_SURFACES = [
-    'background.primary', 'foreground.primary', 'foreground.raised',
+    'background.primary', 'foreground.raised',
     ...SEMANTICS.map((r) => `foreground.${r}-subtle`),
   ];
   const inkSurfaceRgbs = (): RGB[] => INK_SURFACES.map((k) => asGround(k, rgbByRole.get(k)!));
