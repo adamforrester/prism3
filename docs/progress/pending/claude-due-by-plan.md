@@ -15,7 +15,16 @@ unchanged, so `EXECUTOR_REVISION` stays.
   revision not: the set's plans are projected now, against the same brand the read uses, and printed; the same print is
   `current`, another is `due` for the engine with what moved (`movedOf`: each part and facet, parts added and dropped,
   the variants). Only those sets are projected (`needsPrint`), a set at a time with the thread handed back between them
-  (`fileSets`). An entry with no print reads "Not checked yet" once the engine has moved past it.
+  (`fileSets`). An entry with no print (one from before this change) reads `due` for the engine with nothing named once
+  the engine has moved past it, so the next update records it with its print (below).
+- **An entry from before this change heals in one update** (review finding 1). Built: keep it `due` for the engine,
+  the pre-Q811 behavior, with no `moved` list and its own line, DRAFT: "Engine update: recorded before Prism3 noted what
+  it drew". A due set is ticked, the apply acts on it whether or not a member changes, and records it with its print.
+  The review's first proposal, recording from the apply the unrecorded sets its scoped check read up to date, was not
+  built: those sets are outside the apply's `defs`, so its hash guard (the file moved since the check) does not cover
+  them and it would record from a check it did not re-verify; and when the check finds nothing to change, as after a
+  patch that moves no plan, there is no apply at all, so nothing would record them. Reading them "Not checked yet" was
+  also untrue: they were recorded.
 - **The reason line** is worded in the panel (`engineWhy`, `state/update-file.ts`), DRAFT: "Engine update: focus ring
   size", "Engine update: label text and color, adds leading icon", three items at most, then how many more. A revision
   move reads "Engine update: Prism3 draws components differently"; a setting stays "Due · its settings changed".
@@ -60,6 +69,16 @@ Each mutation was made on a committed tree and failed by name:
 | `restampQuiet` a no-op | `test-build-completed.ts`: "q811/restamp: the next write records the quiet set under today's engine" |
 | The update records no print, and `restampQuiet` a no-op | `test-build-completed.ts`: "ledger/print" (either alone is covered by the other) |
 | `engineWhy` drops the facets | `test-update-file.ts`: "Q811 A why: an engine update names the part and what moved in it" |
+| Review finding 1: `dueOf` reads a print-less entry under a moved engine `unrecorded` | `test-as-built-ledger.ts`: "old entry: an entry with no print, once the engine has moved past it, reads due for the engine …"; `test-build-completed.ts`: "q811/unprinted: a print-less entry under an older engine reads due for the engine" |
+| Review M5: the deciding hash drops `paints` | `test-as-built-ledger.ts`: "q811/facet color: a plan that moved only in container's paints makes the set due for the engine, naming color" |
+| Review M6: `fileSets` prints against the stored brand (`printNow()`) | `test-build-completed.ts`: "q811/panel brand: under an engine move, a lever changed in the panel and not yet applied makes the set due …" |
+| `dueWhy` words a missing list as an empty one | `test-update-file.ts`: "#3090 finding 1 why: an engine update over a set recorded with no print says so …" |
+| The adapter invents an empty `moved` list | `test-write-adapter.ts`: "file-sets with an engine due reading and no moved list keeps the set due with none" |
+
+`paints` belongs in the deciding hash: a paint binding the engine moves is a drawing change. The hash is the whole
+projection; the per-facet arms (`q811/facet <facet>`, one per facet plus the variants' own fields) hold that each
+family of fields decides on its own. `q811/unprinted` drives finding 1 end to end through `main.ts`: due on the read,
+not recorded by a write or the check, recorded with its print by the update's apply, current on the next read.
 
 `test-write-adapter.ts` holds the wire reading of `moved`; `test:chrome`'s Update file arm shows the engine reason on
 the checklist row.

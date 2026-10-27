@@ -45,7 +45,9 @@
  * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. #3082 Q811 A
  * (section 1a'): `fileSets` calling `restampQuiet` → `q811/load: the read records nothing`; `restampQuiet` a no-op →
  * `q811/restamp`; the update's record without its print AND `restampQuiet` a no-op → `ledger/print` (either alone is
- * covered by the other: the quiet re-record gives a no-print entry its print). Q699 A
+ * covered by the other: the quiet re-record gives a no-print entry its print); `dueOf` reading a print-less entry under a
+ * moved engine `unrecorded` → `q811/unprinted` (#3090 finding 1); `fileSets` printing against the stored brand,
+ * `printNow()` → `q811/panel brand` (#3090 M6, section 6). Q699 A
  * (section 6): `main.ts`'s `brandOf` reading the stored brand whatever the panel sends → `q699/due` and `q699/update`
  * ("Nothing was updated: the file changed since the check"). #3023 Q701 B (section 6b): the panel's `brandFor` sending its own brand with
  * Theme unticked → `q701/update writes A`, `q701/next load`. The hand-edit pass (section 7): `stale()` cut to
@@ -289,6 +291,21 @@ pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRe
 await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
 ok(ledger().badge?.engine !== OLD && ledger().badge?.print?.plan === asRecorded.print!.plan,
   `q811/restamp: the next write records the quiet set under today's engine, its print kept (${JSON.stringify({ engine: ledger().badge?.engine, plan: ledger().badge?.print?.plan })})`);
+// #3090 finding 1: an entry from before Q811 A (no print) under an older engine. It reads due for the engine, naming
+// nothing, never "not checked yet"; a write does not record it quietly, nor does the check; the update's apply does,
+// with its print, and the next read finds it current.
+const { print: _p, ...unprinted } = asRecorded;
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...unprinted, engine: OLD } } }));
+const fsU = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsU?.due?.badge) === JSON.stringify({ state: 'due', reason: 'engine' }), `q811/unprinted: a print-less entry under an older engine reads due for the engine (${JSON.stringify(fsU?.due?.badge)})`);
+await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
+const chkP = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, undefined, sink as never));
+ok(ledger().badge?.engine === OLD && !ledger().badge?.print, `q811/unprinted: neither a write nor the check records it (${JSON.stringify(ledger().badge)})`);
+const hashP = (chkP.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string })?.previewHash;
+await runAction((sink) => ACTIONS.updateComponents('badge', hashP ?? null, undefined, undefined, sink as never));
+const healed = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(ledger().badge?.engine !== OLD && ledger().badge?.print?.plan === asRecorded.print!.plan && JSON.stringify(healed?.due?.badge) === JSON.stringify({ state: 'current' }),
+  `q811/unprinted: after a check and the update, the set is recorded under today's engine with its print, and reads current (${JSON.stringify({ entry: ledger().badge, due: healed?.due?.badge })})`);
 
 // 1c. Q284.3 A: a run that skipped furniture for a missing template is a WARNING, the state every partial result takes:
 //     `ok: false` and a `⚠` headline, never `✓`. The build still made its set, so it stays `completed`.
@@ -454,6 +471,17 @@ ok(!!after && after.update === 0 && after.upToDate === true, `q699/update wrote 
 const recorded = ledger()[LEVER_DEF]?.def;
 ok(recorded === entryFor(materializerFor(brandB)(componentDefs.find((d) => d.id === LEVER_DEF)!)).def && recorded !== entryFor(materializerFor(brandA)(componentDefs.find((d) => d.id === LEVER_DEF)!)).def,
   `q699/ledger: the ledger records the brand that was applied, B (${recorded})`);
+// M6 (#3090 review): under an engine move, the read prints against the PANEL's brand, as Q699 A reads the def. The file
+// stores B and the set is drawn under B; the entry is planted under an older engine. With the panel on A, a lever the
+// set follows, its plans would change: due for the engine. With the panel on B (control): current.
+const asB = ledger()[LEVER_DEF];
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: { ...asB, engine: '0.0.0-before' } } }));
+const m6B = (await ask({ type: 'file-sets-request', input: brandB }, 'file-sets'))[0]?.due?.[LEVER_DEF];
+const m6A = (await ask({ type: 'file-sets-request', input: brandA }, 'file-sets'))[0]?.due?.[LEVER_DEF];
+ok(!!asB?.print && JSON.stringify(m6B) === JSON.stringify({ state: 'current' }), `q811/panel brand control: under an engine move, the panel on the stored brand reads the set current (${JSON.stringify(m6B)})`);
+ok(m6A?.state === 'due' && m6A?.reason === 'engine' && (m6A?.moved?.parts?.length ?? 0) > 0,
+  `q811/panel brand: under an engine move, a lever changed in the panel and not yet applied makes the set due, printed against the panel's brand (${JSON.stringify(m6A)})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: asB } }));
 
 // 6b. #3023, the owner's decision Q701 B (2026-10-25): with Theme unticked, the run leaves the stored brand in the file,
 //    so the check and the update measure against it. The file stores A again; the set is still built under B (the arm

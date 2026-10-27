@@ -202,6 +202,9 @@ accepts('style-guide-result with a malformed stopped leaves it off', { type: 'st
     { kind: 'file-sets', present: ['button', 'tag'], setUp: true, error: null, due: { button: { state: 'due', reason: 'engine', moved }, tag: { state: 'due', reason: 'executor' } } });
   accepts('file-sets with a malformed moved list keeps the set due and drops the bad entries', { type: 'file-sets', present: ['button'], setUp: true, due: { button: { state: 'due', reason: 'engine', moved: { parts: [{ part: 'label', facets: ['nope'] }, { part: 3, facets: ['size'] }], added: [7, 'x'], set: 'yes' } } } },
     { kind: 'file-sets', present: ['button'], setUp: true, error: null, due: { button: { state: 'due', reason: 'engine', moved: { parts: [], added: ['x'], dropped: [], set: false } } } });
+  // #3090 finding 1: an entry recorded with no print reads due for the engine with no list, and keeps none.
+  accepts('file-sets with an engine due reading and no moved list keeps the set due with none', { type: 'file-sets', present: ['button'], setUp: true, due: { button: { state: 'due', reason: 'engine' } } },
+    { kind: 'file-sets', present: ['button'], setUp: true, error: null, due: { button: { state: 'due', reason: 'engine' } } });
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);

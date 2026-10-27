@@ -156,8 +156,11 @@ export const UPDATE_COPY = {
   /** Q2909.8 A: the due sets and the hand-edit choice. DRAFT placeholders (Q2909.10 A). */
   setsDueSub: (due: number, fresh: number): string => [due ? `${due} to update in place.` : '', fresh ? `${fresh} not in this file.` : ''].filter(Boolean).join(' ') || 'Every component set is in this file and up to date.',
   /** A due set's one-line reason (#3082 Q811 A): a setting it follows, or what an engine update moved in its drawing. */
-  dueWhy: (d: Extract<SetDueView, { state: 'due' }>): string => (d.reason === 'engine' ? engineWhy(d.moved)
+  dueWhy: (d: Extract<SetDueView, { state: 'due' }>): string => (d.reason === 'engine' ? (d.moved ? engineWhy(d.moved) : UPDATE_COPY.engineUnprinted)
     : d.reason === 'executor' ? 'Engine update: Prism3 draws components differently' : 'Due · its settings changed'),
+  /** #3090 finding 1: an engine update over a set recorded before Prism3 kept a print of its drawing, so nothing can be
+   *  named; the next update records the print. DRAFT (Q2909.10 A). */
+  engineUnprinted: 'Engine update: recorded before Prism3 noted what it drew',
   checkingSets: 'Checking what changes…',
   checkError: 'Couldn’t check the sets. Close this and try again.',
   checked: (c: CheckedSetView): string => c.blocked ? 'Can’t be updated in place yet; the agent’s update check says why'

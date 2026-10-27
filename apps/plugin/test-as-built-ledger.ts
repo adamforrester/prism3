@@ -13,7 +13,8 @@
  *   · #3082 Q811 A: an `ENGINE_VERSION` move with identical plans leaves a set `current`, and the next write re-records
  *     it (`quietOf`); a moved plan makes it `due` for the engine, naming each part and facet that moved; an
  *     `EXECUTOR_REVISION` move makes it `due` for the executor whatever the plans say (Q811.1); an entry from before
- *     Q811 A, with no print, reads `unrecorded` once the engine moves past it.
+ *     Q811 A, with no print, reads `due` for the engine with nothing named once the engine moves past it (#3090 finding
+ *     1); a move in any one facet, or in the plans' own fields, makes a set due, naming it (`q811/facet …`).
  *
  * INDEPENDENCE (docs/34): the expected states are literals read off the owner's table and the planting (which lever
  * moved, which plan field the older plans carried), never computed by `dueOf`; the plans are the engine's real
@@ -24,7 +25,8 @@
  * Mutations that fail here by name: `materializerFor` dropping a lever (Control shape) → `due: Control shape moved: Button
  * and Checkbox are due …`; `dueOf` calling any engine move due (the pre-Q811 rule) → `q811/same-plan`; `dueOf` calling an
  * engine move current whatever the print → `q811/changed-plan`; `dueOf` reading a revision move by the print, as an
- * engine move → `q811/executor`.
+ * engine move → `q811/executor`; a print-less entry under a moved engine read `unrecorded` → `old entry`; the deciding
+ * hash dropping `paints` (#3090 review M5) → `q811/facet color`.
  */
 import { componentDefs } from '@prism3/engine/components/index';
 import type { BrandInput } from '@prism3/engine/theme';
@@ -79,8 +81,9 @@ const moved = dueOf(built, present, nowFor(boxed));
 ok(same(moved.button, { state: 'due', reason: 'definition' }) && same(moved['checkbox-control'], { state: 'due', reason: 'definition' }) && same(moved.divider, { state: 'current' }),
   `due: Control shape moved: Button and Checkbox are due for their definition, Divider is current (${JSON.stringify(moved)})`);
 const versioned = dueOf(built, present, nowFor(pill, undefined, '0.0.0-other'));
-ok(same(versioned.divider, { state: 'unrecorded' }) && same(versioned.button, { state: 'unrecorded' }),
-  'old entry: an entry with no print, once the engine has moved past it, reads not checked yet (Q811 A)');
+ok(same(versioned.divider, { state: 'due', reason: 'engine' }) && same(versioned.button, { state: 'due', reason: 'engine' }),
+  `old entry: an entry with no print, once the engine has moved past it, reads due for the engine with nothing named, so the next update records it (#3090 finding 1) (${JSON.stringify(versioned)})`);
+ok(same(quietOf(built, versioned, (id) => nowFor(pill)(id)), {}), 'old entry: a print-less entry under a moved engine is not re-recorded quietly: nothing has checked it');
 ok(same(dueOf(built, ['button'], () => null), { button: { state: 'unrecorded' } }), 'a def the engine cannot plan now reads unrecorded');
 
 console.log('\n3. Q811 A: due only when the drawing would change');
@@ -115,6 +118,35 @@ const changed = dueOf(was, ['button'], now, printNow);
 ok(same(changed.button, { state: 'due', reason: 'engine', moved: { parts: [{ part: 'container', facets: ['size'] }, { part: 'label', facets: ['type'] }], added: [], dropped: [], set: false } }),
   `q811/changed-plan: a changed plan makes the set due for the engine, naming what moved (${JSON.stringify(changed.button)})`);
 ok(same(quietOf(was, changed, (id) => ({ ...now(id)!, print: printNow(id) })), {}), 'q811/changed-plan: a due set is not re-recorded quietly');
+// M5 (#3090 review): every facet, and the plans' own fields, decide. For each, the older plans differ from today's in
+// one field of one part (or one plan field) and nothing else; the expected facet is typed here, from FACET_OF's owner
+// table, never read from it. A hash that ignored any one family (the review dropped `paints`) reads that set current.
+const PER_FACET: readonly (readonly [facet: string, part: string, field: string])[] = [
+  ['size', 'container', 'bound'], ['color', 'container', 'paints'], ['type', 'label', 'textStyle'],
+  ['effect', 'label', 'zeroOpacity'], ['layout', 'container', 'layoutMode'], ['content', 'label', 'propertyRef'],
+];
+for (const [facet, part, field] of PER_FACET) {
+  let hit = 0;
+  const olderOne = plansOf('button').map((p) => {
+    const c: AnatomyPlan = JSON.parse(JSON.stringify(p));
+    const walk = (n: AnatomyPlan['root']): void => {
+      const f = n as unknown as Record<string, unknown>;
+      if (n.name === part && field in f) { f[field] = { older: f[field] }; hit++; }
+      n.children.forEach(walk);
+    };
+    walk(c.root);
+    return c;
+  });
+  const d = dueOf({ button: entryFor(m(defOf('button')), olderOne, undefined, OLD) }, ['button'], now, printNow).button;
+  ok(hit > 0 && same(d, { state: 'due', reason: 'engine', moved: { parts: [{ part, facets: [facet] }], added: [], dropped: [], set: false } }),
+    `q811/facet ${facet}: a plan that moved only in ${part}'s ${field} makes the set due for the engine, naming ${facet} (${hit} nodes; ${JSON.stringify(d)})`);
+}
+{
+  const olderSet = plansOf('button').map((p, i) => (i === 0 ? { ...p, coord: { ...p.coord, older: 'x' } } : p));
+  const d = dueOf({ button: entryFor(m(defOf('button')), olderSet as AnatomyPlan[], undefined, OLD) }, ['button'], now, printNow).button;
+  ok(same(d, { state: 'due', reason: 'engine', moved: { parts: [], added: [], dropped: [], set: true } }),
+    `q811/facet variants: a plan that moved only in its own fields (a variant's coordinates) makes the set due, naming the variants (${JSON.stringify(d)})`);
+}
 // A part the older plans lacked, and one they had, read as added and dropped.
 const fewer = { button: { ...drawn.button, print: { ...drawn.button.print!, plan: '0'.repeat(16), parts: { ...Object.fromEntries(Object.entries(drawn.button.print!.parts).filter(([k]) => k !== 'label')), gone: '0'.repeat(24) } } } };
 const partsMoved = dueOf(fewer, ['button'], now, printNow).button as { moved?: { added: string[]; dropped: string[] } };

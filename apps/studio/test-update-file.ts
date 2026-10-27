@@ -101,6 +101,8 @@ ok(engineWhy({ parts: [{ part: 'label', facets: ['type', 'color'] }], added: ['l
 ok(engineWhy({ parts: [], added: [], dropped: [], set: false }) === 'Engine update: its drawing changed', 'Q811 A why: a move with nothing to name still reads as an engine update');
 ok(UPDATE_COPY.dueWhy({ state: 'due', reason: 'executor' }) === 'Engine update: Prism3 draws components differently' && UPDATE_COPY.dueWhy({ state: 'due', reason: 'definition' }) === 'Due · its settings changed',
   'Q811 A why: the executor and a setting each have their own line');
+ok(UPDATE_COPY.dueWhy({ state: 'due', reason: 'engine' }) === 'Engine update: recorded before Prism3 noted what it drew',
+  '#3090 finding 1 why: an engine update over a set recorded with no print says so, never "built before Prism3 kept a record"');
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);
