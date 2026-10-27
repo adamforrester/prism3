@@ -138,10 +138,10 @@ type Refusal = { brand: BrandId; lever: string; value: Value; message: RegExp; r
 const REFUSALS: Refusal[] = [
   { brand: 'harbor', lever: 'typography.titleFloor', value: 16, message: /titleFloor 16 is incompatible with typeScale 'compact'/,
     reason: 'harbor runs the compact type scale, which already places a title at 16px (the lever description says so)' },
-  { brand: 'nb-redesign', lever: 'typography.typeScale', value: 'compact', message: /title\.2xl resolves to 36px, which is not larger than the previous rung/,
-    reason: 'nb-redesign pins explicit title sizes, and compact would collapse two rungs onto one px' },
-  { brand: 'nb-redesign', lever: 'typography.typeScale', value: 'expressive', message: /display\.md resolves to 56px, which is not larger than the previous rung/,
-    reason: 'nb-redesign pins explicit display sizes, and expressive would collapse two rungs onto one px' },
+  { brand: 'nb-redesign', lever: 'typography.typeScale', value: 'compact', message: /titleFloor 16 is incompatible with typeScale 'compact'/,
+    reason: 'nb-redesign opens title.2xs (titleFloor 16, #3077), and compact already places a title at 16px (the lever description says so)' },
+  { brand: 'nb-redesign', lever: 'typography.titleFloor', value: 18, message: /typography\.sizes\.title\.2xs: that rung is not in this brand's title set/,
+    reason: 'nb-redesign sets `sizes.title.2xs` (#3077), and titleFloor 18 removes that rung, so the override names nothing' },
   { brand: 'nb-redesign', lever: 'typography.displayCeiling', value: 'sm', message: /typography\.sizes\.display\.md: that rung is not in this brand's display set \(sm\)/,
     reason: 'nb-redesign sets `sizes.display.md`, and a ceiling of sm trims that rung, so the override names nothing' },
 ];
