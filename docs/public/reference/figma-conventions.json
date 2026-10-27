@@ -2833,6 +2833,83 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/search-field.md"
       },
       {
+        "id": "card-number-field",
+        "name": "CardNumberField",
+        "figmaName": "card-number-field",
+        "kind": "component set",
+        "page": null,
+        "section": null,
+        "members": 84,
+        "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error",
+              "warning",
+              "success"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled",
+              "read-only"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "placeholder",
+            "type": "TEXT"
+          },
+          {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "leading icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "card mark",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "↳ swap card mark",
+            "type": "INSTANCE_SWAP",
+            "swapTarget": "brand-mark/card/generic"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "axes": [
+            "style"
+          ],
+          "states": [
+            "pending",
+            "empty"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/card-number-field.md"
+      },
+      {
         "id": "banner",
         "name": "Banner",
         "figmaName": "banner",

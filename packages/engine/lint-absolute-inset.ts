@@ -220,6 +220,8 @@ const ZERO_OK: Record<string, string> = {
   'password-field.focusRing': FIELD_RING,
   // #2888: the Search field's too.
   'search-field.focusRing': FIELD_RING,
+  // #2343 PR 4: the Card number field's too.
+  'card-number-field.focusRing': FIELD_RING,
   // #2427: the Counter's OUTLINE members take the field offset for the same reason (their edge is the field's); its
   // GHOST members take the control offset, 2px (owner Q283.10 A), so they never reach this admission at gap 0.
   // `test.ts` holds the ghost offset against a literal, since a ghost member rebound to the field offset would be
@@ -239,7 +241,7 @@ const MUST_COVER = [
   'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing',
   'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
-  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing', 'search-field.focusRing',
+  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing', 'search-field.focusRing', 'card-number-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing', '_slider-thumb.focusRing',
@@ -260,7 +262,7 @@ const MUST_CLEAR_STROKE = [
   'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing',
   'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
-  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing', 'search-field.focusRing',
+  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing', 'search-field.focusRing', 'card-number-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing', '_slider-thumb.focusRing',

@@ -384,6 +384,49 @@
       "relation": "swap"
     },
     {
+      "from": "card-number-field",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "card-number-field",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
+    },
+    {
+      "from": "card-number-field",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      },
+      "follow": [
+        "status"
+      ]
+    },
+    {
       "from": "checkbox-control",
       "to": "focus-ring",
       "part": "focusRing",
@@ -1996,6 +2039,21 @@
         "icon-button-neutral"
       ]
     },
+    "card-number-field": {
+      "nests": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "checkbox-control": {
       "nests": [
         "focus-ring"
@@ -2132,6 +2190,7 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "card-number-field",
         "checkbox-group",
         "code-input",
         "counter",
@@ -2145,6 +2204,7 @@
         "textarea"
       ],
       "affectedByChange": [
+        "card-number-field",
         "checkbox-group",
         "code-input",
         "counter",
@@ -2163,6 +2223,7 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "card-number-field",
         "checkbox-group",
         "code-input",
         "counter",
@@ -2176,6 +2237,7 @@
         "textarea"
       ],
       "affectedByChange": [
+        "card-number-field",
         "checkbox-group",
         "code-input",
         "counter",
@@ -2248,6 +2310,7 @@
         "button",
         "button-destructive",
         "button-neutral",
+        "card-number-field",
         "checkbox-control",
         "code-input-cell",
         "counter",
@@ -2280,6 +2343,7 @@
         "button-destructive",
         "button-group",
         "button-neutral",
+        "card-number-field",
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
@@ -2770,6 +2834,7 @@
     "button-destructive": 1,
     "button-group": 2,
     "button-neutral": 1,
+    "card-number-field": 1,
     "checkbox-control": 1,
     "checkbox-group": 3,
     "checkbox-row": 2,

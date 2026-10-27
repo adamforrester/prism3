@@ -233,6 +233,10 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   // Pagination's chevrons and gap icon, one rung below the icon button's glyph (owner Q428 A, on #2796): 16/20/24 at
   // small, medium and large, so the medium default is `sm`. The cell keeps its own `size.*.height` rung.
   'pagination-item': 'icon.size.*',
+  // The Card number field's payment tile (#2343 PR 4): 20/20/24 at small, medium and large, the height #2429 §2 set and
+  // the owner took with its 16 recommendations (Q-B10 A, 2026-10-26), so the tile never stands taller than the value
+  // line. The medium default is `sm`; the field's own control and type families stay at `md`.
+  'card-number-field': 'icon.size.*',
 };
 
 /**
@@ -405,6 +409,7 @@ const DEFAULT_FIRST: Record<string, string> = {
   // #2317: TextField's size order through the shared field factory (Q301 builds it medium first, the field family's order).
   'password-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2317)',
   'search-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2888)',
+  'card-number-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2343 PR 4, #2429 Q4 b)',
   // #2752 (owner decision Q1 B, 2026-10-16): every size ladder leads with medium, so Figma inserts the code default.
   button: Q1B,
   'button-destructive': Q1B,
@@ -495,7 +500,7 @@ const MUST_COVER = [
   '_accordion-indicator', 'accordion',
   'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link',
-  'dialog', 'password-field', 'search-field',
+  'dialog', 'password-field', 'search-field', 'card-number-field',
   'pagination-item', 'pagination',
   'breadcrumb-item', 'breadcrumbs',
   'code-input-cell', 'code-input',

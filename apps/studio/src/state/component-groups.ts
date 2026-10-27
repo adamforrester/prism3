@@ -77,7 +77,7 @@ export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 
   // #2888 shipped Search field; Q5 A on #2905 puts it inside Fields, with its own Search options block (#2952).
   // #2428: Code input joins Fields, as the component that nests the cell Field style draws (Q-2789.3 A). Since #2989 (Q656 A)
   // the cell shares the Code input page, so the page's row holds both sets and both are listed here.
-  { kind: 'fields', pages: [], ids: ['code-input', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea'] },
+  { kind: 'fields', pages: [], ids: ['code-input', 'code-input-cell', 'card-number-field', 'password-field', 'search-field', 'select', 'text-field', 'textarea'] },
   { kind: 'tags', pages: [], ids: ['tag'] },
   // #2958: Dialog title size's home (Q578: component settings live with their components), built as Tag's is (Q579 A).
   { kind: 'dialogs', pages: [], ids: ['dialog'] },

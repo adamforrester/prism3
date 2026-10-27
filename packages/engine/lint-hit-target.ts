@@ -162,6 +162,8 @@ const INTERACTIVE: Record<string, Binding> = {
   'password-field': { key: (s) => `size.${s}.height`, why: 'the field control height — TextField\'s, from the shared field factory (#2317)' },
   // #2888: the Search field is TextField's box too.
   'search-field': { key: (s) => `size.${s}.height`, why: 'the field control height — TextField\'s, from the shared field factory (#2888)' },
+  // #2343 PR 4: the Card number field is TextField's box too; its tile is not a target.
+  'card-number-field': { key: (s) => `size.${s}.height`, why: 'the field control height — TextField\'s, from the shared field factory (#2343 PR 4)' },
   'select': { key: (s) => `size.${s}.min-height`, why: 'the select control floor — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
   'switch-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled switch row floor' },
   'checkbox-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled checkbox row floor' },

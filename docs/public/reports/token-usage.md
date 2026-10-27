@@ -16,7 +16,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### `border-width.hairline`
 
-Type: dimension. Bound by 23 component(s).
+Type: dimension. Bound by 24 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -26,6 +26,9 @@ Type: dimension. Bound by 23 component(s).
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
+| card-number-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
+|  |  | caretEnd | state: focus-visible-filled (12 of 84) |
+|  |  | control | every member (84 of 84) |
 | code-input-cell | `border-width`, `caret-width` | caret | state: focus-visible (4 of 28) |
 |  |  | container | every member (28 of 28) |
 | counter | `border-width` | control | every member (18 of 18) |
@@ -138,12 +141,13 @@ Type: color. Bound by 2 component(s).
 
 ### `color.border.danger`
 
-Type: color. Bound by 11 component(s).
+Type: color. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `danger.status.subtle.border` | surface | emphasis: subtle · tone: danger · type: status (2 of 40) |
 | banner | `danger.border` | container | tone: danger (2 of 8) |
+| card-number-field | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
 | checkbox-control | `error.checked.border.focus-visible`, `error.checked.border.hover`, `error.checked.border.pressed`, `error.checked.border.rest`, `error.indeterminate.border.focus-visible`, `error.indeterminate.border.hover`, `error.indeterminate.border.pressed`, `error.indeterminate.border.rest`, `error.unchecked.border.focus-visible`, `error.unchecked.border.hover`, `error.unchecked.border.pressed`, `error.unchecked.border.rest` | control | state: focus-visible, hover, pressed, rest · status: error (36 of 90) |
 | code-input-cell | `border.error` | container | state: error (4 of 28) |
 | password-field | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
@@ -156,7 +160,7 @@ Type: color. Bound by 11 component(s).
 
 ### `color.border.focus`
 
-Type: color. Bound by 21 component(s).
+Type: color. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -164,6 +168,7 @@ Type: color. Bound by 21 component(s).
 | button | `focus-ring` | (not drawn) | — |
 | button-destructive | `focus-ring` | (not drawn) | — |
 | button-neutral | `focus-ring` | (not drawn) | — |
+| card-number-field | `border.focus-visible`, `border.focus-visible-filled` | control | state: focus-visible, focus-visible-filled · status: default (6 of 84) |
 | checkbox-control | `focus-ring` | (not drawn) | — |
 | code-input-cell | `border.focus-visible`, `border.focus-visible-filled` | container | state: focus-visible, focus-visible-filled (8 of 28) |
 | focus-ring | `border` | ring | surface: default (1 of 2) |
@@ -217,12 +222,13 @@ Type: color. Bound by 6 component(s).
 
 ### `color.border.success`
 
-Type: color. Bound by 7 component(s).
+Type: color. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `success.status.subtle.border` | surface | emphasis: subtle · tone: success · type: status (2 of 40) |
 | banner | `success.border` | container | tone: success (2 of 8) |
+| card-number-field | `success.border.empty`, `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
 | password-field | `success.border.empty`, `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
 | search-field | `success.border.empty`, `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
 | select | `success.border.empty`, `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
@@ -241,12 +247,13 @@ Type: color. Bound by 3 component(s).
 
 ### `color.border.warning`
 
-Type: color. Bound by 7 component(s).
+Type: color. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `warning.status.subtle.border` | surface | emphasis: subtle · tone: warning · type: status (2 of 40) |
 | banner | `warning.border` | container | tone: warning (2 of 8) |
+| card-number-field | `warning.border.empty`, `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
 | password-field | `warning.border.empty`, `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
 | search-field | `warning.border.empty`, `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
 | select | `warning.border.empty`, `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
@@ -255,13 +262,14 @@ Type: color. Bound by 7 component(s).
 
 ### `color.disabled.border`
 
-Type: color. Bound by 21 component(s).
+Type: color. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
 | button-destructive | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
 | button-neutral | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
+| card-number-field | `disabled.border` | control | state: disabled (12 of 84) |
 | checkbox-control | `disabled.border` | control | selection: unchecked · state: disabled (6 of 90) |
 | code-input-cell | `disabled.border` | container | state: disabled (4 of 28) |
 | counter | `disabled.border` | control | appearance: outline · state: disabled (3 of 18) |
@@ -285,13 +293,14 @@ Type: color. Bound by 21 component(s).
 
 ### `color.disabled.fill`
 
-Type: color. Bound by 16 component(s).
+Type: color. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 | button-destructive | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 | button-neutral | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
+| card-number-field | `disabled.fill` | control | state: disabled (12 of 84) |
 | checkbox-control | `disabled.fill` | control | selection: checked, indeterminate · state: disabled (12 of 90) |
 | code-input-cell | `disabled.fill` | container | state: disabled (4 of 28) |
 | icon-button | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
@@ -336,7 +345,7 @@ Type: color. Bound by 15 component(s).
 
 ### `color.disabled.on-fill`
 
-Type: color. Bound by 10 component(s).
+Type: color. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -349,6 +358,8 @@ Type: color. Bound by 10 component(s).
 | button-neutral | `disabled.icon.on-fill`, `disabled.label.on-fill` | label | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 |  |  | leadingVisual | appearance: filled · inset: default · leading: true · state: disabled · surface: default (6 of 576) |
 |  |  | trailingVisual | appearance: filled · inset: default · state: disabled · surface: default · trailing: true (6 of 576) |
+| card-number-field | `disabled.icon.on-fill`, `disabled.label.on-fill` | leadingVisual | state: disabled (12 of 84) |
+|  |  | placeholder | state: disabled (12 of 84) |
 | checkbox-control | `disabled.icon.on-fill` | glyph | selection: checked, indeterminate · state: disabled (12 of 90) |
 | password-field | `disabled.icon.on-fill`, `disabled.label.on-fill` | leadingVisual | state: disabled (12 of 84) |
 |  |  | placeholder | state: disabled (12 of 84) |
@@ -396,10 +407,11 @@ Type: color. Bound by 14 component(s).
 
 ### `color.field.border.hover`
 
-Type: color. Bound by 8 component(s).
+Type: color. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| card-number-field | `border.hover` | control | state: hover · status: default (3 of 84) |
 | checkbox-control | `unchecked.border.hover` | control | selection: unchecked · state: hover · status: default (3 of 90) |
 | code-input-cell | `border.hover` | container | state: hover (4 of 28) |
 | password-field | `border.hover` | control | state: hover · status: default (3 of 84) |
@@ -411,10 +423,11 @@ Type: color. Bound by 8 component(s).
 
 ### `color.field.border.rest`
 
-Type: color. Bound by 10 component(s).
+Type: color. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| card-number-field | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
 | checkbox-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest · status: default (9 of 90) |
 | code-input-cell | `border` | container | state: filled, rest (8 of 28) |
 | counter | `outline.border` | control | appearance: outline · state: focus-visible, rest (6 of 18) |
@@ -428,10 +441,11 @@ Type: color. Bound by 10 component(s).
 
 ### `color.field.fill`
 
-Type: color. Bound by 7 component(s).
+Type: color. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| card-number-field | `fill` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
 | code-input-cell | `fill` | container | state: error, filled, focus-visible, focus-visible-filled, hover, rest (24 of 28) |
 | counter | `outline.fill` | control | appearance: outline · state: focus-visible, rest (6 of 18) |
 | password-field | `fill` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
@@ -596,10 +610,11 @@ Type: color. Bound by 1 component(s).
 
 ### `color.icon.primary`
 
-Type: color. Bound by 8 component(s).
+Type: color. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| card-number-field | `icon` | leadingVisual | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
 | icon | `icon`, `tone.primary` | glyph | every member (46 of 46) |
 | list-item | `icon`, `indicator` | bullet | type: unordered (3 of 9) |
 |  |  | icon | type: icon (3 of 9) |
@@ -1928,7 +1943,7 @@ Type: color. Bound by 1 component(s).
 
 ### `color.text.primary`
 
-Type: color. Bound by 20 component(s).
+Type: color. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -1937,6 +1952,9 @@ Type: color. Bound by 20 component(s).
 | banner | `body`, `label` | placeholder | every member (8 of 8) |
 |  |  | title | every member (8 of 8) |
 | breadcrumb-item | `label` | current | kind: current · separator: chevron (2 of 10) |
+| card-number-field | `caret`, `caret-end`, `label` | caret | state: focus-visible (12 of 84) |
+|  |  | caretEnd | state: focus-visible-filled (12 of 84) |
+|  |  | value | state: filled, focus-visible-filled, read-only (36 of 84) |
 | checkbox-row | `label` | label | every member (6 of 6) |
 | code-input-cell | `caret`, `label` | caret | state: focus-visible (4 of 28) |
 |  |  | digit | state: error, filled, focus-visible-filled (12 of 28) |
@@ -1968,10 +1986,11 @@ Type: color. Bound by 20 component(s).
 
 ### `color.text.secondary`
 
-Type: color. Bound by 10 component(s).
+Type: color. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| card-number-field | `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
 | dialog | `indicator` | description | every member (24 of 24) |
 | field-label | `secondary.indicator`, `secondary.label` | indicator | emphasis: secondary · state: rest (6 of 24) |
 |  |  | label | emphasis: secondary · state: rest (6 of 24) |
@@ -2114,10 +2133,12 @@ Type: dimension. Bound by 4 component(s).
 
 ### `control.size.lg.line-box`
 
-Type: dimension. Bound by 7 component(s).
+Type: dimension. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| card-number-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
+|  |  | caretEnd | size: large · state: focus-visible-filled (4 of 84) |
 | checkbox-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 | list-item | `size.large.line-box` | markerBox | size: large (3 of 9) |
 | password-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
@@ -2178,10 +2199,12 @@ Type: dimension. Bound by 1 component(s).
 
 ### `control.size.md.line-box`
 
-Type: dimension. Bound by 8 component(s).
+Type: dimension. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| card-number-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
+|  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
 | checkbox-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | list-item | `size.medium.line-box` | markerBox | size: medium (3 of 9) |
 | password-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
@@ -2264,10 +2287,12 @@ Type: dimension. Bound by 1 component(s).
 
 ### `control.size.sm.line-box`
 
-Type: dimension. Bound by 8 component(s).
+Type: dimension. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| card-number-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
+|  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
 | checkbox-row | `size.small.control-box` | controlCell | size: small (2 of 6) |
 | list-item | `size.small.line-box` | markerBox | size: small (3 of 9) |
 | password-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
@@ -2346,11 +2371,12 @@ Type: dimension. Bound by 20 component(s).
 
 ### `focus.ring.offset-field`
 
-Type: dimension. Bound by 9 component(s).
+Type: dimension. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `ring-offset` | focusRing | state: focus-visible (24 of 48) |
+| card-number-field | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | code-input-cell | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (8 of 28) |
 | counter | `outline.ring-offset` | focusRing | appearance: outline · state: focus-visible (3 of 18) |
 | focus-ring | `offset.field` | (not drawn) | — |
@@ -2370,7 +2396,7 @@ Type: strokeStyle. Bound by 1 component(s).
 
 ### `focus.ring.width`
 
-Type: dimension. Bound by 26 component(s).
+Type: dimension. Bound by 27 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2378,6 +2404,7 @@ Type: dimension. Bound by 26 component(s).
 | button | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | button-destructive | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | button-neutral | `ring-width` | focusRing | state: focus-visible (96 of 576) |
+| card-number-field | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | checkbox-control | `ring-width` | focusRing | state: focus-visible (18 of 90) |
 | code-input-cell | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (8 of 28) |
 | counter | `ring-width` | focusRing | state: focus-visible (6 of 18) |
@@ -2421,7 +2448,7 @@ Type: dimension. Bound by 7 component(s).
 
 ### `icon.size.md`
 
-Type: dimension. Bound by 21 component(s).
+Type: dimension. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2444,6 +2471,7 @@ Type: dimension. Bound by 21 component(s).
 | button-neutral | `size.large.icon` | leadingVisual | leading: true · size: large · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: large · state: pending (32 of 576) |
 |  |  | trailingVisual | size: large · trailing: true (88 of 576) |
+| card-number-field | `size.large.mark-height` | cardMark | size: large (28 of 84) |
 | code-input-cell | `size.large.caret-height` | caret | size: large · state: focus-visible (1 of 28) |
 | flush-icon-button | `size.large.flush`, `size.large.icon` | container | shape: flush · size: large (10 of 60) |
 |  |  | icon | size: large (20 of 60) |
@@ -2477,7 +2505,7 @@ Type: dimension. Bound by 21 component(s).
 
 ### `icon.size.sm`
 
-Type: dimension. Bound by 25 component(s).
+Type: dimension. Bound by 26 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2496,6 +2524,8 @@ Type: dimension. Bound by 25 component(s).
 | button-neutral | `size.medium.icon` | leadingVisual | leading: true · size: medium · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: medium · state: pending (32 of 576) |
 |  |  | trailingVisual | size: medium · trailing: true (88 of 576) |
+| card-number-field | `icon-size`, `size.medium.mark-height`, `size.small.mark-height` | cardMark | size: medium, small (56 of 84) |
+|  |  | leadingVisual | every member (84 of 84) |
 | code-input-cell | `size.medium.caret-height` | caret | size: medium · state: focus-visible (1 of 28) |
 | flush-icon-button | `size.medium.flush`, `size.medium.icon`, `size.small.flush`, `size.small.icon` | container | shape: flush · size: medium, small (20 of 60) |
 |  |  | icon | size: medium, small (40 of 60) |
@@ -2666,12 +2696,13 @@ Type: dimension. Bound by 13 component(s).
 
 ### `radius.sm`
 
-Type: dimension. Bound by 10 component(s).
+Type: dimension. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `status.radius` | surface | type: status (30 of 40) |
 | brand-mark | `tile.radius` | glyph | name: card/amex, card/generic, card/mastercard, card/visa (4 of 19) |
+| card-number-field | `radius` | control | every member (84 of 84) |
 | code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | container | size: large, medium, small (21 of 28) |
 | counter | `radius` | control | every member (18 of 18) |
 | password-field | `radius` | control | every member (84 of 84) |
@@ -2707,7 +2738,7 @@ Type: shadow. Bound by 1 component(s).
 
 ### `size.lg.height`
 
-Type: dimension. Bound by 21 component(s).
+Type: dimension. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2715,6 +2746,7 @@ Type: dimension. Bound by 21 component(s).
 | button | `size.large.height` | container | size: large (192 of 576) |
 | button-destructive | `size.large.height` | container | size: large (192 of 576) |
 | button-neutral | `size.large.height` | container | size: large (192 of 576) |
+| card-number-field | `size.large.height` | control | size: large (28 of 84) |
 | checkbox-row | `size.large.min-height` | row | size: large (2 of 6) |
 | counter | `size.large.height` | control | size: large (6 of 18) |
 | flush-icon-button | `size.large.round` | container | shape: round · size: large (10 of 60) |
@@ -2763,11 +2795,12 @@ Type: dimension. Bound by 19 component(s).
 
 ### `size.md.min-height`
 
-Type: dimension. Bound by 6 component(s).
+Type: dimension. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.medium.min-height`, `size.small.min-height` | header | size: medium, small (32 of 48) |
+| card-number-field | `size.medium.height`, `size.small.height` | control | size: medium, small (56 of 84) |
 | password-field | `size.medium.height`, `size.small.height` | control | size: medium, small (56 of 84) |
 | search-field | `size.medium.height`, `size.small.height` | control | size: medium, small (56 of 84) |
 | select | `size.medium.min-height`, `size.small.min-height` | control | size: medium, small (56 of 84) |
@@ -2880,7 +2913,7 @@ Type: dimension. Bound by 12 component(s).
 
 ### `space.075`
 
-Type: dimension. Bound by 17 component(s).
+Type: dimension. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2888,6 +2921,7 @@ Type: dimension. Bound by 17 component(s).
 | button | `size.small.padding-y` | container | size: small (192 of 576) |
 | button-destructive | `size.small.padding-y` | container | size: small (192 of 576) |
 | button-neutral | `size.small.padding-y` | container | size: small (192 of 576) |
+| card-number-field | `size.small.pad-y` | control | size: small (28 of 84) |
 | checkbox-row | `size.small.pad-y` | row | size: small (2 of 6) |
 | field-message | `gap` | message | every member (4 of 4) |
 | password-field | `size.small.pad-y` | control | size: small (28 of 84) |
@@ -2905,7 +2939,7 @@ Type: dimension. Bound by 17 component(s).
 
 ### `space.100`
 
-Type: dimension. Bound by 32 component(s).
+Type: dimension. Bound by 33 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2918,6 +2952,9 @@ Type: dimension. Bound by 32 component(s).
 | button-destructive | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | button-group | `layout.stacked.gap` | items | layout: stacked (1 of 3) |
 | button-neutral | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
+| card-number-field | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
+|  |  | content | every member (84 of 84) |
+|  |  | control | every member (84 of 84) |
 | checkbox-group | `pad-y` | container | every member (6 of 6) |
 | checkbox-row | `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | content | size: medium, small (4 of 6) |
 |  |  | row | size: medium (2 of 6) |
@@ -2995,7 +3032,7 @@ Type: dimension. Bound by 16 component(s).
 
 ### `space.200`
 
-Type: dimension. Bound by 18 component(s).
+Type: dimension. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3006,6 +3043,7 @@ Type: dimension. Bound by 18 component(s).
 | button | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
 | button-destructive | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
 | button-neutral | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
+| card-number-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | counter | `outline.size.large.pad-x` | control | appearance: outline · size: large (3 of 18) |
 | dialog | `gap`, `header-gap`, `placement.bottom.pad`, `placement.full.pad` | body | placement: bottom, full · size: medium (8 of 24) |
 |  |  | footer | footer: fill, inline, stacked · placement: bottom, full · size: medium (6 of 24) |
@@ -3038,7 +3076,7 @@ Type: dimension. Bound by 4 component(s).
 
 ### `space.300`
 
-Type: dimension. Bound by 11 component(s).
+Type: dimension. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3046,6 +3084,7 @@ Type: dimension. Bound by 11 component(s).
 | button | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
 | button-destructive | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
 | button-neutral | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
+| card-number-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | dialog | `placement.center.pad`, `placement.end.pad` | body | placement: center, end (16 of 24) |
 |  |  | footer | footer: fill, inline, stacked · placement: center, end (12 of 24) |
 |  |  | header | placement: center, end (16 of 24) |
@@ -3075,11 +3114,13 @@ Type: dimension. Bound by 1 component(s).
 
 ### `type.body.lg.default`
 
-Type: typography. Bound by 11 component(s).
+Type: typography. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.panel-type` | placeholder | expansion: expanded · size: large (8 of 48) |
+| card-number-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
+|  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
 | checkbox-row | `size.large.text` | label | size: large (2 of 6) |
 | counter | `size.large.type` | value | size: large (6 of 18) |
 | link | `size.large.type.default.standalone.selected.focus-visible`, `size.large.type.default.standalone.selected.hover`, `size.large.type.default.standalone.selected.pressed`, `size.large.type.default.standalone.selected.rest`, `size.large.type.default.standalone.unselected.rest` | label | size: large · style: standalone · weight: default (10 of 144) |
@@ -3123,13 +3164,15 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 18 component(s).
+Type: typography. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (8 of 48) |
 | banner | `body-type` | placeholder | every member (8 of 8) |
 | breadcrumb-item | `size.medium.type` | current | kind: current · separator: chevron · size: medium (1 of 10) |
+| card-number-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
+|  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | checkbox-row | `size.medium.text` | label | size: medium (2 of 6) |
 | code-input-cell | `size.small.type` | digit | size: small · state: error, filled, focus-visible-filled (3 of 28) |
 | counter | `size.medium.type` | value | size: medium (6 of 18) |
@@ -3182,12 +3225,14 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.sm.default`
 
-Type: typography. Bound by 16 component(s).
+Type: typography. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.small.panel-type` | placeholder | expansion: expanded · size: small (8 of 48) |
 | breadcrumb-item | `size.small.type` | current | kind: current · separator: chevron · size: small (1 of 10) |
+| card-number-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
+|  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | checkbox-row | `size.small.text` | label | size: small (2 of 6) |
 | counter | `size.small.type` | value | size: small (6 of 18) |
 | field-label | `size.medium.regular.text` | indicator | size: medium · weight: regular (4 of 24) |
@@ -3530,6 +3575,12 @@ Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fi
 Declared, not drawn: `color.border.focus`
 
 Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.neutral.border.hover`, `color.inverse.interactive.neutral.border.pressed`, `color.inverse.interactive.neutral.border.rest`, `color.inverse.interactive.neutral.fill.hover`, `color.inverse.interactive.neutral.fill.pressed`, `color.inverse.interactive.neutral.fill.rest`, `color.inverse.interactive.neutral.icon.hover`, `color.inverse.interactive.neutral.icon.pressed`, `color.inverse.interactive.neutral.icon.rest`, `color.inverse.interactive.neutral.on-fill`, `color.inverse.interactive.neutral.overlay.hover`, `color.inverse.interactive.neutral.overlay.pressed`, `color.inverse.interactive.neutral.text.hover`, `color.inverse.interactive.neutral.text.pressed`, `color.inverse.interactive.neutral.text.rest`
+
+### card-number-field
+
+31 token(s); 84 design-file member(s).
+
+`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### checkbox-control
 

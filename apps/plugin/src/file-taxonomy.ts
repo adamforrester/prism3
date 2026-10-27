@@ -108,6 +108,9 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Code input', defs: ['code-input-cell', 'code-input'], lead: 'code-input' },
         // Search field (#2888) — its own page under Components, as the Password field's is.
         { page: 'Search field', defs: ['search-field'] },
+        // Card number field (#2343 PR 4) — its own page under Components, as the Search field's is (DRAFT, held for the
+        // owner in the PR). Its tile slot starts at a brand mark, built first from the Brand marks page.
+        { page: 'Card number field', defs: ['card-number-field'] },
         { page: 'Textarea', defs: ['textarea'] },
         { page: 'Veil', defs: ['veil'] },
         // Badge — under Components, owner-decided 2026-10-04 (S8 scope, O1).

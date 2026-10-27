@@ -123,7 +123,7 @@ export const cardNumberField: ComponentDef = makeTextField({
   },
 
   content: {
-    labelPattern: 'Noun phrase, sentence case, no trailing colon: "Card number". Never an acronym for the security code in this field\'s neighbors either: "Security code", not "CVV".',
+    labelPattern: 'Noun phrase, sentence case, no trailing colon: "Card number". Its neighbors spell out their names too: "Expiration date" and "Security code", never an acronym.',
     errorPattern: 'What is wrong and how to fix it: "Enter the card number." · "Check the card number. It doesn\'t match a valid card." · "This card type isn\'t accepted. Use Visa, Mastercard or American Express." (the accepted list, from the app).',
     emptyPattern: 'The label plus an optional format example as the placeholder, "1234 1234 1234 1234", and the generic tile.',
   },

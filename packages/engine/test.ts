@@ -75,10 +75,12 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter, searchField, progress } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter, searchField, cardNumberField, progress } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
+import { BRAND_MARK_BOXES } from './brand-mark-glyphs';
+import { makeTextField } from './components/text-field';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -3950,6 +3952,8 @@ for (const b of brands) {
       'password-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       // #2888: the Search field too.
       'search-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
+      // #2343 PR 4: the Card number field too.
+      'card-number-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       textarea: { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'] },
       select: { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       // #2894 (owner Q539, Q?4 A): the rows' block padding follows density too.
@@ -3978,6 +3982,7 @@ for (const b of brands) {
       'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'password-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'search-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
+      'card-number-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       textarea: { compact: 'small 12/4 · medium 12/6 · large 20/6', comfortable: 'small 16/6 · medium 16/8 · large 24/8', spacious: 'small 20/8 · medium 20/12 · large 32/12' },
       select: { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
@@ -4054,6 +4059,8 @@ for (const b of brands) {
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2888: the Search field, TextField's gap through the shared field factory.
       'search-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      // #2343 PR 4: the Card number field, TextField's gap through the shared field factory.
+      'card-number-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       link: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2666: the label-to-separator gap inside an item, and the same gap between items.
@@ -4101,6 +4108,7 @@ for (const b of brands) {
       'text-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       'password-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       'search-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      'card-number-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       select: { prefix: 'sized', lt: [['gap', 'pad-x']] },
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
@@ -15512,7 +15520,7 @@ arm: {
       const all = (n: any): any[] => [n, ...(n.children ?? []).flatMap(all)];
       // The field family on main (Q332: Text field, Textarea, Select, Password field; Number and Code input are not built),
       // and the Search field (#2888), drawn here as `applyFieldStyle` draws it; which style it is given is `fieldStyleFor`'s.
-      const FIELDS = ['password-field', 'search-field', 'select', 'text-field', 'textarea'];
+      const FIELDS = ['card-number-field', 'password-field', 'search-field', 'select', 'text-field', 'textarea'];
       // Code input's cell (#2428; #2719, Q332 A and Q12 A): a field box per character, so the lever reaches it. Its own
       // arm is below: 28 members on a `state` grid with no `status` axis, so the 84-member loop over FIELDS does not fit it.
       const FIELD_CELLS = ['code-input-cell'];
@@ -18071,7 +18079,7 @@ arm: {
     //     `showMessage` boolean (Code input #2789, Search #2912) must join this list, and so take the same
     //     default. The expected `false` is the owner's answer, not a value read off any def (docs/34).
     {
-      const MESSAGE_OFF_FAMILY = ['code-input', 'counter', 'password-field', 'search-field', 'select', 'text-field', 'textarea'];
+      const MESSAGE_OFF_FAMILY = ['card-number-field', 'code-input', 'counter', 'password-field', 'search-field', 'select', 'text-field', 'textarea'];
       const withMsg = componentDefs.filter((d) => d.figmaProperties?.booleans?.showMessage).map((d) => d.id).sort();
       ok(JSON.stringify(withMsg) === JSON.stringify(MESSAGE_OFF_FAMILY),
         `#2926 the defs with a showMessage boolean are exactly the message-off family ${JSON.stringify(MESSAGE_OFF_FAMILY)} (got ${JSON.stringify(withMsg)}) — a new one joins the list and takes its default`);
@@ -18338,7 +18346,7 @@ arm: {
     const TIER: Record<string, number> = {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
-      'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
+      'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
       'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
@@ -18965,7 +18973,7 @@ arm: {
     const SH_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
     const SH_GROUNDS = ['background.primary', 'background.secondary'];
     // #2709: Password field joins: the same field factory as Text field, so the same status borders.
-    const SH_DEFS = ['text-field', 'textarea', 'select', 'password-field', 'search-field'];
+    const SH_DEFS = ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field'];
     const CHOICE_ERR = 'a choice control (or the row or group that only follows it): status is [default, error] only (Q354), the danger edge is one flat `color.border.danger` at every state, so there is no status hover step to measure, and a row or group paints nothing by it';
     // Defs with a status axis that are NOT a framed field, with the reason. The converse below reads the axis off
     // every def, so a new status-bearing def fails by name until it is pinned or excused here.
@@ -19218,7 +19226,7 @@ arm: {
     const RO_GROUNDS = ['background.primary', 'background.secondary'];
     // Pinned by name, independent of the discovery below: the three field defs #1710 names (select's
     // read-only member landed with #1699/#1709), and Password field (#2709), which joined after.
-    const RO_PINNED = ['text-field', 'textarea', 'select', 'password-field', 'search-field'];
+    const RO_PINNED = ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field'];
     // The STATES swept. `read-only` is #1710's subject; `rest`, `hover` and `filled` are swept too because the
     // three defs' SC 1.4.11 line claims "the rest, hover and read-only borders are gated on
     // `background.secondary`" — and before this sweep nothing gated a def's HOVER binding at all (the review of
@@ -20642,6 +20650,9 @@ arm: {
       // #2888: the Search field's are TextField's too.
       { def: componentDefs.find((d) => d.id === 'search-field')!, part: 'placeholder', axes: { size: 3 } },
       { def: componentDefs.find((d) => d.id === 'search-field')!, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      // #2343 PR 4: the Card number field's are TextField's too.
+      { def: componentDefs.find((d) => d.id === 'card-number-field')!, part: 'placeholder', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'card-number-field')!, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: select, part: 'placeholder', axes: { size: 3 } },
       { def: select, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: textarea, part: 'placeholder', axes: { size: 3 } },
@@ -21839,6 +21850,10 @@ arm: {
               createInstance: () => {
                 const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec];
                 Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
+                // #2343 PR 4 — the main component's own extent, which the paste executor reads for a slot under `aspectLock`:
+                // a brand mark is its artboard (a card tile 32×20), anything else the 24×24 icon artboard.
+                const box = name.startsWith('brand-mark/') ? BRAND_MARK_BOXES[name.slice('brand-mark/'.length) as keyof typeof BRAND_MARK_BOXES] : undefined;
+                inst.getMainComponentAsync = async () => ({ name, type: 'COMPONENT', width: box?.[0] ?? 24, height: box?.[1] ?? 24 });
                 // #2645 — THE INSTANCE'S OWN COMPONENT PROPERTIES, for a component `componentProps` declares: each at the
                 // value it was given or its default, keyed `name#id` as the host keys them. `setProperties` refuses a key
                 // that is no definition's full key and a swap value that is no component id this stub hands out — the
@@ -26424,6 +26439,7 @@ arm: {
       'icon:tone', 'focus-ring:offset', 'tag:read-only',
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
       'search-field:style', 'search-field:pending', 'search-field:empty',
+      'card-number-field:style', 'card-number-field:pending', 'card-number-field:empty',
       'textarea:style', 'textarea:pending', 'textarea:empty', 'select:pending', 'select:empty', 'code-input:pending',
       'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
     ];
@@ -29670,7 +29686,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -29806,7 +29822,7 @@ arm: {
   // variables: a fixed column one line tall.
   // Pagination.Item's balance (Q537) binds a zero width under its 2px height: the frame above the underlined number that
   // must not set the label box's width. Two different variables, so it joins on the rule's own terms.
-  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'search-field', 'code-input-cell', 'pagination-item'];
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'search-field', 'card-number-field', 'code-input-cell', 'pagination-item'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -31126,6 +31142,9 @@ arm: {
     // #2888: the Search field's entry row is TextField's too.
     'search-field.entry':
       "the Search field's entry row is text-field's, from the shared field factory: the single-line placeholder or query does not wrap, so the caret centred against its one line sits where a native caret sits (as text-field.entry).",
+    // #2343 PR 4: the Card number field's entry row is TextField's too.
+    'card-number-field.entry':
+      "the Card number field's entry row is text-field's, from the shared field factory: the single-line placeholder or grouped number does not wrap, so the caret centred against its one line sits where a native caret sits (as text-field.entry).",
     // `badge`'s surface (the type axis, 2026-09-27, first named `genre`) lists a text part and the sized `dot` box as children,
     // but `presentWhen` on `type` puts exactly one of them in any member: no member pairs the dot with a
     // label, so there is no line for the dot to float against. The status label is one or two words and the
@@ -36487,6 +36506,58 @@ arm: {
   });
   ok(underBad.length === 0,
     `#2888 search-field underline plan: under Underline every member binds none / none / hairline (thick at focus) / none and no inline padding, so the search glyph sits at the line's start${underBad.length ? ` — WRONG on ${underBad.length}: ${planComponentName(underBad[0])}` : ''}`);
+}
+
+// ------------------------------------------------------------------- #2343 PR 4: the Card number field
+// Each decision held against a literal (#2429's recommendations, taken as a block, Q-B10 A): 84 members, TextField's
+// token block plus exactly the tile's three height keys (20 / 20 / 24, #2429 §2), the tile at the box's trailing edge in
+// place of TextField's trailing glyph (Q7 a), built shown and starting at the generic tile (Q10 a; the owner's generic
+// artwork, 2026-10-27), and the panel. That the tile is never retinted is `lint-mark-colors.ts`'s; that the slot takes
+// tiles only is `lint-mark-slots.ts`'s. EXPECTED is typed here; ACTUAL is the def and its projected plans.
+{
+  const cf = cardNumberField;
+  const cfPlans = figmaAnatomySet(cf, { swapTarget: 'FPO-default-icon' });
+  type PN = { name: string; type: string; children: PN[]; visible?: boolean; visibleProp?: string; swapTarget?: string; fixedPaint?: true; aspectLock?: true; descendantFills?: string; bound?: Record<string, string> };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : (n.children ?? []).map((c) => find(c, name)).find(Boolean));
+  ok(cfPlans.length === 84, `#2343 PR 4 card-number-field: size(3) × status(4) × state(7) = 84 members, TextField's count (got ${cfPlans.length})`);
+  const own = Object.fromEntries(Object.entries(cf.tokens).filter(([k]) => !(k in textField.tokens)));
+  const lost = Object.keys(textField.tokens).filter((k) => cf.tokens[k] !== textField.tokens[k]);
+  ok(lost.length === 0 && JSON.stringify(own) === JSON.stringify({ 'size.small.mark-height': 'icon.size.sm', 'size.medium.mark-height': 'icon.size.sm', 'size.large.mark-height': 'icon.size.md' }),
+    `#2343 PR 4 field factory: the Card number field binds TextField's token block key for key, plus the tile's height at 20 / 20 / 24 and nothing else (added ${JSON.stringify(own)}; differs ${JSON.stringify(lost)})`);
+  // ON EVERY MEMBER: the box holds the value row, the tile and the ring, and no trailing glyph; the tile is built shown,
+  // starts at the generic tile, is a swap behind the card mark switch, and keeps its own paint under the aspect lock.
+  const memberBad = cfPlans.filter((p) => {
+    const r = p.root as PN, ctl = find(r, 'control'), tile = find(r, 'cardMark');
+    const focus = String((p.coord as Record<string, string>).state).startsWith('focus-visible');
+    return JSON.stringify((ctl?.children ?? []).map((c) => c.name)) !== JSON.stringify(focus ? ['content', 'cardMark', 'focusRing'] : ['content', 'cardMark'])
+      || find(r, 'trailingVisual') !== undefined
+      || tile?.type !== 'INSTANCE_SWAP' || tile.visible === false || tile.visibleProp !== 'card mark'
+      || !/^brand-mark\/[a-z]+\/generic$/.test(tile.swapTarget ?? '') || tile.fixedPaint !== true || tile.aspectLock !== true || tile.descendantFills !== undefined;
+  });
+  ok(memberBad.length === 0,
+    `#2343 PR 4 card-number-field members: the generic tile at the box's trailing edge, shown, behind the card mark switch, fixed-paint and aspect-locked, and no trailing glyph, on all 84${memberBad.length ? ` — WRONG on ${memberBad.length}: ${planComponentName(memberBad[0])}` : ''}`);
+  // THE PANEL, in order, each default typed here, the tile's swap starting at a generic tile.
+  const props = planSetProperties(cfPlans).map((p: any) => `${p.name}:${p.type}:${String(p.default ?? p.swapTarget).replace(/^brand-mark\/[a-z]+\//, 'brand-mark/<tiles>/')}`);
+  const WANT_PROPS = ['placeholder:TEXT:Placeholder', 'value:TEXT:1234 5678 9012 3456', 'leading icon:BOOLEAN:false', '↳ swap leading icon:INSTANCE_SWAP:FPO-default-icon',
+    'card mark:BOOLEAN:true', '↳ swap card mark:INSTANCE_SWAP:brand-mark/<tiles>/generic', 'message:BOOLEAN:false'];
+  ok(JSON.stringify(props) === JSON.stringify(WANT_PROPS),
+    `#2343 PR 4 card-number-field panel: the card mark switch on and its swap at the generic tile, under the value, the leading glyph hidden, the message off (got ${JSON.stringify(props)})`);
+  // THE CODE PROP: generic first, and the tile's presence on.
+  ok(cf.props.find((p) => p.name === 'brand')?.default === 'generic' && cf.props.find((p) => p.name === 'showCardMark')?.default === true
+    && !cf.props.some((p) => p.name === 'trailingIcon' || p.name === 'clearable'),
+    '#2343 PR 4 card-number-field props: brand defaults to generic, showCardMark to true, and there is no trailing glyph or clear action');
+  // THE FACTORY refuses a mark edge with no tile, and a tile on another edge.
+  const threw = (spec: Record<string, unknown>): boolean => { try { makeTextField({ ...(spec as any) }); return false; } catch (e) { return /'mark' is required with edge 'mark'/.test((e as Error).message); } };
+  ok(threw({ id: 'x', edge: 'mark', props: [], codeOnly: [] }) && threw({ id: 'x', edge: 'trailing-glyph', mark: { start: 'card/generic' }, props: [], codeOnly: [] }),
+    '#2343 PR 4 field factory: edge mark without a start tile, and a start tile on another edge, are refused by name');
+  // A FIXED-PAINT SLOT'S DEFAULT IS A MARK: an icon name there throws at projection, naming the mark vocabulary.
+  const iconOnTile = JSON.parse(JSON.stringify(cf)) as ComponentDef; iconOnTile.anatomy!.parts.cardMark.swapDefault = 'check';
+  let tileThrew = '';
+  try { figmaAnatomySet(iconOnTile, { swapTarget: 'FPO-default-icon' }); } catch (e) { tileThrew = (e as Error).message; }
+  ok(/names mark 'check', which is not in the brand-mark vocabulary/.test(tileThrew),
+    `#2343 PR 4: a fixed-paint slot that starts at an icon throws at projection, naming the mark vocabulary (got ${tileThrew.slice(0, 120) || 'no throw'})`);
+  ok(!(textField.composition?.planned ?? []).includes('card-number-field') && (cf.composition?.alternativeTo ?? []).includes('text-field'),
+    '#2343 PR 4: the Card number field names TextField as its alternative');
 }
 
 // ------------------------------------------------------------------- #2738: the fields' nested label dims with them
