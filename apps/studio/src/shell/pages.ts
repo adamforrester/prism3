@@ -43,8 +43,9 @@ export const BACKGROUND_FILLS_DESC = 'The base page planes and their inverse cou
  *  and the preview's Foreground section there (Q23). That preview section sits on the contrast floor, not the page, so
  *  its sentence says so. The Style guide's own Foreground section keeps its sentence ("placed ON the page"). */
 export const FOREGROUND_FILLS_DESC = "Content surfaces, shown on the contrast floor they're measured against.";
-/** The Scrim copy (S4f, QA-B10, APPROVED), shared by the levers' Scrim section and the preview's (Q23). */
-export const SCRIM_DESC = "The overlay that dims the page behind a modal. It isn't editable.";
+/** The Scrim copy (S4f, QA-B10, APPROVED), shared by the levers' Scrim section and the preview's (Q23). Since #3050
+ *  the section holds Scrim strength, so "It isn't editable." went: the remaining sentence is a DRAFT for the owner. */
+export const SCRIM_DESC = 'The overlay that dims the page behind a modal.';
 // #3073: DRAFT for the owner, the Glass section's line.
 export const GLASS_DESC = 'The see-through fill behind a background blur. The white glass is fixed; add a glass fill to match a surface, such as a card.';
 /** The Fields copy (Q29, APPROVED), shared by the levers' Fields section and, since S4f (#2016, Q80), the preview's. */
@@ -183,7 +184,8 @@ export const DOMAINS = [
           // S4f (QA-B10): the scrim left Background fills for its own read-only section, so Background fills' description
           // dropped its scrim clause (the owner's Q26 intro again), as the preview's Background section's did (Q23).
           { title: 'Background fills', desc: BACKGROUND_FILLS_DESC, rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
-          { title: 'Scrim', desc: SCRIM_DESC, rows: [{ ctl: 'scrim' }] },
+          // #3050 (owner Q825 B): Scrim strength's one home, the Scrim section, above the scrim's read-only row.
+          { title: 'Scrim', desc: SCRIM_DESC, rows: [{ ctl: 'scrim', keys: ['scrimStrength'] }] },
           // #3073 (owner Q806, Q807 A): the shipped white glass, read-only, and the glass fills a brand adds (`glassRoles`).
           { title: 'Glass', desc: GLASS_DESC, rows: [{ ctl: 'glass', keys: ['glassRoles'] }] },
           // S4d (owner decision Q44): the neutral ladder in its own section, the approved heading with the preview's
