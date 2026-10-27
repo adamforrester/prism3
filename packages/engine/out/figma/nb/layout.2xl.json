@@ -79,7 +79,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Grid margin by breakpoint: sm 16px · md–lg 24px · xl 32px · 2xl 48px",
+      "description": "Grid margin by breakpoint: sm 16px · md 44px · lg 24px · xl 32px · 2xl 48px",
       "value": 48,
       "alias": {
         "type": "VARIABLE_ALIAS",

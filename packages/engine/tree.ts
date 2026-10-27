@@ -15,7 +15,7 @@
 import { bandPhrase } from './figma-description';
 import { RGB, contrast, hex, hexToRgb, emittedAlpha } from './color';
 import { Step } from './ramp';
-import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, SWEEP_ROLE, BODY_XS_DESCRIPTION } from './theme';
+import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, SWEEP_ROLE, BODY_XS_DESCRIPTION, gridGapLink } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
 import { resolveAllModes, ModeResult, OPACITY_STEPS } from './modes';
 import { orderedRoleKeys } from './color-order';
@@ -561,7 +561,6 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const px of theme.dims.grid) dimension[String(px)] = dimLeaf(px);
   // reference: numbered-multiplier space scale (density-free)
   const space: Record<string, Token> = {};
-  const spaceKeyOf = new Map<number, string>(theme.dims.space.map((s) => [s.px, s.key]));
   for (const s of theme.dims.space) space[s.key] = dimAlias(`${root}.${CORE_TIER}.dimension.${s.px}`, `space.${s.key} — ${s.px}px (${s.mult}× ${theme.dims.spaceBase}px base)`, { px: s.px, mult: s.mult });
   // radius ramp (t-shirt) — geometry is MODE-VARYING (docs/11 Pillar 1b + Phase D). Two paths
   // coexist on the same `$extensions.prism3.modes` map:
@@ -1121,23 +1120,30 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
 
   // ---- layout axis: breakpoints + responsive grid + containers ----
   // Breakpoints = min-width floors; grid columns/gutter/margin per breakpoint
-  // (gutter/margin ALIAS the spacing scale). Each breakpoint-keyed value carries a
+  // (gutter/margin ALIAS the spacing scale, else the dimension grid — #3052). Each breakpoint-keyed value carries a
   // figma directive mapping it to a SEPARATE layout collection whose modes are the
   // breakpoints (composes independently with the colour light/dark collection).
   const ly = theme.layout;
   const breakpoint: Record<string, Token> = {};
   for (const b of ly.breakpoints) breakpoint[b.name] = dimLeaf(b.px, `breakpoint ${b.name} — min-width ${b.px}px (mobile-first)`);
-  const gridSpaceAlias = (px: number, desc: string, bp: string, variable: string): Token => {
-    const key = spaceKeyOf.get(px);
-    const fig = { figma: { collection: 'layout', mode: bp, variable } };
-    return key ? dimAlias(`${root}.space.${key}`, desc, { px, ...fig }) : dimLeaf(px, desc);
+  // #3052 (Q785 A): a gutter/margin links to the first that exists — a `space/*` step with its px, else the
+  // brand's `core/dimension/*` step, else nothing (a plain px, flagged `offScale`). `gridGapLink` decides;
+  // the spacing-step case keeps its description, so every brand on the scale emits as before.
+  const gridSpaceAlias = (px: number, bp: string, key: 'gutter' | 'margin'): Token => {
+    const link = gridGapLink(px, theme.dims);
+    const fig = { figma: { collection: 'layout', mode: bp, variable: `grid.${key}` } };
+    const head = `grid ${bp} ${key} — ${px}px`;
+    if (link.to === 'space') return dimAlias(`${root}.space.${link.key}`, `${head} (spacing-scale alias)`, { px, ...fig });
+    if (link.to === 'dimension') return dimAlias(`${root}.${CORE_TIER}.dimension.${px}`, `${head} (dimension alias: no spacing step has this value)`, { px, ...fig });
+    const leaf = dimLeaf(px, `${head} (off-scale: on neither the spacing scale nor the dimension grid)`);
+    return { ...leaf, $extensions: { prism3: { ...leaf.$extensions.prism3, offScale: true, ...fig } } };
   };
   const grid: Record<string, any> = {};
   for (const g of ly.grid) {
     grid[g.bp] = {
       columns: { $type: 'number', $value: g.columns, $description: `grid ${g.bp} — ${g.columns} columns`, $extensions: { prism3: { generated: true, figma: { collection: 'layout', mode: g.bp, variable: 'grid.columns' } } } },
-      gutter: gridSpaceAlias(g.gutterPx, `grid ${g.bp} gutter — ${g.gutterPx}px (spacing-scale alias)`, g.bp, 'grid.gutter'),
-      margin: gridSpaceAlias(g.marginPx, `grid ${g.bp} margin — ${g.marginPx}px (spacing-scale alias)`, g.bp, 'grid.margin'),
+      gutter: gridSpaceAlias(g.gutterPx, g.bp, 'gutter'),
+      margin: gridSpaceAlias(g.marginPx, g.bp, 'margin'),
     };
   }
   const container = {
