@@ -14581,7 +14581,10 @@ for (const host of ['web', 'figma']) {
         await hooks.need(page, '[data-p3="value-picker"]');
         const on = '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="true"]';
         selected(await page.evaluate(FC_LOOK, on), await page.evaluate(FC_LOOK, '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="false"]'), what);
-        await drawn(on, what);
+        // The label is the value's key (`.p3-vpick-key`), read alone (#3083): the whole value's text box also spanned the key's
+        // check glyph and the weight's type sample, so on CI's rendering the glyph's ink was carrying the ratio, and Tabler's
+        // lighter check dropped it under the floor while the label itself was never the subject.
+        await drawn(`${on} .p3-vpick-key`, what);
         await controlsOptIn(`${place}, ${what} open`);
         await page.locator(on).scrollIntoViewIfNeeded();
         await shot(name);
