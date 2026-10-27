@@ -22,7 +22,8 @@
  * mark. The glyph's own frame rounds the corners and draws the 1px edge from the theme (`tileEdge`), and clips the
  * artwork to the rounded corners. Bound, not baked, so the corner and the edge are the same at every height a host
  * binds and in every mode; baked into the file, they would scale with the artwork. Square and wallet marks have no
- * edge. `lint-mark-colors.ts` holds both halves: the edge bound on every card member, and no card file baking one.
+ * edge. Two gates hold the two halves: `lint-mark-colors.ts` the edge bound on every card member (CARD TILE EDGE), and
+ * `lint-glyph-geometry.ts` no card file baking one (CARD TILE BAKED, CARD BORDER BAKED).
  *
  * NO COUNT IN THE PROSE. The owner will supply about a dozen providers (Q-B7 amended); the list is data, so
  * nothing here states how many marks there are. `lint-icon-count.ts` holds this def's prose to that.

@@ -36,11 +36,13 @@ provider artwork), so the owner's files drop in full-bleed.
   "Every size": the plan has no size coordinate; a host binds the height (20, 24, 32) on its instance, and a bound
   radius and weight hold their value at each, where a baked edge scales with the artwork.
 - `lint-glyph-geometry.ts` mark arm, read from the SOURCE file: CARD TILE BAKED (the first path is not the full
-  artboard as one shape with straight edges) and CARD BORDER BAKED (a later path spans the whole artboard).
+  artboard as one shape whose vertices are exactly its four corners) and CARD BORDER BAKED (a later path spans the
+  whole artboard, or sits inside it by at most 1px on every side: a tile drawn over a ground that shows as its rim).
 
 - Executor tests, one per executor: `test-write-components.ts` (plugin shim) and `test.ts` (paste payload) build the marks
   and read the frame back: four corners, the weight (scalar or all four per-side keys, #1332), the stroke paint and the
-  clip, against names typed from the decision, and no edge on a square or wallet mark.
+  clip, against names typed from the decision, and no edge on a square or wallet mark. The plugin test reads which
+  marks are cards from the `.svg` files in `marks/card/` (none hard-coded, Q-B7 amended): each must build as a tile.
 - Fallout: Studio's committed `used-by` index (`apps/studio/gen-used-by.ts --write`) lists brand-mark under `radius.sm`.
 
 | Mutation (each on a committed tree) | Fails, by name |
@@ -51,6 +53,9 @@ provider artwork), so the owner's files drop in full-bleed.
 | the edge's stroke paint dropped | `lint-mark-colors` — CARD TILE EDGE |
 | plugin `claimDefaults` writes `clipsContent: false` on the mark's frame | `test-write-components` — #2343 Q720 A plugin executor; `test:roundtrip` |
 | paste payload's `claimDefaults` writes `clipsContent: false` | `test.ts` — #2343 Q720 A paste executor |
+| a fifth `.svg` in `marks/card/` that no member builds | `test-write-components` — #2343 Q720 A plugin executor |
+| `card/visa.svg`: ground in the border color under a white rounded tile inset 1px (review M10) | `lint-glyph-geometry` — CARD BORDER BAKED |
+| `card/visa.svg`: chamfered straight-line ground spanning the artboard (review M7) | `lint-glyph-geometry` — CARD TILE BAKED |
 
 ### Traps for whoever re-verifies
 
