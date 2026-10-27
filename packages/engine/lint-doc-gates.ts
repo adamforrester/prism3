@@ -344,8 +344,10 @@ export type Step = { name: string; run: string };
  *
  * WHAT IS NOT COMPARED: environment set OUTSIDE `run:`. A step's `env:` map, and the variables
  * Actions sets on its own (`GITHUB_EVENT_NAME`, `GITHUB_BASE_REF`), are not arguments, and `verify.ts`
- * sets its own (`CI`, `FORCE_COLOR`). An `env:` map passes this arm unexamined; no step in `ci.yml`
- * has one today, and a gate whose behavior depends on one is outside this arm. Environment set INSIDE
+ * sets its own (`CI`, `FORCE_COLOR`). An `env:` map passes this arm unexamined, and a gate whose behavior
+ * depends on one is outside this arm. One step has one: the chrome suite's `CHROME_SHARD` (#2898), which picks the
+ * part of the suite a CI shard runs, so the command stays the one `verify.ts` runs whole; what the shards ran
+ * together is held by `test:chrome-shards`, not here. Environment set INSIDE
  * `run:` (a prefix or an `export` line) is refused by the line rule above.
  *
  * WHAT IT CANNOT SEE (#1919's R6): a flag dropped from BOTH files. The two copies then agree, and this
