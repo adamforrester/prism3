@@ -156,7 +156,7 @@ export const cardNumberField: ComponentDef = makeTextField({
     primaryPurpose: 'Capture a payment card\'s number, showing the detected card network\'s tile and stating the network in text.',
     whenToUse: 'The card number in a checkout or a saved-card form, beside text fields for the expiration date and the security code.',
     avoidWhen: 'The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (a wallet button, not built yet). Never for the expiration date or the security code (TextField with autocomplete cc-exp or cc-csc).',
-    commonPartners: ['text-field', 'brand-mark', 'field-label', 'field-message', 'button'],
+    commonPartners: ['text-field', 'brand-mark', 'field-label', 'field-message', 'button', 'wallet-button'],
     triggerKeywords: ['card number', 'credit card field', 'payment card', 'card details', 'checkout card'],
     generationPriority: 2,
   },
@@ -165,7 +165,7 @@ export const cardNumberField: ComponentDef = makeTextField({
     composesWith: ['field-label', 'field-message', 'focus-ring'],
     alternativeTo: ['text-field'],
     replacesPatterns: ['a card number in a plain text input with no card type', 'a manual card-type select', 'number, expiration and security code packed into one box', 'type="number" on a card number'],
-    planned: ['payment-field', 'wallet-button'],
+    planned: ['payment-field'],
   },
 
   motion: {

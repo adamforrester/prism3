@@ -10736,7 +10736,8 @@
           "brand-mark",
           "field-label",
           "field-message",
-          "button"
+          "button",
+          "wallet-button"
         ],
         "triggerKeywords": [
           "card number",
@@ -10764,8 +10765,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "payment-field",
-          "wallet-button"
+          "payment-field"
         ],
         "replacesPatterns": [
           "a card number in a plain text input with no card type",
