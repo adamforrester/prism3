@@ -965,7 +965,7 @@ section('aspect lock, in place — a square slot rebuilt under aspectLock keeps 
   // locks; left bound, the old width would stretch the mark back to square. Expected numbers are literals (docs/34).
   // Mutation: the in-place unbind in the executor's aspectLock branch dropped → `aspect lock/in place`.
   const button = componentDefs.find((d) => d.id === 'button')!;
-  const MARK = 'brand-mark/card/visa';
+  const MARK = 'brand-mark/payment/visa';
   const locked = JSON.parse(JSON.stringify(button)) as ComponentDef;
   const lv = (locked.anatomy as unknown as { parts: Record<string, Record<string, unknown>> }).parts.leadingVisual;
   delete lv.size;
@@ -1079,7 +1079,7 @@ const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { 
   ok(applyVerdict(res).ok && dump() === before && res.outcomes[0]?.skipped.some((x) => x.member === 'name=my-logo' && x.reason === 'not built by Prism3'),
     `single/owner: the owner's hand-made icon is left exactly as it is, and named (${JSON.stringify(res.outcomes[0]?.skipped)})`);
 }
-// THE BRAND MARKS (#2343): single components too, and each value carries its kind, `brand-mark/card/visa`, so a
+// THE BRAND MARKS (#2343): single components too, and each value carries its kind, `brand-mark/payment/visa`, so a
 // value with a `/` is still a member when it is one of the def's own coordinates. The icon set cannot catch a reader
 // that drops one: an icon's name has no second slash. The read is asserted on every mark; the update on the square
 // ones, because the shim sizes a vector from the path's numbers read as alternating x and y and misreads `H`/`V`, so
@@ -1106,7 +1106,7 @@ section('single, marks — the brand marks, read and updated in place as single 
     if (p.coord.name !== MARK) return p;
     const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
     const g = glyphOf(q.root)!;
-    g.glyphSvg = g.glyphSvg!.replace('#9AA0A6', '#1A73E8');
+    g.glyphSvg = g.glyphSvg!.replace('#4285F4', '#1A73E8');
     return q;
   });
   ok(JSON.stringify(next) !== JSON.stringify(square), 'premise: the recolor changes the plan');
@@ -1123,8 +1123,8 @@ section('single, marks — the brand marks, read and updated in place as single 
     .flatMap((f) => (f.color ? [[f.color.r, f.color.g, f.color.b].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('').toUpperCase()] : []));
   const marked = w.comps().find((c) => String(c.name) === `brand-mark/${MARK}`);
   const fills = marked ? vectorsOf(marked).flatMap(hexes) : [];
-  ok(fills.includes('1A73E8') && !fills.includes('9AA0A6'),
-    `marks/apply: the recolored mark's vector carries the new fill, #1A73E8, and not the old #9AA0A6 (${JSON.stringify(fills)})`);
+  ok(fills.includes('1A73E8') && !fills.includes('4285F4'),
+    `marks/apply: the recolored mark's vector carries the new fill, #1A73E8, and not the old #4285F4 (${JSON.stringify(fills)})`);
   const after = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
   ok(after.size === square.length && [...before].every(([n, b]) => after.get(n)?.key === b.key && after.get(n)?.id === b.id), 'marks/keys: every mark keeps its key and id');
   const post = (await previewUpdate(w.host, [t])).sets[0];

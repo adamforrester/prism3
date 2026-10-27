@@ -218,7 +218,7 @@ export const markCounts = (text: string): CountClaim[] => {
   if (!markCounts('the set of 12 marks').some((c) => c.count === 12)) bad.push('"the set of 12 marks" is not detected');
   if (!markCounts('about 12 providers').some((c) => c.count === 12)) bad.push('"12 providers" is not detected');
   if (!markCounts('a 19-mark set').some((c) => c.count === 19)) bad.push('the hyphenated "19-mark" form is not detected');
-  for (const clean of ['Square marks are 24 by 24, card marks 32 by 20', 'wallet lockups 24 high at the provider\'s width', 'The height: 20, 24 or 32px']) {
+  for (const clean of ['Square marks are 24 by 24, payment tiles 32 by 20', 'logos 24 high at their own width', 'The height: 20, 24 or 32px']) {
     if (markCounts(clean).length) bad.push(`false positive on real brand-mark prose: "${clean}" → ${JSON.stringify(markCounts(clean))}`);
   }
   if (bad.length) {
