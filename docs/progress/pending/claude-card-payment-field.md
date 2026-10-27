@@ -14,7 +14,7 @@ the follow-up, the proposal's PR 4b.
 - **It starts at the generic tile**, the owner's "no card type yet" artwork, which replaced the core `bank-card` glyph
   the 2026-10-25 proposal planned. `swapDefault` on a `fixedPaint` slot now names a brand mark and projects as
   `brand-mark/<kind>/<name>`; an icon name there throws at projection.
-- **Card networks only (Q-C7 A, awaiting the owner).** PR 3's tile kind holds every accepted-payments tile (Q780 A),
+- **Card networks only (Q-C7 A, the owner, 2026-10-27).** PR 3's tile kind holds every accepted-payments tile (Q780 A),
   wallets and pay-later services included, and a card number only ever detects a network. So the `brand` prop takes a
   typed list in the def (`generic`, `amex`, `diners-club`, `discover`, `maestro`, `mastercard`, `visa`), each checked
   against the mark set's tiles. The tile kind is still read by artboard (`BRAND_MARK_KINDS`), so PR 3's `card/` →
@@ -53,5 +53,4 @@ the follow-up, the proposal's PR 4b.
 ### Held for the owner (Q-blocks in the PR, A built)
 
 The tile keeps its colors at the disabled member; the `card mark` switch; the page placement ("Card number field" under
-Components); the draft wording; the PaymentField group as the follow-up; which tiles the field can show (Q-C7, the
-reviewer's question: card networks only).
+Components); the draft wording; and the PaymentField group as the follow-up.

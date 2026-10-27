@@ -18,7 +18,7 @@
  *  · IT STARTS AT THE GENERIC TILE (owner, 2026-10-27: the generic tile is the owner's "no card type yet" artwork, which
  *    replaces the core `bank-card` glyph the 2026-10-25 proposal planned). Named through the mark set, never as a path:
  *    the tile kind is whichever kind the set draws on the tile artboard (`payment/` since PR 3's rename of `card/`).
- *  · THE MARK SLOT TAKES CARD NETWORKS ONLY (Q-C7 A, awaiting the owner). The tile kind is every "accepted payments"
+ *  · THE MARK SLOT TAKES CARD NETWORKS ONLY (Q-C7 A, the owner, 2026-10-27). The tile kind is every "accepted payments"
  *    tile (Q780 A), wallets and pay-later services included, and card-number detection can only ever name a card
  *    network. So the `brand` prop's values are the typed `CARD_NETWORKS` list below, each checked here to be a tile in
  *    the set. A network the owner adds to `payment/` joins by one line here and one in `lint-mark-slots.ts`, which
