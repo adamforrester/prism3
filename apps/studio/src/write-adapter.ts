@@ -160,6 +160,9 @@ export interface HostCommit {
    *  true` performs the delete. `input` is the `BrandInput`, typed `unknown` here for the same reason
    *  `postTheme` is — to keep this DOM layer free of the engine type import. */
   postPrune(input: unknown, confirm: boolean): void;
+  /** #2830 Q2830.3 A: Documentation › Specs' Draw specs, the spec panels for the current page (`draw-specs`). Figma
+   *  only; inert on the web. */
+  postDrawSpecs(): void;
   /** #2909: keep Documentation's settings in the file (`doc-settings-save`). Figma only; inert on the web. */
   saveDocSettings(settings: unknown): void;
   /** #2909: ask which sets the file holds (`file-sets-request`), and what is due against `input`, the brand the panel
@@ -535,6 +538,9 @@ const figmaCommit = (): HostCommit => ({
   saveDocSettings(settings) {
     post({ type: 'doc-settings-save', settings });
   },
+  postDrawSpecs() {
+    post({ type: 'draw-specs' });
+  },
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
       const msg = toHostMessage(e.data);
@@ -562,6 +568,7 @@ const webCommit = (): HostCommit => ({
   cleanUpStyleGuide() {/* no style guide runs on web (Q412 A) */},
   postPrune() {/* no figma.variables on web — CSS custom properties have no stale-item problem (#1521) */},
   saveDocSettings() {/* no file on web (#2909) */},
+  postDrawSpecs() {/* no canvas on web (#2830) */},
   requestFileSets() {/* no file on web (#2909) */},
   requestHandEdits() {/* no file on web (#2909) */},
   requestUpdateCheck() {/* no file on web (#2909) */},

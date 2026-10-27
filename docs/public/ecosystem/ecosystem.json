@@ -1512,6 +1512,17 @@
       "label": "Draw spec panels beside the sets",
       "group": "Write to Figma",
       "lanes": {
+        "figma": {
+          "status": "partial",
+          "via": "Documentation, Specs tab: Draw specs, for the sets on the current page",
+          "sources": [
+            "apps/plugin/src/spec-panel.ts",
+            "apps/studio/src/shell/documentation.ts"
+          ],
+          "messages": [
+            "draw-specs"
+          ]
+        },
         "agent": {
           "status": "partial",
           "via": "draw-specs, for every family or one: a spec panel beside each usage panel",
