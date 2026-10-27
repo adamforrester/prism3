@@ -372,10 +372,11 @@
 .p3-frame[data-layout="panes"] .p3-notices { grid-area: notices; }
 .p3-frame[data-layout="panes"] :is(.p3-nav, .p3-subnav) { border-right: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-frame[data-layout="panes"] .p3-nav { grid-area: nav; }
-/* Seven tabs and the magnifier in the 42% levers column (S2): the tabs close up to 12px and the row's inline
-   padding to 16px, so all seven fit at 1280; narrower, the row scrolls sideways as before. */
+/* Seven tabs and the magnifier in the 42% levers column (S2): the tabs closed up to 12px and the row's inline
+   padding to 16px, so all seven fit at 1280; narrower, the row scrolls sideways as before. Theme's six tabs since #2909
+   take one step more, 16px (the owner, 2026-10-26). */
 .p3-frame[data-layout="panes"][data-w="wide"] .p3-nav { padding: 0 var(--p3-space-200); gap: var(--p3-space-150); }
-.p3-frame[data-layout="panes"] .p3-nav .p3-tabs { gap: var(--p3-space-150); }
+.p3-frame[data-layout="panes"] .p3-nav .p3-tabs { gap: var(--p3-space-200); }
 .p3-frame[data-layout="panes"] .p3-subnav { grid-area: subnav; min-width: 0; border-bottom: 0; }
 /* #1975: in the 42% column at 640 and 800 the three sub-pages do not fit one row. The row keeps to its column (it ran
    under the preview, where a pointer could not reach Interactive) and a segment that does not fit wraps to a second line. */
@@ -672,7 +673,11 @@
    it is off. */
 .p3-agent-dot { display: none; background: var(--p3-ok-icon); }
 .p3-tile[data-on="true"] .p3-agent-dot { display: block; }
-/* Minimize (#2949, the owner's Q600 A): a tile on the top bar (#2909), drawn whether the agent link is on or off. */
+/* Q738 A: on the bar the Agent tile's mark is a square around its 16px glyph, so the on fill reads as one. The negative
+   margin takes the padding back, so the tile keeps its size whether the link is on or off, and at 380 its 28 × 28. */
+.p3-agent-tile > .p3-tile-mark { padding: var(--p3-space-050); margin: calc(-1 * var(--p3-space-050)); border-radius: var(--p3-radius-xl); }
+/* Minimize (#2949, the owner's Q600 A): a tile at the rail's foot (Q731; on the top bar under #2909), drawn whether the
+   agent link is on or off. */
 .p3-btn.p3-tile.p3-agent-min[hidden] { display: none; }
 /* The strip (#2949, the owner's Q1 A): while minimized the window is one row, the strip, on the top bar's ground.
    Everything else in the document stays mounted, only not drawn, so Restore returns to the same page and state. The
@@ -1635,14 +1640,28 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-rail-foot { margin-top: auto; }
 .p3-rail-div { width: var(--p3-space-400); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); margin: var(--p3-space-050) 0; }
 .p3-frame[data-shell="rail"] .p3-rail .p3-btn.p3-tile { min-height: var(--p3-ctl-h); padding: var(--p3-space-025) 0; }
-.p3-frame[data-shell="rail"] .p3-rail .p3-tile-mark { justify-content: center; min-width: var(--p3-ctl-h); min-height: var(--p3-ctl-h-xs); border-radius: var(--p3-radius-xl); }
+/* The rail polish (owner, 2026-10-26, #2909): each icon 24px in a square mark, fixed on both axes, so neither the label
+   nor a line height sizes it. It was `min-width: ctl-h` by `min-height: ctl-h-xs`, a 40 × 28 landscape. */
+.p3-frame[data-shell="rail"] .p3-rail .p3-tile-mark {
+  justify-content: center; box-sizing: border-box; flex: none; width: var(--p3-rail-tile); height: var(--p3-rail-tile); border-radius: var(--p3-radius-xl);
+}
+.p3-frame[data-shell="rail"] .p3-rail .p3-tile-mark > .p3-ico { width: var(--p3-icon-md); height: var(--p3-icon-md); }
+/* The labels at 9px and −1% tracking (the owner's, 2026-10-26). The engine's type scale stops at 10px, so 9px is three
+   quarters of its 12px step, on the scale rather than a raw length. */
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile-label {
   display: block; max-width: var(--p3-rail-w); color: var(--p3-text); text-align: center; white-space: normal; hyphens: manual;
+  font-size: calc(var(--p3-fs-12) * 0.75); letter-spacing: var(--p3-ls-snug);
 }
 /* A full-width page on the rail (Documentation, Export) draws its own header: the tab row and Color's sub-row are Theme's. */
 .p3-frame[data-shell="rail"][data-layout="page"] :is(.p3-nav, .p3-subnav) { display: none; }
 .p3-frame[data-shell="rail"] .p3-rail .p3-btn.p3-tile:where(:not(:disabled, [aria-disabled="true"])):hover > .p3-tile-mark { background: var(--p3-fill-1); }
-.p3-frame[data-shell="rail"] .p3-rail .p3-tile:is([aria-current="page"], [data-on="true"]) > .p3-tile-mark { background: var(--p3-fill-2); }
+/* The on fill, one rule for both places it shows: the rail's current area, and the Agent tile while the link is on, on
+   the top bar since Q731 (Q738 A, the owner, 2026-10-26: the fill the rail drew behind an on Agent tile, at every width). */
+.p3-frame[data-shell="rail"] :is(.p3-rail .p3-tile:is([aria-current="page"], [data-on="true"]), .p3-agent-tile[data-on="true"]) > .p3-tile-mark { background: var(--p3-fill-2); }
+/* Q788 C (the owner, 2026-10-27): on the top bar the on fill alone does not read, `fill-2` is the dark bar's own color and
+   faint on the light one. So an on Agent tile's mark also takes the top bar's control edge, `edge-bar`, the role spec.mjs
+   holds at 3:1 on `bar-bg` in both themes, drawn inside the mark so the tile keeps its size. On only; the rail is unchanged. */
+.p3-frame[data-shell="rail"] .p3-bar .p3-agent-tile[data-on="true"] > .p3-tile-mark { outline: var(--p3-bw-hairline) solid var(--p3-edge-bar); outline-offset: calc(-1 * var(--p3-bw-hairline)); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile[aria-current="page"] .p3-tile-label { font-weight: var(--p3-fw-strong); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile-tip { top: 0; right: auto; left: calc(100% + var(--p3-space-050)); }
 /* A menu a rail tile opens (Appearance, at the rail's foot) opens beside the rail, to the right of its tile and level with

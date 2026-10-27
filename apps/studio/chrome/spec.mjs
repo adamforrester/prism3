@@ -58,7 +58,7 @@ export const PAIRS = [
   // B1 edges
   ['edge', 'bg-page', 3, 'control edge on the page, a card or a menu'],
   ['edge', 'levers-bg', 3, 'control edge on the levers panel (search, tab-row controls)'],
-  ['edge-bar', 'bar-bg', 3, 'control edge on the top bar (brand, verdict, Export, Figma, agent chip)'],
+  ['edge-bar', 'bar-bg', 3, 'control edge on the top bar (brand, verdict, Export, Figma, agent chip; the on Agent tile\'s mark, Q788 C)'],
   ['field-edge', 'fill-1', 3, 'control edge in an inset (selected segment, picker step, per-mode body)'],
   ['field-edge', 'bg-page', 3, 'edge of a selected segment on a page-colored track (the 380 top row)'],
   ['field-edge-hover', 'bg-page', 3, 'edge on hover; slider thumb edge'],
@@ -156,6 +156,10 @@ export const PRODUCT_VARS = [
   ['dlg-unit', 'core.dimension.128', 'core.dimension.128', D, 'the start window\'s and the guard\'s widths'],
   // #2909 IA v2 phase 1: the plugin's left rail, 60px wide (the round-4 wireframe), from the dimension grid.
   ['rail-w', 'core.dimension.60', 'core.dimension.60', D, 'the plugin rail\'s width (#2909)'],
+  // #2909 rail polish (owner, 2026-10-26): the rail's icons at 24px, the icon scale's `md`, each in a square tile 32px a
+  // side, from the dimension grid, so the icon keeps a 4px inset on the selected fill.
+  ['icon-md', 'icon.size.md', 'icon.size.md', D, 'a rail tile\'s icon (#2909 rail polish)'],
+  ['rail-tile', 'core.dimension.32', 'core.dimension.32', D, 'a rail tile\'s square mark (#2909 rail polish)'],
   // S12 (owner decision S5): the guard's Discard wears Prism3's destructive button, the Button.Destructive component's
   // default (filled) appearance: its fill and its on-fill ink at rest, from the same tokens in both themes. Hover moves
   // the edge to the destructive border's hover step, the way the outline appearance carries state: the filled hover
@@ -220,8 +224,8 @@ export const SHELL_VARS = [
   'dlg-unit', 'space-250', 'danger-fill', 'danger-on', 'danger-edge-hover',
   // S11.2: the Build style guides page's switch, concept v6's track and knob.
   'track-w', 'track-h', 'thumb', 'thumb-inset',
-  // #2909 IA v2 phase 1: the plugin's left rail.
-  'rail-w',
+  // #2909 IA v2 phase 1: the plugin's left rail; the rail polish's icon and square mark.
+  'rail-w', 'icon-md', 'rail-tile',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.

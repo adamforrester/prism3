@@ -429,6 +429,8 @@ export const mountFrame = (app: HTMLElement, opts: {
     // #2176: the open drawer grows up to just under the preview header (or Inspect's, in its place; or, on a page of
     // the shell's own, the head). A region not drawn measures 0, so the lowest bottom is the one shown.
     room: { frame: root, ceiling: () => Math.max(...[head, previewHead, inspectHead].map((n) => n.getBoundingClientRect().bottom)) } }, cleanups);
+  // Q731 (the owner, 2026-10-26): the Agent tile's slot sits on the plugin's top bar, where Minimize was; Minimize's is at
+  // the rail's foot, where Agent was.
   const agent = host === 'figma' ? hook(h('div', 'p3-agent-slot'), 'bar-agent') : null;
 
   // The Activity status line rides in the top bar, which is always drawn, on the bar's own ground.
@@ -449,9 +451,9 @@ export const mountFrame = (app: HTMLElement, opts: {
   // The verdict, in the Theme area's preview header (round 4: Contrast moved off the global bar into Theme). Then the
   // bar's controls (S13.1), which place the shell's nodes.
   const verdict = verdictButton((opener) => openInspect('contrast', opener), cleanups);
-  // #2909: the rail and what it and the reduced bar hold, on both hosts since Q2909.9 A. Minimize's slot sits on the
-  // plugin's bar, and the plugin's entry fills it; Update file is the plugin's too. The web has neither (Q2909.9 A).
-  const minimize = host === 'figma' ? hook(h('div', 'p3-agent-slot p3-min-slot'), 'bar-minimize') : null;
+  // #2909: the rail and what it and the reduced bar hold, on both hosts since Q2909.9 A. Minimize's slot sits at the
+  // plugin's rail foot (Q731), and the plugin's entry fills it; Update file is the plugin's too. The web has neither (Q2909.9 A).
+  const minimize = host === 'figma' ? hook(h('div', 'p3-agent-slot p3-min-slot'), 'rail-minimize') : null;
   const update = opts.updateFile ? mountUpdateFile(opts.updateFile, cleanups) : null;
   const exportPage = hook(h('div', 'p3-export-host'), 'export-host');
   let lastTheme: PageKey = isMenuPage(page) || page === 'components' ? pageOfTab('brand') : page;
@@ -469,16 +471,14 @@ export const mountFrame = (app: HTMLElement, opts: {
   if (opts.openDocs) help.btn.onclick = () => opts.openDocs!();
   help.btn.classList.add('p3-rail-tile');
   theme.querySelector('.p3-tile')?.classList.add('p3-rail-tile');
-  // "Appear-ance" in the 60px column, as the wireframe breaks it; its name stays whole.
-  const lab = theme.querySelector('.p3-tile-label');
-  if (lab) lab.textContent = 'Appear-ance';
-  // Q2909.9 A: the web's rail holds Theme, Components and Export, and no Agent.
-  const rail = mountRail({ logo: opts.logo(), areas: railAreas(host), go: goArea, foot: [agent, help.btn, theme].filter((n): n is HTMLElement => !!n) });
+  // Q2909.9 A: the web's rail holds Theme, Components and Export, and no Minimize. Q732 A (2026-10-26): "Appearance" is
+  // whole, the wireframe's manual "Appear-ance" break gone, since it fits one line at the rail's 9px.
+  const rail = mountRail({ logo: opts.logo(), areas: railAreas(host), go: goArea, foot: [minimize, help.btn, theme].filter((n): n is HTMLElement => !!n) });
   root.prepend(rail.node);
   root.dataset.shell = 'rail';
   previewHead.insertBefore(verdict, previewHead.children[1] ?? null);
   if (update) root.append(update.layer);
-  const barMain = mountBar(opts.bar, { minimize, update: update?.button ?? null, exportPage }, cleanups);
+  const barMain = mountBar(opts.bar, { agent, update: update?.button ?? null, exportPage }, cleanups);
   barSlot.append(barMain);
 
   // ── Inspect state ───────────────────────────────────────────────────────────────────────────────
