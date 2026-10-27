@@ -5678,4 +5678,41 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(slots.length > 0 && inked.length === 0, `mark slot/own paint: no host ink is bound onto a vector inside any mark slot (${inked.length} of ${slots.length} inked)`);
 }
 
+// #2343 PR 4 — WALLETBUTTON BUILT BY THE REAL EXECUTOR, its logos instances of the built brand marks. The projector names
+// a nest of a standalone-component def by the member component (`brand-mark/logo/<provider>`); the executor finds that
+// component by name, which the brand-mark build has just made (prebuildDependencies, as a fresh file would). Each logo
+// is locked to its own mark's proportion with only its height bound. The provider → logo map is typed from the
+// decision, not read off the def. Mutation: the projector's standalone-nest resolution dropped (back to
+// `nestTarget: 'brand-mark'` + `nestVariant`) → `wallet build/logos`.
+{
+  const LOGO: Record<string, string> = { 'apple-pay': 'brand-mark/logo/apple-pay', 'google-pay': 'brand-mark/logo/google-pay', paypal: 'brand-mark/logo/paypal-wordmark', 'shop-pay': 'brand-mark/logo/shop-pay' };
+  const defs = componentDefs;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const page: Page = { children: [] };
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, liveComponents: true, page }) as any;
+  const wb = defs.find((d) => d.id === 'wallet-button')!;
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(wb, { defs, project, host: shim, build });
+  const r = await build(wb);
+  const set = page.children.find((c) => c.name === 'wallet-button' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const members = (set?.children as Node[] | undefined) ?? [];
+  ok(members.length === 20 && r.misses.length === 0, `wallet build: the set builds 20 members with 0 misses (${members.length}; ${r.misses[0] ?? 'none'})`);
+  const marks = new Map(page.children.filter((c) => String(c.name).startsWith('brand-mark/')).map((c) => [String(c.name), c] as const));
+  const off: string[] = [];
+  for (const m of members) {
+    const provider = /provider=([a-z-]+)/.exec(String(m.name))?.[1] ?? '';
+    const logo = ((m.children as Node[] | undefined) ?? []).find((c) => c.name === 'mark');
+    const main = (logo?.mainComponent as Node | undefined) ?? undefined;
+    const want = LOGO[provider], src = marks.get(want);
+    const t = logo?.targetAspectRatio as { x: number; y: number } | undefined;
+    const bv = (logo?.boundVariables ?? {}) as Record<string, unknown>;
+    const ratio = src ? (src.width as number) / (src.height as number) : NaN;
+    if (!logo || logo.type !== 'INSTANCE' || String(main?.name) !== want || !t || Math.abs(t.x / t.y - ratio) > 1e-6 || !bv.height || bv.width)
+      off.push(`${String(m.name)}: ${logo ? `${String(logo.type)} of ${String(main?.name)}, ratio ${t ? t.x / t.y : 'none'} vs ${ratio}, ${Object.keys(bv).join(',')}` : 'no mark'}`);
+  }
+  ok(members.length === 20 && off.length === 0, `wallet build/logos: every member's logo is an instance of its provider's own brand mark, locked to that mark's proportion with only its height bound (${off.length} off — ${off[0] ?? 'none'})`);
+}
+
 if (failed) process.exit(1);
