@@ -2996,6 +2996,39 @@ for (const host of ['web', 'figma']) {
         await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ drew 3 spec panels', summary: 'Drew 3 of 3.', lines: ['Drew 3 of 3.'] });
         await postMsg(page, { type: 'agent-finished', id: 'sp2', cmd: 'draw-specs' });
         await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === null, null, { timeout: 5000 }).catch(() => {});
+        // The review of #3034 @ 4291c315 (M1): during Update file's setup and theme steps `componentBusy()` is false, so the
+        // run itself holds Draw specs. Go closes the dialog and the run carries on; Documentation › Specs, opened then, reads
+        // unavailable and posts nothing, even from a control left available, until the step's verdict ends the run.
+        for (const [step, setUp, end] of [
+          ['setup', false, { type: 'file-setup-result', ok: false, headline: '✗ file setup failed', summary: 'file setup failed.' }],
+          ['theme', true, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' }],
+        ]) {
+          await openUpdate({ present: [], setUp });
+          await takeWrites(page);
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+          const urW = (await takeWrites(page)).map(keyOf);
+          if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+          await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
+          if (narrow) await page.locator('[data-p3="docs-select"]').selectOption('specs');
+          else await hooks.click(page.locator('[data-p3="docs-tab-specs"]'), WAIT);
+          await hooks.need(page, '[data-p3="docs-specs-draw"]');
+          const urG = await page.evaluate(() => { const b = document.querySelector('[data-p3="docs-specs-draw"]'); return { off: b?.getAttribute('aria-disabled') ?? null, busy: b?.getAttribute('aria-busy') ?? null }; });
+          const urU = await updBtn();
+          await page.evaluate(() => { const n = document.querySelector('[data-p3="docs-specs-draw"]'); if (n) HTMLElement.prototype.click.call(n); });
+          const urGW = await takeWrites(page);
+          await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.removeAttribute('aria-disabled'));
+          await page.evaluate(() => { const n = document.querySelector('[data-p3="docs-specs-draw"]'); if (n) HTMLElement.prototype.click.call(n); });
+          const urGW2 = await takeWrites(page);
+          ok(JSON.stringify(urW) === JSON.stringify([step === 'setup' ? 'file-setup' : 'apply-theme']) && urU.busy && urG.off === 'true' && urG.busy === null && urGW.length === 0 && urGW2.length === 0,
+            `${where}: #3034 review M1: with Update file's ${step} step out and its dialog closed, Draw specs reads unavailable and posts nothing, even from a control left available (run posted ${JSON.stringify(urW)}, Update file busy ${urU.busy}, ${JSON.stringify(urG)}, posted ${JSON.stringify(urGW.concat(urGW2))})`);
+          await postMsg(page, end);
+          await page.waitForFunction(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') === null, null, { timeout: 5000 }).catch(() => {});
+          const urE = await page.evaluate(() => document.querySelector('[data-p3="docs-specs-draw"]')?.getAttribute('aria-disabled') ?? null);
+          const urEU = await updBtn();
+          ok(urE === null && !urEU.busy, `${where}: #3034 review M1: once the ${step} step's verdict ends the run, Draw specs is available again (aria-disabled ${urE}, Update file busy ${urEU.busy})`);
+          await takeWrites(page);
+          if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        }
         if (!narrow) {
           const msp = await measure(page, `${where} / Documentation › Specs`, host, w);
           check(msp, `${where} / Documentation › Specs`, columnOf(host, w), PLACE_FLOOR, { state: 'area', only: ['[data-p3="docs-specs-draw"]'] });
