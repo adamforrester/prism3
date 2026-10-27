@@ -68,7 +68,7 @@ ok(lay()?.gutterOverrides === undefined && 'gutterOverrides' in (lay() ?? {}) ==
 L.setGapOverride('marginOverrides', 'lg', undefined);
 ok(J(lay()) === '{}', `setGapOverride(margin, lg, auto) on the last entry deletes layout.marginOverrides — ${J(lay())}`);
 L.setGapOverride('gutterOverrides', 'md', 5);
-ok(!takes(), 'an off-scale gutter (5px) is refused by the engine, which is why the page offers only spacing steps (#1593)');
+ok(takes() && gridAt(768)?.gutterPx === 5, 'an off-scale gutter (5px) is taken by the engine as 5px, linked or flagged, never snapped (#3052, Q785 A); the page still offers only spacing steps');
 reset();
 L.setContainer('containerMax', 1600);
 L.setContainer('containerNarrow', 640);

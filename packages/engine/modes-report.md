@@ -6,7 +6,7 @@
 - dimensions: 4px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius 4px).
 - typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900.
 - shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference's heavier dark shadows.
-- layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale.
+- layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale, except the md margin: 44px, as the reference sets it, which is not a spacing step, so it links to core dimension 44.
 
 Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 

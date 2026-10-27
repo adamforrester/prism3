@@ -62,6 +62,12 @@ controlShape: rounded
 # corners are part of the owner's manual finishing pass. Flag for the owner: flip
 # `radiusHairline: true` here if the finished NB wants the 1px rung engine-side.
 
+# ── LAYOUT ───────────────────────────────────────────────────────────────────────────
+# The brand's md grid margin is 44px (brand spec, #3052): at 1440 wide with 24 columns and
+# 16px gutters, (1440 − 2×44 − 23×16) / 24 = 41px whole-pixel columns. 44 is no spacing step,
+# so `grid/margin` md links to `core/dimension/44` (Q785 A). sm keeps the engine's 16.
+layout: { marginOverrides: { md: 44 } }
+
 # ── TYPOGRAPHY ───────────────────────────────────────────────────────────────────────
 typography:
   # Families per CATEGORY (#415). Display/title on ITC Garamond Std (NB's editorial serif);

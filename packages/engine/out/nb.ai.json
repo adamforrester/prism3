@@ -7704,10 +7704,10 @@
       "resolves_to": "{nbds.space.200}"
     },
     "grid.md.margin": {
-      "$description": "grid md margin — 24px (spacing-scale alias)",
+      "$description": "grid md margin — 44px (dimension alias: no spacing step has this value)",
       "meaning": "Layout grid margin at the md breakpoint",
       "when_to_use": "The margin of the page layout grid from the md breakpoint up.",
-      "resolves_to": "{nbds.space.300}"
+      "resolves_to": "{nbds.core.dimension.44}"
     },
     "grid.lg.columns": {
       "$description": "grid lg — 12 columns",
@@ -10361,7 +10361,6 @@
         "control.size.sm.track",
         "grid.lg.gutter",
         "grid.lg.margin",
-        "grid.md.margin",
         "grid.xl.gutter",
         "icon.size.md",
         "space.300"
@@ -10424,6 +10423,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
+        "grid.md.margin",
         "size.md.height",
         "size.md.min-height"
       ]
