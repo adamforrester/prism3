@@ -105,7 +105,7 @@ decision for the owner (section 6), and most become component work.
     do themselves, and re-read the current state before asking.
 14. **Inventory a large source page by structure.** Group every frame by step × state × breakpoint before
     choosing anything. Row labels can sit at the vertical middle of their row, so assign each frame to the
-    nearest label centre; "nearest label above" shifts every row by one. Screenshots may live in their own
+    nearest label center; "nearest label above" shifts every row by one. Screenshots may live in their own
     section with their own labels; mark the steps that exist only as screenshots or only as frames. Read
     each frame's content bounds, not its size: a frame can clip its own content. Name each frame's state
     from the texts unique to it within its row.
