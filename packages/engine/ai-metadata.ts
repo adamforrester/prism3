@@ -203,6 +203,8 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
 
   // foreground — SURFACES & FILLS placed on the canvas
   if (group === 'foreground') {
+    // #3049 (owner Q721 A, Q3049.1 C): the panel over the scrim, its own role so a brand can lift it off the card.
+    if (variant === 'raised') return { when_to_use: 'The panel over the scrim — a dialog, bottom sheet, full-screen panel or end drawer. It is the card surface unless the brand sets it to the page or to white in light modes; in dark modes it is always the card surface, so the panel keeps its lift.', avoid_when: 'Do not use for a card, sheet or panel that is not over the scrim (use `foreground.primary`), for the page itself (use `background.*`) or for ink (use `text.*` or `icon.*`).', carries: ['text.primary'], tracks: ['scrim.default', 'foreground.primary'] };
     if (TIER_N[variant]) return { when_to_use: variant === 'primary' ? 'Cards — the default surface placed on the page.' : variant === 'secondary' ? 'Panels / nested containers.' : 'A third surface step.', avoid_when: 'Do not use for the page itself (use `background.*`) or for ink (use `text.*` or `icon.*`).', carries: ['text.primary'], tracks: ['border.primary'] };
     if (variant.endsWith('-subtle')) { const i = variant.replace('-subtle', ''); return { when_to_use: `Low-emphasis ${i} surfaces — banners, badges, selected rows.`, avoid_when: `Do not use as a solid ${i} fill (use ${q(`foreground.${i}`)}) or for ${i} ink (use ${q(`text.${i}`)}).`, carries: [`text.${i}`, `icon.${i}`] }; }
     if (intent) return { when_to_use: `Filled ${variant} elements — badges, banners, status chips.`, avoid_when: `Do not use for ${variant} ink (use ${q(`text.${variant}`)}) or as a subtle tint (use ${q(`foreground.${variant}-subtle`)}).`, carries: [`text.on-${variant}`, `icon.on-${variant}`] };
@@ -295,10 +297,11 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
     if (variant === 'placeholder') { const c = surfaceClause(ctx, 'field.placeholder', ctx.min('field.placeholder') || 4.5); return { when_to_use: `Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: ${c.text.replace(/^C/, 'c')}`, avoid_when: 'Do not use as a label (a11y anti-pattern) or for the entered value (use `text.primary`).', ...(c.ok.length ? { sits_on: c.ok } : {}), tracks: ['field.border.rest'] }; }
   }
 
-  // AI/D-2 (owner decision): the modal over the scrim is the ordinary card surface, `foreground.primary`.
-  // It used to name `inverse.foreground.primary`, which reads as a dark modal in light mode. A `tracks`
-  // relation, not a contrast claim — the scrim is translucent and the modal is opaque over it.
-  if (group === 'scrim') return { when_to_use: 'The dimming layer behind a modal, dialog, or drawer. The modal itself uses `foreground.primary`.', avoid_when: 'Do not use as a solid surface or for any opaque element.', tracks: ['foreground.primary'] };
+  // AI/D-2 (owner decision): the modal over the scrim is a page-polarity surface, never an inverse one. It used to
+  // name `inverse.foreground.primary`, which reads as a dark modal in light mode. Since #3049 (Q721 A) the modal has
+  // its own role, `foreground.raised`, which holds the card surface by default. A `tracks` relation, not a contrast
+  // claim — the scrim is translucent and the modal is opaque over it.
+  if (group === 'scrim') return { when_to_use: 'The dimming layer behind a modal, dialog, or drawer. The modal itself uses `foreground.raised`.', avoid_when: 'Do not use as a solid surface or for any opaque element.', tracks: ['foreground.raised'] };
   // Glass (#2869): the fill half of the glass treatment; the blur half is `blur.glass`. It follows the page
   // polarity, so the page's own text roles read on it — unlike `veil`, whose ink must hold still.
   if (group === 'glass') return { when_to_use: 'The translucent fill of a glass band over a photograph — a caption or footer set over the bottom of an image. Pair it with a background blur of `blur.glass`. Text on it uses the page roles, such as `text.primary`.', avoid_when: 'Do not use without the background blur, as a modal backdrop (use `scrim.default`), or as an opaque surface (use `foreground.primary`).' };

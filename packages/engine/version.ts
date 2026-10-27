@@ -675,7 +675,13 @@ export const ENGINE_VERSION = '0.237.0';
  * 70% on the dark, 90% in high contrast). Two added paths; an added path cannot break a reference. Nothing is removed
  * or retyped.
  */
-export const CONTRACT_VERSION = '14.11.0';
+/**
+ * 14.12.0 (#3049, owner Q721 A; Q3049.1 C, Q3049.2 A, Q3049.3 A, Q3049.4, 2026-10-27): MINOR. `color.foreground.raised`
+ * joins the guaranteed surface: the panel a dialog or sheet draws over the scrim, which Dialog's panel binds. It holds
+ * the card surface's palette step unless the brand's `raisedSurface` sets it to the page or white, in light and
+ * hc-light only. One added path; an added path cannot break a reference. Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.12.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

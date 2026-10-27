@@ -8661,6 +8661,8 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
   'lever-control-shape',
   // #2958: Dialog options draws Dialog title size the same way, its home Components › Dialog.
   'lever-dialog-title-size',
+  // #3049: and Dialog surface below it, the same block, the same home.
+  'lever-raised-surface',
   // #2924: Banner options draws Banner style the same way, its home Components › Banner.
   'lever-banner-style'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
@@ -8854,7 +8856,7 @@ for (const host of ['web', 'figma']) {
           },
           dialog: {
             line: document.querySelector('[data-p3="dialog-options-derived"]')?.textContent ?? null,
-            chips: [...document.querySelectorAll('[data-p3="dialog-options"] [data-p3^="dialog-title-size-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
+            chips: [...document.querySelectorAll('[data-p3="dialog-options"] [data-p3^="dialog-title-size-choice-"], [data-p3="dialog-options"] [data-p3^="dialog-surface-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           banner: {
             line: document.querySelector('[data-p3="banner-options-derived"]')?.textContent ?? null,
@@ -8877,8 +8879,8 @@ for (const host of ['web', 'figma']) {
         `#2931 Q59: previewing ${label}, Tag options carry the derived line and hold Tag style's chips (${JSON.stringify(d.tag)})`);
       ok(d.search.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.search.chips.length === 3 && d.search.chips.every(Boolean),
         `#2952 Q59: previewing ${label}, Search options carry the derived line and hold Search field style's chips (${JSON.stringify(d.search)})`);
-      ok(d.dialog.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.dialog.chips.length === 3 && d.dialog.chips.every(Boolean),
-        `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's chips (${JSON.stringify(d.dialog)})`);
+      ok(d.dialog.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.dialog.chips.length === 6 && d.dialog.chips.every(Boolean),
+        `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's and Dialog surface's chips (#3049) (${JSON.stringify(d.dialog)})`);
       ok(d.banner.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.banner.chips.length === 2 && d.banner.chips.every(Boolean),
         `#2924 Q59: previewing ${label}, Banner options carry the derived line and hold Banner style's chips (${JSON.stringify(d.banner)})`);
       ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
@@ -9132,6 +9134,7 @@ for (const host of ['web', 'figma']) {
           dO: dO ? {
             title: dO.querySelector('[data-p3="dialog-options-title"]')?.textContent ?? null, desc: dO.querySelector('[data-p3="dialog-options-desc"]')?.textContent ?? null,
             chips: [...dO.querySelectorAll('[data-p3^="dialog-title-size-choice-"]')].map((n) => n.textContent),
+            surface: [...dO.querySelectorAll('[data-p3^="dialog-surface-choice-"]')].map((n) => n.textContent),
           } : null,
           bO: bO ? {
             title: bO.querySelector('[data-p3="banner-options-title"]')?.textContent ?? null, desc: bO.querySelector('[data-p3="banner-options-desc"]')?.textContent ?? null,
@@ -9155,8 +9158,11 @@ for (const host of ['web', 'figma']) {
       ok(!!D && JSON.stringify(D.ids) === JSON.stringify(['dialog']) && D.folds + D.families === 0,
         `#2958: ${host} ${w}: the Dialog section lists Dialog as a row, with no family row and no fold (${JSON.stringify({ ids: D?.ids, folds: D?.folds, families: D?.families })})`);
       // The copy is the DRAFT posted on #2958 (Q1), held here as literals so a change to it is a decision, not drift.
-      ok(!!r.dO && r.dO.title === 'Dialog options' && r.dO.desc === 'How dialogs size their title.' && JSON.stringify(r.dO.chips) === JSON.stringify(['Large', 'Medium', 'Small']),
+      ok(!!r.dO && r.dO.title === 'Dialog options' && r.dO.desc === 'How dialogs size their title and the surface they sit on.' && JSON.stringify(r.dO.chips) === JSON.stringify(['Large', 'Medium', 'Small']),
         `#2958: ${host} ${w}: Dialog options: its drafted title and description, and Dialog title size's chips (${JSON.stringify(r.dO)})`);
+      // #3049: Dialog surface's chips, the drafted option labels (Q3049.6 on the build PR), below the title size.
+      ok(!!r.dO && JSON.stringify(r.dO.surface) === JSON.stringify(['Card', 'Page', 'White']),
+        `#3049: ${host} ${w}: Dialog options carries Dialog surface's chips, Card, Page and White (${JSON.stringify(r.dO?.surface)})`);
       const BN = r.banners;
       ok(!!BN && JSON.stringify(BN.ids) === JSON.stringify(['banner']) && BN.folds + BN.families === 0,
         `#2924: ${host} ${w}: the Banner section lists Banner as a row, with no family row and no fold (${JSON.stringify({ ids: BN?.ids, folds: BN?.folds, families: BN?.families })})`);
@@ -9245,6 +9251,15 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-large"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-large"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         ok((await persisted(page))?.dialogTitleSize === 'large', `#2958: Dialog options' Large writes dialogTitleSize: large (${(await persisted(page))?.dialogTitleSize})`);
+        // #3049: Dialog surface is brand-wide too: White from Dark writes the brand value, Card restores it.
+        await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-surface-choice-white"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-surface-choice-white"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const dlgW = await persisted(page);
+        ok(dlgW?.raisedSurface === 'white' && JSON.stringify(dlgW?.modeLevers) === JSON.stringify(before?.modeLevers),
+          `#3049 Q54: previewing Dark, Dialog options' White writes raisedSurface: white and no per-mode value (${dlgW?.raisedSurface}, ${JSON.stringify(dlgW?.modeLevers)})`);
+        await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-surface-choice-card"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-surface-choice-card"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        ok((await persisted(page))?.raisedSurface === 'card', `#3049: Dialog options' Card writes raisedSurface: card (${(await persisted(page))?.raisedSurface})`);
         // #2924: Banner style is brand-wide too: Outlined from Dark writes the brand value, Tinted restores it.
         await hooks.click(page.locator('[data-p3="banner-options"] [data-p3="banner-style-choice-outlined"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="banner-options"] [data-p3="banner-style-choice-outlined"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});

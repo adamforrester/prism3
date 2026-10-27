@@ -1,5 +1,6 @@
 /**
- * Dialog options (#2958, owner Q588, Q588b A). Dialog title size as chips, Dialog title size's only control.
+ * Dialog options (#2958, owner Q588, Q588b A). Dialog title size as chips, Dialog title size's only control, and since
+ * #3049 (Q721 A) Dialog surface as chips below it, that lever's only control.
  *
  * WHERE THEY ARE DRAWN: once, in the Components page's Dialog section, after its one set, behind the section's
  * disclosure line (`domains/components.ts`), built as Tag options are (#2931 Q579 A). Its home in the page data is
@@ -13,9 +14,10 @@
  * HOW IT REPAINTS: by store subscription only (`brand` and `mode`), keeping focus on the element that had it.
  */
 import type { DialogTitleSize } from '@prism3/engine/scale';
+import type { RaisedSurface } from '@prism3/engine/theme';
 import { currentMode, lastError, rebuild, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { brandDialogTitleSize, setDialogTitleSize } from '../state/shape-input';
+import { brandDialogTitleSize, brandRaisedSurface, setDialogTitleSize, setRaisedSurface } from '../state/shape-input';
 import { DIALOG_DESC } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
 import { choice, leverBlock, leverOf, keepFocus } from '../ui/lever-kit';
@@ -54,6 +56,23 @@ export const mountDialogOptions = (hostEl: HTMLElement, cleanups: (() => void)[]
     return b.el;
   };
 
+  // #3049: the panel's surface. It writes a token value, not a binding, and the same bytes from any editable mode.
+  const surface = (): HTMLElement => {
+    const L = leverOf('raisedSurface');
+    const b = leverBlock('raisedSurface', { group: true });
+    const opts = (L?.options ?? []).map((o) => ({ v: String(o.value) as RaisedSurface, l: o.label }));
+    const c = choice(L?.label ?? 'Dialog surface', 'dialog-surface-choice', opts, (v) => {
+      if (isDerived(currentMode)) return;
+      edited = true;
+      setRaisedSurface(v);
+      rebuild();
+    });
+    c.set(brandRaisedSurface());
+    b.ctl.append(c.el);
+    b.setRefused(!!lastError && edited);
+    return b.el;
+  };
+
   const render = (): void => {
     const { key: focusKey, again } = keepFocus(root);
     const parts: HTMLElement[] = [];
@@ -63,7 +82,7 @@ export const mountDialogOptions = (hostEl: HTMLElement, cleanups: (() => void)[]
       note.append(glyph('warn'), h('span', 'p3-sg-warn-text', BUTTON_OPTIONS_COPY.derived(modeName(currentMode))));
       parts.push(note);
     }
-    parts.push(titleSize());
+    parts.push(titleSize(), surface());
     root.replaceChildren(...parts);
     if (derived) {
       // Held as Tag options hold theirs (N-3 A): help (the ⓘ) stays live (RX1 A).

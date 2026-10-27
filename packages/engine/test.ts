@@ -9960,10 +9960,11 @@ arm: {
       if (u.body_text_alternative !== undefined && lowest(u.body_text_alternative) < 4.5) primBad.push(`${b} ${k}: body_text_alternative ${u.body_text_alternative} is itself below 4.5:1 in some mode`);
       if (!String(e.avoid_when).includes('Large text (24px and up, or 18.66px bold), icons and non-essential text only')) primBad.push(`${b} ${k}: usage_limit not stated in avoid_when`);
     }
-    // AI/D-2 (owner decision): the modal over a scrim is `foreground.primary`, not an inverse surface.
+    // AI/D-2 (owner decision): the modal over a scrim is a page-polarity surface, not an inverse one; since #3049
+    // (Q721 A) it is `foreground.raised`, the modal's own role.
     for (const [k, e] of Object.entries<any>(ai.color)) if (k.startsWith('scrim.')) {
       if (RELS.some((f) => (e[f] ?? []).some((p: string) => p.startsWith('inverse.')))) pairBad.push(`${b} ${k}: relates the scrim to an inverse role`);
-      if (!(e.tracks ?? []).includes('foreground.primary')) pairBad.push(`${b} ${k}: does not name foreground.primary as the modal surface`);
+      if (!(e.tracks ?? []).includes('foreground.raised')) pairBad.push(`${b} ${k}: does not name foreground.raised as the modal surface`);
     }
 
     // ── arm 3: every primitive entry carries its required fields (and the typography tier its own) ──
@@ -11679,7 +11680,8 @@ arm: {
     'text.link.default', 'text.link.hover', 'text.link.pressed', 'text.link.visited', 'text.link.focused',
   ];
   const GROUNDS_2817 = [
-    'background.primary', 'foreground.primary',
+    // #3049: Dialog's panel is `foreground.raised`, so the card surface left the list (Q419 A: no wider).
+    'background.primary', 'foreground.raised',
     'foreground.brand-subtle', 'foreground.success-subtle', 'foreground.warning-subtle', 'foreground.danger-subtle', 'foreground.info-subtle',
   ];
   // Banner (#2786) places the inks on the four status tints; the brand tint stays in the contract by Q419 A ahead of a def that places them there.
@@ -11719,7 +11721,7 @@ arm: {
     const missing = [...derived].filter(([g]) => !GROUNDS_2817.includes(g)).map(([g, hosts]) => `${g} (${hosts.join('; ')})`);
     const unplaced = GROUNDS_2817.filter((g) => g !== 'background.primary' && !derived.has(g) && !PENDING_2817.includes(g));
     const landed = PENDING_2817.filter((g) => derived.has(g));
-    ok(missing.length === 0 && inkedDefs >= 5 && derived.has('foreground.primary'),
+    ok(missing.length === 0 && inkedDefs >= 5 && derived.has('foreground.raised'),
       `#2817 every ground a component places the primary or link ink on is in the contract's literal list (derived from ${componentDefs.length} defs, ${inkedDefs} that paint the inks: ${[...derived].map(([g, h]) => `${g} ← ${h.join('; ')}`).join(' | ') || 'none'})${missing.length ? ` — NOT IN THE LIST: ${missing.join('; ')}` : ''}`);
     ok(unplaced.length === 0,
       `#2817 every ground in the contract is one a component places the inks on, the page, or a pending tint (Q419 A: no wider)${unplaced.length ? ` — NO COMPONENT PLACES THEM ON: ${unplaced.join(', ')}` : ''}`);
@@ -12314,6 +12316,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // exports, so a prefix waiver would stop this gate noticing a spurious var anywhere in it, which
     // is the one thing it is here to do. Five lines for five additions is the intended cost.
     const ENGINE_ADDED_VARS = [
+      // #3049 — the panel over the scrim, Dialog's own surface. An exact name in `foreground`, a family NB exports.
+      'color/foreground/raised',
       // #1140 — the third rung of the neutral edge ladder, on both grounds. `border` was the only
       // surface/ink category stopping at secondary. Two exact names rather than any prefix: `border` is
       // a family NB fully defines, so the whole value of pinning it is that a spurious sibling fails.
@@ -35452,11 +35456,14 @@ arm: {
   ok(shapeBad.length === 0,
     `#2609 dialog size, corners and padding: center 400/560/720 wide hugging its content, every corner radius/2xl, padding space/300; bottom 360 wide, its top corners radius/2xl and bottom none, padding space/200; full 360×640 with the body taking the height, every corner square, padding space/200; end 480×800 with the body taking the height, every corner square, padding space/300${shapeBad.length ? ` — WRONG: ${shapeBad.slice(0, 3).join('; ')}` : ''}`);
 
-  // THE PANEL, AND NO BACKDROP IN THE SET (Q303.2 A, Q303.3 A): the panel is foreground.primary with the shadow.xl
-  // effect style, and no node of any member paints the scrim or any wash: the scrim is canvas furniture.
+  // THE PANEL, AND NO BACKDROP IN THE SET (Q303.2 A, Q303.3 A): the panel is the raised surface (#3049, Q721 A,
+  // Q3049.1 C: `foreground.raised`, its own role, no longer the card's `foreground.primary`) with the shadow.xl
+  // effect style, and no node of any member paints the scrim or any wash: the scrim is canvas furniture. The variable
+  // is a literal, so a rebind back to the card, or to anything else, fails here by name.
   const scrimIn = plans.flatMap((p) => all(p.root as DN).filter((n) => Object.values(n.paints ?? {}).some((v) => /scrim|veil/.test(v)) || /scrim|backdrop|veil/i.test(n.name) || n.nestTarget === 'veil').map((n) => `${planComponentName(p)} ${n.name}`));
-  ok(scrimIn.length === 0 && plans.every((p) => (p.root as DN).paints?.fills === 'color/foreground/primary' && (p.root as DN).effectStyle === 'shadow/xl'),
-    `#2609 dialog panel: foreground.primary with the shadow.xl effect style on every member, and no scrim, veil or backdrop node anywhere in the set${scrimIn.length ? ` — FOUND: ${scrimIn.slice(0, 3).join('; ')}` : ''}`);
+  const panelOff = plans.filter((p) => (p.root as DN).paints?.fills !== 'color/foreground/raised').map((p) => `${planComponentName(p)}: ${(p.root as DN).paints?.fills}`);
+  ok(scrimIn.length === 0 && panelOff.length === 0 && plans.every((p) => (p.root as DN).effectStyle === 'shadow/xl'),
+    `#2609 #3049 dialog panel: color/foreground/raised with the shadow.xl effect style on every member, and no scrim, veil or backdrop node anywhere in the set${panelOff.length ? ` — PANEL BINDS: ${panelOff.slice(0, 3).join('; ')}` : ''}${scrimIn.length ? ` — FOUND: ${scrimIn.slice(0, 3).join('; ')}` : ''}`);
 
   // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, flush, medium (Q385 A; flush per owner QA 2026-10-19).
   const hdrBad = plans.filter((p) => {
@@ -36142,12 +36149,12 @@ arm: {
     ok(/does not take the coordinates 'button' takes/.test(project(dwith('actionsInline', { nestItemPrefers: { cancel: 'icon-button-neutral' } }))), '#2661 Q418 a preferred set that takes other coordinates throws at projection');
   }
 
-  // CONTRAST ON THE DIALOG'S PANEL (color.foreground.primary), every example brand × mode, measured on the resolved
+  // CONTRAST ON THE DIALOG'S PANEL (color.foreground.raised since #3049), every example brand × mode, measured on the resolved
   // roles (never on the def): the outline Cancel's label (4.5:1) and edge (3:1) in BOTH families, since which one the
   // file has is the file's fact; and the filled Save's label on its fill (4.5:1).
   const PAIRS: [string, string, number][] = [
-    ['interactive.neutral.text.rest', 'foreground.primary', 4.5], ['interactive.primary.text.rest', 'foreground.primary', 4.5],
-    ['interactive.neutral.border.rest', 'foreground.primary', 3], ['interactive.primary.border.rest', 'foreground.primary', 3],
+    ['interactive.neutral.text.rest', 'foreground.raised', 4.5], ['interactive.primary.text.rest', 'foreground.raised', 4.5],
+    ['interactive.neutral.border.rest', 'foreground.raised', 3], ['interactive.primary.border.rest', 'foreground.raised', 3],
     ['interactive.primary.on-fill', 'interactive.primary.fill.rest', 4.5],
   ];
   const low: Record<string, number> = {};
@@ -36175,6 +36182,111 @@ arm: {
   // must clear its floor.
   ok(measured >= PAIRS.length * EXAMPLE_IDS.length && below.length === 0,
     `#2661 button group contrast on the Dialog panel: the Neutral Cancel, the primary fallback and Save clear their floors in every example brand × mode (${measured} ratios; lowest ${Object.entries(low).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(', ')}${below.length ? `; below: ${below.join('; ')}` : ''})`);
+}
+
+// ------------------------------------------------------------------- #3049: the raised surface, Dialog's panel
+// Owner decisions (2026-10-27, on #3049): the role is `color.foreground.raised` (Q3049.1 C); the `raisedSurface` lever
+// acts in light and hc-light only, so dark and hc-dark always hold the card (Q3049.2 A); it aliases a palette step
+// (Q3049.3 A); its values are `card | page | white`, default `card`, and the reference brand is set to `white` in its
+// legacy fixture and its redesign seed (Q3049.4). EXPECTED is typed here, from the decision: the family of each mode,
+// the three values and what each holds. ACTUAL is the resolved roles and the committed emission, never `raisedChoice`
+// (docs/34 shape 1: a gate built on the rule it checks agrees with any bug in it).
+{
+  const DARK_MODES = ['dark', 'hc-dark'];
+  const LIGHT_MODES = ['light', 'hc-light'];
+  const VALUES = [undefined, 'card', 'page', 'white'] as const;
+  type V = typeof VALUES[number];
+  const strip = (i: BrandInput): BrandInput => { const { raisedSurface: _drop, ...rest } = i as BrandInput & { raisedSurface?: string }; return rest as BrandInput; };
+  const withLever = (i: BrandInput, v: V): BrandInput => (v === undefined ? strip(i) : { ...strip(i), raisedSurface: v } as BrandInput);
+  const wendysIn = standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input;
+  const seedIn = readExampleBrand('./examples/nb-redesign.design.md');
+  const INPUTS: [string, BrandInput][] = [...EXAMPLE_IDS.map((ex) => [ex, exampleBrands()[ex] as BrandInput] as [string, BrandInput]), ['wendys', wendysIn], ['nb-redesign', seedIn]];
+  const themeFor = (name: string, v: V): Theme | undefined => name === 'nb'
+    ? (() => { const t = { ...nbTheme() } as Theme & { raisedSurface?: string }; if (v === undefined) delete t.raisedSurface; else t.raisedSurface = v; return t as Theme; })()
+    : exampleTheme(`${name} (raisedSurface ${v ?? 'unset'})`, () => brandTheme(withLever(INPUTS.find(([n]) => n === name)![1], v)));
+  const NAMES = ['nb', ...INPUTS.map(([n]) => n)];
+  // The dialog's inks on its panel, with their floors (the proposal's §4 table): text 4.5:1, non-text 3:1. The divider
+  // (`border.secondary`) is decorative and carries none.
+  const INKS: [string, number][] = [
+    ['text.primary', 4.5], ['text.secondary', 4.5],
+    ['interactive.neutral.icon.rest', 3], ['interactive.neutral.icon.hover', 3], ['interactive.neutral.icon.pressed', 3],
+    ['field.border.rest', 3], ['field.border.hover', 3], ['field.placeholder', 4.5],
+    ['interactive.primary.fill.rest', 3], ['interactive.primary.border.rest', 3], ['interactive.primary.text.rest', 4.5],
+    ['interactive.neutral.border.rest', 3], ['interactive.neutral.text.rest', 4.5],
+    ['border.focus', 3],
+  ];
+  const defaultBad: string[] = [], darkBad: string[] = [], lightBad: string[] = [], inkBad: string[] = [];
+  const low: Record<string, number> = {};
+  let cells = 0, inkCells = 0, darkCells = 0;
+  for (const name of NAMES) for (const v of VALUES) {
+    const th = themeFor(name, v);
+    if (!th) continue;
+    for (const M of resolveAllModes(th)) {
+      const R = M.roles as Record<string, { path: string; hex: string } | undefined>;
+      const raised = R['foreground.raised'], card = R['foreground.primary'], page = R['background.primary'];
+      const at = `${name}/${M.mode}/${v ?? 'unset'}`;
+      if (!raised || !card || !page) { defaultBad.push(`${at}: foreground.raised UNRESOLVED`); continue; }
+      cells++;
+      const same = (a: { path: string; hex: string }, b: { path: string; hex: string }) => a.path === b.path && a.hex.toLowerCase() === b.hex.toLowerCase();
+      // 1. THE DEFAULT IS THE CARD, in every mode: unset and `card` alias the card's own step.
+      if ((v === undefined || v === 'card') && !same(raised, card)) defaultBad.push(`${at}: ${raised.path} ≠ card ${card.path}`);
+      // 2. THE DARK FAMILY IS ALWAYS THE CARD, whatever the lever says (Q3049.2 A).
+      if (DARK_MODES.includes(M.mode)) { darkCells++; if (!same(raised, card)) darkBad.push(`${at}: ${raised.path} ≠ card ${card.path}`); }
+      // The light family takes the value: the page's step, or the palette's white.
+      if (LIGHT_MODES.includes(M.mode)) {
+        if (v === 'page' && !same(raised, page)) lightBad.push(`${at}: ${raised.path} ≠ page ${page.path}`);
+        if (v === 'white' && (raised.path !== `${th.namespace}.white` || raised.hex.toLowerCase() !== '#ffffff')) lightBad.push(`${at}: ${raised.path} ${raised.hex} is not white`);
+      }
+      // 3. EVERY DIALOG INK CLEARS ITS FLOOR ON THE PANEL.
+      for (const [ink, floor] of INKS) {
+        const i = R[ink];
+        if (!i) { inkBad.push(`${at}: ${ink} UNRESOLVED`); continue; }
+        const r = contrast(hexToRgb(i.hex), hexToRgb(raised.hex));
+        inkCells++;
+        low[ink] = Math.min(low[ink] ?? Infinity, r);
+        if (r < floor) inkBad.push(`${at}: ${ink} ${r.toFixed(2)} < ${floor}`);
+      }
+    }
+  }
+  // Five brands carry the four modes; the redesign seed ships light alone (its own scope), so it adds one per value.
+  const minCells = (NAMES.length - 1) * VALUES.length * 4 + VALUES.length;
+  ok(cells >= minCells && defaultBad.length === 0,
+    `#3049 raised surface default: unset and card hold foreground.primary's own step in every brand × mode (${cells} cells${defaultBad.length ? `; WRONG: ${defaultBad.slice(0, 4).join('; ')}` : ''})`);
+  ok(darkCells >= (NAMES.length - 1) * VALUES.length * 2 && darkBad.length === 0,
+    `#3049 raised surface dark: dark and hc-dark hold foreground.primary under every raisedSurface value (${darkCells} cells${darkBad.length ? `; WRONG: ${darkBad.slice(0, 4).join('; ')}` : ''})`);
+  ok(lightBad.length === 0,
+    `#3049 raised surface light: in light and hc-light, page holds background.primary's step and white holds the palette's white${lightBad.length ? ` — WRONG: ${lightBad.slice(0, 4).join('; ')}` : ''}`);
+  ok(inkCells >= minCells * INKS.length && inkBad.length === 0,
+    `#3049 raised surface contrast: every dialog ink clears its floor on foreground.raised in every brand × mode × raisedSurface value (${inkCells} pairs; lowest ${Object.entries(low).map(([k, r]) => `${k} ${r.toFixed(2)}`).join(', ')}${inkBad.length ? `; below: ${inkBad.slice(0, 4).join('; ')}` : ''})`);
+
+  // THE OVERRIDE TWIN: an override on the card carries to the raised surface wherever it holds the card, and not where
+  // the brand chose white. The step is a literal, so the twin dropping (or reaching a `white` brand) fails by name.
+  {
+    const base = exampleBrands()['prism3'] as BrandInput;
+    const ov = { light: { 'foreground.primary': { palette: 'neutral', step: '100' } } };
+    const at = (v: V) => { const t = exampleTheme(`prism3 (card override, raisedSurface ${v ?? 'unset'})`, () => brandTheme({ ...withLever(base, v), overrides: ov } as BrandInput)); return t ? resolveAllModes(t).find((m) => m.mode === 'light')?.roles['foreground.raised']?.path : undefined; };
+    const card = at(undefined), white = at('white');
+    ok(!!card?.endsWith('.neutral.100') && !!white?.endsWith('.white'),
+      `#3049 override twin: a light foreground.primary override to neutral.100 carries to foreground.raised under card, and white stays white (card ${card}, white ${white})`);
+  }
+
+  // THE REFERENCE BRAND IS SET TO WHITE in both inputs (Q3049.4), and the committed emission shows it: white in light,
+  // the card in every other mode. Every other committed brand leaves the lever unset, so its emission is the card's.
+  ok((nbTheme() as Theme & { raisedSurface?: string }).raisedSurface === 'white' && (seedIn as BrandInput & { raisedSurface?: string }).raisedSurface === 'white',
+    `#3049 Q3049.4: the reference brand's legacy fixture and its redesign seed design.md both set raisedSurface: white`);
+  const emitBad: string[] = [];
+  for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
+    const t = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const root = Object.keys(t)[0];
+    const fg = t[root]?.color?.foreground;
+    const modeVal = (n: any, m: string): string | undefined => m === 'light' ? n?.$value : n?.$extensions?.prism3?.modes?.[m]?.$value ?? n?.$value;
+    for (const m of ['light', 'dark', 'hc-light', 'hc-dark']) {
+      const want = b === 'nb' && m === 'light' ? `{${root}.core.palette.white}` : modeVal(fg?.primary, m);
+      const got = modeVal(fg?.raised, m);
+      if (!got || got !== want) emitBad.push(`${b}/${m}: ${got} ≠ ${want}`);
+    }
+  }
+  ok(emitBad.length === 0, `#3049 committed emission: the reference brand's raised surface is white in light and its card elsewhere; every other brand's equals its card in every mode${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #2317: the Password field

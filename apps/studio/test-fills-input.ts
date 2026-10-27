@@ -240,6 +240,9 @@ const READ_ONLY: Record<string, string> = {
   ...Object.fromEntries(VEILS.map((v) => [v, 'a wash: no ramp step to swap in'])),
   'border.focus': 'the focus ring, customizable in #1966 (a read-only row)',
   'inverse.border.focus': 'the focus ring, customizable in #1966 (a read-only row)',
+  // #3049: the panel over the scrim. Its control is Dialog surface (`raisedSurface`), whose one home is Components ›
+  // Dialog, so this page draws no row for it.
+  'foreground.raised': 'set by Dialog surface, in Components › Dialog',
 };
 ok(fillsRoles.length > 100 && fillsRoles.some((e) => e.role === 'icon.on-brand') && fillsRoles.some((e) => e.role === 'inverse.border.info'),
   `the emission gives Surfaces & fills' roles to classify (read ${fillsRoles.length})`);

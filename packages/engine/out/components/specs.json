@@ -34730,7 +34730,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -34754,7 +34754,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -34778,7 +34778,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -34802,7 +34802,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -34826,7 +34826,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -34850,7 +34850,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -34874,7 +34874,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -34898,7 +34898,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -34922,7 +34922,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -34946,7 +34946,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -34970,7 +34970,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -34994,7 +34994,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -35018,7 +35018,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -35042,7 +35042,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -35066,7 +35066,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
@@ -35090,7 +35090,7 @@
           "parts": [
             {
               "part": "panel",
-              "fill": "color.foreground.primary"
+              "fill": "color.foreground.raised"
             },
             {
               "part": "panel/header/titleBox/title",
