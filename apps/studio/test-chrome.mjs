@@ -2218,6 +2218,34 @@ for (const s of SEARCH_SAMPLE) {
   const at = foundAt.get(s.key) ?? [];
   ok(at.length === 1 && at[0] === s.place, `#3093: searching "${s.label}" shows ${s.key} on ${s.place} (shown on ${at.length ? at.join(', ') : 'no page'})`);
 }
+// The re-filter (#3093 review): a block draws its levers anew after an edit or a mode change, and the page filters it
+// again (its `brand` and `mode` subscriptions). Searching "white" shows Dialog surface alone in Dialog options; an edit
+// to Dialog surface, then a mode change, must leave Dialog title size hidden.
+{
+  const DIALOG = ['lever-raised-surface', 'lever-dialog-title-size'];
+  await goPlace(page, 'components');
+  if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+  await hooks.need(page, '[data-p3="search-input"]');
+  const before = await shows('white', DIALOG);
+  const chip = page.locator('[data-p3="levers-pane"] [data-p3="lever-raised-surface"] [role="radio"][aria-checked="false"]').first();
+  const picked = await chip.getAttribute('data-value') ?? await chip.textContent();
+  await hooks.click(chip);
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="lever-raised-surface"]'));
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const read = () => page.evaluate((hs) => Object.fromEntries(hs.map((hk) => {
+    const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${hk}"]`);
+    return [hk, !!n && n.getBoundingClientRect().height > 0];
+  })), DIALOG);
+  const afterEdit = await read();
+  ok(before['lever-raised-surface'] && !before['lever-dialog-title-size'] && afterEdit['lever-raised-surface'] && !afterEdit['lever-dialog-title-size'],
+    `#3093: on Components, searching "white" then picking Dialog surface's "${String(picked).trim()}" keeps Dialog title size hidden (${JSON.stringify({ before, after: afterEdit })})`);
+  await pickMode(page, 'dark');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const afterMode = await read();
+  ok(afterMode['lever-raised-surface'] && !afterMode['lever-dialog-title-size'],
+    `#3093: on Components, searching "white" then changing the mode keeps Dialog title size hidden (${JSON.stringify({ before: afterEdit, after: afterMode })})`);
+  await page.locator('[data-p3="search-input"]').fill('');
+}
 ok(errors.length === 0, `#3093: the search sweep raised no page error (${errors.join(' | ')})`);
 await ctx.close();
 }
