@@ -3612,8 +3612,10 @@ for (const b of brands) {
       .map((n) => (buildTree(t).tree as any)[Object.keys(buildTree(t).tree)[0]].control?.size?.[n]?.dot?.$extensions?.prism3?.px ?? 'x')
       .join('/');
     const dotLadders = { nb: dotLadder(nbTheme()), compact: dotLadder(compact), harbor: dotLadder(harbor), wendys: dotLadder(wendys) };
-    ok(dotLadders.compact === '6/8/10' && dotLadders.nb === '8/10/12' && dotLadders.harbor === dotLadders.nb && dotLadders.wendys === dotLadders.nb,
-      `#910 \`control.size.*.dot\` is a DENSITY signal, not a glyph artboard — the compact fixture's 6/8/10 sits a full rung below nb/harbor/wendys 8/10/12 (${Object.entries(dotLadders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
+    // nb is off this comparison since #3086: the reference brand sets a 70% radio dot (12/14/16), so its dot is no
+    // longer the density ladder's half. harbor and wendys, at the default, still are; #3086's own gates hold nb's.
+    ok(dotLadders.compact === '6/8/10' && dotLadders.harbor === '8/10/12' && dotLadders.wendys === dotLadders.harbor && dotLadders.nb === '12/14/16',
+      `#910 \`control.size.*.dot\` is a DENSITY signal, not a glyph artboard — the compact fixture's 6/8/10 sits a full rung below harbor/wendys 8/10/12, and nb's 70% radio dot is 12/14/16 (#3086) (${Object.entries(dotLadders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
 
     // ---- AND THE CONSUMER HALF (#910): a def must READ the varying family, not the invariant one ----
     // Everything above is about the token TIER — that `control.size.*` moves with brand density and that
@@ -13929,6 +13931,170 @@ arm: {
     if (got !== want) g4.push(`${id}: ${got} (want ${want})`);
   }
   ok(g4.length === 0, `#3052 G4: every other brand's grid gutter/margin links are unchanged (space/* steps as shipped)${g4.length ? ` — ${g4.join('; ')}` : ''}`);
+}
+
+// (19h) #3086 — THE RADIO DOT SETTING (owner decision Q816 A, no new token, 2026-10-27). `radioDot` sets
+// `control.size.{sm,md,lg}.dot` to a share of the box edge (50 default = half, then 60/70/80), snapped to the 2px
+// sub-grid and capped at the box minus its ring. The reference brand sets 70%: 14px at medium.
+//
+// INDEPENDENCE (docs/34). Every expected number here is a HAND-PINNED literal or is read from a different emitted
+// node than the one under test, never from `radioDotPx` or `controlSizes`:
+//   G1 the reference brand's sm/md/lg dot px are the literals 12/14/16, read from the DTCG tree (its `$value`,
+//      resolved through the alias if it is one) and from the Figma `control` collection, for the legacy fixture
+//      (`nbThemeFrom`) and the redesign seed (`examples/nb-redesign.design.md`) alike.
+//   G2 every brand at the default: its dot is half its box (both px read off the tree), its dot leaf carries the
+//      #910 prose and no `share`/`offScale`, and a build with `radioDot: 50` written out is byte-identical to the
+//      unset build, tree and Figma control collection both. Corpus = the token-contract corpus less nb, plus every
+//      example brand that leaves the setting unset.
+//   G3 the share reaches EVERY size: synthetic brands at 60/70/80 × compact/comfortable/spacious, each rung's dot
+//      against a table worked by hand (nearest even px of edge × share, capped at edge − 4).
+//   G4 the dot never covers the ring: dot ≤ box − 2 × ring at every share, density and rung, the ring's px read
+//      from the emitted `border-width.thick` leaf and Radio.Control's own `border-width` binding, not from scale.ts.
+//   G5 a mode with its own density (`modeLevers.dark.density`) carries the share: dark's dots, read from the leaf's
+//      `modes.dark` entry, against the same hand table, and inside dark's own box minus the ring.
+//   G6 the Figma line names the share: the reference brand's three dot lines and a default brand's, hand-written,
+//      read from the emitted Figma control collection.
+//
+// MUTATION REGISTER (each applied to the SUBJECT from a `wip:` commit, the suite re-run, the named assertion
+// confirmed among the failures, then reverted):
+//   M1 (G1) `nbThemeFrom`'s `buildDims(…, [720], 70)` → `[720]`. G1 fails BY NAME (nb md 10).
+//   M2 (G1) `radioDot: 70` dropped from `examples/nb-redesign.design.md`. G1 fails BY NAME (nb-redesign md 10).
+//   M3 (G2) `brandTheme` carries `radioDot` even at the default (`...({ radioDot })`). G2 fails BY NAME on the
+//      #910 prose for every default brand.
+//   M4 (G3) `controlSizes` applies the share at md only (`i === 1 ? radioDotPx(…) : height * 0.5`). G3 fails BY
+//      NAME at sm and lg for every share and density.
+//   M5 (G4) `radioDotPx` loses its cap (`Math.min(…, edge − 2 × ring)`). G4 fails BY NAME (compact 80% sm 10 > 8),
+//      and G3 too.
+//   M6 (G5) `brandTheme`'s per-mode ladder drops the share (`controlsByMode[m] = controlSizes(lev.density)`). G5 fails
+//      BY NAME for all three mode brands (dark at the default half, e.g. 6/8/10 for compact).
+//   M7 (G6) `emit-figma-dims` stops passing `dotShare` to the Figma line. G6 fails BY NAME at sm/md/lg for the
+//      fixture and the seed ("half the 20px box" for a 14px dot).
+{
+  const rootOf = (tree: any) => tree[Object.keys(tree)[0]];
+  const pxOfValue = (tree: any, v: string): number => {
+    const m = /^\{(.+)\}$/.exec(v);
+    if (!m) return parseFloat(v);
+    const node = m[1].split('.').reduce((n: any, k) => n?.[k], tree);
+    return node ? pxOfValue(tree, node.$value) : NaN;
+  };
+  const RUNGS = ['sm', 'md', 'lg'] as const;
+  const dots = (theme: Theme) => {
+    const tree = buildTree(theme).tree as any; const cs = rootOf(tree).control.size;
+    return RUNGS.map((r) => ({ rung: r, height: pxOfValue(tree, cs[r].height.$value), dot: pxOfValue(tree, cs[r].dot.$value), leaf: cs[r].dot }));
+  };
+  const figmaDots = (theme: Theme): number[] => RUNGS.map((r) =>
+    buildFigmaDims(theme).control.variables.find((v: any) => v.name.endsWith(`control/size/${r}/dot`))?.value ?? NaN);
+  const seedInput = (): BrandInput => parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input as BrandInput;
+
+  // G1 — the reference brand: 12/14/16, the owner's 14 at medium.
+  const refs: [string, Theme | undefined][] = [
+    ['nb (legacy fixture)', exampleTheme('nb', nbTheme)],
+    ['nb-redesign (seed)', exampleTheme('nb-redesign', () => brandTheme(seedInput()))],
+  ];
+  for (const [id, theme] of refs) {
+    if (!theme) continue;
+    const got = dots(theme).map((d) => d.dot).join('/'); const fig = figmaDots(theme).join('/');
+    ok(got === '12/14/16' && fig === '12/14/16',
+      `#3086 G1: ${id}: the radio dot at sm/md/lg is 12/14/16 (70% of 16/20/24, md 14 the owner's), in DTCG and in the Figma control collection (DTCG ${got}, Figma ${fig})`);
+  }
+
+  // G2 — every brand at the default is byte-identical: half the box, the #910 line, and 50 written out = unset.
+  const examples = exampleBrands() as Record<string, BrandInput>;
+  const defaults: [string, BrandInput][] = [
+    ['minimal', MINIMAL_BRAND], ['minimal-compact', MINIMAL_COMPACT_BRAND],
+    ...Object.entries(examples).filter(([, b]) => b.radioDot === undefined),
+  ];
+  ok(defaults.length >= 5, `#3086 G2: the default population is the corpus, not a sample (${defaults.map(([id]) => id).join(', ')})`);
+  for (const { id, theme } of corpus().filter((c) => !c.id.startsWith('nb'))) {
+    for (const d of dots(theme)) {
+      const gap = (d.height - d.dot) / 2;
+      const p = d.leaf.$extensions?.prism3 ?? {};
+      ok(d.dot * 2 === d.height && d.leaf.$description.startsWith(`control.size.${d.rung} dot — ${d.dot}px inner mark for a radio's dot (half the ${d.height}px box edge, leaving a ${gap}px gap to the boundary).`)
+        && !('share' in p) && !('offScale' in p),
+        `#3086 G2: ${id.split(' ')[0]} ${d.rung}: at the default the radio dot is half the box, with the #910 line and no share (${d.dot} of ${d.height}; ${JSON.stringify(p)})`);
+    }
+  }
+  for (const [id, input] of defaults) {
+    const unset = exampleTheme(`${id} (radioDot unset)`, () => brandTheme(input));
+    const written = exampleTheme(`${id} (radioDot: 50)`, () => brandTheme({ ...input, radioDot: 50 } as BrandInput));
+    if (!unset || !written) continue;
+    ok(JSON.stringify(buildTree(unset).tree) === JSON.stringify(buildTree(written).tree)
+      && JSON.stringify(buildFigmaDims(unset).control) === JSON.stringify(buildFigmaDims(written).control),
+      `#3086 G2: ${id}: radioDot 50 written out is byte-identical to unset, DTCG tree and Figma control collection`);
+  }
+
+  // G3 — the share reaches every size. Worked by hand: nearest even px of edge × share, at most edge − 4.
+  //   compact 12/16/20 · comfortable 16/20/24 · spacious 20/24/28.
+  const HAND: Record<string, Record<number, string>> = {
+    compact: { 60: '8/10/12', 70: '8/12/14', 80: '8/12/16' },
+    comfortable: { 60: '10/12/14', 70: '12/14/16', 80: '12/16/20' },
+    spacious: { 60: '12/14/16', 70: '14/16/20', 80: '16/20/22' },
+  };
+  const BASE: BrandInput = { id: 'dotshare', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
+  const synth: { id: string; share: number; density: string; theme: Theme }[] = [];
+  for (const density of ['compact', 'comfortable', 'spacious'] as const) for (const share of [60, 70, 80] as const) {
+    const id = `dot-${density}-${share}`;
+    const theme = exampleTheme(id, () => brandTheme({ ...BASE, id, density, radioDot: share } as BrandInput));
+    if (!theme) continue;
+    synth.push({ id, share, density, theme });
+    const ds = dots(theme);
+    for (const [i, d] of ds.entries()) {
+      const want = Number(HAND[density][share].split('/')[i]);
+      ok(d.dot === want, `#3086 G3: ${density} ${share}% ${d.rung}: the dot follows the share at this size (${d.dot}, hand ${want}, of ${d.height})`);
+    }
+  }
+  ok(synth.length === 9, `#3086 G3: all nine share × density brands built (${synth.length})`);
+
+  // G4 — the dot never covers the ring. The ring's px from the emitted token Radio's ring binds.
+  const ringKey = radioControl.tokens['border-width'];
+  ok(ringKey === 'border-width.thick' && radioControl.anatomy.parts.control.strokeWidth === 'border-width',
+    `#3086 G4: Radio.Control's ring binds border-width.thick (${ringKey})`);
+  for (const { id, theme } of [...synth, ...refs.filter(([, t]) => t).map(([id, t]) => ({ id, theme: t as Theme }))]) {
+    const tree = buildTree(theme).tree as any;
+    const ring = pxOfValue(tree, ringKey.split('.').reduce((n: any, k) => n?.[k], rootOf(tree)).$value);
+    for (const d of dots(theme))
+      ok(ring > 0 && d.dot > 0 && d.dot <= d.height - 2 * ring,
+        `#3086 G4: ${id} ${d.rung}: the dot fits inside the ring (${d.dot} ≤ ${d.height} − 2 × ${ring})`);
+  }
+
+  // G5 — the per-mode control ladders carry the share too (review S1 on #3097). A brand whose dark mode sets its own
+  // density gets dark's dots from `controlsByMode`, a second call site G3 never reaches. Each dark dot is read from
+  // the leaf's `$extensions.prism3.modes.dark.$value` (resolved through its alias), each dark box from the height
+  // leaf's own mode entry, and both are held to the HAND table above, never to `controlSizes`. One brand per density
+  // as the mode's, each at a different share, so the whole table's three columns are crossed.
+  for (const [base, dark, share] of [['comfortable', 'compact', 70], ['compact', 'spacious', 80], ['spacious', 'comfortable', 60]] as const) {
+    const id = `dot-modes-${base}-${dark}-${share}`;
+    const theme = exampleTheme(id, () => brandTheme({ ...BASE, id, density: base, radioDot: share, modeLevers: { dark: { density: dark } } } as BrandInput));
+    if (!theme) continue;
+    const tree = buildTree(theme).tree as any; const cs = rootOf(tree).control.size;
+    const ring = pxOfValue(tree, ringKey.split('.').reduce((n: any, k) => n?.[k], rootOf(tree)).$value);
+    const modeDots = RUNGS.map((r) => pxOfValue(tree, cs[r].dot.$extensions?.prism3?.modes?.dark?.$value ?? 'NaN'));
+    const modeBoxes = RUNGS.map((r) => pxOfValue(tree, cs[r].height.$extensions?.prism3?.modes?.dark?.$value ?? 'NaN'));
+    const baseDots = dots(theme).map((d) => d.dot).join('/');
+    ok(modeDots.join('/') === HAND[dark][share] && baseDots === HAND[base][share],
+      `#3086 G5: ${id}: dark's own density carries the share, dark ${modeDots.join('/')} (hand ${HAND[dark][share]}) and the base ${baseDots} (hand ${HAND[base][share]})`);
+    for (const [i, r] of RUNGS.entries())
+      ok(modeDots[i] > 0 && modeDots[i] <= modeBoxes[i] - 2 * ring,
+        `#3086 G5: ${id} dark ${r}: the mode's dot fits inside the ring (${modeDots[i]} ≤ ${modeBoxes[i]} − 2 × ${ring})`);
+  }
+
+  // G6 — the Figma line names the share (review N1 on #3097). Before this, only the committed `figma/nb/control.json`
+  // held it, so `emit-figma-dims` dropping `dotShare` passed every live gate. Hand-written lines, read off the emitted
+  // Figma control collection: the reference brand's three, and a default brand's half-the-box line.
+  const figmaDotLines = (theme: Theme): string[] => RUNGS.map((r) =>
+    buildFigmaDims(theme).control.variables.find((v: any) => v.name.endsWith(`control/size/${r}/dot`))?.description ?? '');
+  for (const [id, theme] of refs) {
+    if (!theme) continue;
+    const got = figmaDotLines(theme);
+    const want = ['Radio dot — 12px (0.7 × the 16px box, on the 2px grid)', 'Radio dot — 14px (0.7 × the 20px box, on the 2px grid)', 'Radio dot — 16px (0.7 × the 24px box, on the 2px grid)'];
+    for (const [i, r] of RUNGS.entries())
+      ok(got[i].startsWith(want[i]), `#3086 G6: ${id} ${r}: the Figma line names the share (${JSON.stringify(got[i])})`);
+  }
+  {
+    const theme = exampleTheme('minimal (Figma dot line)', () => brandTheme(MINIMAL_BRAND));
+    const got = theme ? figmaDotLines(theme)[1] : '';
+    ok(got.startsWith('Radio dot — 10px (half the 20px box)'), `#3086 G6: minimal md: at the default the Figma line is half the box (${JSON.stringify(got)})`);
+  }
 }
 
 // (20) EMIT-FIGMA MODE OPT-OUT (post-#42 follow-up; #45 audit; reviewer flag on #46).

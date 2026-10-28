@@ -158,6 +158,12 @@ export const leverManifest: Lever[] = [
   { key: 'bannerStyle', group: 'form', kind: 'value', label: 'Banner style', control: 'enum', default: 'tinted',
     options: enumOpts(['tinted', 'Tinted'], ['outlined', 'Outlined']),
     description: 'The surface of every banner. Tinted fills it with the tone’s tint; Outlined draws the edge in the tone on the page color. Either way the edge and glyph clear 3:1.' },
+  // #3086 (owner Q816 A, no new token) — label, option labels and description are a DRAFT for the owner. It moves token
+  // values, not a binding: Radio binds `control.size.{sm,md,lg}.dot`, and this sets what those hold. List bullets and the
+  // badge dot bind the same tokens, so they follow. Its home in the Studio is Components › Radio (Q578).
+  { key: 'radioDot', group: 'form', kind: 'value', label: 'Radio dot size', control: 'enum', default: 50,
+    options: enumOpts([50, 'Default'], [60, '60%'], [70, '70%'], [80, '80%']),
+    description: 'How big the dot in a selected radio is, as a share of the radio, at every size. Default is half. The dot rounds to a 2px step and never covers the ring. List bullets and badge dots follow it.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', kind: 'structural', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),
