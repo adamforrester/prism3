@@ -849,10 +849,24 @@ export const applyUpdate = async (
 
 const n = (k: number, one: string, many = `${one}s`): string => `${k} ${k === 1 ? one : many}`;
 
-/** DRAFT wording for the owner (#3086): the properties a kept hand edit holds against the plan's bindings, each once,
- *  as "dot size" (a width or height reads as the part's size). Empty when the build found none. */
+/** The plain word for each field a plan binds (`anatomy-figma.ts`, `bound.<field>`), so a kept hand edit is named in
+ *  the designer's words, never by the host's property key (owner Q826 A, #3086). The per-side fields share one word:
+ *  four padding sides read "padding", the per-side stroke weights "border width". DRAFT wording. */
+export const KEPT_FIELD_WORD: Record<string, string> = {
+  width: 'size', height: 'size',
+  minWidth: 'min width', minHeight: 'min height',
+  itemSpacing: 'gap',
+  paddingTop: 'padding', paddingRight: 'padding', paddingBottom: 'padding', paddingLeft: 'padding',
+  strokeWeight: 'border width', strokeTopWeight: 'border width', strokeRightWeight: 'border width',
+  strokeBottomWeight: 'border width', strokeLeftWeight: 'border width',
+  topLeftRadius: 'corner radius', topRightRadius: 'corner radius', bottomLeftRadius: 'corner radius', bottomRightRadius: 'corner radius',
+};
+
+/** DRAFT wording for the owner (#3086, Q826 A): the properties a kept hand edit holds against the plan's bindings, each
+ *  once, the layer name first: "dot size", "container padding". A field with no word yet names the layer alone, never
+ *  its key. Empty when the build found none. */
 const keptProps = (o: SetOutcome): string => {
-  const said = [...new Set((o.keptBound ?? []).map((b) => `${b.part} ${b.field === 'width' || b.field === 'height' ? 'size' : b.field}`))];
+  const said = [...new Set((o.keptBound ?? []).map((b) => KEPT_FIELD_WORD[b.field] ? `${b.part} ${KEPT_FIELD_WORD[b.field]}` : b.part))];
   return said.length ? ` (${said.join(', ')})` : '';
 };
 

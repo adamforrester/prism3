@@ -64,7 +64,9 @@
  *                  edited is still a part not written (#3086). Mutations: the kept-edit split dropped → `kept report/no
  *                  miss`, `kept report/named`; the property left unnamed →
  *                  `kept report/named`; the split taking every bound miss → `kept report/real discard`; the split
- *                  matching any member's kept path → `kept report/two members`.
+ *                  matching any member's kept path → `kept report/two members`. Every field the plans bind is named in a
+ *                  plain word, the layer first, the per-side fields merged (Q826 A): a word falling through to the key →
+ *                  that family's arm (`kept report/padding`, `/gap`, …) and `kept report/no raw key`.
  *   drop/description  the deprecation prefix leads and the member's own description follows (owner Q104 A).
  *                  Mutation: the description replaced → `drop/description`.
  *   keys/record id an updated member's record names its own node (#2300). Mutation: the id left out of the update's
@@ -568,6 +570,37 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
     `kept report/no miss: the kept dot is no part not written as planned (${JSON.stringify(o.misses.slice(0, 3))}; ${JSON.stringify(v.lines)})`);
   ok(v.lines[0] === 'radio-control: 60 updated in place, 1 hand edit kept (dot size).' && v.ok && v.headline === '✓ updated 60 in place',
     `kept report/named: the hand edit kept names the property it kept (${JSON.stringify(v)})`);
+
+  // EVERY BOUND FIELD IN PLAIN WORDS (owner Q826 A): the layer name first, then the property as a designer says it, the
+  // per-side fields merged into one word. The same outcome, its kept bindings replaced, read through the verdict. Each
+  // family's word is typed here. Mutation: a family's word falling through to the field's key → that family's arm and
+  // `kept report/no raw key`.
+  const clause = (fields: string[]): string => applyVerdict({ ...res, outcomes: [{ ...o, keptBound: fields.map((field) => ({ member: EDITED, part: 'container', field })) }] }).lines[0];
+  const line = (said: string): string => `radio-control: 60 updated in place, 1 hand edit kept (${said}).`;
+  const families: [string, string[], string][] = [
+    ['size', ['width', 'height'], 'container size'],
+    ['min width', ['minWidth'], 'container min width'],
+    ['min height', ['minHeight'], 'container min height'],
+    ['gap', ['itemSpacing'], 'container gap'],
+    ['padding', ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'], 'container padding'],
+    ['border width', ['strokeWeight', 'strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'], 'container border width'],
+    ['corner radius', ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'], 'container corner radius'],
+  ];
+  for (const [family, fields, said] of families) {
+    ok(clause(fields) === line(said) && fields.every((f) => clause([f]) === line(said)),
+      `kept report/${family}: ${fields.join(', ')} read "${said}", once (${clause(fields)}; ${fields.map((f) => clause([f])).join(' | ')})`);
+  }
+  // THE FIELD LIST READ FROM THE PLANS, never typed: every field any def's plan binds (`bound`), so a field a def starts
+  // binding is checked here before anyone writes its word. For each, the clause names the layer and a word, and holds no
+  // key: not the field's own, and nothing camelCase.
+  const planFields = new Set<string>();
+  type Bn = { bound?: Record<string, string>; children?: Bn[] };
+  const walk = (n: Bn): void => { for (const k of Object.keys(n.bound ?? {})) planFields.add(k); for (const c of n.children ?? []) walk(c); };
+  for (const d of componentDefs) for (const p of figmaAnatomySet(d, { swapTarget: SWAP_TARGET })) walk(p.root as Bn);
+  const leaked = [...planFields].map((f) => [f, clause([f])] as const)
+    .filter(([f, c]) => !c.startsWith(line('container ').slice(0, -2)) || c === line('container') || c.includes(f) || /[a-z][A-Z]/.test(c));
+  ok(planFields.size >= 18 && planFields.has('paddingLeft') && !leaked.length,
+    `kept report/no raw key: every field the plans bind (${planFields.size}) is named in a word, no key in the clause (${JSON.stringify(leaked)})`);
 }
 {
   // A BINDING THE HOST DROPPED, NO HAND EDIT. Every member as built, so nothing is kept; the host accepts the dot's
