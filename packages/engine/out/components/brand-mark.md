@@ -72,7 +72,7 @@ Name an informative mark with the provider's own name, spelled the way the provi
 ## Related components
 
 - **Instead, consider:** `icon`
-- **Often used with:** `icon`, `link`, `button`, `wallet-button`
+- **Often used with:** `icon`, `link`, `button`, `card-number-field`, `wallet-button`
 - **Replaces:**
   - provider logos pasted into a design as images
   - a provider logo recolored to match the palette
