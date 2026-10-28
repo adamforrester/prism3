@@ -3100,17 +3100,23 @@ const writeComponentSet = async (
     // skipped/stale ones were never rebuilt and keep their names and positions.
     const emitted: string[] = [];
     const cols = Math.max(1, Math.ceil(Math.sqrt(fresh.length)));
-    const PITCH = 48;   // a fixed grid pitch — cosmetic; the assets panel groups by slash name, not by x/y
+    // THE GRID'S PITCH IS MEASURED (#3134): the widest and tallest component of this def on the page, plus a 24px gap.
+    // A fixed 48 fit the 24px icons and nothing wider, so a brand mark's 54px logo sat over its neighbor. Every cell is
+    // the same size, so a member of any width clears the next one.
+    const GAP = 24;
+    const own = [...fresh, ...((dest.children ?? []) as CompNode[]).filter((c) => c.type === 'COMPONENT' && String(c.name ?? '').startsWith(`${component}/`) && !fresh.includes(c))];
+    const pitchX = Math.max(0, ...own.map((c) => Number(c.width) || 0)) + GAP;
+    const pitchY = Math.max(0, ...own.map((c) => Number(c.height) || 0)) + GAP;
     // IN AN UPDATE (#2296), a component the plan gained goes in the first slot of that grid no existing component
-    // of this def already holds, never over one. A build lays out from the origin: everything there is its own.
-    const taken = new Set<string>();
-    if (opts.update) for (const c of (dest.children ?? []) as CompNode[])
-      if (c.type === 'COMPONENT' && String(c.name ?? '').startsWith(`${component}/`) && !fresh.includes(c)) taken.add(`${c.x},${c.y}`);
+    // of this def already overlaps, never over one. A build lays out from the origin: everything there is its own.
+    const taken: { x: number; y: number; w: number; h: number }[] = [];
+    if (opts.update) for (const c of own) if (!fresh.includes(c)) taken.push({ x: Number(c.x) || 0, y: Number(c.y) || 0, w: Number(c.width) || 0, h: Number(c.height) || 0 });
     let slot = 0;
     const nextSlot = (): number => {
       for (;; slot++) {
-        const x = (slot % cols) * PITCH, y = Math.floor(slot / cols) * PITCH;
-        if (!taken.has(`${x},${y}`)) { taken.add(`${x},${y}`); return slot++; }
+        const x = (slot % cols) * pitchX, y = Math.floor(slot / cols) * pitchY;
+        const box = { x, y, w: pitchX - GAP, h: pitchY - GAP };
+        if (!taken.some((t) => t.x < box.x + box.w && box.x < t.x + t.w && t.y < box.y + box.h && box.y < t.y + t.h)) { taken.push(box); return slot++; }
       }
     };
     fresh.forEach((c, i) => {
@@ -3121,12 +3127,10 @@ const writeComponentSet = async (
       // Placed, not litter: drop it from the partial-write trail so a later throw does not try to park a
       // component that is exactly where it belongs.
       trail.loose.delete(c);
-      // A SIMPLE GRID so N components are not stacked at the origin. Fixed pitch rather than measured
-      // widths, because the layout here is a nicety (a designer opens the folder, not the canvas), not the
-      // measured column pitch the set path needs to keep hug-width members from overlapping.
+      // A SIMPLE GRID so N components are not stacked at the origin, at the measured pitch above.
       const at = opts.update ? nextSlot() : i;
-      wr(c).x = (at % cols) * PITCH;
-      wr(c).y = Math.floor(at / cols) * PITCH;
+      wr(c).x = (at % cols) * pitchX;
+      wr(c).y = Math.floor(at / cols) * pitchY;
     });
     // THE "AS BUILT" BASELINE (#2265), as on the set path: after the last write, on this run's members only.
     for (const c of fresh) {

@@ -80,7 +80,7 @@ import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, ic
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
-import { BRAND_MARK_BOXES } from './brand-mark-glyphs';
+import { BRAND_MARK_BOXES, BRAND_MARK_DOCUMENTS } from './brand-mark-glyphs';
 import { makeTextField } from './components/text-field';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -22832,15 +22832,34 @@ arm: {
         `#2428 paste: Code input's character carries its size's text style from the paste executor at every size, untrimmed, nothing discarded (${bad.join(' | ') || 'clean'})`);
     }
 
+    // ---- #3134: the Apple and Facebook sign-in glyphs are drawn black, so they show on the canvas like every other mark ----
+    // Typed from the owner's direction ("a consumer tints them as needed"), read from the emitted module and from the
+    // plan the importer is handed.
+    {
+      const markDef = componentDefs.find((x) => x.id === 'brand-mark')!;
+      const fills = (svg: string): string[] => [...svg.matchAll(/<path\b[^>]*\sfill="(#[0-9A-Fa-f]{6})"/g)].map((m) => m[1].toUpperCase());
+      const off: string[] = [];
+      for (const name of ['provider/apple', 'provider/facebook'] as const) {
+        const doc = fills(BRAND_MARK_DOCUMENTS[name]);
+        const plan = figmaAnatomyPlan(markDef, undefined, { name } as never);
+        const planned = fills(JSON.stringify(plan.root).replace(/\\"/g, '"'));
+        if (JSON.stringify(doc) !== '["#000000"]' || JSON.stringify(planned) !== '["#000000"]') off.push(`${name}: module ${JSON.stringify(doc)}, plan ${JSON.stringify(planned)}`);
+      }
+      ok(off.length === 0, `#3134 provider glyphs: provider/apple and provider/facebook are drawn in black (#000000) alone, in the module and in the plan (${off.join(' | ') || 'clean'})`);
+    }
+
     // ---- #2343 Q720 A: a payment tile's frame draws its corners and edge through the PASTE executor ----
     // The plugin leg is in test-write-components. Names typed from the decision (the roles held as Q-T1 and Q-T2 on
     // the PR), not read from the plan; a bound weight counts on the scalar or on all four per-side keys (#1332).
+    // #3134: a tile whose own fill stands apart from a white page (3:1) keeps its corners and crop and draws no edge.
+    // Typed from the owner's direction and the computed result on that PR, not read from the def.
     {
+      const EDGELESS = new Set(['payment/amex', 'payment/generic', 'payment/shop-pay', 'payment/venmo']);
       const markDef = componentDefs.find((x) => x.id === 'brand-mark')!;
       const CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
       const bad: string[] = [];
       let tiles = 0, pasted = 0;
-      for (const name of ['payment/visa', 'payment/generic', 'social/x-mono', 'logo/paypal']) {
+      for (const name of ['payment/visa', 'payment/generic', 'payment/venmo', 'social/x-mono', 'logo/paypal']) {
         const plan = figmaAnatomyPlan(markDef, undefined, { name } as never);
         const page: StubPage = { children: [] };
         const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: [], comps: [], page });
@@ -22856,12 +22875,12 @@ arm: {
         pasted++;
         if (name.startsWith('payment/')) {
           tiles++;
-          const want = [...CORNERS.map(() => 'radius/sm'), 'border-width/hairline', 'color/border/primary', 'true'];
+          const want = [...CORNERS.map(() => 'radius/sm'), ...(EDGELESS.has(name) ? [null, null] : ['border-width/hairline', 'color/border/primary']), 'true'];
           if (!frame || JSON.stringify(got) !== JSON.stringify(want) || edgeMisses.length) bad.push(`${name}: ${frame ? got.join(' / ') : 'no frame'}${edgeMisses.length ? `; ${edgeMisses[0]}` : ''}`);
         } else if (!frame || strokes.length || frame.clipsContent || CORNERS.some((k) => bv[k]) || weight) bad.push(`${name} (not a tile): ${frame ? got.join(' / ') : 'no frame'}`);
       }
-      ok(pasted === 4 && tiles === 2 && bad.length === 0,
-        `#2343 Q720 A paste executor: a payment tile's frame reads back with radius/sm corners, a border-width/hairline edge in color/border/primary, and clips; a square mark's or a logo's has no edge (${bad.join(' | ') || 'clean'})`);
+      ok(pasted === 5 && tiles === 3 && bad.length === 0,
+        `#2343 Q720 A paste executor: a payment tile's frame reads back with radius/sm corners and clips, with a border-width/hairline edge in color/border/primary only where its fill is under 3:1 on white (visa; not generic or venmo, #3134); a square mark's or a logo's has no edge (${bad.join(' | ') || 'clean'})`);
     }
 
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------

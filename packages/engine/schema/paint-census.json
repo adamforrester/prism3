@@ -16,13 +16,13 @@
     "brand-mark": {
       "set": {
         "members": 74,
-        "assignments": 15,
-        "sha256": "5a164dae5f5b46f8e73a117d8beae237bec8fb3dd71996313609165a0fece2b0"
+        "assignments": 11,
+        "sha256": "0e7da302ee0302a8fb9e71c67608dc38e12c9677bef98fde1bea7d2d070af914"
       },
       "grid": {
         "members": 74,
-        "assignments": 15,
-        "sha256": "5192cbcb6014d2ba1ada7293368deae23336eddc50d822a2bf2f5ec3ea144a95"
+        "assignments": 11,
+        "sha256": "8877f40573d1a86982d3d37435bad179d1e03e013c8514d05320091085e76159"
       }
     },
     "focus-ring": {
