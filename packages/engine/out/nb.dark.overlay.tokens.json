@@ -662,18 +662,16 @@
           "$description": "Disabled control border — muted neutral"
         }
       },
-      "scrim": {
-        "default": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.black-alpha.60}",
-          "$description": "Scrim — black backdrop behind modals and drawers; opacity 60%"
-        }
-      },
       "glass": {
         "surface": {
           "$type": "color",
           "$value": "{nbds.core.palette.black-alpha.70}",
           "$description": "Glass — the translucent black fill behind the glass background blur; opacity 70%"
+        },
+        "card": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.neutral-900-alpha.70}",
+          "$description": "Glass card — foreground.primary's color at 70% behind the glass background blur, a glass fill this brand adds"
         }
       },
       "field": {

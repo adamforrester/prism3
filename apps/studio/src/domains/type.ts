@@ -53,10 +53,11 @@ import {
   setTypeScale, shapeBlocked, releasePinnedSizes, pinnedSizeCount, rowsOf, widestRowsOf, brandSizePin, modeSizePin, viewportPin,
   setSizePin, setMobileSize, setFluid, setResponsiveViewport, viewportRefusal, setDisplayCeiling, ceilingPx, ceilingBlocked, titleFloorBlocked, fluidBlocked, setTitleFloor, setCaptionFloor, setSizeFloor,
   setWeightRole, toggleCategoryWeight, categoryWeightLock, setLink, linkLock, setItalicStyle, italicStyleOf, setFacePin,
+  setCustomUnderline, setUnderlinePct,
   setRungBinding, setRepoint, setShift, nudgeSteps, resolvedRungs, type ItalicStyle, type RungField,
   CAPTION_SIZE_RUNGS, captionSizePin, captionFloorBlocked, setCaptionSize, trackingPinOf, setTrackingPin,
 } from '../state/type-input';
-import { HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, LETTER_SPACING_KEYS, CAPTION_SIZE_FLOOR } from '@prism3/engine/theme';
+import { HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, LETTER_SPACING_KEYS, CAPTION_SIZE_FLOOR, UNDERLINE_BOUNDS } from '@prism3/engine/theme';
 import type { FacePin } from '@prism3/engine/theme';
 import { faceStatus, WEIGHT_NAME, type HostFonts } from '../ui/fonts';
 import { valuePicker, type ValuePickerOpts } from '../ui/value-picker';
@@ -175,6 +176,16 @@ export const S63 = {
   matrixTip: 'Each weight a text type ships is a text style at every size. Link adds an underlined style for each.',
   link: 'Link',
   styles: (n: number): string => `${n} ${n === 1 ? 'style' : 'styles'}`,
+  // #2942 — DRAFT placeholders (owner Q2 A): the owner replaces this wording before merge. `underlineTip` is the
+  // lever's own description, word for word (`test-lever-tips.ts` holds it to the manifest).
+  underlineLabel: 'Underline thickness and offset',
+  underlineTip: 'The underline on every link style, as a share of the font size: 5% thickness is 0.8px on 16px text, and a 25% offset puts the line 4px below the text. Auto leaves it to the font.',
+  underlineSwitch: 'Custom underline',
+  underlineThickness: 'Underline thickness, %',
+  underlineOffset: 'Underline offset, %',
+  underlineThicknessHint: 'Share of the font size: 5% is 0.8px on 16px text. Auto leaves it to the font.',
+  underlineOffsetHint: 'Space between the text and the line, as a share of the font size: 25% is 4px on 16px text. Auto leaves it to the font.',
+  underlineRange: (lo: number, hi: number): string => `A whole number from ${lo} to ${hi}. A value outside it is set to the nearest end.`,
   italicsLabel: 'Italic styles',
   italicsTip: 'Upright ships no italic. Upright + italic adds an italic style for each weight. Italic only makes italic the one style.',
   italicPinned: 'This text type pins a font style. Clear the pin first: Italic only sets the style from the weight.',
@@ -994,6 +1005,52 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     return { el: b.el, said: `${b.said} ${S63.link}`.toLowerCase(), key: 'typography.weights', block: b };
   };
 
+  /** #2942 — the link underline (owner Q800 A, Q801 A): a "Custom underline" switch, off for auto, and when on two
+   *  whole-percent fields, thickness and offset, each corrected to its bounds by the engine (`resolveUnderline`).
+   *  The fields show the resolved value, so a value past a bound reads back as the bound. Brand-wide. */
+  const underline = (): Item => {
+    const u = theme.typography.underline;
+    const on = u.thickness !== 'auto' || u.offset !== 'auto';
+    const b = leverBlock('typography.underline', { label: S63.underlineLabel, desc: S63.underlineTip, group: true });
+    const sw = switchButton('p3-type-underline', S63.underlineSwitch, 'type-underline-switch', (v) => edit('typography.underline', () => setCustomUnderline(v)));
+    sw.set(on);
+    // The switch's own name above it (Q800 A: "Custom underline"), as a field label sits over its field; the block keeps
+    // the lever's label as its heading.
+    const row = hook(h('div', 'p3-field'), 'type-underline-switch-row');
+    const swLab = h('label', 'p3-field-label', S63.underlineSwitch);
+    swLab.htmlFor = 'p3-type-underline';
+    row.append(swLab, sw.el);
+    b.ctl.append(row);
+    if (on) {
+      const pair = hook(h('div', 'p3-fieldpair'), 'type-underline-fields');
+      for (const [field, label, hint] of [['thickness', S63.underlineThickness, S63.underlineThicknessHint], ['offset', S63.underlineOffset, S63.underlineOffsetHint]] as const) {
+        const f = h('div', 'p3-field');
+        const id = `p3-type-underline-${field}`;
+        const lab = h('label', 'p3-field-label', label);
+        lab.htmlFor = id;
+        const { min, max } = UNDERLINE_BOUNDS[field];
+        const now = u[field];
+        const t = textField(id, `type-underline-${field}`, {
+          describedBy: `${id}-hint`,
+          // Not a number: put back, as the viewport fields do. A number past a bound is stored corrected (Q801 A).
+          onCommit: (v, fld) => {
+            const n = Number(v.trim());
+            if (!v.trim() || !Number.isFinite(n)) { fld.value = now === 'auto' ? '' : String(now); return; }
+            edit('typography.underline', () => setUnderlinePct(field, n));
+          },
+        });
+        t.el.inputMode = 'numeric';
+        t.set(now === 'auto' ? '' : String(now));
+        const sub = hook(subLine(`${hint} ${S63.underlineRange(min, max)}`), 'type-underline-hint');
+        sub.id = `${id}-hint`;
+        f.append(lab, t.el, sub);
+        pair.append(f);
+      }
+      b.ctl.append(pair);
+    }
+    return { el: b.el, said: `${b.said} ${S63.underlineSwitch} ${S63.underlineThickness} ${S63.underlineOffset}`.toLowerCase(), key: 'typography.underline', block: b };
+  };
+
   /** Italic styles, three single-select chips per text type (owner decision Q6; chips, not a segmented control, #2192):
    *  Upright, Upright + italic, Italic only. A text type that pins a font style cannot be Italic only (the engine refuses it): that chip is disabled with the
    *  reason. Brand-wide. */
@@ -1068,7 +1125,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
 
   const weights = (s: Section): { el: HTMLElement; items: Item[] } => {
     const el = sectionShell(s.title, s.desc, 4);
-    const out: Item[] = [...weightRows(), weightMatrix(), italics(), facePins()];
+    const out: Item[] = [...weightRows(), weightMatrix(), underline(), italics(), facePins()];
     for (const it of out) el.append(it.el);
     return { el, items: out };
   };

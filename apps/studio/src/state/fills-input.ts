@@ -34,9 +34,10 @@
  * writes are surface writes, like the Page's and the band's, never `setRoleOverride`: `setSurfaceTier` (the
  * page's type) and `setInverseTier` (the band's type). Auto clears the input, pruning as an override clears.
  */
-import { brandTheme, type GradientInput } from '@prism3/engine/theme';
+import { brandTheme, type GradientInput, type ScrimStrength } from '@prism3/engine/theme';
+import { leverManifest } from '@prism3/engine/levers';
 import { BUILTIN_MODES, resolveAllModes } from '@prism3/engine/modes';
-import { brandState, setPath, theme } from './store';
+import { brandState, getPath, setPath, theme } from './store';
 import { resolvedModes } from './verdict';
 import { STATUS_ROLES } from './palette-input';
 import { floorResetText, groundStepsOf } from './floor-refusal';
@@ -101,6 +102,12 @@ export type InverseTier = typeof INVERSE_TIERS[number];
  *  reads out its primitive and its opacity, as the legacy Interactive page's wash read-out (`washSourceRead`
  *  in `main.ts`) does. */
 export const SCRIM_ROLE = 'scrim.default';
+/** The scrim's strength (#3050, owner Q825 B), the Scrim section's control: brand-wide, since the engine holds the
+ *  per-mode steps itself, so it writes the same bytes from any editable mode (the Q54 rule). Unset reads as the
+ *  manifest's default. */
+export const brandScrimStrength = (): ScrimStrength =>
+  (getPath(brandState, 'scrimStrength') ?? leverManifest.find((l) => l.key === 'scrimStrength')?.default ?? 'standard') as ScrimStrength;
+export const setScrimStrength = (v: ScrimStrength): void => { setPath(brandState, 'scrimStrength', v); };
 /** A wash's read-out: its primitive by palette and step (`black-alpha 40`), and its opacity in percent. */
 export const washReadOf = (r: FillRole): { primitive: string; opacity: number } => {
   const parts = (r.path ?? '').split('.');

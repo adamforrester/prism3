@@ -353,6 +353,11 @@ export type FigmaTextStyle = {
     letterSpacing: FigmaTextStyleProp;  // baked PERCENT (fix 3b partial)
     textCase: { bindable: false; value: 'ORIGINAL' | 'UPPER' | 'LOWER' };
     textDecoration: { bindable: false; value: 'NONE' | 'UNDERLINE' };
+    /** #2942 — on an UNDERLINE style only, and only for a field the brand sets: a whole percent of the font size,
+     *  written into the style (neither field takes a variable). Absent means AUTO, so an auto brand's file is
+     *  byte-identical; the plan (`write-plan.ts`) turns absence into an explicit AUTO write. */
+    textDecorationThickness?: { bindable: false; value: { unit: 'PERCENT'; value: number } };
+    textDecorationOffset?: { bindable: false; value: { unit: 'PERCENT'; value: number } };
   };
 };
 export type FigmaTextStylesFile = { $collection: 'text-styles'; styles: FigmaTextStyle[] };
@@ -476,6 +481,13 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
     const lsEm: number = lsLeaf?.$extensions?.prism3?.em ?? 0;
     const textCase = v.textCase === 'uppercase' ? 'UPPER' : v.textCase === 'lowercase' ? 'LOWER' : 'ORIGINAL';
     const textDecoration = v.textDecoration === 'underline' ? 'UNDERLINE' : 'NONE';
+    // #2942 — the underline's PERCENT, read off the `core.font.underline.*` leaf the brand set (absent under auto).
+    // Read from the token, not the theme, so the text style and the DTCG value it cites are one number.
+    const ul = (k: 'thickness' | 'offset') => {
+      const pct = font.underline?.[k]?.$extensions?.prism3?.figma?.percent;
+      return textDecoration === 'UNDERLINE' && typeof pct === 'number' ? { bindable: false as const, value: { unit: 'PERCENT' as const, value: pct } } : undefined;
+    };
+    const thickness = ul('thickness'), offset = ul('offset');
     // The style's own words lead (the plugin's prune recognizes an engine text style by them), then the
     // size, face, leading and use — all read off the composite's structured fields (#1623 FG/F-13).
     const description = figmaTextStyleDescription({
@@ -507,6 +519,8 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
         letterSpacing: { bound: false, value: { unit: 'PERCENT', value: Math.round(lsEm * 10000) / 100 } },
         textCase: { bindable: false, value: textCase },
         textDecoration: { bindable: false, value: textDecoration },
+        ...(thickness ? { textDecorationThickness: thickness } : {}),
+        ...(offset ? { textDecorationOffset: offset } : {}),
       },
     };
   });

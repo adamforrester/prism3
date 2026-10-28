@@ -2473,16 +2473,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Modal and drawer backdrop — black, 40% (60% in dark and hc-light; 70% in hc-dark)",
+      "description": "Modal and drawer backdrop — black, 80% (90% in high-contrast modes)",
       "value": {
         "r": 0,
         "g": 0,
         "b": 0,
-        "a": 0.4000000059604645
+        "a": 0.800000011920929
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/black-alpha/40"
+        "name": "nbds/core/palette/black-alpha/80"
       }
     },
     {
@@ -2502,6 +2502,25 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/palette/white-alpha/70"
+      }
+    },
+    {
+      "name": "nbds/color/glass/card",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Brand glass fill behind the glass blur — 70%",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
+        "a": 0.699999988079071
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral-050-alpha/70"
       }
     },
     {

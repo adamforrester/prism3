@@ -50,9 +50,9 @@ const LINK_STATES = ['default', 'hover', 'visited', 'focused', 'pressed'];
 const INTERACTIVE_PARTS = ['fill', 'on-fill', 'text', 'icon', 'border', 'overlay', 'subtle-fill'];
 const INTERACTIVE_STATES = ['rest', 'hover', 'pressed', 'focused', 'selected'];
 
-/** Segment positions a brand may add siblings to (`interactivePalettes` adds a tone), as `family.depth`. A segment
+/** Segment positions a brand may add siblings to (`interactivePalettes` adds a tone, `glassRoles` a glass role, #3073), as `family.depth`. A segment
  *  there that the table does not name goes after the named ones, in the order the resolver built it. */
-const OPEN_SEGMENTS = new Set(['interactive.0']);
+const OPEN_SEGMENTS = new Set(['interactive.0', 'glass.0']);
 
 /** Per family, the sibling order at each depth below the family segment. */
 const SEGMENT_ORDER: Record<string, string[][]> = {
