@@ -291,6 +291,40 @@ export const validGlassRoles = (raw: unknown): Record<string, GlassRoleInput> | 
   return Object.keys(out).length ? out : undefined;
 };
 
+/** How an outline or text control shows hover and pressed (docs/20 §10; `opaque-fill` since #3071). */
+export const OUTLINE_INTERACTION_VALUES = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'] as const;
+export type OutlineInteraction = typeof OUTLINE_INTERACTION_VALUES[number];
+/** The opaque outline hover fill's page step per mode (#3071, owner Q824 A): a palette step (`neutral.050`). */
+export type OutlineHoverFill = Partial<Record<ModeName, { hover: string; pressed?: string }>>;
+
+/**
+ * Validate `outlineHoverFill` (#3071): keyed by an editable mode the brand declares, each `{ hover, pressed? }` a
+ * `palette.step`. Whether the step exists is checked where the palettes resolve (`modes.ts`). It is read only under
+ * `outlineInteraction: 'opaque-fill'`; under another method it is kept and ignored, with a note, so a brief that
+ * switches method keeps its picks (every lever varies on its own, as the lever sweep builds them).
+ */
+export const validOutlineHoverFill = (raw: unknown, modes: readonly string[], editable: readonly string[]): OutlineHoverFill | undefined => {
+  if (raw === undefined) return undefined;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw))
+    throw new Error(`outlineHoverFill: must be a map of mode to { hover, pressed? } (got ${JSON.stringify(raw)})`);
+  const STEP = /^[a-z][a-z0-9-]*\.[0-9]+$/;
+  const out: OutlineHoverFill = {};
+  for (const [m, v] of Object.entries(raw as Record<string, unknown>)) {
+    const at = `outlineHoverFill.${m}`;
+    if (!modes.includes(m)) throw new Error(`${at}: mode '${m}' is not in this brand's modes (${modes.join(', ')})`);
+    if (!editable.includes(m))
+      throw new Error(`${at}: mode '${m}' is generate-only and takes the default rule; only ${editable.join('/')} accept a pick`);
+    if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error(`${at}: must be { hover, pressed? }`);
+    const { hover, pressed, ...rest } = v as Record<string, unknown>;
+    if (Object.keys(rest).length) throw new Error(`${at}: unknown field(s) ${Object.keys(rest).join(', ')} (allowed: hover, pressed)`);
+    for (const [k, x] of [['hover', hover], ['pressed', pressed]] as const)
+      if ((k === 'hover' || x !== undefined) && (typeof x !== 'string' || !STEP.test(x)))
+        throw new Error(`${at}.${k}: ${JSON.stringify(x)} is not a palette step (such as 'neutral.050')`);
+    out[m as ModeName] = { hover: hover as string, ...(pressed !== undefined ? { pressed: pressed as string } : {}) };
+  }
+  return Object.keys(out).length ? out : undefined;
+};
+
 export type Theme = {
   id: string;
   root: string;                      // 'nbds' | 'prism' (brand root namespace)
@@ -364,9 +398,15 @@ export type Theme = {
   // composites over any surface — the `interactive.<color>.overlay.*` tokens are
   // generated. 'solid-tint': the control's own fill at an opacity-scale step instead
   // (`interactive.<color>.subtle-fill.{hover,pressed,selected}`, #1614), no overlays.
+  // 'opaque-fill' (#3071): an opaque palette step per state (`interactive.<color>.hover-fill.{hover,pressed}`), the
+  // step from `outlineHoverFill` or the default rule, with the label and icon measured and clamped on it; the wash is
+  // still emitted, for the controls that keep it (Tag, Segmented control, Pagination).
   // 'none': no hover expression, no overlays. (`overlay-tint` — the colour's own
   // hue at low alpha — is scheduled; needs per-colour alpha ramps.)
-  outlineInteraction: 'overlay-neutral' | 'solid-tint' | 'none';
+  outlineInteraction: OutlineInteraction;
+  // The opaque hover fill's page step per mode (#3071), read only under 'opaque-fill' (ignored, with a note, otherwise).
+  // Unset modes take the default rule.
+  outlineHoverFill?: OutlineHoverFill;
   // Neutral interactive emphasis (docs/20 §10). 'subtle' (default): a light-grey neutral
   // fill; 'strong': a bold near-black (light) / near-white (dark) neutral fill.
   neutralEmphasis: 'subtle' | 'strong';
@@ -594,8 +634,14 @@ export type BrandInput = {
   /** How an outline/text interactive control expresses hover (docs/20 §10). Default
    *  'overlay-neutral' (generate translucent `interactive.<color>.overlay.*` washes);
    *  'solid-tint' uses the control's own fill at an opacity-scale step instead
-   *  (`interactive.<color>.subtle-fill.{hover,pressed,selected}`, #1614); 'none' omits both. */
-  outlineInteraction?: 'overlay-neutral' | 'solid-tint' | 'none';
+   *  (`interactive.<color>.subtle-fill.{hover,pressed,selected}`, #1614); 'opaque-fill' (#3071) an opaque palette
+   *  step (`interactive.<color>.hover-fill.{hover,pressed}`, picked by `outlineHoverFill`), keeping the wash for
+   *  Tag, Segmented control and Pagination; 'none' omits both. */
+  outlineInteraction?: OutlineInteraction;
+  /** The opaque outline hover fill's page step (#3071), per editable mode: `{ light: { hover: 'neutral.050' } }`.
+   *  `pressed` defaults to the next step toward the ink. A mode not named, the inverse band and the generate-only
+   *  modes take the default rule (the neutral step nearest 1.15:1 against the ground). Read only under 'opaque-fill'. */
+  outlineHoverFill?: OutlineHoverFill;
   /** Neutral interactive emphasis (docs/20 §10). 'subtle' (default) is a light-grey
    *  neutral fill; 'strong' is a bold near-black/near-white neutral fill. */
   neutralEmphasis?: 'subtle' | 'strong';
@@ -2543,6 +2589,9 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (!CUSTOMIZABLE_MODES.includes(m))
       throw new Error(`overrides: mode '${m}' is generate-only and not customizable — only ${CUSTOMIZABLE_MODES.join('/')} accept overrides`);
   }
+  const outlineHoverFill = validOutlineHoverFill(input.outlineHoverFill, modesAll, CUSTOMIZABLE_MODES);
+  if (outlineHoverFill && input.outlineInteraction !== 'opaque-fill')
+    notes.push(`outlineHoverFill: set, and read only under outlineInteraction: opaque-fill; this brand's outline hover is '${input.outlineInteraction ?? 'overlay-neutral'}', so the picks are ignored.`);
   if (Object.keys(input.overrides ?? {}).length) notes.push(`overrides: color overrides in ${Object.keys(input.overrides!).join(', ')} — those roles point at the chosen ramp steps; a pick below its contrast floor is warned, not blocked.`);
   // Per-mode interactive anchors (A2b) — same customizable-mode rule as overrides. An anchor
   // re-derives the whole interactive column for that mode (still floor-gated via `chromatic`).
@@ -2686,7 +2735,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'motionPersonality.tempo', value: input.motionPersonality?.tempo, options: MOTION_TEMPO_VALUES },
     { path: 'iconContrast', value: input.iconContrast, options: ['text', '3:1'] },
     { path: 'disabledStrategy', value: input.disabledStrategy, options: ['full', 'reduced', 'accessible', 'conventional'] },
-    { path: 'outlineInteraction', value: input.outlineInteraction, options: ['overlay-neutral', 'solid-tint', 'none'] },
+    { path: 'outlineInteraction', value: input.outlineInteraction, options: OUTLINE_INTERACTION_VALUES },
     { path: 'neutralEmphasis', value: input.neutralEmphasis, options: ['subtle', 'strong'] },
     { path: 'raisedSurface', value: input.raisedSurface, options: RAISED_SURFACE_VALUES },
     { path: 'scrimStrength', value: input.scrimStrength, options: SCRIM_STRENGTH_VALUES },
@@ -3243,7 +3292,9 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const oInt = input.outlineInteraction ?? 'overlay-neutral';
   notes.push(oInt === 'overlay-neutral'
     ? `interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.`
-    : `interactive overlays: '${oInt}' — no translucent overlay tokens; outline and text controls hover with ${oInt === 'solid-tint' ? 'interactive.<color>.subtle-fill.*, the control\'s own fill at an opacity step' : 'no change'}.`);
+    : oInt === 'opaque-fill'
+      ? `interactive overlays: 'opaque-fill' — outline and text buttons, icon buttons and flush icon buttons hover with an opaque palette step (interactive.<color>.hover-fill.*${input.outlineHoverFill ? `, picked in ${Object.keys(input.outlineHoverFill).join(', ')}` : ''}; the default rule elsewhere), and their label and icon are measured on it. Tags, segmented controls and pagination keep the neutral wash.`
+      : `interactive overlays: '${oInt}' — no translucent overlay tokens; outline and text controls hover with ${oInt === 'solid-tint' ? 'interactive.<color>.subtle-fill.*, the control\'s own fill at an opacity step' : 'no change'}.`);
 
   // ---- surface confirmation + validation ----
   // #898: the INVERSE band alone may name a NON-neutral palette via `{ palette, step }` (a brand-navy dark
@@ -3388,6 +3439,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     disabledMin: dMin,
     iconContrast: input.iconContrast ?? 'text',
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
+    ...(outlineHoverFill ? { outlineHoverFill } : {}),
     neutralEmphasis, strictInteractiveContrast, interactivePalettes,
     ...(input.raisedSurface ? { raisedSurface: input.raisedSurface } : {}),
     ...(input.scrimStrength ? { scrimStrength: input.scrimStrength } : {}),
@@ -3445,7 +3497,10 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     roleToPalette: { brand: 'red', neutral: 'neutral', success: 'green', warning: 'amber', danger: 'red', info: 'info', action: 'red' },
     roleAnchorStep: { brand: 550, neutral: 500, success: 500, warning: 500, danger: 550, info: 500, action: 550 },
     linkPalette: 'red', linkAnchorStep: 550,   // NB links follow its action palette (brand red) — unset lever, byte-identical (#1496)
-    disabledStrategy: 'reduced', disabledMin: 3, iconContrast: 'text', outlineInteraction: 'overlay-neutral',
+    disabledStrategy: 'reduced', disabledMin: 3, iconContrast: 'text',
+    // The reference brand's outline and text hover fill (#3071, owner Q824 A): `neutral.050` on the light page, pressed
+    // the next step (`neutral.100`). Not 025, which is the card ground: on a card the hover would disappear.
+    outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: 'neutral.050' } },
     neutralEmphasis: 'subtle', strictInteractiveContrast: false, interactivePalettes: [],
     // The reference brand's own designs put dialogs on white (#3049, owner Q3049.4), not on its card surface.
     raisedSurface: 'white',
