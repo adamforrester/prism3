@@ -162,7 +162,9 @@
         "payment/venmo",
         "payment/visa",
         "provider/apple",
+        "provider/apple-black",
         "provider/facebook",
+        "provider/facebook-blue",
         "provider/google",
         "social/apple",
         "social/apple-mono",
@@ -208,7 +210,7 @@
         "social/youtube-mono"
       ]
     },
-    "members": 74,
+    "members": 76,
     "properties": {}
   },
   "breadcrumb-item": {
@@ -1315,10 +1317,12 @@
         "blue",
         "dark",
         "light",
-        "neutral"
+        "neutral",
+        "outline",
+        "white"
       ]
     },
-    "members": 60,
+    "members": 96,
     "properties": {}
   },
   "slider": {
