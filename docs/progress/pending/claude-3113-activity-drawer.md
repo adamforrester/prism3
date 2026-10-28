@@ -30,8 +30,13 @@ undrawn. All new strings are DRAFT.
 - **The 380 sheet (Q3113.8 A).** A header row with a 24 × 24 Close (named "Close Activity"), "Activity", the counts and the
   agent dot takes the bar row's place while the sheet is open. Row headers wrap, and the Settings/Preview toggle hides.
   Focus that the sheet would strand goes to Close.
-- **Launch and unread (Q3113.9 A).** The plugin draws the bar row from launch, closed, reading "Activity". A dot on the bar
-  row marks a result nobody has opened, with "New result" in its name.
+- **Launch and unread (Q3113.9 A).** The plugin draws the bar row from launch, closed, reading "Activity", above the narrow
+  tier. A dot on the bar row marks a result nobody has opened, with "New result" in its name. **At 380 the strip waits for
+  the first run.** The full suite found that a strip drawn from launch leaves the 380 × 420 window only 29px of levers
+  under an error line, where #2105's floor is 40. The build keeps that floor and asks the call as Q3113.15 on the PR.
+- **Found by drawing it from launch.** The bar row had no chrome focus ring of its own. It now draws Prism3's ring inside
+  its edge, as the scrolling panes do, because it spans the window's bottom edge. The drawer is a named region "Activity"
+  only while it is open, as #2487's Q197 has it; closed, it is a control row, not a region.
 - **Sizes (Q3113.10 A under #3083's decisions).** Drawer text at 12, and the bar row stays at 56 (Q3083.2 B). A parallel
   lane builds #3083's size pass; whichever PR lands second resolves the overlap in `chrome.css` and `test-chrome.mjs`.
 

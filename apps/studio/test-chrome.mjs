@@ -2719,10 +2719,11 @@ for (const host of ['web', 'figma']) {
         await recordPosts(page);
         // Idle: nothing has run. #2909: the rail shell draws no Activity tile (the drawer's own row is Activity), on both
         // hosts since Q2909.9 A, so only the drawer is read. #3113 (Q3113.9 A): the plugin draws its bar row from launch,
-        // closed, reading "Activity"; the studio runs no write, so its drawer is not drawn.
-        // MUTATION: `opts.host === 'figma' ||` dropped from `data-ever` in `activity.ts` → the plugin arm, by name.
+        // closed, reading "Activity"; at 380 the strip waits for the first run (Q3113.15, #2105's room for the levers); the
+        // studio runs no write, so its drawer is not drawn.
+        // MUTATION: `opts.host === 'figma'` dropped from `data-ever` in `activity.ts` → the plugin arm, by name.
         const idle = await drawerState(page);
-        if (host === 'web') ok(!idle.shown && !idle.open && idle.name === null, `F2 ${where}: before anything runs the drawer is not drawn, and the studio draws no Activity tile (#2909) (${JSON.stringify({ shown: idle.shown, name: idle.name })})`);
+        if (host === 'web' || narrow) ok(!idle.shown && !idle.open && idle.name === null, `F2 ${where}: before anything runs the drawer is not drawn${narrow && host === 'figma' ? ' at 380 (Q3113.15)' : ''}, and ${host === 'web' ? 'the studio' : 'the plugin'} draws no Activity tile (#2909) (${JSON.stringify({ shown: idle.shown, name: idle.name })})`);
         else ok(idle.shown && !idle.open && idle.pinned && idle.name === null && (idle.last ?? '').startsWith('Activity') && Object.keys(idle.ops).length === 0,
           `Q3113.9 A ${where}: before anything runs the plugin draws the drawer's bar row from launch, closed and pinned to the bottom edge, reading "Activity", and no Activity tile (#2909) (${JSON.stringify({ shown: idle.shown, open: idle.open, pinned: idle.pinned, last: idle.last, name: idle.name })})`);
 
@@ -3061,6 +3062,17 @@ for (const host of ['web', 'figma']) {
         } else if (narrow) {
           const s1 = await drawerState(page);
           ok(!s1.open && s1.shown, `F2 ${where}: at 380 a success stays in the strip (${JSON.stringify({ open: s1.open, shown: s1.shown })})`);
+        }
+        if (w === 1280 || narrow) {
+          // #2144 on the closed bar row, which the keyboard reaches from launch (#3113): Prism3's focus color, at least 2px,
+          // drawn inside its edge (INNER_RINGS), since it spans the window's bottom edge.
+          // MUTATION: the `.p3-drawer-bar:focus-visible` rule removed from `chrome.css` → this arm, by name.
+          await page.keyboard.press('Shift');
+          await page.locator('[data-p3="activity-toggle"]').focus();
+          const tr = await page.evaluate(FOCUS_RING_READ, [true, [], INSPECT_LEGACY]);
+          const tm = tr.hook === 'activity-toggle' ? ringMisses(tr, theme) : ['not focused'];
+          ok(tm.length === 0, `#2144 #3113 ${where}: the drawer's bar row draws its focus ring inside its edge in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide (${tr.hook}: ${tm.join(', ') || 'holds'})`);
+          await page.evaluate(() => document.activeElement?.blur());
         }
         const idleU2 = await updBtn();
         ok(!idleU2.busy && idleU2.text === UPDATE_LABEL, `${where}: the run over, Update file reads "${UPDATE_LABEL}" again (${JSON.stringify(idleU2)})`);

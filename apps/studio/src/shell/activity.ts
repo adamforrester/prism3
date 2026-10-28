@@ -302,9 +302,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   mark.append(glyph('pulse'), dot);
 
   // ── the drawer ─────────────────────────────────────────────────────────────────────────────────
-  const drawer = hook(h('section', 'p3-drawer'), 'activity-drawer');
+  // A named region only while open (#2487 Q197: one main landmark; the named regions are Inspect and Activity, open). The
+  // closed bar row is a control, not a region: since #3113 the plugin draws it from launch, on every page.
+  const drawer = hook(h('div', 'p3-drawer'), 'activity-drawer');
   drawer.id = 'p3-activity';
-  drawer.setAttribute('aria-label', 'Activity');
   // The bar row is one button, as v6's is: the newest operation, its time, the counts, and the chevron.
   const toggle = hook(h('button', 'p3-drawer-bar'), 'activity-toggle');
   toggle.type = 'button';
@@ -663,8 +664,11 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const paint = (): void => {
     const { running, failed, failures, warnings } = counts(last);
     drawer.dataset.open = String(open);
-    // Q3113.9 A: the plugin draws the bar row from launch; the studio runs no write, so its drawer stays undrawn.
-    drawer.dataset.ever = String(opts.host === 'figma' || recs.size > 0);
+    if (open) { drawer.setAttribute('role', 'region'); drawer.setAttribute('aria-label', 'Activity'); }
+    else { drawer.removeAttribute('role'); drawer.removeAttribute('aria-label'); }
+    // Q3113.9 A: the plugin draws the bar row from launch; the studio runs no write, so its drawer stays undrawn. At 380 the
+    // strip waits for the first run, so a short window keeps #2105's room for the levers under an error line (Q3113.15).
+    drawer.dataset.ever = String((opts.host === 'figma' && !narrow()) || recs.size > 0);
     grip.hidden = !open;
     // #2176: sized once this paint is done, so today's open height is measured with its rows in place.
     queueMicrotask(sizeDrawer);
