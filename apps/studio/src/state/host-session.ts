@@ -220,6 +220,10 @@ export interface HostSession {
     readonly partial?: boolean;
     /** #3110: one of the host's own reads after open, not an answer to the panel's request. */
     readonly atOpen?: boolean } | null;
+  /** #3081 Q810 A: the badge's live recount, the newest answer by `seq`: what is due against the panel's brand, and
+   *  whether Apply Theme would change the file (`theme`). `null` until the first answer. */
+  readonly liveDue: { readonly seq: number; readonly present: readonly string[]; readonly theme: boolean; readonly error: string | null;
+    readonly due: Readonly<Record<string, SetDueView>> } | null;
   /** #2909 Q2909.8 A: the background hand-edit pass after load, each set's answer as it lands, and whether it is out
    *  (`running`, set by the panel as it asks), `done`, or not asked yet (`idle`). */
   readonly handEdits: ReadonlyMap<string, { readonly members: number; readonly edited: number }>;
@@ -262,6 +266,7 @@ export const initialHostSession = (): HostSession => ({
   refused: null,
   docSettings: null,
   fileSets: null,
+  liveDue: null,
   handEdits: new Map(),
   handPass: 'idle',
   updateCheck: null,
@@ -418,6 +423,9 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       if (m.atOpen && s.fileSets && !s.fileSets.atOpen) return s;
       if (m.partial && s.fileSets && !s.fileSets.partial) return s;
       return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due, ...(m.partial ? { partial: true } : {}), ...(m.atOpen ? { atOpen: true } : {}) }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass };
+    case 'file-due':
+      // An answer older than the one held was overtaken by a newer request: the newer answer is the brand on screen.
+      return s.liveDue && m.seq < s.liveDue.seq ? s : { ...s, liveDue: { seq: m.seq, present: m.present, theme: m.theme, error: m.error, due: m.due } };
     case 'hand-edits':
       return { ...s, handEdits: new Map([...s.handEdits, [m.def, { members: m.members, edited: m.edited }]]) };
     case 'hand-edits-done':
@@ -490,6 +498,7 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'seed-info': return ['host'];
     case 'doc-settings': return ['host:docs'];
     case 'file-sets': return ['host:update', 'host:components'];
+    case 'file-due': return next === prev ? [] : ['host:update'];
     // Q2909.8 A: the statuses fill in on Components' list and in the checklist as each set's answer lands.
     case 'hand-edits': return ['host:update', 'host:components'];
     case 'hand-edits-done': return ['host:update', 'host:components'];

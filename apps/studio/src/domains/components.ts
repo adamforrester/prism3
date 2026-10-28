@@ -71,6 +71,7 @@ import { mountTagOptions, TAG_OPTIONS_COPY } from './tag-options';
 import { mountDialogOptions, DIALOG_OPTIONS_COPY } from './dialog-options';
 import { mountBannerOptions, BANNER_OPTIONS_COPY } from './banner-options';
 import { mountLinkOptions, LINK_OPTIONS_COPY } from './link-options';
+import { mountRadioOptions, RADIO_OPTIONS_COPY } from './radio-options';
 import { mountSharedOptions } from './shared-options';
 import { BUTTON_DESC, DOMAINS, SHARED_DESC, type PageData } from '../shell/pages';
 
@@ -87,6 +88,7 @@ const SECTION_SETTINGS: Record<BlockKey, {
   dialogs: { hook: 'dialog-options', title: DIALOG_OPTIONS_COPY.title, desc: DIALOG_OPTIONS_COPY.desc, mount: mountDialogOptions },
   banners: { hook: 'banner-options', title: BANNER_OPTIONS_COPY.title, desc: BANNER_OPTIONS_COPY.desc, mount: mountBannerOptions },
   links: { hook: 'link-options', title: LINK_OPTIONS_COPY.title, desc: LINK_OPTIONS_COPY.desc, mount: mountLinkOptions },
+  radios: { hook: 'radio-options', title: RADIO_OPTIONS_COPY.title, desc: RADIO_OPTIONS_COPY.desc, mount: mountRadioOptions },
 };
 
 /** Mount the Components list into `hostEl`. Subscriptions are released through `cleanups`. */
