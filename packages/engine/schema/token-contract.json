@@ -654,6 +654,8 @@
     "core.font.typeface.inter",
     "core.font.typeface.roboto",
     "core.font.typeface.wendysfresh",
+    "core.font.underline.offset",
+    "core.font.underline.thickness",
     "core.font.weight.500",
     "core.font.weight.600",
     "core.palette.accent.025",

@@ -206,6 +206,13 @@ export const leverManifest: Lever[] = [
     description: 'Which weights each text type ships. Each weight is a text style at every size. Every text type keeps at least one; label keeps Emphasis, and body and caption keep Default, because buttons and form controls use them.' },
   { key: 'typography.links', group: 'type', kind: 'value', label: 'Underlined link styles', control: 'list', advanced: true, itemLabel: 'type role',
     description: 'Which text types get an underlined link style. The default is body and caption. Labels are always included: a text button’s label is underlined.' },
+  // #2942 (owner Q1–Q6 A, Q800 A, Q801 A) — label and description are DRAFT placeholders (Q2 A: the owner replaces the
+  // wording before merge). One object lever (Q4 A), drawn as a "Custom underline" switch and two whole-percent fields
+  // (Q800 A); the bounds are `UNDERLINE_BOUNDS` (theme.ts), which the clamp and the fields both read. Its home in
+  // the Studio is Theme › Type › Weights and styles, beside Underlined link styles (Q3 A).
+  { key: 'typography.underline', group: 'type', kind: 'value', label: 'Underline thickness and offset', control: 'object', advanced: true,
+    default: { thickness: 'auto', offset: 'auto' }, unit: '% of font size',
+    description: 'The underline on every link style, as a share of the font size: 5% thickness is 0.8px on 16px text, and a 25% offset puts the line 4px below the text. Auto leaves it to the font.' },
   { key: 'typography.italics', group: 'type', kind: 'value', label: 'Italic styles', control: 'list', advanced: true, itemLabel: 'type role',
     description: 'Which text types ship an italic style for each weight. The default is none.' },
   { key: 'typography.italicDefault', group: 'type', kind: 'value', label: 'Italic-only text types', control: 'list', advanced: true, itemLabel: 'type role',
