@@ -76,6 +76,12 @@ export const PROTOCOL_VERSION = LATEST_PROTOCOL_VERSION;
  *  handshake. So the answer is the newest HANDSHAKE revision we speak, never `2026-07-28`: Claude Code
  *  asks for `2025-11-25`, and answering `2026-07-28` made it refuse to connect. */
 export const HANDSHAKE_PROTOCOL_VERSION = '2024-11-05';
+/** The `initialize` answer for a client that asked for `want`: echoed when it is a handshake revision
+ *  this server speaks, otherwise HANDSHAKE_PROTOCOL_VERSION, never `2026-07-28` (#1867). Exported so
+ *  every MCP server in the repo answers the handshake by this one rule; `tools/figma-bridge/server.ts`
+ *  kept its own copy of the old fallback and Claude Code refused it the same way (#3109). */
+export const negotiateHandshakeVersion = (want: unknown): string =>
+  typeof want === 'string' && want !== LATEST_PROTOCOL_VERSION && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : HANDSHAKE_PROTOCOL_VERSION;
 
 /** `_meta` keys the 2026-07-28 revision defines. Spelled out rather than string-literalled at each
  *  use so a typo cannot silently produce an unread field. */
@@ -697,9 +703,7 @@ export const handleRpc = (req: RpcRequest, brandSchema: unknown, io?: ExportIo):
     // supports"; its SHOULD says the latest, which we read as the latest a handshake client can use,
     // because `2026-07-28` has no `initialize` and a client that sent one cannot use that answer.
     case 'initialize': {
-      const want = req.params?.protocolVersion;
-      const version = typeof want === 'string' && want !== LATEST_PROTOCOL_VERSION && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : HANDSHAKE_PROTOCOL_VERSION;
-      return ok({ protocolVersion: version, capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
+      return ok({ protocolVersion: negotiateHandshakeVersion(req.params?.protocolVersion), capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
     }
     case 'notifications/initialized':
     case 'initialized':

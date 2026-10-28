@@ -22,6 +22,8 @@
 import { spawn, ChildProcessWithoutNullStreams } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readdirSync, readFileSync } from 'node:fs';
+import { HANDSHAKE_PROBES, MCP_SERVERS } from './mcp-handshake-probes';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const V = 'io.modelcontextprotocol/protocolVersion';
@@ -196,21 +198,14 @@ await new Promise((r) => setTimeout(r, 3000));
   const toolErr = await server.call('theme_brand', { brand: { id: 'bad' } });
   ok(toolErr.isError === true, 'conformance: a tool that could not do its job returns isError so the model can self-correct');
 
-  // Dual support: the older handshake still works and echoes a version we still speak.
-  const initOld = await resultOf('initialize', { protocolVersion: '2024-11-05' });
-  ok(initOld?.protocolVersion === '2024-11-05', 'conformance: initialize still answers a 2024-11-05 client with its own version');
-  // #1867: Claude Code asks for 2025-11-25. Answering 2026-07-28 (a revision with no handshake) made it
-  // refuse to connect; over real stdio, an in-between revision must get 2024-11-05 back.
-  const initClaudeCode = await resultOf('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'claude-code', version: '2' } });
-  ok(initClaudeCode?.protocolVersion === '2024-11-05',
-    `#1867 conformance: initialize from a 2025-11-25 client (Claude Code) answers 2024-11-05 over stdio (got ${initClaudeCode?.protocolVersion})`);
-  const init0618 = await resultOf('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'probe', version: '1' } });
-  ok(init0618?.protocolVersion === '2024-11-05',
-    `#1867 conformance: initialize from a 2025-06-18 client answers 2024-11-05 over stdio (got ${init0618?.protocolVersion})`);
-  // A handshake can never usefully answer 2026-07-28, even when a confused client asks for it.
-  const init0728 = await resultOf('initialize', { protocolVersion: '2026-07-28', capabilities: {}, clientInfo: { name: 'probe', version: '1' } });
-  ok(init0728?.protocolVersion === '2024-11-05',
-    `#1867 conformance: initialize asking for 2026-07-28 (a revision with no handshake) still answers 2024-11-05 (got ${init0728?.protocolVersion})`);
+  // Dual support: the older handshake still works and echoes a version we still speak. #1867: Claude
+  // Code asks for 2025-11-25, and answering 2026-07-28 (a revision with no handshake) made it refuse to
+  // connect. The probes are shared with every other MCP server's suite (`mcp-handshake-probes.ts`).
+  for (const p of HANDSHAKE_PROBES) {
+    const init = await resultOf('initialize', { protocolVersion: p.asked, capabilities: {}, clientInfo: { name: 'probe', version: '1' } });
+    ok(init?.protocolVersion === p.answer,
+      `#1867 conformance: initialize asking for ${p.asked} answers ${p.answer} over stdio, ${p.why} (got ${init?.protocolVersion})`);
+  }
 
   // structuredContent must AGREE with the text block, or a client reading one sees different data
   // from a client reading the other.
@@ -376,6 +371,33 @@ await new Promise((r) => setTimeout(r, 3000));
   const c = await call({ brand: B, refs: ['color.text.primary'], pairs: [GOOD, { ...GOOD, kind: 'text' }, { ...GOOD, kind: 'large-text' }, { ...GOOD, kind: 'ui' }, { fg: 'not.a.role', bg: '' }] });
   ok(!c.res.error && c.res.result?.isError !== true && c.payload?.contracts?.checked > 0 && c.payload?.contracts?.unresolved?.length === 1,
     `#2209 control: well-formed score_consumption input still scores, every kind accepted, an unknown role reported as unresolved (got ${c.seen})`);
+}
+
+// ------------------------------- #3109: every MCP server in the repo is driven with the handshake probes
+{
+  // The bridge kept its own copy of the pre-#1867 fallback because nothing probed it. So find every
+  // `initialize` handler in the tree by reading the source, independently of the register, and hold
+  // each one to a named suite that reads the shared probes. A scan that found none would pass vacuously,
+  // so each registered server must also be FOUND.
+  const ROOT = resolve(HERE, '../..');
+  const SKIP = new Set(['node_modules', 'dist', 'release', 'out', '.git']);
+  const HANDLER = /case\s+['"]initialize['"]/;
+  const found: string[] = [];
+  const walk = (rel: string): void => {
+    for (const e of readdirSync(resolve(ROOT, rel), { withFileTypes: true })) {
+      const path = `${rel}/${e.name}`;
+      if (e.isDirectory()) { if (!SKIP.has(e.name)) walk(path); }
+      else if (/\.(ts|mts|js|mjs)$/.test(e.name) && HANDLER.test(readFileSync(resolve(ROOT, path), 'utf8'))) found.push(path);
+    }
+  };
+  for (const top of ['packages', 'apps', 'tools']) walk(top);
+  for (const f of found) {
+    ok(f in MCP_SERVERS, `#3109 handshake register: ${f} answers initialize but MCP_SERVERS in mcp-handshake-probes.ts names no suite that probes it`);
+  }
+  for (const [server, suite] of Object.entries(MCP_SERVERS)) {
+    ok(found.includes(server), `#3109 handshake register: ${server} is registered but the scan found no initialize handler in it`);
+    ok(/\bHANDSHAKE_PROBES\b/.test(readFileSync(resolve(ROOT, suite), 'utf8')), `#3109 handshake register: ${suite}, the suite for ${server}, does not drive HANDSHAKE_PROBES`);
+  }
 }
 
 // ----------------------------------------------------------------- 3. JOURNEY

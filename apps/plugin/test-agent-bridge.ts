@@ -29,6 +29,7 @@ import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { createBridgeRelay } from './src/agent-bridge-relay';
 import type { WsLike } from './src/agent-bridge-relay';
 import { createProgressCounter } from '../../tools/figma-bridge/server';
+import { HANDSHAKE_PROBES } from '../../packages/engine/mcp-handshake-probes';
 
 let failed = 0;
 let executed = 0;
@@ -168,6 +169,12 @@ section('mcp — the stdio loop');
 {
   const init = await rpc('initialize', { protocolVersion: '2024-11-05' });
   ok(init.result?.serverInfo?.name === 'prism3-figma-bridge' && init.result?.serverInfo?.version === ENGINE_VERSION, 'initialize names the bridge and its engine version');
+  // #3109: the bridge echoed 2026-07-28 to a client asking for it, and answered it to any version it did
+  // not know, so Claude Code (asking for 2025-11-25) refused to connect. Same probes as `mcp-test.ts`.
+  for (const p of HANDSHAKE_PROBES) {
+    const r = await rpc('initialize', { protocolVersion: p.asked, capabilities: {}, clientInfo: { name: 'probe', version: '1' } });
+    ok(r.result?.protocolVersion === p.answer, `#3109 initialize asking for ${p.asked} answers ${p.answer}, ${p.why} (got ${r.result?.protocolVersion})`);
+  }
   const list = await rpc('tools/list');
   ok(JSON.stringify(list.result?.tools?.map((t: { name: string }) => t.name)) === JSON.stringify(['figma_status', 'figma_run', 'figma_logs']), 'tools/list: figma_status, figma_run, figma_logs');
   const bad = await rpc('tools/call', { name: 'figma_paint' });
