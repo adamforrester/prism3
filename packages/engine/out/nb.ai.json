@@ -160,15 +160,15 @@
       ]
     },
     "scrim.default": {
-      "$description": "Scrim — black backdrop behind modals and drawers; opacity 40%",
+      "$description": "Scrim — black backdrop behind modals and drawers; opacity 80%",
       "meaning": "Background dimming / modal focus",
       "when_to_use": "The dimming layer behind a modal, dialog, or drawer. The modal itself uses `foreground.raised`.",
       "avoid_when": "Do not use as a solid surface or for any opaque element.",
       "mode_overrides": {
-        "light": "{nbds.core.palette.black-alpha.40}",
-        "dark": "{nbds.core.palette.black-alpha.60}",
-        "hc-light": "{nbds.core.palette.black-alpha.60}",
-        "hc-dark": "{nbds.core.palette.black-alpha.70}"
+        "light": "{nbds.core.palette.black-alpha.80}",
+        "dark": "{nbds.core.palette.black-alpha.80}",
+        "hc-light": "{nbds.core.palette.black-alpha.90}",
+        "hc-dark": "{nbds.core.palette.black-alpha.90}"
       },
       "tracks": [
         "foreground.raised"
@@ -10070,10 +10070,7 @@
       "meaning": "Black at 40% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
-      "aliased_by": [
-        "color.scrim.default"
-      ]
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.black-alpha.50": {
       "$description": "Black alpha 50% — alpha, composites over any surface",
@@ -10092,7 +10089,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.scrim.default",
         "color.veil.dark.medium"
       ]
     },
@@ -10105,7 +10101,6 @@
       "aliased_by": [
         "color.glass.card",
         "color.glass.surface",
-        "color.scrim.default",
         "color.veil.dark.strong"
       ]
     },
@@ -10114,7 +10109,10 @@
       "meaning": "Black at 80% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.scrim.default"
+      ]
     },
     "core.palette.black-alpha.90": {
       "$description": "Black alpha 90% — alpha, composites over any surface",
@@ -10123,7 +10121,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.glass.surface"
+        "color.glass.surface",
+        "color.scrim.default"
       ]
     },
     "core.palette.white-alpha.0": {

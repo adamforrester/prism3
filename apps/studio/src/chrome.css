@@ -1262,6 +1262,9 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-vpick-sample { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text); line-height: var(--p3-lh-compact); }
 .p3-vpick-sample[data-wrap="true"] { white-space: normal; }
 .p3-vpick-why { grid-column: 1 / -1; color: var(--p3-text-2); }
+/* A named run of values (#3092: Layout's spacing steps, then the dimension steps). */
+.p3-vpick-grp { display: grid; gap: var(--p3-space-050); }
+.p3-vpick-cap { margin: 0; padding-top: var(--p3-space-050); color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-cozy); }
 /* Shape (S7): the way to Components under Density, and the base radius picker's sample, a square at the value's
    radius (its radius is the value, set inline inside the picker's [data-content] sample). */
 .p3-shape-pad { display: grid; gap: var(--p3-space-050); justify-items: start; margin-top: var(--p3-space-100); }

@@ -16,8 +16,10 @@
  *       source's fills in order, and no node of a mark binds a variable, names a paint, a gradient or
  *       `descendantFills`. A variable bound on a mark is a retint that follows the theme.
  *   (d) HOSTS — every node in every other def's plan that instances or swaps in a `brand-mark/*` component
- *       pushes no `descendantFills` into it. No host carries a mark yet; the arm is proven live below and holds
- *       the moment one does (#2343 PR 2's `fixedPaint` is the mechanism, this is the outcome).
+ *       pushes no `descendantFills` into it, names no fill or stroke paint, binds no paint variable, and states
+ *       `fixedPaint` (#2343 PR 2's mechanism; this is the outcome). At every member: a disabled host keeps the
+ *       mark's colors too. The Card number field and WalletButton are the hosts (#2343 PR 4), and `MARK_HOSTS` lists
+ *       every host by hand, both ways, so the arm cannot pass by reading no host (docs/34 shape 9).
  *   (e) THE PAYMENT TILE (owner decisions Q720 A, Q780 A) — a payment tile is full-bleed, and the component draws the
  *       tile's corners and edge. On every `payment/*` member, the frame that holds the artwork binds all four corner
  *       radii to a `radius/*` variable and its stroke weight to a `border-width/*` variable, strokes in a
@@ -46,6 +48,9 @@ const marksDir = resolve(here, 'marks');
 /** The def and the component prefix, as literals: the second author of what the projector names them. */
 const MARK_DEF = 'brand-mark';
 const MARK_PREFIX = 'brand-mark/';
+/** Every def that carries a brand mark in a slot or a nest, typed here: (d) reads each one, and a def that carries a
+ *  mark without being listed fails. */
+const MARK_HOSTS = ['card-number-field', 'wallet-button'];
 
 /** The colors a document paints, in document order: each path's hex `fill` (not a `url(#…)` reference, and
  *  not the wrapper's `fill="none"`) and each gradient `stop-color`. Pure. */
@@ -179,12 +184,21 @@ else {
 let hosted = 0;
 for (const def of componentDefs) {
   if (def.id === MARK_DEF || !def.figmaProperties) continue;
+  let carried = 0;
   for (const plan of figmaAnatomySet(def)) walk(plan.root, (n) => {
     if (!carriesMark(n)) return;
     hosted++;
-    if (n.descendantFills) failures.push(`${def.id}: part '${n.name}' carries a brand mark and pushes descendantFills ${n.descendantFills} into it — the host's ink would retint the mark`);
+    carried++;
+    const at = `${def.id} ${JSON.stringify({ size: plan.size, ...plan.coord })}`;
+    if (n.descendantFills) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and pushes descendantFills ${n.descendantFills} into it — the host's ink would retint the mark`);
+    if (n.paints?.fills || n.paints?.strokes) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and names paint ${JSON.stringify(n.paints)} on it`);
+    for (const [k, v] of Object.entries(n.bound ?? {})) if (/fill|stroke/i.test(k)) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and binds ${k} to ${String(v)}`);
+    if (n.fixedPaint !== true) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and does not state fixedPaint, so nothing holds the host's ink off it`);
   });
+  if (carried && !MARK_HOSTS.includes(def.id)) failures.push(`${def.id}: carries a brand mark and is not in MARK_HOSTS — list it, so the host arm is known to read it`);
+  if (!carried && MARK_HOSTS.includes(def.id)) failures.push(`${def.id}: is in MARK_HOSTS and no member carries a brand mark — the host arm read nothing for it`);
 }
+for (const id of MARK_HOSTS) if (!componentDefs.some((d) => d.id === id)) failures.push(`${id}: is in MARK_HOSTS and no such component is registered`);
 
 console.log(`Mark colors — ${sourceColors.size} source file(s), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} payment tile(s), ${hosted} host node(s) carrying a mark.`);
 if (markPlans === 0 && markDef) failures.push(`'${MARK_DEF}' projected no plan — the plan arm checked nothing`);

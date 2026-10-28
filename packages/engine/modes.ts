@@ -58,7 +58,7 @@
 import { LARGE_TEXT_ONLY, BODY_TEXT_FLOOR } from './figma-description';
 import { RGB, contrast, hex, hexToRgb, composite, deltaE2000, emittedAlpha, luminance } from './color';
 import { Step } from './ramp';
-import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role, RaisedSurface } from './theme';
+import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role, RaisedSurface, ScrimStrength } from './theme';
 
 // The five built-in appearance modes — the closed set the engine ships with autocomplete.
 export type BuiltinModeName = 'light' | 'dark' | 'hc-light' | 'hc-dark' | 'wireframe';
@@ -618,6 +618,22 @@ export const raisedChoice = (family: 'light' | 'dark', lever: RaisedSurface | un
   family === 'light' ? lever ?? 'card' : 'card';
 
 /**
+ * THE SCRIM'S STEP (#3050, owner Q825 B). `scrim.default` aliases `black-alpha.<step>`, and the `scrimStrength` lever
+ * picks the step per mode from the existing alpha ramp (`OPACITY_STEPS`), so no token name is added or moved:
+ *   · `standard` (the default, and unset): 40 light, 60 dark, 60 hc-light, 70 hc-dark — the steps before the lever.
+ *   · `strong`: 80 light and dark; 90 hc-light and hc-dark. High contrast stays at least one step heavier than its own
+ *     mode, as it is under `standard`, and the ramp tops out at 90, so both high-contrast modes meet there.
+ * Heavier in dark under `standard`, because the page behind is already dark; under `strong` the page stops competing
+ * in either family, so light and dark share a step. Exported so `test.ts` can pin every cell of the table.
+ */
+export const SCRIM_STEPS: Record<ScrimStrength, Record<'light' | 'dark' | 'hc-light' | 'hc-dark', number>> = {
+  standard: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
+  strong: { light: 80, dark: 80, 'hc-light': 90, 'hc-dark': 90 },
+};
+export const scrimStep = (family: 'light' | 'dark', hc: boolean, lever: ScrimStrength | undefined): number =>
+  SCRIM_STEPS[lever ?? 'standard'][`${hc ? 'hc-' : ''}${family}`];
+
+/**
  * THE CARD → RAISED OVERRIDE TWIN (#3049). The override layer rewrites one role, so an override on
  * `foreground.primary` alone would move the card and leave `foreground.raised` on the derived step, and a dialog
  * would stop matching the card it is meant to hold. So where the raised surface follows the card in this mode, a
@@ -1113,15 +1129,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const invFloorRgb = asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb);
   putSurf('inverse.background.tertiary', cfg.bgInverse.tertiary, 'Inverse page surface, third tier');
   // scrim — semi-transparent backdrop behind modals/drawers (alpha; heavier in dark).
-  const scrimStep = hc ? (cfg.family === 'light' ? 60 : 70) : (cfg.family === 'light' ? 40 : 60);
-  put('scrim.default', { path: `${ns}.black-alpha.${scrimStep}`, rgb: BLACK, ratio: 1 },
-    `Scrim — black backdrop behind modals and drawers; opacity ${scrimStep}%`, 'self', 0);
+  // Its step follows the `scrimStrength` lever (#3050); `scrimStep` holds the table.
+  const scrimAt = scrimStep(cfg.family, hc, theme.scrimStrength);
+  put('scrim.default', { path: `${ns}.black-alpha.${scrimAt}`, rgb: BLACK, ratio: 1 },
+    `Scrim — black backdrop behind modals and drawers; opacity ${scrimAt}%`, 'self', 0);
   // Record the alpha, exactly as the overlay washes below do. `hex` is the opaque BASE (black); the
   // translucency lives only here, so a role view without it reports the scrim as solid black — which
   // is what every consumer of `resolveAllModes` painted. The DTCG emit was always right (it aliases
   // `black-alpha.<step>`, and the alpha is on the primitive), so no artifact ever drifted; the bug
   // could only surface where a UI rendered the RESOLVED role, and until now nothing rendered scrim.
-  roles['scrim.default'].alpha = scrimStep / 100;
+  roles['scrim.default'].alpha = scrimAt / 100;
 
   /*
    * GLASS (#2869, Q464 A; values Q2869.3 A) — the translucent fill behind a background blur, for text set over

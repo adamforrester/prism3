@@ -241,6 +241,9 @@ export const CORE_TIER = 'core';
 /** The `raisedSurface` lever's values (#3049, owner Q3049.4): the card surface (default), the page, or white. */
 export const RAISED_SURFACE_VALUES = ['card', 'page', 'white'] as const;
 export type RaisedSurface = typeof RAISED_SURFACE_VALUES[number];
+/** The `scrimStrength` lever's values (#3050, owner Q825 B): today's scrim (default), or a heavier one. */
+export const SCRIM_STRENGTH_VALUES = ['standard', 'strong'] as const;
+export type ScrimStrength = typeof SCRIM_STRENGTH_VALUES[number];
 
 /**
  * A brand-added glass role (#3073, owner Q806, Q807 A): `color.glass.<name>`, a translucent fill beside the shipped
@@ -370,6 +373,9 @@ export type Theme = {
   // The raised surface (#3049, owner Q721 A, Q3049.1 C–Q3049.4): what `color.foreground.raised`, Dialog's panel,
   // holds in the light-family modes. Unset reads as `card`. The dark family always holds the card, whatever this says.
   raisedSurface?: RaisedSurface;
+  // The scrim's strength (#3050, owner Q825 B): which `black-alpha` step `color.scrim.default` aliases in each mode.
+  // Unset reads as `standard`, today's steps; `scrimStep` in `modes.ts` holds the table.
+  scrimStrength?: ScrimStrength;
   // Brand-added glass roles (#3073, owner Q806, Q807 A), `color.glass.<name>`, validated by `validGlassRoles`. Unset
   // adds none: the brand ships `color.glass.surface` alone.
   glassRoles?: Record<string, GlassRoleInput>;
@@ -597,6 +603,10 @@ export type BrandInput = {
    *  'card' (default) is the card surface, `foreground.primary`; 'page' is the page, `background.primary`; 'white'
    *  is the palette's white. Dark and hc-dark always take the card surface, so a dialog keeps its lift there. */
   raisedSurface?: RaisedSurface;
+  /** The scrim's strength (#3050): how heavily `color.scrim.default`, the backdrop behind a dialog, dims the page.
+   *  'standard' (default) is 40% light, 60% dark, 60% hc-light, 70% hc-dark; 'strong' is 80% light and dark and 90%
+   *  in both high-contrast modes. It moves the alias to an existing `black-alpha` step; no token name changes. */
+  scrimStrength?: ScrimStrength;
   /** Brand-added glass roles (#3073): `color.glass.<name>`, each a semantic role's palette color (`role`, per mode)
    *  or one palette color (`palette`), at `alpha` percent. `surface` is the shipped glass and cannot be redefined. */
   glassRoles?: Record<string, GlassRoleInput>;
@@ -2679,6 +2689,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'outlineInteraction', value: input.outlineInteraction, options: ['overlay-neutral', 'solid-tint', 'none'] },
     { path: 'neutralEmphasis', value: input.neutralEmphasis, options: ['subtle', 'strong'] },
     { path: 'raisedSurface', value: input.raisedSurface, options: RAISED_SURFACE_VALUES },
+    { path: 'scrimStrength', value: input.scrimStrength, options: SCRIM_STRENGTH_VALUES },
   ];
   for (const { path, value, options } of enumLevers) {
     if (value !== undefined && !(options as readonly unknown[]).includes(value))
@@ -3379,6 +3390,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
     neutralEmphasis, strictInteractiveContrast, interactivePalettes,
     ...(input.raisedSurface ? { raisedSurface: input.raisedSurface } : {}),
+    ...(input.scrimStrength ? { scrimStrength: input.scrimStrength } : {}),
     ...(glassRoles ? { glassRoles } : {}),
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
     linkStateRungs: input.linkStateRungs,
@@ -3437,6 +3449,8 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     neutralEmphasis: 'subtle', strictInteractiveContrast: false, interactivePalettes: [],
     // The reference brand's own designs put dialogs on white (#3049, owner Q3049.4), not on its card surface.
     raisedSurface: 'white',
+    // The reference brand's designs put a heavy black backdrop behind its dialogs (#3050, owner Q825 B): the strong scrim.
+    scrimStrength: 'strong',
     // The reference brand's card glass (#3073, owner Q807 A; 70%, the owner's correction of 2026-10-27): the card
     // ground, `foreground.primary`'s palette color in each mode, at 70%.
     glassRoles: { card: { role: 'foreground.primary', alpha: 70 } },

@@ -720,8 +720,8 @@
       "scrim": {
         "default": {
           "$type": "color",
-          "$value": "{nbds.core.palette.black-alpha.70}",
-          "$description": "Scrim — black backdrop behind modals and drawers; opacity 70%"
+          "$value": "{nbds.core.palette.black-alpha.90}",
+          "$description": "Scrim — black backdrop behind modals and drawers; opacity 90%"
         }
       },
       "glass": {

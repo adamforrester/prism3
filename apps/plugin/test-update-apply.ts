@@ -59,6 +59,14 @@
  *                  back as its plan, and reads current after.
  *   choices/…      `overwrite` writes the plan over a hand edit; `accept` keeps it as the new record (§5).
  *                  Mutations: overwrite ignored → `hand/overwrite`; accept ignored → `hand/accept`.
+ *   kept report/…  a radio dot whose bound size a designer edited, updated under `keep`: the verdict names it with the
+ *                  hand edits kept ("dot size") and lists no part not written; a binding the host drops on a node no one
+ *                  edited is still a part not written (#3086). Mutations: the kept-edit split dropped → `kept report/no
+ *                  miss`, `kept report/named`; the property left unnamed →
+ *                  `kept report/named`; the split taking every bound miss → `kept report/real discard`; the split
+ *                  matching any member's kept path → `kept report/two members`. Every field the plans bind is named in a
+ *                  plain word, the layer first, the per-side fields merged (Q826 A): a word falling through to the key →
+ *                  that family's arm (`kept report/padding`, `/gap`, …) and `kept report/no raw key`.
  *   drop/description  the deprecation prefix leads and the member's own description follows (owner Q104 A).
  *                  Mutation: the description replaced → `drop/description`.
  *   keys/record id an updated member's record names its own node (#2300). Mutation: the id left out of the update's
@@ -527,6 +535,131 @@ section('keep — every hand-edited path survives an update that rewrites its me
   ok(await fillVar(m) === changed, `keep/root written: the edited member's root still takes the plan's new fill (${await fillVar(m)})`);
   ok(await fillVar(member(PLAIN)) === changed && JSON.stringify(plainRing()) === JSON.stringify(plainCorners),
     `keep/plain updated: a member with no hand edits takes the new fill, and its ring is re-cornered from its host as before (${await fillVar(member(PLAIN))}; ${JSON.stringify(plainRing())})`);
+}
+
+/* ── keep, reported (#3086) ──────────────────────────────────────────────────────────────────────────── */
+section('keep, reported — a kept hand edit on a bound size is a hand edit kept, never a part not written (#3086)');
+{
+  // A radio whose dot a designer resized by hand: the dot's bound width and height unbound and set to 14. The run is told
+  // to keep hand edits, so the dot keeps the designer's size, and the build's bound read-back finds the plan's binding
+  // absent there. That is the edit kept, as asked, not a binding the host dropped. The plan gives the root a new fill so
+  // the member is written in place. Every expected line below is typed here, never read from the verdict code.
+  // Mutation: the kept-edit split dropped from `applySet` → `kept report/no miss`, `kept report/named`.
+  const plans = plansOf('radio-control');
+  const w = await world('radio-control', plans, { extraVars: ['color/keep/changed'] });
+  const EDITED = 'selection=checked, status=default, size=medium, state=rest';
+  const m = membersOf(w.set()).find((x) => x.name === EDITED)!;
+  ok(!!m && !!childNamed(m, 'dot'), `premise: the set holds ${EDITED} with a dot`);
+  const dot = childNamed(m, 'dot');
+  for (const f of ['width', 'height']) (dot.setBoundVariable as (f: string, v: null) => void)(f, null);
+  (dot.resize as (w: number, h: number) => void)(14, 14);
+  const next = plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' };
+    return q;
+  });
+  const { pre, res } = await confirm(w, [{ def: 'radio-control', plans: next }]);
+  ok(JSON.stringify(pre.sets[0].handEdits.filter((h) => h.member === EDITED).map((h) => h.path)) === JSON.stringify(['dot']),
+    `premise: the dry run lists the dot as the one hand edit (${JSON.stringify(pre.sets[0].handEdits)})`);
+  const o = res.outcomes[0];
+  const bv = dot.boundVariables as Record<string, unknown>;
+  ok(o.updated.includes(EDITED) && !bv.width && !bv.height && dot.width === 14 && dot.height === 14,
+    `premise: the member is updated in place and its dot keeps the designer's 14, unbound (${o.updated.length} updated; ${JSON.stringify([bv.width ?? null, bv.height ?? null, dot.width, dot.height])})`);
+  const v = applyVerdict(res);
+  ok(!v.lines.some((l) => l.includes('not written as planned')) && !o.misses.some((x) => x.includes(`${EDITED}/dot`)),
+    `kept report/no miss: the kept dot is no part not written as planned (${JSON.stringify(o.misses.slice(0, 3))}; ${JSON.stringify(v.lines)})`);
+  ok(v.lines[0] === 'radio-control: 60 updated in place, 1 hand edit kept (dot size).' && v.ok && v.headline === '✓ updated 60 in place',
+    `kept report/named: the hand edit kept names the property it kept (${JSON.stringify(v)})`);
+
+  // EVERY BOUND FIELD IN PLAIN WORDS (owner Q826 A): the layer name first, then the property as a designer says it, the
+  // per-side fields merged into one word. The same outcome, its kept bindings replaced, read through the verdict. Each
+  // family's word is typed here. Mutation: a family's word falling through to the field's key → that family's arm and
+  // `kept report/no raw key`.
+  const clause = (fields: string[]): string => applyVerdict({ ...res, outcomes: [{ ...o, keptBound: fields.map((field) => ({ member: EDITED, part: 'container', field })) }] }).lines[0];
+  const line = (said: string): string => `radio-control: 60 updated in place, 1 hand edit kept (${said}).`;
+  const families: [string, string[], string][] = [
+    ['size', ['width', 'height'], 'container size'],
+    ['min width', ['minWidth'], 'container min width'],
+    ['min height', ['minHeight'], 'container min height'],
+    ['gap', ['itemSpacing'], 'container gap'],
+    ['padding', ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'], 'container padding'],
+    ['border width', ['strokeWeight', 'strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'], 'container border width'],
+    ['corner radius', ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'], 'container corner radius'],
+  ];
+  for (const [family, fields, said] of families) {
+    ok(clause(fields) === line(said) && fields.every((f) => clause([f]) === line(said)),
+      `kept report/${family}: ${fields.join(', ')} read "${said}", once (${clause(fields)}; ${fields.map((f) => clause([f])).join(' | ')})`);
+  }
+  // THE FIELD LIST READ FROM THE PLANS, never typed: every field any def's plan binds (`bound`), so a field a def starts
+  // binding is checked here before anyone writes its word. For each, the clause names the layer and a word, and holds no
+  // key: not the field's own, and nothing camelCase.
+  const planFields = new Set<string>();
+  type Bn = { bound?: Record<string, string>; children?: Bn[] };
+  const walk = (n: Bn): void => { for (const k of Object.keys(n.bound ?? {})) planFields.add(k); for (const c of n.children ?? []) walk(c); };
+  for (const d of componentDefs) for (const p of figmaAnatomySet(d, { swapTarget: SWAP_TARGET })) walk(p.root as Bn);
+  const leaked = [...planFields].map((f) => [f, clause([f])] as const)
+    .filter(([f, c]) => !c.startsWith(line('container ').slice(0, -2)) || c === line('container') || c.includes(f) || /[a-z][A-Z]/.test(c));
+  ok(planFields.size >= 18 && planFields.has('paddingLeft') && !leaked.length,
+    `kept report/no raw key: every field the plans bind (${planFields.size}) is named in a word, no key in the clause (${JSON.stringify(leaked)})`);
+}
+{
+  // A BINDING THE HOST DROPPED, NO HAND EDIT. Every member as built, so nothing is kept; the host accepts the dot's
+  // width binding on one member and does not keep it. That is a genuine miss, and it is still reported, with its own
+  // reason, the set not verified. Mutation: the kept-edit split taking every bound miss → `kept report/real discard`.
+  const plans = plansOf('radio-control');
+  const w = await world('radio-control', plans, { extraVars: ['color/keep/changed'] });
+  const PLAIN = 'selection=checked, status=default, size=medium, state=rest';
+  const dot = childNamed(membersOf(w.set()).find((x) => x.name === PLAIN)!, 'dot');
+  const set = dot.setBoundVariable as (f: string, v: unknown) => void;
+  (dot as Record<string, unknown>).setBoundVariable = (f: string, v: unknown): void => { set(f, f === 'width' ? null : v); };
+  const next = plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' };
+    return q;
+  });
+  const { pre, res } = await confirm(w, [{ def: 'radio-control', plans: next }]);
+  ok(pre.sets[0].handEdits.length === 0, `premise: the dry run lists no hand edit (${JSON.stringify(pre.sets[0].handEdits)})`);
+  const v = applyVerdict(res);
+  const want = `bound ${PLAIN}/dot.width -> DISCARDED (set control/size/md/dot, not retained on the live node)`;
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want))
+    && res.outcomes[0].misses.includes(want) && !res.outcomes[0].keptBound && !v.lines[0].includes('hand edit'),
+    `kept report/real discard: a binding the host dropped on a node no one edited is still a part not written (${JSON.stringify(v)})`);
+}
+{
+  // A KEPT EDIT AND A DROPPED BINDING IN ONE RUN, ON TWO MEMBERS (#3086 review). One member's dot is resized by hand and
+  // kept; the host drops the dot's width binding on another member no one edited. The kept edit is the first member's
+  // only: the other member's dropped binding stays a part not written, the set not verified. Mutation: the split
+  // matching a kept path against every member's misses, not only its own → `kept report/two members`.
+  const plans = plansOf('radio-control');
+  const w = await world('radio-control', plans, { extraVars: ['color/keep/changed'] });
+  const EDITED = 'selection=checked, status=default, size=medium, state=rest';
+  const OTHER = 'selection=checked, status=default, size=medium, state=hover';
+  const members = membersOf(w.set());
+  const em = members.find((x) => x.name === EDITED);
+  const om = members.find((x) => x.name === OTHER);
+  ok(!!em && !!childNamed(em, 'dot') && !!om && !!childNamed(om, 'dot'), `premise: the set holds ${EDITED} and ${OTHER}, each with a dot`);
+  const dot = childNamed(em!, 'dot');
+  for (const f of ['width', 'height']) (dot.setBoundVariable as (f: string, v: null) => void)(f, null);
+  (dot.resize as (w: number, h: number) => void)(14, 14);
+  const other = childNamed(om!, 'dot');
+  const set = other.setBoundVariable as (f: string, v: unknown) => void;
+  (other as Record<string, unknown>).setBoundVariable = (f: string, v: unknown): void => { set(f, f === 'width' ? null : v); };
+  const next = plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' };
+    return q;
+  });
+  const { pre, res } = await confirm(w, [{ def: 'radio-control', plans: next }]);
+  ok(JSON.stringify(pre.sets[0].handEdits.map((h) => [h.member, h.path])) === JSON.stringify([[EDITED, 'dot']]),
+    `premise: the dry run lists ${EDITED}'s dot as the one hand edit (${JSON.stringify(pre.sets[0].handEdits)})`);
+  const o = res.outcomes[0];
+  const v = applyVerdict(res);
+  const want = `bound ${OTHER}/dot.width -> DISCARDED (set control/size/md/dot, not retained on the live node)`;
+  const kept = JSON.stringify((o.keptBound ?? []).map((b) => [b.member, b.part, b.field]).sort());
+  ok(o.misses.includes(want) && !o.misses.some((x) => x.includes(`${EDITED}/dot`))
+    && kept === JSON.stringify([[EDITED, 'dot', 'height'], [EDITED, 'dot', 'width']])
+    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want)),
+    `kept report/two members: ${EDITED}'s kept dot does not hide the binding the host dropped on ${OTHER}'s dot (${JSON.stringify({ misses: o.misses, keptBound: o.keptBound, v })})`);
 }
 
 /* ── drop ────────────────────────────────────────────────────────────────────────────────────────────── */
