@@ -720,8 +720,8 @@
       "scrim": {
         "default": {
           "$type": "color",
-          "$value": "{nbds.core.palette.black-alpha.70}",
-          "$description": "Scrim — black backdrop behind modals and drawers; opacity 70%"
+          "$value": "{nbds.core.palette.black-alpha.90}",
+          "$description": "Scrim — black backdrop behind modals and drawers; opacity 90%"
         }
       },
       "glass": {
@@ -729,6 +729,11 @@
           "$type": "color",
           "$value": "{nbds.core.palette.black-alpha.90}",
           "$description": "Glass — the translucent black fill behind the glass background blur; opacity 90%"
+        },
+        "card": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.black-alpha.70}",
+          "$description": "Glass card — foreground.primary's color at 70% behind the glass background blur, a glass fill this brand adds"
         }
       },
       "field": {
