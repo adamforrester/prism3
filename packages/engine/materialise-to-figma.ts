@@ -816,6 +816,7 @@ const textStylesPass = (brand: string): string => {
   const T = textStylePlan(brand).map((r) => [
     r.name, r.description, r.fontFamilyVar, r.fontFamilyPrimary, r.fontSizeVar,
     r.fontStyleVar, r.fontStyle, r.lineHeightPct, r.letterSpacingPct, r.textCase, r.textDecoration,
+    r.underlineThicknessPct ?? null, r.underlineOffsetPct ?? null,
   ]);
   return `const T=${JSON.stringify(T)};
 const byName=new Map((await figma.getLocalTextStylesAsync()).map(s=>[s.name,s]));
@@ -830,7 +831,8 @@ for(const r of T){
   try{await figma.loadFontAsync({family:r[3],style:r[6]});faces.set(key,true);}
   catch(e){faces.set(key,false);}
 }
-for(const [name,desc,famVar,face,sizeVar,styleVar,style,lhPct,lsPct,tCase,tDec] of T){
+const ul=v=>typeof v==='number'?{unit:'PERCENT',value:v}:{unit:'AUTO'};
+for(const [name,desc,famVar,face,sizeVar,styleVar,style,lhPct,lsPct,tCase,tDec,ulThick,ulOff] of T){
   if(!faces.get(face+'\\u0000'+style)){skipped.push({name:name,reason:'font unavailable: '+face+' '+style});continue;}
   let s=byName.get(name);
   if(!s){s=figma.createTextStyle();s.name=name;byName.set(name,s);created++;}
@@ -839,6 +841,7 @@ for(const [name,desc,famVar,face,sizeVar,styleVar,style,lhPct,lsPct,tCase,tDec] 
   s.lineHeight={unit:'PERCENT',value:lhPct};
   s.letterSpacing={unit:'PERCENT',value:lsPct};
   s.textCase=tCase;s.textDecoration=tDec;
+  if(tDec==='UNDERLINE'){s.textDecorationThickness=ul(ulThick);s.textDecorationOffset=ul(ulOff);}
   for(const [field,target] of [['fontFamily',famVar],['fontSize',sizeVar],['fontStyle',styleVar]]){
     if(!target)continue;
     const v=varByName.get(target);

@@ -11300,6 +11300,18 @@
         "type.title.xs.strong"
       ]
     },
+    "core.font.underline.thickness": {
+      "$description": "Link underline thickness: 5% of the font size (0.05em in CSS). Every underlined text style draws it.",
+      "meaning": "Link underline thickness — a share of the font size (unitless; `em` in a stylesheet)",
+      "tier": "primitive",
+      "consume": "Consumable — multiply it by `1em` for `text-decoration-thickness` on every underlined link type style. Absent when the brand leaves it to the font, which reads as auto."
+    },
+    "core.font.underline.offset": {
+      "$description": "Link underline offset, below the baseline: 25% of the font size (0.25em in CSS). Every underlined text style draws it.",
+      "meaning": "Link underline offset — a share of the font size (unitless; `em` in a stylesheet)",
+      "tier": "primitive",
+      "consume": "Consumable — multiply it by `1em` for `text-underline-offset` on every underlined link type style. Absent when the brand leaves it to the font, which reads as auto."
+    },
     "opacity.0": {
       "$description": "opacity 0% (0)",
       "meaning": "Opacity scale primitive",
