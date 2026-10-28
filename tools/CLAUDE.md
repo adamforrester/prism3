@@ -243,6 +243,9 @@ not a measurement, and like `figma-mcp/` its gate lives in the plugin: `apps/plu
 spawns it, speaks MCP to it over stdio, drives the socket with an independently written client, and runs
 the real relay against the real `main.ts`. The port is read from `apps/plugin/src/agent-bridge-relay.ts`
 (`BRIDGE_PORT`), which the manifest's `devAllowedDomains` entry must match — change all three together.
+Its `initialize` answer is the engine server's rule, imported from `packages/engine/mcp.ts`, never a
+copy (#3109). Both servers are driven with the same probes (`packages/engine/mcp-handshake-probes.ts`),
+and `mcp-test.ts` fails on any `initialize` handler in the tree that the probes' register does not name.
 
 ## `tools/sd-version-matrix/`
 

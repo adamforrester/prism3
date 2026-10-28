@@ -282,17 +282,24 @@ export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, R
  */
 export const outlineFillFamily = (
   method: Theme['outlineInteraction'],
-): { family: 'overlay' | 'subtle-fill' | null; opaque: boolean } => {
+): { family: 'overlay' | 'subtle-fill' | 'hover-fill' | null; opaque: boolean } => {
   switch (method) {
     case 'overlay-neutral': return { family: 'overlay', opaque: false };
     case 'solid-tint':      return { family: 'subtle-fill', opaque: false };
+    // #3071 (owner Q824 A): an opaque palette step per state, measured with an `inverse.` twin of its own, so a
+    // band member reads the band's fill and ink like every other method (`outline-roles.ts`).
+    case 'opaque-fill':     return { family: 'hover-fill', opaque: true };
     case 'none':            return { family: null, opaque: false };
   }
 };
 
-/** The role key holding `color`'s outline hover fill for `state`, or null when the method emits none. */
+/** The states the opaque hover fill carries (#3071): hover and pressed. A selected control keeps the selected tint. */
+export const HOVER_FILL_STATES = ['hover', 'pressed'] as const;
+
+/** The role key holding `color`'s outline hover fill for `state`, or null when the method emits none for it. */
 export const outlineFillRole = (method: Theme['outlineInteraction'], color: string, state: string): string | null => {
   const { family } = outlineFillFamily(method);
+  if (family === 'hover-fill' && !(HOVER_FILL_STATES as readonly string[]).includes(state)) return null;
   return family ? `interactive.${color}.${family}.${state}` : null;
 };
 
@@ -1838,7 +1845,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // duplication in CONSUMERS. A consumer that re-derives the mapping renders `transparent` and no one
   // hears about it; two independent derivations with a gate between them is how the mapping gets
   // checked at all. Keep them separate, and let (10h) be the thing that binds them.
-  if (theme.outlineInteraction === 'overlay-neutral') {
+  // #3071: `opaque-fill` keeps the wash too. Its opaque fill replaces it on Button, Icon button and Flush icon button
+  // only; Tag, Segmented control and Pagination keep the neutral wash (owner, Q3071.4 A).
+  if (theme.outlineInteraction === 'overlay-neutral' || theme.outlineInteraction === 'opaque-fill') {
     const overlayPal = cfg.family === 'light' ? 'black-alpha' : 'white-alpha';
     const overlayBase = cfg.family === 'light' ? BLACK : WHITE;
     const OVERLAY_ALPHA: [string, number][] = [['hover', 10], ['pressed', 20], ['selected', 20]];
@@ -2407,6 +2416,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const name = key.startsWith('glass.') ? key.slice('glass.'.length) : undefined;
     const g = name !== undefined ? theme.glassRoles?.[name] : undefined;
     if (g) throw new Error(`overrides[${mode}]: '${key}' is a brand glass role, set by \`glassRoles.${name}\` (#3073), and cannot be overridden on its own. Change its source (${g.role ? `override '${g.role}'` : `\`glassRoles.${name}.palette\``}) and the glass follows it.`);
+    // The opaque outline hover fill (#3071) is put after this layer too, from its own setting.
+    if (/^(?:inverse\.)?interactive\.[^.]+\.hover-fill\./.test(key))
+      throw new Error(`overrides[${mode}]: '${key}' is the opaque outline hover fill (#3071), set by \`outlineHoverFill.${mode}\` on the page; the inverse band takes the default rule. It cannot be overridden on its own.`);
   }
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
@@ -2539,6 +2551,97 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     roles[key].alpha = g.alpha / 100;
   }
 
+  /*
+   * THE OPAQUE OUTLINE HOVER FILL (#3071, owner Q824 A; the proposal's option B). Under `outlineInteraction:
+   * 'opaque-fill'` an outline or text control's hover and pressed fill is an OPAQUE palette step,
+   * `interactive.<c>.hover-fill.{hover,pressed}` plus `inverse.` twins, beside the neutral wash (which Tag, Segmented
+   * control and Pagination keep). Put here, after the override layer, so the inks it measures are final.
+   *   · THE STEP. A brand may name the page step per mode (`outlineHoverFill.<mode>.hover`, the reference brand's
+   *     `neutral.050`); pressed is its own pick or the next step toward the ink. Unnamed (every band, every
+   *     generate-only mode, a mode the brand names nothing for) takes the proposal's default rule: the neutral step
+   *     nearest 1.15:1 against the ground, on the ink's side of it, and pressed the next step toward the ink.
+   *   · THE INK. The control's own label and icon, `interactive.<c>.{text,icon}.<state>`, now sit on the fill, so
+   *     each is measured on it and CLAMPED as a link is (#1510): walked along its own ramp toward more contrast
+   *     to the nearest step that clears its own `min` on the fill and still on its page. It keeps its page contract and gains the fill as its second
+   *     pair (`alsoAgainst`, #1745), which the sweep below measures from the final colors. Both states are gated
+   *     (owner, Q3071.6 A), so pressed is not left transient as the tinted wash's is (#1281).
+   */
+  if (theme.outlineInteraction === 'opaque-fill') {
+    const HOVER_RATIO = 1.15;
+    const neutralSteps = ramps.get(r2p.neutral)!;
+    const towardInk = (steps: Step[], ground: RGB): 1 | -1 =>
+      contrast(steps[steps.length - 1].rgb, ground) >= contrast(steps[0].rgb, ground) ? 1 : -1;
+    const named = (ref: string, what: string): { pal: string; steps: Step[]; i: number } => {
+      const [pal, step] = ref.split('.');
+      const steps = ramps.get(pal);
+      const i = steps ? steps.findIndex((x) => x.key === step) : -1;
+      if (!steps || i < 0) throw new Error(`outlineHoverFill.${mode}.${what}: '${ref}' is not a palette step (have: ${[...ramps.keys()].join(', ')})`);
+      return { pal, steps, i };
+    };
+    const columns = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
+    const pick = theme.outlineHoverFill?.[mode];
+    for (const [prefix, groundKey, groundName] of [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'inverse band']] as const) {
+      const ground = rgbByRole.get(groundKey)!;
+      let fills: Record<'hover' | 'pressed', { path: string; rgb: RGB; why: string }>;
+      if (prefix === '' && pick) {
+        const h = named(pick.hover, 'hover');
+        const dir = towardInk(h.steps, ground);
+        const p = pick.pressed ? named(pick.pressed, 'pressed') : { ...h, i: Math.min(Math.max(h.i + dir, 0), h.steps.length - 1) };
+        fills = {
+          hover: { path: `${ns}.${h.pal}.${h.steps[h.i].key}`, rgb: h.steps[h.i].rgb, why: 'the brand\'s pick' },
+          pressed: { path: `${ns}.${p.pal}.${p.steps[p.i].key}`, rgb: p.steps[p.i].rgb, why: pick.pressed ? 'the brand\'s pick' : 'the next step past hover' },
+        };
+      } else {
+        const dir = towardInk(neutralSteps, ground);
+        const gl = luminance(ground);
+        // The ink's side of the ground only: a step as far from it on the other side reads as a hole, not a fill.
+        const side = neutralSteps.map((x, i) => ({ x, i })).filter(({ x }) => (dir > 0 ? luminance(x.rgb) < gl : luminance(x.rgb) > gl));
+        if (!side.length) throw new Error(`outlineInteraction opaque-fill: ${mode} has no ${r2p.neutral} step on the ink side of ${groundKey}`);
+        const h = side.reduce((a, b) => (Math.abs(contrast(b.x.rgb, ground) - HOVER_RATIO) < Math.abs(contrast(a.x.rgb, ground) - HOVER_RATIO) ? b : a)).i;
+        const p = Math.min(Math.max(h + dir, 0), neutralSteps.length - 1);
+        fills = {
+          hover: { path: `${ns}.${r2p.neutral}.${neutralSteps[h].key}`, rgb: neutralSteps[h].rgb, why: `the default step on the ${groundName}` },
+          pressed: { path: `${ns}.${r2p.neutral}.${neutralSteps[p].key}`, rgb: neutralSteps[p].rgb, why: 'the next step past hover' },
+        };
+      }
+      for (const color of columns) {
+        if (!roles[`${prefix}interactive.${color}.fill.rest`]) continue;
+        for (const st of HOVER_FILL_STATES) {
+          const f = fills[st];
+          const fillKey = `${prefix}interactive.${color}.hover-fill.${st}`;
+          put(fillKey, { path: f.path, rgb: f.rgb, ratio: contrast(f.rgb, ground) },
+            `${color} outline/text ${st} fill${prefix ? ' on an inverse surface' : ''} — ${f.path.slice(ns.length + 1)}, ${f.why}; opaque, the label and icon are measured on it`,
+            groundKey, 0);
+          for (const part of ['text', 'icon'] as const) {
+            const inkKey = `${prefix}interactive.${color}.${part}.${st}`;
+            const ink = roles[inkKey];
+            if (!ink || !(ink.min > 0)) continue;
+            let inkRgb = rgbByRole.get(inkKey)!;
+            const at = ink.path.slice(ns.length + 1).split('.');
+            const steps = at.length === 2 ? ramps.get(at[0]) : undefined;
+            if (steps && contrast(inkRgb, f.rgb) < ink.min) {
+              // The nearest step that clears BOTH its own contract and the fill. A fill so far toward the ink that no
+              // step clears both (a mid-gray pick) leaves the ink where its own contract put it, and the sweep below
+              // names the miss on the fill: walking on would trade the page pair, which every other control shares,
+              // for this one.
+              const own = rgbByRole.get(ink.against) ?? baseRgb;
+              const clears = (x: Step) => contrast(x.rgb, f.rgb) >= ink.min && contrast(x.rgb, own) >= ink.min;
+              const dir = towardInk(steps, f.rgb);
+              let i = steps.findIndex((x) => x.key === at[1]);
+              while (i >= 0 && i + dir >= 0 && i + dir < steps.length && !clears(steps[i])) i += dir;
+              if (i >= 0 && clears(steps[i])) {
+                inkRgb = steps[i].rgb;
+                roles[inkKey] = { ...ink, path: `${ns}.${at[0]}.${steps[i].key}`, hex: hex(inkRgb), ratio: contrast(inkRgb, own) };
+                rgbByRole.set(inkKey, inkRgb);
+              }
+            }
+            roles[inkKey].alsoAgainst = { against: fillKey, min: ink.min };
+          }
+        }
+      }
+    }
+  }
+
   // ---- the contrast sweep (#956) ----
   // Every role that carries a `min`, checked once at the end, whatever moved it. This replaces a
   // check that only ever looked at roles the OVERRIDE loop had just touched — which meant the one
@@ -2627,7 +2730,7 @@ export const resolveAllModes = (theme: Theme): ModeResult[] => {
   // full family; an overlay-neutral brand carries that ONE leaf, on the page ground, derived by the same pass and
   // the same step choice, so a solid-tint brand's value does not move. `none` carries nothing: that lever omits
   // every outline fill, the selected one included, and a selected tag there shows its outline and check only.
-  else if (theme.outlineInteraction === 'overlay-neutral') settleSolidTint(theme, results, { color: 'primary', state: 'selected' });
+  else if (theme.outlineInteraction === 'overlay-neutral' || theme.outlineInteraction === 'opaque-fill') settleSolidTint(theme, results, { color: 'primary', state: 'selected' });
   return results;
 };
 

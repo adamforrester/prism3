@@ -31,7 +31,7 @@ const ok = (cond: boolean, label: string): void => {
   else { failed++; console.error(`  ✗ ${label}`); }
 };
 
-const METHODS = ['overlay-neutral', 'solid-tint', 'none'] as const;
+const METHODS = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'] as const;
 const COLUMNS = ['primary', 'neutral', 'destructive'];
 const STATES = ['rest', 'hover', 'pressed'];
 
@@ -39,6 +39,7 @@ const STATES = ['rest', 'hover', 'pressed'];
 const FAMILY: Record<(typeof METHODS)[number], string | null> = {
   'overlay-neutral': 'overlay',
   'solid-tint': 'subtle-fill',
+  'opaque-fill': 'hover-fill',   // #3071: opaque, with a band twin of its own
   none: null,
 };
 
