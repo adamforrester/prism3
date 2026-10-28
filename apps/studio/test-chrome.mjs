@@ -1764,30 +1764,68 @@ if (runs('1')) for (const host of ['web', 'figma']) {
         const want = Q2995_3_B.map(([, name, icon]) => ({ name: `Appearance: ${name}`, tip: `Appearance: ${name}`, icon }));
         ok(JSON.stringify(looks) === JSON.stringify(want),
           `rail ${where}: Appearance draws the current choice's glyph by name, its name and tooltip the choice (Q2995.3 B): ${Q2995_3_B.map(([, n, g], k) => `${n} wants ${g}, drew ${looks[k]?.icon} ("${looks[k]?.name}")`).join('; ')}`);
-        ok(rl.labels.length === ORDER.length && rl.labels.every(Boolean), `rail ${where}: every tile shows its label, at this width too (Q2909.16 A) (${JSON.stringify(rl.labels)})`);
-        // Q732 A (the owner, 2026-10-26): no manual hyphen in a rail label; "Components" and "Appearance" read whole. Any
-        // hyphen, dash or soft hyphen counts. MUTATION: `Compo-nents` back in `pages.ts` → this arm, by name, on both hosts.
-        const hyphened = rl.texts.filter((t) => t === null || /[-\u00ad\u2010\u2011]/.test(t));
-        ok(hyphened.length === 0 && rl.texts.includes('Components') && rl.texts.includes('Appearance'),
-          `rail ${where}: no rail label contains a hyphen, "Components" and "Appearance" whole (Q732 A) (${JSON.stringify(rl.texts)})`);
+        // #3083 (the owner, 2026-10-28): the foot's Minimize, Help and Appearance show no label, so the labeled tiles are the
+        // areas alone. Literal, from the decision: the foot's tiles by hook, never read from `dom.ts`'s bare class.
+        const BARE = web ? ['docs-open', 'theme-toggle'] : ['agent-minimize', 'docs-open', 'theme-toggle'];
+        const labeled = rl.order.map((o, i) => [o, i]).filter(([o]) => !BARE.includes(o)).map(([, i]) => i);
+        ok(labeled.length === ORDER.length - BARE.length && labeled.every((i) => rl.labels[i]), `rail ${where}: every area tile shows its label, at this width too (Q2909.16 A) (${JSON.stringify(labeled.map((i) => [rl.order[i], rl.labels[i]]))})`);
+        // Q732 A (the owner, 2026-10-26): no manual hyphen in a rail label; "Components" reads whole ("Appearance" shows no
+        // label since #3083). Any hyphen, dash or soft hyphen counts. MUTATION: `Compo-nents` back in `pages.ts` → this arm, by name, on both hosts.
+        const hyphened = labeled.map((i) => rl.texts[i]).filter((t) => t === null || /[-\u00ad\u2010\u2011]/.test(t));
+        ok(hyphened.length === 0 && rl.texts.includes('Components'),
+          `rail ${where}: no rail label contains a hyphen, "Components" whole (Q732 A) (${JSON.stringify(rl.texts)})`);
+        // #3083 (the owner, 2026-10-28): the rail's foot tiles, Minimize (plugin), Help and Appearance, draw their icon alone.
+        // Each shows no label and no other visible text, keeps its accessible name and a tooltip in the same words (shown on
+        // hover), stays a target of 24 × 24 or more (the floor, a literal), and centers its icon in the tile. The names are
+        // written here from the decision. Read as drawn: the tile's own visible text, its box and its icon's box, then the
+        // tooltip under a real hover. MUTATION: `tile('theme-toggle', null)` back to `tile('theme-toggle', label)` in
+        // `frame.ts` → this arm, by name, at every width and theme on both hosts.
+        const FOOT_NAMES = { 'agent-minimize': /^Minimize$/, 'docs-open': /^Help$/, 'theme-toggle': /^Appearance: / }, HIT_FLOOR = 24;
+        const bare = [];
+        for (const hk of BARE) {
+          const sel = `[data-p3="rail-foot"] [data-p3="${hk}"]`;
+          const read = () => page.evaluate((q) => {
+            const t = document.querySelector(q);
+            if (!t) return null;
+            const b = t.getBoundingClientRect(), ic = t.querySelector('.p3-tile-mark svg')?.getBoundingClientRect();
+            const tip = t.querySelector('.p3-tile-tip');
+            const shownText = [...t.querySelectorAll('*')].filter((n) => n !== tip && !tip?.contains(n) && n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden')
+              .map((n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join('')).join('').trim();
+            return { name: t.getAttribute('aria-label'), text: shownText, own: [...t.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join('').trim(),
+              w: b.width, h: b.height, dx: ic ? (ic.left + ic.width / 2) - (b.left + b.width / 2) : null, dy: ic ? (ic.top + ic.height / 2) - (b.top + b.height / 2) : null,
+              tip: tip?.textContent ?? null, tipShown: !!tip && tip.getClientRects().length > 0 && getComputedStyle(tip).display !== 'none' };
+          }, sel);
+          const at = await read();
+          await page.locator(sel).hover();
+          const hov = await read();
+          await page.mouse.move(w - 1, h - 1);
+          bare.push({ hk, ...at, tipOnHover: hov?.tipShown ?? false, tipHover: hov?.tip ?? null });
+        }
+        const badBare = bare.filter((b) => b.name === undefined || !FOOT_NAMES[b.hk].test(b.name ?? '') || b.text !== '' || b.own !== ''
+          || b.tip !== b.name || !b.tipOnHover || b.tipHover !== b.name || b.w < HIT_FLOOR || b.h < HIT_FLOOR
+          || b.dx === null || Math.abs(b.dx) > 0.5 || Math.abs(b.dy) > 0.5);
+        ok(bare.length === BARE.length && badBare.length === 0,
+          `#3083 rail ${where}: ${web ? 'Help and Appearance' : 'Minimize, Help and Appearance'} show no visible label, keep their accessible name and a tooltip in the same words, stay at least ${HIT_FLOOR} × ${HIT_FLOOR}, and center their icon (${JSON.stringify(badBare.length ? badBare : bare.map((b) => `${b.hk} ${b.w}×${b.h}`))})`);
         // The rail polish (the owner's hands-on look, 2026-10-26, #2909). Literals, from the owner's words, never read from
         // `chrome.css` or the token map. MUTATIONS, each failing its arm by name: the label rule's `font-size` back to
         // `--p3-fs-12` → `… every rail label renders at 9px …`; its `letter-spacing` dropped → `… at -0.01em …`; the icon rule
         // dropped → `… every rail icon renders 24 × 24 …`; the mark's `height` back to `min-height: ctl-h-xs` → `… inside a square mark …`.
         const RAIL_LABEL_PX = 9, RAIL_LABEL_EM = -0.01, RAIL_ICON = 24;
-        const badLabel = rl.geo.filter((g) => g.fs !== `${RAIL_LABEL_PX}px`);
-        ok(rl.geo.length === ORDER.length && badLabel.length === 0, `rail ${where}: every rail label renders at ${RAIL_LABEL_PX}px (${badLabel.map((g) => `${g.hook} ${g.fs}`).join(', ') || 'all'})`);
+        // The label arms read the labeled tiles (#3083: the foot's draw none); the icon and mark arms read every tile.
+        const geoL = rl.geo.filter((g) => !BARE.includes(g.hook));
+        const badLabel = geoL.filter((g) => g.fs !== `${RAIL_LABEL_PX}px`);
+        ok(geoL.length === ORDER.length - BARE.length && badLabel.length === 0, `rail ${where}: every rail label renders at ${RAIL_LABEL_PX}px (${badLabel.map((g) => `${g.hook} ${g.fs}`).join(', ') || 'all'})`);
         // A computed `normal` reads as NaN, which compares false: so a value that is not a number fails, rather than passes.
-        const badTrack = rl.geo.filter((g) => { const em = parseFloat(g.ls) / parseFloat(g.fs); return !Number.isFinite(em) || Math.abs(em - RAIL_LABEL_EM) > 0.0005; });
-        ok(rl.geo.length === ORDER.length && badTrack.length === 0, `rail ${where}: every rail label tracks at ${RAIL_LABEL_EM}em (${badTrack.map((g) => `${g.hook} ${g.ls}`).join(', ') || 'all'})`);
+        const badTrack = geoL.filter((g) => { const em = parseFloat(g.ls) / parseFloat(g.fs); return !Number.isFinite(em) || Math.abs(em - RAIL_LABEL_EM) > 0.0005; });
+        ok(geoL.length === ORDER.length - BARE.length && badTrack.length === 0, `rail ${where}: every rail label tracks at ${RAIL_LABEL_EM}em (${badTrack.map((g) => `${g.hook} ${g.ls}`).join(', ') || 'all'})`);
         const badIcon = rl.geo.filter((g) => !g.icon || Math.abs(g.icon.w - RAIL_ICON) > 0.5 || Math.abs(g.icon.h - RAIL_ICON) > 0.5);
         ok(rl.geo.length === ORDER.length && badIcon.length === 0, `rail ${where}: every rail icon renders ${RAIL_ICON} × ${RAIL_ICON} (${badIcon.map((g) => `${g.hook} ${g.icon?.w}×${g.icon?.h}`).join(', ') || 'all'})`);
         const badMark = rl.geo.filter((g) => !g.mark || !g.icon || Math.abs(g.mark.w - g.mark.h) > 0.5 || g.mark.w < RAIL_ICON
           || g.icon.l < g.mark.l - 0.5 || g.icon.r > g.mark.r + 0.5 || g.icon.t < g.mark.t - 0.5 || g.icon.b > g.mark.b + 0.5);
         ok(rl.geo.length === ORDER.length && badMark.length === 0, `rail ${where}: every rail icon sits inside a square mark, never a landscape one (${badMark.map((g) => `${g.hook} ${g.mark?.w}×${g.mark?.h}`).join(', ') || 'all'})`);
         // No label clips or wraps at 9px: one line (its box no taller than its line height), nothing scrolled, inside the rail.
-        const badFit = rl.geo.filter((g) => !g.label || g.label.h > g.lh + 0.5 || g.sw > g.cw || g.sh > g.ch + 0.5 || !rl.railBox || g.label.l < rl.railBox.l - 0.5 || g.label.r > rl.railBox.r + 0.5);
-        ok(rl.geo.length === ORDER.length && badFit.length === 0, `rail ${where}: every rail label fits on one line inside the rail, unclipped (${badFit.map((g) => `${g.hook} ${g.label?.w}×${g.label?.h} (line ${g.lh})`).join(', ') || 'all'})`);
+        const badFit = geoL.filter((g) => !g.label || g.label.h > g.lh + 0.5 || g.sw > g.cw || g.sh > g.ch + 0.5 || !rl.railBox || g.label.l < rl.railBox.l - 0.5 || g.label.r > rl.railBox.r + 0.5);
+        ok(geoL.length === ORDER.length - BARE.length && badFit.length === 0, `rail ${where}: every rail label fits on one line inside the rail, unclipped (${badFit.map((g) => `${g.hook} ${g.label?.w}×${g.label?.h} (line ${g.lh})`).join(', ') || 'all'})`);
         // #3083, Q813 A (the owner picked Tabler, 2026-10-27): every glyph the chrome draws is a Tabler outline icon from the
         // vendored set, and nothing else draws a glyph. THE ORACLE is `src/shell/icons/tabler.ts` read as text in Node
         // (`TABLER_SET`), never `dom.ts`'s name map; THE SUBJECT is every <svg> in the document as drawn, its paths read
@@ -1817,9 +1855,10 @@ if (runs('1')) for (const host of ['web', 'figma']) {
         const tabGap = await page.evaluate(() => { const t = document.querySelector('[data-p3="frame"] .p3-nav .p3-tabs'); return t && t.getBoundingClientRect().width > 0 && getComputedStyle(t).display !== 'none' ? getComputedStyle(t).columnGap : null; });
         if (w > 560) ok(tabGap === '16px', `rail ${where}: the Theme tab row's gap is 16px, one step up from 12px (read ${tabGap})`);
         ok(rl.current === 'rail-theme' && hexOfRgb(rl.curBg) === RAIL_SELECTED[theme], `rail ${where}: Theme is the current area, its tile filled with the inset role (${RAIL_SELECTED[theme]}) (${rl.current}, ${rl.curBg})`);
-        // Q2995.2 A (#2909): at the plugin's least height (420) the logo hides so every tile keeps its label; elsewhere it shows.
-        // The web's rail (five tiles, Q2909.9 A) fits at 420 with its logo, so only the plugin's hides it there.
-        const logoWanted = h > 420 || web;
+        // Q2995.2 A (#2909): below the height the rail needs, the logo hides so every tile keeps its place; elsewhere it shows.
+        // The web's rail (five tiles, Q2909.9 A) fits at 420 with its logo, and since #3083's label-less foot (2026-10-28) the
+        // plugin's does too, so the logo shows at every size here. Its hide is held below 420 in section 2232.
+        const logoWanted = h >= 420 || web;
         ok(rl.mark.shown === logoWanted && rl.mark.role === 'img' && rl.mark.label === 'Prism3' && rl.mark.logoHidden && !rl.mark.control && rl.barMark === 0,
           `product mark ${where}: the rail's mark is the logo, named "Prism3", not a control, ${logoWanted ? 'drawn' : 'hidden at this height (Q2995.2 A)'}, and the top bar draws none (${JSON.stringify(rl.mark)}, ${rl.barMark} in the bar)`);
         // aria-current follows the area across clicks, and back.
@@ -2848,6 +2887,10 @@ for (const host of ['web', 'figma']) {
           return { drawn: !!st && !st.hidden && getComputedStyle(st).display !== 'none', rect: r ? [Math.round(r.width), Math.round(r.height)] : null,
             appDrawn: !!app && getComputedStyle(app).display !== 'none', text: t?.textContent ?? null, whole: !!t && t.scrollWidth <= t.clientWidth,
             restore: rs?.getAttribute('aria-label') ?? null, off: off?.textContent ?? null, focus: document.activeElement?.getAttribute('data-p3') ?? null,
+            // #3083: Restore, Minimize's counterpart, is its icon alone too: no text, its name as its tooltip, centered, over the floor.
+            restoreBare: (() => { if (!rs) return null; const b = rs.getBoundingClientRect(), ic = rs.querySelector('svg')?.getBoundingClientRect();
+              return { text: rs.textContent.trim(), tip: rs.getAttribute('title'), w: b.width, h: b.height,
+                dx: ic ? Math.abs((ic.left + ic.width / 2) - (b.left + b.width / 2)) : null, dy: ic ? Math.abs((ic.top + ic.height / 2) - (b.top + b.height / 2)) : null }; })(),
             inside: [box(t), box(rs), box(off)].every((b) => b && b[0] >= 0 && b[1] >= 0 && b[2] <= 480 && b[3] <= 40) };
         });
         const s1 = await stripState();
@@ -2857,6 +2900,9 @@ for (const host of ['web', 'figma']) {
           `#2949 ${where}: the strip reads "${LONGEST}", whole, every part inside the strip (${JSON.stringify({ text: s1.text, whole: s1.whole, inside: s1.inside })})`);
         ok(s1.restore === 'Restore' && s1.off === 'Turn off' && s1.focus === 'agent-strip-restore',
           `#2949 ${where}: the strip carries Restore and Turn off, and focus moves to Restore (${JSON.stringify({ restore: s1.restore, off: s1.off, focus: s1.focus })})`);
+        const rb = s1.restoreBare;
+        ok(!!rb && rb.text === '' && rb.tip === 'Restore' && rb.w >= 24 && rb.h >= 24 && rb.dx !== null && rb.dx <= 0.5 && rb.dy <= 0.5,
+          `#3083 ${where}: the strip's Restore, Minimize's counterpart, is its icon alone, centered, named and titled "Restore", at least 24 × 24 (${JSON.stringify(rb)})`);
         await shot('strip');
         await postMsg(page, { type: 'agent-started', id: 'm1', cmd: 'update-components' });
         await page.waitForFunction(() => /^Agent running/.test(document.querySelector('[data-p3="agent-strip-text"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
@@ -13053,12 +13099,15 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
 if (runs('2232')) {
 console.log('\n#2909 Q2995.2 A. The rail at the plugin\'s least height');
 // The owner's Q2995.2 A: at the plugin's least window height (420, `MIN_SIZE` in apps/plugin/src/main.ts), every rail
-// tile keeps its label and lies inside the window; the logo hides to make the room. EXPECTED is the window's own edge and
-// the labels this suite authors for the rail; MUTATION: the logo kept at every height (`rail.ts` `fit` removed) → the
-// `inside the window` arm, by name, at both widths.
-for (const theme of ['light', 'dark']) for (const w of [1280, 380]) {
-  const where = `figma ${theme} ${w}×420`;
-  const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: 420 });
+// tile lies inside the window and each area tile keeps its label; below the height the rail needs, the logo hides to make
+// the room. Since #3083 (2026-10-28) the foot's three tiles draw no label, the foot is shorter, and the rail fits at 420
+// with its logo, so the hide is held at 360 (measured: the rail first runs short of room just under 400). The fit is
+// measured, not a breakpoint, so it holds at any height. EXPECTED is the window's own edge and the labels this suite
+// authors for the rail; MUTATION: the logo kept at every height (`rail.ts` `fit` removed) → the `inside the window` arm
+// at 360, by name, at both widths.
+for (const theme of ['light', 'dark']) for (const w of [1280, 380]) for (const vh of [420, 360]) {
+  const where = `figma ${theme} ${w}×${vh}`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: vh });
   try {
     await hooks.need(page, '[data-p3="rail"]', WAIT);
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
@@ -13071,8 +13120,8 @@ for (const theme of ['light', 'dark']) for (const w of [1280, 380]) {
         logo: !!mark && mark.getClientRects().length > 0 };
     });
     ok(r.n === 7 && r.out.length === 0, `#2909 Q2995.2 A ${where}: every rail tile lies inside the window (${r.n} tiles; past the bottom edge: ${r.out.join(', ') || 'none'})`);
-    ok(JSON.stringify(r.labels) === JSON.stringify(['Theme', 'Components', 'Docs', 'Export', 'Minimize', 'Help', 'Appearance']), `#2909 Q2995.2 A ${where}: every rail tile keeps its label (${JSON.stringify(r.labels)})`);
-    ok(!r.logo, `#2909 Q2995.2 A ${where}: the rail's logo hides to make the room (logo drawn ${r.logo})`);
+    ok(JSON.stringify(r.labels) === JSON.stringify(['Theme', 'Components', 'Docs', 'Export', null, null, null]), `#2909 Q2995.2 A ${where}: every area tile keeps its label, and the foot's three draw none (#3083) (${JSON.stringify(r.labels)})`);
+    ok(r.logo === (vh >= 420), vh >= 420 ? `#2909 Q2995.2 A ${where}: the rail fits with its logo drawn (#3083) (logo drawn ${r.logo})` : `#2909 Q2995.2 A ${where}: the rail's logo hides to make the room (logo drawn ${r.logo})`);
     ok(errors.length === 0, `#2909 Q2995.2 A ${where}: 0 console errors${errors.length ? ` — ${errors[0]}` : ''}`);
   } finally { await ctx.close(); }
 }

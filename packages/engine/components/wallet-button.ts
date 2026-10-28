@@ -39,16 +39,19 @@
  *     its own paint.
  */
 import { ComponentDef } from '../component-schema';
+import { focusRingPart, heightExclusions, heightTokens, markPart, providerMap, radiusToken, ringTokens, type BrandedProviderRule } from '../branded-button';
 
 const PROVIDERS = ['apple-pay', 'google-pay', 'paypal', 'shop-pay'] as const;
 
-/** Each provider's logo in the mark set. PayPal's button carries its wordmark, not the monogram. */
-const LOGO: Record<(typeof PROVIDERS)[number], string> = {
-  'apple-pay': 'logo/apple-pay',
-  'google-pay': 'logo/google-pay',
-  paypal: 'logo/paypal-wordmark',
-  'shop-pay': 'logo/shop-pay',
+/** Each provider's logo in the mark set, and the height range its guidelines allow (the header above). PayPal's
+ *  button carries its wordmark, not the monogram. */
+const RULES: Record<(typeof PROVIDERS)[number], BrandedProviderRule> = {
+  'apple-pay': { mark: 'logo/apple-pay', minHeight: 30 },
+  'google-pay': { mark: 'logo/google-pay' },
+  paypal: { mark: 'logo/paypal-wordmark', minHeight: 25, maxHeight: 55 },
+  'shop-pay': { mark: 'logo/shop-pay', minHeight: 40 },
 };
+const LOGO = providerMap(RULES);
 
 export const walletButton: ComponentDef = {
   id: 'wallet-button',
@@ -75,16 +78,13 @@ export const walletButton: ComponentDef = {
   axisKinds: { provider: 'authoring', size: 'authoring' },
 
   tokens: {
-    'size.small.height': 'size.sm.height',
-    'size.medium.height': 'size.md.height',
-    'size.large.height': 'size.lg.height',
+    ...heightTokens(),
     // The logo's height; its width follows from its own proportion.
     'size.small.mark': 'icon.size.sm',
     'size.medium.mark': 'icon.size.md',
     'size.large.mark': 'icon.size.lg',
-    'radius': 'radius.md',
-    'ring-width': 'focus.ring.width',
-    'ring-offset': 'focus.ring.offset',
+    ...radiusToken(),
+    ...ringTokens(),
   },
 
   anatomy: {
@@ -100,28 +100,16 @@ export const walletButton: ComponentDef = {
         radius: 'radius',
         note: 'The provider\'s area at its size and corner, with no fill and no edge: the provider draws the button inside it.',
       },
-      mark: {
-        kind: 'nest',
-        nests: 'brand-mark',
+      mark: markPart({
         nesting: {
           kind: 'nest-fixed',
           variant: { name: LOGO['apple-pay'] },
           variantWhen: { provider: Object.fromEntries(PROVIDERS.map((p) => [p, { name: LOGO[p] }])) },
         },
         height: 'size.{size}.mark',
-        aspectLock: true,
-        fixedPaint: true,
         note: 'The provider\'s logo, in its own colors and proportion, centered. Only its height is set.',
-      },
-      focusRing: {
-        kind: 'absolute',
-        when: 'focus-visible',
-        nests: 'focus-ring',
-        inset: 'ring-offset',
-        strokeInset: 'ring-width',
-        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'The shared focus ring, around the provider\'s button while it has keyboard focus.',
-      },
+      }),
+      focusRing: focusRingPart('The shared focus ring, around the provider\'s button while it has keyboard focus.'),
     },
     codeOnly: [
       'the provider\'s element — the component is a container the provider\'s element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify\'s Shop Pay element. It never draws a button of its own. It passes size as the element\'s height, the brand radius as the element\'s radius option (clamped for Google Pay, below), and type and buttonStyle through unchanged.',
@@ -139,7 +127,7 @@ export const walletButton: ComponentDef = {
     variantAxes: ['provider', 'size'],
     // Q-W2 A: a size outside the provider's height range has no member. Q-B5 A (valid provider × style pairs only),
     // read onto provider × size while the style axis waits on Q-W1.
-    excludeCoordinates: [{ provider: ['shop-pay'], size: ['small'] }, { provider: ['paypal'], size: ['large'] }],
+    excludeCoordinates: heightExclusions(RULES, { small: 36, medium: 44, large: 56 }),
     stateAxis: { name: 'state', values: ['rest', 'focus-visible'] },
     gridAxis: 'state',
     booleans: {},
