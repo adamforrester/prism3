@@ -1,4 +1,4 @@
-## (2026-10-28) — The Activity drawer, direction A: glyphs and words for verdicts, split counts, next steps, a sheet header at 380, and T5's one shadow (#3113)
+## (2026-10-28) — The Activity drawer, direction A: glyphs and words for verdicts, split counts, next steps, a sheet header at 380, and a sanctioned shadow (#3113)
 
 The owner approved #3113's wireframe on 2026-10-28: Q3113.1–Q3113.10 are all A. This builds direction A, the refined
 drawer, in `apps/studio/src/shell/activity.ts`, `apps/studio/src/chrome.css` and `apps/plugin/src/agent-link-ui.ts`, with
@@ -40,20 +40,23 @@ undrawn. All new strings are DRAFT.
 - **Sizes (Q3113.10 A under #3083's decisions).** Drawer text at 12, and the bar row stays at 56 (Q3083.2 B). A parallel
   lane builds #3083's size pass; whichever PR lands second resolves the overlap in `chrome.css` and `test-chrome.mjs`.
 
-### T5's one exception: the drawer's shadow
+### A sanctioned shadow: the drawer's top edge
 
 The owner added a subtle shadow along the drawer's top edge, so it reads as an overlay that slides up and over the
-preview. It applies to the open drawer, and to the strip and the sheet at 380, where they overlay content. **This is an
-explicit owner exception to T5 (no shadows), scoped to this edge.** It is recorded where T5 lives: `SHADOW_EXCEPTION` in
-`apps/studio/chrome/spec.mjs`, the T5 row of `docs/superpowers/ui-redesign/decisions-2026-09-30-v4-review.md`, the
-`chrome.css` header and the RAW comment in `chrome/tokens.mjs`.
+preview. It applies to the open drawer, and to the strip and the sheet at 380, where they overlay content. **The owner's
+clarification on #3113 rewords T5: shadows are used sparingly, and only where they carry meaning.** T5 is a rule of
+thumb, not a prohibition, so this shadow is a sanctioned use, not an exception. It is recorded where T5 lives:
+`SANCTIONED_SHADOWS` in `apps/studio/chrome/spec.mjs` (each use with its rule and its reason), the T5 row of
+`docs/superpowers/ui-redesign/decisions-2026-09-30-v4-review.md`, the `chrome.css` header and the RAW comment in
+`chrome/tokens.mjs`.
 
 - The shadow is `0 calc(-1 * space-025) space-150 calc(-1 * space-050) scrim`. Its color is the chrome's existing
   `--p3-scrim` (`color.scrim.default`, black at 40% in light and 60% in dark). No token and no pair is added.
-- The build's [raw] scan lets that one rule through word for word, exactly once (`withoutShadowException`). Its value
-  must be chrome spacing variables and the scrim, and its own canaries (`SHADOW_CANARIES`) check that the same shadow on
-  another selector, or the rule twice, still fails. The mockups' `RAW` scan still refuses it.
-- `test:chrome`'s T5 probe excepts only the drawer's own box-shadow, while the drawer is open or at the narrow tier. In
+- The build's [raw] scan lets each recorded rule through word for word (`withoutSanctionedShadows`). A recorded value
+  must be chrome spacing variables and the scrim, and its canary (`SHADOW_CANARIES`) checks that the recorded rule alone
+  passes. No new gate forbids a shadow elsewhere. The [raw] T5 pattern in `tokens.mjs` and `test:chrome`'s older
+  "no chrome element draws a shadow" check predate this PR and stay; whether to keep or retire them is asked on #3113.
+- `test:chrome`'s T5 probe lets through only the drawer's own box-shadow, while the drawer is open or at the narrow tier. In
   every probe state, a new check gates it: the open drawer (or the strip) casts the shadow up from its top edge (a negative
   y offset, no x offset, a blur) in the emission's scrim for the chrome theme drawn, and the closed bar row draws none.
   The scrim's value comes from this suite's own walk of the committed emission.

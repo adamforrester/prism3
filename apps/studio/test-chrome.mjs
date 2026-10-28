@@ -165,8 +165,8 @@
  *     and its words (no pill); the counts split into "1 failed" and "1 warning", and "n running" only for more than one;
  *     a bad result leads with its reason in the UI face at 500 and offers "Set up again" (which posts the write Set up
  *     file posted) and "Copy details"; an earlier result is one line; the 380 sheet has its own header row (a 24 × 24
- *     Close, "Activity", the counts) and hides the Settings/Preview toggle; and, in every probe, T5's one exception: the
- *     drawer casts the scrim's shadow up from its top edge while it overlays the preview, and the closed bar row none.
+ *     Close, "Activity", the counts) and hides the Settings/Preview toggle; and, in every probe, T5's sanctioned shadow:
+ *     the drawer casts the scrim's shadow up from its top edge while it overlays the preview, and the closed bar row none.
  *   · THE FIGMA MENU (plugin): its four items by literal label, and no Apply Theme (#2178: the bar's filled button
  *     is its one control); Arrow Down, Home, End, Arrow Up (wrapping), Escape and Tab; each item's effect observed
  *     on the wire (the write message the old control posted, captured off the bus, payload and all: the bar's Apply
@@ -1243,7 +1243,7 @@ const PROBE = (opt) => {
     const g = groundOf(svg.parentElement);
     if (c) glyphs.push({ el: `glyph in ${label(svg.parentElement)}`, r: fl(ratio(over(c, g), g)), off: offOf(svg), ink: getComputedStyle(svg).color, canary: !!svg.closest('[data-ccanary]') });
   }
-  // shadows, on every chrome element and its pseudo-elements, drawn or not. T5's one exception (#3113, the owner,
+  // shadows, on every chrome element and its pseudo-elements, drawn or not. T5's sanctioned use (#3113, the owner,
   // 2026-10-28), typed here and nowhere read from the stylesheet: the Activity drawer's own box-shadow, while it overlays the
   // preview (open, or at the narrow tier as the strip and the sheet). Held below to its edge and its ink (DRAWER_SHADOW).
   const dr = document.querySelector('[data-p3="activity-drawer"]');
@@ -1380,7 +1380,7 @@ const focusRings = async (page, { all = false, max = 30, skipIn = [], onRing = n
 };
 
 // ── the Activity drawer's shadow (#3113) ───────────────────────────────────────────────────────────
-/** T5's one exception's ink, READ FROM THE EMISSION with this file's own walk: `color.scrim.default` in each chrome theme,
+/** T5's sanctioned drawer shadow's ink, READ FROM THE EMISSION with this file's own walk: `color.scrim.default` in each chrome theme,
  *  as the computed `rgba()` a box-shadow reports. Not from `chrome.css` or `chrome/spec.mjs`, which set it (docs/34). */
 const DRAWER_SHADOW_INK = (() => {
   const out = join(REPO, 'packages', 'engine', 'out');
@@ -1700,11 +1700,11 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   const offFace = m.fonts.filter((f) => !f.fonts.length || f.gapFonts > 0);
   ok(offFace.length === 0, `${where}: every chrome text element draws in the embedded ${UI_FONT} (${MONO_FONT} where it is set in mono)${offFace.length ? ` — ${offFace.slice(0, 3).map((f) => `${f.el} drew ${f.fonts.join(', ') || 'nothing'}`).join(' | ')}` : ''}`);
   // shadows, inline values, overflow
-  ok(m.shadows.length === 0, `${where}: no chrome element draws a shadow (T5; the Activity drawer's top edge aside, #3113)${m.shadows.length ? ` — shadow: ${m.shadows.slice(0, 3).join(' | ')}` : ''}`);
-  // #3113 (the owner's exception to T5): wherever the drawer is drawn, it carries its shadow exactly while it overlays the
+  ok(m.shadows.length === 0, `${where}: no chrome element draws a shadow (T5) but a sanctioned use (the Activity drawer's top edge, #3113)${m.shadows.length ? ` — shadow: ${m.shadows.slice(0, 3).join(' | ')}` : ''}`);
+  // #3113 (a sanctioned shadow, T5): wherever the drawer is drawn, it carries its shadow exactly while it overlays the
   // preview (open, or the strip and the sheet at 380), and the closed bar row wider carries none. The shadow is the top
   // edge's: it casts upward (a negative y offset, no x offset, a blur), in the emission's scrim for the chrome theme drawn.
-  // MUTATIONS: the rule's `[data-open="true"]` dropped in `chrome.css` (and SHADOW_EXCEPTION) → the closed arm, by name;
+  // MUTATIONS: the rule's `[data-open="true"]` dropped in `chrome.css` (and SANCTIONED_SHADOWS) → the closed arm, by name;
   // the rule removed from both → the open arm, by name.
   if (m.drawerShadow?.drawn) {
     const d = m.drawerShadow;
@@ -1713,7 +1713,7 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
     const scrim = DRAWER_SHADOW_INK[m.scheme === 'dark' ? 'dark' : 'light'];
     if (want) ok(!!sh && sh.x === 0 && sh.y < 0 && sh.blur > 0 && sh.rgba === scrim,
       `#3113 ${where}: the ${d.open ? 'open drawer' : 'strip'} casts its shadow up from its top edge, in the emission's scrim (${scrim}) — drew ${JSON.stringify(d.box)}`);
-    else ok(d.box === 'none', `#3113 ${where}: the closed bar row draws no shadow (T5 holds below the open drawer) — drew ${JSON.stringify(d.box)}`);
+    else ok(d.box === 'none', `#3113 ${where}: the closed bar row draws no shadow (nothing for it to overlay) — drew ${JSON.stringify(d.box)}`);
   }
   ok(m.inline.length === 0, `${where}: no runtime inline value outside [data-content]${m.inline.length ? ` — ${m.inline.slice(0, 4).join(' | ')}` : ''}`);
   ok(m.overflowX <= 1, `${where}: no horizontal page scroll (${m.overflowX}px past the viewport)`);

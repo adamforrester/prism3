@@ -25,11 +25,11 @@
  *
  * Layering (IA-2): the top bar on `bar-bg`, the tab row on `levers-bg`, the preview pane on `bg-page`.
  * Edges (B1): a control on the top bar takes `edge-bar`, a control on the levers ground takes `edge`.
- * Radius (owner, 2026-10-01): containers take `radius-xl`, controls take `radius-lg`. No shadows (T5), with ONE exception
- * the owner made on #3113 (2026-10-28): a subtle shadow along the top edge of the Activity drawer while it overlays the
- * preview (the open drawer; the strip and the sheet at 380), so it reads as an overlay that slides up and over. Its color
- * is the chrome's own scrim, no new token. The build allows that one rule word for word (`SHADOW_EXCEPTION`,
- * `chrome/spec.mjs`) and `test:chrome` allows it on the drawer alone.
+ * Radius (owner, 2026-10-01): containers take `radius-xl`, controls take `radius-lg`. Shadows (T5, worded by the owner
+ * on #3113, 2026-10-28) are used sparingly, and only where they carry meaning. A sanctioned use: a subtle shadow along
+ * the top edge of the Activity drawer while it overlays the preview (the open drawer; the strip and the sheet at 380), so
+ * it reads as an overlay that slides up and over. Its color is the chrome's own scrim, no new token. Each sanctioned use
+ * is recorded with its reason (`SANCTIONED_SHADOWS`, `chrome/spec.mjs`), and the build lets its rule through word for word.
  *
  * The comments here ship in both bundles, so they are held to US English and the voice standard.
  */
@@ -569,8 +569,8 @@
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal);
 }
 .p3-drawer[data-open="false"][data-ever="false"] { display: none; }
-/* T5's one exception (the owner, #3113): the drawer's top edge casts a subtle shadow up over what it covers, while it
-   overlays the preview: open, and at 380 as the strip and the sheet. Never the closed bar row wider. */
+/* A sanctioned shadow (T5, the owner, #3113): the drawer's top edge casts a subtle shadow up over what it covers, while it
+   overlays the preview: open, and at 380 as the strip and the sheet. Not the closed bar row wider. */
 .p3-drawer[data-open="true"], .p3-frame[data-w="narrow"] .p3-drawer { box-shadow: 0 calc(-1 * var(--p3-space-025)) var(--p3-space-150) calc(-1 * var(--p3-space-050)) var(--p3-scrim); }
 .p3-drawer-bar {
   display: flex; align-items: center; gap: var(--p3-space-100); flex: none; width: 100%;
