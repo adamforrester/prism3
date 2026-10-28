@@ -5723,10 +5723,13 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 {
   const RULE: Record<string, { fill: string; edge?: string; ink: string; mark: string; word: string }> = {
     'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'brand-mark/provider/apple', word: 'Continue with Apple' },
+    'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'brand-mark/provider/apple-black', word: 'Continue with Apple' },
+    'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'brand-mark/provider/apple-black', word: 'Continue with Apple' },
     'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
     'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
     'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
     'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook', word: 'Continue with Facebook' },
+    'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'brand-mark/provider/facebook-blue', word: 'Continue with Facebook' },
   };
   const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
   const same = (paint: { type?: string; color?: { r: number; g: number; b: number }; boundVariables?: object } | undefined, hex: string): boolean =>
@@ -5736,16 +5739,20 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
   const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
   const f = fullFor(all);
-  const page: Page = { children: [] };
-  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, liveComponents: true, page }) as any;
   const sb = defs.find((d) => d.id === 'sign-in-button')!;
-  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim, { emitAsComponents: d.figmaProperties?.emitAsComponents });
-  let misses: string[] = [];
-  try { await prebuildDependencies(sb, { defs, project, host: shim, build }); misses = (await build(sb)).misses; }
-  catch (err) { misses = [`threw: ${(err as Error).message.slice(0, 200)}`]; }
-  const set = page.children.find((c) => c.name === 'sign-in-button' && c.type === 'COMPONENT_SET') as Node | undefined;
-  const members = (set?.children as Node[] | undefined) ?? [];
-  ok(members.length === 60 && misses.length === 0, `sign-in build: the set builds 60 members with 0 misses (${members.length}; ${misses[0] ?? 'none'})`);
+  // One build of the set on a fresh shim; `faults` are the host faults a case injects (none for the main build).
+  const buildSignIn = async (faults: Partial<ShimOpts> = {}): Promise<{ members: Node[]; misses: string[] }> => {
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, liveComponents: true, page, ...faults }) as any;
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    let misses: string[] = [];
+    try { await prebuildDependencies(sb, { defs, project, host: shim, build }); misses = (await build(sb)).misses; }
+    catch (err) { misses = [`threw: ${(err as Error).message.slice(0, 200)}`]; }
+    const set = page.children.find((c) => c.name === 'sign-in-button' && c.type === 'COMPONENT_SET') as Node | undefined;
+    return { members: (set?.children as Node[] | undefined) ?? [], misses };
+  };
+  const { members, misses } = await buildSignIn();
+  ok(members.length === 96 && misses.length === 0, `sign-in build: the set builds 96 members with 0 misses (${members.length}; ${misses[0] ?? 'none'})`);
   const off: string[] = [];
   for (const m of members) {
     const name = String(m.name);
@@ -5768,7 +5775,38 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       : '';
     if (why) off.push(`${name}: ${why}`);
   }
-  ok(members.length === 60 && off.length === 0, `sign-in build/literal: every member carries its provider's own fill (with a translucent wash over it at hover and pressed), edge, label ink, wording, font and glyph, as plain values (${off.length} off — ${off[0] ?? 'none'})`);
+  ok(members.length === 96 && off.length === 0, `sign-in build/literal: every member carries its provider's own fill (with a translucent wash over it at hover and pressed), edge, label ink, wording, font and glyph, as plain values (${off.length} off — ${off[0] ?? 'none'})`);
+
+  // THE FALLBACK FACE (Q-S7 A): a host without Google Sans refuses the load, and every Google label lands in Roboto
+  // Medium 14/20, typed here, with the refused face reported by name. Every member still builds, and no other miss.
+  // Mutation: the executor's face list `[{face}, f.fallback]` → `[{face}]` fails this arm by name.
+  {
+    const FALLBACK = { family: 'Roboto', style: 'Medium', size: 14, lineHeight: 20 };
+    const fb = await buildSignIn({ unavailableFonts: [{ family: 'Google Sans', style: 'Medium' }] });
+    const google = fb.members.filter((m) => /provider=google/.test(String(m.name)));
+    const offFace = google.flatMap((m) => {
+      const label = ((m.children as Node[] | undefined) ?? []).find((c) => c.name === 'label');
+      const fn = label?.fontName as { family?: string; style?: string } | undefined, lh = label?.lineHeight as { unit?: string; value?: number } | undefined;
+      return fn?.family === FALLBACK.family && fn.style === FALLBACK.style && label?.fontSize === FALLBACK.size && lh?.unit === 'PIXELS' && lh.value === FALLBACK.lineHeight
+        ? [] : [`${String(m.name)}: ${JSON.stringify(fn)} ${String(label?.fontSize)}/${JSON.stringify(lh)}`];
+    });
+    const refused = fb.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium ('));
+    const other = fb.misses.filter((x) => !x.startsWith('label.font -> Google Sans Medium ('));
+    ok(fb.members.length === 96 && google.length === 36 && offFace.length === 0 && refused.length === google.length && other.length === 0,
+      `sign-in build/font fallback: with Google Sans refused, all 96 members build, every Google label (${google.length}) lands in Roboto Medium 14/20, and the refused face is reported once per Google label as 'label.font -> Google Sans Medium (…)' (${refused.length} reported; off: ${offFace[0] ?? 'none'}; other misses: ${other[0] ?? 'none'})`);
+  }
+
+  // THE LITERAL READ-BACK SPEAKS: a host that takes the container's literal fill and keeps nothing must surface as
+  // 'container.fills -> DISCARDED (literal … set, not retained)' on every member, by value. Mutation: the executor's
+  // literal read-back guard → `if (false)` fails this arm by name.
+  {
+    const dr = await buildSignIn({ discardLiteralFills: ['container'] });
+    const discarded = dr.misses.filter((x) => /^container\.fills -> DISCARDED \(literal #[0-9a-f]{6}( \+ #[0-9a-f]{8})? set, not retained\)$/.test(x));
+    const apple = dr.misses.includes('container.fills -> DISCARDED (literal #000000 set, not retained)')
+      && dr.misses.includes('container.fills -> DISCARDED (literal #ffffff + #0000001a set, not retained)');
+    ok(dr.members.length === 96 && discarded.length === 96 && apple,
+      `sign-in build/literal read-back: a host that drops the container's literal fill is reported on all 96 members as 'container.fills -> DISCARDED (literal … set, not retained)', by value (${discarded.length} reported; Apple black at rest and white at hover named: ${apple}; first: ${dr.misses[0] ?? 'none'})`);
+  }
 }
 
 if (failed) process.exit(1);

@@ -403,7 +403,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'payment/affirm', 'payment/amazon-pay', 'payment/amex', 'payment/apple-pay', 'payment/diners-club',
       'payment/discover', 'payment/generic', 'payment/google-pay', 'payment/klarna', 'payment/maestro',
       'payment/mastercard', 'payment/paypal', 'payment/shop-pay', 'payment/venmo', 'payment/visa',
-      'provider/apple', 'provider/facebook', 'provider/google',
+      'provider/apple', 'provider/apple-black', 'provider/facebook', 'provider/facebook-blue', 'provider/google',
       'social/apple', 'social/apple-mono', 'social/discord', 'social/discord-mono', 'social/dribbble',
       'social/dribbble-mono', 'social/facebook', 'social/facebook-mono', 'social/figma', 'social/figma-mono',
       'social/github', 'social/github-mono', 'social/google', 'social/google-mono', 'social/instagram',
@@ -447,16 +447,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'style',
-    values: ['black', 'light', 'dark', 'neutral', 'blue'],
+    values: ['black', 'white', 'outline', 'light', 'dark', 'neutral', 'blue'],
     defs: ['sign-in-button'],
-    relation: 'disjoint',
+    relation: 'superset',
     reason:
       'The provider\'s own color style, in the provider\'s own words (#2343 PR 5, owner decision Q-S4 A): Apple black, '
-      + 'Google light, dark and neutral, Facebook blue. Only the styles a member carries are values (Q-S5 A): Apple '
-      + 'white and outline and Facebook white join when `provider/apple-black` and `provider/facebook-blue` land, '
-      + 'and this entry gains `white` and `outline` in that PR (then `overlapping` with the field\'s canonical '
-      + '`outline`, a different treatment under one word). DISJOINT today from every other `style` set. `black` '
-      + 'LEADS, Apple\'s default and the first member.',
+      + 'white and outline, Google light, dark and neutral, Facebook blue and white. All eight pairs ship (Q831 A); '
+      + 'only the styles a member carries are values, so a style whose glyph is missing would drop out here. '
+      + 'A SUPERSET of the field\'s canonical `style` (`outline`): Apple\'s outline is the provider\'s white button '
+      + 'with a 1px black edge, a field\'s is a box with an edge, so the word means the same thing (an edged control) '
+      + 'in both, the two never meet on one def, and no paint key crosses them. `white` is shared by Apple '
+      + 'and Facebook and means the same in both: the provider\'s white fill. `black` LEADS, Apple\'s default and the '
+      + 'first member.',
   },
   {
     axis: 'labeled',

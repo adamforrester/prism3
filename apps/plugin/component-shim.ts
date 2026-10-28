@@ -362,6 +362,10 @@ export type ShimOpts = {
    * back-off costs the suite nothing. Opt-in; unset, no member is in a window.
    */
   refuseRefsWindow?: { members: string[]; ms: number; shape: 'throw' | 'discard'; now: () => number };
+  /** #2343 PR 5 — ACCEPT-AND-DISCARD, TAUGHT FOR A LITERAL FILL. A node named here takes a fills write and keeps only
+   *  the paints bound to a variable, dropping every unbound SOLID: the shape a host that refused a plain value would
+   *  leave. Off by default. Modelled so the executor's literal read-back has a case where it MUST speak. */
+  discardLiteralFills?: string[];
   /**
    * #1574 — THE SET'S OWN HANDLE GOES STALE PART-WAY THROUGH PROPERTY CREATION. After this many
    * successful `addComponentProperty` calls, the object `combineAsVariants` handed back stops naming the
@@ -1303,6 +1307,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
             const was = (prev?.[i] as { boundVariables?: { color?: { id: string } } } | undefined)?.boundVariables?.color?.id;
             return was === id || (paint.opacity ?? 1) === 1 ? paint : { ...paint, opacity: 1 };
           });
+          if (key === 'fills' && opts.discardLiteralFills?.includes(String(node.name)))
+            backing = backing.filter((p) => (p as { type?: string; boundVariables?: { color?: unknown } })?.type !== 'SOLID' || !!(p as { boundVariables?: { color?: unknown } }).boundVariables?.color);
         },
       });
     }

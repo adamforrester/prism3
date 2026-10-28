@@ -438,7 +438,9 @@
           "payment/venmo",
           "payment/visa",
           "provider/apple",
+          "provider/apple-black",
           "provider/facebook",
+          "provider/facebook-blue",
           "provider/google",
           "social/apple",
           "social/apple-mono",
@@ -518,7 +520,9 @@
             "payment/venmo",
             "payment/visa",
             "provider/apple",
+            "provider/apple-black",
             "provider/facebook",
+            "provider/facebook-blue",
             "provider/google",
             "social/apple",
             "social/apple-mono",
@@ -4125,6 +4129,8 @@
         ],
         "style": [
           "black",
+          "white",
+          "outline",
           "light",
           "dark",
           "neutral",
@@ -4149,6 +4155,8 @@
           "name": "style",
           "values": [
             "black",
+            "white",
+            "outline",
             "light",
             "dark",
             "neutral",
@@ -6101,7 +6109,9 @@
           "blue",
           "dark",
           "light",
-          "neutral"
+          "neutral",
+          "outline",
+          "white"
         ],
         "components": [
           "sign-in-button"
@@ -7627,7 +7637,9 @@
           "payment/venmo",
           "payment/visa",
           "provider/apple",
+          "provider/apple-black",
           "provider/facebook",
+          "provider/facebook-blue",
           "provider/google",
           "social/apple",
           "social/apple-mono",
@@ -8874,6 +8886,8 @@
         "id": "sign-in-button",
         "values": [
           "black",
+          "white",
+          "outline",
           "light",
           "dark",
           "neutral",
@@ -9894,7 +9908,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the style axis takes 4 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [black, blue, dark, light, neutral] in sign-in-button; [inline, standalone] in link"
+      "detail": "the style axis takes 4 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [inline, standalone] in link"
     },
     {
       "kind": "axis values",

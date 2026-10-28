@@ -357,7 +357,7 @@
           ],
           "parts": {
             "container": {
-              "members": 60,
+              "members": 96,
               "where": {}
             }
           }
@@ -17611,7 +17611,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 15,
+              "members": 24,
               "where": {
                 "state": [
                   "focus-visible"
@@ -18194,7 +18194,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 15,
+              "members": 24,
               "where": {
                 "state": [
                   "focus-visible"
@@ -19129,7 +19129,7 @@
           ],
           "parts": {
             "mark": {
-              "members": 20,
+              "members": 32,
               "where": {
                 "size": [
                   "large"
@@ -19857,7 +19857,7 @@
           ],
           "parts": {
             "mark": {
-              "members": 20,
+              "members": 32,
               "where": {
                 "size": [
                   "medium"
@@ -20507,7 +20507,7 @@
           ],
           "parts": {
             "mark": {
-              "members": 20,
+              "members": 32,
               "where": {
                 "size": [
                   "small"
@@ -20811,7 +20811,7 @@
           ],
           "parts": {
             "container": {
-              "members": 60,
+              "members": 96,
               "where": {}
             }
           }
@@ -21637,7 +21637,7 @@
           ],
           "parts": {
             "container": {
-              "members": 20,
+              "members": 32,
               "where": {
                 "size": [
                   "large"
@@ -21989,7 +21989,7 @@
           ],
           "parts": {
             "container": {
-              "members": 20,
+              "members": 32,
               "where": {
                 "size": [
                   "medium"
@@ -22420,7 +22420,7 @@
           ],
           "parts": {
             "container": {
-              "members": 20,
+              "members": 32,
               "where": {
                 "size": [
                   "small"
@@ -23421,7 +23421,7 @@
           ],
           "parts": {
             "container": {
-              "members": 20,
+              "members": 32,
               "where": {
                 "size": [
                   "small"
@@ -24018,7 +24018,7 @@
           ],
           "parts": {
             "container": {
-              "members": 60,
+              "members": 96,
               "where": {}
             }
           }
@@ -24430,7 +24430,7 @@
           ],
           "parts": {
             "container": {
-              "members": 60,
+              "members": 96,
               "where": {}
             }
           }
@@ -24801,7 +24801,7 @@
           ],
           "parts": {
             "container": {
-              "members": 24,
+              "members": 60,
               "where": {
                 "provider": [
                   "apple",
@@ -24809,7 +24809,9 @@
                 ],
                 "style": [
                   "black",
-                  "blue"
+                  "blue",
+                  "outline",
+                  "white"
                 ]
               }
             }
@@ -25194,7 +25196,7 @@
           ],
           "parts": {
             "container": {
-              "members": 8,
+              "members": 20,
               "where": {
                 "provider": [
                   "apple",
@@ -25205,7 +25207,9 @@
                 ],
                 "style": [
                   "black",
-                  "blue"
+                  "blue",
+                  "outline",
+                  "white"
                 ]
               }
             }
@@ -27378,7 +27382,7 @@
           ],
           "parts": {
             "label": {
-              "members": 8,
+              "members": 20,
               "where": {
                 "provider": [
                   "apple",
@@ -27389,7 +27393,9 @@
                 ],
                 "style": [
                   "black",
-                  "blue"
+                  "blue",
+                  "outline",
+                  "white"
                 ]
               }
             }
@@ -27873,7 +27879,7 @@
           ],
           "parts": {
             "label": {
-              "members": 8,
+              "members": 20,
               "where": {
                 "provider": [
                   "apple",
@@ -27884,7 +27890,9 @@
                 ],
                 "style": [
                   "black",
-                  "blue"
+                  "blue",
+                  "outline",
+                  "white"
                 ]
               }
             }
@@ -28376,7 +28384,7 @@
           ],
           "parts": {
             "label": {
-              "members": 8,
+              "members": 20,
               "where": {
                 "provider": [
                   "apple",
@@ -28387,7 +28395,9 @@
                 ],
                 "style": [
                   "black",
-                  "blue"
+                  "blue",
+                  "outline",
+                  "white"
                 ]
               }
             }
@@ -28809,7 +28819,7 @@
       "drawnNotDeclared": []
     },
     "brand-mark": {
-      "members": 74,
+      "members": 76,
       "axes": {
         "name": [
           "logo/affirm",
@@ -28842,7 +28852,9 @@
           "payment/venmo",
           "payment/visa",
           "provider/apple",
+          "provider/apple-black",
           "provider/facebook",
+          "provider/facebook-blue",
           "provider/google",
           "social/apple",
           "social/apple-mono",
@@ -31036,7 +31048,7 @@
       "drawnNotDeclared": []
     },
     "sign-in-button": {
-      "members": 60,
+      "members": 96,
       "axes": {
         "provider": [
           "apple",
@@ -31059,7 +31071,9 @@
           "blue",
           "dark",
           "light",
-          "neutral"
+          "neutral",
+          "outline",
+          "white"
         ]
       },
       "tokens": [

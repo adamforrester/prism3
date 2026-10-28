@@ -411,7 +411,7 @@
         "kind": "component set",
         "page": "↳ Brand marks",
         "section": "Foundations",
-        "members": 74,
+        "members": 76,
         "variantProperties": [
           {
             "name": "name",
@@ -446,7 +446,9 @@
               "payment/venmo",
               "payment/visa",
               "provider/apple",
+              "provider/apple-black",
               "provider/facebook",
+              "provider/facebook-blue",
               "provider/google",
               "social/apple",
               "social/apple-mono",
@@ -808,7 +810,7 @@
         "kind": "component set",
         "page": "↳ Sign-in button",
         "section": "Components",
-        "members": 60,
+        "members": 96,
         "variantProperties": [
           {
             "name": "provider",
@@ -822,6 +824,8 @@
             "name": "style",
             "values": [
               "black",
+              "white",
+              "outline",
               "light",
               "dark",
               "neutral",

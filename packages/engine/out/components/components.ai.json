@@ -307,7 +307,9 @@
             "payment/venmo",
             "payment/visa",
             "provider/apple",
+            "provider/apple-black",
             "provider/facebook",
+            "provider/facebook-blue",
             "provider/google",
             "social/apple",
             "social/apple-mono",
@@ -407,7 +409,9 @@
             "payment/venmo",
             "payment/visa",
             "provider/apple",
+            "provider/apple-black",
             "provider/facebook",
+            "provider/facebook-blue",
             "provider/google",
             "social/apple",
             "social/apple-mono",
@@ -1661,16 +1665,18 @@
         },
         {
           "name": "style",
-          "type": "enum: 'black' | 'light' | 'dark' | 'neutral' | 'blue'",
+          "type": "enum: 'black' | 'white' | 'outline' | 'light' | 'dark' | 'neutral' | 'blue'",
           "required": false,
           "values": [
             "black",
+            "white",
+            "outline",
             "light",
             "dark",
             "neutral",
             "blue"
           ],
-          "description": "The provider's color style, from its own list: Apple black; Google light, dark, neutral; Facebook blue. Unset, the first in the provider's list. A style another provider uses is refused."
+          "description": "The provider's color style, from its own list: Apple black, white, outline; Google light, dark, neutral; Facebook blue, white. Unset, the first in the provider's list. A style another provider uses is refused."
         },
         {
           "name": "size",
@@ -1723,6 +1729,8 @@
         "style": {
           "values": [
             "black",
+            "white",
+            "outline",
             "light",
             "dark",
             "neutral",

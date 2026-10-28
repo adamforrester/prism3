@@ -29,7 +29,7 @@ Shown on the default member: provider `apple`, style `black`, size `medium`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `provider` | `apple`, `google`, `facebook` | once, when authored | Which account the button signs in with. The button calls that provider's own sign-in, which needs the provider's script on the page. |
-| `style` | `black`, `light`, `dark`, `neutral`, `blue` | once, when authored | The provider's color style, from its own list: Apple black; Google light, dark, neutral; Facebook blue. Unset, the first in the provider's list. A style another provider uses is refused. |
+| `style` | `black`, `white`, `outline`, `light`, `dark`, `neutral`, `blue` | once, when authored | The provider's color style, from its own list: Apple black, white, outline; Google light, dark, neutral; Facebook blue, white. Unset, the first in the provider's list. A style another provider uses is refused. |
 | `size` | `medium`, `small`, `large` | once, when authored | The height: 36, 44 or 56px. Give every sign-in button in a group the same size. |
 
 ### States
@@ -96,7 +96,7 @@ Pick one wording from the provider's list and use it on every button in the stac
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `provider` | enum: 'apple' \| 'google' \| 'facebook' | — | yes | Which account the button signs in with. The button calls that provider's own sign-in, which needs the provider's script on the page. |
-| `style` | enum: 'black' \| 'light' \| 'dark' \| 'neutral' \| 'blue' | — | no | The provider's color style, from its own list: Apple black; Google light, dark, neutral; Facebook blue. Unset, the first in the provider's list. A style another provider uses is refused. |
+| `style` | enum: 'black' \| 'white' \| 'outline' \| 'light' \| 'dark' \| 'neutral' \| 'blue' | — | no | The provider's color style, from its own list: Apple black, white, outline; Google light, dark, neutral; Facebook blue, white. Unset, the first in the provider's list. A style another provider uses is refused. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The height: 36, 44 or 56px. Give every sign-in button in a group the same size. |
 | `wording` | string | `continue` | no | The provider's wording, from its own list, translated by the app: Apple continue, sign-in, sign-up; Google continue, sign-in, sign-up; Facebook continue, login. The provider's name is never translated. A wording the provider does not offer is refused. |
 | `fullWidth` | boolean | `false` | no | Fill the column instead of hugging the label. The button never drops under 140px wide. |
@@ -104,7 +104,7 @@ Pick one wording from the provider's list and use it on every button in the stac
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 60 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 96 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -203,7 +203,7 @@ Keyed by `provider`, `style`, `state`.
 
 ### Nesting and properties
 
-- `container/mark` nests `brand-mark` at `name=provider/apple`; `provider=apple, style=black` takes `name=provider/apple`, `provider=google, style=light` takes `name=provider/google`, `provider=google, style=dark` takes `name=provider/google`, `provider=google, style=neutral` takes `name=provider/google`, `provider=facebook, style=blue` takes `name=provider/facebook`
+- `container/mark` nests `brand-mark` at `name=provider/apple`; `provider=apple, style=black` takes `name=provider/apple`, `provider=apple, style=white` takes `name=provider/apple-black`, `provider=apple, style=outline` takes `name=provider/apple-black`, `provider=google, style=light` takes `name=provider/google`, `provider=google, style=dark` takes `name=provider/google`, `provider=google, style=neutral` takes `name=provider/google`, `provider=facebook, style=blue` takes `name=provider/facebook`, `provider=facebook, style=white` takes `name=provider/facebook-blue`
 - `container/focusRing` nests `focus-ring` at `surface=default`
 
 ---

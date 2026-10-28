@@ -22,7 +22,7 @@ Type: dimension. Bound by 25 component(s).
 |---|---|---|---|
 | badge | `border-width` | surface | every member (40 of 40) |
 | banner | `border-width`, `width.contained.edge-side` | container | every member (8 of 8) |
-| brand-mark | `tile.border-width` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 74) |
+| brand-mark | `tile.border-width` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 76) |
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
@@ -49,7 +49,7 @@ Type: dimension. Bound by 25 component(s).
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | every member (84 of 84) |
 | select | `border-width` | control | every member (84 of 84) |
-| sign-in-button | `border-width` | container | every member (60 of 60) |
+| sign-in-button | `border-width` | container | every member (96 of 96) |
 | tabs | `baseline-height` | baseline | every member (6 of 6) |
 |  |  | container | every member (6 of 6) |
 | tag | `unselected.border-width` | container | selection: unselected (30 of 45) |
@@ -207,7 +207,7 @@ Type: color. Bound by 3 component(s).
 |---|---|---|---|
 | _slider-thumb | `border.hover`, `border.pressed`, `fill.pressed` | hoverHalo | state: hover, pressed (6 of 15) |
 |  |  | pressHalo | state: pressed (3 of 15) |
-| brand-mark | `tile.border` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 74) |
+| brand-mark | `tile.border` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 76) |
 | tabs | `fill` | baseline | every member (6 of 6) |
 
 ### `color.border.secondary`
@@ -2371,7 +2371,7 @@ Type: dimension. Bound by 22 component(s).
 | pagination-item | `ring-offset` | focusRing | state: focus-visible · type: next, page, previous (21 of 87) |
 | radio-control | `ring-offset` | focusRing | state: focus-visible (12 of 60) |
 | segmented-control-segment | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
-| sign-in-button | `ring-offset` | focusRing | state: focus-visible (15 of 60) |
+| sign-in-button | `ring-offset` | focusRing | state: focus-visible (24 of 96) |
 | switch-control | `ring-offset` | focusRing | state: focus-visible (8 of 40) |
 | tab-item | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
 | tag | `ring-offset` | focusRing | state: focus-visible (9 of 45) |
@@ -2430,7 +2430,7 @@ Type: dimension. Bound by 29 component(s).
 | search-field | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | segmented-control-segment | `ring-width` | focusRing | state: focus-visible (6 of 30) |
 | select | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| sign-in-button | `ring-width` | focusRing | state: focus-visible (15 of 60) |
+| sign-in-button | `ring-width` | focusRing | state: focus-visible (24 of 96) |
 | switch-control | `ring-width` | focusRing | state: focus-visible (8 of 40) |
 | tab-item | `ring-width` | focusRing | state: focus-visible (6 of 30) |
 | tag | `ring-width` | focusRing | state: focus-visible (9 of 45) |
@@ -2507,7 +2507,7 @@ Type: dimension. Bound by 24 component(s).
 |  |  | ring | shape: circular · size: small (4 of 12) |
 |  |  | ringGlyph | shape: circular · size: small (4 of 12) |
 | segmented-control-segment | `size.large.icon` | leadingVisual | size: large (10 of 30) |
-| sign-in-button | `size.large.mark` | mark | size: large (20 of 60) |
+| sign-in-button | `size.large.mark` | mark | size: large (32 of 96) |
 | spinner | `size.medium` | frame | size: medium (1 of 4) |
 |  |  | ringGlyph | size: medium (1 of 4) |
 | tab-item | `size.large.icon` | leadingVisual | size: large (10 of 30) |
@@ -2564,7 +2564,7 @@ Type: dimension. Bound by 28 component(s).
 | segmented-control-segment | `size.medium.icon` | leadingVisual | size: medium (10 of 30) |
 | select | `icon-size` | chevronGlyph | every member (84 of 84) |
 |  |  | leadingVisual | every member (84 of 84) |
-| sign-in-button | `size.medium.mark` | mark | size: medium (20 of 60) |
+| sign-in-button | `size.medium.mark` | mark | size: medium (32 of 96) |
 | spinner | `size.small` | frame | size: small (1 of 4) |
 |  |  | ringGlyph | size: small (1 of 4) |
 | tab-item | `size.medium.icon` | leadingVisual | size: medium (10 of 30) |
@@ -2623,7 +2623,7 @@ Type: dimension. Bound by 17 component(s).
 |  |  | nextGlyph | selection: unselected · size: small · style: border · type: next (10 of 87) |
 |  |  | previousGlyph | selection: unselected · size: small · style: border · type: previous (10 of 87) |
 | segmented-control-segment | `size.small.icon` | leadingVisual | size: small (10 of 30) |
-| sign-in-button | `size.small.mark` | mark | size: small (20 of 60) |
+| sign-in-button | `size.small.mark` | mark | size: small (32 of 96) |
 | spinner | `size.x-small` | frame | size: x-small (1 of 4) |
 |  |  | ringGlyph | size: x-small (1 of 4) |
 | tab-item | `size.small.icon` | leadingVisual | size: small (10 of 30) |
@@ -2672,7 +2672,7 @@ Type: dimension. Bound by 11 component(s).
 | icon-button-neutral | `radius.square` | container | shape: square (108 of 216) |
 | pagination-item | `radius` | container | every member (87 of 87) |
 | segmented-control | `radius` | track | every member (3 of 3) |
-| sign-in-button | `radius` | container | every member (60 of 60) |
+| sign-in-button | `radius` | container | every member (96 of 96) |
 | wallet-button | `radius` | container | every member (20 of 20) |
 
 ### `radius.none`
@@ -2719,7 +2719,7 @@ Type: dimension. Bound by 11 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `status.radius` | surface | type: status (30 of 40) |
-| brand-mark | `tile.radius` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 74) |
+| brand-mark | `tile.radius` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 76) |
 | card-number-field | `radius` | control | every member (84 of 84) |
 | code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | container | size: large, medium, small (21 of 28) |
 | counter | `radius` | control | every member (18 of 18) |
@@ -2779,7 +2779,7 @@ Type: dimension. Bound by 24 component(s).
 | search-field | `size.large.height` | control | size: large (28 of 84) |
 | segmented-control-segment | `size.large.height` | container | size: large (10 of 30) |
 | select | `size.large.min-height` | control | size: large (28 of 84) |
-| sign-in-button | `size.large.height` | container | size: large (20 of 60) |
+| sign-in-button | `size.large.height` | container | size: large (32 of 96) |
 | tab-item | `size.large.height` | container | size: large (10 of 30) |
 | tag | `size.large.height` | container | size: large (15 of 45) |
 |  |  | dismiss | selection: unselected · size: large · type: dismissible (5 of 45) |
@@ -2808,7 +2808,7 @@ Type: dimension. Bound by 21 component(s).
 | pagination-item | `size.medium.height` | container | size: medium (29 of 87) |
 | radio-row | `size.medium.min-height` | row | size: medium (2 of 6) |
 | segmented-control-segment | `size.medium.height` | container | size: medium (10 of 30) |
-| sign-in-button | `size.medium.height` | container | size: medium (20 of 60) |
+| sign-in-button | `size.medium.height` | container | size: medium (32 of 96) |
 | switch-row | `size.medium.min-height` | row | size: medium (2 of 4) |
 | tab-item | `size.medium.height` | container | size: medium (10 of 30) |
 | tag | `size.medium.height` | container | size: medium (15 of 45) |
@@ -2849,7 +2849,7 @@ Type: dimension. Bound by 19 component(s).
 | pagination-item | `size.small.height` | container | size: small (29 of 87) |
 | radio-row | `size.small.min-height` | row | size: small (2 of 6) |
 | segmented-control-segment | `size.small.height` | container | size: small (10 of 30) |
-| sign-in-button | `size.small.height` | container | size: small (20 of 60) |
+| sign-in-button | `size.small.height` | container | size: small (32 of 96) |
 | switch-row | `size.small.min-height` | row | size: small (2 of 4) |
 | tab-item | `size.small.height` | container | size: small (10 of 30) |
 | tag | `size.small.height` | container | size: small (15 of 45) |
@@ -2954,7 +2954,7 @@ Type: dimension. Bound by 19 component(s).
 | search-field | `size.small.pad-y` | control | size: small (28 of 84) |
 | segmented-control-segment | `size.small.gap` | content | size: small (10 of 30) |
 | select | `size.small.pad-y` | control | size: small (28 of 84) |
-| sign-in-button | `size.small.apple.padding-y`, `size.small.facebook.padding-y`, `size.small.google.padding-y` | container | size: small (20 of 60) |
+| sign-in-button | `size.small.apple.padding-y`, `size.small.facebook.padding-y`, `size.small.google.padding-y` | container | size: small (32 of 96) |
 | switch-row | `size.small.pad-y` | row | size: small (2 of 4) |
 | tab-item | `size.small.gap` | content | size: small (10 of 30) |
 | tag | `size.medium.check-gap`, `size.medium.underline.inset`, `size.small.dismissible.visible-gap`, `size.small.select.gap` | content | size: small · type: select (10 of 45) |
@@ -3010,7 +3010,7 @@ Type: dimension. Bound by 34 component(s).
 | select | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |
 |  |  | control | every member (84 of 84) |
-| sign-in-button | `size.large.apple.padding-y`, `size.large.facebook.padding-y`, `size.large.google.gap`, `size.large.google.padding-y`, `size.medium.apple.gap`, `size.medium.apple.padding-y`, `size.medium.facebook.gap`, `size.medium.facebook.padding-y`, `size.medium.google.gap`, `size.medium.google.padding-y`, `size.small.apple.gap`, `size.small.facebook.gap`, `size.small.google.gap` | container | every member (60 of 60) |
+| sign-in-button | `size.large.apple.padding-y`, `size.large.facebook.padding-y`, `size.large.google.gap`, `size.large.google.padding-y`, `size.medium.apple.gap`, `size.medium.apple.padding-y`, `size.medium.facebook.gap`, `size.medium.facebook.padding-y`, `size.medium.google.gap`, `size.medium.google.padding-y`, `size.small.apple.gap`, `size.small.facebook.gap`, `size.small.google.gap` | container | every member (96 of 96) |
 | slider | `gap` | container | every member (30 of 30) |
 | switch-row | `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | content | every member (4 of 4) |
 |  |  | row | size: medium (2 of 4) |
@@ -3051,7 +3051,7 @@ Type: dimension. Bound by 17 component(s).
 | radio-row | `size.large.gap`, `size.large.pad-y` | content | size: large (2 of 6) |
 |  |  | row | size: large (2 of 6) |
 | segmented-control-segment | `size.small.padding-x` | content | size: small (10 of 30) |
-| sign-in-button | `size.large.apple.gap`, `size.large.facebook.gap`, `size.large.google.padding-x`, `size.large.google.padding-x-visual`, `size.medium.apple.padding-x-visual`, `size.medium.facebook.padding-x-visual`, `size.medium.google.padding-x`, `size.medium.google.padding-x-visual`, `size.small.apple.padding-x-visual`, `size.small.facebook.padding-x-visual`, `size.small.google.padding-x`, `size.small.google.padding-x-visual` | container | every member (60 of 60) |
+| sign-in-button | `size.large.apple.gap`, `size.large.facebook.gap`, `size.large.google.padding-x`, `size.large.google.padding-x-visual`, `size.medium.apple.padding-x-visual`, `size.medium.facebook.padding-x-visual`, `size.medium.google.padding-x`, `size.medium.google.padding-x-visual`, `size.small.apple.padding-x-visual`, `size.small.facebook.padding-x-visual`, `size.small.google.padding-x`, `size.small.google.padding-x-visual` | container | every member (96 of 96) |
 | slider | `inputs-gap` | inputs | every member (30 of 30) |
 | tab-item | `size.small.padding-x` | content | size: small (10 of 30) |
 | tag | `size.large.select.gap`, `size.medium.padding-x`, `size.medium.select.padding-end` | content | size: large, medium (25 of 45) |
@@ -3083,7 +3083,7 @@ Type: dimension. Bound by 20 component(s).
 | search-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | segmented-control-segment | `size.medium.padding-x` | content | size: medium (10 of 30) |
 | select | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
-| sign-in-button | `size.large.apple.padding-x-visual`, `size.large.facebook.padding-x-visual`, `size.medium.apple.padding-x`, `size.medium.facebook.padding-x`, `size.small.apple.padding-x`, `size.small.facebook.padding-x` | container | provider: apple, facebook · style: black, blue (24 of 60) |
+| sign-in-button | `size.large.apple.padding-x-visual`, `size.large.facebook.padding-x-visual`, `size.medium.apple.padding-x`, `size.medium.facebook.padding-x`, `size.small.apple.padding-x`, `size.small.facebook.padding-x` | container | provider: apple, facebook · style: black, blue, outline, white (60 of 96) |
 | tab-item | `size.medium.padding-x` | content | size: medium (10 of 30) |
 | tag | `size.large.padding-x`, `size.large.select.padding-end` | content | size: large (15 of 45) |
 | text-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
@@ -3122,7 +3122,7 @@ Type: dimension. Bound by 14 component(s).
 | password-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | search-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | select | `size.large.pad-x` | control | size: large (28 of 84) |
-| sign-in-button | `size.large.apple.padding-x`, `size.large.facebook.padding-x` | container | provider: apple, facebook · size: large · style: black, blue (8 of 60) |
+| sign-in-button | `size.large.apple.padding-x`, `size.large.facebook.padding-x` | container | provider: apple, facebook · size: large · style: black, blue, outline, white (20 of 96) |
 | text-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | textarea | `size.large.pad-x` | control | size: large (28 of 84) |
 
@@ -3382,7 +3382,7 @@ Type: typography. Bound by 10 component(s).
 |  |  | underlineLabel | labeled: false · selection: selected · size: large · state: focus-visible, rest · style: underline · type: page (2 of 87) |
 | segmented-control-segment | `size.large.type.selected` | label | selection: selected · size: large (5 of 30) |
 |  |  | labelReserve | size: large (10 of 30) |
-| sign-in-button | `size.large.type` | label | provider: apple, facebook · size: large · style: black, blue (8 of 60) |
+| sign-in-button | `size.large.type` | label | provider: apple, facebook · size: large · style: black, blue, outline, white (20 of 96) |
 | tab-item | `size.large.type.selected` | label | selection: selected · size: large (5 of 30) |
 |  |  | labelReserve | size: large (10 of 30) |
 | tag | `size.large.type` | label | size: large (15 of 45) |
@@ -3428,7 +3428,7 @@ Type: typography. Bound by 11 component(s).
 | progress | `label-type` | label | shape: linear · size: medium (4 of 12) |
 | segmented-control-segment | `size.medium.type.selected` | label | selection: selected · size: medium (5 of 30) |
 |  |  | labelReserve | size: medium (10 of 30) |
-| sign-in-button | `size.medium.type` | label | provider: apple, facebook · size: medium · style: black, blue (8 of 60) |
+| sign-in-button | `size.medium.type` | label | provider: apple, facebook · size: medium · style: black, blue, outline, white (20 of 96) |
 | tab-item | `size.medium.type.selected` | label | selection: selected · size: medium (5 of 30) |
 |  |  | labelReserve | size: medium (10 of 30) |
 | tag | `size.medium.type` | label | size: medium (15 of 45) |
@@ -3481,7 +3481,7 @@ Type: typography. Bound by 10 component(s).
 |  |  | underlineLabel | labeled: false · selection: selected · size: small · state: focus-visible, rest · style: underline · type: page (2 of 87) |
 | segmented-control-segment | `size.small.type.selected` | label | selection: selected · size: small (5 of 30) |
 |  |  | labelReserve | size: small (10 of 30) |
-| sign-in-button | `size.small.type` | label | provider: apple, facebook · size: small · style: black, blue (8 of 60) |
+| sign-in-button | `size.small.type` | label | provider: apple, facebook · size: small · style: black, blue, outline, white (20 of 96) |
 | tab-item | `size.small.type.selected` | label | selection: selected · size: small (5 of 30) |
 |  |  | labelReserve | size: small (10 of 30) |
 | tag | `size.small.type` | label | size: small (15 of 45) |
@@ -3564,7 +3564,7 @@ Declared, not drawn: `color.border.focus`
 
 ### brand-mark
 
-6 token(s); 74 design-file member(s).
+6 token(s); 76 design-file member(s).
 
 `border-width.hairline`, `color.border.primary`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.sm`
 
@@ -3866,7 +3866,7 @@ Declared, not drawn: `color.border.focus`
 
 ### sign-in-button
 
-18 token(s); 60 design-file member(s).
+18 token(s); 96 design-file member(s).
 
 `border-width.hairline`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.075`, `space.100`, `space.150`, `space.200`, `space.300`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
 

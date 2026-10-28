@@ -601,7 +601,7 @@
     "brand-mark": {
       "id": "brand-mark",
       "name": "BrandMark",
-      "members": 74,
+      "members": 76,
       "axes": [
         {
           "name": "name",
@@ -637,7 +637,9 @@
             "payment/venmo",
             "payment/visa",
             "provider/apple",
+            "provider/apple-black",
             "provider/facebook",
+            "provider/facebook-blue",
             "provider/google",
             "social/apple",
             "social/apple-mono",
@@ -690,7 +692,7 @@
         {
           "part": "glyph",
           "kind": "glyph",
-          "members": 74
+          "members": 76
         }
       ],
       "redlineKey": [],
@@ -968,7 +970,19 @@
         },
         {
           "where": {
+            "name": "provider/apple-black"
+          },
+          "parts": []
+        },
+        {
+          "where": {
             "name": "provider/facebook"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "provider/facebook-blue"
           },
           "parts": []
         },
@@ -10091,7 +10105,7 @@
     "sign-in-button": {
       "id": "sign-in-button",
       "name": "SignInButton",
-      "members": 60,
+      "members": 96,
       "axes": [
         {
           "name": "provider",
@@ -10108,6 +10122,8 @@
           "figmaName": "style",
           "values": [
             "black",
+            "white",
+            "outline",
             "light",
             "dark",
             "neutral",
@@ -10142,22 +10158,22 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 60
+          "members": 96
         },
         {
           "part": "container/mark",
           "kind": "instance",
-          "members": 60
+          "members": 96
         },
         {
           "part": "container/label",
           "kind": "text",
-          "members": 60
+          "members": 96
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 15,
+          "members": 24,
           "when": {
             "state": [
               "focus-visible"
@@ -10697,6 +10713,70 @@
         },
         {
           "where": {
+            "provider": "apple",
+            "style": "white",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "white",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "white",
+            "state": "pressed"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "white",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "outline",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "outline",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "outline",
+            "state": "pressed"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "outline",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
             "provider": "google",
             "style": "light",
             "state": "rest"
@@ -10787,6 +10867,38 @@
           "where": {
             "provider": "google",
             "style": "neutral",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "white",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "white",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "white",
+            "state": "pressed"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "white",
             "state": "focus-visible"
           },
           "parts": []
@@ -10844,6 +10956,24 @@
             },
             {
               "when": {
+                "provider": "apple",
+                "style": "white"
+              },
+              "set": {
+                "name": "provider/apple-black"
+              }
+            },
+            {
+              "when": {
+                "provider": "apple",
+                "style": "outline"
+              },
+              "set": {
+                "name": "provider/apple-black"
+              }
+            },
+            {
+              "when": {
                 "provider": "google",
                 "style": "light"
               },
@@ -10877,6 +11007,15 @@
               "set": {
                 "name": "provider/facebook"
               }
+            },
+            {
+              "when": {
+                "provider": "facebook",
+                "style": "white"
+              },
+              "set": {
+                "name": "provider/facebook-blue"
+              }
             }
           ],
           "follows": [],
@@ -10903,6 +11042,25 @@
             "wash": {
               "hover": "#ffffff1a",
               "pressed": "#ffffff33"
+            },
+            "text": "Continue with Apple"
+          },
+          "apple.white": {
+            "fill": "#ffffff",
+            "ink": "#000000",
+            "wash": {
+              "hover": "#0000001a",
+              "pressed": "#00000033"
+            },
+            "text": "Continue with Apple"
+          },
+          "apple.outline": {
+            "fill": "#ffffff",
+            "edge": "#000000",
+            "ink": "#000000",
+            "wash": {
+              "hover": "#0000001a",
+              "pressed": "#00000033"
             },
             "text": "Continue with Apple"
           },
@@ -10971,6 +11129,15 @@
             "wash": {
               "hover": "#ffffff1a",
               "pressed": "#ffffff33"
+            },
+            "text": "Continue with Facebook"
+          },
+          "facebook.white": {
+            "fill": "#ffffff",
+            "ink": "#1877f2",
+            "wash": {
+              "hover": "#0000001a",
+              "pressed": "#00000033"
             },
             "text": "Continue with Facebook"
           }

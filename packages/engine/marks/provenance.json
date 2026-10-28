@@ -583,6 +583,25 @@
         "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
       ]
     },
+    "provider/apple-black.svg": {
+      "placeholder": false,
+      "source": "derived from social/apple, scaled to the provider inset (owner decision Q831 A on #2343, 2026-10-28). The colors come from the social file, unchanged; social/apple's own record states where that artwork came from",
+      "rightsHolder": "Apple Inc.",
+      "dateRetrieved": "2026-10-28",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#000000"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "scaled social/apple.svg by 23/24 (the provider glyphs' 0.5px inset, measured from provider/apple.svg) and centered its ink box at (12, 12), where provider/apple.svg's sits, so the two boxes agree within 0.01px; no shape or color changed",
+        "dropped the <g> wrapper (a no-op) and wrote each coordinate to 4 decimals"
+      ],
+      "derivedFrom": "social/apple.svg"
+    },
     "provider/facebook.svg": {
       "placeholder": false,
       "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
@@ -600,6 +619,26 @@
         "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)",
         "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
       ]
+    },
+    "provider/facebook-blue.svg": {
+      "placeholder": false,
+      "source": "derived from social/facebook, scaled to the provider inset (owner decision Q831 A on #2343, 2026-10-28). The colors come from the social file, unchanged; social/facebook's own record states where that artwork came from",
+      "rightsHolder": "Meta Platforms, Inc.",
+      "dateRetrieved": "2026-10-28",
+      "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
+      "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
+      "colors": [
+        "#1877F2",
+        "#FFFFFF"
+      ],
+      "allowedForms": [
+        "full-color"
+      ],
+      "normalized": [
+        "scaled social/facebook.svg by 23/24 (the provider glyphs' 0.5px inset, measured from provider/facebook.svg) and centered its first path, the blue disc, at (12, 12), where provider/facebook.svg's disc sits, so the two boxes agree within 0.01px; no shape or color changed",
+        "dropped the <g> wrapper (a no-op) and wrote each coordinate to 4 decimals"
+      ],
+      "derivedFrom": "social/facebook.svg"
     },
     "provider/google.svg": {
       "placeholder": false,

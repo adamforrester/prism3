@@ -18655,21 +18655,27 @@ arm: {
   // #2343 PR 5 — SIGNINBUTTON HOLDS EACH PROVIDER'S RULES. Typed HERE from the providers' guidelines (the proposal's §2
   // table, read 2026-10-27: Apple's HIG, Google's branding guidelines, Facebook's Login UX page) and the owner's calls
   // (Q-S1 to Q-S12, all A), never read off the def or its rule record (docs/34). Each arm's mutation is in the PR's
-  // progress entry. `AWAITING` is the three pairs whose glyph is not in the mark set yet (Q-S5 A).
+  // progress entry. All eight pairs ship (Q831 A): Apple's black glyph and Facebook's blue one are derived from the
+  // social marks, so no pair waits on artwork.
   {
     const sb = componentDefs.find((d) => d.id === 'sign-in-button')!;
-    type R = { fill: string; edge?: string; ink: string; mark: string };
+    // The wash, by value (Q-S6 A, Q-S13 A): black at 10% and 20% over a light fill, white at 10% and 20% over a dark one.
+    const ON_LIGHT = { hover: '#0000001a', pressed: '#00000033' }, ON_DARK = { hover: '#ffffff1a', pressed: '#ffffff33' };
+    type R = { fill: string; edge?: string; ink: string; mark: string; wash: { hover: string; pressed: string } };
     const RULES: Record<string, R> = {
-      'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'brand-mark/provider/apple' },
-      'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'brand-mark/provider/apple-black' },
-      'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'brand-mark/provider/apple-black' },
-      'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google' },
-      'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google' },
-      'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google' },
-      'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook' },
-      'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'brand-mark/provider/facebook-blue' },
+      'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'brand-mark/provider/apple', wash: ON_DARK },
+      'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'brand-mark/provider/apple-black', wash: ON_LIGHT },
+      'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'brand-mark/provider/apple-black', wash: ON_LIGHT },
+      'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
+      'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google', wash: ON_DARK },
+      'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
+      'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook', wash: ON_DARK },
+      'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'brand-mark/provider/facebook-blue', wash: ON_LIGHT },
     };
-    const AWAITING = ['apple.white', 'apple.outline', 'facebook.white'];
+    // The glyphs Q831 A derived. The exclusion arm below drops them from the vocabulary to prove a missing glyph still
+    // removes its pairs, for a future provider whose artwork is not in yet.
+    const DERIVED = ['provider/apple-black', 'provider/facebook-blue'];
+    const WAITS_ON_DERIVED = ['apple.white', 'apple.outline', 'facebook.white'];
     const NAME: Record<string, string> = { apple: 'Apple', google: 'Google', facebook: 'Facebook' };
     const GOOGLE_FONT = { family: 'Google Sans', style: 'Medium', size: 14, lineHeight: 20 };
     type N = AnatomyPlan['root'];
@@ -18678,22 +18684,21 @@ arm: {
     const keyOf = (p: AnatomyPlan): string => `${p.coord.provider}.${p.coord.style}`;
     const label = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.type === 'TEXT');
     const mark = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.nestTarget?.startsWith('brand-mark/'));
-    // ARTWORK: today's members are exactly the rule pairs minus the three awaiting their glyph, 4 states × 3 sizes each.
+    // ARTWORK: every rule pair is a member (Q831 A), 4 states × 3 sizes each, 96 in all.
     const present = [...new Set(plans.map(keyOf))].sort();
-    const wantPresent = Object.keys(RULES).filter((k) => !AWAITING.includes(k)).sort();
-    ok(plans.length === 60 && JSON.stringify(present) === JSON.stringify(wantPresent),
-      `#2343 PR 5 provider rules ARTWORK: 60 members, the 5 pairs whose glyph exists (got ${plans.length}: ${present.join(', ')})`);
-    // ...and dropping the two awaited files in yields all eight pairs, 96 members, with no change to the def.
-    const full = makeSignInButton([...SIGN_IN_MARK_NAMES, 'provider/apple-black', 'provider/facebook-blue']);
-    // The glyphs are not in the registry yet, so the 96 are counted and their mapping read, not projected.
-    const fullErrs = validateComponentDef(full).errors;
-    const fullPairs = (full.variants.provider ?? []).flatMap((pv) => (full.variants.style ?? []).map((st) => ({ provider: pv, style: st })))
-      .filter((c) => !isExcludedCoordinate(full, c)).map((c) => `${c.provider}.${c.style}`).sort();
-    const fullNest = (full.anatomy!.parts.mark.nesting as { variantWhere?: { when: Record<string, string>; set: Record<string, string> }[] }).variantWhere ?? [];
-    const fullMarks = fullNest.filter((w) => `brand-mark/${w.set.name}` !== RULES[`${w.when.provider}.${w.when.style}`]?.mark).map((w) => `${w.when.provider}.${w.when.style} → ${w.set.name}`);
-    const fullLit = Object.entries(full.literal?.entries ?? {}).filter(([k, e]) => e.fill !== RULES[k]?.fill || (e.edge ?? null) !== (RULES[k]?.edge ?? null) || e.ink !== RULES[k]?.ink).map(([k]) => k);
-    ok(fullErrs.length === 0 && figmaVariantCount(full) === 96 && JSON.stringify(fullPairs) === JSON.stringify(Object.keys(RULES).sort()) && fullNest.length === 8 && fullMarks.length === 0 && fullLit.length === 0 && Object.keys(full.literal?.entries ?? {}).length === 8,
-      `#2343 PR 5 provider rules ARTWORK (data-driven): with provider/apple-black and provider/facebook-blue in the mark set the def validates with all 8 pairs, 96 members, each mapped to its own glyph and colors (errors ${fullErrs.slice(0, 2).join('; ') || 'none'}; ${figmaVariantCount(full)} members: ${fullPairs.join(', ')}; glyphs off ${fullMarks.join(', ') || 'none'}; colors off ${fullLit.join(', ') || 'none'})`);
+    ok(plans.length === 96 && JSON.stringify(present) === JSON.stringify(Object.keys(RULES).sort()) && DERIVED.every((g) => SIGN_IN_MARK_NAMES.includes(g as never)),
+      `#2343 PR 5 provider rules ARTWORK: 96 members, all 8 pairs, with both derived glyphs in the mark set (got ${plans.length}: ${present.join(', ')})`);
+    // ...and the exclusion stays data-driven: built over a vocabulary without the derived glyphs, the three pairs that
+    // need them drop out, 60 members, with no change to the def. Counted and read, not projected.
+    const short = makeSignInButton(SIGN_IN_MARK_NAMES.filter((g) => !DERIVED.includes(g)));
+    const shortErrs = validateComponentDef(short).errors;
+    const shortPairs = (short.variants.provider ?? []).flatMap((pv) => (short.variants.style ?? []).map((st) => ({ provider: pv, style: st })))
+      .filter((c) => !isExcludedCoordinate(short, c)).map((c) => `${c.provider}.${c.style}`).sort();
+    const shortNest = (short.anatomy!.parts.mark.nesting as { variantWhere?: { when: Record<string, string>; set: Record<string, string> }[] }).variantWhere ?? [];
+    const shortMarks = shortNest.filter((w) => `brand-mark/${w.set.name}` !== RULES[`${w.when.provider}.${w.when.style}`]?.mark).map((w) => `${w.when.provider}.${w.when.style} → ${w.set.name}`);
+    const wantShort = Object.keys(RULES).filter((k) => !WAITS_ON_DERIVED.includes(k)).sort();
+    ok(shortErrs.length === 0 && figmaVariantCount(short) === 60 && JSON.stringify(shortPairs) === JSON.stringify(wantShort) && shortNest.length === 5 && shortMarks.length === 0 && Object.keys(short.literal?.entries ?? {}).length === 5,
+      `#2343 PR 5 provider rules ARTWORK (data-driven): without provider/apple-black and provider/facebook-blue in the mark set the def validates with the 5 pairs whose glyph exists, 60 members, each mapped to its own glyph (errors ${shortErrs.slice(0, 2).join('; ') || 'none'}; ${figmaVariantCount(short)} members: ${shortPairs.join(', ')}; glyphs off ${shortMarks.join(', ') || 'none'})`);
     // COLOR: every member's fill, edge and label ink are the provider's own, as literals, never a bound variable.
     const checkColor = (ps: AnatomyPlan[]): string[] => ps.flatMap((p) => {
       const r = RULES[keyOf(p)], lit = p.root.literalPaints, l = label(p);
@@ -18704,18 +18709,19 @@ arm: {
     });
     const offColor = checkColor(plans);
     ok(offColor.length === 0, `#2343 PR 5 provider rules COLOR: every member's fill, 1px edge and label ink are the provider's published values, as literals with no bound paint (${offColor.slice(0, 3).join('; ') || 'clean'})`);
-    // WASH: hover and pressed lay one translucent paint over the fill; the fill under it never changes; rest and
-    // focus-visible have the fill alone.
+    // WASH: hover and pressed lay one translucent paint over the fill, at the typed value for the fill's ground; the
+    // fill under it never changes; rest and focus-visible have the fill alone.
     const offWash = plans.flatMap((p) => {
-      const f = p.root.literalPaints?.fills ?? [], washed = p.coord.state === 'hover' || p.coord.state === 'pressed';
-      const alpha = f[1]?.length === 9 ? parseInt(f[1].slice(7), 16) / 255 : 1;
-      return (washed ? f.length === 2 && alpha > 0 && alpha < 0.5 : f.length === 1) ? [] : [`${planComponentName(p)}: ${JSON.stringify(f)}`];
+      const f = p.root.literalPaints?.fills ?? [], st = String(p.coord.state), washed = st === 'hover' || st === 'pressed';
+      const r = RULES[keyOf(p)], alpha = f[1]?.length === 9 ? parseInt(f[1].slice(7), 16) / 255 : 1;
+      const right = washed ? f.length === 2 && f[0] === r?.fill && f[1] === r?.wash[st as 'hover' | 'pressed'] && alpha > 0 && alpha < 0.5 : f.length === 1;
+      return right ? [] : [`${planComponentName(p)}: ${JSON.stringify(f)}${washed ? `, want [${r?.fill}, ${r?.wash[st as 'hover' | 'pressed']}]` : ''}`];
     });
     const pressedDeeper = plans.filter((p) => p.coord.state === 'pressed').every((p) => {
       const h = plans.find((q) => q.coord.state === 'hover' && keyOf(q) === keyOf(p) && q.size === p.size);
       return !!h && parseInt(p.root.literalPaints!.fills![1].slice(7), 16) > parseInt(h.root.literalPaints!.fills![1].slice(7), 16);
     });
-    ok(offWash.length === 0 && pressedDeeper, `#2343 PR 5 provider rules WASH: hover and pressed lay a translucent wash over an unchanged fill, pressed deeper than hover, and rest and focus-visible show the fill alone (${offWash.slice(0, 3).join('; ') || 'clean'}; pressed deeper: ${pressedDeeper})`);
+    ok(offWash.length === 0 && pressedDeeper, `#2343 PR 5 provider rules WASH: hover and pressed lay the typed wash for the fill's ground over an unchanged fill, pressed deeper than hover, and rest and focus-visible show the fill alone (${offWash.slice(0, 3).join('; ') || 'clean'}; pressed deeper: ${pressedDeeper})`);
     // FONT: Google Sans Medium 14/20 on every Google member at every size; the brand's label type elsewhere (Q-S7 A).
     const offFont = plans.flatMap((p) => {
       const l = label(p), f = l?.literalFont;
