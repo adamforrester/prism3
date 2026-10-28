@@ -266,6 +266,8 @@
  *     APPROVED sub-headings; the floor's APPROVED info text (QA-B6); the icon contrast block's info text, Interactive's
  *     Icons description (QA-I10). All literal.
  *   · SCRIM (QA-B10): its own lever section and preview section, its copy APPROVED, the scrim row not in Background fills.
+ *     Since #3050 the section is Scrim strength's block: Standard / Strong write `scrimStrength`, and the row reads
+ *     out the step each gives (the copy a DRAFT).
  *   · FIELDS (#2016, Q80): a preview section on the page, and an edit in the levers' Fields reveals it (QA-B9's rule).
  *   · #1971 (Q81): Background with no badge, every other section with its badges (Foreground's since GR2, the owner,
  *     2026-10-04: each bold fill's badge prints its emitted hex against the emitted floor); Q23 pairs for
@@ -4248,7 +4250,9 @@ const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', 
   // S4f (QA-I10): the Icon section's pairing control is the icon contrast lever's block, as Interactive drew it.
   ['iconContrast', '[data-p3="lever-icon-contrast"]'],
   // #3073: the Glass section is the glassRoles lever's block, holding the shipped glass read-only and the brand's own.
-  ['glassRoles', '[data-p3="lever-glass-roles"]']];
+  ['glassRoles', '[data-p3="lever-glass-roles"]'],
+  // #3050: the Scrim section is the scrimStrength lever's block, its chips above the scrim's read-only row.
+  ['scrimStrength', '[data-p3="lever-scrim-strength"]']];
 /** S4f (QA-B1): Background fills' rows, by the role each names: the three page tiers (Primary was "Page", QA-B3),
  *  the contrast floor (a setting, named by its input), and the inverse fill's three tiers. Literal. */
 const SURFACE_ROW_ROLES = ['background.primary', 'background.secondary', 'background.tertiary', 'surfaces.floorStep',
@@ -4543,7 +4547,8 @@ for (const host of ['web', 'figma']) {
     Glass: 'The see-through fill behind a background blur. The white glass is fixed; add a glass fill to match a surface, such as a card.',
     // S4f (QA-B10): the scrim left Background fills, so its description is the owner's Q26 intro; Scrim's is APPROVED.
     'Background fills': 'The base page planes and their inverse counterparts.',
-    Scrim: "The overlay that dims the page behind a modal. It isn't editable.",
+    // #3050: the section now holds Scrim strength, so "It isn't editable." went; the sentence left is a DRAFT for the owner.
+    Scrim: 'The overlay that dims the page behind a modal.',
     // Q44: the APPROVED heading with the preview's Foreground description (Q23); Border and Icon take the preview's (Q23).
     // #1971 (APPROVED, owner 2026-10-05, superseding GR3): the preview's Foreground sits on the contrast floor, so its sentence (and the levers', Q23) says so.
     Foreground: "Content surfaces, shown on the contrast floor they're measured against.",
@@ -4631,6 +4636,41 @@ if (runs('18')) {
     ok(false, `#3073 Glass: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 18-glass
+// #3050 (owner Q825 B): Surfaces & fills › Scrim. Scrim strength's chips, Standard and Strong (DRAFT labels), sit above the
+// scrim's read-only row; Strong writes `scrimStrength: 'strong'` and the row reads out black-alpha 80 in Light, Standard
+// writes 'standard' and reads out 40. The steps are literals from the decision; ACTUAL is the persisted brand and the DOM.
+if (runs('18')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    const read = () => page.evaluate(() => {
+      const b = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-scrim-strength"]');
+      return {
+        section: b?.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent ?? null,
+        chips: [...(b?.querySelectorAll('[data-p3^="scrim-strength-choice-"]') ?? [])].map((n) => [n.textContent, n.getAttribute('aria-checked')]),
+        rowInBlock: !!b?.querySelector('[data-p3="scrim-row"]'),
+        read: b?.querySelector('[data-p3="scrim-readout"]')?.textContent ?? null,
+      };
+    });
+    const r0 = await read();
+    ok(r0.section === 'Scrim' && JSON.stringify(r0.chips) === JSON.stringify([['Standard', 'true'], ['Strong', 'false']]) && r0.rowInBlock && r0.read === 'black-alpha 40 · 40%',
+      `#3050: Surfaces & fills › Scrim holds Scrim strength's chips, Standard checked on a brand without the lever, above the row reading black-alpha 40 · 40% (${JSON.stringify(r0)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="scrim-strength-choice-strong"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent === 'black-alpha 80 · 80%', null, { timeout: 5000 }).catch(() => {});
+    const strong = await persisted(page);
+    const r1 = await read();
+    ok(strong?.scrimStrength === 'strong' && r1.read === 'black-alpha 80 · 80%' && r1.chips[1]?.[1] === 'true',
+      `#3050: Strong writes scrimStrength: strong and the row reads black-alpha 80 · 80% (${strong?.scrimStrength}, ${JSON.stringify(r1)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="scrim-strength-choice-standard"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent === 'black-alpha 40 · 40%', null, { timeout: 5000 }).catch(() => {});
+    const std = await persisted(page);
+    ok(std?.scrimStrength === 'standard' && (await read()).read === 'black-alpha 40 · 40%',
+      `#3050: Standard writes scrimStrength: standard and the row reads black-alpha 40 · 40% again (${std?.scrimStrength})`);
+    ok(errors.length === 0, `#3050 Scrim: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3050 Scrim: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 18-scrim
 // =============================================================================================
 // S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
 // fills read-only in a derived mode, the Unpair button included (Q56, Q59)
@@ -8337,6 +8377,55 @@ for (const host of ['web', 'figma']) {
     ok(errors.length === 0, `#2047: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `#2047: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// #3092: the gutter and margin picker follows the engine's link order (Q785 A, #3052): the spacing steps, then the core
+// dimension steps no spacing step has, in their own group. Picking 44 for md's margin stores 44 and the export links
+// md's margin to core dimension 44. Independence (docs/34): every expected value is typed here; the stored input is read
+// back from the PERSISTED brand and the link from the export's own base file, the bytes Download writes.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    /** Typed from #3092 and the prism3 example (namespace pds3, md margin Auto 24 = space.300). */
+    const PICK_PX = '44', WANT_STORED = '{"md":44}', WANT_LABEL = '44px · core.dimension.44';
+    const WANT_FILE = 'prism3.base.tokens.json', WANT_LINK = '{pds3.core.dimension.44}';
+    const WANT_GROUPS = ['Spacing steps', 'Dimension steps'];
+    await goPlace(page, 'layout');
+    await hooks.click(page.locator('[data-p3="bp-margin-pick"][data-bp="md"]'));
+    await hooks.need(page, '[data-p3="value-picker"]');
+    const listed = await page.evaluate((v) => {
+      const groups = [...document.querySelectorAll('[data-p3="value-picker"] [data-p3="value-picker-group"]')]
+        .map((g) => ({ name: g.querySelector('.p3-vpick-cap')?.textContent ?? null, named: document.getElementById(g.getAttribute('aria-labelledby') ?? '')?.textContent ?? null,
+          values: [...g.querySelectorAll('[data-p3="value-picker-value"]')].map((b) => b.dataset.value) }));
+      const b = document.querySelector(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${v}"]`);
+      return { groups, label: b?.querySelector('.p3-vpick-key')?.textContent ?? null, in: b?.closest('[data-p3="value-picker-group"]')?.querySelector('.p3-vpick-cap')?.textContent ?? null };
+    }, PICK_PX);
+    const [sp, dm] = listed.groups;
+    ok(JSON.stringify(listed.groups.map((g) => g.name)) === JSON.stringify(WANT_GROUPS) && listed.groups.every((g) => g.named === g.name),
+      `#3092: md's margin picker lists two named groups, ${WANT_GROUPS.join(' then ')} — ${JSON.stringify(listed.groups.map((g) => [g.name, g.named]))}`);
+    ok(!!sp && !!dm && sp.values.includes('24') && !sp.values.includes(PICK_PX) && dm.values.includes(PICK_PX) && !dm.values.some((v) => sp.values.includes(v)),
+      `#3092: ${PICK_PX} is in the dimension group, not the spacing group, and no value is in both — ${JSON.stringify(listed.groups.map((g) => g.values))}`);
+    ok(listed.label === WANT_LABEL && listed.in === WANT_GROUPS[1], `#3092: the ${PICK_PX} entry reads "${WANT_LABEL}" under ${WANT_GROUPS[1]} — "${listed.label}" under ${listed.in}`);
+    await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${PICK_PX}"]`));
+    await page.waitForFunction(() => document.querySelector('[data-p3="bp-margin-pick"][data-bp="md"]')?.dataset.set === 'true', null, { timeout: 5000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="value-picker-close"]'));
+    const stored = (await layoutPersisted(page))?.marginOverrides;
+    ok(JSON.stringify(stored) === WANT_STORED, `#3092: picking ${PICK_PX} for md's margin stores layout.marginOverrides ${WANT_STORED} — ${JSON.stringify(stored)}`);
+    await hooks.click(page.locator('[data-p3="rail-export"]'));
+    await hooks.need(page, '[data-p3="export-page"]');
+    // The preview is a sample of tokens, so the link is read from the downloaded base file (the consumer set, #2552).
+    const pending = page.waitForEvent('download', { predicate: (d) => d.suggestedFilename() === WANT_FILE, timeout: 15000 });
+    await hooks.click(page.locator('[data-p3="export-page"] [data-p3="dialog-confirm"]'));
+    const dl = await pending.catch(() => null);
+    const link = { found: !!dl, value: null };
+    if (dl) {
+      const tree = JSON.parse(readFileSync(await dl.path(), 'utf8'));
+      link.value = tree[Object.keys(tree)[0]]?.grid?.md?.margin?.$value ?? null;
+    }
+    ok(link.found && link.value === WANT_LINK, `#3092: the export's ${WANT_FILE} links grid md margin to ${WANT_LINK} — ${JSON.stringify(link)}`);
+    ok(errors.length === 0, `#3092: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3092: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59: previewing a derived mode, every control on Layout is disabled under the derived line; the preview still draws.

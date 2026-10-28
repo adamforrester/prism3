@@ -641,6 +641,7 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `status.info` | value |  |
 | `surfaces` | value |  |
 | `raisedSurface` | value | one token's value moves: `color.foreground.raised`, which Dialog's panel binds, holds the card, the page or white in light |
+| `scrimStrength` | value | one token's value moves: `color.scrim.default`, the dialog's backdrop, aliases a heavier existing `black-alpha` step; no name changes |
 | `glassRoles` | value | adds brand-dependent `color.glass.<name>` fills; a def binds `glass.surface`, never a brand's own glass role |
 | `strictInteractiveContrast` | value | swaps the inverse label ink token |
 | `linkStateRungs` | value |  |
