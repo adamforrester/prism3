@@ -62,6 +62,12 @@ scrimStrength: strong
 # shows through. `color.glass.surface`, the white glass, is unchanged.
 glassRoles: { card: { role: foreground.primary, alpha: 70 } }
 
+# Outline and text hover (#3071, owner Q824 A): an opaque light gray, `neutral.050` on hover and the next step,
+# `neutral.100`, on press. Not 025, which is the card ground: on a card the hover would disappear. The inverse band
+# takes the default rule. Tags, segmented controls and pagination keep the neutral wash.
+outlineInteraction: opaque-fill
+outlineHoverFill: { light: { hover: neutral.050 } }
+
 # The checked radio's dot is 70% of the radio, not half (#3086, owner Q816 A): 14px at medium, as the brand's master
 # draws it. Snapped to the 2px sub-grid at every size, so small is 12 and large 16. 14 is off the dimension grid, so
 # medium's dot is a plain 14px rather than a link to a dimension step; no token is added.
