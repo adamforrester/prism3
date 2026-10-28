@@ -3359,6 +3359,40 @@ for (const host of ['web', 'figma']) {
           // Q3113.6 A: the earlier result is one line, its time and its words.
           ok(hist.length === 1 && new RegExp(`^\\d\\d:\\d\\d${words}$`).test(hist[0]),
             `Q3113.6 A ${where}: the earlier ${kind} is one line, its time and "${words}" (${JSON.stringify(hist)})`);
+          // The review of #3126 (nit 3): an open earlier result stays open when a new result arrives, though every entry moves
+          // down one. MUTATION: the open entries remembered by their index again → this arm, by name.
+          const row = '[data-p3="activity-op"][data-op="filesetup"]';
+          await page.evaluate((r) => { const d = document.querySelector(`${r} details.p3-op-history`); if (d) d.open = true; const e = document.querySelector(`${r} details.p3-op-entry`); if (e) e.open = true; }, row);
+          await takeWrites(page);
+          await hooks.click(page.locator(`${row} [data-p3="op-again"]`), WAIT);
+          await takeWrites(page);
+          await postMsg(page, bad);
+          await page.waitForFunction((r) => document.querySelectorAll(`${r} details.p3-op-entry`).length === 2, row, { timeout: 5000 }).catch(() => {});
+          const opened = await page.evaluate((r) => [...document.querySelectorAll(`${r} details.p3-op-entry`)].map((n) => n.open), row);
+          ok(JSON.stringify(opened) === '[false,true]',
+            `#3126 review ${where}: an open earlier result stays open when a new result arrives and moves it down one (entries open ${JSON.stringify(opened)})`);
+          // The review of #3126 (should-fix 2), the rerun's two guards. With another write running (an agent's build), "Set up
+          // again" reads unavailable and a click, activated in the page, posts nothing. MUTATION Ma: `activityAgain.can`
+          // returning true up front (`main.ts`) → this arm, by name.
+          await postMsg(page, { type: 'agent-started', id: 'ag1', cmd: 'build-components' });
+          await page.waitForFunction((r) => document.querySelector(`${r} [data-p3="op-again"]`)?.getAttribute('aria-disabled') === 'true', row, { timeout: 5000 }).catch(() => {});
+          const busy = await page.evaluate((r) => document.querySelector(`${r} [data-p3="op-again"]`)?.getAttribute('aria-disabled') ?? null, row);
+          await takeWrites(page);
+          await page.evaluate((r) => { const n = document.querySelector(`${r} [data-p3="op-again"]`); if (n) HTMLElement.prototype.click.call(n); }, row);
+          const busyW = await takeWrites(page);
+          ok(busy === 'true' && busyW.length === 0,
+            `#3126 review ${where}: with a second write running, "Set up again" is aria-disabled and a click posts nothing (aria-disabled ${busy}, posted ${JSON.stringify(busyW.map(keyOf))})`);
+          await postMsg(page, { type: 'agent-finished', id: 'ag1', cmd: 'build-components' });
+          await page.waitForFunction((r) => document.querySelector(`${r} [data-p3="op-again"]`)?.getAttribute('aria-disabled') === null, row, { timeout: 5000 }).catch(() => {});
+          // An agent's bad result ran with the agent's input, not the panel's, so it offers "Copy details" alone. MUTATION Mb:
+          // `nextSteps` without `!res.agent` (`activity.ts`) → this arm, by name.
+          await postMsg(page, { type: 'agent-started', id: 'ag2', cmd: 'file-setup' });
+          await postMsg(page, bad);
+          await postMsg(page, { type: 'agent-finished', id: 'ag2', cmd: 'file-setup' });
+          await page.waitForFunction((r) => !!document.querySelector(`${r} [data-p3="op-copy"]`) && document.querySelectorAll(`${r} details.p3-op-entry`).length === 3 && !document.querySelector(`${r} [data-p3="op-again"]`), row, { timeout: 5000 }).catch(() => {});
+          const agentNext = await page.evaluate((r) => ({ next: [...document.querySelectorAll(`${r} [data-p3="op-next"] button`)].map((n) => n.textContent), agent: !document.querySelector(`${r} [data-p3="op-head"] .p3-op-agent`)?.hidden }), row);
+          ok(agentNext.agent && JSON.stringify(agentNext.next) === '["Copy details"]',
+            `#3126 review ${where}: an agent's ${kind} offers "Copy details" alone (${JSON.stringify(agentNext)})`);
         }
         if (narrow) {
           // Q3113.8 A: the sheet's header row: the 24 × 24 close icon named "Close Activity", "Activity", the count; the bar

@@ -375,6 +375,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const expanded = new Set<OpKey>();
   /** The rendered rows, keyed, so a repaint keeps the header that holds focus. */
   const rowEls = new Map<OpKey, { root: HTMLElement; head: HTMLButtonElement; mark: HTMLElement; tag: HTMLElement; words: HTMLElement; when: HTMLElement; body: HTMLElement; progress: HTMLElement | null }>();
+  /** The earlier result each drawn history entry shows, so an open one is found again by its result (#3113 review). */
+  const entryOf = new WeakMap<HTMLDetailsElement, Result>();
 
   /** How many run, and how many results are bad (`failed`), split into failures and warnings (Q3113.3 A). */
   const counts = (r: ActivityReading): { running: number; failed: number; failures: number; warnings: number } => {
@@ -553,8 +555,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       const ul = h('ul');
       // Q3113.6 A: each earlier result is one line, its time, its mark and its words (and Agent), that opens its own
       // lines (#2281's mono list). Never in the live region, so nothing here is announced.
-      const wasOpen = new Set([...el.body.querySelectorAll<HTMLDetailsElement>('details.p3-op-entry')].map((x, i) => (x.open ? i : -1)));
-      rec.history.forEach((x, i) => {
+      // An open entry stays open across a repaint by the result it shows, not by its place: a new result moves every entry
+      // down one, and an entry with no lines draws no `details`.
+      const wasOpen = new Set([...el.body.querySelectorAll<HTMLDetailsElement>('details.p3-op-entry')].filter((x) => x.open).map((x) => entryOf.get(x)));
+      rec.history.forEach((x) => {
         const entry = hook(h('li', 'p3-op-entry-row'), 'op-history-entry');
         const head = hook(h('span', 'p3-op-entry-head'), 'op-history-head');
         head.append(markOf(kindOfResult(x)), h('span', 'p3-op-when', x.t), h('span', undefined, x.refused ? x.verdict : verdictWords(x.verdict)));
@@ -566,7 +570,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
           const sum = h('summary');
           sum.append(head);
           one.append(sum, ...lines);
-          if (wasOpen.has(i)) one.open = true;
+          entryOf.set(one, x);
+          if (wasOpen.has(x)) one.open = true;
           entry.append(one);
         } else entry.append(head);
         ul.append(entry);
