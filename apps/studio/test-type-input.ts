@@ -529,6 +529,27 @@ console.log('\n11. Caption sizes and the letter spacing pin (#3077, owner decisi
   T.setTrackingPin('label', undefined);
   ok(pristine(), 'clearing every pin leaves the brand byte-identical (typography.tracking pruned)');
 }
+// #3084: the 10px caption floor is refused while caption md is set to 10px, so its chip is disabled with a reason.
+// EXPECTED from the sizes typed here, never from the module: blocked exactly when caption md is 10px. The engine is the
+// second witness: on 11px every case builds, and on 10px each blocked case throws and each other one builds.
+{
+  const at10 = (): boolean => { try { brandTheme({ ...structuredClone(store.brandState), typography: { ...structuredClone(store.brandState.typography), captionFloor: 10 } }); return true; } catch { return false; } };
+  const check = (what: string, want: boolean): void => {
+    ok(T.captionFloorBlocked() === want, `captionFloorBlocked, ${what}: ${want ? 'refuses' : 'offers'} 10px (got ${T.captionFloorBlocked()})`);
+    ok(takes() && at10() === !want, `captionFloorBlocked, ${what}: the engine takes 11px and ${want ? 'refuses' : 'builds'} 10px`);
+  };
+  reset();
+  check('no caption size set', false);
+  T.setCaptionSize('md', 10);
+  check('caption md set to 10px', true);
+  T.setCaptionSize('lg', 16);
+  T.setCaptionSize('md', 12);
+  check('caption md set to 12px, lg to 16px', false);
+  reset();
+  T.setCaptionSize('lg', 14);
+  check('caption lg set, md not', false);
+  reset();
+}
 
 console.log(`\n${executed - failed}/${executed} type-input assertions passed.`);
 if (failed) process.exit(1);

@@ -16,6 +16,10 @@ moves to +1% too), caption A and tracking A.
   nudge only.
 - Schema, Studio/plugin Type page (Caption sizes in Scale limits; Letter spacing for each text type beside the
   nudges, both DRAFT copy), the prism3-theme skill, `.ai.json` notes.
+- **The 10px caption floor's refusal.** While caption md is set to 10px, the 10px floor would add caption sm at 10px
+  below it, which the engine refuses (the ramp must strictly increase). The Type page now disables that chip and draws
+  the reason as a hint line, as the title floor's refusals do (#2451). `captionFloorBlocked()` reads the engine's rule
+  from the input, no trial build. The reason is DRAFT copy, held for the owner.
 
 ### Why a pin, not a nudge
 No nudge reaches +1% (`open` was kept off the nudge path in #2322 so nudging brands don't move), and display's derived
@@ -26,6 +30,8 @@ nothing else; re-anchoring three roles (the issue's route B) would have made `sn
 - **The legacy fixture's title.2xs.** Its type is the engine default (title.xs 18), so a 20px 2xs can't sit below it.
   It stays without one; pinning the stored title ramp into the fixture would be a wider change than this issue.
 - The field-message glyph beside a 10px caption is for the orchestrator to re-check in Figma.
+- The 10px caption floor's refusal wording (DRAFT): "Caption md is 10px, which you set individually, so the engine
+  refuses a second 10px caption."
 
 ### Traps
 - The frozen Figma text-style fixture (test.ts, fix #3b and the size bind) predates the decision: the moved text types

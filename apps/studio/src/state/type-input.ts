@@ -445,6 +445,11 @@ export { CAPTION_SIZE_RUNGS };
 export type CaptionSizeRung = typeof CAPTION_SIZE_RUNGS[number];
 /** The caption size set for one rung, if any. */
 export const captionSizePin = (variant: CaptionSizeRung): number | undefined => brandState.typography?.sizes?.caption?.[variant];
+/** Whether the 10px caption floor is refused because caption md is set to 10px (#3084). The 10px floor adds caption sm
+ *  at 10px below md, and the engine refuses a caption ramp that is not strictly increasing. Caption md is set only in
+ *  `typography.sizes.caption` (`sizeOverrides` and `modeLevers` refuse caption), and never below 10px, so this is the
+ *  one clash. The engine's own rule, no trial build. */
+export const captionFloorBlocked = (): boolean => (captionSizePin('md') ?? Infinity) <= 10;
 /** Set or clear a caption size. Brand-wide: caption has one size in every mode, so any editable mode writes the same
  *  bytes. `undefined` clears it, pruning the caption map and then `sizes`, so a cleared brand stays byte-identical. */
 export const setCaptionSize = (variant: CaptionSizeRung, px: number | undefined): void => {

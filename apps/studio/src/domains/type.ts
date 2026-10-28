@@ -54,7 +54,7 @@ import {
   setSizePin, setMobileSize, setFluid, setResponsiveViewport, viewportRefusal, setDisplayCeiling, ceilingPx, ceilingBlocked, titleFloorBlocked, fluidBlocked, setTitleFloor, setCaptionFloor, setSizeFloor,
   setWeightRole, toggleCategoryWeight, categoryWeightLock, setLink, linkLock, setItalicStyle, italicStyleOf, setFacePin,
   setRungBinding, setRepoint, setShift, nudgeSteps, resolvedRungs, type ItalicStyle, type RungField,
-  CAPTION_SIZE_RUNGS, captionSizePin, setCaptionSize, trackingPinOf, setTrackingPin,
+  CAPTION_SIZE_RUNGS, captionSizePin, captionFloorBlocked, setCaptionSize, trackingPinOf, setTrackingPin,
 } from '../state/type-input';
 import { HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, LETTER_SPACING_KEYS, CAPTION_SIZE_FLOOR } from '@prism3/engine/theme';
 import type { FacePin } from '@prism3/engine/theme';
@@ -158,6 +158,8 @@ export const S63 = {
   titleFloorPinned: 'Leaves out title 2xs, which you set individually.',
   captionFloorLabel: 'Smallest caption size',
   captionFloorTip: '10px adds a fine-print caption, for dense legal, footer or product details.',
+  /** The 10px chip's reason while caption md is set to 10px (#3084). DRAFT, pending the owner's approval. */
+  captionFloorPinned: 'Caption md is 10px, which you set individually, so the engine refuses a second 10px caption.',
   sizeFloorLabel: 'Smallest type size',
   sizeFloorTip: '8px adds the smallest caption and moves the size ladder down to 8px.',
   eightWarn: '8px is below the sizes the contrast floors were set for. Use it only for fine print that has an accessible alternative.',
@@ -848,8 +850,13 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       : floor16 && titleFloorBlocked() ? { v: '18', why: S63.titleFloorPinned } : null;
     chips('typography.titleFloor', S63.titleFloorLabel, S63.titleFloorTip, 'title-floor', [{ v: '18', l: '18px' }, { v: '16', l: '16px' }],
       floor16 ? '16' : '18', (v) => setTitleFloor(v === '16'), null, floorRefused && { ...floorRefused, id: 'p3-tfloor-why', hk: 'title-floor-refused' });
+    // The caption floor. 10px while caption md is set to 10px is the engine's refusal (the floor adds caption sm at
+    // 10px, below md), so the chip is disabled there with that reason, as the title floor's are (#3084). A brand that
+    // arrives on 10px keeps its 10px chip live by the same rule; 11px is its way out.
+    const floor10 = (getPath(brandState, 'typography.captionFloor') ?? 11) === 10;
     chips('typography.captionFloor', S63.captionFloorLabel, S63.captionFloorTip, 'caption-floor', [{ v: '11', l: '11px' }, { v: '10', l: '10px' }],
-      (getPath(brandState, 'typography.captionFloor') ?? 11) === 10 ? '10' : '11', (v) => setCaptionFloor(v === '10' ? 10 : 11));
+      floor10 ? '10' : '11', (v) => setCaptionFloor(v === '10' ? 10 : 11), null,
+      !floor10 && captionFloorBlocked() ? { v: '10', why: S63.captionFloorPinned, id: 'p3-cfloor-why', hk: 'caption-floor-refused' } : null);
     // #3077 (caption A): caption md and lg, each one size on every screen and in every mode, picked from the ladder.
     // A size the engine refuses (below 10px, or out of order with the caption sizes beside it) is shown disabled.
     {
