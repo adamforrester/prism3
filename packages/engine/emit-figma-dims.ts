@@ -292,6 +292,9 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     // The rung's own px per field — the Figma line states the arithmetic from these, not from the DTCG prose.
     const rungPx: Record<string, number> = Object.fromEntries(Object.entries(brand.control.size[rung])
       .filter(([k]) => !k.startsWith('$')).map(([k, l]: [string, any]) => [k, pxFromValue(tree, l.$value)]));
+    // The radio dot setting's share (#3086), read off the DTCG leaf, where `tree.ts` records it off the default only.
+    const dotShare = brand.control.size[rung].dot?.$extensions?.prism3?.share;
+    if (typeof dotShare === 'number') rungPx.dotShare = dotShare;
     for (const field of ['height', 'width', 'dot', 'line-box', 'inset', 'radius', 'track', 'thumb']) {
       const leaf = brand.control.size[rung][field];
       if (!leaf) continue;
