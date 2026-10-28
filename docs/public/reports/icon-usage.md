@@ -55,6 +55,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | button | leadingVisual, trailingVisual |
 | button-destructive | leadingVisual, trailingVisual |
 | button-neutral | leadingVisual, trailingVisual |
+| card-number-field | leadingVisual |
 | flush-icon-button | icon |
 | flush-icon-button-destructive | icon |
 | flush-icon-button-neutral | icon |

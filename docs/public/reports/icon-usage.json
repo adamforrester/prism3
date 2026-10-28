@@ -195,6 +195,12 @@
         "trailingVisual"
       ]
     },
+    "card-number-field": {
+      "glyphs": [],
+      "iconSlots": [
+        "leadingVisual"
+      ]
+    },
     "checkbox-control": {
       "glyphs": [
         {

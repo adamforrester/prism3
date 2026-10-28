@@ -1711,6 +1711,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
               const ref = mkRef(String(n.name), seq++, n);
               if (!Object.getOwnPropertyDescriptor(n, 'createInstance'))
                 Object.defineProperty(n, 'createInstance', { configurable: true, enumerable: false, value: ref.createInstance });
+              // #2343 PR 4 — and its id, as Figma's has one: an INSTANCE_SWAP default names the component by id, so a
+              // swap that starts at a live component (the Card number field's tile) is refused without it. Non-enumerable,
+              // like `createInstance`, so a node's own keys do not grow.
+              if (!Object.getOwnPropertyDescriptor(n, 'id'))
+                Object.defineProperty(n, 'id', { configurable: true, enumerable: false, value: ref.id });
               found.push(n as unknown as ReturnType<typeof mkRef>);
             } else found.push(mkRef(String(n.name), seq++));
           }

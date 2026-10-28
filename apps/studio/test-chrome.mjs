@@ -9502,9 +9502,9 @@ for (const host of ['web', 'figma']) {
         `#2931 Q579 A, #2905 Q10 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
       const B = r.buttons, F = r.fields;
       ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
-        && JSON.stringify(F.ids) === JSON.stringify(['code-input', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
-        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its seven sets (Code input since Q-2789.3 A, its cell beside it since #2989), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
-      ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog|Banner)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
+        && JSON.stringify(F.ids) === JSON.stringify(['card-number-field', 'code-input', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
+        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its eight sets (Code input since Q-2789.3 A, its cell beside it since #2989, Card number field since #2343 PR 4), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
+      ok(!r.other.some((t) => /^(Buttons|Button|Card number field|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog|Banner)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
         `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
       for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T], ['Dialog', D], ['Banner', BN]]) {
         const xs = e ? [e.head, ...e.rows, e.line, e.block] : [];
@@ -9521,7 +9521,8 @@ for (const host of ['web', 'figma']) {
       ok(!!S && S.title === 'Search options' && S.desc === 'How Search field draws its edge, apart from the other fields.'
         && JSON.stringify(S.chips) === JSON.stringify(['Follow field style', 'Outline', 'Underline']) && S.readout === 'now Outline',
         `#2952, #2905 Q10 A: ${host} ${w}: Search options: its drafted title and description, Search field style's chips, and under Follow the readout "now Outline" (${JSON.stringify(S)})`);
-      ok(r.title === 'Code input', `#2905, Q-2789.3 A: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Code input (${r.title})`);
+      // #2343 PR 4: Card number field sorts first in Fields, so it is the set the preview opens on.
+      ok(r.title === 'Card number field', `#2905, Q-2789.3 A: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Card number field (${r.title})`);
       await hooks.click(page.locator('[data-p3="field-style-choice-underline"]'));
       await page.waitForFunction(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent !== 'Rounded', null, { timeout: 5000 }).catch(() => {});
       const u = await page.evaluate(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent ?? null);
@@ -16448,6 +16449,52 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
       await postMsg(page, FILE);
       await postMsg(page, { type: 'hand-edits', done: true });
+      // #3082: the checklist repaints whole on a tick and on each host answer; neither moves the body's scroll, and a
+      // tick keeps focus on its box. Every set not in the file is listed, so the checklist is taller than the dialog.
+      // Twice: at 1280, and at the narrow tier, where `.p3-bardlg-col.p3-upd-body` keeps the body the scroller.
+      for (const [vw, vh] of [[1280, 900], [400, 700]]) {
+        const at = `IA2 ${host} ${theme} ${vw}`;
+        await page.setViewportSize({ width: vw, height: vh });
+        await page.waitForFunction((n) => (document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow') === n, vw < 560, { timeout: 5000 }).catch(() => {});
+        const tier = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w ?? null);
+        ok(tier === (vw < 560 ? 'narrow' : 'wide'), `${at}: #3082: the frame is at the ${vw < 560 ? 'narrow' : 'wide'} tier (${tier})`);
+        step = `the scroll across a repaint at ${vw}`;
+        await page.evaluate(() => { window.__ia2.length = 0; });
+        await hooks.click(page.locator('[data-p3="update-file"]'));
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, FILE);
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+        const fold = await page.evaluate(() => {
+          const b = document.querySelector('[data-p3="update-body"]');
+          const last = [...document.querySelectorAll('[data-p3="update-set"]')].at(-1);
+          if (!b || !last) return null;
+          const below = last.getBoundingClientRect().top >= b.getBoundingClientRect().bottom;
+          b.scrollTop = b.scrollHeight;
+          return { tall: b.scrollHeight > b.clientHeight + 1, below, top: b.scrollTop, id: last.dataset.id, on: last.getAttribute('aria-checked') };
+        });
+        ok(!!fold && fold.tall && fold.below && fold.top > 0 && fold.on === 'false', `${at}: #3082: the checklist is taller than the dialog, its last new set starts below the fold, unticked, and the body scrolls down to it (${JSON.stringify(fold)})`);
+        const scrollNow = () => page.evaluate(() => { const a = document.activeElement;
+          return { top: document.querySelector('[data-p3="update-body"]')?.scrollTop ?? null, focus: a?.closest('[data-p3="update-dialog"]') ? a.dataset.key ?? a.getAttribute('data-p3') : null }; });
+        if (fold) {
+          await hooks.click(page.locator(`[data-p3="update-set"][data-id="${fold.id}"]`));
+          await page.waitForFunction((id) => document.querySelector(`[data-p3="update-set"][data-id="${id}"]`)?.getAttribute('aria-checked') === 'true', fold.id, { timeout: 5000 }).catch(() => {});
+          const ticked = { ...(await scrollNow()), on: await page.evaluate((id) => document.querySelector(`[data-p3="update-set"][data-id="${id}"]`)?.getAttribute('aria-checked') ?? null, fold.id) };
+          ok(ticked.on === 'true' && ticked.top !== null && Math.abs(ticked.top - fold.top) <= 1 && ticked.focus === `set=${fold.id}`,
+            `${at}: #3082: ticking a set below the fold keeps the body's scroll (${fold.top} → ${ticked.top}) and focus on that box (${JSON.stringify(ticked)})`);
+          // A host answer repaints the dialog too (here the check again): the scroll stays where it was. Scrolled back to
+          // where the tick was first, so this reads the host's repaint alone.
+          await page.evaluate((top) => { document.querySelector('[data-p3="update-body"]').scrollTop = top; }, fold.top);
+          await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+          await settle(page);
+          const answered = await scrollNow();
+          ok(answered.top !== null && Math.abs(answered.top - fold.top) <= 1 && answered.focus === `set=${fold.id}`,
+            `${at}: #3082: a host answer's repaint keeps the body's scroll (${fold.top} → ${answered.top}) and focus (${JSON.stringify(answered)})`);
+        }
+        await page.keyboard.press('Escape');
+      }
+      await page.setViewportSize({ width: 1280, height: 900 });
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
