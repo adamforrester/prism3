@@ -100,5 +100,29 @@ export const weightsByFaceSection = (ty: Theme['typography'], mode: string, copy
     sb.append(tr);
   }
   st.append(sb); sscroll.append(st); stbl.append(sscroll); wsec.append(stbl);
+  // #2942 — the link underline, as code draws it: each field a share of the font size in `em`, or `auto`. A body link
+  // at 14, 16 and 18px, so the same percent reads at three sizes. DRAFT words (owner Q2 A).
+  wsec.append(subHead('Link underline'));
+  const ul = hook(el('div', 'tpw-underline'), 'underline-preview');
+  const body = (ty.familiesByMode?.[mode] ?? ty.families).find((f) => f.group === 'body')?.stack.join(', ');
+  for (const px of [14, 16, 18]) {
+    const a = hook(el('span', 'tpw-ulsamp', `Link at ${px}px`), 'underline-preview-sample');
+    a.style.fontSize = `${px}px`;
+    a.style.marginInlineEnd = '24px';
+    if (body) a.style.fontFamily = body;
+    applyUnderline(a, ty.underline);
+    ul.append(a);
+  }
+  wsec.append(ul, el('p', 'sl-note', underlineWords(ty.underline)));
   return wsec;
 };
+/** Draw `n` underlined with the brand's thickness and offset, in `em` (#2942): the CSS a coded link writes. */
+export const applyUnderline = (n: HTMLElement, u: Theme['typography']['underline']): void => {
+  n.style.textDecorationLine = 'underline';
+  n.style.textDecorationThickness = u.thickness === 'auto' ? 'auto' : `${u.thickness / 100}em`;
+  n.style.textUnderlineOffset = u.offset === 'auto' ? 'auto' : `${u.offset / 100}em`;
+};
+/** The underline in words. DRAFT (owner Q2 A). */
+export const underlineWords = (u: Theme['typography']['underline']): string =>
+  u.thickness === 'auto' && u.offset === 'auto' ? 'Auto: the font sets the underline.'
+    : `Thickness ${u.thickness === 'auto' ? 'auto' : `${u.thickness}%`}, offset ${u.offset === 'auto' ? 'auto' : `${u.offset}%`} of the font size.`;

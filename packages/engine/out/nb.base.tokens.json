@@ -635,6 +635,20 @@
             "$value": "rgba(255, 255, 255, 0.9)",
             "$description": "White alpha 90% — alpha, composites over any surface"
           }
+        },
+        "neutral-050-alpha": {
+          "70": {
+            "$type": "color",
+            "$value": "rgba(232, 233, 234, 0.7)",
+            "$description": "neutral.050 at 70% — alpha, a glass fill the brand adds"
+          }
+        },
+        "neutral-900-alpha": {
+          "70": {
+            "$type": "color",
+            "$value": "rgba(21, 23, 25, 0.7)",
+            "$description": "neutral.900 at 70% — alpha, a glass fill the brand adds"
+          }
         }
       },
       "dimension": {
@@ -1231,6 +1245,18 @@
             "$type": "dimension",
             "$value": "{nbds.core.font.letter-spacing.50}",
             "$description": "letter-spacing role 'wider' → 0.05em — a relative-emphasis name a mode may re-point; the step itself never changes"
+          }
+        },
+        "underline": {
+          "thickness": {
+            "$type": "number",
+            "$value": 0.05,
+            "$description": "Link underline thickness: 5% of the font size (0.05em in CSS). Every underlined text style draws it."
+          },
+          "offset": {
+            "$type": "number",
+            "$value": 0.25,
+            "$description": "Link underline offset, below the baseline: 25% of the font size (0.25em in CSS). Every underlined text style draws it."
           }
         }
       }
@@ -1955,8 +1981,8 @@
       "scrim": {
         "default": {
           "$type": "color",
-          "$value": "{nbds.core.palette.black-alpha.40}",
-          "$description": "Scrim — black backdrop behind modals and drawers; opacity 40%"
+          "$value": "{nbds.core.palette.black-alpha.80}",
+          "$description": "Scrim — black backdrop behind modals and drawers; opacity 80%"
         }
       },
       "glass": {
@@ -1964,6 +1990,11 @@
           "$type": "color",
           "$value": "{nbds.core.palette.white-alpha.70}",
           "$description": "Glass — the translucent white fill behind the glass background blur; opacity 70%"
+        },
+        "card": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.neutral-050-alpha.70}",
+          "$description": "Glass card — foreground.primary's color at 70% behind the glass background blur, a glass fill this brand adds"
         }
       },
       "veil": {

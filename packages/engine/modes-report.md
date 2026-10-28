@@ -4,7 +4,7 @@
 
 - reference brand: anchors measured from the shipped system; the brand red also serves as danger, since the brand hue is its danger hue.
 - dimensions: 4px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius 4px).
-- typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900.
+- typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900; link underline 5% thick, 25% offset, as the reference sets it.
 - shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference's heavier dark shadows.
 - layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale, except the md margin: 44px, as the reference sets it, which is not a spacing step, so it links to core dimension 44.
 
@@ -20,7 +20,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.primary | neutral.950 | — | — | · |
 | inverse.background.secondary | neutral.900 | — | — | · |
 | inverse.background.tertiary | neutral.850 | — | — | · |
-| scrim.default | black-alpha.40 | — | — | · |
+| scrim.default | black-alpha.80 | — | — | · |
 | glass.surface | white-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
@@ -283,6 +283,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.danger | red.500 | 4.24 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.27 | 3 | ✅ |
 | inverse.border.focus | red.450 | 5.05 | 3 | ✅ |
+| glass.card | neutral-050-alpha.70 | — | — | · |
 | interactive.primary.subtle-fill.selected | red.550 | — | — | · |
 
 ## nb — color mode: dark
@@ -295,7 +296,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.primary | neutral.025 | — | — | · |
 | inverse.background.secondary | neutral.050 | — | — | · |
 | inverse.background.tertiary | neutral.100 | — | — | · |
-| scrim.default | black-alpha.60 | — | — | · |
+| scrim.default | black-alpha.80 | — | — | · |
 | glass.surface | black-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
@@ -558,6 +559,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.danger | red.500 | 4.27 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.25 | 3 | ✅ |
 | inverse.border.focus | red.550 | 5.24 | 3 | ✅ |
+| glass.card | neutral-900-alpha.70 | — | — | · |
 | interactive.primary.subtle-fill.selected | red.500 | — | — | · |
 
 ## nb — color mode: hc-light
@@ -570,7 +572,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.primary | black | — | — | · |
 | inverse.background.secondary | black | — | — | · |
 | inverse.background.tertiary | black | — | — | · |
-| scrim.default | black-alpha.60 | — | — | · |
+| scrim.default | black-alpha.90 | — | — | · |
 | glass.surface | white-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
@@ -833,6 +835,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.danger | red.500 | 4.58 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.61 | 4.5 | ✅ |
 | inverse.border.focus | red.350 | 7.52 | 4.5 | ✅ |
+| glass.card | white-alpha.70 | — | — | · |
 | interactive.primary.subtle-fill.selected | red.700 | — | — | · |
 
 ## nb — color mode: hc-dark
@@ -845,7 +848,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.primary | white | — | — | · |
 | inverse.background.secondary | white | — | — | · |
 | inverse.background.tertiary | white | — | — | · |
-| scrim.default | black-alpha.70 | — | — | · |
+| scrim.default | black-alpha.90 | — | — | · |
 | glass.surface | black-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
@@ -1108,6 +1111,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.danger | red.500 | 4.58 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.56 | 4.5 | ✅ |
 | inverse.border.focus | red.650 | 8.29 | 4.5 | ✅ |
+| glass.card | black-alpha.70 | — | — | · |
 | interactive.primary.subtle-fill.selected | red.300 | — | — | · |
 
 ## nb — dimension axis

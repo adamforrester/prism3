@@ -65,13 +65,15 @@ const WIRE_TAGS: [string, string[]][] = [['Tag', ['Tag']]];
 const WIRE_DIALOGS: [string, string[]][] = [['Dialog', ['Dialog']]];
 // #2924 (Q693 A): Banner leaves Other components for its own section, as Dialog did (the wireframe on #2924, §4).
 const WIRE_BANNERS: [string, string[]][] = [['Banner', ['Banner']]];
+// #2942 (Q3 A): Link leaves Other components for its own section, for its underline's read-only line.
+const WIRE_LINKS: [string, string[]][] = [['Link', ['Link']]];
 // #3086 (Q816 A): Radio leaves Other components for its own section, as Banner did. Its three sets share the Radio page, so
 // one row holds them, as Code input's row holds its cell.
 const WIRE_RADIOS: [string, string[]][] = [['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']]];
 const WIRE_COMPONENTS: [string, string[]][] = [
   ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Breadcrumbs', ['BreadcrumbItem', 'Breadcrumbs', 'BreadcrumbSeparator']],
   ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Counter', ['Counter']], ['Divider', ['Divider']],
-  ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['Link', ['Link']], ['List', ['List', 'List.Item']],
+  ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['List', ['List', 'List.Item']],
   // Pagination (#2665) joins after the wireframe: its own page, the row and its item, a family.
   ['Pagination', ['Pagination', 'Pagination.Item']],
   ['Progress', ['Progress']],
@@ -87,9 +89,9 @@ const WIRE_SUBS: [string, string[]][] = [
 ];
 const groups = groupsOf(catalog);
 const drawn = (kind: string) => (groups.find((g) => g.kind === kind)?.rows ?? []).map((r) => [r.label, r.ids.map(name)] as [string, string[]]);
-ok(JSON.stringify(groups.map((g) => g.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Radio', 'Other components', 'Subcomponents']),
-  `#2905 Q548, Q10 A, #2931 Q579 A, #2958, #2924, #3086: eight sections, Buttons, Fields, Tag, Dialog, Banner, Radio, Other components, Subcomponents (${groups.map((g) => g.title).join(', ')})`);
-ok(JSON.stringify(groups.map((g) => g.flat)) === JSON.stringify([true, true, true, true, true, true, false, false]),
+ok(JSON.stringify(groups.map((g) => g.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components', 'Subcomponents']),
+  `#2905 Q548, Q10 A, #2931 Q579 A, #2958, #2924, #2942, #3086: nine sections, Buttons, Fields, Tag, Dialog, Banner, Link, Radio, Other components, Subcomponents (${groups.map((g) => g.title).join(', ')})`);
+ok(JSON.stringify(groups.map((g) => g.flat)) === JSON.stringify([true, true, true, true, true, true, true, false, false]),
   `#2905 Q8 A: the sections with settings list their sets flat; Other components and Subcomponents keep their family rows (${JSON.stringify(groups.map((g) => g.flat))})`);
 ok(JSON.stringify(drawn('buttons')) === JSON.stringify(WIRE_BUTTONS), `#2905 Q548: Buttons holds the Buttons family's four sets (${JSON.stringify(drawn('buttons'))})`);
 const fieldIds = (groups.find((g) => g.kind === 'fields')?.rows ?? []).flatMap((r) => r.ids).sort();
@@ -111,6 +113,8 @@ ok(JSON.stringify(drawn('dialogs')) === JSON.stringify(WIRE_DIALOGS) && JSON.str
 const bannerIds = (groups.find((g) => g.kind === 'banners')?.rows ?? []).flatMap((r) => r.ids).sort();
 ok(JSON.stringify(drawn('banners')) === JSON.stringify(WIRE_BANNERS) && JSON.stringify(bannerIds) === JSON.stringify(Object.keys(BANNER_STYLE_FILL_KEYS).sort()),
   `#2924: Banner holds the sets Banner style reaches, the engine's BANNER_STYLE_FILL_KEYS (${Object.keys(BANNER_STYLE_FILL_KEYS).sort().join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('banners'))})`);
+ok(JSON.stringify(drawn('links')) === JSON.stringify(WIRE_LINKS),
+  `#2942 Q3 A: Link holds its one set, for the underline's read-only line (${JSON.stringify(drawn('links'))})`);
 // #3086: Radio holds the sets Radio dot size reaches, read from the engine's defs rather than restated: the def whose dot
 // part binds `control.size.*.dot` and is named Radio, and every def that nests it, transitively. Badge and List bind the
 // same tokens but are not radios, so they stay where they are (the lever's description names them).
@@ -124,8 +128,8 @@ ok(JSON.stringify(drawn('radios')) === JSON.stringify(WIRE_RADIOS) && JSON.strin
 ok(JSON.stringify(dotDefs.map((d) => d.id).sort()) === JSON.stringify(['badge', 'list-item', 'radio-control']),
   `#3086: the defs that bind control.size.*.dot are Radio.Control, Badge and List.Item, the three Radio dot size moves (${dotDefs.map((d) => d.id).sort().join(', ')})`);
 // #2952 (#2905 Q5 A, Q7 A): a section holds an ordered LIST of settings blocks, not one. Typed from the decisions: Fields
-// draws Field options, then Search options below it; Buttons, Tag, Dialog, Banner and Radio one each; Other components and Subcomponents none.
-const WIRE_BLOCKS: Record<string, string[]> = { buttons: ['buttons'], fields: ['fields', 'search'], tags: ['tags'], dialogs: ['dialogs'], banners: ['banners'], radios: ['radios'], components: [], subcomponents: [] };
+// draws Field options, then Search options below it; Buttons, Tag, Dialog, Banner, Link and Radio one each; Other components and Subcomponents none.
+const WIRE_BLOCKS: Record<string, string[]> = { buttons: ['buttons'], fields: ['fields', 'search'], tags: ['tags'], dialogs: ['dialogs'], banners: ['banners'], links: ['links'], radios: ['radios'], components: [], subcomponents: [] };
 const blocksOf = Object.fromEntries(groups.map((g) => [g.kind, [...(SECTION_BLOCKS[g.kind] ?? [])]]));
 ok(JSON.stringify(blocksOf) === JSON.stringify(WIRE_BLOCKS),
   `#2952 Q5 A: each section's settings blocks, in order: Fields draws Field options then Search options below it (${JSON.stringify(blocksOf)})`);
@@ -230,7 +234,7 @@ const tierOfSet = (id: string): string | undefined => tiers.find((t) => t.sectio
 const misplaced = catalog.filter((e) => (sectionOf(e.id) === 'Components' ? 'components' : 'subcomponents') !== tierOfSet(e.id)).map((e) => `${e.id} → ${tierOfSet(e.id)} (file: ${sectionOf(e.id)})`);
 ok(catalog.length > 40 && !misplaced.length, `every set (${catalog.length}) sits in the tier its file section names${misplaced.length ? ` — ${misplaced.join(', ')}` : ''}`);
 ok(tierOfSet('icon') === 'subcomponents', 'Icon, on its Foundations page, lists under Subcomponents (call 11 A)');
-ok(JSON.stringify(tiers[0].sections.map((sec) => sec.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Radio', 'Other components']) && JSON.stringify(tiers[1].sections.map((sec) => sec.title)) === JSON.stringify(['Subcomponents']),
+ok(JSON.stringify(tiers[0].sections.map((sec) => sec.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components']) && JSON.stringify(tiers[1].sections.map((sec) => sec.title)) === JSON.stringify(['Subcomponents']),
   `the sections sit under their tier, settings first (${tiers.map((t) => `${t.title}: ${t.sections.map((sec) => sec.title).join(', ')}`).join(' | ')})`);
 ok(tiers[2].sections.length === 0 && tiers[3].sections.length === 0, 'Content components and Blocks hold nothing: no definition names either');
 ok(GROUPS_COPY.tiersEmpty(['Content components', 'Blocks']).startsWith('Content components and Blocks'), 'the empty tiers are named in one line');
