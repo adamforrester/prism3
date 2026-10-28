@@ -464,15 +464,15 @@ export const mountFrame = (app: HTMLElement, opts: {
   };
   // Help (round 4): the old bar's Docs, renamed so it does not collide with Documentation. On the web a link to the
   // site's docs (#2637 Q384), opened in a new tab so the brand being edited stays put.
-  const help = opts.openDocs ? tile('docs-open', 'Help') : linkTile('docs-open', 'Help', DOCS_HREF);
+  // #3083 (the owner, 2026-10-28): Help, Minimize and Appearance draw their icon alone; the name and the tooltip stay.
+  const help = opts.openDocs ? tile('docs-open', null) : linkTile('docs-open', null, DOCS_HREF);
   help.mark.append(glyph('help'));
   help.tip.textContent = 'Help';
   help.btn.setAttribute('aria-label', 'Help');
   if (opts.openDocs) help.btn.onclick = () => opts.openDocs!();
   help.btn.classList.add('p3-rail-tile');
   theme.querySelector('.p3-tile')?.classList.add('p3-rail-tile');
-  // Q2909.9 A: the web's rail holds Theme, Components and Export, and no Minimize. Q732 A (2026-10-26): "Appearance" is
-  // whole, the wireframe's manual "Appear-ance" break gone, since it fits one line at the rail's 9px.
+  // Q2909.9 A: the web's rail holds Theme, Components and Export, and no Minimize.
   const rail = mountRail({ logo: opts.logo(), areas: railAreas(host), go: goArea, foot: [minimize, help.btn, theme].filter((n): n is HTMLElement => !!n) });
   root.prepend(rail.node);
   root.dataset.shell = 'rail';
@@ -879,7 +879,7 @@ export const mountFrame = (app: HTMLElement, opts: {
  *  rail's Appearance tile too (Q2995.3 B); its name and tooltip say the choice ("Theme: System"). */
 const themeToggle = (cleanups: (() => void)[], label: string): HTMLElement => {
   const wrap = h('div', 'p3-popwrap');
-  const { btn, mark, tip } = tile('theme-toggle', label);
+  const { btn, mark, tip } = tile('theme-toggle', null);
   btn.setAttribute('aria-haspopup', 'menu');
   btn.setAttribute('aria-controls', 'p3-theme-menu');
   const menu = hook(h('div', 'p3-menu'), 'theme-menu');
