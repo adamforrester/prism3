@@ -40,7 +40,7 @@ surface", "white" and `raisedSurface` matched nothing.
 - **Sweep.** It reads every lever from the manifest (`levers.ts`, committed as `schema/lever-manifest.json`), visits
   every place, and searches each lever's label. Each lever must show on exactly one page, its home. A typed sample pins
   labels and homes, Dialog surface first, plus every Components block the issue audits. A typed `SEARCH_STANDS_IN`
-  names the three levers whose control sits in another lever's block.
+  names the levers whose control sits in another lever's block: three at first, and Outline hover fill once #3105 landed (its block draws only under the opaque fill; Outline hover's description names it).
 - **The issue's four queries.** On Components, "dialog", "dialog surface", "white" and `raisedSurface` each show Dialog
   surface.
 - **The Color row.** On both hosts, the row is read-only, the link reads "Set by Dialog surface", and the link lands on

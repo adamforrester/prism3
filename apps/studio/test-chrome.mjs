@@ -2200,6 +2200,7 @@ const SEARCH_STANDS_IN = {
   'neutral.anchor': 'neutral.hue',            // Pin a neutral: the Pinned choice in the neutral source, until pinned (#2175)
   'typography.links': 'typography.weights',   // Underlined link styles: the weights table's Link column
   'typography.italicDefault': 'typography.italics', // Italic-only text types: each text type's Only chip
+  'outlineHoverFill': 'outlineInteraction',   // Outline hover fill: drawn only under Opaque fill; Outline hover's description names it (#3071)
 };
 /** Every place a lever can live, in the tab row's order (`PLACE_CLICKS`, typed above). */
 const SEARCH_PLACES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
