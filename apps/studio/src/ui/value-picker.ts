@@ -24,6 +24,9 @@ export type PickerValue = {
   readonly sample: (el: HTMLElement) => void;
   /** Why the value cannot be chosen, or undefined when it can. */
   readonly refuse?: string;
+  /** The group the value is listed under, named by its heading (#3092: Layout's spacing steps, then the dimension
+   *  steps). Values of one group are adjacent; a list with no group draws none. */
+  readonly group?: string;
 };
 export type ValuePickerOpts = {
   /** What is being picked, shown as the panel's title (`Display md, desktop`). */
@@ -102,7 +105,24 @@ export const valuePicker = (o: ValuePickerOpts): { el: HTMLElement; focusCurrent
   });
   const start = buttons.find((b) => b.getAttribute('aria-pressed') === 'true') ?? buttons.find((b) => b.getAttribute('aria-disabled') !== 'true') ?? buttons[0];
   if (start) start.tabIndex = 0;
-  list.append(...buttons);
+  // Groups (#3092): each run of values sharing a group is one named group under its heading. The arrow keys still walk
+  // the whole list, across groups, in order.
+  const groups: { name: string | undefined; at: HTMLButtonElement[] }[] = [];
+  o.values.forEach((x, i) => {
+    const last = groups[groups.length - 1];
+    if (last && last.name === x.group) last.at.push(buttons[i]);
+    else groups.push({ name: x.group, at: [buttons[i]] });
+  });
+  groups.forEach((g, i) => {
+    if (g.name === undefined) { list.append(...g.at); return; }
+    const box = hook(h('div', 'p3-vpick-grp'), 'value-picker-group');
+    box.setAttribute('role', 'group');
+    const cap = h('p', 'p3-vpick-cap', g.name);
+    cap.id = `p3-vpick-cap-${i}`;
+    box.setAttribute('aria-labelledby', cap.id);
+    box.append(cap, ...g.at);
+    list.append(box);
+  });
   list.addEventListener('keydown', (e) => {
     const i = buttons.indexOf(e.target as HTMLButtonElement);
     if (i < 0) return;
