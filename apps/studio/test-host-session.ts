@@ -49,7 +49,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 const KINDS = [
   'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-reading', 'restore-input-library', 'restore-input-error', 'font-list', 'doc-settings', 'file-sets',
-  'hand-edits', 'hand-edits-done', 'update-check',
+  'hand-edits', 'hand-edits-done', 'update-check', 'file-due',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
   'style-guide-catalog', 'style-guide-tables', 'style-guide-table', 'style-guide-cleanup-result',
 ] as const;
@@ -70,7 +70,7 @@ const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
-  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null, docSettings: null, fileSets: null,
+  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null,
   handEdits: [], handPass: 'idle', updateCheck: null,
 }), 'initial session: every slot empty');
 
@@ -409,6 +409,13 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   ok(f.next.handPass === 'running', 'Q2909.8 A: the first file-sets starts the hand-edit pass (handPass running)');
   const done = step({ ...f.next, handPass: 'done' }, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due });
   ok(done.next.handPass === 'done', 'Q2909.8 A: a later file-sets leaves a finished pass finished');
+  // #3081 Q810 A: the badge's live recount lands in its own slot, moves only the overlay's topic, and leaves the
+  // checklist's read alone; an answer older than the one held changes nothing and moves nothing.
+  const l1 = step(f.next, { kind: 'file-due', seq: 4, present: ['button'], theme: true, error: null, due: {} });
+  ok(same(l1.next.liveDue, { seq: 4, present: ['button'], theme: true, error: null, due: {} }) && same(l1.next.fileSets, f.next.fileSets) && same(l1.topics, ['host:update']),
+    '#3081 file-due: the recount lands in liveDue, leaves fileSets as it was, and invalidates host:update alone');
+  const l0 = step(l1.next, { kind: 'file-due', seq: 3, present: [], theme: false, error: null, due: {} });
+  ok(l0.next === l1.next && l0.topics.length === 0, '#3081 file-due: an answer older than the one held changes nothing and invalidates nothing');
   // #3110: the answer at open, from the ledger alone, lands as partial, starts the pass, and never replaces a full read.
   const part = step(init, { kind: 'file-sets', present: ['button'], setUp: false, error: null, due, partial: true, atOpen: true });
   ok(part.next.fileSets?.partial === true && part.next.handPass === 'running', '#3110: the answer at open lands marked partial and starts the hand-edit pass');

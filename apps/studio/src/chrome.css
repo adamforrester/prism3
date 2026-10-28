@@ -835,6 +835,15 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
    than its label on one line while the row has room for it (`fit-content`), so the rows wrap where they did; one label
    longer than the whole row ("Strong (bold near-black/white)" at 640) wraps inside its option. */
 .p3-choice > .p3-seg-tab { min-width: fit-content; white-space: normal; }
+/* #3115: the selected option is bold, and an option is never narrower than its label, so a bold label wider than its
+   regular one moved the wrap ("No hover fill" dropped a row when "Neutral overlay wash" was picked). Every option
+   reserves its label's bold width: a copy of the label in the selected weight, hidden and no height, under the label
+   in a column. The selection then never changes the layout. The copy has empty alternative text, so it is not read. */
+.p3-choice > .p3-seg-tab[data-label] { flex-direction: column; }
+.p3-choice > .p3-seg-tab[data-label]::after {
+  content: attr(data-label); content: attr(data-label) / "";
+  display: block; height: 0; overflow: hidden; visibility: hidden; font-weight: var(--p3-fw-emphasis);
+}
 .p3-list { display: grid; gap: var(--p3-space-100); }
 /* L3: a field label over a list (Gradients' Stops) has its first row space-050 after it, as a control would. */
 .p3-list > .p3-field-label { margin-block-end: calc(var(--p3-space-050) - var(--p3-space-100)); }

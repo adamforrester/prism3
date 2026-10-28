@@ -817,7 +817,7 @@ const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-h
  *  controls, for the previewed mode (owner decision Q22). */
 const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor-pick"]',
   '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="surface-secondary-pick"]', '[data-p3="surface-tertiary-pick"]',
-  '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
+  '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="raised-surface-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
   '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="glass-role-add"]', '[data-p3="fills-continue"]'];
@@ -2208,6 +2208,169 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
 } // 6
 
 // =============================================================================================
+// 6b. Search reaches every lever (#3093): its label, searched on its home, shows it there
+// =============================================================================================
+if (runs('6b')) console.log(`\nSearch reaches every lever (#3093)\n${'='.repeat(78)}`);
+/** #3093: a sample of the levers search must reach, typed here: each lever's key, its label as the issue names it,
+ *  and its home place (the owner's decisions, never read from `pages.ts`). Every Components settings block the issue
+ *  audits is here, Dialog surface first. The sweep below reads every lever from the manifest (`levers.ts`, committed
+ *  as `schema/lever-manifest.json`), so a new lever cannot be missed; this sample holds the labels themselves, so a
+ *  label the manifest renames, or a lever the manifest loses, fails by name here. */
+const SEARCH_SAMPLE = [
+  { key: 'raisedSurface', label: 'Dialog surface', place: 'components' },
+  { key: 'dialogTitleSize', label: 'Dialog title size', place: 'components' },
+  { key: 'fieldStyle', label: 'Field style', place: 'components' },
+  { key: 'searchFieldStyle', label: 'Search field style', place: 'components' },
+  { key: 'tagStyle', label: 'Tag style', place: 'components' },
+  { key: 'bannerStyle', label: 'Banner style', place: 'components' },
+  { key: 'controlShape', label: 'Control shape', place: 'components' },
+  { key: 'buttonIcons', label: 'Button icons', place: 'components' },
+  { key: 'density', label: 'Density', place: 'shape' },
+  { key: 'primary', label: 'Primary brand color', place: 'color-palettes' },
+  { key: 'motionPersonality.tempo', label: 'Motion tempo', place: 'depth' },
+];
+/** The hook rule, written here (read by section 12 too) (the `leverHook` contract: dots to dashes, camel case to kebab case). */
+const kebabHook = (k) => `lever-${k.replace(/\./g, '-').replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
+/** The issue's other words for Dialog surface: a word of its label, the label, a word of its description, its key. */
+const RAISED_QUERIES = ['dialog', 'dialog surface', 'white', 'raisedSurface'];
+/** The levers with no block of their own in the state the sweep opens on, each with the block that draws its control
+ *  and says its words (`alsoSays`, #2175): a search for the lever shows that block. Typed here, each by its reason. */
+const SEARCH_STANDS_IN = {
+  'neutral.anchor': 'neutral.hue',            // Pin a neutral: the Pinned choice in the neutral source, until pinned (#2175)
+  'typography.links': 'typography.weights',   // Underlined link styles: the weights table's Link column
+  'typography.italicDefault': 'typography.italics', // Italic-only text types: each text type's Only chip
+  'outlineHoverFill': 'outlineInteraction',   // Outline hover fill: drawn only under Opaque fill; Outline hover's description names it (#3071)
+};
+/** Every place a lever can live, in the tab row's order (`PLACE_CLICKS`, typed above). */
+const SEARCH_PLACES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
+if (runs('6b')) {
+const levers = manifest.levers.filter((l) => !l.deprecated);
+ok(levers.length >= 50 && SEARCH_SAMPLE.every((s) => levers.some((l) => l.key === s.key)), `#3093: the manifest lists the levers to sweep (${levers.length}) and every sampled key`);
+for (const s of SEARCH_SAMPLE) {
+  const got = levers.find((l) => l.key === s.key)?.label;
+  ok(got === s.label, `#3093: ${s.key}'s label is "${s.label}" (the manifest says "${got}")`);
+}
+ok(SEARCH_PLACES.every((p) => Object.hasOwn(PLACE_CLICKS, p)) && Object.keys(PLACE_CLICKS).every((p) => SEARCH_PLACES.includes(p)), `#3093: the sweep visits every place (${SEARCH_PLACES.join(', ')})`);
+const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+/** Search `q` on the page in view, and read whether each hook's lever block is shown in the levers pane. */
+const shows = async (q, hookIds) => {
+  await page.locator('[data-p3="search-input"]').fill(q);
+  return page.evaluate((hs) => Object.fromEntries(hs.map((hk) => {
+    const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${hk}"]`);
+    return [hk, !!n && n.getBoundingClientRect().height > 0];
+  })), hookIds);
+};
+/** Each lever's key → the places where searching its label shows its block. */
+const foundAt = new Map(levers.map((l) => [l.key, []]));
+for (const place of SEARCH_PLACES) {
+  await goPlace(page, place);
+  if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+  await hooks.need(page, '[data-p3="search-input"]');
+  for (const l of levers) {
+    const hk = kebabHook(SEARCH_STANDS_IN[l.key] ?? l.key);
+    if ((await shows(l.label, [hk]))[hk]) foundAt.get(l.key).push(place);
+  }
+  if (place === 'components') {
+    for (const q of RAISED_QUERIES) {
+      const r = await shows(q, ['lever-raised-surface']);
+      const status = await page.evaluate(() => document.querySelector('[data-p3="search-status"]')?.textContent ?? '');
+      ok(r['lever-raised-surface'] && /^\d+ settings? match/.test(status), `#3093: on Components, searching "${q}" shows Dialog surface (${JSON.stringify({ ...r, status })})`);
+    }
+  }
+  await page.locator('[data-p3="search-input"]').fill('');
+}
+for (const l of levers) {
+  const at = foundAt.get(l.key);
+  const via = SEARCH_STANDS_IN[l.key] ? ` (by ${SEARCH_STANDS_IN[l.key]}'s block, which draws its control)` : '';
+  ok(at.length === 1, `#3093: searching "${l.label}" shows ${l.key}'s lever${via} on one page, its home (shown on ${at.length ? at.join(', ') : 'no page'})`);
+}
+for (const s of SEARCH_SAMPLE) {
+  const at = foundAt.get(s.key) ?? [];
+  ok(at.length === 1 && at[0] === s.place, `#3093: searching "${s.label}" shows ${s.key} on ${s.place} (shown on ${at.length ? at.join(', ') : 'no page'})`);
+}
+// The re-filter (#3093 review): a block draws its levers anew after an edit or a mode change, and the page filters it
+// again (its `brand` and `mode` subscriptions). Searching "white" shows Dialog surface alone in Dialog options; an edit
+// to Dialog surface, then a mode change, must leave Dialog title size hidden.
+{
+  const DIALOG = ['lever-raised-surface', 'lever-dialog-title-size'];
+  await goPlace(page, 'components');
+  if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+  await hooks.need(page, '[data-p3="search-input"]');
+  const before = await shows('white', DIALOG);
+  const chip = page.locator('[data-p3="levers-pane"] [data-p3="lever-raised-surface"] [role="radio"][aria-checked="false"]').first();
+  const picked = await chip.getAttribute('data-value') ?? await chip.textContent();
+  await hooks.click(chip);
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="lever-raised-surface"]'));
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const read = () => page.evaluate((hs) => Object.fromEntries(hs.map((hk) => {
+    const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${hk}"]`);
+    return [hk, !!n && n.getBoundingClientRect().height > 0];
+  })), DIALOG);
+  const afterEdit = await read();
+  ok(before['lever-raised-surface'] && !before['lever-dialog-title-size'] && afterEdit['lever-raised-surface'] && !afterEdit['lever-dialog-title-size'],
+    `#3093: on Components, searching "white" then picking Dialog surface's "${String(picked).trim()}" keeps Dialog title size hidden (${JSON.stringify({ before, after: afterEdit })})`);
+  await pickMode(page, 'dark');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const afterMode = await read();
+  ok(afterMode['lever-raised-surface'] && !afterMode['lever-dialog-title-size'],
+    `#3093: on Components, searching "white" then changing the mode keeps Dialog title size hidden (${JSON.stringify({ before: afterEdit, after: afterMode })})`);
+  await page.locator('[data-p3="search-input"]').fill('');
+}
+ok(errors.length === 0, `#3093: the search sweep raised no page error (${errors.join(' | ')})`);
+await ctx.close();
+}
+
+// The Color row's link (#3093 part 2): Surfaces & fills draws the panel over the scrim, `foreground.raised`, read-only,
+// with a link to Dialog surface that opens its block in Components and focuses its checked chip.
+if (runs('6b')) {
+/** The link's words, typed (DRAFT on #3093): the lever's label after "Set by". */
+const RAISED_LINK = 'Set by Dialog surface';
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  await goPlace(page, 'color-fills');
+  const row = await page.evaluate(() => {
+    const r = document.querySelector('[data-p3="levers-pane"] [data-p3="raised-row"]');
+    const a = r?.querySelector('[data-p3="raised-surface-link"]');
+    return { role: r?.dataset.role ?? null, link: a?.textContent?.trim() ?? null, tag: a?.tagName ?? null, pickers: r ? r.querySelectorAll('[data-p3="fill-pick"]').length : null };
+  });
+  ok(row.role === 'foreground.raised' && row.link === RAISED_LINK && row.tag === 'BUTTON' && row.pickers === 0,
+    `#3093: ${host}: Color › Surfaces & fills draws foreground.raised read-only, its "${RAISED_LINK}" a link (${JSON.stringify(row)})`);
+  // The row's own search (#3094 review): it sits beside the Scrim block, not inside it, so a query that matches the row
+  // and not the block shows the row. Nested in the block, the hidden block hid it while the status still counted it.
+  if (host === 'web') {
+    if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+    await hooks.need(page, '[data-p3="search-input"]');
+    const seen = async (q, hk) => {
+      await page.locator('[data-p3="search-input"]').fill(q);
+      return page.evaluate((k) => {
+        const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${k}"]`);
+        return { [k]: !!n && n.getBoundingClientRect().height > 0, status: document.querySelector('[data-p3="search-status"]')?.textContent ?? '' };
+      }, hk);
+    };
+    const dp = await seen('dialog panel', 'raised-row');
+    ok(dp['raised-row'] && /^1 setting match/.test(dp.status), `#3093: web: on Color › Surfaces & fills, searching "dialog panel" shows the Dialog panel row (${JSON.stringify(dp)})`);
+    const sc = await seen('scrim', 'scrim-strength-choice');
+    ok(sc['scrim-strength-choice'], `#3093: web: on Color › Surfaces & fills, searching "scrim" still shows the Scrim strength chips (${JSON.stringify(sc)})`);
+    await page.locator('[data-p3="search-input"]').fill('');
+  }
+  await hooks.click(page.locator('[data-p3="raised-surface-link"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
+  const home = await page.evaluate(() => {
+    const lv = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-raised-surface"]');
+    const f = document.activeElement;
+    const pane = document.querySelector('[data-p3="levers-pane"]')?.getBoundingClientRect();
+    const r = lv?.getBoundingClientRect();
+    return { shown: !!r && r.height > 0, inView: !!r && !!pane && r.top >= pane.top - 1 && r.top < pane.bottom,
+      focus: !!lv && lv.contains(f) && f.getAttribute('aria-checked') === 'true', toggle: document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]')?.getAttribute('aria-expanded') };
+  });
+  ok(home.shown && home.inView && home.focus && home.toggle === 'true',
+    `#3093: ${host}: the link opens Components › Dialog options, Dialog surface in view with its checked chip focused (${JSON.stringify(home)})`);
+  ok(errors.length === 0, `#3093: ${host}: the Color row's link raised no page error (${errors.join(' | ')})`);
+  await ctx.close();
+}
+} // 6b
+
+// =============================================================================================
 // 7. One home per page (V1): every place names its literal home, and nothing but a place change moves it
 // =============================================================================================
 if (runs('7')) console.log(`\nHomes (V1, V12) — one home per page, never moved by scroll or focus\n${'='.repeat(78)}`);
@@ -3384,8 +3547,6 @@ const PALETTES_LEVERS = [
   ['status.success', '[data-p3="lever-status-success"]', true], ['status.warning', '[data-p3="lever-status-warning"]', true],
   ['status.danger', '[data-p3="lever-status-danger"]', true], ['status.info', '[data-p3="lever-status-info"]', true],
 ];
-/** The hook rule, written here (the `leverHook` contract: dots to dashes, camel case to kebab case). */
-const kebabHook = (k) => `lever-${k.replace(/\./g, '-').replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
 if (runs('12')) {
 for (const [key, hook, adv] of PALETTES_LEVERS) {
   const lev = manifest.levers.find((l) => l.key === key);
@@ -4389,8 +4550,9 @@ const ICON_ROW_ROLES = [...inks('icon'), ...SEM_INK.map((s) => `icon.on-${s}`), 
 /** The Fields rows (S4c, owner decision Q29): one per field role the default theme EMITS, page and inverse,
  *  read from the committed emission rather than from the page, so a role the engine adds needs a row too. The
  *  count is held to the eight Q29 names, so an empty read fails. */
-/** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick. */
-const READONLY_ROW_ROLES = ['scrim.default', 'glass.surface', 'border.focus', 'inverse.border.focus'];
+/** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick; and (#3093) the
+ *  panel over it, whose control is Dialog surface in Components, so its row links there. */
+const READONLY_ROW_ROLES = ['scrim.default', 'glass.surface', 'border.focus', 'inverse.border.focus', 'foreground.raised'];
 const FIELD_ROW_ROLES = (() => {
   const out = [];
   const walk = (n, path) => { if (!n || typeof n !== 'object') return; if ('$value' in n) { out.push(path.join('.')); return; } for (const [k, v] of Object.entries(n)) if (!k.startsWith('$')) walk(v, [...path, k]); };
@@ -4927,6 +5089,8 @@ const fillsControls = (page) => page.evaluate(DERIVED_CONTROLS, [FILLS_SCOPE, DE
  *  controls, Unpair and the default theme's two gradient editors. Set below the measured count, 145 in each of
  *  hc-light, hc-dark and wireframe on both hosts (printed per mode), so a page that drew less fails. */
 const DERIVED_CONTROLS_FLOOR = 140;
+/** RX1 A's "way to" link on this page (#3093): it edits nothing, so a derived mode leaves it live. */
+const FILLS_STAYS_LIVE = ['raised-surface-link'];
 /** At least this many of them enabled in Light: all but the 31 icon rows locked while paired. 114 measured. */
 if (runs('18-s4d')) {
 const LIGHT_ENABLED_FLOOR = 110;
@@ -4966,7 +5130,9 @@ for (const host of ['web', 'figma']) {
     await showMode(page, mode);
     await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode && document.querySelector('[data-p3="levers-pane"] .p3-state')?.textContent?.includes('auto-derived'), mode, { timeout: 5000 }).catch(() => {});
     const cs = await fillsControls(page);
-    const live = cs.filter((c) => !c.disabled);
+    const live = cs.filter((c) => !c.disabled && !FILLS_STAYS_LIVE.includes(c.hook));
+    const ways = cs.filter((c) => FILLS_STAYS_LIVE.includes(c.hook));
+    ok(ways.length === FILLS_STAYS_LIVE.length && ways.every((c) => !c.disabled), `#3093: ${host} ${mode}: the Dialog panel row's link stays live (${JSON.stringify(ways)})`);
     const unpair = cs.find((c) => c.hook === 'icons-unpair');
     console.log(`  ${host} ${mode}: ${cs.length} controls on Surfaces & fills, ${live.length} enabled`);
     ok(cs.length >= DERIVED_CONTROLS_FLOOR && live.length === 0,
@@ -6504,6 +6670,70 @@ if (runs('19')) {
     ok(false, `#3071 Outline hover fill: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 19-outline-hover
+// #3115: the Outline hover chips (four since #3105) keep their rows whatever is selected. The selected chip is bold, and
+// a chip is never narrower than its label (`.p3-choice`, #1975), so where the four only just fit on one row (the owner's
+// window, about 1650 wide) the bold "Neutral overlay wash" pushed "No hover fill" onto a second. Each option is picked in
+// turn on both hosts at 1280 and 380, where the four wrap whatever is picked (#1975's fallback), and at the chips' own
+// tightest one-row width: the group held at its `max-content` width read with "No hover fill" picked, so the edge does
+// not hang on a font's metrics. The chips' rows (distinct tops) are read after each pick. EXPECTED: one row count per
+// host and width whatever is picked, and one row at the tightest width (literal rules, typed here); ACTUAL: the drawn
+// chips.
+// Mutation, failing here by name: the reserved bold width removed → `#3115 web tightest: the Outline hover chips keep
+// their rows whatever is picked — none 1, overlay-neutral 2, solid-tint 1, opaque-fill 2` (and the same on figma).
+// The hidden copy shown and given no empty alternative text → `#3115 web 1280: each option is named by its label once
+// (… radio "Neutral overlay wash Neutral overlay wash" …)`, on every host and width.
+if (runs('3115')) {
+  const CHIPS_3115 = '[data-p3="levers-pane"] [data-p3="outline-interaction-chips"]';
+  // Each option's hook spelled whole, as the hook guard reads them; "No hover fill" first, the width read under it.
+  const OPTION_HOOKS_3115 = {
+    none: '[data-p3="outline-interaction-chips-none"]', 'overlay-neutral': '[data-p3="outline-interaction-chips-overlay-neutral"]',
+    'solid-tint': '[data-p3="outline-interaction-chips-solid-tint"]', 'opaque-fill': '[data-p3="outline-interaction-chips-opaque-fill"]',
+  };
+  const OPTIONS_3115 = Object.keys(OPTION_HOOKS_3115);
+  for (const host of ['web', 'figma']) {
+    for (const w of [1280, 380, 'tightest']) {
+      const where = `#3115 ${host} ${w}`;
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: w === 'tightest' ? 1280 : w, h: 900 });
+      try {
+        await goPlace(page, 'color-interactive');
+        const rows = {};
+        /** The group's width in px under `tightest`, read once under the first pick and held for every later one. */
+        let held = null;
+        for (const v of OPTIONS_3115) {
+          const opt = `${CHIPS_3115} ${OPTION_HOOKS_3115[v]}`;
+          await page.locator(opt).scrollIntoViewIfNeeded();
+          await hooks.click(page.locator(opt));
+          await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', opt, { timeout: 5000 }).catch(() => {});
+          await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+          const read = await page.evaluate(([s, tight, px]) => {
+            const g = document.querySelector(s);
+            if (!g) return null;
+            if (tight) {
+              if (px === null) { g.style.width = 'max-content'; px = g.getBoundingClientRect().width; }
+              g.style.width = `${px}px`;
+            }
+            const on = g.querySelector('[aria-checked="true"]')?.getAttribute('data-value');
+            return { on, px, rows: new Set([...g.querySelectorAll('.p3-seg-tab')].map((b) => Math.round(b.getBoundingClientRect().top))).size };
+          }, [CHIPS_3115, w === 'tightest', held]);
+          held = read?.px ?? held;
+          rows[v] = read;
+        }
+        const picked = OPTIONS_3115.every((v) => rows[v]?.on === v);
+        const counts = OPTIONS_3115.map((v) => rows[v]?.rows);
+        ok(picked && counts.every((n) => n && n === counts[0]),
+          `${where}: the Outline hover chips keep their rows whatever is picked — ${OPTIONS_3115.map((v, i) => `${v} ${counts[i]}${rows[v]?.on === v ? '' : ` (shows ${rows[v]?.on})`}`).join(', ')}`);
+        // The reserved width is a hidden copy of each label; the radios' names stay the label alone (literals typed here).
+        const named = await page.locator(CHIPS_3115).ariaSnapshot();
+        ok(['Neutral overlay wash', 'Tinted wash', 'Solid fill', 'No hover fill'].every((l) => named.includes(`radio "${l}"`)),
+          `${where}: each option is named by its label once (${JSON.stringify(named)})`);
+        if (w === 'tightest') ok(counts[0] === 1, `${where}: the four fit one row at their own max-content width (${counts[0]} rows at ${held}px)`);
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+} // 3115
 
 // =============================================================================================
 // 20. Type (S6.2, S6.3): Font families in the two panes, the type sample and the preview's sections
@@ -9172,13 +9402,15 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
   // #3049: and Dialog surface below it, the same block, the same home.
   'lever-raised-surface',
   // #2924: Banner options draws Banner style the same way, its home Components › Banner.
-  'lever-banner-style'];
+  'lever-banner-style',
+  // #3086: Radio options draws Radio dot size the same way, its home Components › Radio.
+  'lever-radio-dot'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
  *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
  *  the move: the levers pane no longer has a section per preview section. */
 // #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
 // #2909 Q2909.4 A: the shared block is the list's first section.
-const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents'];
+const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
@@ -9334,6 +9566,7 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=search"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=banners"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=radios"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
     await openButtonOptions(page);
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
@@ -9352,8 +9585,8 @@ for (const host of ['web', 'figma']) {
           // options (below). The list is the rest.
           // #2909: the shared block holds Control shape's chips itself, as the options do.
           shared: [...document.querySelectorAll('[data-p3="shared-options"] [data-p3^="control-shape-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="shared-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
-          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="shared-options"]')).length,
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="radio-options"], [data-p3="shared-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="radio-options"], [data-p3="shared-options"]')).length,
           search: {
             line: document.querySelector('[data-p3="search-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="search-options"] [data-p3^="search-field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
@@ -9369,6 +9602,10 @@ for (const host of ['web', 'figma']) {
           banner: {
             line: document.querySelector('[data-p3="banner-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="banner-options"] [data-p3^="banner-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
+          },
+          radio: {
+            line: document.querySelector('[data-p3="radio-options-derived"]')?.textContent ?? null,
+            chips: [...document.querySelectorAll('[data-p3="radio-options"] [data-p3^="radio-dot-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           field: {
             line: document.querySelector('[data-p3="field-options-derived"]')?.textContent ?? null,
@@ -9391,6 +9628,8 @@ for (const host of ['web', 'figma']) {
         `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's and Dialog surface's chips (#3049) (${JSON.stringify(d.dialog)})`);
       ok(d.banner.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.banner.chips.length === 2 && d.banner.chips.every(Boolean),
         `#2924 Q59: previewing ${label}, Banner options carry the derived line and hold Banner style's chips (${JSON.stringify(d.banner)})`);
+      ok(d.radio.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.radio.chips.length === 4 && d.radio.chips.every(Boolean),
+        `#3086 Q59: previewing ${label}, Radio options carry the derived line and hold Radio dot size's chips (${JSON.stringify(d.radio)})`);
       ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
       ok(d.shared.length === 4 && d.shared.every(Boolean), `#2909 Q59: previewing ${label}, the shared block holds Control shape's four chips (${JSON.stringify(d.shared)})`);
       ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
@@ -9495,8 +9734,8 @@ for (const host of ['web', 'figma']) {
         };
       });
       const r0 = await read();
-      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
-        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options", one "Dialog options" (#2958), one "Banner options" (#2924) and one "Link options" line (#2942), in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options', 'Radio options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options", one "Dialog options" (#2958), one "Banner options" (#2924), one "Link options" (#2942) and one "Radio options" line (#3086), in the list, and not in the preview (${JSON.stringify(r0)})`);
       ok(r0.expanded === 'false' && !r0.shown,
         `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
       ok(r0.rows === 4 && r0.lineBelowSets,
@@ -9526,7 +9765,7 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
       await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
       const r3 = await read();
-      ok(r3.toggles.length === 7 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
+      ok(r3.toggles.length === 8 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
         `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
       // Opening the line focuses its section's first set (wireframe v2's rule, #2905): with Badge (Other components) in
       // the preview, close and reopen it, and the preview shows Buttons. (Buttons is the preview's default, so the check
@@ -9596,8 +9835,8 @@ for (const host of ['web', 'figma']) {
       await goPlace(page, 'components');
       await hooks.need(page, '[data-p3="components-levers"]');
       // Tag first (#2931 Q579 A): opening a block focuses its section's first set, and the Fields case reads Password field.
-      for (const k of ['tags', 'dialogs', 'banners', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
-      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section', 'dialog-options-section', 'banner-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
+      for (const k of ['tags', 'dialogs', 'banners', 'radios', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
+      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section', 'dialog-options-section', 'banner-options-section', 'radio-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
       const r = await page.evaluate(() => {
         const secs = [...document.querySelectorAll('[data-p3="cp-section"]')];
         const by = (name) => secs.find((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name === name);
@@ -9619,6 +9858,7 @@ for (const host of ['web', 'figma']) {
         const to = document.querySelector('[data-p3="tag-options-section"]');
         const dO = document.querySelector('[data-p3="dialog-options-section"]');
         const bO = document.querySelector('[data-p3="banner-options-section"]');
+        const rO = document.querySelector('[data-p3="radio-options-section"]');
         const so = document.querySelector('[data-p3="search-options-section"]');
         const soLine = document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=search"]');
         const ro = so?.querySelector('[data-p3="lever-search-field-style"] .p3-readout');
@@ -9627,6 +9867,7 @@ for (const host of ['web', 'figma']) {
           buttons: edges('Buttons', 'button-options-section'), fields: edges('Fields', 'field-options-section'), tags: edges('Tag', 'tag-options-section'),
           dialogs: edges('Dialog', 'dialog-options-section'),
           banners: edges('Banner', 'banner-options-section'),
+          radios: edges('Radio', 'radio-options-section'),
           other: [...(by('Other components')?.querySelectorAll('[data-p3="cp-name"]') ?? [])].map((n) => n.textContent),
           fo: fo ? {
             title: fo.querySelector('[data-p3="field-options-title"]')?.textContent ?? null, desc: fo.querySelector('[data-p3="field-options-desc"]')?.textContent ?? null,
@@ -9648,6 +9889,10 @@ for (const host of ['web', 'figma']) {
             title: bO.querySelector('[data-p3="banner-options-title"]')?.textContent ?? null, desc: bO.querySelector('[data-p3="banner-options-desc"]')?.textContent ?? null,
             chips: [...bO.querySelectorAll('[data-p3^="banner-style-choice-"]')].map((n) => n.textContent),
           } : null,
+          rO: rO ? {
+            title: rO.querySelector('[data-p3="radio-options-title"]')?.textContent ?? null, desc: rO.querySelector('[data-p3="radio-options-desc"]')?.textContent ?? null,
+            chips: [...rO.querySelectorAll('[data-p3^="radio-dot-choice-"]')].map((n) => n.textContent),
+          } : null,
           so: so ? {
             title: so.querySelector('[data-p3="search-options-title"]')?.textContent ?? null, desc: so.querySelector('[data-p3="search-options-desc"]')?.textContent ?? null,
             chips: [...so.querySelectorAll('[data-p3^="search-field-style-choice-"]')].map((n) => n.textContent),
@@ -9660,8 +9905,8 @@ for (const host of ['web', 'figma']) {
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
       });
-      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents']),
-        `#2905 Q548, #2931 Q579 A, #2958, #2924, #2942: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Link, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components', 'Subcomponents']),
+        `#2905 Q548, #2931 Q579 A, #2958, #2924, #2942, #3086: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Link, Radio, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
       const D = r.dialogs;
       ok(!!D && JSON.stringify(D.ids) === JSON.stringify(['dialog']) && D.folds + D.families === 0,
         `#2958: ${host} ${w}: the Dialog section lists Dialog as a row, with no family row and no fold (${JSON.stringify({ ids: D?.ids, folds: D?.folds, families: D?.families })})`);
@@ -9677,6 +9922,12 @@ for (const host of ['web', 'figma']) {
       // The copy is the DRAFT on #2924 (Q2, the wireframe's words; Bold held on #3038), held here as literals.
       ok(!!r.bO && r.bO.title === 'Banner options' && r.bO.desc === 'How banners draw their surface and edge.' && JSON.stringify(r.bO.chips) === JSON.stringify(['Tinted', 'Outlined']),
         `#2924: ${host} ${w}: Banner options: its drafted title and description, and Banner style's chips, Tinted and Outlined (${JSON.stringify(r.bO)})`);
+      const RD = r.radios;
+      ok(!!RD && JSON.stringify(RD.ids) === JSON.stringify(['radio-control', 'radio-group', 'radio-row']) && RD.folds + RD.families === 0,
+        `#3086: ${host} ${w}: the Radio section lists the Radio page's three sets in one row, with no family row and no fold (${JSON.stringify({ ids: RD?.ids, folds: RD?.folds, families: RD?.families })})`);
+      // The copy is the DRAFT on #3086, held here as literals so a change to it is a decision, not drift.
+      ok(!!r.rO && r.rO.title === 'Radio options' && r.rO.desc === 'How big the dot in a selected radio is.' && JSON.stringify(r.rO.chips) === JSON.stringify(['Default', '60%', '70%', '80%']),
+        `#3086: ${host} ${w}: Radio options: its drafted title and description, and Radio dot size's chips, Default to 80% (${JSON.stringify(r.rO)})`);
       const T = r.tags;
       ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag']) && T.folds + T.families === 0,
         `#2931 Q579 A: ${host} ${w}: the Tag section lists Tag as a row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
@@ -9686,9 +9937,9 @@ for (const host of ['web', 'figma']) {
       ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
         && JSON.stringify(F.ids) === JSON.stringify(['card-number-field', 'code-input', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
         `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its eight sets (Code input since Q-2789.3 A, its cell beside it since #2989, Card number field since #2343 PR 4), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
-      ok(!r.other.some((t) => /^(Buttons|Button|Card number field|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog|Banner)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
+      ok(!r.other.some((t) => /^(Buttons|Button|Card number field|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog|Banner|Radio)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
         `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
-      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T], ['Dialog', D], ['Banner', BN]]) {
+      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T], ['Dialog', D], ['Banner', BN], ['Radio', RD]]) {
         const xs = e ? [e.head, ...e.rows, e.line, e.block] : [];
         const one = xs.length > 2 && xs.every((v) => v !== null && Math.abs(v - xs[0]) <= 0.5);
         ok(one && e.inBlock && e.after, `#2905 Q1 A: ${host} ${w}: ${name}: rows, line and block start at one edge, the section head's, and the block follows the sets (${JSON.stringify(e)})`);
@@ -9777,6 +10028,15 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="banner-options"] [data-p3="banner-style-choice-tinted"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="banner-options"] [data-p3="banner-style-choice-tinted"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         ok((await persisted(page))?.bannerStyle === 'tinted', `#2924: Banner options' Tinted writes bannerStyle: tinted (${(await persisted(page))?.bannerStyle})`);
+        // #3086: Radio dot size is brand-wide too: 70% from Dark writes the brand value as a number, Default restores 50.
+        await hooks.click(page.locator('[data-p3="radio-options"] [data-p3="radio-dot-choice-70"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="radio-options"] [data-p3="radio-dot-choice-70"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const rdO = await persisted(page);
+        ok(rdO?.radioDot === 70 && JSON.stringify(rdO?.modeLevers) === JSON.stringify(before?.modeLevers),
+          `#3086 Q54: previewing Dark, Radio options' 70% writes radioDot: 70 and no per-mode value (${rdO?.radioDot}, ${JSON.stringify(rdO?.modeLevers)})`);
+        await hooks.click(page.locator('[data-p3="radio-options"] [data-p3="radio-dot-choice-50"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="radio-options"] [data-p3="radio-dot-choice-50"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        ok((await persisted(page))?.radioDot === 50, `#3086: Radio options' Default writes radioDot: 50 (${(await persisted(page))?.radioDot})`);
       }
       ok(errors.length === 0, `#2905 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
@@ -11929,11 +12189,12 @@ const EXPECT_HEADINGS = {
     // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
     // #2958: Dialog, its Dialog options (L2) and Dialog title size (L3), Tag options' way.
     // #2924: Banner, its Banner options (L2) and Banner style (L3), Dialog options' way.
+    // #3086: Radio, its Radio options (L2) and Radio dot size (L3), Banner options' way.
     // #2942: Link, its Link options (L2), holding one read-only line and no lever.
-    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents'],
+    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components', 'Subcomponents'],
     // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
-    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options'],
-    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size', 'Banner style'],
+    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options', 'Radio options'],
+    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size', 'Banner style', 'Radio dot size'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
@@ -11952,7 +12213,7 @@ const HEADING_ADVANCED = {
   // #2844: a family's settings are closed behind their line; the audit reads them open.
   components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]',
     '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]', '[data-p3="cp-opts-toggle"][data-key="opts=banners"]',
-    '[data-p3="cp-opts-toggle"][data-key="opts=links"]'],
+    '[data-p3="cp-opts-toggle"][data-key="opts=links"]', '[data-p3="cp-opts-toggle"][data-key="opts=radios"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
@@ -13521,6 +13782,8 @@ const RO_EXCEPTIONS = [
   'shape-see-components', 'components-density-link', 'type-fluid-layout',
   // #2909 Q2909.3 A: Control shape's read-only line on Shape only opens its home.
   'shape-control-shape-link',
+  // #3093: the panel over the scrim's read-only row on Surfaces & fills only opens Dialog surface's home.
+  'raised-surface-link',
   'fills-continue', 'interactive-continue', 'type-continue', 'depth-continue', 'shape-continue', 'layout-continue',
 ];
 /** The studio's boxed note (RX2 A), by its classes. */
@@ -16464,7 +16727,15 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
 //   · the run's re-check (`startStep`, no `previewHash`) sending `panelBrand(true)` → `IA2 figma … with Theme unticked,
 //     the run checks the fewer sets again against the file's stored brand …` (#3023);
 //   · the re-tick from a toggle's answer (`if (rechecking && ticks) …`) deleted → `IA2 figma … a Theme toggle ticks the
-//     due sets from its own answer …` (#3023).
+//     due sets from its own answer …` (#3023);
+//   · #3081 Q810 A, the badge, live: `recountDue` (`main.ts`) not debounced, asking at once → `IA2 figma … three quick
+//     changes ask for the count once …`; no recount on `brand` → the same arm; `DUE_AFTER` emptied → `IA2 figma … after a
+//     run, the panel asks for the count again …` and `… the badge drops after a run …`; the shell painting `dueCount`
+//     over the live recount → `IA2 figma … the badge rises on a setting change …`; Theme's item dropped from
+//     `badgeCount` → the same arm and `IA2 figma … Theme counts as one item …`; the checklist reading the live answer for
+//     its ticks → `IA2 figma … #3028 Q701 B: with Theme unticked, a live answer landing …`; `liveShown` (`main.ts`)
+//     reduced to `!restoreFailure` → `IA2 figma … before a brand is chosen …`; `!restoreFailure &&` dropped from `liveShown`
+//     → `IA2 figma … after a failed restore …` (#3096 review, MC).
 if (runs('ia2')) {
 console.log(`\nIA v2 phase 2 (#2909) — tiers, lever homes, engine warnings, what is due\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
@@ -16481,7 +16752,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       shared: document.querySelector('[data-p3="components-list"] > [data-p3="cp-shared"]') ? [...document.querySelector('[data-p3="components-list"]').children].indexOf(document.querySelector('[data-p3="cp-shared"]')) : -1,
     }));
     ok(JSON.stringify(tiers.caps.map((c) => c.tier)) === JSON.stringify(['components', 'subcomponents']) && tiers.caps.every((c) => c.role === 'group' && /^(Components|Subcomponents) · \d+ sets$/.test(c.named ?? ''))
-      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
+      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
       `${where}: Q2909.17 A: Components lists its sections under the tiers, each a group named by its caption, Components then Subcomponents (${JSON.stringify(tiers.caps)})`);
     ok(tiers.empty === 'Content components and Blocks: no component sets yet.', `${where}: Q2909.17 A: the two tiers no definition is in yet are named in one line ("${tiers.empty}")`);
     // The shared block, first in the list after the intro: Density's read-only line, then Control shape's chips.
@@ -16686,6 +16957,178 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
       await postMsg(page, FILE);
       await postMsg(page, { type: 'hand-edits', done: true });
+      // #3081 Q810 A: THE BADGE, LIVE. It counts everything Update file would change: the sets due against the brand the
+      // panel holds, recounted when a setting changes, plus one item for Theme changes the file does not hold. The host's
+      // answers (`file-due`) are planted as the main thread posts them; what is read is what the panel asks and draws.
+      step = 'the live badge';
+      await page.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(JSON.parse(JSON.stringify(m))); }); });
+      const badgeNow = () => page.evaluate(() => { const b = document.querySelector('[data-p3="update-badge"]');
+        return { text: b && !b.hidden ? b.textContent : null, name: document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-label') ?? null }; });
+      const nextAsk = async () => {
+        await page.waitForFunction(() => window.__due.length > 0, null, { timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(400);
+        return page.evaluate(() => window.__due.splice(0));
+      };
+      const CURRENT = Object.fromEntries(Object.keys(DUE).map((k) => [k, k === 'badge' ? DUE.badge : { state: 'current' }]));
+      const answer = (seq, theme, due) => postMsg(page, { type: 'file-due', seq, present: FILE.present, theme, due });
+      // The run above ended; the panel asks again after it. A calm answer: nothing due, and the file holds the panel's brand.
+      const settled = await nextAsk();
+      await answer(settled.at(-1)?.seq ?? 0, false, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+      const calm = await badgeNow();
+      ok(settled.length >= 1 && calm.text === null && calm.name === null,
+        `${where}: Q810 A: after a run, the panel asks for the count again, and with nothing to change the badge is gone and the name is the label alone (${settled.length} asked; ${JSON.stringify(calm)})`);
+      // A burst of three changes on the shared block, as a drag or quick clicks make: one ask, after the last, carrying the
+      // brand the panel then holds; never the file's sets read again, and never the full check.
+      await goPlace(page, 'components');
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await page.evaluate(() => { for (const sel of ['[data-p3="cp-shared"] [data-p3="control-shape-choice-rounded"]', '[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]', '[data-p3="cp-shared"] [data-p3="control-shape-choice-boxed"]']) { const n = document.querySelector(sel); if (n) HTMLElement.prototype.click.call(n); } });
+      const burst = await nextAsk();
+      const heavy = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'file-sets-request' || m.type === 'update-check-request').map((m) => m.type));
+      const BOXED = { ...BOOT_INPUT, controlShape: 'boxed' };
+      ok(burst.length === 1 && canon(burst[0].input) === canon(BOXED) && heavy.length === 0,
+        `${where}: Q810 A: three quick changes ask for the count once, after the last, with the brand the panel holds; the file is not read again and the full check is not run (${burst.length} asked${burst[0] ? `, ${wireDiff(burst[0].input, BOXED)}` : ''}; heavier reads ${JSON.stringify(heavy)})`);
+      // Each ask carries a newer number than the one before, so an answer to an older ask, landing late, is known as late.
+      const seqs = [settled.at(-1)?.seq ?? null, burst[0]?.seq ?? null];
+      ok(Number.isInteger(seqs[0]) && Number.isInteger(seqs[1]) && seqs[1] > seqs[0],
+        `${where}: Q810 A: two asks in a row carry a rising number, the later one higher (${JSON.stringify(seqs)})`);
+      // The answer: the two sets that change moves are due, and the file does not hold this brand: 2 + Theme's one item.
+      await answer(burst[0]?.seq ?? 0, true, DUE);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '3', null, { timeout: 5000 }).catch(() => {});
+      const risen = await badgeNow();
+      ok(risen.text === '3' && risen.name === 'Update file, 3 due',
+        `${where}: Q810 A: the badge rises on a setting change, before the checklist opens: 2 due sets and Theme as one item read 3, and the accessible name says the same count (${JSON.stringify(risen)})`);
+      // An answer to an older ask, landing late, never replaces the newer one.
+      await answer((burst[0]?.seq ?? 1) - 1, false, CURRENT);
+      await page.waitForTimeout(150);
+      ok((await badgeNow()).text === '3', `${where}: Q810 A: a late answer to an older ask does not move the badge (${JSON.stringify(await badgeNow())})`);
+      // Theme alone: nothing due, the brand not applied, reads 1 and says so.
+      await hooks.click(page.locator('[data-p3="cp-shared"] [data-p3="control-shape-choice-hairline"]'));
+      const one = await nextAsk();
+      await answer(one.at(-1)?.seq ?? 0, true, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '1', null, { timeout: 5000 }).catch(() => {});
+      const alone = await badgeNow();
+      ok(one.length === 1 && alone.text === '1' && alone.name === 'Update file, 1 due',
+        `${where}: Q810 A: Theme counts as one item: with no set due and the brand not applied, the badge reads 1, and so does the name (${JSON.stringify(alone)})`);
+      // A name typed on the Brand page, with no lever moved: `syncIdentity` writes it without a rebuild, so only the
+      // `identity` topic tells the badge. The file's stored brand compares by the whole input, the name included, so the
+      // panel asks once, after the debounce, carrying the new name. The name is put back after, so the steps below read
+      // the brand they did.
+      await goPlace(page, 'brand');
+      const nameField = page.locator('[data-p3="brand-name"]');
+      const nameWas = await nameField.inputValue();
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await nameField.fill('Renamed 3096');
+      const named = await nextAsk();
+      const namedHeavy = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'file-sets-request' || m.type === 'update-check-request').map((m) => m.type));
+      ok(named.length === 1 && named[0].input?.name === 'Renamed 3096' && named[0].input?.controlShape === 'hairline' && namedHeavy.length === 0,
+        `${where}: Q810 A: a brand name typed with no setting changed asks for the count once, after the debounce, carrying the new name; the file is not read again (${JSON.stringify({ asked: named.length, name: named[0]?.input?.name ?? null, heavy: namedHeavy })})`);
+      await answer(named.at(-1)?.seq ?? 0, true, CURRENT);
+      await nameField.fill(nameWas);
+      const unnamed = await nextAsk();
+      await answer(unnamed.at(-1)?.seq ?? 0, true, CURRENT);
+      const heldSeq = unnamed.at(-1)?.seq ?? 0;
+      await goPlace(page, 'components');
+      // #3028 (#3023 Q701 B) holds: the checklist, with Theme unticked, reads its own answers. A live answer landing while it
+      // is open changes neither its rows nor what it asks.
+      step = 'the live badge with Theme unticked';
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      const rowsOf = () => page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
+        rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => [b.dataset.id, b.getAttribute('aria-checked'), b.querySelector('[data-p3="update-set-due"]')?.textContent ?? null]),
+        go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null }));
+      const before = await rowsOf();
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      // The answer held (Theme alone, 1, the name put back) is answered again with another reading: nothing due, Theme applied.
+      await answer(heldSeq, false, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+      const liveLanded = (await badgeNow()).text === null;
+      const afterLive = await rowsOf();
+      const askedLive = await page.evaluate(() => window.__ia2.map((m) => m.type));
+      ok(liveLanded && before.theme === 'false' && canon(afterLive) === canon(before) && JSON.stringify(before.rows) === JSON.stringify([['button', 'true', 'Due · its settings changed'], ['select', 'true', 'Due · Prism3 changed']]) && askedLive.length === 0,
+        `${where}: #3028 Q701 B: with Theme unticked, a live answer landing while the checklist is open moves the badge (to none) but none of the checklist's rows or their Due tags, and asks nothing (${JSON.stringify({ landed: liveLanded, before, after: afterLive, asked: askedLive })})`);
+      await hooks.click(page.locator('[data-p3="update-cancel"]'));
+      // A run with Theme ticked: Apply Theme, then the update. The panel asks for the count after each verdict, and the
+      // host's answer after it (the file now holds the panel's brand, the sets written) takes the badge to nothing.
+      step = 'the live badge after a run';
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      await hooks.click(page.locator('[data-p3="update-go"]'));
+      await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
+      await page.waitForFunction(() => window.__ia2.filter((m) => m.type === 'file-sets-request').length >= 2, null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { ...FILE, due: CURRENT });
+      const ran = await nextAsk();
+      const HAIRLINE = { ...BOOT_INPUT, controlShape: 'hairline' };
+      await answer(ran.at(-1)?.seq ?? 0, false, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+      const dropped = await badgeNow();
+      ok(ran.length >= 1 && ran.every((m) => canon(m.input) === canon(HAIRLINE)) && dropped.text === null && dropped.name === null,
+        `${where}: Q810 A: the badge drops after a run: the panel asks for the count after the run's verdicts, and the answer (the brand applied, the sets written) leaves no badge and the label alone as the name (${ran.length} asked; ${JSON.stringify(dropped)})`);
+      // No brand chosen yet: a fresh plugin page, the load's read landing before the host's restore answers (its library
+      // probe can be slow), then the start moment. The panel holds only the boot placeholder, so it asks nothing, and a
+      // live answer planted anyway is not shown: the badge keeps the load's read (2). Choosing a brand starts the asks.
+      step = 'the live badge before a brand is chosen';
+      const p2 = await ctx.newPage();
+      await hooks.watch(p2);
+      await p2.goto(`${ORIGIN}/plugin?figma=${theme}`, { waitUntil: 'load' });
+      await p2.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(m.seq); }); });
+      await postMsg(p2, FILE);
+      await p2.waitForTimeout(600);
+      const early = await p2.evaluate(() => window.__due.length);
+      await postMsg(p2, { type: 'restore-input-empty' });
+      await p2.waitForTimeout(600);
+      await postMsg(p2, { type: 'file-due', seq: 1, present: FILE.present, theme: true, due: DUE });
+      await p2.waitForTimeout(300);
+      const atStart = await p2.evaluate(() => ({ asked: window.__due.length, badge: document.querySelector('[data-p3="update-badge"]')?.textContent ?? null }));
+      await hooks.click(p2.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
+      await p2.waitForFunction(() => window.__due.length > 0, null, { timeout: 5000 }).catch(() => {});
+      const chosen = await p2.evaluate(() => window.__due.length);
+      ok(early === 0 && atStart.asked === 0 && (atStart.badge === null || atStart.badge === '2') && chosen >= 1,
+        `${where}: Q810 A: before a brand is chosen (the boot placeholder, then the start moment), the panel asks for no count and shows no live answer; choosing one starts the asks (${JSON.stringify({ early, atStart, chosen })})`);
+      await p2.close();
+      // A failed restore: the file's stored brand loads but the engine refuses it in resolution (`unresolved`), so the
+      // brand on screen is not one the panel can count against and Update file's writes are off. A setting change then
+      // asks for no count, and a live answer planted anyway is not shown: the badge keeps the load's read (2). The brand
+      // is typed here, not read from section 38's, so this section runs in a shard without it (#2898).
+      step = 'the live badge after a failed restore';
+      const REFUSED_3081 = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true }, id: 'refused-brand',
+        overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
+      const p3 = await ctx.newPage();
+      await hooks.watch(p3);
+      await p3.goto(`${ORIGIN}/plugin?figma=${theme}`, { waitUntil: 'load' });
+      await p3.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(m.seq); }); });
+      await postMsg(p3, FILE);
+      await postMsg(p3, { type: 'restore-input', input: REFUSED_3081 });
+      await p3.waitForFunction(() => /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+      await goPlace(p3, 'components');
+      await p3.evaluate(() => { const n = document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]'); if (n) HTMLElement.prototype.click.call(n); });
+      await p3.waitForTimeout(600);
+      const failedAt = await p3.evaluate(() => ({ asked: window.__due.length, unresolved: /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''),
+        changed: document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]')?.getAttribute('aria-checked') ?? null }));
+      await postMsg(p3, { type: 'file-due', seq: 1, present: FILE.present, theme: true, due: { ...DUE, tag: { state: 'due', reason: 'definition' } } });
+      await p3.waitForTimeout(300);
+      const failedBadge = await p3.evaluate(() => { const b = document.querySelector('[data-p3="update-badge"]'); return b && !b.hidden ? b.textContent : null; });
+      ok(failedAt.unresolved && failedAt.changed === 'true' && failedAt.asked === 0 && failedBadge === '2',
+        `${where}: Q810 A: after a failed restore (the stored brand does not resolve), a setting change asks for no count and a live answer is not shown: the badge keeps the load's read, 2 (${JSON.stringify({ ...failedAt, badge: failedBadge })})`);
+      await p3.close();
       // #3082: the checklist repaints whole on a tick and on each host answer; neither moves the body's scroll, and a
       // tick keeps focus on its box. Every set not in the file is listed, so the checklist is taller than the dialog.
       // Twice: at 1280, and at the narrow tier, where `.p3-bardlg-col.p3-upd-body` keeps the body the scroller.

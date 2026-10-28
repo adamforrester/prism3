@@ -126,6 +126,9 @@ ok(JSON.stringify(searchHome) === JSON.stringify(['Components › Search']), `#2
 // #2924 (Q693 A): Banner style the same way, to Components › Banner, its Banner options block.
 const bannerHome = seen.get('bannerStyle') ?? [];
 ok(JSON.stringify(bannerHome) === JSON.stringify(['Components › Banner']), `#2924: bannerStyle's one home is Components › Banner (${bannerHome.join(' + ') || 'none'})`);
+// #3086 (Q816 A): Radio dot size the same way, to Components › Radio, its Radio options block.
+const radioHome = seen.get('radioDot') ?? [];
+ok(JSON.stringify(radioHome) === JSON.stringify(['Components › Radio']), `#3086: radioDot's one home is Components › Radio (${radioHome.join(' + ') || 'none'})`);
 ok(tierWrong.length === 0, `each lever's tier follows the manifest flag, outside ${FIRST_CLASS.join(', ')}${tierWrong.length ? ` — advanced tier disagrees with the manifest flag: ${tierWrong.join('; ')}` : ''}`);
 for (const k of FIRST_CLASS) ok(PAGES.some((p) => p.key === k), `FIRST_CLASS names a page the data has: ${k}`);
 
