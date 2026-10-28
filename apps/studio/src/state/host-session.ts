@@ -215,7 +215,11 @@ export interface HostSession {
    *  file has run. `null` until the first answer; `error` is the host's words when it could not read the file. */
   readonly fileSets: { readonly present: readonly string[]; readonly setUp: boolean; readonly error: string | null;
     /** Q2909.8 A: each present set as the as-built ledger reads it. */
-    readonly due: Readonly<Record<string, SetDueView>> } | null;
+    readonly due: Readonly<Record<string, SetDueView>>;
+    /** #3110: read from the ledger alone at open, before any page loaded; the full read replaces it. */
+    readonly partial?: boolean;
+    /** #3110: one of the host's own reads after open, not an answer to the panel's request. */
+    readonly atOpen?: boolean } | null;
   /** #2909 Q2909.8 A: the background hand-edit pass after load, each set's answer as it lands, and whether it is out
    *  (`running`, set by the panel as it asks), `done`, or not asked yet (`idle`). */
   readonly handEdits: ReadonlyMap<string, { readonly members: number; readonly edited: number }>;
@@ -409,7 +413,11 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       return { ...s, docSettings: { panels: m.panels, cover: m.cover, styleGuide: m.styleGuide, error: m.error } };
     case 'file-sets':
       // The main thread starts the hand-edit pass after its first answer at load, so the pass is out from here.
-      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass };
+      // #3110: the host's reads after open (the ledger's, then the file's) never replace a read the panel asked for, nor
+      // the ledger's a full one. Before, the read after open always landed first; now it yields, so a request can win.
+      if (m.atOpen && s.fileSets && !s.fileSets.atOpen) return s;
+      if (m.partial && s.fileSets && !s.fileSets.partial) return s;
+      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due, ...(m.partial ? { partial: true } : {}), ...(m.atOpen ? { atOpen: true } : {}) }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass };
     case 'hand-edits':
       return { ...s, handEdits: new Map([...s.handEdits, [m.def, { members: m.members, edited: m.edited }]]) };
     case 'hand-edits-done':

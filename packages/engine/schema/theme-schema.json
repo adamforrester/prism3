@@ -239,9 +239,22 @@
     },
     "outlineInteraction": {
       "type": "string",
-      "enum": ["overlay-neutral", "solid-tint", "none"],
+      "enum": ["overlay-neutral", "solid-tint", "opaque-fill", "none"],
       "default": "overlay-neutral",
-      "description": "OPTIONAL. How an outline/text interactive control expresses hover/pressed/selected (docs/20 §10). 'overlay-neutral' (default): generate translucent `interactive.<color>.overlay.*` washes that composite over any surface (each is contrast-verified on the composited result). 'solid-tint': use opaque `foreground.<color>-subtle` surfaces instead — no overlays. 'none': no hover expression, no overlays."
+      "description": "OPTIONAL. How an outline/text interactive control expresses hover/pressed/selected (docs/20 §10). 'overlay-neutral' (default): generate translucent `interactive.<color>.overlay.*` washes that composite over any surface (each is contrast-verified on the composited result). 'solid-tint': use opaque `foreground.<color>-subtle` surfaces instead — no overlays. 'opaque-fill' (#3071): an opaque palette step per state, `interactive.<color>.hover-fill.{hover,pressed}` and `inverse.` twins, picked by `outlineHoverFill` (or the default rule), on Button, Icon button and Flush icon button; the label and icon are measured and clamped on it; the washes are still emitted for Tag, Segmented control and Pagination. Brand-dependent roles. 'none': no hover expression, no overlays."
+    },
+    "outlineHoverFill": {
+      "type": "object",
+      "description": "OPTIONAL. The opaque outline hover fill's page step per editable mode (#3071): `{ light: { hover: neutral.050 } }`. Read only under `outlineInteraction: opaque-fill`, and ignored with a note under another method. The editable modes are light, dark and a custom mode. `hover` is a palette step; `pressed` defaults to the next step toward the ink. Unnamed modes, the generate-only modes and every inverse band take the default rule: the neutral step nearest 1.15:1 against the ground, pressed the next step.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["hover"],
+        "properties": {
+          "hover": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[0-9]+$" },
+          "pressed": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[0-9]+$" }
+        }
+      }
     },
     "neutralEmphasis": {
       "type": "string",

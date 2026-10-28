@@ -4627,9 +4627,62 @@ for (const host of ['web', 'figma']) {
 }
 } // 18-readonly
 // #3073 (owner Q806, Q807 A): Surfaces & fills › Glass. The shipped glass is read-only (its primitive and opacity, from
-// the emission), and the glassRoles lever's controls write the brand input: Add writes the card color at 70%, the
-// opacity field writes its percent, a name the engine refuses ('surface') marks the block and leaves the last valid
-// theme, and Remove of the last fill drops the key. EXPECTED is typed here; ACTUAL is the persisted brand and the DOM.
+// the emission), and the glassRoles lever's controls write the brand input. #3106 (owner Q827 A) adds, each by name:
+// (1) a fill's remove control is a small square icon button on its name's line, right of the name; (2) the row draws one
+// swatch, and nothing else sits left of the name; (3) the name is the shipped glass's row, a readable name over its
+// token in the same type, on the same left edge, with no field and no capitals; (4) the color picker reads the stored
+// role after a pick, after a pick made while a redraw is pending, after a reload, and on the plugin from the file's
+// input; (5) Add asks for a name in a field that starts empty, with the hint, previews color.glass.<name>, refuses an
+// empty name, a non-slug, surface and a duplicate in words, and writes only the name typed. EXPECTED is typed here;
+// ACTUAL is the persisted brand and the DOM, measured as rendered.
+const GLASS_REFUSE = {
+  empty: 'A glass fill needs a name, such as card.',
+  slug: 'A name is lowercase letters, digits and hyphens, starting with a letter, such as top-bar.',
+  surface: "surface is the shipped glass fill, so another fill can't use its name.",
+  dup: (n) => `This brand already has glass.${n}. Each glass fill needs its own name.`,
+};
+/** The two rows' geometry and type, read off the levers pane: the shipped glass's and the first added fill's. */
+const GLASS_PROBE = () => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  const ship = pane?.querySelector('[data-p3="glass-surface-row"]');
+  const row = pane?.querySelector('[data-p3="glass-role-row"]');
+  if (!ship || !row) return null;
+  const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+  const type = (n) => { if (!n) return null; const c = getComputedStyle(n); return { size: c.fontSize, weight: c.fontWeight, family: c.fontFamily, transform: c.textTransform, line: c.lineHeight, color: c.color }; };
+  const nm = row.querySelector('[data-p3="glass-role-name"]');
+  const rm = row.querySelector('[data-p3="glass-role-remove"]');
+  const sw = row.querySelector('[data-p3="glass-role-swatch"]');
+  // Every drawn control or leaf in the row (a field, a select, a button, a glyph, a text run; the containers that hold
+  // the name are neither) that starts left of the name and is not the swatch or inside it: the stray swatch's field.
+  const nameL = nm?.getBoundingClientRect().left ?? 0;
+  const drawn = (n) => n.matches('input, select, button, svg, .p3-colorfield, .p3-selwrap') || !n.children.length;
+  const strays = [...row.querySelectorAll('*')].filter((n) => drawn(n) && n.getClientRects().length && !sw?.contains(n) && n.getBoundingClientRect().left < nameL - 0.5)
+    .map((n) => `${n.tagName.toLowerCase()}.${[...n.classList].join('.')}`);
+  return {
+    role: row.dataset.role,
+    swatches: row.querySelectorAll('.p3-fill-sw').length,
+    strays,
+    fields: row.querySelectorAll('input[type="text"], input:not([type])').length,
+    shipLabel: { text: ship.querySelector('.p3-fill-label')?.textContent, box: box(ship.querySelector('.p3-fill-label')), type: type(ship.querySelector('.p3-fill-label')) },
+    shipTok: { text: ship.querySelector('.p3-fill-tok')?.textContent, box: box(ship.querySelector('.p3-fill-tok')), type: type(ship.querySelector('.p3-fill-tok')) },
+    shipSw: box(ship.querySelector('.p3-fill-sw')),
+    label: { text: nm?.querySelector('.p3-fill-label')?.textContent, box: box(nm?.querySelector('.p3-fill-label')), type: type(nm?.querySelector('.p3-fill-label')) },
+    tok: { text: nm?.querySelector('.p3-fill-tok')?.textContent, box: box(nm?.querySelector('.p3-fill-tok')), type: type(nm?.querySelector('.p3-fill-tok')) },
+    sw: box(sw), name: box(nm), rm: box(rm), rmIcon: !!rm?.querySelector('.p3-ico, svg'), rmText: rm?.textContent.trim() ?? null,
+    rmName: rm?.getAttribute('aria-label') ?? null,
+    pick: (() => { const s = row.querySelector('[data-p3="glass-role-source"]'); return s ? { v: s.value, l: s.selectedOptions[0]?.textContent ?? null } : null; })(),
+  };
+};
+const glassPick = (page) => page.evaluate(() => { const s = document.querySelector('[data-p3="levers-pane"] [data-p3="glass-role-source"]'); return s ? { v: s.value, l: s.selectedOptions[0]?.textContent ?? null } : null; });
+const draftState = (page) => page.evaluate(() => {
+  const d = document.querySelector('[data-p3="levers-pane"] [data-p3="glass-draft"]');
+  const i = d?.querySelector('[data-p3="glass-name-input"]');
+  const why = d?.querySelector('[data-p3="glass-name-refusal"]');
+  return d ? { value: i?.value ?? null, hint: i?.placeholder ?? null, required: !!i?.required, focused: document.activeElement === i,
+    label: i ? document.querySelector(`label[for="${i.id}"]`)?.textContent ?? null : null,
+    token: d.querySelector('[data-p3="glass-name-token"]')?.textContent ?? null,
+    why: why && !why.hidden && why.getClientRects().length ? why.textContent : null, invalid: i?.getAttribute('aria-invalid') === 'true' } : null;
+});
 if (runs('18')) {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
@@ -4644,30 +4697,95 @@ if (runs('18')) {
     }));
     ok(read0.read === `${gPal} ${gStep} · ${Math.round(gAlpha * 100)}%` && read0.section === 'Glass' && read0.added === 0,
       `#3073: Surfaces & fills › Glass shows the shipped glass read-only as "${gPal} ${gStep} · ${Math.round(gAlpha * 100)}%" and no added fill on a brand without the lever (${JSON.stringify(read0)})`);
+
+    // (5) Add asks for a name: an empty, required field with the hint, focused, previewing the token, nothing written yet.
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-role-add"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="glass-name-input"]'), null, { timeout: 5000 }).catch(() => {});
+    const d0 = await draftState(page);
+    ok(d0?.value === '' && d0.hint === 'e.g. card, header, overlay' && d0.required && d0.focused && d0.label === 'Name' && d0.token === 'color.glass.<name>' && d0.why === null,
+      `#3106 Q827 A: Add glass fill opens a Name field that starts empty and required, focused, with the hint "e.g. card, header, overlay", previewing color.glass.<name> and refusing nothing yet (${JSON.stringify(d0)})`);
+    ok(!('glassRoles' in ((await persisted(page)) ?? {})) && (await page.locator('[data-p3="levers-pane"] [data-p3="glass-role-row"]').count()) === 0,
+      '#3106 Q827 A: opening the name field writes nothing and names nothing (no card)');
+    // An empty Add is refused in words, and writes nothing.
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-name-add"]'));
+    const dEmpty = await draftState(page);
+    ok(dEmpty?.why === GLASS_REFUSE.empty && dEmpty.invalid && !('glassRoles' in ((await persisted(page)) ?? {})),
+      `#3106 Q827 A: Add with the field empty is refused inline, "${GLASS_REFUSE.empty}", and writes nothing (${JSON.stringify(dEmpty)})`);
+    // Typed names: the token previews as typed, and a non-slug and the shipped name are refused as they are typed.
+    const input = page.locator('[data-p3="levers-pane"] [data-p3="glass-name-input"]');
+    for (const [typed, want] of [['Card', GLASS_REFUSE.slug], ['top bar', GLASS_REFUSE.slug], ['surface', GLASS_REFUSE.surface]]) {
+      await input.fill(typed);
+      const d = await draftState(page);
+      ok(d?.why === want && d.invalid && d.token === `color.glass.${typed.trim()}`,
+        `#3106 Q827 A: typing ${JSON.stringify(typed)} previews color.glass.${typed.trim()} and is refused inline, "${want}" (${JSON.stringify(d)})`);
+    }
+    await input.press('Enter');
+    ok(!('glassRoles' in ((await persisted(page)) ?? {})), '#3106 Q827 A: Enter on a refused name writes nothing');
+    await input.fill('card');
+    const dOk = await draftState(page);
+    ok(dOk?.why === null && !dOk.invalid && dOk.token === 'color.glass.card', `#3106 Q827 A: "card" is taken, previewing color.glass.card (${JSON.stringify(dOk)})`);
+    await input.press('Enter');
     await page.waitForFunction(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="glass-role-row"]').length === 1, null, { timeout: 5000 }).catch(() => {});
     const added = await persisted(page);
     const row = await page.evaluate(() => { const r = document.querySelector('[data-p3="levers-pane"] [data-p3="glass-role-row"]'); return r ? { role: r.dataset.role, wash: !!r.querySelector('.p3-scrim-wash'), src: r.querySelector('[data-p3="glass-role-source"]')?.value ?? null } : null; });
     ok(JSON.stringify(added?.glassRoles) === JSON.stringify({ card: { role: 'foreground.primary', alpha: 70 } }) && row?.role === 'glass.card' && row.wash && row.src === 'role:foreground.primary',
-      `#3073: Add glass fill writes glassRoles.card = the card color at 70% and draws its row with a translucent swatch (${JSON.stringify(added?.glassRoles)}, ${JSON.stringify(row)})`);
-    const alpha = page.locator('[data-p3="levers-pane"] [data-p3="glass-role-alpha"]');
-    await alpha.fill('40');
-    await alpha.press('Enter');
-    await alpha.blur();
-    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.glassRoles?.card?.alpha === 40; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
-    ok((await persisted(page))?.glassRoles?.card?.alpha === 40, `#3073: the opacity field writes glassRoles.card.alpha (${JSON.stringify((await persisted(page))?.glassRoles)})`);
-    const name = page.locator('[data-p3="levers-pane"] [data-p3="glass-role-name"]');
-    await name.fill('surface');
-    await name.press('Enter');
-    await name.blur();
-    await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="lever-glass-roles"][data-refused="true"], [data-p3="levers-pane"] [data-p3="lever-glass-roles"] .p3-refmark:not([hidden])'), null, { timeout: 5000 }).catch(() => {});
-    const refused = await page.evaluate(() => { const b = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-glass-roles"]'); return !!b && (b.getAttribute('data-refused') === 'true' || !!b.querySelector('.p3-refmark:not([hidden])')); });
-    ok(refused, `#3073: renaming a glass fill to "surface", the shipped glass's name, is refused by the engine and marks the Glass block`);
-    // Back to a valid name, then Remove: the last fill gone drops the key, byte-identical to never having had it.
-    await name.fill('card');
-    await name.press('Enter');
-    await name.blur();
+      `#3073, #3106: the name typed is written as glassRoles.card = the card color at 70%, and its row drawn with a translucent swatch (${JSON.stringify(added?.glassRoles)}, ${JSON.stringify(row)})`);
+    ok((await page.locator('[data-p3="levers-pane"] [data-p3="glass-draft"]').count()) === 0, '#3106: adding closes the name field and brings back Add glass fill');
+    // A duplicate is refused; Escape closes the field and writes nothing.
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-role-add"]'));
+    await input.fill('card');
+    const dDup = await draftState(page);
+    ok(dDup?.why === GLASS_REFUSE.dup('card') && dDup.invalid, `#3106 Q827 A: a second "card" is refused inline, "${GLASS_REFUSE.dup('card')}" (${JSON.stringify(dDup)})`);
+    await input.press('Escape');
+    ok((await page.locator('[data-p3="levers-pane"] [data-p3="glass-draft"]').count()) === 0 && JSON.stringify((await persisted(page))?.glassRoles) === JSON.stringify({ card: { role: 'foreground.primary', alpha: 70 } }),
+      '#3106: Escape closes the name field and writes nothing');
+
+    // (1), (2), (3): the row as drawn.
+    const g = await page.evaluate(GLASS_PROBE);
+    const close = (a, b) => a != null && b != null && Math.abs(a - b) <= 0.5;
+    ok(!!g?.rm && g.rmIcon && g.rmText === '' && g.rmName === 'Remove glass fill card' && Math.abs(g.rm.w - g.rm.h) <= 1 && g.rm.w <= 48
+      && g.rm.l >= g.name.r && g.rm.t < g.name.b && g.rm.b > g.name.t,
+      `#3106 (1): a fill's remove control is a small square icon button named "Remove glass fill card", on its name's line and right of the name, not a full-width box (${JSON.stringify({ rm: g?.rm, name: g?.name, icon: g?.rmIcon, text: g?.rmText })})`);
+    ok(g?.swatches === 1 && g.strays.length === 0 && !!g.sw && g.sw.t < g.name.b && g.sw.b > g.name.t,
+      `#3106 (2): the row draws one swatch, on its name's line, and nothing else left of the name (strays ${JSON.stringify(g?.strays)}, swatches ${g?.swatches})`);
+    ok(g?.label.text === 'Glass card' && g.tok.text === 'glass.card' && g.fields === 0 && g.label.type?.transform === 'none'
+      && JSON.stringify(g.label.type) === JSON.stringify(g.shipLabel.type) && JSON.stringify(g.tok.type) === JSON.stringify(g.shipTok.type)
+      && close(g.label.box?.l, g.shipLabel.box?.l) && close(g.tok.box?.l, g.shipTok.box?.l) && close(g.sw?.l, g.shipSw?.l) && close(g.sw?.w, g.shipSw?.w)
+      && close(g.label.box?.t - g.sw.t, g.shipLabel.box?.t - g.shipSw.t),
+      `#3106 (3): the fill's name is the shipped glass's row: "Glass card" over glass.card, no field, no capitals, in Glass surface's type and on its left edges and baseline (${JSON.stringify({ label: g?.label, tok: g?.tok, ship: g?.shipLabel, shipTok: g?.shipTok, fields: g?.fields })})`);
+
+    // (4) The picker reads the stored role: after Page color, after Card color, after a pick made while an opacity
+    // commit is pending (the redraw replaces the select under the open menu, #3106's cause), and after a reload.
+    const src = () => page.locator('[data-p3="levers-pane"] [data-p3="glass-role-source"]');
+    await src().selectOption('role:background.primary');
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.glassRoles?.card?.role === 'background.primary'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const p1 = await glassPick(page);
+    ok(p1?.l === 'Page color' && (await persisted(page))?.glassRoles?.card?.role === 'background.primary', `#3106 (4): Page color is written and read back (${JSON.stringify(p1)})`);
+    await src().selectOption('role:foreground.primary');
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.glassRoles?.card?.role === 'foreground.primary'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const p2 = await glassPick(page);
+    ok(p2?.l === 'Card color' && p2.v === 'role:foreground.primary' && (await persisted(page))?.glassRoles?.card?.role === 'foreground.primary',
+      `#3106 (4): Card color, chosen after Page color, is what the picker reads and what is stored (${JSON.stringify(p2)}, ${JSON.stringify((await persisted(page))?.glassRoles)})`);
+    await src().selectOption('role:background.primary');
     await page.waitForTimeout(200);
+    const old = await src().elementHandle();
+    await page.locator('[data-p3="levers-pane"] [data-p3="glass-role-alpha"]').fill('40');
+    await old.focus();   // the mouse-down on the picker: the opacity field's change commits a task later and redraws
+    await page.waitForFunction((s) => !s.isConnected, old, { timeout: 5000 }).catch(() => {});
+    const replaced = await old.evaluate((s) => !s.isConnected);
+    await old.evaluate((s) => { s.value = 'role:foreground.primary'; s.dispatchEvent(new Event('change')); });   // the pick, in the menu it opened
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.glassRoles?.card?.role === 'foreground.primary'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const p3 = await glassPick(page);
+    const s3 = (await persisted(page))?.glassRoles?.card;
+    ok(replaced && p3?.l === 'Card color' && s3?.role === 'foreground.primary' && s3?.alpha === 40,
+      `#3106 (4): Card color picked while the opacity's commit redraws the row is stored and read back, with the opacity (replaced ${replaced}, ${JSON.stringify(p3)}, ${JSON.stringify(s3)})`);
+    await page.reload({ waitUntil: 'networkidle' });
+    await hooks.need(page, '[data-p3="frame"]');
+    await goPlace(page, 'color-fills');
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="glass-role-source"]');
+    const p4 = await glassPick(page);
+    ok(p4?.l === 'Card color' && p4.v === 'role:foreground.primary', `#3106 (4): after a reload the picker still reads Card color (${JSON.stringify(p4)})`);
+    // Remove of the last fill drops the key, byte-identical to never having had it.
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-role-remove"]'));
     await page.waitForFunction(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="glass-role-row"]').length === 0, null, { timeout: 5000 }).catch(() => {});
     const gone = await persisted(page);
@@ -4676,6 +4794,22 @@ if (runs('18')) {
   } catch (e) {
     ok(false, `#3073 Glass: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
+
+  // (3), (4) on the plugin: the file's input holds the reference brand's glass fill (its `glassRoles`, typed here), and
+  // the row reads "Glass card" over glass.card with the picker on Card color, as stored.
+  const fig = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
+  try {
+    const REF_GLASS = { card: { role: 'foreground.primary', alpha: 70 } };
+    await fig.page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), { ...BOOT_INPUT, glassRoles: REF_GLASS });
+    await goPlace(fig.page, 'color-fills');
+    await hooks.need(fig.page, '[data-p3="levers-pane"] [data-p3="glass-role-row"]');
+    const f = await fig.page.evaluate(GLASS_PROBE);
+    ok(f?.role === 'glass.card' && f.label.text === 'Glass card' && f.tok.text === 'glass.card' && f.pick?.l === 'Card color' && f.pick.v === 'role:foreground.primary' && f.fields === 0,
+      `#3106 (3), (4): figma: a file whose input holds glassRoles.card (the reference brand's) shows "Glass card" over glass.card, its picker on Card color (${JSON.stringify({ role: f?.role, label: f?.label.text, tok: f?.tok.text, pick: f?.pick })})`);
+    ok(fig.errors.length === 0, `#3106 Glass figma: 0 console errors${fig.errors.length ? ` — ${fig.errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3106 Glass figma: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await fig.ctx.close(); }
 } // 18-glass
 // #3050 (owner Q825 B): Surfaces & fills › Scrim. Scrim strength's chips, Standard and Strong (DRAFT labels), sit above the
 // scrim's read-only row; Strong writes `scrimStrength: 'strong'` and the row reads out black-alpha 80 in Light, Standard
@@ -6283,6 +6417,45 @@ for (const { w, h } of WIDTHS) {
   }
 }
 } // 19b
+// #3071 (owner Q824 A): Color › Interactive › Outline hover. The "Solid fill" chip writes `outlineInteraction:
+// opaque-fill` and draws Outline hover fill under it: Hover and Pressed selects for the mode the preview shows, Pressed
+// locked until Hover is picked. Picking writes `outlineHoverFill.light.hover`; leaving the method drops the key, so a
+// brand switched back is byte-identical. EXPECTED is typed here; ACTUAL is the persisted brand and the DOM.
+if (runs('19')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const lever = '[data-p3="levers-pane"] [data-p3="lever-outline-hover-fill"]';
+  try {
+    await goPlace(page, 'color-interactive');
+    ok(await page.locator(lever).count() === 0, `#3071: no Outline hover fill control under the default outline hover`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]'));
+    await hooks.need(page, lever);
+    const chip = await page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]').textContent();
+    const on = await persisted(page);
+    const sel = await page.evaluate((l) => {
+      const b = document.querySelector(l);
+      const one = (sel) => { const s = b?.querySelector(sel); return s ? { v: s.value, auto: s.options[0]?.textContent ?? null, off: s.disabled } : null; };
+      return { hover: one('[data-p3="outline-hover-fill-hover-select"]'), pressed: one('[data-p3="outline-hover-fill-pressed-select"]'),
+        ratio: b?.querySelector('[data-p3="outline-hover-fill-ratio"]')?.textContent ?? null };
+    }, lever);
+    ok(chip === 'Solid fill' && on?.outlineInteraction === 'opaque-fill' && !('outlineHoverFill' in (on ?? {}))
+      && sel.hover?.v === '' && /^Auto: [A-Z][a-z-]* \d{3}$/.test(sel.hover?.auto ?? '') && sel.pressed?.off === true && /hover, .* pressed/.test(sel.ratio ?? ''),
+      `#3071: "Solid fill" writes opaque-fill and draws Hover on Auto (the default step), Pressed locked, and the worst label ratio (${JSON.stringify({ chip, method: on?.outlineInteraction, sel })})`);
+    await page.locator(`${lever} [data-p3="outline-hover-fill-hover-select"]`).selectOption('neutral.050');
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.outlineHoverFill?.light?.hover === 'neutral.050'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const picked = await persisted(page);
+    const pressedOn = await page.evaluate((l) => document.querySelector(`${l} [data-p3="outline-hover-fill-pressed-select"]`)?.disabled === false, lever);
+    ok(JSON.stringify(picked?.outlineHoverFill) === JSON.stringify({ light: { hover: 'neutral.050' } }) && pressedOn,
+      `#3071: picking neutral 050 writes outlineHoverFill.light.hover and unlocks Pressed (${JSON.stringify(picked?.outlineHoverFill)}, pressed enabled ${pressedOn})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-overlay-neutral"]'));
+    await page.waitForFunction((l) => !document.querySelector(l), lever, { timeout: 5000 }).catch(() => {});
+    const back = await persisted(page);
+    ok(back?.outlineInteraction === 'overlay-neutral' && !('outlineHoverFill' in (back ?? {})) && await page.locator(lever).count() === 0,
+      `#3071: back to the neutral wash drops outlineHoverFill and the control (${JSON.stringify({ method: back?.outlineInteraction, fill: back?.outlineHoverFill })})`);
+    ok(errors.length === 0, `#3071 Outline hover fill: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3071 Outline hover fill: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 19-outline-hover
 
 // =============================================================================================
 // 20. Type (S6.2, S6.3): Font families in the two panes, the type sample and the preview's sections
@@ -16433,6 +16606,52 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
       await postMsg(page, FILE);
       await postMsg(page, { type: 'hand-edits', done: true });
+      // #3082: the checklist repaints whole on a tick and on each host answer; neither moves the body's scroll, and a
+      // tick keeps focus on its box. Every set not in the file is listed, so the checklist is taller than the dialog.
+      // Twice: at 1280, and at the narrow tier, where `.p3-bardlg-col.p3-upd-body` keeps the body the scroller.
+      for (const [vw, vh] of [[1280, 900], [400, 700]]) {
+        const at = `IA2 ${host} ${theme} ${vw}`;
+        await page.setViewportSize({ width: vw, height: vh });
+        await page.waitForFunction((n) => (document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow') === n, vw < 560, { timeout: 5000 }).catch(() => {});
+        const tier = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w ?? null);
+        ok(tier === (vw < 560 ? 'narrow' : 'wide'), `${at}: #3082: the frame is at the ${vw < 560 ? 'narrow' : 'wide'} tier (${tier})`);
+        step = `the scroll across a repaint at ${vw}`;
+        await page.evaluate(() => { window.__ia2.length = 0; });
+        await hooks.click(page.locator('[data-p3="update-file"]'));
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, FILE);
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+        const fold = await page.evaluate(() => {
+          const b = document.querySelector('[data-p3="update-body"]');
+          const last = [...document.querySelectorAll('[data-p3="update-set"]')].at(-1);
+          if (!b || !last) return null;
+          const below = last.getBoundingClientRect().top >= b.getBoundingClientRect().bottom;
+          b.scrollTop = b.scrollHeight;
+          return { tall: b.scrollHeight > b.clientHeight + 1, below, top: b.scrollTop, id: last.dataset.id, on: last.getAttribute('aria-checked') };
+        });
+        ok(!!fold && fold.tall && fold.below && fold.top > 0 && fold.on === 'false', `${at}: #3082: the checklist is taller than the dialog, its last new set starts below the fold, unticked, and the body scrolls down to it (${JSON.stringify(fold)})`);
+        const scrollNow = () => page.evaluate(() => { const a = document.activeElement;
+          return { top: document.querySelector('[data-p3="update-body"]')?.scrollTop ?? null, focus: a?.closest('[data-p3="update-dialog"]') ? a.dataset.key ?? a.getAttribute('data-p3') : null }; });
+        if (fold) {
+          await hooks.click(page.locator(`[data-p3="update-set"][data-id="${fold.id}"]`));
+          await page.waitForFunction((id) => document.querySelector(`[data-p3="update-set"][data-id="${id}"]`)?.getAttribute('aria-checked') === 'true', fold.id, { timeout: 5000 }).catch(() => {});
+          const ticked = { ...(await scrollNow()), on: await page.evaluate((id) => document.querySelector(`[data-p3="update-set"][data-id="${id}"]`)?.getAttribute('aria-checked') ?? null, fold.id) };
+          ok(ticked.on === 'true' && ticked.top !== null && Math.abs(ticked.top - fold.top) <= 1 && ticked.focus === `set=${fold.id}`,
+            `${at}: #3082: ticking a set below the fold keeps the body's scroll (${fold.top} → ${ticked.top}) and focus on that box (${JSON.stringify(ticked)})`);
+          // A host answer repaints the dialog too (here the check again): the scroll stays where it was. Scrolled back to
+          // where the tick was first, so this reads the host's repaint alone.
+          await page.evaluate((top) => { document.querySelector('[data-p3="update-body"]').scrollTop = top; }, fold.top);
+          await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+          await settle(page);
+          const answered = await scrollNow();
+          ok(answered.top !== null && Math.abs(answered.top - fold.top) <= 1 && answered.focus === `set=${fold.id}`,
+            `${at}: #3082: a host answer's repaint keeps the body's scroll (${fold.top} → ${answered.top}) and focus (${JSON.stringify(answered)})`);
+        }
+        await page.keyboard.press('Escape');
+      }
+      await page.setViewportSize({ width: 1280, height: 900 });
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {

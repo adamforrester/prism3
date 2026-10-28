@@ -1012,6 +1012,12 @@
           "min": "4.5:1",
           "ratio": 10.03,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.primary.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1040,6 +1046,12 @@
           "min": "4.5:1",
           "ratio": 10.03,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.primary.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1068,6 +1080,12 @@
           "min": "4.5:1",
           "ratio": 14.17,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.primary.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1096,6 +1114,12 @@
           "min": "4.5:1",
           "ratio": 14.17,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.primary.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1382,6 +1406,12 @@
           "min": "4.5:1",
           "ratio": 7.29,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+        },
+        {
+          "token": "interactive.destructive.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1410,6 +1440,12 @@
           "min": "4.5:1",
           "ratio": 7.29,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+        },
+        {
+          "token": "interactive.destructive.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1438,6 +1474,12 @@
           "min": "4.5:1",
           "ratio": 10.3,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+        },
+        {
+          "token": "interactive.destructive.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1466,6 +1508,12 @@
           "min": "4.5:1",
           "ratio": 10.3,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+        },
+        {
+          "token": "interactive.destructive.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1714,6 +1762,12 @@
           "min": "4.5:1",
           "ratio": 16,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.neutral.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 13.16,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1742,6 +1796,12 @@
           "min": "4.5:1",
           "ratio": 16,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.neutral.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 13.16,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1770,6 +1830,12 @@
           "min": "4.5:1",
           "ratio": 11.82,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.neutral.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 8.59,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1798,6 +1864,12 @@
           "min": "4.5:1",
           "ratio": 11.82,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.neutral.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 8.59,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1954,6 +2026,12 @@
           "min": "4.5:1",
           "ratio": 6.97,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 5.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1982,6 +2060,12 @@
           "min": "4.5:1",
           "ratio": 6.97,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 5.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -2010,6 +2094,12 @@
           "min": "4.5:1",
           "ratio": 9.42,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 6.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -2038,6 +2128,12 @@
           "min": "4.5:1",
           "ratio": 9.42,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 6.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -2324,6 +2420,12 @@
           "min": "4.5:1",
           "ratio": 6.68,
           "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 6.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -2352,6 +2454,12 @@
           "min": "4.5:1",
           "ratio": 6.68,
           "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 6.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -2380,6 +2488,12 @@
           "min": "4.5:1",
           "ratio": 8.91,
           "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 7.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -2408,6 +2522,12 @@
           "min": "4.5:1",
           "ratio": 8.91,
           "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 7.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -2696,6 +2816,12 @@
           "min": "4.5:1",
           "ratio": 14.13,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 11.63,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -2724,6 +2850,12 @@
           "min": "4.5:1",
           "ratio": 14.13,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 11.63,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -2752,6 +2884,12 @@
           "min": "4.5:1",
           "ratio": 10.75,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 7.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -2780,6 +2918,12 @@
           "min": "4.5:1",
           "ratio": 10.75,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 7.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -6598,6 +6742,366 @@
         "foreground.primary"
       ]
     },
+    "interactive.primary.hover-fill.hover": {
+      "$description": "primary outline/text hover fill — neutral.050, the brand's pick; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque hover background of an outline or text primary button, icon button or flush icon button. The label is `interactive.primary.text.hover` and the icon `interactive.primary.icon.hover`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.primary.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.primary.fill.*`). On an inverse band, use `inverse.interactive.primary.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.050}",
+        "dark": "{nbds.core.palette.neutral.850}",
+        "hc-light": "{nbds.core.palette.neutral.050}",
+        "hc-dark": "{nbds.core.palette.neutral.900}"
+      },
+      "tracks": [
+        "interactive.primary.text.hover",
+        "interactive.primary.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.primary.text.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.text.hover` in every mode."
+        },
+        {
+          "token": "interactive.primary.icon.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.icon.hover` in every mode."
+        }
+      ]
+    },
+    "interactive.primary.hover-fill.pressed": {
+      "$description": "primary outline/text pressed fill — neutral.100, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque pressed background of an outline or text primary button, icon button or flush icon button. The label is `interactive.primary.text.pressed` and the icon `interactive.primary.icon.pressed`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.primary.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.primary.fill.*`). On an inverse band, use `inverse.interactive.primary.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.100}",
+        "dark": "{nbds.core.palette.neutral.800}",
+        "hc-light": "{nbds.core.palette.neutral.100}",
+        "hc-dark": "{nbds.core.palette.neutral.850}"
+      },
+      "tracks": [
+        "interactive.primary.text.pressed",
+        "interactive.primary.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.primary.text.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.text.pressed` in every mode."
+        },
+        {
+          "token": "interactive.primary.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.icon.pressed` in every mode."
+        }
+      ]
+    },
+    "interactive.neutral.hover-fill.hover": {
+      "$description": "neutral outline/text hover fill — neutral.050, the brand's pick; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque hover background of an outline or text neutral button, icon button or flush icon button. The label is `interactive.neutral.text.hover` and the icon `interactive.neutral.icon.hover`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.neutral.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.neutral.fill.*`). On an inverse band, use `inverse.interactive.neutral.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.050}",
+        "dark": "{nbds.core.palette.neutral.850}",
+        "hc-light": "{nbds.core.palette.neutral.050}",
+        "hc-dark": "{nbds.core.palette.neutral.900}"
+      },
+      "tracks": [
+        "interactive.neutral.text.hover",
+        "interactive.neutral.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.neutral.text.hover",
+          "min": "4.5:1",
+          "ratio": 13.16,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.text.hover` in every mode."
+        },
+        {
+          "token": "interactive.neutral.icon.hover",
+          "min": "4.5:1",
+          "ratio": 13.16,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.icon.hover` in every mode."
+        }
+      ]
+    },
+    "interactive.neutral.hover-fill.pressed": {
+      "$description": "neutral outline/text pressed fill — neutral.100, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque pressed background of an outline or text neutral button, icon button or flush icon button. The label is `interactive.neutral.text.pressed` and the icon `interactive.neutral.icon.pressed`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.neutral.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.neutral.fill.*`). On an inverse band, use `inverse.interactive.neutral.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.100}",
+        "dark": "{nbds.core.palette.neutral.800}",
+        "hc-light": "{nbds.core.palette.neutral.100}",
+        "hc-dark": "{nbds.core.palette.neutral.850}"
+      },
+      "tracks": [
+        "interactive.neutral.text.pressed",
+        "interactive.neutral.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.neutral.text.pressed",
+          "min": "4.5:1",
+          "ratio": 8.59,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.text.pressed` in every mode."
+        },
+        {
+          "token": "interactive.neutral.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 8.59,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.icon.pressed` in every mode."
+        }
+      ]
+    },
+    "interactive.destructive.hover-fill.hover": {
+      "$description": "destructive outline/text hover fill — neutral.050, the brand's pick; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque hover background of an outline or text destructive button, icon button or flush icon button. The label is `interactive.destructive.text.hover` and the icon `interactive.destructive.icon.hover`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.destructive.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.destructive.fill.*`). On an inverse band, use `inverse.interactive.destructive.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.050}",
+        "dark": "{nbds.core.palette.neutral.850}",
+        "hc-light": "{nbds.core.palette.neutral.050}",
+        "hc-dark": "{nbds.core.palette.neutral.900}"
+      },
+      "tracks": [
+        "interactive.destructive.text.hover",
+        "interactive.destructive.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.destructive.text.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.text.hover` in every mode."
+        },
+        {
+          "token": "interactive.destructive.icon.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.icon.hover` in every mode."
+        }
+      ]
+    },
+    "interactive.destructive.hover-fill.pressed": {
+      "$description": "destructive outline/text pressed fill — neutral.100, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque pressed background of an outline or text destructive button, icon button or flush icon button. The label is `interactive.destructive.text.pressed` and the icon `interactive.destructive.icon.pressed`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.destructive.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.destructive.fill.*`). On an inverse band, use `inverse.interactive.destructive.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.100}",
+        "dark": "{nbds.core.palette.neutral.800}",
+        "hc-light": "{nbds.core.palette.neutral.100}",
+        "hc-dark": "{nbds.core.palette.neutral.850}"
+      },
+      "tracks": [
+        "interactive.destructive.text.pressed",
+        "interactive.destructive.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.destructive.text.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.text.pressed` in every mode."
+        },
+        {
+          "token": "interactive.destructive.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.icon.pressed` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.primary.hover-fill.hover": {
+      "$description": "primary outline/text hover fill on an inverse surface — neutral.850, the default step on the inverse band; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque hover background of an outline or text primary button, icon button or flush icon button. The label is `inverse.interactive.primary.text.hover` and the icon `inverse.interactive.primary.icon.hover`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.hover-fill.hover`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.primary.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.primary.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.850}",
+        "dark": "{nbds.core.palette.neutral.050}",
+        "hc-light": "{nbds.core.palette.neutral.900}",
+        "hc-dark": "{nbds.core.palette.neutral.050}"
+      },
+      "tracks": [
+        "inverse.interactive.primary.text.hover",
+        "inverse.interactive.primary.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.primary.text.hover",
+          "min": "4.5:1",
+          "ratio": 5.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.text.hover` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.icon.hover",
+          "min": "4.5:1",
+          "ratio": 5.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.icon.hover` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.primary.hover-fill.pressed": {
+      "$description": "primary outline/text pressed fill on an inverse surface — neutral.800, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque pressed background of an outline or text primary button, icon button or flush icon button. The label is `inverse.interactive.primary.text.pressed` and the icon `inverse.interactive.primary.icon.pressed`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.hover-fill.pressed`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.primary.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.primary.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.800}",
+        "dark": "{nbds.core.palette.neutral.100}",
+        "hc-light": "{nbds.core.palette.neutral.850}",
+        "hc-dark": "{nbds.core.palette.neutral.100}"
+      },
+      "tracks": [
+        "inverse.interactive.primary.text.pressed",
+        "inverse.interactive.primary.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.primary.text.pressed",
+          "min": "4.5:1",
+          "ratio": 6.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.text.pressed` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 6.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.icon.pressed` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.neutral.hover-fill.hover": {
+      "$description": "neutral outline/text hover fill on an inverse surface — neutral.850, the default step on the inverse band; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque hover background of an outline or text neutral button, icon button or flush icon button. The label is `inverse.interactive.neutral.text.hover` and the icon `inverse.interactive.neutral.icon.hover`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.hover-fill.hover`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.neutral.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.neutral.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.850}",
+        "dark": "{nbds.core.palette.neutral.050}",
+        "hc-light": "{nbds.core.palette.neutral.900}",
+        "hc-dark": "{nbds.core.palette.neutral.050}"
+      },
+      "tracks": [
+        "inverse.interactive.neutral.text.hover",
+        "inverse.interactive.neutral.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.neutral.text.hover",
+          "min": "4.5:1",
+          "ratio": 11.63,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.text.hover` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.icon.hover",
+          "min": "4.5:1",
+          "ratio": 11.63,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.icon.hover` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.neutral.hover-fill.pressed": {
+      "$description": "neutral outline/text pressed fill on an inverse surface — neutral.800, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque pressed background of an outline or text neutral button, icon button or flush icon button. The label is `inverse.interactive.neutral.text.pressed` and the icon `inverse.interactive.neutral.icon.pressed`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.hover-fill.pressed`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.neutral.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.neutral.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.800}",
+        "dark": "{nbds.core.palette.neutral.100}",
+        "hc-light": "{nbds.core.palette.neutral.850}",
+        "hc-dark": "{nbds.core.palette.neutral.100}"
+      },
+      "tracks": [
+        "inverse.interactive.neutral.text.pressed",
+        "inverse.interactive.neutral.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.neutral.text.pressed",
+          "min": "4.5:1",
+          "ratio": 7.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.text.pressed` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 7.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.icon.pressed` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.destructive.hover-fill.hover": {
+      "$description": "destructive outline/text hover fill on an inverse surface — neutral.850, the default step on the inverse band; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque hover background of an outline or text destructive button, icon button or flush icon button. The label is `inverse.interactive.destructive.text.hover` and the icon `inverse.interactive.destructive.icon.hover`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.hover-fill.hover`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.destructive.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.destructive.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.850}",
+        "dark": "{nbds.core.palette.neutral.050}",
+        "hc-light": "{nbds.core.palette.neutral.900}",
+        "hc-dark": "{nbds.core.palette.neutral.050}"
+      },
+      "tracks": [
+        "inverse.interactive.destructive.text.hover",
+        "inverse.interactive.destructive.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.destructive.text.hover",
+          "min": "4.5:1",
+          "ratio": 6.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.text.hover` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.icon.hover",
+          "min": "4.5:1",
+          "ratio": 6.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.icon.hover` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.destructive.hover-fill.pressed": {
+      "$description": "destructive outline/text pressed fill on an inverse surface — neutral.800, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque pressed background of an outline or text destructive button, icon button or flush icon button. The label is `inverse.interactive.destructive.text.pressed` and the icon `inverse.interactive.destructive.icon.pressed`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.hover-fill.pressed`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.destructive.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.destructive.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.800}",
+        "dark": "{nbds.core.palette.neutral.100}",
+        "hc-light": "{nbds.core.palette.neutral.850}",
+        "hc-dark": "{nbds.core.palette.neutral.100}"
+      },
+      "tracks": [
+        "inverse.interactive.destructive.text.pressed",
+        "inverse.interactive.destructive.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.destructive.text.pressed",
+          "min": "4.5:1",
+          "ratio": 7.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.text.pressed` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 7.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.icon.pressed` in every mode."
+        }
+      ]
+    },
     "interactive.primary.subtle-fill.selected": {
       "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
       "meaning": "Interactivity / actions",
@@ -9440,20 +9944,26 @@
         "color.background.tertiary",
         "color.border.primary",
         "color.foreground.secondary",
+        "color.interactive.destructive.hover-fill.pressed",
         "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.hover-fill.pressed",
         "color.interactive.neutral.icon.hover",
         "color.interactive.neutral.text.hover",
+        "color.interactive.primary.hover-fill.pressed",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary",
         "color.inverse.interactive.destructive.fill.focused",
         "color.inverse.interactive.destructive.fill.hover",
+        "color.inverse.interactive.destructive.hover-fill.pressed",
         "color.inverse.interactive.neutral.border.hover",
         "color.inverse.interactive.neutral.fill.focused",
         "color.inverse.interactive.neutral.fill.hover",
+        "color.inverse.interactive.neutral.hover-fill.pressed",
         "color.inverse.interactive.neutral.icon.hover",
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.primary.fill.focused",
-        "color.inverse.interactive.primary.fill.hover"
+        "color.inverse.interactive.primary.fill.hover",
+        "color.inverse.interactive.primary.hover-fill.pressed"
       ]
     },
     "core.palette.neutral.150": {
@@ -9693,16 +10203,22 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.foreground.tertiary",
+        "color.interactive.destructive.hover-fill.pressed",
+        "color.interactive.neutral.hover-fill.pressed",
+        "color.interactive.primary.hover-fill.pressed",
         "color.inverse.border.primary",
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.foreground.tertiary",
         "color.inverse.interactive.destructive.fill.pressed",
         "color.inverse.interactive.destructive.fill.selected",
+        "color.inverse.interactive.destructive.hover-fill.pressed",
         "color.inverse.interactive.neutral.fill.pressed",
         "color.inverse.interactive.neutral.fill.selected",
+        "color.inverse.interactive.neutral.hover-fill.pressed",
         "color.inverse.interactive.primary.fill.pressed",
-        "color.inverse.interactive.primary.fill.selected"
+        "color.inverse.interactive.primary.fill.selected",
+        "color.inverse.interactive.primary.hover-fill.pressed"
       ]
     },
     "core.palette.neutral.850": {
@@ -9714,17 +10230,29 @@
       "aliased_by": [
         "color.background.tertiary",
         "color.foreground.secondary",
+        "color.interactive.destructive.hover-fill.hover",
+        "color.interactive.destructive.hover-fill.pressed",
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.rest",
         "color.interactive.neutral.fill.selected",
+        "color.interactive.neutral.hover-fill.hover",
+        "color.interactive.neutral.hover-fill.pressed",
         "color.interactive.neutral.icon.hover",
         "color.interactive.neutral.text.hover",
+        "color.interactive.primary.hover-fill.hover",
+        "color.interactive.primary.hover-fill.pressed",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary",
+        "color.inverse.interactive.destructive.hover-fill.hover",
+        "color.inverse.interactive.destructive.hover-fill.pressed",
         "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.interactive.neutral.hover-fill.hover",
+        "color.inverse.interactive.neutral.hover-fill.pressed",
         "color.inverse.interactive.neutral.icon.hover",
-        "color.inverse.interactive.neutral.text.hover"
+        "color.inverse.interactive.neutral.text.hover",
+        "color.inverse.interactive.primary.hover-fill.hover",
+        "color.inverse.interactive.primary.hover-fill.pressed"
       ]
     },
     "core.palette.neutral.900": {
@@ -9737,14 +10265,20 @@
         "color.background.secondary",
         "color.foreground.primary",
         "color.foreground.raised",
+        "color.interactive.destructive.hover-fill.hover",
+        "color.interactive.neutral.hover-fill.hover",
+        "color.interactive.primary.hover-fill.hover",
         "color.inverse.background.secondary",
         "color.inverse.foreground.primary",
         "color.inverse.interactive.destructive.fill.focused",
         "color.inverse.interactive.destructive.fill.hover",
+        "color.inverse.interactive.destructive.hover-fill.hover",
         "color.inverse.interactive.neutral.fill.focused",
         "color.inverse.interactive.neutral.fill.hover",
+        "color.inverse.interactive.neutral.hover-fill.hover",
         "color.inverse.interactive.primary.fill.focused",
-        "color.inverse.interactive.primary.fill.hover"
+        "color.inverse.interactive.primary.fill.hover",
+        "color.inverse.interactive.primary.hover-fill.hover"
       ]
     },
     "core.palette.neutral.950": {
@@ -9811,8 +10345,14 @@
       "aliased_by": [
         "color.background.secondary",
         "color.foreground.primary",
+        "color.interactive.destructive.hover-fill.hover",
+        "color.interactive.neutral.hover-fill.hover",
+        "color.interactive.primary.hover-fill.hover",
         "color.inverse.background.secondary",
-        "color.inverse.foreground.primary"
+        "color.inverse.foreground.primary",
+        "color.inverse.interactive.destructive.hover-fill.hover",
+        "color.inverse.interactive.neutral.hover-fill.hover",
+        "color.inverse.interactive.primary.hover-fill.hover"
       ]
     },
     "core.palette.info.100": {

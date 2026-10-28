@@ -21,14 +21,15 @@
  * too, after a run that found some.
  *
  * DIALOG: modal (`aria-modal`), focus into it as it opens and back to the button as it closes, by any path; Escape and a
- * click on the scrim close it; Tab stays inside (`trapTab`). A repaint keeps focus on the same control (`data-key`).
+ * click on the scrim close it; Tab stays inside (`trapTab`). A repaint keeps focus on the same control (`data-key`) and
+ * the body's scroll position on the same tab (#3082).
  *
  * It names no legacy repaint tier (`test-shell-imports.ts`): it reads through `lend.read` and repaints on the host topics.
  * Every string is a DRAFT placeholder (Q2909.10 A), in `UPDATE_COPY`.
  */
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
-import { defaultTicks, dueCount, dueSetsOf, newSetsOf, stepOf, stepsOf, unrecordedOf, updatableOf, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { awaitingRead, defaultTicks, dueCount, dueSetsOf, newSetsOf, stepOf, stepsOf, unrecordedOf, updatableOf, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import { focusables, glyph, h, hook, pendingLabel, setBusy, trapTab } from './dom';
 
@@ -157,7 +158,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       return { body: [line], foot: [btn('p3-btn p3-btn-page', 'update-close', 'close', UPDATE_COPY.close, close), stop] };
     }
     const f = r.fileSets;
-    if (asked !== undefined && f === asked) return { body: [hook(h('p', 'p3-upd-line', UPDATE_COPY.checking), 'update-checking')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
+    if (awaitingRead(f, asked)) return { body: [hook(h('p', 'p3-upd-line', UPDATE_COPY.checking), 'update-checking')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
     if (!f || f.error) return { body: [hook(h('p', 'p3-sg-error', UPDATE_COPY.readError), 'update-read-error')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
     asked = undefined;
     if (rechecking && ticks) { rechecking = false; ticks = { ...ticks, update: new Set(dueSetsOf(r.catalog, f)) }; }
@@ -328,6 +329,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     button.removeAttribute('aria-disabled');
     if (!open) { if (layer.firstChild) layer.replaceChildren(); return; }
     const focused = document.activeElement instanceof HTMLElement && layer.contains(document.activeElement) ? document.activeElement.dataset.key ?? null : null;
+    // #3082: a repaint (a tick, a host answer) keeps where the body was scrolled, on the same tab; a new tab starts at the top.
+    const was = layer.querySelector<HTMLElement>('[data-p3="update-body"]');
+    const scrolled = was && was.dataset.tab === tab ? was.scrollTop : 0;
     const scrim = h('div', 'p3-bardlg-scrim');
     const dlg = hook(h('div', 'p3-bardlg p3-upd'), 'update-dialog');
     dlg.setAttribute('role', 'dialog');
@@ -371,6 +375,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const { body, foot } = tab === 'update' ? updateBody() : cleanBody();
     const bodyEl = hook(h('div', 'p3-bardlg-col p3-upd-body'), 'update-body');
     bodyEl.setAttribute('role', 'tabpanel');
+    bodyEl.dataset.tab = tab;
     bodyEl.append(...body);
     const footEl = h('div', 'p3-bardlg-foot');
     footEl.append(...foot);
@@ -378,6 +383,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     scrim.onmousedown = (e) => { if (e.target === scrim) { e.preventDefault(); close(); } };
     scrim.append(dlg);
     layer.replaceChildren(scrim);
+    bodyEl.scrollTop = scrolled;
     // A control gone from the repaint (Theme's box while its toggle checks the file again, #3023) leaves focus on the
     // dialog, never outside the modal.
     if (focused) (layer.querySelector<HTMLElement>(`[data-key="${CSS.escape(focused)}"]`) ?? dlg).focus({ preventScroll: true });

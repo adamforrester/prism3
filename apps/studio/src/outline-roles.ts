@@ -13,11 +13,12 @@
  * the plugin binds on a `surface=inverse` member. `outlineFillRole` stays the one method → family
  * mapping; the ground is a prefix in front of it, exactly as for the ink and edge.
  *
- * `opaque` is kept: an OPAQUE fill covers the band, so from `hover` onward the ground is the page-tuned
- * fill and the page ink/edge/fill are the measured-correct answer (the #575 reasoning). No method is
- * opaque since #1614, so on an inverse ground today every state reads the band's roles.
+ * The switch no longer reads `opaque`. It did while the one opaque fill was a page-tuned palette step with no
+ * band twin, so from `hover` on the page ink was the measured answer (the #575 reasoning). The opaque fill
+ * since #3071, `hover-fill`, has its own `inverse.` twin, picked on the band and with the band ink measured on
+ * it, so every method reads the band's fill, ink and edge on an inverse ground.
  */
-import { outlineFillFamily, outlineFillRole } from '@prism3/engine/modes';
+import { outlineFillRole } from '@prism3/engine/modes';
 import type { Theme } from '@prism3/engine/theme';
 
 export interface OutlineStateRoles {
@@ -31,8 +32,7 @@ export const outlineStateRoles = (
   method: Theme['outlineInteraction'], color: string, state: string, onInverseGround: boolean,
 ): OutlineStateRoles => {
   const page = state === 'rest' ? null : outlineFillRole(method, color, state);
-  const onBand = onInverseGround && !(outlineFillFamily(method).opaque && page);
-  const g = onBand ? 'inverse.' : '';
+  const g = onInverseGround ? 'inverse.' : '';
   return {
     fill: page ? `${g}${page}` : null,
     text: `${g}interactive.${color}.text.${state}`,
