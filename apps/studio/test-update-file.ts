@@ -19,7 +19,7 @@
  * steps: … the in-place update runs before the new sets are added`; a hand-edited set read as Up to date → `Q2909.8 A
  * status: a hand-edited set reads Hand-edited …`.
  */
-import { defaultTicks, dueCount, dueSetsOf, newSetsOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { awaitingRead, defaultTicks, dueCount, dueSetsOf, newSetsOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 
 let failed = 0;
@@ -89,6 +89,20 @@ ok(same(statusesOf('badge', DUE, new Map(), 'running'), ['unchecked']), 'Q2909.8
 ok(same(statusesOf('select', DUE, new Map(), 'running'), ['due', 'checking']), 'Q2909.8 A status: while the pass has not reached a set, it reads Checking');
 ok(same(statusesOf('tag', { ...DUE, due: { ...DUE.due } }, new Map(), 'done'), ['current']), 'Q2909.8 A status: a recorded set with no hand edits, once the pass is done, reads Up to date');
 ok(same(statusesOf('tag', null, hand, 'done'), []), 'Q2909.8 A status: nothing before the host has answered');
+// #3110: the host's answer at open is read from the ledger alone (`partial`), before any page loaded. A set it does not
+// name may still be in the file, so it reads Checking, never Not in file; the checklist waits for the full read.
+const PART = { ...DUE, present: ['button', 'tag'], partial: true, atOpen: true } as const;
+ok(same(statusesOf('badge', PART, new Map(), 'running'), ['checking']), '#3110 status: at open, a set the ledger does not name reads Checking until the file is read, never Not in file');
+ok(same(statusesOf('button', PART, new Map(), 'running'), ['due', 'checking']), '#3110 status: at open, a set the ledger names reads as the ledger says');
+ok(same(statusesOf('badge', { ...PART, partial: undefined, atOpen: undefined }, new Map(), 'running'), ['new']), '#3110 status control: once the full read lands, a set it does not hold reads Not in file');
+ok(dueCount(CAT2, PART) === 1, '#3110 badge: the answer at open counts the due sets the ledger names');
+ok(awaitingRead(PART, undefined) && awaitingRead(PART, null), '#3110 checklist: it never opens on the answer at open; it waits for the file\'s own read');
+ok(!awaitingRead(DUE, undefined) && !awaitingRead(DUE, null) && awaitingRead(DUE, DUE), '#3110 checklist control: a full read it has not seen opens it; the reading from before it asked does not');
+// The host's full read after open yields between pages, so it can land after the checklist asked. It reads the stored
+// brand, not the panel's (Q699 A), so the checklist keeps waiting for the answer to its own request.
+const OPEN = { ...DUE, atOpen: true } as const;
+ok(awaitingRead(OPEN, PART) && awaitingRead(OPEN, null), '#3110 checklist: the host\'s read after open, landing after the checklist asked, is not its answer');
+ok(!awaitingRead(OPEN, undefined), '#3110 checklist control: once the checklist has its answer, a later read after open does not close it');
 const ru = startUpdate(['update', 'sets'], ['icon'], { defs: ['button'], previewHash: 'h', handEdits: 'keep' });
 ok(stepOf(ru) === 'update' && same(ru.update, { defs: ['button'], previewHash: 'h', handEdits: 'keep' }), 'Q2909.8 A run: the update step carries its sets, the check\'s hash and the hand-edit choice');
 
