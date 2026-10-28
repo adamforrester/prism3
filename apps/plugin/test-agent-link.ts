@@ -923,7 +923,15 @@ section('state — what the panel shows');
 {
   const s = posted.filter((m) => m.type === 'agent-link-state').pop()?.state as AgentLinkState;
   ok(!!s?.lastCommand && s.lastCommand.cmd === 'status' && s.lastCommand.headline.length > 0, 'the panel is told the last command and its headline');
-  ok(/Listening — file mailbox, every 1 s · last: status/.test(agentLinkStatusText(s)), `the chip reads: "${agentLinkStatusText(s)}"`);
+  // #3113 (Q3113.7 A): in operation words, with a relative age; never the command id or a clock time.
+  const at = Date.parse(s.lastCommand!.finishedAt);
+  ok(/^Listening for agent commands \(file mailbox, every 1 s\)\. Last: Status, .+, just now\.$/.test(agentLinkStatusText(s, at + 5000)), `the drawer's line reads: "${agentLinkStatusText(s, at + 5000)}"`);
+  ok(/, 2 min ago\.$/.test(agentLinkStatusText(s, at + 150_000)) && /, 3 h ago\.$/.test(agentLinkStatusText(s, at + 3 * 3_600_000 + 1)) && /, 2 d ago\.$/.test(agentLinkStatusText(s, at + 49 * 3_600_000)),
+    `its age is relative: ${['2 min', '3 h', '2 d'].join(', ')} ago (read "${agentLinkStatusText(s, at + 150_000)}")`);
+  ok(agentLinkStatusText({ ...s, transports: { mailbox: true, bridge: true } }, at).includes('(file mailbox, every 1 s, and the desktop bridge)')
+    && agentLinkStatusText({ ...s, transports: { mailbox: false, bridge: false } }, at).startsWith('On, but not listening')
+    && agentLinkStatusText({ ...s, inboxError: 'the inbox is not a JSON array' }, at).endsWith(' Inbox error: the inbox is not a JSON array.'),
+    'the bridge, no transport and an inbox error each read in words');
   ok(agentLinkStatusText(null) === agentLinkStatusText({ ...s, on: false }), 'and reads off before the first state arrives');
 }
 

@@ -578,6 +578,11 @@
   border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
 .p3-drawer-bar > .p3-ico { color: var(--p3-icon-2); }
+/* The bar row spans the drawer's width at the window's bottom edge, so its ring sits inside it, as the scrolling panes'
+   does (#2144); drawn from launch since #3113, the keyboard reaches it before anything has run. A row header and an
+   earlier result's line ring outside, as every other control does. */
+.p3-drawer-bar:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: calc(-1 * var(--p3-focus-width)); }
+:is(.p3-op-head, .p3-op-history summary):focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
 .p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type { transform: rotate(180deg); }
 .p3-drawer-last { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Q3113.3 A: the split counts. "1 failed" in the error ink after the error glyph, "1 warning" in the text ink after the
@@ -691,8 +696,8 @@
    while the sheet is open, as the panes do. */
 .p3-frame[data-w="narrow"] .p3-op-head { flex-wrap: wrap; }
 .p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) .p3-pane-toggle { display: none; }
-/* At 380 the bar row's agent status is its glyph and dot (Q3113.7 A); the word stays in its name. */
-.p3-frame[data-w="narrow"] .p3-drawer-link-word { display: none; }
+/* At 380 the bar row's agent status is its glyph and dot (Q3113.7 A); the word stays in its name, drawn as `.p3-sr` draws. */
+.p3-frame[data-w="narrow"] .p3-drawer-link-word { position: absolute; width: var(--p3-bw-hairline); height: var(--p3-bw-hairline); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* #2176 (the owner's AD1–AD3): the open drawer's handle, at the wide tier. A window splitter: its box is the hit target
    (hit-min tall, the pill's width plus space-200 a side), centered on the drawer's top edge over the bar row. Its one
    mark is the pill, which sits space-075 inside the drawer's top border, the way a sheet's grabber does, and is

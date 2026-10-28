@@ -11,9 +11,10 @@
  * switches the link; its name is "Agent", with `aria-pressed` for on or off; a green dot sits on the glyph
  * while the link is on. Until T7 it was the "Agent: Off" chip, which opened a popover holding the switch, a line on
  * what the link does and the link's status; the chip and the popover are gone. The status now lives in the Activity
- * drawer (#2213, the owner's N1 A and AS1 A, 2026-10-06): a short status (`agentLinkShortStatus`) at the far right of its
- * bar row, beside the caret, and the full status line (`agentLinkStatusText`) as the open drawer's first line and the
- * short status's tooltip and accessible name. The tile reports both with each published state (`setAgentLinkStatus`,
+ * drawer (#2213, the owner's N1 A and AS1 A, 2026-10-06): a short status at the far right of its bar row, beside the
+ * caret, and the full status line (`agentLinkStatusText`) as the open drawer's first line and the short status's tooltip
+ * and accessible name. Since #3113 (Q3113.7 A) the short status is the link's glyph, a dot and one word
+ * (`agentLinkWord`: "Listening"), and the full line speaks in operation words with a relative age. The tile reports both with each published state (`setAgentLinkStatus`,
  * `shell/activity.ts`). A change of the short status INTO "Agent error" or "Agent not listening" is announced once,
  * politely, through one persistent live region the tile owns (#2275, the owner's Q86 B, 2026-10-07; below). Both are styled by the chrome stylesheet (`apps/studio/src/chrome.css`), so they carry no
  * inline value and follow the chrome's theme.
