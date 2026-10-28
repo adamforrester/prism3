@@ -863,6 +863,10 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         ]),
       }, furniture), sink);
       verdictPosted = true;
+      // #3128: the build is done with the file, so the next one may start: what is left (the settle probe and the
+      // console telemetry) writes nothing. The panel posts its next set the moment this verdict lands (#2700), and
+      // Update file its update step; held through the probe, that post was refused and the run never ended.
+      guard.release('build-components');
     });
     // BOTH CONSOLE BLOCKS RUN AFTER THE AWAIT, deliberately. They are the only two things left that need
     // the settle number, and keeping them out of the sampling window matters: a `console.log` is

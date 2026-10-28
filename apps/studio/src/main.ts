@@ -26,7 +26,7 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import { toDesignMd } from '@prism3/engine/design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
-import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
+import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
@@ -58,7 +58,8 @@ import {
 // The component catalog, which the set build asks whether a set can be built (UI redesign S8.2: the Components page
 // itself lists it, from `preview/components.ts`; the Button options moved to `domains/components.ts`).
 import { componentCatalog } from './state/component-catalog';
-import { currentOf, positionOf, record, runVerdict, startRun, stopRun, type BuildRun, type RunKind } from './state/build-queue';
+import { currentOf, positionOf, record, runVerdict, RUN_COPY, startRun, stopRun, type BuildRun, type RunKind } from './state/build-queue';
+import { entryOf } from './state/component-groups';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
 import { shownName } from './state/brand-input';
@@ -368,6 +369,8 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   if (home?.kind === 'reading' && (m.kind === 'restore-input' || m.kind === 'restore-input-error' || m.kind === 'restore-input-empty' || m.kind === 'restore-input-library')) home = null;
   // #2700: a set's result while a multi-set run is out posts the next set, before this message's topics fire.
   if (m.kind === 'component-result' && prev.componentState === 'pending') runAfterResult(m, prev.componentDef);
+  // #3128: a set the run posted that the host refused gets no verdict, so the run ends on the refusal.
+  if (m.kind === 'refused' && !m.agent && AGENT_OP[m.cmd] === 'components') runRefused(m.message);
   // #2909: Update file's run moves to its next step on the verdict of the one out, before this message's topics fire.
   advanceUpdate(m, prev);
   const effect = brandEffectFor(m, prev, host);
@@ -1791,6 +1794,19 @@ const runAfterResult = (m: Extract<Parameters<typeof reduce>[1], { kind: 'compon
   const verdict = ended.ids.length > 1 ? runVerdict(ended, componentCatalog()) : { ok: m.ok, headline: m.headline, lines: [...(m.lines ?? [])] };
   lastRun = { run: ended, verdict };
   if (ended.ids.length > 1) setHost({ componentState: { ok: verdict.ok, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines }, openDetail: verdict.ok ? null : 'components' });
+};
+/** #3128: the host refused the set the run posted, so no verdict will answer it: the run ends there, that set failed with
+ *  the host's words and the rest not built, and the build stops reading as running. Without this the run waited for good
+ *  on the refused set (the reducer keeps a request refused behind the panel's own run pending for that run's verdict). */
+const runRefused = (message: string): void => {
+  const id = run ? currentOf(run) : null;
+  if (!run || !id) return;
+  const ended = record(stopRun(run), { id, result: 'failed', headline: message });
+  run = null;
+  const v = ended.ids.length > 1 ? runVerdict(ended, componentCatalog()) : { ok: false, headline: RUN_COPY.failed(entryOf(componentCatalog(), id)?.name ?? id), lines: [] };
+  const verdict = { ok: false, headline: v.headline, lines: [...v.lines, message] };
+  lastRun = { run: ended, verdict };
+  setHost({ componentState: { ok: false, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines }, componentProgress: null, componentDef: null, openDetail: 'components' });
 };
 /** Prune is unavailable while a prune runs AND while a theme apply runs, panel or agent: a prune reads the
  *  same variables an apply writes, so overlapping the two would race a delete against a create. */
