@@ -637,6 +637,18 @@
         "sha256": "fd04226bcc3c0af07645e5d111c0f7322fa39da167bb3648c469dc8bb54c3622"
       }
     },
+    "card-number-field": {
+      "set": {
+        "members": 84,
+        "assignments": 360,
+        "sha256": "69dfa37b29d1c9fcd9ba8592633e89942460dcb3e5bff09f35812bd353ccbc53"
+      },
+      "grid": {
+        "members": 108,
+        "assignments": 456,
+        "sha256": "b97c8aabede67cf0f62ec283ba9929399c6351a4f63dbca925d1503b980e9238"
+      }
+    },
     "banner": {
       "set": {
         "members": 8,
