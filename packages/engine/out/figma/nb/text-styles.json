@@ -698,6 +698,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -798,6 +812,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -898,6 +926,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -998,6 +1040,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -1098,6 +1154,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -1198,6 +1268,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -1298,6 +1382,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -1398,6 +1496,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -1498,6 +1610,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -1598,6 +1724,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -1698,6 +1838,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -1798,6 +1952,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -1898,6 +2066,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -1998,6 +2180,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -2098,6 +2294,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -2198,6 +2408,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -2298,6 +2522,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },
@@ -2398,6 +2636,20 @@
         "textDecoration": {
           "bindable": false,
           "value": "UNDERLINE"
+        },
+        "textDecorationThickness": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textDecorationOffset": {
+          "bindable": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 25
+          }
         }
       }
     },

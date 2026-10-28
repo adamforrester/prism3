@@ -44,6 +44,11 @@ export interface TextStyleNode extends Markable {
   letterSpacing: Unit;
   textCase: 'ORIGINAL' | 'UPPER' | 'LOWER' | 'SMALL_CAPS' | 'SMALL_CAPS_FORCED' | 'TITLE';
   textDecoration: 'NONE' | 'UNDERLINE' | 'STRIKETHROUGH';
+  /** #2942 — the underline's thickness and offset. Neither takes a variable, so the brand's value is written here.
+   *  Optional because `@figma/plugin-typings` 1.141 declares them on TextNode and TextSublayer but not yet on TextStyle;
+   *  the write on a text style was verified in a live file (orchestrator, 2026-10-23, #2942). */
+  textDecorationThickness?: Unit | { unit: 'AUTO' };
+  textDecorationOffset?: Unit | { unit: 'AUTO' };
   setBoundVariable(field: 'fontFamily' | 'fontSize' | 'fontWeight' | 'fontStyle' | 'lineHeight' | 'letterSpacing', variable: Variable | null): void;
 }
 
@@ -214,6 +219,15 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     s.letterSpacing = { unit: 'PERCENT', value: row.letterSpacingPct };
     s.textCase = row.textCase;
     s.textDecoration = row.textDecoration;
+    // #2942 — on an underlined style, the brand's PERCENT, or AUTO written explicitly: the style is reused by name, so
+    // a brand that goes back to auto must not keep the previous one's value. Written after `textDecoration`, and only
+    // on UNDERLINE rows; a plain style's fields are left alone.
+    if (row.textDecoration === 'UNDERLINE') {
+      const pctOrAuto = (v: number | 'AUTO' | undefined): Unit | { unit: 'AUTO' } =>
+        typeof v === 'number' ? { unit: 'PERCENT', value: v } : { unit: 'AUTO' };
+      s.textDecorationThickness = pctOrAuto(row.underlineThicknessPct);
+      s.textDecorationOffset = pctOrAuto(row.underlineOffsetPct);
+    }
 
     // #1296 — RECONCILE THE CUT VARIABLE THIS STYLE BINDS, in every mode, against the family that mode
     // binds. The variable executor wrote the engine's GUESS (`WEIGHT_STYLE_NAME`, one spelling per
