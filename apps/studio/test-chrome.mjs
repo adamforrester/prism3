@@ -9631,7 +9631,7 @@ for (const host of ['web', 'figma']) {
         parts: st ? [...st.children].map((n) => n.textContent) : [],
         title: st?.title ?? '',
         // #3083 (Q3083.1 A): body and secondary text are both 12 now, so the stamp is set apart by its secondary ink, at
-        // no larger a size than the items (it was smaller until the size pass; the PR's Q3083.8 holds the call).
+        // no larger a size than the items (it was smaller until the size pass; the PR's Q3083.10 holds the call).
         small: st && item ? parseFloat(getComputedStyle(st).fontSize) <= parseFloat(getComputedStyle(item).fontSize) && getComputedStyle(st).color !== getComputedStyle(item).color : null,
         shown: !!st && st.getClientRects().length > 0,
       };

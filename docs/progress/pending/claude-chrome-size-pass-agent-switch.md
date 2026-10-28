@@ -10,7 +10,7 @@ renders of the built plugin UI at 1280 and 380, light and dark, are in a private
   and controls). `fs-12` (secondary) stays 12, set apart by its ink. Each variable keeps its old name and reads a new
   token path (`chrome/spec.mjs` V6_VARS, `chrome/tokens.mjs` TILE_VARS), as the wireframe proposed, so the mockups and
   the product still read one row and no rule moves. The names now lie about their sizes; renaming them is left to a
-  later pass, once the sizes settle (PR Q3083.9).
+  later pass, once the sizes settle (PR Q3083.11).
 - **Controls (Q3083.2 B).** `ctl-h-sm` 36 → 32 (`core.dimension.32`: buttons, the brand switcher, Update file, selects),
   `ctl-h` 40 → 36 (`size.sm.height`: fields, chips, the segmented track). `bar-h` (the bar and the tab row, 56) and
   `ctl-h-xs` (the narrow tier's 28) are unchanged.
@@ -43,7 +43,7 @@ renders of the built plugin UI at 1280 and 380, light and dark, are in a private
   `core.font.size.14`, typed from the decision, still not imported from `tokens.mjs`.
 - **#2322:** the view title is 18px Bold at −4%.
 - **C3:** the build stamp and the menu items are both 12 now, so the stamp is held to "no larger, and in another ink"
-  (PR Q3083.8).
+  (PR Q3083.10).
 - **29 (S13.1):** no bar tiles on either host now; Agent is a bare switch (no `p3-btn`, no fill, no edge). New arm: a
   bar button 32, a field 36, the bar 56, above the narrow tier.
 - **29b:** the Q738 A / Q788 C arm is replaced by the Agent switch as drawn, link off and on, 1280 and 380: a switch
