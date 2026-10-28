@@ -16739,7 +16739,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const liveLanded = (await badgeNow()).text === null;
       const afterLive = await rowsOf();
       const askedLive = await page.evaluate(() => window.__ia2.map((m) => m.type));
-      ok(liveLanded && before.theme === 'false' && canon(afterLive) === canon(before) && JSON.stringify(before.rows) === JSON.stringify([['button', 'true', 'Due · its settings changed'], ['select', 'true', 'Due · Prism3 changed']]) && askedLive.length === 0,
+      ok(liveLanded && before.theme === 'false' && canon(afterLive) === canon(before) && JSON.stringify(before.rows) === JSON.stringify([['button', 'true', 'Due · its settings changed'], ['select', 'true', 'Engine update: focus ring size']]) && askedLive.length === 0,
         `${where}: #3028 Q701 B: with Theme unticked, a live answer landing while the checklist is open moves the badge (to none) but none of the checklist's rows or their Due tags, and asks nothing (${JSON.stringify({ landed: liveLanded, before, after: afterLive, asked: askedLive })})`);
       await hooks.click(page.locator('[data-p3="update-cancel"]'));
       // A run with Theme ticked: Apply Theme, then the update. The panel asks for the count after each verdict, and the
