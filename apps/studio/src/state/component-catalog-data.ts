@@ -1524,6 +1524,63 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "card-number-field",
+    "name": "CardNumberField",
+    "category": "form",
+    "summary": "Card number field: a text field with the card network's tile at its trailing edge.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.pad-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.100"
+      }
+    ],
+    "page": "Card number field",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 84,
+    "nests": [
+      "field-label",
+      "icon",
+      "brand-mark",
+      "field-message",
+      "focus-ring"
+    ]
+  },
+  {
     "id": "banner",
     "name": "Banner",
     "category": "feedback",

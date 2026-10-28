@@ -604,6 +604,9 @@ for (const [id, wantCols, wantRows] of [
   // #2888: the Search field is TextField's grid too.
   ['search-field', ['Rest', 'Hover', 'Filled', 'Focus visible', 'Focus visible filled', 'Disabled', 'Read only'],
     ['Default', 'Error', 'Warning', 'Success', ...Array.from({ length: 4 }, () => ['Medium', 'Small', 'Large']).flat()]],
+  // #2343 PR 4: the Card number field is TextField's grid too.
+  ['card-number-field', ['Rest', 'Hover', 'Filled', 'Focus visible', 'Focus visible filled', 'Disabled', 'Read only'],
+    ['Default', 'Error', 'Warning', 'Success', ...Array.from({ length: 4 }, () => ['Medium', 'Small', 'Large']).flat()]],
 ] as const) {
   const { plans, page, set } = await buildOnPage(id);
   const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
@@ -961,8 +964,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // Icon, Brand mark (#2343) and Spinner.
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 55 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'brand-mark', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 55 defs that build a set have furniture; Icon, Brand mark and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 56 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'brand-mark', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 56 defs that build a set have furniture; Icon, Brand mark and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6

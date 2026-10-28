@@ -37,6 +37,8 @@
  *   [license]   a chrome face's OFL file is missing, has no copyright line, or no longer carries the
  *               face's LICENSE_COPYRIGHT literal; or the output lacks, for a face in CHROME_FONTS, a
  *               comment line carrying that literal and the OFL URL (#1927).
+ *               Likewise the icon set (#3083): its MIT license file is missing, or the output's Icons
+ *               comment lacks ICON_COPYRIGHT or the permission notice.
  *   [glyphs]    the chrome can be handed a code point the embedded UI face does not carry: in an engine
  *               decision note, a host verdict or the shell's own copy (`glyphs.mjs`, #1924).
  *   [map]       SHELL_VARS names a variable no mockup row maps.
@@ -91,6 +93,16 @@ export const LICENSE_COPYRIGHT = {
   Inter: 'Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)',
   'JetBrains Mono': 'Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)',
 };
+
+// The chrome's icon set (#3083, Q813 A): Tabler Icons, MIT, vendored as path data in `src/shell/icons/tabler.ts` with
+// its license beside it. The MIT terms ask for the copyright and permission notice in every copy, so the bundled CSS
+// carries the license text whole, read from that file (never typed here), with the version `tabler.ts` records.
+export const ICONS_DIR = join(ROOT, 'apps', 'studio', 'src', 'shell', 'icons');
+export const ICON_LICENSE = 'LICENSE-Tabler.txt';
+// THE CHECKER'S OWN EXPECTATION, as LICENSE_COPYRIGHT is for the faces: the license's copyright line and the opening
+// of its permission notice, typed here, so a notice that lost either fails [license] by name.
+export const ICON_COPYRIGHT = 'Copyright (c) 2020-2026 Paweł Kuna';
+const ICON_PERMISSION = 'Permission is hereby granted, free of charge, to any person obtaining a copy';
 
 /**
  * THE STRICT SCAN'S OWN CANARIES (#1927), run on every build before `chrome.css` is scanned. `chrome.css`
@@ -304,6 +316,7 @@ const watchFiles = () => [
   join(ROOT, 'packages', 'engine', 'out', 'prism3.dark.overlay.tokens.json'),
   ...CHROME_FONTS.map(([, , file]) => join(FONTS_DIR, file)),
   ...Object.values(FONT_LICENSES).map((file) => join(FONTS_DIR, file)),
+  join(ICONS_DIR, ICON_LICENSE),
   ...glyphWatchFiles(),
 ];
 
@@ -340,6 +353,17 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
     const line = text.match(COPYRIGHT_RE)?.[0];
     if (!line) { fail('license', `no copyright line in ${rel(p)} (${family})`); continue; }
     notices.push([family, line]);
+  }
+
+  // [license] the icon set's license file must exist and name its copyright holder; the notice carries it whole.
+  let iconNotice = null;
+  {
+    const p = join(ICONS_DIR, ICON_LICENSE);
+    const ts = join(ICONS_DIR, 'tabler.ts');
+    const version = existsSync(ts) ? readFileSync(ts, 'utf8').match(/TABLER_VERSION = '([^']+)'/)?.[1] : undefined;
+    if (!existsSync(p)) fail('license', `icon license missing: ${rel(p)} (Tabler Icons)`);
+    else if (!version) fail('license', `no TABLER_VERSION in ${rel(ts)}`);
+    else iconNotice = `Tabler Icons ${version} (https://tabler.io/icons), outline set, vendored as path data.\n${readFileSync(p, 'utf8').trim()}`;
   }
 
   let src = null;
@@ -450,6 +474,8 @@ ${fontVarsCss(ALIAS)}
 /* Embedded fonts.
 ${notices.map(([family, line]) => `   ${family}: ${line}. Licensed under the SIL Open Font License, Version 1.1: ${OFL_URL}`).join('\n')} */
 ${fontFaceCss(ALIAS)}
+/* Icons.
+${iconNotice.replace(/\*\//g, '* /').split('\n').map((l) => `   ${l}`.trimEnd()).join('\n')} */
 :root, [data-theme="light"] {
   color-scheme: light;
 ${themeBlock(modes.light, rows.light)}
@@ -485,6 +511,12 @@ ${src}`;
     if (!commentLines.some((l) => l.includes(`${family}: ${want}`) && l.includes(OFL_URL))) {
       fail('license', `the bundled CSS carries no license notice for ${family} (want "${family}: ${want}" and ${OFL_URL} on one comment line)`);
     }
+  }
+  // [license] the icon set's notice, held to the literal copyright line and permission opening, never to the file
+  // the writer read: a notice the writer dropped or cut short fails here by name.
+  const iconComment = (css.match(/\/\*[\s\S]*?\*\//g) ?? []).find((c) => c.startsWith('/* Icons.')) ?? '';
+  for (const want of [ICON_COPYRIGHT, ICON_PERMISSION, 'Tabler Icons']) {
+    if (!iconComment.includes(want)) fail('license', `the bundled CSS carries no Tabler Icons license notice with "${want}" (the Icons comment, from ${rel(join(ICONS_DIR, ICON_LICENSE))})`);
   }
   return errors.length ? { css: null, errors } : { css, errors };
 }
