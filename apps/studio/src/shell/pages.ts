@@ -219,6 +219,8 @@ export const DOMAINS = [
               // The page-wide settings first, the strict switch with them (S5.3, the owner's QA-I5).
               { ctl: 'palette', keys: ['actionPalette'], drive: 'action' },
               { ctl: 'enum', keys: ['outlineInteraction'], drive: 'action' },
+              // #3071 (owner Q824 A): the opaque fill's steps, per mode, drawn only under 'opaque-fill'.
+              { ctl: 'outlineHoverFill', keys: ['outlineHoverFill'], drive: 'action' },
               { ctl: 'toggle', keys: ['strictInteractiveContrast'], drive: 'inverse' },
               // S5.2: every per-column color is a row here (owner decision Q33), so the row also edits overrides.
               // S5.3: the row also draws `neutralEmphasis`, at the top of the Neutral button set (the owner's QA-I6).

@@ -243,6 +243,12 @@ const exampleLoadFailed = new Set<string>();
 /** The color variables a brand adds through `glassRoles` (#3073), by brand, root stripped. Spelled from the owner's
  *  decision (Q807 A: the reference brand adds `card`), never read off the input, so a stray one anywhere fails. */
 const BRAND_ADDED_GLASS: Record<string, string[]> = { nb: ['color/glass/card'] };
+/** The color variables `outlineInteraction: opaque-fill` adds (#3071), by brand, root stripped: the opaque outline
+ *  hover fill, hover and pressed, on the page and the band, per built-in column. Spelled from the owner's decision
+ *  (Q824 A: the reference brand), never read off the input, so the family appearing on any other brand fails. */
+const BRAND_OPAQUE_FILL: Record<string, string[]> = {
+  nb: ['', 'inverse/'].flatMap((g) => ['primary', 'neutral', 'destructive'].flatMap((c) => ['hover', 'pressed'].map((st) => `color/${g}interactive/${c}/hover-fill/${st}`))),
+};
 const exampleTheme = <T = Theme,>(name: string, build: () => T): T | undefined => {
   try { return build(); } catch (e) {
     // LOAD-BEARING, and the one line here that looks tidiable. When a single row is dropped (one density
@@ -4278,9 +4284,9 @@ for (const b of brands) {
 {
   const FIELD_DEFS_2926 = ['text-field', 'password-field', 'select', 'textarea', 'search-field', 'code-input-cell'];
   const FIELD_STYLES_2926 = ['outline', 'underline'] as const;
-  const METHODS_2926 = ['overlay-neutral', 'solid-tint', 'none'] as const;
-  const WASH_VAR = /(^|\/)interactive\/[^/]+\/(overlay|subtle-fill)\//;
-  const WASH_REF = /(^|\.)interactive\.[^.]+\.(overlay|subtle-fill)\./;
+  const METHODS_2926 = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'] as const;
+  const WASH_VAR = /(^|\/)interactive\/[^/]+\/(overlay|subtle-fill|hover-fill)\//;
+  const WASH_REF = /(^|\.)interactive\.[^.]+\.(overlay|subtle-fill|hover-fill)\./;
   const washHits: string[] = [];
   let hoverMembers = 0;
   for (const id of FIELD_DEFS_2926) {
@@ -5668,6 +5674,8 @@ arm: {
           // #3073: a brand's own glass roles (`glassRoles`) are brand-dependent by decision (Q807 A), so they are not
           // part of the shared set. Spelled per brand, so a stray glass role on any other brand still diverges.
           .filter((n: string) => !(BRAND_ADDED_GLASS[b] ?? []).includes(n))
+          // #3071: the opaque outline hover fill is emitted only for a brand that opts in, spelled per brand the same way.
+          .filter((n: string) => !(BRAND_OPAQUE_FILL[b] ?? []).includes(n))
           .sort().join('|'));
       // `roleSets[0]` only exists if the floor arm above passed. Guarded rather than indexed blind: an
       // empty `figmaBrands` used to CRASH here, so the floor arm's failure was reported and then buried
@@ -11837,8 +11845,8 @@ arm: {
 // "both families absent" is a real claim worth pinning: if `none` ever started emitting a family,
 // the two working methods would keep working and only the bug's disguise would get better.
 {
-  const METHODS = ['overlay-neutral', 'solid-tint', 'none'] as const;
-  const FAMILIES = ['overlay', 'subtle-fill'] as const;
+  const METHODS = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'] as const;
+  const FAMILIES = ['overlay', 'subtle-fill', 'hover-fill'] as const;
   for (const { id, theme } of corpus()) {
     for (const method of METHODS) {
       const { family, opaque } = outlineFillFamily(method);
@@ -11851,15 +11859,20 @@ arm: {
               // THE ONE SANCTIONED EXTRA (owner, 2026-09-29): overlay-neutral also carries the SELECTED primary
               // subtle fill, the tint a selectable control binds. Written here as a literal, not read from the
               // emitter; `none` gets no such allowance, so a tint appearing there is still spurious.
-              const selectedTint = method === 'overlay-neutral' && fam === 'subtle-fill' && color === 'primary' && st === 'selected';
-              if ((fam === family || selectedTint) && !present) missing.push(`${m.mode} ${color}.${fam}.${st}`);
-              if (fam !== family && !selectedTint && present) spurious.push(`${m.mode} ${color}.${fam}.${st}`);
+              // `opaque-fill` (#3071) carries both: the wash stays for Tag, Segmented control and Pagination (owner
+              // Q3071.4 A), and the selected tint with it. Its opaque fill has no selected state.
+              const keepsWash = method === 'opaque-fill';
+              const selectedTint = (method === 'overlay-neutral' || keepsWash) && fam === 'subtle-fill' && color === 'primary' && st === 'selected';
+              const sanctioned = selectedTint || (keepsWash && fam === 'overlay');
+              const named = fam === family && !(fam === 'hover-fill' && st === 'selected');
+              if ((named || sanctioned) && !present) missing.push(`${m.mode} ${color}.${fam}.${st}`);
+              if (!named && !sanctioned && present) spurious.push(`${m.mode} ${color}.${fam}.${st}`);
             }
             // The role key the helper hands a consumer must be the one that resolves — the read the
             // dashboard performs, asserted directly rather than inferred from the two sets above.
             const key = outlineFillRole(method, color, st);
             if (key !== null && m.roles[key] === undefined) missing.push(`${m.mode} via helper: ${key}`);
-            if (key === null && family !== null) missing.push(`${m.mode} helper returned null for an emitting method`);
+            if (key === null && family !== null && !(family === 'hover-fill' && st === 'selected')) missing.push(`${m.mode} helper returned null for an emitting method`);
             // ...and it must resolve to the STATE THAT WAS ASKED FOR, which "it resolves" does not
             // imply: `subtle-fill.hover` resolves perfectly well when the caller asked for `pressed`.
             // Found by review mutation, not by writing this gate: a one-token slip inside the helper
@@ -20402,7 +20415,7 @@ arm: {
   // independent sides (docs/34). No corpus brand sets `solid-tint` (#1112), so the brands are SYNTHETIC:
   // a corpus theme with the lever overridden, as (10h) does.
   {
-    const METHODS = ['overlay-neutral', 'solid-tint', 'none'] as const;
+    const METHODS = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'] as const;
     const bases: { id: string; theme: Theme }[] = loadedRows([
       { id: 'nb-measured', theme: nbTheme() },
       { id: 'harbor', theme: exampleTheme('harbor', () => brandTheme(readExampleBrand('./examples/harbor.design.md'))) },
@@ -20455,6 +20468,11 @@ arm: {
       `#1613 solid-tint: inverse-band button outline hover binds color/inverse/interactive/primary/subtle-fill/hover, and the brand emits it (${tintPaint(true)})`);
     ok(hoverFill('none') === undefined,
       `#1608 none: button outline hover binds NO container fill — the intended no-hover (${hoverFill('none')})`);
+    // #3071 — opaque-fill binds the opaque fill on the page and its band twin on the inverse band, hover and pressed.
+    const opaquePaint = (inverse: boolean, state: string) => member('opaque-fill', inverse, state)?.root.paints?.fills;
+    ok(opaquePaint(false, 'hover') === 'color/interactive/primary/hover-fill/hover' && opaquePaint(false, 'pressed') === 'color/interactive/primary/hover-fill/pressed'
+      && opaquePaint(true, 'hover') === 'color/inverse/interactive/primary/hover-fill/hover' && opaquePaint(true, 'pressed') === 'color/inverse/interactive/primary/hover-fill/pressed',
+      `#3071 opaque-fill: button outline hover/pressed bind color/(inverse/)interactive/primary/hover-fill/{hover,pressed} (${['hover', 'pressed'].flatMap((st) => [opaquePaint(false, st), opaquePaint(true, st)]).join(', ')})`);
 
     // IDENTITY at the default: `overlay-neutral` returns the SAME object for every def, so every default
     // projection (out/**, the plain component-surface rows) is byte-identical.
@@ -20477,6 +20495,14 @@ arm: {
     // with #2926: a field binds no wash, so the lever has nothing to reach on it.
     ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'pagination-item', 'segmented-control-segment', 'tag']),
       `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, pagination-item, segmented-control-segment, tag, and no field (${binders.join(', ')})`);
+    // #3071 (owner Q3071.4 A): the opaque fill reaches Button, Icon button and Flush icon button only. Tag, Segmented
+    // control and Pagination keep the neutral wash: a fill on an unselected item reads as selected.
+    const opaqueReach = componentDefs.filter((d) => applyOutlineInteraction(d, 'opaque-fill') !== d).map((d) => d.id).sort();
+    ok(JSON.stringify(opaqueReach) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral']),
+      `#3071 the opaque fill reaches button ×3, icon-button ×3 and flush-icon-button ×3, and no tag, segment or page (${opaqueReach.join(', ')})`);
+    const keptWash = ['tag', 'segmented-control-segment', 'pagination-item'].map((id) => componentDefs.find((d) => d.id === id)!)
+      .filter((d) => Object.values(applyOutlineInteraction(d, 'opaque-fill').tokens).some((r) => /^color\.interactive\.neutral\.overlay\.(hover|pressed)$/.test(r)));
+    ok(keptWash.length === 3, `#3071 tag, segmented-control-segment and pagination-item still bind the neutral wash under opaque-fill (${keptWash.map((d) => d.id).join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -32291,11 +32317,12 @@ arm: {
 // still fails by name and is looked at, which is the "ideally they do" half.
 {
   const FAMILIES = [button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral];
-  const METHODS = ['overlay-neutral', 'solid-tint', 'none'] as const;
+  const METHODS = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'] as const;
   // What each method binds on a quiet hover/pressed container — hand-written, the #1608 table read as a rule.
   const BINDS: Record<typeof METHODS[number], RegExp | null> = {
     'overlay-neutral': /^color\/(inverse\/)?interactive\/[a-z0-9-]+\/overlay\/(hover|pressed)$/,
     'solid-tint': /^color\/(inverse\/)?interactive\/[a-z0-9-]+\/subtle-fill\/(hover|pressed)$/,
+    'opaque-fill': /^color\/(inverse\/)?interactive\/[a-z0-9-]+\/hover-fill\/(hover|pressed)$/,   // #3071
     'none': null,
   };
   const TEXT_FLOOR = 4.5;   // WCAG 1.4.3, the label
@@ -32303,14 +32330,14 @@ arm: {
   // The members per brand × method: button ×3 at 2 quiet appearances × 2 states × 2 surfaces × 3 sizes × 4
   // icon-slot fills (96), icon-button ×3 at 2 × 2 × 2 × 3 sizes × 2 shapes (48). Half on each surface.
   const MEMBERS = 3 * 96 + 3 * 48;
-  // The measured CELLS (member × mode × ink) per family × surface × ink kind × state, across the 2 methods
-  // that paint a fill. 41 brand-modes: 10 corpus brands × 4 modes, plus the NB master's 1. A button family
-  // has 24 quiet members per surface per state, each with one label (24 × 41 × 2 = 1,968 text cells) and,
-  // over its 4 icon-slot fills, 24 glyphs between them (1,968 glyph cells). An icon-button family has 12
-  // per surface per state, each one glyph and no label (984). Literal, so a family, a surface or an ink kind
-  // that stops projecting fails here by name rather than shrinking a total that is still above zero.
-  const BUTTON_CELLS = 1968;
-  const ICON_BUTTON_GLYPH_CELLS = 984;
+  // The measured CELLS (member × mode × ink) per family × surface × ink kind × state, across the 3 methods
+  // that paint a fill (`opaque-fill` joined with #3071). 41 brand-modes: 10 corpus brands × 4 modes, plus the NB
+  // master's 1. A button family has 24 quiet members per surface per state, each with one label (24 × 41 × 3 =
+  // 2,952 text cells) and, over its 4 icon-slot fills, 24 glyphs between them (2,952 glyph cells). An icon-button
+  // family has 12 per surface per state, each one glyph and no label (1,476). Literal, so a family, a surface or an
+  // ink kind that stops projecting fails here by name rather than shrinking a total that is still above zero.
+  const BUTTON_CELLS = 2952;
+  const ICON_BUTTON_GLYPH_CELLS = 1476;
   // Every held pressed cell: `brand method mode fill-role kind` → its exact ratio, 2 dp.
   const HELD_PRESSED: Record<string, number> = {
     'aurora solid-tint light inverse.interactive.destructive.subtle-fill.pressed glyph': 4.11,
@@ -32506,6 +32533,204 @@ arm: {
     `#1387 no quiet pressed label or glyph falls under ${TEXT_FLOOR}:1 outside the held register — a new cell is a regression or a new held case for the owner (${newPressed.length}${newPressed.length ? `: ${newPressed.slice(0, 4).join('; ')}` : ''})`);
   ok(stalePressed.length === 0,
     `#1387 every held quiet pressed cell still measures exactly as pinned — a moved or cleared entry means the register is stale (${stalePressed.length}${stalePressed.length ? `: ${stalePressed.slice(0, 4).join('; ')}` : ''})`);
+}
+
+// ---- #3071: THE OPAQUE OUTLINE HOVER FILL (owner Q824 A; the proposal's option B) --------------------------------
+// `outlineInteraction: 'opaque-fill'` adds `interactive.<c>.hover-fill.{hover,pressed}` and `inverse.` twins, an opaque
+// palette step under an outline or text control's own label and icon, and measures and clamps those inks on it.
+// ORACLES (docs/34), none read off the subject: every ratio below is WCAG contrast computed HERE from the emitted hexes;
+// each bar is the ink's own per-mode `min` (4.5:1, 7:1 in high contrast), the floor that ink already carries on the page;
+// the reference brand's steps are literals from the owner's decision; the twelve brand-dependent paths are spelled;
+// and "unchanged" is read off the committed emission and off the same brand under its own method.
+//   (A) EVERY PAIR ON ITS FILL — every corpus brand forced to the method, the reference brand as it ships and its
+//       redesign seed, in every mode, on the page and the band, every column, hover and pressed, label and icon.
+//       Represented, not counted: each brand × mode × ground cell is named in an expected set.
+//   (B) THE CLAMP — a pick dark enough that the derived ink fails on it moves the ink to the NEAREST step of its own
+//       ramp that clears (#1510's walk): the step one back toward the original fails, and the ink names the fill as
+//       its second pair. BY-NAME MUTATION: drop the clamp in `modes.ts` → (B) fails.
+//   (C) THE REFERENCE BRAND — hover `neutral.050` and pressed `neutral.100` on the light page, in the committed DTCG and
+//       Figma emission (its legacy fixture) and in its redesign seed.
+//   (D) UNCHANGED WITHOUT IT — no other emitted brand carries the family, or a second pair naming it; and the method
+//       only adds: every other role of a corpus brand is identical to its resolution at the neutral wash (which the
+//       method keeps), an ink differing only by its second pair, or by a clamp its wash-default value needed.
+//   (E) NOT GUARANTEED — the baseline's guaranteed set holds no `hover-fill` path; its brand-dependent set holds
+//       exactly the twelve the reference brand emits.
+//   (F) REFUSED, BY NAME — the step setting without the method, a generate-only mode, an unknown step, an override
+//       aimed at the fill.
+{
+  const GROUNDS_3071 = [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'band']] as const;
+  const STATES_3071 = ['hover', 'pressed'] as const;
+  const ratio3071 = (a: string, b: string) => contrast(hexToRgb(a), hexToRgb(b));
+  const seed3071 = exampleTheme('nb-redesign (#3071 seed)', () => brandTheme(readExampleBrand('./examples/nb-redesign.design.md')));
+  const rows3071: { id: string; theme: Theme }[] = [
+    ...corpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme: { ...theme, outlineInteraction: 'opaque-fill' as const } })),
+    ...(seed3071 ? [{ id: 'nb-redesign', theme: seed3071 }] : []),
+  ];
+  // (A)
+  const low: string[] = [];
+  const seen = new Set<string>();
+  const expected = new Set<string>();
+  let pairs = 0;
+  for (const { id, theme } of rows3071) {
+    const columns = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
+    for (const m of resolveAllModes(theme)) for (const [g, groundKey, groundName] of GROUNDS_3071) {
+      expected.add(`${id} ${m.mode} ${groundName}`);
+      const ground = m.roles[groundKey];
+      for (const c of columns) {
+        if (!m.roles[`${g}interactive.${c}.fill.rest`]) continue;
+        for (const st of STATES_3071) {
+          const fill = m.roles[`${g}interactive.${c}.hover-fill.${st}`];
+          if (!fill) { low.push(`${id} ${m.mode} ${g}${c}.${st}: no hover-fill role`); continue; }
+          if (fill.alpha !== undefined || fill.hex.toLowerCase() === ground.hex.toLowerCase())
+            low.push(`${id} ${m.mode} ${g}${c}.${st}: fill ${fill.hex}${fill.alpha !== undefined ? ` at alpha ${fill.alpha}` : ''} is not an opaque fill distinct from ${groundKey} ${ground.hex}`);
+          for (const part of ['text', 'icon']) {
+            const ink = m.roles[`${g}interactive.${c}.${part}.${st}`];
+            if (!ink) { low.push(`${id} ${m.mode} ${g}${c}.${part}.${st}: no ink`); continue; }
+            pairs++;
+            seen.add(`${id} ${m.mode} ${groundName}`);
+            const r = ratio3071(ink.hex, fill.hex);
+            if (r < ink.min - 0.01) low.push(`${id} ${m.mode} ${g}${c}.${part}.${st} ${r.toFixed(2)}:1 on ${fill.path.split('.').slice(-2).join('.')} < ${ink.min}:1`);
+          }
+        }
+      }
+    }
+  }
+  const unseen = [...expected].filter((k) => !seen.has(k));
+  ok(rows3071.length === 11 && unseen.length === 0 && low.length === 0,
+    `#3071 (A) every outline/text label and icon clears its own floor on its opaque hover and pressed fill — ${rows3071.length} brands (10 corpus + the redesign seed), every mode, page and band, ${pairs} pairs${unseen.length ? ` — NOT REPRESENTED: ${unseen.slice(0, 4).join('; ')}` : ''}${low.length ? ` — BELOW (${low.length}): ${low.slice(0, 4).join('; ')}` : ''}`);
+
+  // (B) A pick the derived ink cannot clear: the first neutral step, walking darker on the light page, on which the
+  // default resolution's primary hover label misses its floor. Found HERE from the default resolution.
+  {
+    const base = nbTheme();
+    const def = resolveAllModes({ ...base, outlineInteraction: 'overlay-neutral' }).find((m) => m.mode === 'light')!.roles;
+    const ink0 = def['interactive.primary.text.hover'];
+    const neutral = base.palettes.find((p) => p.palette === base.roleToPalette.neutral)!.steps;
+    const pick = neutral.find((s) => s.num > 50 && contrast(hexToRgb(ink0.hex), s.rgb) < ink0.min);
+    const clamped = pick ? resolveAllModes({ ...base, outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: `${base.roleToPalette.neutral}.${pick.key}` } } })
+      .find((m) => m.mode === 'light')!.roles : undefined;
+    const ink = clamped?.['interactive.primary.text.hover'];
+    const fill = clamped?.['interactive.primary.hover-fill.hover'];
+    const [pal, from] = ink0.path.split('.').slice(-2);
+    const ramp = base.palettes.find((p) => p.palette === pal)!.steps;
+    const at = ink ? ramp.findIndex((s) => s.key === ink.path.split('.').pop()) : -1;
+    const i0 = ramp.findIndex((s) => s.key === from);
+    const back = at >= 0 ? ramp[at + (at > i0 ? -1 : 1)] : undefined;
+    ok(!!pick && !!ink && !!fill && ink.path !== ink0.path && ratio3071(ink.hex, fill.hex) >= ink.min
+      && !!back && at !== i0 && contrast(back.rgb, hexToRgb(fill.hex)) < ink.min
+      && ink.alsoAgainst?.against === 'interactive.primary.hover-fill.hover' && ink.alsoAgainst.min === ink.min,
+      `#3071 (B) a fill the label misses on clamps the label to the nearest step of its own ramp that clears (pick ${pick?.key}: ${ink0.path.split('.').slice(-2).join('.')} → ${ink?.path.split('.').slice(-2).join('.')}, ${ink && fill ? ratio3071(ink.hex, fill.hex).toFixed(2) : '?'}:1 ≥ ${ink0.min}:1; one step back ${back ? contrast(back.rgb, hexToRgb(fill!.hex)).toFixed(2) : '?'}:1), and names the fill as its second pair`);
+  }
+
+  // (B2) A pick so far toward the ink that no step clears both pairs (a mid gray, chosen HERE as the neutral step nearest
+  // 4:1 on the page) never trades the page pair for the fill: every ink still clears its own floor on its own ground,
+  // and each miss on the fill is a warning naming the fill. BY-NAME MUTATION: drop `clears`' page half → (B2) fails.
+  {
+    const base = nbTheme();
+    const neutral = base.palettes.find((p) => p.palette === base.roleToPalette.neutral)!.steps;
+    const white = hexToRgb('#ffffff');
+    const mid = neutral.reduce((a, b) => (Math.abs(contrast(b.rgb, white) - 4) < Math.abs(contrast(a.rgb, white) - 4) ? b : a));
+    const modes = resolveAllModes({ ...base, outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: `${base.roleToPalette.neutral}.${mid.key}` }, dark: { hover: `${base.roleToPalette.neutral}.${mid.key}` } } });
+    const broke: string[] = [];
+    let misses = 0, unconfessed = 0;
+    for (const m of modes) for (const [k, r] of Object.entries(m.roles)) {
+      if (!/^(inverse\.)?interactive\.[^.]+\.(text|icon)\.(hover|pressed)$/.test(k)) continue;
+      const own = m.roles[r.against];
+      if (own && ratio3071(r.hex, own.hex) < r.min - 0.01) broke.push(`${m.mode} ${k} ${ratio3071(r.hex, own.hex).toFixed(2)}:1 on ${r.against}`);
+      const fill = r.alsoAgainst ? m.roles[r.alsoAgainst.against] : undefined;
+      if (fill && ratio3071(r.hex, fill.hex) < r.min - 0.01) {
+        misses++;
+        if (!(m.warnings ?? []).some((w) => w.role === k && w.against === r.alsoAgainst!.against)) unconfessed++;
+      }
+    }
+    ok(broke.length === 0 && misses > 0 && unconfessed === 0,
+      `#3071 (B2) a mid-gray pick (${mid.key}) keeps every outline ink on its own floor on its own ground, and names each of its ${misses} misses on the fill in a warning (${unconfessed} unnamed)${broke.length ? ` — PAGE PAIR BROKEN: ${broke.slice(0, 4).join('; ')}` : ''}`);
+  }
+
+  // (C) the owner's decision, as literals.
+  {
+    const want: Record<string, string> = { hover: '050', pressed: '100' };
+    const dtcg = JSON.parse(readFileSync(resolve(HERE, './out/nb.tokens.json'), 'utf8'));
+    const fig = JSON.parse(readFileSync(resolve(HERE, './out/figma/nb/color.light.json'), 'utf8')).variables as { name: string; alias?: { name: string } }[];
+    const seedLight = seed3071 ? resolveAllModes(seed3071).find((m) => m.mode === 'light')?.roles : undefined;
+    const wrong: string[] = [];
+    for (const c of ['primary', 'neutral', 'destructive']) for (const st of STATES_3071) {
+      const v = dtcg.nbds?.color?.interactive?.[c]?.['hover-fill']?.[st]?.$value;
+      if (v !== `{nbds.core.palette.neutral.${want[st]}}`) wrong.push(`DTCG ${c}.${st} ${v}`);
+      const a = fig.find((x) => x.name === `nbds/color/interactive/${c}/hover-fill/${st}`)?.alias?.name;
+      if (a !== `nbds/core/palette/neutral/${want[st]}`) wrong.push(`Figma ${c}/${st} ${a}`);
+      const sp = seedLight?.[`interactive.${c}.hover-fill.${st}`]?.path;
+      if (!sp?.endsWith(`.neutral.${want[st]}`)) wrong.push(`seed ${c}.${st} ${sp}`);
+    }
+    ok(wrong.length === 0, `#3071 (C) the reference brand's outline hover fill is neutral.050, pressed neutral.100, on the light page — committed DTCG, Figma light file, and the redesign seed${wrong.length ? ` — WRONG: ${wrong.slice(0, 4).join('; ')}` : ''}`);
+  }
+
+  // (D)
+  {
+    const leaks: string[] = [];
+    const brands = readdirSync(resolve(HERE, './out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', '')).filter((b) => b !== 'nb');
+    let files = 0;
+    for (const b of brands) {
+      const paths = [...readdirSync(resolve(HERE, './out')).filter((f) => f.startsWith(`${b}.`)).map((f) => `./out/${f}`),
+        ...(existsSync(resolve(HERE, `./out/figma/${b}`)) ? readdirSync(resolve(HERE, `./out/figma/${b}`)).map((f) => `./out/figma/${b}/${f}`) : [])];
+      for (const p of paths) { files++; if (readFileSync(resolve(HERE, p), 'utf8').includes('hover-fill')) leaks.push(p); }
+    }
+    ok(brands.length >= 4 && files >= 4 * 6 && leaks.length === 0,
+      `#3071 (D) no other emitted brand carries the opaque hover fill or a pair naming it — ${brands.length} brands, ${files} files${leaks.length ? ` — IN: ${leaks.join(', ')}` : ''}`);
+    const moved: string[] = [];
+    let compared = 0;
+    for (const { id, theme } of corpus()) {
+      // Against the brand at the neutral wash, which the method keeps: a `none` brand's semantic borders are measured
+      // over the washed ground only when a wash exists (`modes.ts`), so the wash, not this method, moves them.
+      const own = resolveAllModes({ ...theme, outlineInteraction: 'overlay-neutral' });
+      const opq = resolveAllModes({ ...theme, outlineInteraction: 'opaque-fill' });
+      own.forEach((m, mi) => {
+        const o = opq[mi].roles;
+        for (const [k, r] of Object.entries(m.roles)) {
+          compared++;
+          const q = o[k];
+          if (!q) { moved.push(`${id} ${m.mode} ${k} dropped`); continue; }
+          const ink = /^(inverse\.)?interactive\.([^.]+)\.(text|icon)\.(hover|pressed)$/.exec(k);
+          if (!ink) { if (JSON.stringify(q) !== JSON.stringify(r)) moved.push(`${id} ${m.mode} ${k}`); continue; }
+          const fillKey = `${ink[1] ?? ''}interactive.${ink[2]}.hover-fill.${ink[4]}`;
+          const { alsoAgainst, ...rest } = q;
+          if (alsoAgainst?.against !== fillKey) { moved.push(`${id} ${m.mode} ${k} names ${alsoAgainst?.against} as its second pair`); continue; }
+          if (JSON.stringify(rest) === JSON.stringify(r)) continue;
+          // A clamp its default value needed: the default ink misses its floor on the fill.
+          if (o[fillKey] && ratio3071(r.hex, o[fillKey].hex) < r.min) continue;
+          moved.push(`${id} ${m.mode} ${k} ${r.path} → ${q.path}`);
+        }
+        // What the method adds: its own family, and nothing else.
+        for (const k of Object.keys(o)) if (!(k in m.roles) && !/\.hover-fill\./.test(k)) moved.push(`${id} ${m.mode} ${k} added`);
+      });
+    }
+    ok(compared > 10000 && moved.length === 0,
+      `#3071 (D) the method only adds: every other role of every corpus brand is its resolution at the neutral wash — an ink differs only by its second pair, or by a clamp its wash-default value needed (${compared} roles compared${moved.length ? ` — MOVED: ${moved.slice(0, 4).join('; ')}` : ''})`);
+  }
+
+  // (E)
+  {
+    const base = readBaseline();
+    const spelled = ['', 'inverse.'].flatMap((g) => ['primary', 'neutral', 'destructive'].flatMap((c) => STATES_3071.map((st) => `color.${g}interactive.${c}.hover-fill.${st}`))).sort();
+    const guaranteed = Object.keys(base.guaranteed).filter((p) => p.includes('hover-fill'));
+    const dependent = base.brandDependent.filter((p) => p.includes('hover-fill')).sort();
+    ok(guaranteed.length === 0 && JSON.stringify(dependent) === JSON.stringify(spelled),
+      `#3071 (E) the opaque hover fill is brand-dependent: no guaranteed path, and exactly the twelve the reference brand emits (${guaranteed.length} guaranteed, ${dependent.length} brand-dependent)`);
+  }
+
+  // (F)
+  {
+    const input = readExampleBrand('./examples/harbor.design.md');
+    const refuses = (label: string, patch: Record<string, unknown>, re: RegExp, resolve = false): void => {
+      let msg = '';
+      try { const t = brandTheme({ ...input, ...patch } as BrandInput); if (resolve) resolveAllModes(t); } catch (e) { msg = (e as Error).message; }
+      ok(re.test(msg), `#3071 (F) refused: ${label} (${msg.slice(0, 120) || 'accepted'})`);
+    };
+    refuses('outlineHoverFill without opaque-fill', { outlineHoverFill: { light: { hover: 'neutral.050' } } }, /outlineHoverFill: .*needs outlineInteraction: opaque-fill/);
+    refuses('a generate-only mode', { modes: ['light', 'hc-light'], outlineInteraction: 'opaque-fill', outlineHoverFill: { 'hc-light': { hover: 'neutral.050' } } }, /outlineHoverFill\.hc-light: .*generate-only/);
+    refuses('an unknown step', { outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: 'neutral.051' } } }, /outlineHoverFill\.light\.hover: 'neutral\.051' is not a palette step/, true);
+    refuses('an override on the fill', { outlineInteraction: 'opaque-fill', overrides: { light: { 'interactive.primary.hover-fill.hover': { palette: 'neutral', step: '100' } } } }, /'interactive\.primary\.hover-fill\.hover' is the opaque outline hover fill/, true);
+  }
 }
 
 // ---- #1348: THE RADIO DECOMPOSITION — five invariants, each pinned independently of the producer -----
@@ -33835,8 +34060,10 @@ arm: {
     ok(at('foreground.danger') < at('foreground.info') && at('foreground.info') < at('foreground.brand-subtle'),
       `#2860 ${brand}: foreground lists danger with the statuses, ahead of the subtle tints (#2836)`);
     const inkParts = def.filter((k) => k.startsWith('interactive.primary.')).map((k) => k.split('.')[2]).filter((p, i, a) => a.indexOf(p) === i);
-    ok(inkParts.join() === 'fill,on-fill,text,icon,border,overlay,subtle-fill',
-      `#2860 ${brand}: interactive runs fill, on-fill, text, icon, border, overlay, subtle-fill (got ${inkParts.join(', ')})`);
+    // #3071: an opaque-fill brand's `hover-fill` sits beside the wash it replaces.
+    const wantParts = ['fill', 'on-fill', 'text', 'icon', 'border', 'overlay', ...(BRAND_OPAQUE_FILL[brand] ? ['hover-fill'] : []), 'subtle-fill'];
+    ok(inkParts.join() === wantParts.join(),
+      `#2860 ${brand}: interactive runs ${wantParts.join(', ')} (got ${inkParts.join(', ')})`);
   }
 
   // The Figma creation order is the same sequence, in every mode file, and contiguous at every depth.

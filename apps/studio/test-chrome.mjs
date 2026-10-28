@@ -6201,6 +6201,44 @@ for (const { w, h } of WIDTHS) {
   }
 }
 } // 19b
+// #3071 (owner Q824 A): Color › Interactive › Outline hover. The "Solid fill" chip writes `outlineInteraction:
+// opaque-fill` and draws Outline hover fill under it: Hover and Pressed selects for the mode the preview shows, Pressed
+// locked until Hover is picked. Picking writes `outlineHoverFill.light.hover`; leaving the method drops the key, so a
+// brand switched back is byte-identical. EXPECTED is typed here; ACTUAL is the persisted brand and the DOM.
+if (runs('19')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const lever = '[data-p3="levers-pane"] [data-p3="lever-outline-hover-fill"]';
+  try {
+    await goPlace(page, 'color-interactive');
+    ok(await page.locator(lever).count() === 0, `#3071: no Outline hover fill control under the default outline hover`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]'));
+    await hooks.need(page, lever);
+    const chip = await page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]').textContent();
+    const on = await persisted(page);
+    const sel = await page.evaluate((l) => {
+      const b = document.querySelector(l);
+      const one = (st) => { const s = b?.querySelector(`[data-p3="outline-hover-fill-${st}-select"]`); return s ? { v: s.value, auto: s.options[0]?.textContent ?? null, off: s.disabled } : null; };
+      return { hover: one('hover'), pressed: one('pressed'), ratio: b?.querySelector('[data-p3="outline-hover-fill-ratio"]')?.textContent ?? null };
+    }, lever);
+    ok(chip === 'Solid fill' && on?.outlineInteraction === 'opaque-fill' && !('outlineHoverFill' in (on ?? {}))
+      && sel.hover?.v === '' && /^Auto: [A-Z][a-z-]* \d{3}$/.test(sel.hover?.auto ?? '') && sel.pressed?.off === true && /hover, .* pressed/.test(sel.ratio ?? ''),
+      `#3071: "Solid fill" writes opaque-fill and draws Hover on Auto (the default step), Pressed locked, and the worst label ratio (${JSON.stringify({ chip, method: on?.outlineInteraction, sel })})`);
+    await page.locator(`${lever} [data-p3="outline-hover-fill-hover-select"]`).selectOption('neutral.050');
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.outlineHoverFill?.light?.hover === 'neutral.050'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const picked = await persisted(page);
+    const pressedOn = await page.evaluate((l) => document.querySelector(`${l} [data-p3="outline-hover-fill-pressed-select"]`)?.disabled === false, lever);
+    ok(JSON.stringify(picked?.outlineHoverFill) === JSON.stringify({ light: { hover: 'neutral.050' } }) && pressedOn,
+      `#3071: picking neutral 050 writes outlineHoverFill.light.hover and unlocks Pressed (${JSON.stringify(picked?.outlineHoverFill)}, pressed enabled ${pressedOn})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-overlay-neutral"]'));
+    await page.waitForFunction((l) => !document.querySelector(l), lever, { timeout: 5000 }).catch(() => {});
+    const back = await persisted(page);
+    ok(back?.outlineInteraction === 'overlay-neutral' && !('outlineHoverFill' in (back ?? {})) && await page.locator(lever).count() === 0,
+      `#3071: back to the neutral wash drops outlineHoverFill and the control (${JSON.stringify({ method: back?.outlineInteraction, fill: back?.outlineHoverFill })})`);
+    ok(errors.length === 0, `#3071 Outline hover fill: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3071 Outline hover fill: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 19-outline-hover
 
 // =============================================================================================
 // 20. Type (S6.2, S6.3): Font families in the two panes, the type sample and the preview's sections

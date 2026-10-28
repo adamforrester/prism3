@@ -370,6 +370,13 @@
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)"
             }
           },
+          "hover-fill": {
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.050}",
+              "$description": "primary outline/text hover fill — neutral.050, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
+            }
+          },
           "subtle-fill": {
             "selected": {
               "$type": "color",
@@ -456,6 +463,13 @@
               "$value": "{nbds.core.palette.red.850}",
               "$description": "destructive interactive border — pressed (the outline edge; follows the ink)"
             }
+          },
+          "hover-fill": {
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.050}",
+              "$description": "destructive outline/text hover fill — neutral.050, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
+            }
           }
         },
         "neutral": {
@@ -483,6 +497,13 @@
               "$type": "color",
               "$value": "{nbds.core.palette.black}",
               "$description": "neutral interactive border — rest (the outline edge; follows the ink)"
+            }
+          },
+          "hover-fill": {
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.050}",
+              "$description": "neutral outline/text hover fill — neutral.050, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
             }
           }
         }
@@ -894,6 +915,18 @@
                 "$value": "{nbds.core.palette.red.150}",
                 "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
               }
+            },
+            "hover-fill": {
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.900}",
+                "$description": "primary outline/text hover fill on an inverse surface — neutral.900, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.850}",
+                "$description": "primary outline/text pressed fill on an inverse surface — neutral.850, the next step past hover; opaque, the label and icon are measured on it"
+              }
             }
           },
           "destructive": {
@@ -952,6 +985,18 @@
                 "$value": "{nbds.core.palette.red.150}",
                 "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
               }
+            },
+            "hover-fill": {
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.900}",
+                "$description": "destructive outline/text hover fill on an inverse surface — neutral.900, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.850}",
+                "$description": "destructive outline/text pressed fill on an inverse surface — neutral.850, the next step past hover; opaque, the label and icon are measured on it"
+              }
             }
           },
           "neutral": {
@@ -979,6 +1024,18 @@
                 "$type": "color",
                 "$value": "{nbds.core.palette.white}",
                 "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              }
+            },
+            "hover-fill": {
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.900}",
+                "$description": "neutral outline/text hover fill on an inverse surface — neutral.900, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.850}",
+                "$description": "neutral outline/text pressed fill on an inverse surface — neutral.850, the next step past hover; opaque, the label and icon are measured on it"
               }
             }
           }

@@ -1676,6 +1676,44 @@
       }
     },
     {
+      "name": "nbds/color/interactive/primary/hover-fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary outline hover fill — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/900"
+      }
+    },
+    {
+      "name": "nbds/color/interactive/primary/hover-fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary outline pressed fill — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.12156862765550613,
+        "g": 0.13333334028720856,
+        "b": 0.1411764770746231,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/850"
+      }
+    },
+    {
       "name": "nbds/color/interactive/primary/subtle-fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2036,6 +2074,44 @@
       }
     },
     {
+      "name": "nbds/color/interactive/destructive/hover-fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive outline hover fill — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/900"
+      }
+    },
+    {
+      "name": "nbds/color/interactive/destructive/hover-fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive outline pressed fill — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.12156862765550613,
+        "g": 0.13333334028720856,
+        "b": 0.1411764770746231,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/850"
+      }
+    },
+    {
       "name": "nbds/color/interactive/neutral/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2370,6 +2446,44 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "nbds/color/interactive/neutral/hover-fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral outline hover fill — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/900"
+      }
+    },
+    {
+      "name": "nbds/color/interactive/neutral/hover-fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral outline pressed fill — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.12156862765550613,
+        "g": 0.13333334028720856,
+        "b": 0.1411764770746231,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/850"
       }
     },
     {
@@ -4218,6 +4332,44 @@
       }
     },
     {
+      "name": "nbds/color/inverse/interactive/primary/hover-fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary outline hover fill on inverse — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/050"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/hover-fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary outline pressed fill on inverse — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
       "name": "nbds/color/inverse/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -4555,6 +4707,44 @@
       }
     },
     {
+      "name": "nbds/color/inverse/interactive/destructive/hover-fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive outline hover fill on inverse — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/050"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/hover-fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive outline pressed fill on inverse — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
       "name": "nbds/color/inverse/interactive/neutral/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -4889,6 +5079,44 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/palette/black-alpha/20"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/hover-fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral outline hover fill on inverse — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/050"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/hover-fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral outline pressed fill on inverse — opaque, the label and icon clear their floor on it",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
       }
     },
     {

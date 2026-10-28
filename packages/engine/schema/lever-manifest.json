@@ -857,11 +857,24 @@
           "label": "Tinted wash"
         },
         {
+          "value": "opaque-fill",
+          "label": "Solid fill"
+        },
+        {
           "value": "none",
           "label": "No hover fill"
         }
       ],
-      "description": "How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = the control's own fill at 20% opacity (30% pressed), stepped down the opacity scale where the label needs more contrast and up where the hover would not show, so a destructive outline hovers red-tinted rather than gray; none = omit."
+      "description": "How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = the control's own fill at 20% opacity (30% pressed), stepped down the opacity scale where the label needs more contrast and up where the hover would not show, so a destructive outline hovers red-tinted rather than gray; opaque-fill = a solid palette step you pick (Outline hover fill), with the label and icon kept legible on it, on buttons and icon buttons only, while tags, segmented controls and pagination keep the wash; none = omit."
+    },
+    {
+      "key": "outlineHoverFill",
+      "group": "advanced",
+      "kind": "value",
+      "label": "Outline hover fill",
+      "control": "object",
+      "advanced": true,
+      "description": "The solid hover fill of outline and text buttons, per mode: a palette step, such as neutral 050. Pressed takes the next step unless you pick one. The label and icon darken where they need to, to stay legible on it. Modes you leave on Auto, and inverse surfaces, take the gray nearest 1.15:1 against their ground."
     },
     {
       "key": "neutralEmphasis",

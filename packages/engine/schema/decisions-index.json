@@ -306,6 +306,13 @@
       "title": "a brand's own glass roles are brand-dependent",
       "doc": "docs/30-versioning-and-compatibility.md",
       "section": null
+    },
+    {
+      "date": "2026-10-27",
+      "issue": 3071,
+      "title": "the opaque outline hover fill is brand-dependent",
+      "doc": "docs/30-versioning-and-compatibility.md",
+      "section": null
     }
   ]
 }

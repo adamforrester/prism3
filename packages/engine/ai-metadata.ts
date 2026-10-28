@@ -419,6 +419,19 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
       : `The tinted ${state ?? 'interaction'} wash behind an outline or text ${c} control: the ${c} fill at a set opacity, laid over ${q('background.primary')}. The label on it is ${q(ink)}.`;
     return { when_to_use: use, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)}) or for ${other}.`, ...(ctx.has(`inverse.interactive.${c}.subtle-fill.${state}`) ? { page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.subtle-fill.*`)}, which is measured on the band.` } : {}), tracks: [`interactive.${c}.fill.rest`, ink] };
   }
+  // The OPAQUE outline hover fill (#3071): a palette step under the control's own label and icon, each measured on it as
+  // that ink's second pair (`alsoAgainst`) and stated as a requirement from both ends.
+  if (slot === 'hover-fill') {
+    const st = state ?? 'hover';
+    return {
+      when_to_use: `The opaque ${st} background of an outline or text ${c} button, icon button or flush icon button. The label is ${q(`interactive.${c}.text.${st}`)} and the icon ${q(`interactive.${c}.icon.${st}`)}, each measured on this fill.`,
+      avoid_when: `Do not use for a tag, segmented control or pagination item, which keep the translucent wash (${q(`interactive.${c}.overlay.*`)}), over an image or gradient, where an opaque fill paints a block, or as a filled button (use ${q(`interactive.${c}.fill.*`)}).`,
+      ...(ctx.has(`inverse.interactive.${c}.hover-fill.${st}`) ? { page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.hover-fill.*`)}, which is picked and measured on the band.` } : {}),
+      // `tracks`, not `sits_on` / `carries`: the fill sits on its ground at about 1.15:1 by design, and its inks' pairs
+      // on it are their second pairs (`alsoAgainst`), each stated below as a `contrast_with` requirement.
+      tracks: [`interactive.${c}.text.${st}`, `interactive.${c}.icon.${st}`],
+    };
+  }
   if (slot === 'overlay') return { when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)} or foreground.${c}-subtle), as a modal backdrop (use ${q('scrim.default')}), or on a form field, which hovers by its border alone (${q('field.border.hover')}).`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.overlay.*`)} — the page wash takes the page's polarity.`, carries: ['text.primary'] };
   return { when_to_use: `The ${slot} of a ${c} interactive element.`, avoid_when: `Do not use outside the ${c} interactive family.` };
 };

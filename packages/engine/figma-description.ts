@@ -146,6 +146,8 @@ export const figmaColorDescription = (f: ColorFacts): string => {
         // No pointer to the inverse twin: an overlay-neutral brand carries the page's selected tint alone (owner,
         // 2026-09-29), so the sentence would name a variable that is not there.
         : `${c} ${st} tinted wash — the ${seg[1]} fill at ${pct} over the page`;
+      // The opaque outline hover fill (#3071): a palette step; the label and icon are measured on it.
+      if (part === 'hover-fill') return `${c} outline ${st} fill${inv ? ' on inverse' : ''} — opaque, the label and icon clear their floor on it`;
       if (part === 'overlay') return inv
         ? `${c} ${st} wash on inverse — ${pct}, opposite polarity to the page wash`
         : `${c} ${st} wash — ${pct} neutral over the page (inverse surfaces use the inverse wash)`;

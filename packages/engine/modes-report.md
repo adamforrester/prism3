@@ -284,6 +284,18 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.info | info.500 | 4.27 | 3 | ✅ |
 | inverse.border.focus | red.450 | 5.05 | 3 | ✅ |
 | glass.card | neutral-050-alpha.70 | — | — | · |
+| interactive.primary.hover-fill.hover | neutral.050 | — | — | · |
+| interactive.primary.hover-fill.pressed | neutral.100 | — | — | · |
+| interactive.neutral.hover-fill.hover | neutral.050 | — | — | · |
+| interactive.neutral.hover-fill.pressed | neutral.100 | — | — | · |
+| interactive.destructive.hover-fill.hover | neutral.050 | — | — | · |
+| interactive.destructive.hover-fill.pressed | neutral.100 | — | — | · |
+| inverse.interactive.primary.hover-fill.hover | neutral.850 | — | — | · |
+| inverse.interactive.primary.hover-fill.pressed | neutral.800 | — | — | · |
+| inverse.interactive.neutral.hover-fill.hover | neutral.850 | — | — | · |
+| inverse.interactive.neutral.hover-fill.pressed | neutral.800 | — | — | · |
+| inverse.interactive.destructive.hover-fill.hover | neutral.850 | — | — | · |
+| inverse.interactive.destructive.hover-fill.pressed | neutral.800 | — | — | · |
 | interactive.primary.subtle-fill.selected | red.550 | — | — | · |
 
 ## nb — color mode: dark
@@ -560,6 +572,18 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.info | info.500 | 4.25 | 3 | ✅ |
 | inverse.border.focus | red.550 | 5.24 | 3 | ✅ |
 | glass.card | neutral-900-alpha.70 | — | — | · |
+| interactive.primary.hover-fill.hover | neutral.850 | — | — | · |
+| interactive.primary.hover-fill.pressed | neutral.800 | — | — | · |
+| interactive.neutral.hover-fill.hover | neutral.850 | — | — | · |
+| interactive.neutral.hover-fill.pressed | neutral.800 | — | — | · |
+| interactive.destructive.hover-fill.hover | neutral.850 | — | — | · |
+| interactive.destructive.hover-fill.pressed | neutral.800 | — | — | · |
+| inverse.interactive.primary.hover-fill.hover | neutral.050 | — | — | · |
+| inverse.interactive.primary.hover-fill.pressed | neutral.100 | — | — | · |
+| inverse.interactive.neutral.hover-fill.hover | neutral.050 | — | — | · |
+| inverse.interactive.neutral.hover-fill.pressed | neutral.100 | — | — | · |
+| inverse.interactive.destructive.hover-fill.hover | neutral.050 | — | — | · |
+| inverse.interactive.destructive.hover-fill.pressed | neutral.100 | — | — | · |
 | interactive.primary.subtle-fill.selected | red.500 | — | — | · |
 
 ## nb — color mode: hc-light
@@ -836,6 +860,18 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.info | info.500 | 4.61 | 4.5 | ✅ |
 | inverse.border.focus | red.350 | 7.52 | 4.5 | ✅ |
 | glass.card | white-alpha.70 | — | — | · |
+| interactive.primary.hover-fill.hover | neutral.050 | — | — | · |
+| interactive.primary.hover-fill.pressed | neutral.100 | — | — | · |
+| interactive.neutral.hover-fill.hover | neutral.050 | — | — | · |
+| interactive.neutral.hover-fill.pressed | neutral.100 | — | — | · |
+| interactive.destructive.hover-fill.hover | neutral.050 | — | — | · |
+| interactive.destructive.hover-fill.pressed | neutral.100 | — | — | · |
+| inverse.interactive.primary.hover-fill.hover | neutral.900 | — | — | · |
+| inverse.interactive.primary.hover-fill.pressed | neutral.850 | — | — | · |
+| inverse.interactive.neutral.hover-fill.hover | neutral.900 | — | — | · |
+| inverse.interactive.neutral.hover-fill.pressed | neutral.850 | — | — | · |
+| inverse.interactive.destructive.hover-fill.hover | neutral.900 | — | — | · |
+| inverse.interactive.destructive.hover-fill.pressed | neutral.850 | — | — | · |
 | interactive.primary.subtle-fill.selected | red.700 | — | — | · |
 
 ## nb — color mode: hc-dark
@@ -1112,6 +1148,18 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.info | info.500 | 4.56 | 4.5 | ✅ |
 | inverse.border.focus | red.650 | 8.29 | 4.5 | ✅ |
 | glass.card | black-alpha.70 | — | — | · |
+| interactive.primary.hover-fill.hover | neutral.900 | — | — | · |
+| interactive.primary.hover-fill.pressed | neutral.850 | — | — | · |
+| interactive.neutral.hover-fill.hover | neutral.900 | — | — | · |
+| interactive.neutral.hover-fill.pressed | neutral.850 | — | — | · |
+| interactive.destructive.hover-fill.hover | neutral.900 | — | — | · |
+| interactive.destructive.hover-fill.pressed | neutral.850 | — | — | · |
+| inverse.interactive.primary.hover-fill.hover | neutral.050 | — | — | · |
+| inverse.interactive.primary.hover-fill.pressed | neutral.100 | — | — | · |
+| inverse.interactive.neutral.hover-fill.hover | neutral.050 | — | — | · |
+| inverse.interactive.neutral.hover-fill.pressed | neutral.100 | — | — | · |
+| inverse.interactive.destructive.hover-fill.hover | neutral.050 | — | — | · |
+| inverse.interactive.destructive.hover-fill.pressed | neutral.100 | — | — | · |
 | interactive.primary.subtle-fill.selected | red.300 | — | — | · |
 
 ## nb — dimension axis

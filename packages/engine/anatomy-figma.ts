@@ -3178,6 +3178,9 @@ const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/
  *   · `solid-tint`      → the ref is repointed to the tinted-wash variable (below). The
  *                         slot precedence (`paintSlots: ['overlay', 'fill', …]`) is unchanged, so the
  *                         tinted wash lands exactly where the neutral wash did.
+ *   · `opaque-fill`     → on `OPAQUE_FILL_DEFS` only, the wash ref is repointed to the opaque fill,
+ *                         `interactive.<color>.hover-fill.<state>` (#3071); every other def is IDENTITY, so a
+ *                         tag, segment or page keeps the wash, which the method still emits.
  *   · `none`            → the ENTRY IS DROPPED. `paintOf('overlay')` then resolves nothing and the box
  *                         falls through to its `fill` slot — none for outline/text (no hover wash, the
  *                         intended "no hover expression"). Dropping rather
@@ -3193,8 +3196,22 @@ const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/
  * bound paint's opacity whenever Apply Theme rewrites the variable it is bound to, so one re-apply turned every
  * tinted hover into the solid fill (288 paints on the owner's NB file, 2026-09-25).
  */
+/**
+ * The defs whose outline/text hover takes the OPAQUE fill under `opaque-fill` (#3071, owner Q3071.3 A, Q3071.4 A):
+ * Button (outline, and text under `buttonTextHover: fill`, which copies the outline's slots after this runs), Icon
+ * button (outline, ghost) and Flush icon button. Every other def keeps the neutral wash it binds: a fill on an
+ * unselected tag, segment or page reads as selected, the state those controls exist to show. Named by id, since
+ * which controls follow is the owner's decision, not a property of the ref.
+ */
+export const OPAQUE_FILL_DEFS: readonly string[] = [
+  'button', 'button-destructive', 'button-neutral',
+  'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+  'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
+];
+
 export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlineInteraction']): ComponentDef => {
   if (method === 'overlay-neutral') return def;
+  if (method === 'opaque-fill' && !OPAQUE_FILL_DEFS.includes(def.id)) return def;
   const touched = (ref: string) => OUTLINE_OVERLAY_REF.test(ref) || (method === 'none' && OUTLINE_SUBTLE_REF.test(ref));
   if (!Object.values(def.tokens).some(touched)) return def;
   const tokens: Record<string, string> = {};

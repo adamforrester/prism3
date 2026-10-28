@@ -58,6 +58,12 @@ raisedSurface: white
 # shows through. `color.glass.surface`, the white glass, is unchanged.
 glassRoles: { card: { role: foreground.primary, alpha: 70 } }
 
+# Outline and text hover (#3071, owner Q824 A): an opaque light gray, `neutral.050` on hover and the next step,
+# `neutral.100`, on press. Not 025, which is the card ground: on a card the hover would disappear. The inverse band
+# takes the default rule. Tags, segmented controls and pagination keep the neutral wash.
+outlineInteraction: opaque-fill
+outlineHoverFill: { light: { hover: neutral.050 } }
+
 # ── GEOMETRY ─────────────────────────────────────────────────────────────────────────
 # Sharp corners — radius scale 0 collapses the soft rungs (only the pill survives).
 radiusScale: 0

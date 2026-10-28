@@ -47,7 +47,7 @@ const INK_ROLES = [
   'link', 'focus',
 ];
 const LINK_STATES = ['default', 'hover', 'visited', 'focused', 'pressed'];
-const INTERACTIVE_PARTS = ['fill', 'on-fill', 'text', 'icon', 'border', 'overlay', 'subtle-fill'];
+const INTERACTIVE_PARTS = ['fill', 'on-fill', 'text', 'icon', 'border', 'overlay', 'hover-fill', 'subtle-fill'];   // `hover-fill` beside the wash it replaces (#3071)
 const INTERACTIVE_STATES = ['rest', 'hover', 'pressed', 'focused', 'selected'];
 
 /** Segment positions a brand may add siblings to (`interactivePalettes` adds a tone, `glassRoles` a glass role, #3073), as `family.depth`. A segment

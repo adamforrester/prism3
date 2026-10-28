@@ -8248,6 +8248,97 @@
               }
             }
           },
+          "hover-fill": {
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.050}",
+              "$description": "primary outline/text hover fill — neutral.050, the brand's pick; opaque, the label and icon are measured on it",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.neutral.050",
+                  "contrast": 1.22,
+                  "against": "background.primary",
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.neutral.850}",
+                      "aliasOf": "nbds.core.palette.neutral.850",
+                      "contrast": 1.22,
+                      "against": "background.primary",
+                      "description": "primary outline/text hover fill — neutral.850, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.neutral.050}",
+                      "aliasOf": "nbds.core.palette.neutral.050",
+                      "contrast": 1.22,
+                      "against": "background.primary",
+                      "description": "primary outline/text hover fill — neutral.050, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.neutral.900}",
+                      "aliasOf": "nbds.core.palette.neutral.900",
+                      "contrast": 1.17,
+                      "against": "background.primary",
+                      "description": "primary outline/text hover fill — neutral.900, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.100}",
+              "$description": "primary outline/text pressed fill — neutral.100, the next step past hover; opaque, the label and icon are measured on it",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.neutral.100",
+                  "contrast": 1.38,
+                  "against": "background.primary",
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.neutral.800}",
+                      "aliasOf": "nbds.core.palette.neutral.800",
+                      "contrast": 1.4,
+                      "against": "background.primary",
+                      "description": "primary outline/text pressed fill — neutral.800, the next step past hover; opaque, the label and icon are measured on it"
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.neutral.100}",
+                      "aliasOf": "nbds.core.palette.neutral.100",
+                      "contrast": 1.38,
+                      "against": "background.primary"
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.neutral.850}",
+                      "aliasOf": "nbds.core.palette.neutral.850",
+                      "contrast": 1.31,
+                      "against": "background.primary",
+                      "description": "primary outline/text pressed fill — neutral.850, the next step past hover; opaque, the label and icon are measured on it"
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            }
+          },
           "subtle-fill": {
             "selected": {
               "$type": "color",
@@ -9185,6 +9276,97 @@
                 }
               }
             }
+          },
+          "hover-fill": {
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.050}",
+              "$description": "destructive outline/text hover fill — neutral.050, the brand's pick; opaque, the label and icon are measured on it",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.neutral.050",
+                  "contrast": 1.22,
+                  "against": "background.primary",
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.neutral.850}",
+                      "aliasOf": "nbds.core.palette.neutral.850",
+                      "contrast": 1.22,
+                      "against": "background.primary",
+                      "description": "destructive outline/text hover fill — neutral.850, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.neutral.050}",
+                      "aliasOf": "nbds.core.palette.neutral.050",
+                      "contrast": 1.22,
+                      "against": "background.primary",
+                      "description": "destructive outline/text hover fill — neutral.050, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.neutral.900}",
+                      "aliasOf": "nbds.core.palette.neutral.900",
+                      "contrast": 1.17,
+                      "against": "background.primary",
+                      "description": "destructive outline/text hover fill — neutral.900, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.100}",
+              "$description": "destructive outline/text pressed fill — neutral.100, the next step past hover; opaque, the label and icon are measured on it",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.neutral.100",
+                  "contrast": 1.38,
+                  "against": "background.primary",
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.neutral.800}",
+                      "aliasOf": "nbds.core.palette.neutral.800",
+                      "contrast": 1.4,
+                      "against": "background.primary",
+                      "description": "destructive outline/text pressed fill — neutral.800, the next step past hover; opaque, the label and icon are measured on it"
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.neutral.100}",
+                      "aliasOf": "nbds.core.palette.neutral.100",
+                      "contrast": 1.38,
+                      "against": "background.primary"
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.neutral.850}",
+                      "aliasOf": "nbds.core.palette.neutral.850",
+                      "contrast": 1.31,
+                      "against": "background.primary",
+                      "description": "destructive outline/text pressed fill — neutral.850, the next step past hover; opaque, the label and icon are measured on it"
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            }
           }
         },
         "neutral": {
@@ -10015,6 +10197,97 @@
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "text.primary",
                       "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "hover-fill": {
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.050}",
+              "$description": "neutral outline/text hover fill — neutral.050, the brand's pick; opaque, the label and icon are measured on it",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.neutral.050",
+                  "contrast": 1.22,
+                  "against": "background.primary",
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.neutral.850}",
+                      "aliasOf": "nbds.core.palette.neutral.850",
+                      "contrast": 1.22,
+                      "against": "background.primary",
+                      "description": "neutral outline/text hover fill — neutral.850, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.neutral.050}",
+                      "aliasOf": "nbds.core.palette.neutral.050",
+                      "contrast": 1.22,
+                      "against": "background.primary",
+                      "description": "neutral outline/text hover fill — neutral.050, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.neutral.900}",
+                      "aliasOf": "nbds.core.palette.neutral.900",
+                      "contrast": 1.17,
+                      "against": "background.primary",
+                      "description": "neutral outline/text hover fill — neutral.900, the neutral step nearest 1.15:1 on the page; opaque, the label and icon are measured on it"
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.100}",
+              "$description": "neutral outline/text pressed fill — neutral.100, the next step past hover; opaque, the label and icon are measured on it",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.neutral.100",
+                  "contrast": 1.38,
+                  "against": "background.primary",
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.neutral.800}",
+                      "aliasOf": "nbds.core.palette.neutral.800",
+                      "contrast": 1.4,
+                      "against": "background.primary",
+                      "description": "neutral outline/text pressed fill — neutral.800, the next step past hover; opaque, the label and icon are measured on it"
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.neutral.100}",
+                      "aliasOf": "nbds.core.palette.neutral.100",
+                      "contrast": 1.38,
+                      "against": "background.primary"
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.neutral.850}",
+                      "aliasOf": "nbds.core.palette.neutral.850",
+                      "contrast": 1.31,
+                      "against": "background.primary",
+                      "description": "neutral outline/text pressed fill — neutral.850, the next step past hover; opaque, the label and icon are measured on it"
                     }
                   },
                   "figma": {
@@ -14655,6 +14928,98 @@
                   }
                 }
               }
+            },
+            "hover-fill": {
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.850}",
+                "$description": "primary outline/text hover fill on an inverse surface — neutral.850, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.850",
+                    "contrast": 1.22,
+                    "against": "inverse.background.primary",
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.050}",
+                        "aliasOf": "nbds.core.palette.neutral.050",
+                        "contrast": 1.13,
+                        "against": "inverse.background.primary",
+                        "description": "primary outline/text hover fill on an inverse surface — neutral.050, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.neutral.900}",
+                        "aliasOf": "nbds.core.palette.neutral.900",
+                        "contrast": 1.17,
+                        "against": "inverse.background.primary",
+                        "description": "primary outline/text hover fill on an inverse surface — neutral.900, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.neutral.050}",
+                        "aliasOf": "nbds.core.palette.neutral.050",
+                        "contrast": 1.22,
+                        "against": "inverse.background.primary",
+                        "description": "primary outline/text hover fill on an inverse surface — neutral.050, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.800}",
+                "$description": "primary outline/text pressed fill on an inverse surface — neutral.800, the next step past hover; opaque, the label and icon are measured on it",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.800",
+                    "contrast": 1.4,
+                    "against": "inverse.background.primary",
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.100}",
+                        "aliasOf": "nbds.core.palette.neutral.100",
+                        "contrast": 1.28,
+                        "against": "inverse.background.primary",
+                        "description": "primary outline/text pressed fill on an inverse surface — neutral.100, the next step past hover; opaque, the label and icon are measured on it"
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.neutral.850}",
+                        "aliasOf": "nbds.core.palette.neutral.850",
+                        "contrast": 1.31,
+                        "against": "inverse.background.primary",
+                        "description": "primary outline/text pressed fill on an inverse surface — neutral.850, the next step past hover; opaque, the label and icon are measured on it"
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.neutral.100}",
+                        "aliasOf": "nbds.core.palette.neutral.100",
+                        "contrast": 1.38,
+                        "against": "inverse.background.primary",
+                        "description": "primary outline/text pressed fill on an inverse surface — neutral.100, the next step past hover; opaque, the label and icon are measured on it"
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              }
             }
           },
           "destructive": {
@@ -15519,6 +15884,98 @@
                   }
                 }
               }
+            },
+            "hover-fill": {
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.850}",
+                "$description": "destructive outline/text hover fill on an inverse surface — neutral.850, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.850",
+                    "contrast": 1.22,
+                    "against": "inverse.background.primary",
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.050}",
+                        "aliasOf": "nbds.core.palette.neutral.050",
+                        "contrast": 1.13,
+                        "against": "inverse.background.primary",
+                        "description": "destructive outline/text hover fill on an inverse surface — neutral.050, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.neutral.900}",
+                        "aliasOf": "nbds.core.palette.neutral.900",
+                        "contrast": 1.17,
+                        "against": "inverse.background.primary",
+                        "description": "destructive outline/text hover fill on an inverse surface — neutral.900, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.neutral.050}",
+                        "aliasOf": "nbds.core.palette.neutral.050",
+                        "contrast": 1.22,
+                        "against": "inverse.background.primary",
+                        "description": "destructive outline/text hover fill on an inverse surface — neutral.050, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.800}",
+                "$description": "destructive outline/text pressed fill on an inverse surface — neutral.800, the next step past hover; opaque, the label and icon are measured on it",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.800",
+                    "contrast": 1.4,
+                    "against": "inverse.background.primary",
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.100}",
+                        "aliasOf": "nbds.core.palette.neutral.100",
+                        "contrast": 1.28,
+                        "against": "inverse.background.primary",
+                        "description": "destructive outline/text pressed fill on an inverse surface — neutral.100, the next step past hover; opaque, the label and icon are measured on it"
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.neutral.850}",
+                        "aliasOf": "nbds.core.palette.neutral.850",
+                        "contrast": 1.31,
+                        "against": "inverse.background.primary",
+                        "description": "destructive outline/text pressed fill on an inverse surface — neutral.850, the next step past hover; opaque, the label and icon are measured on it"
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.neutral.100}",
+                        "aliasOf": "nbds.core.palette.neutral.100",
+                        "contrast": 1.38,
+                        "against": "inverse.background.primary",
+                        "description": "destructive outline/text pressed fill on an inverse surface — neutral.100, the next step past hover; opaque, the label and icon are measured on it"
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              }
             }
           },
           "neutral": {
@@ -16369,6 +16826,98 @@
                         "contrastModel": "ink-on-composite",
                         "legibleFor": "inverse.text.primary",
                         "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "hover-fill": {
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.850}",
+                "$description": "neutral outline/text hover fill on an inverse surface — neutral.850, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.850",
+                    "contrast": 1.22,
+                    "against": "inverse.background.primary",
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.050}",
+                        "aliasOf": "nbds.core.palette.neutral.050",
+                        "contrast": 1.13,
+                        "against": "inverse.background.primary",
+                        "description": "neutral outline/text hover fill on an inverse surface — neutral.050, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.neutral.900}",
+                        "aliasOf": "nbds.core.palette.neutral.900",
+                        "contrast": 1.17,
+                        "against": "inverse.background.primary",
+                        "description": "neutral outline/text hover fill on an inverse surface — neutral.900, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.neutral.050}",
+                        "aliasOf": "nbds.core.palette.neutral.050",
+                        "contrast": 1.22,
+                        "against": "inverse.background.primary",
+                        "description": "neutral outline/text hover fill on an inverse surface — neutral.050, the neutral step nearest 1.15:1 on the inverse band; opaque, the label and icon are measured on it"
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.800}",
+                "$description": "neutral outline/text pressed fill on an inverse surface — neutral.800, the next step past hover; opaque, the label and icon are measured on it",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.800",
+                    "contrast": 1.4,
+                    "against": "inverse.background.primary",
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.100}",
+                        "aliasOf": "nbds.core.palette.neutral.100",
+                        "contrast": 1.28,
+                        "against": "inverse.background.primary",
+                        "description": "neutral outline/text pressed fill on an inverse surface — neutral.100, the next step past hover; opaque, the label and icon are measured on it"
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.neutral.850}",
+                        "aliasOf": "nbds.core.palette.neutral.850",
+                        "contrast": 1.31,
+                        "against": "inverse.background.primary",
+                        "description": "neutral outline/text pressed fill on an inverse surface — neutral.850, the next step past hover; opaque, the label and icon are measured on it"
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.neutral.100}",
+                        "aliasOf": "nbds.core.palette.neutral.100",
+                        "contrast": 1.38,
+                        "against": "inverse.background.primary",
+                        "description": "neutral outline/text pressed fill on an inverse surface — neutral.100, the next step past hover; opaque, the label and icon are measured on it"
                       }
                     },
                     "figma": {
