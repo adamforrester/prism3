@@ -2295,6 +2295,24 @@ for (const host of ['web', 'figma']) {
   });
   ok(row.role === 'foreground.raised' && row.link === RAISED_LINK && row.tag === 'BUTTON' && row.pickers === 0,
     `#3093: ${host}: Color › Surfaces & fills draws foreground.raised read-only, its "${RAISED_LINK}" a link (${JSON.stringify(row)})`);
+  // The row's own search (#3094 review): it sits beside the Scrim block, not inside it, so a query that matches the row
+  // and not the block shows the row. Nested in the block, the hidden block hid it while the status still counted it.
+  if (host === 'web') {
+    if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+    await hooks.need(page, '[data-p3="search-input"]');
+    const seen = async (q, hk) => {
+      await page.locator('[data-p3="search-input"]').fill(q);
+      return page.evaluate((k) => {
+        const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${k}"]`);
+        return { [k]: !!n && n.getBoundingClientRect().height > 0, status: document.querySelector('[data-p3="search-status"]')?.textContent ?? '' };
+      }, hk);
+    };
+    const dp = await seen('dialog panel', 'raised-row');
+    ok(dp['raised-row'] && /^1 setting match/.test(dp.status), `#3093: web: on Color › Surfaces & fills, searching "dialog panel" shows the Dialog panel row (${JSON.stringify(dp)})`);
+    const sc = await seen('scrim', 'scrim-strength-choice');
+    ok(sc['scrim-strength-choice'], `#3093: web: on Color › Surfaces & fills, searching "scrim" still shows the Scrim strength chips (${JSON.stringify(sc)})`);
+    await page.locator('[data-p3="search-input"]').fill('');
+  }
   await hooks.click(page.locator('[data-p3="raised-surface-link"]'));
   await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
   const home = await page.evaluate(() => {

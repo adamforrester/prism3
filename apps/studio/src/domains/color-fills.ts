@@ -316,10 +316,13 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       wrap.append(r);
       b.ctl.append(wrap);
     }
-    // #3093: the panel over the scrim follows it, inside the Scrim block.
+    // #3093: the panel over the scrim follows it. A section draws its first item, so the block and the row share one box.
     const raised = raisedRow();
-    if (raised) b.ctl.append(raised.el);
-    return [{ el: b.el, said: `${b.said} scrim ${SCRIM_ROLE}`, key: 'scrimStrength', block: b }, ...(raised ? [raised] : [])];
+    const item: Item = { el: b.el, said: `${b.said} scrim ${SCRIM_ROLE}`, key: 'scrimStrength', block: b };
+    if (!raised) return [item];
+    const box = hook(h('div', 'p3-fillrows'), 'scrim-rows');
+    box.append(b.el, raised.el);
+    return [{ el: box, said: '', key: 'scrim-rows' }, item, raised];
   };
 
   /** #3093: the panel over the scrim, `foreground.raised`, read-only: a fill row's swatch, name and role, and in place
