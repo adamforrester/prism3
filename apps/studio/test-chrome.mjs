@@ -6283,6 +6283,45 @@ for (const { w, h } of WIDTHS) {
   }
 }
 } // 19b
+// #3071 (owner Q824 A): Color › Interactive › Outline hover. The "Solid fill" chip writes `outlineInteraction:
+// opaque-fill` and draws Outline hover fill under it: Hover and Pressed selects for the mode the preview shows, Pressed
+// locked until Hover is picked. Picking writes `outlineHoverFill.light.hover`; leaving the method drops the key, so a
+// brand switched back is byte-identical. EXPECTED is typed here; ACTUAL is the persisted brand and the DOM.
+if (runs('19')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const lever = '[data-p3="levers-pane"] [data-p3="lever-outline-hover-fill"]';
+  try {
+    await goPlace(page, 'color-interactive');
+    ok(await page.locator(lever).count() === 0, `#3071: no Outline hover fill control under the default outline hover`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]'));
+    await hooks.need(page, lever);
+    const chip = await page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]').textContent();
+    const on = await persisted(page);
+    const sel = await page.evaluate((l) => {
+      const b = document.querySelector(l);
+      const one = (sel) => { const s = b?.querySelector(sel); return s ? { v: s.value, auto: s.options[0]?.textContent ?? null, off: s.disabled } : null; };
+      return { hover: one('[data-p3="outline-hover-fill-hover-select"]'), pressed: one('[data-p3="outline-hover-fill-pressed-select"]'),
+        ratio: b?.querySelector('[data-p3="outline-hover-fill-ratio"]')?.textContent ?? null };
+    }, lever);
+    ok(chip === 'Solid fill' && on?.outlineInteraction === 'opaque-fill' && !('outlineHoverFill' in (on ?? {}))
+      && sel.hover?.v === '' && /^Auto: [A-Z][a-z-]* \d{3}$/.test(sel.hover?.auto ?? '') && sel.pressed?.off === true && /hover, .* pressed/.test(sel.ratio ?? ''),
+      `#3071: "Solid fill" writes opaque-fill and draws Hover on Auto (the default step), Pressed locked, and the worst label ratio (${JSON.stringify({ chip, method: on?.outlineInteraction, sel })})`);
+    await page.locator(`${lever} [data-p3="outline-hover-fill-hover-select"]`).selectOption('neutral.050');
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.outlineHoverFill?.light?.hover === 'neutral.050'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const picked = await persisted(page);
+    const pressedOn = await page.evaluate((l) => document.querySelector(`${l} [data-p3="outline-hover-fill-pressed-select"]`)?.disabled === false, lever);
+    ok(JSON.stringify(picked?.outlineHoverFill) === JSON.stringify({ light: { hover: 'neutral.050' } }) && pressedOn,
+      `#3071: picking neutral 050 writes outlineHoverFill.light.hover and unlocks Pressed (${JSON.stringify(picked?.outlineHoverFill)}, pressed enabled ${pressedOn})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-overlay-neutral"]'));
+    await page.waitForFunction((l) => !document.querySelector(l), lever, { timeout: 5000 }).catch(() => {});
+    const back = await persisted(page);
+    ok(back?.outlineInteraction === 'overlay-neutral' && !('outlineHoverFill' in (back ?? {})) && await page.locator(lever).count() === 0,
+      `#3071: back to the neutral wash drops outlineHoverFill and the control (${JSON.stringify({ method: back?.outlineInteraction, fill: back?.outlineHoverFill })})`);
+    ok(errors.length === 0, `#3071 Outline hover fill: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3071 Outline hover fill: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 19-outline-hover
 
 // =============================================================================================
 // 20. Type (S6.2, S6.3): Font families in the two panes, the type sample and the preview's sections
@@ -16586,6 +16625,52 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       ok(failedAt.unresolved && failedAt.changed === 'true' && failedAt.asked === 0 && failedBadge === '2',
         `${where}: Q810 A: after a failed restore (the stored brand does not resolve), a setting change asks for no count and a live answer is not shown: the badge keeps the load's read, 2 (${JSON.stringify({ ...failedAt, badge: failedBadge })})`);
       await p3.close();
+      // #3082: the checklist repaints whole on a tick and on each host answer; neither moves the body's scroll, and a
+      // tick keeps focus on its box. Every set not in the file is listed, so the checklist is taller than the dialog.
+      // Twice: at 1280, and at the narrow tier, where `.p3-bardlg-col.p3-upd-body` keeps the body the scroller.
+      for (const [vw, vh] of [[1280, 900], [400, 700]]) {
+        const at = `IA2 ${host} ${theme} ${vw}`;
+        await page.setViewportSize({ width: vw, height: vh });
+        await page.waitForFunction((n) => (document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow') === n, vw < 560, { timeout: 5000 }).catch(() => {});
+        const tier = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w ?? null);
+        ok(tier === (vw < 560 ? 'narrow' : 'wide'), `${at}: #3082: the frame is at the ${vw < 560 ? 'narrow' : 'wide'} tier (${tier})`);
+        step = `the scroll across a repaint at ${vw}`;
+        await page.evaluate(() => { window.__ia2.length = 0; });
+        await hooks.click(page.locator('[data-p3="update-file"]'));
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, FILE);
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+        const fold = await page.evaluate(() => {
+          const b = document.querySelector('[data-p3="update-body"]');
+          const last = [...document.querySelectorAll('[data-p3="update-set"]')].at(-1);
+          if (!b || !last) return null;
+          const below = last.getBoundingClientRect().top >= b.getBoundingClientRect().bottom;
+          b.scrollTop = b.scrollHeight;
+          return { tall: b.scrollHeight > b.clientHeight + 1, below, top: b.scrollTop, id: last.dataset.id, on: last.getAttribute('aria-checked') };
+        });
+        ok(!!fold && fold.tall && fold.below && fold.top > 0 && fold.on === 'false', `${at}: #3082: the checklist is taller than the dialog, its last new set starts below the fold, unticked, and the body scrolls down to it (${JSON.stringify(fold)})`);
+        const scrollNow = () => page.evaluate(() => { const a = document.activeElement;
+          return { top: document.querySelector('[data-p3="update-body"]')?.scrollTop ?? null, focus: a?.closest('[data-p3="update-dialog"]') ? a.dataset.key ?? a.getAttribute('data-p3') : null }; });
+        if (fold) {
+          await hooks.click(page.locator(`[data-p3="update-set"][data-id="${fold.id}"]`));
+          await page.waitForFunction((id) => document.querySelector(`[data-p3="update-set"][data-id="${id}"]`)?.getAttribute('aria-checked') === 'true', fold.id, { timeout: 5000 }).catch(() => {});
+          const ticked = { ...(await scrollNow()), on: await page.evaluate((id) => document.querySelector(`[data-p3="update-set"][data-id="${id}"]`)?.getAttribute('aria-checked') ?? null, fold.id) };
+          ok(ticked.on === 'true' && ticked.top !== null && Math.abs(ticked.top - fold.top) <= 1 && ticked.focus === `set=${fold.id}`,
+            `${at}: #3082: ticking a set below the fold keeps the body's scroll (${fold.top} → ${ticked.top}) and focus on that box (${JSON.stringify(ticked)})`);
+          // A host answer repaints the dialog too (here the check again): the scroll stays where it was. Scrolled back to
+          // where the tick was first, so this reads the host's repaint alone.
+          await page.evaluate((top) => { document.querySelector('[data-p3="update-body"]').scrollTop = top; }, fold.top);
+          await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+          await settle(page);
+          const answered = await scrollNow();
+          ok(answered.top !== null && Math.abs(answered.top - fold.top) <= 1 && answered.focus === `set=${fold.id}`,
+            `${at}: #3082: a host answer's repaint keeps the body's scroll (${fold.top} → ${answered.top}) and focus (${JSON.stringify(answered)})`);
+        }
+        await page.keyboard.press('Escape');
+      }
+      await page.setViewportSize({ width: 1280, height: 900 });
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
