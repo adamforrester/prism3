@@ -220,6 +220,9 @@ decision for the owner (section 6), and most become component work.
 | A text property may not drive a nested kind's label | Setting an item's `label` leaves a nested part's own label showing its default | After setting properties, read the visible text back; set the nested instance's property where needed |
 | A large result doesn't fit through the bridge's reply | Returning a snapshot of hundreds of instances can run to megabytes, far beyond what an agent should read | Keep the data on `globalThis` and return it in one call; if your harness writes an oversized result to a file, process that file with a script instead of reading it |
 | Sticky isn't settable | The plugin can't make a layer Sticky: the pinned typings have no property for it. Fixed is settable, through the parent frame's `numberOfFixedChildren`. | An owner step in the UI: Prototype, then Sticky |
+| A source photo's fill stack carries a hand-set gradient | Copying a design's whole fills array onto a rebuilt layer brings along a gradient someone laid over the photo to fake a fade or fix contrast | Copy only the IMAGE layers, bind any solid under-layer to a Prism3 role, and leave the gradient out. If the design needed it, propose a veil or a component option |
+| A created node that is never appended stays on the current page | `createFrame()` and `createText()` land on whatever page is current; a helper that builds a node and uses it only sometimes, or a call that fails halfway, leaves orphans, sometimes on a page you were told not to touch | Append each node to its parent in the same step. After a pass, sweep the root of every page for nodes created in this session, check each one's contents, and remove only your own |
+| Mains reached through existing instances vanish too | A main component taken with `getMainComponentAsync()` from an instance elsewhere in the file can be gone a few calls later, the same as an imported one | Park one instance of each main you will reuse, however you obtained it |
 | Screenshots render the active file only | A second connected file can't be screenshotted | Read its geometry back through the bridge, in that file |
 | A node's screenshot has no background | It renders on transparency, which is useless for contrast | Screenshot the container and crop |
 
@@ -365,6 +368,8 @@ Log the library's name, every key imported, every import that failed and its rea
 ## 9. What to hand back
 
 - Per screen: placed components, overrides, snaps, grays for review, and what was left on purpose.
+- **The differences, in the file.** Pin a native Figma annotation on each layer that differs from the design, in categories the owner can filter: improvement, gap, brand-only, decided, question (prefix them with the brand so they don't mix with the file's own), each with its question number. Put a contrast failure the owner keeps in the file's accessibility category too. When you re-run, replace only your own categories' notes.
+- **The rebuilt page laid out like the source page:** one section per flow, the screens in the source's order and breakpoint order, with the file's own heading components above each section where it has them.
 - On the library path: the library, the key table, imports that failed, and the publish status of
   anything a gap depends on.
 - The difference table, each row sorted as improvement, gap or brand (proposed), with measurements.
