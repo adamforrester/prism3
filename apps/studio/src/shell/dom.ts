@@ -148,33 +148,33 @@ export const setBusy = (b: HTMLElement, busy: boolean): void => {
  * control's `aria-label` in every tier, so it never depends on the label or the tooltip, and both are `aria-hidden`
  * (they repeat what the name says). The tooltip is drawn by the stylesheet alone, so it carries no inline value.
  * `start`: the tooltip hangs from the tile's left edge rather than its right (a tile on the bar's left side).
+ * A `null` label draws the mark alone at every tier, with no label node (`p3-tile-bare`): the rail foot's Minimize, Help
+ * and Appearance (#3083, the owner, 2026-10-28). The name and the tooltip are the caller's, as for every tile.
  */
 export type Tile = { readonly btn: HTMLButtonElement; readonly mark: HTMLElement; readonly tip: HTMLElement };
-export const tile = (role: string, label: string, start = false): Tile => {
+export const tile = (role: string, label: string | null, start = false): Tile => {
   const btn = hook(h('button', start ? 'p3-btn p3-tile p3-tile-start' : 'p3-btn p3-tile'), role);
   btn.type = 'button';
+  return tileParts(btn, role, label);
+};
+const tileParts = <B extends HTMLElement>(btn: B, role: string, label: string | null): { readonly btn: B; readonly mark: HTMLElement; readonly tip: HTMLElement } => {
   const mark = h('span', 'p3-tile-mark');
-  const lab = h('span', 'p3-tile-label', label);
-  lab.setAttribute('aria-hidden', 'true');
   const tip = hook(h('span', 'p3-tile-tip'), `${role}-tip`);
   tip.setAttribute('aria-hidden', 'true');
+  if (label === null) { btn.classList.add('p3-tile-bare'); btn.append(mark, tip); return { btn, mark, tip }; }
+  const lab = h('span', 'p3-tile-label', label);
+  lab.setAttribute('aria-hidden', 'true');
   btn.append(mark, lab, tip);
   return { btn, mark, tip };
 };
 /** A bar tile that is a link (#2637 Q384: the web's Docs): the same parts and tiers as `tile`, on an anchor, so it
  *  opens in a new tab and the brand being edited stays put. */
-export const linkTile = (role: string, label: string, href: string): { readonly btn: HTMLAnchorElement; readonly mark: HTMLElement; readonly tip: HTMLElement } => {
+export const linkTile = (role: string, label: string | null, href: string): { readonly btn: HTMLAnchorElement; readonly mark: HTMLElement; readonly tip: HTMLElement } => {
   const btn = hook(h('a', 'p3-btn p3-tile'), role);
   btn.setAttribute('href', href);
   btn.setAttribute('target', '_blank');
   btn.setAttribute('rel', 'noopener');
-  const mark = h('span', 'p3-tile-mark');
-  const lab = h('span', 'p3-tile-label', label);
-  lab.setAttribute('aria-hidden', 'true');
-  const tip = hook(h('span', 'p3-tile-tip'), `${role}-tip`);
-  tip.setAttribute('aria-hidden', 'true');
-  btn.append(mark, lab, tip);
-  return { btn, mark, tip };
+  return tileParts(btn, role, label);
 };
 
 /** The controls Tab can reach inside `root`, in order: drawn, not inert. Shared by every modal window (S12's start

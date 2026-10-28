@@ -31,9 +31,18 @@ export type LeverBlock = {
   readonly setReadout: (text: string) => void;
   readonly setState: (node: HTMLElement | null) => void;
   readonly setRefused: (yes: boolean) => void;
-  /** The words search matches against: the label, the description and the key. */
+  /** The words search matches against: the label, the description and the key, and the manifest's label and
+   *  description where the page draws its own (#3093). */
   readonly said: string;
 };
+
+/** Each block's `said`, by its element (#3093): a page that searches blocks another module drew (Components' settings
+ *  blocks) reads a lever's words from the block itself, so a lever added to a block is searchable with no list to edit. */
+const SAID = new WeakMap<Element, string>();
+export const saidOf = (el: Element): string => SAID.get(el) ?? '';
+/** A lever's own words, its manifest label, description and key, for the block that draws its control when it has no
+ *  block of its own (`alsoSays`, #2175; #3093: search finds it by them). */
+export const wordsOf = (key: string): string => { const L = leverOf(key); return `${L?.label ?? ''} ${L?.description ?? ''} ${key}`.trim(); };
 
 /** One lever: its label (a legend when the control is a group), an info button with the manifest's
  *  description as a toggletip, an optional readout, the control, an optional state line, and the refused
@@ -70,6 +79,11 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
   refused.hidden = true;
   el.append(head, ...(tip ? [tip] : []), ctl, state, refused);
   noteBlock(key, el);
+  // #3093: a page's own label or description draws in place of the manifest's, but search still finds the lever by the
+  // manifest's words, the ones every other surface names it by.
+  const manifestWords = [L && L.label !== label ? L.label : '', L?.description && L.description !== desc ? L.description : ''].filter(Boolean).join(' ');
+  const said = `${label} ${desc} ${key}${manifestWords ? ` ${manifestWords}` : ''}${opts.alsoSays ? ` ${opts.alsoSays}` : ''}`.toLowerCase();
+  SAID.set(el, said);
   return {
     el, ctl, label,
     setReadout: (t) => { setText(readout, t); if (readout.hidden !== !t) readout.hidden = !t; },
@@ -77,7 +91,7 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
     setState: (n) => { if ((state.textContent ?? '') !== (n?.textContent ?? '')) state.replaceChildren(...(n ? [n] : [])); },
     setRefused: (yes) => { if (refused.hidden !== !yes) refused.hidden = !yes; if (yes) el.dataset.refused = 'true'; else if (el.dataset.refused) delete el.dataset.refused; },
     // `alsoSays`: searchable text only, never drawn (#2175: a lever whose control lives in another lever's block).
-    said: `${label} ${desc} ${key}${opts.alsoSays ? ` ${opts.alsoSays}` : ''}`.toLowerCase(),
+    said,
   };
 };
 
@@ -434,6 +448,7 @@ export const choice = <V extends string>(label: string, role: string, options: r
     b.type = 'button';
     b.setAttribute('role', 'radio');
     b.dataset.value = o.v;
+    b.dataset.label = o.l;   // the bold width every option reserves (#3115)
     b.textContent = o.l;
     b.onclick = () => { if (b.getAttribute('aria-checked') !== 'true') onPick(o.v); };
     return b;

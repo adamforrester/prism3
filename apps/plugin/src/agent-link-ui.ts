@@ -192,7 +192,8 @@ export const mountAgentLink = (): void => {
   // #2909 (Q2909.19 A): the chain link, the rail's Agent icon.
   mark.append(glyph('link'), dot);
   // #2949 (Q600 A): Minimize, at the rail's foot since Q731, whether the link is on or off. A plain button: the main thread decides.
-  const { btn: minBtn, mark: minMark, tip: minTip } = tile('agent-minimize', 'Minimize');
+  // Its icon alone (#3083, the owner, 2026-10-28), as the strip's Restore is: the name and the tooltip say "Minimize".
+  const { btn: minBtn, mark: minMark, tip: minTip } = tile('agent-minimize', null);
   minBtn.classList.add('p3-agent-min');
   minBtn.setAttribute('aria-label', 'Minimize');
   minTip.textContent = 'Minimize';

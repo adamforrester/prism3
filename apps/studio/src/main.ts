@@ -26,7 +26,7 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import { toDesignMd } from '@prism3/engine/design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
-import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
+import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
@@ -34,7 +34,7 @@ import type { StyleGuidesLend } from './shell/style-guides';
 import type { ActivityLend, ActivityReading, OpReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { DocumentationLend } from './shell/documentation';
-import { brandFor, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
+import { brandFor, DUE_DEBOUNCE_MS, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
 import { readSaved, savedDrawOptions } from './state/style-guides';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
@@ -58,7 +58,8 @@ import {
 // The component catalog, which the set build asks whether a set can be built (UI redesign S8.2: the Components page
 // itself lists it, from `preview/components.ts`; the Button options moved to `domains/components.ts`).
 import { componentCatalog } from './state/component-catalog';
-import { currentOf, positionOf, record, runVerdict, startRun, stopRun, type BuildRun, type RunKind } from './state/build-queue';
+import { currentOf, positionOf, record, runVerdict, RUN_COPY, startRun, stopRun, type BuildRun, type RunKind } from './state/build-queue';
+import { entryOf } from './state/component-groups';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
 import { shownName } from './state/brand-input';
@@ -368,8 +369,12 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   if (home?.kind === 'reading' && (m.kind === 'restore-input' || m.kind === 'restore-input-error' || m.kind === 'restore-input-empty' || m.kind === 'restore-input-library')) home = null;
   // #2700: a set's result while a multi-set run is out posts the next set, before this message's topics fire.
   if (m.kind === 'component-result' && prev.componentState === 'pending') runAfterResult(m, prev.componentDef);
+  // #3128: a set the run posted that the host refused gets no verdict, so the run ends on the refusal.
+  if (m.kind === 'refused' && !m.agent && AGENT_OP[m.cmd] === 'components') runRefused(m.message);
   // #2909: Update file's run moves to its next step on the verdict of the one out, before this message's topics fire.
   advanceUpdate(m, prev);
+  // #3081 Q810 A: a write's verdict, or a fresh read of the file's sets, may change what Update file would change.
+  if (DUE_AFTER.has(m.kind)) recountDue();
   const effect = brandEffectFor(m, prev, host);
   // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and what
   // dirtiness is measured against (#722).
@@ -1792,6 +1797,19 @@ const runAfterResult = (m: Extract<Parameters<typeof reduce>[1], { kind: 'compon
   lastRun = { run: ended, verdict };
   if (ended.ids.length > 1) setHost({ componentState: { ok: verdict.ok, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines }, openDetail: verdict.ok ? null : 'components' });
 };
+/** #3128: the host refused the set the run posted, so no verdict will answer it: the run ends there, that set failed with
+ *  the host's words and the rest not built, and the build stops reading as running. Without this the run waited for good
+ *  on the refused set (the reducer keeps a request refused behind the panel's own run pending for that run's verdict). */
+const runRefused = (message: string): void => {
+  const id = run ? currentOf(run) : null;
+  if (!run || !id) return;
+  const ended = record(stopRun(run), { id, result: 'failed', headline: message });
+  run = null;
+  const v = ended.ids.length > 1 ? runVerdict(ended, componentCatalog()) : { ok: false, headline: RUN_COPY.failed(entryOf(componentCatalog(), id)?.name ?? id), lines: [] };
+  const verdict = { ok: false, headline: v.headline, lines: [...v.lines, message] };
+  lastRun = { run: ended, verdict };
+  setHost({ componentState: { ok: false, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines }, componentProgress: null, componentDef: null, openDetail: 'components' });
+};
 /** Prune is unavailable while a prune runs AND while a theme apply runs, panel or agent: a prune reads the
  *  same variables an apply writes, so overlapping the two would race a delete against a create. */
 const pruneBlocked = (): boolean => pruneBusy() || applyBusy();
@@ -1939,10 +1957,35 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   const refusedStep = STEP_OF_OP[host.refused?.op ?? 'readback'];
   if (m.kind === 'refused' && !m.agent && (refusedStep === step || (step === 'update' && refusedStep === 'sets'))) { updatePhase = null; endStep(false, m.message); }
 };
+/** #3081 Q810 A: THE BADGE, LIVE. Update file's badge counts everything Update file would change: the sets due against
+ *  the brand the panel holds, and one item for Theme changes the file does not hold yet. The panel asks for the count
+ *  after a setting changes (`brand`, and `identity`, which edits the name without a rebuild) and after each write's
+ *  verdict. It waits `DUE_DEBOUNCE_MS` after the last of a burst and asks once. The host answers from the ledger and the
+ *  stored brand alone (`due-request`, `fileDue` in the plugin), never the full check. Apply Theme does not reset the
+ *  panel's own `isDirty` baseline (`provenance` is reassigned only by a load), so the Theme item is the host's reading
+ *  of the file's stored brand, which Apply Theme writes. Nothing is asked, and no live answer is shown, while no brand is
+ *  chosen (the boot placeholder before the host's restore answers, or the start moment), or after a failed restore, when
+ *  the brand on screen is the demo's: the badge then keeps the read at load (`liveShown`). */
+let dueSeq = 0;
+let dueTimer: ReturnType<typeof setTimeout> | null = null;
+const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished']);
+/** Whether the panel holds a brand of its own to count against: one is chosen, and it resolved. */
+const liveShown = (): boolean => !restoreFailure && !firstRun() && provenance !== bootProvenance;
+const recountDue = (): void => {
+  if (!commit.isFigma) return;
+  if (dueTimer !== null) clearTimeout(dueTimer);
+  dueTimer = setTimeout(() => {
+    dueTimer = null;
+    if (!liveShown()) return;
+    commit.requestDue(lastGoodInput, ++dueSeq);
+  }, DUE_DEBOUNCE_MS);
+};
+subscribe('brand', recountDue);
+subscribe('identity', recountDue);
 /** Update file's reads and writes, lent to the shell (`shell/update-file.ts`). */
 const updateFileLend: UpdateFileLend = {
   read: () => ({
-    fileSets: host.fileSets, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: restoreFailure ? RESTORE_OFF_HINT : null,
+    fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: restoreFailure ? RESTORE_OFF_HINT : null,
     prune: { busy: host.pruneBusy, preview: host.prunePreview, verdict: host.pruneVerdict },
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
     handEdits: host.handEdits, updateCheck: host.updateCheck,

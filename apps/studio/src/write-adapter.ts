@@ -84,6 +84,8 @@ export type HostMessage =
   // what the as-built ledger says each present set is: current, due and why, or not recorded.
   // #3110: `partial` when the host read it from the ledger alone at open, before any page loaded.
   | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null; due: Readonly<Record<string, SetDueView>>; partial?: boolean; atOpen?: boolean }
+  // #3081 Q810 A — the badge's live recount: what is due against the panel's brand, and whether the file holds it.
+  | { kind: 'file-due'; seq: number; present: readonly string[]; theme: boolean; error: string | null; due: Readonly<Record<string, SetDueView>> }
   // #2909 Q2909.8 A — one set's hand edits from the background pass after load, or its end.
   | { kind: 'hand-edits'; def: string; members: number; edited: number }
   | { kind: 'hand-edits-done' }
@@ -170,6 +172,9 @@ export interface HostCommit {
    *  holds (Q699 A; `unknown` for the reason `postTheme`'s is), or, `undefined` with Theme unticked, the file's stored
    *  brand (#3023 Q701 B). Figma only; inert on the web. */
   requestFileSets(input: unknown): void;
+  /** #3081 Q810 A: the badge's live recount against `input`, the brand the panel holds (`due-request`), answered with
+   *  the same `seq`. Figma only; inert on the web. */
+  requestDue(input: unknown, seq: number): void;
   /** #2909 Q2909.8 A: start the background hand-edit pass (`hand-edits-request`). Figma only; inert on the web. */
   requestHandEdits(): void;
   /** #2909 Q2909.8 A: the full check, scoped to `defs` (`update-check-request`), against the panel's brand `input`
@@ -446,6 +451,9 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // #2909. Ids that are not strings are dropped; a malformed `setUp` reads as not set up, the claim that asks for more.
   'file-sets': (m) => ({ kind: 'file-sets', present: Array.isArray(m.present) ? (m.present as unknown[]).filter(str) : [], setUp: m.setUp === true,
     error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due), ...(m.partial === true ? { partial: true } : {}), ...(m.atOpen === true ? { atOpen: true } : {}) }),
+  // #3081 Q810 A. An answer with no number to match is dropped; a malformed `theme` reads as nothing to apply.
+  'file-due': (m) => (typeof m.seq === 'number' ? { kind: 'file-due', seq: m.seq, present: Array.isArray(m.present) ? (m.present as unknown[]).filter(str) : [],
+    theme: m.theme === true, error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due) } : null),
   // #2909 Q2909.8 A. A reading with a field of the wrong type is dropped: a guessed count would be a status nobody read.
   'hand-edits': (m) => {
     if ('done' in m && m.done === true) return { kind: 'hand-edits-done' };
@@ -527,6 +535,9 @@ const figmaCommit = (): HostCommit => ({
   requestFileSets(input) {
     post({ type: 'file-sets-request', input: input as ApplyTheme['input'] });
   },
+  requestDue(input, seq) {
+    post({ type: 'due-request', input: input as ApplyTheme['input'], seq });
+  },
   requestHandEdits() {
     post({ type: 'hand-edits-request' });
   },
@@ -571,6 +582,7 @@ const webCommit = (): HostCommit => ({
   saveDocSettings() {/* no file on web (#2909) */},
   postDrawSpecs() {/* no canvas on web (#2830) */},
   requestFileSets() {/* no file on web (#2909) */},
+  requestDue() {/* no file on web (#3081) */},
   requestHandEdits() {/* no file on web (#2909) */},
   requestUpdateCheck() {/* no file on web (#2909) */},
   postUpdateSets() {/* no file on web (#2909) */},

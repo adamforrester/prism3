@@ -11,7 +11,8 @@
  *   · at the foot, after a divider, the nodes the frame places: Minimize's slot (the plugin's own entry mounts Minimize
  *     there, `apps/plugin/src/agent-link-ui.ts`; Q731 put it where the Agent tile was, the Agent tile on the top bar),
  *     Help (the old bar's Docs, renamed so it does not collide with Documentation) and Appearance (the old bar's Theme
- *     menu, renamed so it does not collide with the Theme area).
+ *     menu, renamed so it does not collide with the Theme area). The three draw their icon alone, no label: the owner's
+ *     #3083 decision of 2026-10-28; each keeps its name and its tooltip.
  * Update file is not a rail item: it is the top bar's one global action (Q668 A).
  *
  * HOW IT TALKS TO THE REST: a tile click calls `go(area)`, which the frame turns into a page change; the frame calls
@@ -21,7 +22,7 @@
  * between the area tiles, Home and End to the first and the last, as a toolbar of tiles would.
  *
  * The labels and icons are the owner's (Chunk 2, 2026-10-24: Q2909.19 A icons, Q2909.20 A labels). The rail keeps its
- * labels at 380 (Q2909.16 A). Its selected tile's fill is the mapped `fill-2` (Q2909.24 A).
+ * labels at 380 (Q2909.16 A), the areas' tiles; the foot's draw none (#3083). Its selected tile's fill is the mapped `fill-2` (Q2909.24 A).
  */
 import type { AreaId, RailArea } from './pages';
 import { glyph, h, hook, tile } from './dom';
