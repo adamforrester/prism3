@@ -21749,7 +21749,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; nestedItems?: Record<string, { name: string; set: string; member: string }[]>; compTexts?: Record<string, Record<string, string>>; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>> };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; nestedItems?: Record<string, { name: string; set: string; member: string }[]>; compTexts?: Record<string, Record<string, string>>; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; unavailableFonts?: string[]; discardLiteralFills?: string[] };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -22264,6 +22264,10 @@ arm: {
               // host that takes a gradient fill and keeps nothing (`paint`) or keeps the gradient without its
               // stop bindings (`bindings`) — the two ways "gradient set, not retained" can be true. Modelled so
               // both executors' gradient read-back has a case where it MUST speak.
+              // #2343 PR 5 — ACCEPT-AND-DISCARD, TAUGHT FOR A LITERAL FILL (`opts.discardLiteralFills`), the plugin shim's
+              // twin: a node named here keeps only its bound paints, so the payload's literal read-back must speak.
+              if (key === 'fills' && opts.discardLiteralFills?.includes(String(node.name)))
+                backing = backing.filter((p) => (p as { type?: string })?.type !== 'SOLID' || !!(p as { boundVariables?: { color?: unknown } }).boundVariables?.color);
               if (key === 'fills' && opts.gradientDiscard && backing.some((p) => /^GRADIENT_/.test(String((p as { type?: string })?.type))))
                 backing = opts.gradientDiscard === 'paint'
                   ? backing.filter((p) => !/^GRADIENT_/.test(String((p as { type?: string })?.type)))
@@ -22306,7 +22310,11 @@ arm: {
         // `fontName` on every style, because the payload loads the STYLE'S font before writing text —
         // `setTextStyleIdAsync` pulls in a family/style pair that need not be what `createText` starts on.
         getLocalTextStylesAsync: async () => (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: { family: 'Inter', style: 'Semi Bold' } })),
-        loadFontAsync: async () => {},
+        // #2343 PR 5 — a font the file lacks (`opts.unavailableFonts`, as 'Family Style') is refused at the load, as Figma
+        // refuses one that is not installed, so the paste executor's literal-font fallback has a host to fall back on.
+        loadFontAsync: async (fn: { family?: string; style?: string }) => {
+          if (opts.unavailableFonts?.includes(`${fn?.family} ${fn?.style}`)) throw new Error(`Cannot load font "${fn.family} ${fn.style}": it is not available.`);
+        },
         // #1007 — a file CAN hold effect styles (`opts.effectStyles`), so the payload's effect-style apply has
         // a success path to take. Was `async () => []`, which left the apply unreachable on this harness.
         getLocalEffectStylesAsync: async () => (opts.effectStyles ?? []).map((name) => ({ id: `E:${name}`, name })),
@@ -22914,6 +22922,34 @@ arm: {
         if (why) bad.push(`${JSON.stringify(c.coord)}: ${why}`);
       }
       ok(bad.length === 0, `#2343 PR 5 paste executor: SignInButton's literal fill, wash, edge, label ink, wording and Google's font land as plain values, nothing discarded (${bad.join(' | ') || 'clean'})`);
+
+      // THE FALLBACK FACE (Q-S7 A): a file without Google Sans refuses the load; the label lands in Roboto Medium
+      // 14/20, typed here, the refused face is reported by name, and the member still builds. Mutation: the payload's
+      // face list `[{face}, f.fallback]` → `[{face}]` fails this arm by name.
+      {
+        const FALLBACK = { family: 'Roboto', style: 'Medium', size: 14, lineHeight: 20 };
+        const plan = figmaAnatomyPlan(sb, 'medium', { provider: 'google', style: 'light', state: 'rest' } as never);
+        const page: StubPage = { children: [] };
+        const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page, unavailableFonts: ['Google Sans Medium'] });
+        const walk = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(walk)];
+        const all = page.children.flatMap((x) => walk(x as Record<string, unknown>));
+        const text = all.find((n) => n.type === 'TEXT');
+        const fn = text?.fontName as { family?: string; style?: string } | undefined, lh = text?.lineHeight as { unit?: string; value?: number } | undefined;
+        const landed = fn?.family === FALLBACK.family && fn.style === FALLBACK.style && text?.fontSize === FALLBACK.size && lh?.unit === 'PIXELS' && lh.value === FALLBACK.lineHeight;
+        const refused = run.misses.filter((m) => m.startsWith('label.font -> Google Sans Medium ('));
+        const other = run.misses.filter((m) => /\.(fills|strokes|font|literalFont|characters) ->|THREW/.test(m) && !/^mark/.test(m) && !m.startsWith('label.font -> Google Sans Medium ('));
+        ok(landed && refused.length === 1 && other.length === 0 && text?.characters === 'Continue with Google' && all.length > 1,
+          `#2343 PR 5 paste executor font fallback: with Google Sans refused, the label lands in Roboto Medium 14/20, the refused face is reported as 'label.font -> Google Sans Medium (…)', and the member still builds (${JSON.stringify(fn)} ${String(text?.fontSize)}/${JSON.stringify(lh)}; reported ${refused.length}; other ${other[0] ?? 'none'})`);
+      }
+      // THE LITERAL READ-BACK SPEAKS: a host that drops the container's literal fill is reported by value. Mutation: the
+      // payload's `__litHeld` read-back guard → `false` fails this arm by name.
+      {
+        const plan = figmaAnatomyPlan(sb, 'medium', { provider: 'apple', style: 'white', state: 'hover' } as never);
+        const page: StubPage = { children: [] };
+        const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page, discardLiteralFills: [String(plan.root.name)] });
+        const want = `${plan.root.name}.fills -> DISCARDED (literal #ffffff + #0000001a set, not retained)`;
+        ok(run.misses.includes(want), `#2343 PR 5 paste executor literal read-back: a host that drops the container's literal fill is reported as '${want}' (misses: ${run.misses.slice(0, 2).join(' | ') || 'none'})`);
+      }
     }
 
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------

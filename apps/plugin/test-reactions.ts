@@ -147,8 +147,8 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     // #2428 (owner decision Q344): Code input's cell, 4 sizes × 7 states. No pressed look: While pressing goes to the
     // active cell (focus-visible). 4 sizes × (rest → hover, rest → active, hover → active).
     'code-input-cell': [28, 8, 12],
-    // #2343 PR 5: SignInButton, 5 provider × style pairs × 3 sizes × (rest → hover, rest → pressed, hover → pressed) (Q-S6 A).
-    'sign-in-button': [60, 30, 45],
+    // #2343 PR 5: SignInButton, 8 provider × style pairs (Q831 A) × 3 sizes × (rest → hover, rest → pressed, hover → pressed) (Q-S6 A).
+    'sign-in-button': [96, 48, 72],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {

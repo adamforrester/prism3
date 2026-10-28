@@ -1365,10 +1365,65 @@ for (const key of Object.keys(SCALED_GLYPH))
   if (!vectorParts.has(key))
     failures.push(`STALE SCALED_GLYPH: '${key}' records a glyphScale of ${SCALED_GLYPH[key].scale}, and no def declares a vector part by that name. The per-part loop cannot see this, so the padded-artboard exemption would outlive its subject and let arm D be relaxed for the next part to take that name.`);
 
+// ---- THE DERIVED PROVIDER GLYPHS (#2343, owner decision Q831 A) --------------------------------------------------------
+// `provider/apple-black` and `provider/facebook-blue` are not supplied artwork: each is its social mark scaled to the
+// provider glyphs' 0.5px inset. Measured FROM THE FILES, never from the derivation: the derived file's body (its first
+// path, the provider-colored shape: Apple's black glyph, Facebook's blue disc) must span its `provider/` sibling's ink
+// box within 0.01px (INSET), and every path must be its source's path under ONE uniform scale and move (SHAPE), so the
+// artwork is resized, never redrawn. `DERIVED_MARK` is typed here and compared with the records' `derivedFrom` both
+// ways. A derived file left at the social mark's full bleed fails INSET by name.
+const DERIVED_MARK: Record<string, { from: string; sibling: string }> = {
+  'provider/apple-black': { from: 'social/apple', sibling: 'provider/apple' },
+  'provider/facebook-blue': { from: 'social/facebook', sibling: 'provider/facebook' },
+};
+const INSET_TOL = 0.01;
+let derivedChecks = 0;
+{
+  let recs: Record<string, { derivedFrom?: string }> = {};
+  try { recs = (JSON.parse(readFileSync(new URL('provenance.json', MARKS_DIR), 'utf8')) as { marks: typeof recs }).marks; }
+  catch (err) { failures.push(`DERIVED: marks/provenance.json is unreadable — ${(err as Error).message}`); }
+  for (const [file, r] of Object.entries(recs))
+    if (r.derivedFrom !== undefined && !DERIVED_MARK[file.replace(/\.svg$/, '')])
+      failures.push(`DERIVED: marks/${file}'s record says it is derived from ${r.derivedFrom}, and DERIVED_MARK does not list it — its geometry is gated by nothing`);
+  const pathsOf = (svg: string): string[] => [...svg.matchAll(/<path\b[^>]*\sd="([^"]+)"/g)].map((m) => m[1]);
+  const union = (bs: Box[]): Box => {
+    const x0 = Math.min(...bs.map((b) => b.x)), y0 = Math.min(...bs.map((b) => b.y));
+    return { x: x0, y: y0, w: Math.max(...bs.map((b) => b.x + b.w)) - x0, h: Math.max(...bs.map((b) => b.y + b.h)) - y0 };
+  };
+  const span = (b: Box): string => `${+b.x.toFixed(4)},${+b.y.toFixed(4)} to ${+(b.x + b.w).toFixed(4)},${+(b.y + b.h).toFixed(4)}`;
+  for (const [name, { from, sibling }] of Object.entries(DERIVED_MARK)) {
+    const rec = recs[`${name}.svg`];
+    if (!rec) { failures.push(`DERIVED ${name}: no record in marks/provenance.json`); continue; }
+    if (rec.derivedFrom !== `${from}.svg`) { failures.push(`DERIVED ${name}: its record says derivedFrom ${rec.derivedFrom ?? '(nothing)'}, and DERIVED_MARK says ${from}.svg`); continue; }
+    if (!(name in BRAND_MARK_SOURCES)) failures.push(`DERIVED ${name}: is not in the mark set (brand-mark-set.ts), so no member carries it`);
+    let own: Box[], src: Box[], sib: Box[];
+    try {
+      const read = (n: string): Box[] => pathsOf(readFileSync(new URL(`${n}.svg`, MARKS_DIR), 'utf8')).map(markInkBox);
+      own = read(name); src = read(from); sib = read(sibling);
+    } catch (err) { failures.push(`DERIVED ${name}: a file could not be read or measured — ${(err as Error).message}`); continue; }
+    if (!own.length || !src.length || !sib.length) { failures.push(`DERIVED ${name}: a file draws no path (${own.length} / ${src.length} / ${sib.length})`); continue; }
+    derivedChecks++;
+    // INSET: the body against the sibling's ink, edge by edge.
+    const body = own[0], want = union(sib);
+    const off = Math.max(Math.abs(body.x - want.x), Math.abs(body.y - want.y), Math.abs(body.x + body.w - want.x - want.w), Math.abs(body.y + body.h - want.y - want.h));
+    if (!(off <= INSET_TOL))
+      failures.push(`DERIVED ${name}: INSET — its body spans ${span(body)}, and ${sibling}'s ink spans ${span(want)}: ${+off.toFixed(4)}px off, over the ${INSET_TOL}px the provider inset allows (Q831 A: scaled about the center to the provider glyphs' 0.5px margin)`);
+    // SHAPE: one uniform scale and one move take every source path's box onto the derived path's.
+    if (own.length !== src.length) { failures.push(`DERIVED ${name}: SHAPE — it draws ${own.length} path(s) and ${from} draws ${src.length}`); continue; }
+    const k = own[0].w / src[0].w, tx = own[0].x - k * src[0].x, ty = own[0].y - k * src[0].y;
+    const bent = own.flatMap((b, i) => {
+      const s = src[i], e = Math.max(Math.abs(b.x - (k * s.x + tx)), Math.abs(b.y - (k * s.y + ty)), Math.abs(b.w - k * s.w), Math.abs(b.h - k * s.h));
+      return e <= INSET_TOL ? [] : [`path ${i + 1} ${+e.toFixed(4)}px off`];
+    });
+    if (bent.length) failures.push(`DERIVED ${name}: SHAPE — not ${from} under one uniform scale (${+k.toFixed(5)}) and move: ${bent.join(', ')}, so the artwork was redrawn rather than resized`);
+  }
+  if (derivedChecks !== Object.keys(DERIVED_MARK).length) failures.push(`DERIVED: measured ${derivedChecks} of ${Object.keys(DERIVED_MARK).length} derived glyph(s) — the arm checked less than it lists`);
+}
+
 // The tile arm ran on something: a mark set with payment tiles and no file read as a tile is an arm that checked nothing.
 if (Object.keys(BRAND_MARK_SOURCES).some((nm) => nm.startsWith('payment/')) && tileFiles === 0)
   failures.push(`${MARK_DEF}: the set lists payment tiles and the full-bleed arm read no tile file — the TILE BAKED check ran on nothing`);
-console.log(`Glyph geometry — ${glyphChecks} glyph(s) measured across ${covered.size} vector part(s): ${[...covered].join(', ') || 'NONE'}; ${tileFiles} payment file(s) read as tiles`);
+console.log(`Glyph geometry — ${glyphChecks} glyph(s) measured across ${covered.size} vector part(s): ${[...covered].join(', ') || 'NONE'}; ${tileFiles} payment file(s) read as tiles; ${derivedChecks} derived provider glyph(s) measured against their sibling's inset`);
 for (const n of notes) console.log(`    ${n}`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} glyph-geometry failure(s):`);

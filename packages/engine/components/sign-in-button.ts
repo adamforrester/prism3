@@ -16,12 +16,13 @@
  * Prism3's tokens still drive the height, the padding and gap (Apple and Facebook), the brand's label type (Apple and
  * Facebook, Q-S7 A), the radius (`radius.md`, Q-S12 A), the 140 width floor and the focus ring.
  *
- * THE MEMBERS ARE DATA (Q-S5 A). A provider × style pair is a member when the mark set holds its glyph: today the set
- * has `provider/apple` (white), `provider/google` and `provider/facebook` (white), so apple white, apple outline and
- * facebook white wait on `provider/apple-black` and `provider/facebook-blue`. They are excluded, not stood in, and
- * the style axis lists only the styles some member carries. Dropping the two files into `marks/provider/` yields all
- * eight pairs with no change here: `makeSignInButton(names)` reads the vocabulary it is given, and the gate
- * (`test.ts`, `#2343 PR 5 provider rules ARTWORK`) builds it over the vocabulary plus the two files and counts 96.
+ * ALL EIGHT PAIRS SHIP, 96 MEMBERS (Q831 A, superseding Q-S5 A's wait for artwork). Each style's glyph is in the mark
+ * set: `provider/apple` and `provider/facebook` (white), `provider/google`, and `provider/apple-black` and
+ * `provider/facebook-blue`, derived from `social/apple` and `social/facebook` and scaled to the provider inset.
+ * The members stay data: a provider × style pair is a member only when the mark set holds its glyph, and the style
+ * axis lists only the styles some member carries, so a future provider whose artwork is not in yet is excluded, never
+ * stood in. `makeSignInButton(names)` reads the vocabulary it is given; the gate (`test.ts`, `#2343 PR 5 provider rules
+ * ARTWORK`) counts 96 over the real set, and 60 over the set without the two derived glyphs.
  *
  * THE PROVIDER RULES, AS DATA THE GATE HOLDS (`test.ts`, `#2343 PR 5 provider rules`, which types each rule again from
  * the providers' guidelines, read 2026-10-27, and never reads this file's values):
@@ -110,9 +111,9 @@ const spacingTokens = (): Record<string, string> => Object.fromEntries(PROVIDERS
     : [[k('padding-x'), BUTTON_SPACING[`size.${size}.padding-x`]], [k('padding-x-visual'), BUTTON_SPACING[`size.${size}.padding-x-visual`]], [k('padding-y'), BUTTON_SPACING[`size.${size}.padding-y`]], [k('gap'), BUTTON_SPACING[`size.${size}.gap`]]];
 })));
 
-/** Build the def over a mark vocabulary (Q-S5 A). A pair whose glyph the vocabulary lacks has no member, and the
- *  style axis carries only the styles some member has. Exported so the gate builds it over the vocabulary the two
- *  awaited files make, and counts. */
+/** Build the def over a mark vocabulary (Q-S5 A, kept by Q831 A). A pair whose glyph the vocabulary lacks has no
+ *  member, and the style axis carries only the styles some member has. Exported so the gate builds it over a
+ *  vocabulary without a glyph, and counts. */
 export const makeSignInButton = (markNames: readonly string[]): ComponentDef => {
   const have = new Set(markNames);
   const built = PAIRS.filter((x) => have.has(RULES[x.provider].styles[x.style].mark));
@@ -303,7 +304,8 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
         'Facebook\'s white-style label color is not published; the build uses #1877f2.',
       ],
       evolution: [
-        'Proposed on #2343 (2026-10-28, PR 5) with a wireframe of all members; the owner chose all twelve calls as A: Apple, Google and Facebook (Q-S1), Prism3 draws the button with the provider\'s fill, edge and ink as literal paint (Q-S2), a native button that calls the provider\'s sign-in (Q-S3), the providers\' style names (Q-S4), the three members with missing artwork excluded until it lands (Q-S5), rest, hover, pressed and focus-visible (Q-S6), Google Sans as a literal font (Q-S7), the label fixed with no text property (Q-S8), no logo-only member (Q-S9), its own page (Q-S10), the shared helpers (Q-S11) and radius.md with no shape axis (Q-S12).',
+        'Proposed on #2343 (2026-10-28, PR 5) with a wireframe of all members; the owner chose all twelve calls as A: Apple, Google and Facebook (Q-S1), Prism3 draws the button with the provider\'s fill, edge and ink as literal paint (Q-S2), a native button that calls the provider\'s sign-in (Q-S3), the providers\' style names (Q-S4), members only where the mark set holds the glyph (Q-S5), rest, hover, pressed and focus-visible (Q-S6), Google Sans as a literal font (Q-S7), the label fixed with no text property (Q-S8), no logo-only member (Q-S9), its own page (Q-S10), the shared helpers (Q-S11) and radius.md with no shape axis (Q-S12).',
+        'Q831 A (2026-10-28) supersedes Q-S5 A\'s wait for artwork: Apple\'s black glyph and Facebook\'s blue one are derived from social/apple and social/facebook, scaled to the provider inset, so all eight pairs ship, 96 members. The membership stays data, for a future provider whose glyph is not in yet.',
       ],
       projection: [
         'In Figma the button\'s fill, edge and label color are plain colors with no variable, and the label has no text property; Google\'s label carries Google Sans Medium 14/20 directly, not a text style. The glyph is a brand-mark/provider instance, its height bound and its width from its proportion.',

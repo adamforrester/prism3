@@ -28,6 +28,11 @@
  *       radius and weight hold their value at every one of them, where a baked edge would scale with the
  *       artwork. That the FILE bakes no edge is `lint-glyph-geometry.ts`'s mark arm (TILE BAKED).
  *       The edge is the frame's, never the artwork's, so (c) admits exactly these properties on exactly that node.
+ *   (f) DERIVED (owner decision Q831 A) — a mark whose record names `derivedFrom` (`provider/apple-black`,
+ *       `provider/facebook-blue`: a social mark scaled to the provider inset) paints exactly its source file's colors,
+ *       in drawing order, read from that file. For these two, (a)'s record is not the only witness (#3066): a retint
+ *       of the derived file and its record together still fails here, because the social file is the oracle. Their
+ *       geometry is `lint-glyph-geometry.ts`'s DERIVED arm.
  *
  * ── INDEPENDENCE (docs/34) ──────────────────────────────────────────────────────────────────────────
  *
@@ -152,6 +157,18 @@ for (const [name, source] of Object.entries(BRAND_MARK_SOURCES)) {
   if (!sameList(colorsOf(doc), colors)) failures.push(`${name}: brand-mark-glyphs.ts paints ${JSON.stringify(colorsOf(doc))} and the source paints ${JSON.stringify(colors)} — the emitter changed a color`);
 }
 
+// (f) derived marks: the source file, not the record, is the oracle (#3066)
+let derived = 0;
+for (const [file, rec] of Object.entries(records as Record<string, { derivedFrom?: unknown }>)) {
+  if (rec.derivedFrom === undefined) continue;
+  derived++;
+  let own = '', src = '';
+  try { own = readFileSync(join(marksDir, file), 'utf8'); src = readFileSync(join(marksDir, String(rec.derivedFrom)), 'utf8'); }
+  catch { failures.push(`${file}: DERIVED — it or its source marks/${String(rec.derivedFrom)} is unreadable`); continue; }
+  if (!sameList(colorsOf(own), colorsOf(src)))
+    failures.push(`${file}: DERIVED — paints ${JSON.stringify(colorsOf(own))} and its source marks/${String(rec.derivedFrom)} paints ${JSON.stringify(colorsOf(src))}: a derived mark is resized, never retinted (Q831 A)`);
+}
+
 // (c) the mark def's own plans
 const markDef = componentDefs.find((d) => d.id === MARK_DEF);
 let markPlans = 0;
@@ -200,7 +217,7 @@ for (const def of componentDefs) {
 }
 for (const id of MARK_HOSTS) if (!componentDefs.some((d) => d.id === id)) failures.push(`${id}: is in MARK_HOSTS and no such component is registered`);
 
-console.log(`Mark colors — ${sourceColors.size} source file(s), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} payment tile(s), ${hosted} host node(s) carrying a mark.`);
+console.log(`Mark colors — ${sourceColors.size} source file(s) (${derived} derived, read against their source), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} payment tile(s), ${hosted} host node(s) carrying a mark.`);
 if (markPlans === 0 && markDef) failures.push(`'${MARK_DEF}' projected no plan — the plan arm checked nothing`);
 if (markDef && Object.keys(BRAND_MARK_SOURCES).some(isTileMark) && tileMembers === 0) failures.push(`the set lists payment tiles and no '${MARK_DEF}' plan was read as a tile — the tile-edge arm checked nothing`);
 if (failures.length) {
