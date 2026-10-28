@@ -1292,6 +1292,35 @@
       "↳ swap leading icon": "INSTANCE_SWAP"
     }
   },
+  "sign-in-button": {
+    "axes": {
+      "provider": [
+        "apple",
+        "facebook",
+        "google"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "style": [
+        "black",
+        "blue",
+        "dark",
+        "light",
+        "neutral"
+      ]
+    },
+    "members": 60,
+    "properties": {}
+  },
   "slider": {
     "axes": {
       "size": [

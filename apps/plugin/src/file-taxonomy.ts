@@ -97,6 +97,8 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Icon button', defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'], lead: 'icon-button' },
         // #2343 PR 4: the express-checkout button a wallet provider draws. Its own page, DRAFT, held for the owner (Q-W4).
         { page: 'Wallet button', defs: ['wallet-button'], lead: 'wallet-button' },
+        // #2343 PR 5: the social sign-in button Prism3 draws to each provider's rules. Its own page (owner decision Q-S10 A).
+        { page: 'Sign-in button', defs: ['sign-in-button'], lead: 'sign-in-button' },
         { page: 'Checkbox', defs: ['checkbox-control', 'checkbox-row', 'checkbox-group'], lead: 'checkbox-row' },
         { page: 'Radio', defs: ['radio-control', 'radio-row', 'radio-group'], lead: 'radio-row' },
         { page: 'Switch', defs: ['switch-control', 'switch-row'], lead: 'switch-row' },
@@ -214,8 +216,6 @@ export const STANDALONE_NESTED: Readonly<Record<string, string>> = {
   badge: 'S8 scope, O1',
   // Button.Group: on the Buttons page (#2661, owner decision Q363). Dialog nests it; a designer places it in any footer.
   'button-group': '#2661, Q363',
-  // Brand mark: its own page under Foundations (#2343 Q-B12). WalletButton nests it (PR 4); a designer places a mark anywhere.
-  'brand-mark': '#2343 Q-B12; nested by WalletButton since PR 4',
   // Text field: its own page under Components. Slider (#2669) nests it for the value input; a designer places it anywhere.
   'text-field': 'Text field page; nested by Slider since #2669',
 };

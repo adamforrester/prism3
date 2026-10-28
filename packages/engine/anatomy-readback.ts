@@ -764,6 +764,45 @@ export const FIELDS: Record<string, FieldCheck> = {
       return bad.length ? bad.join(', ') : null;
     },
   },
+  // ── literal paint and font (#2343 PR 5) ──────────────────────────────────────────────────────
+  // A provider's own colors, read back BY VALUE: the host's paints on that channel, as many as the plan wrote, each a
+  // SOLID of that color and opacity, and none bound to a variable (a bound paint would re-theme what may not move).
+  literalPaints: {
+    show: (p) => JSON.stringify(p),
+    check: (p, n) => {
+      const want = p as { fills?: readonly string[]; strokes?: string };
+      const bad: string[] = [];
+      for (const key of ['fills', 'strokes'] as const) {
+        const hexes = key === 'fills' ? want.fills : want.strokes ? [want.strokes] : undefined;
+        if (!hexes) continue;
+        const arr = Array.isArray(n[key]) ? (n[key] as { type?: string; color?: { r: number; g: number; b: number }; opacity?: number; boundVariables?: Record<string, unknown> }[]) : [];
+        if (arr.length !== hexes.length) { bad.push(`${key}: ${arr.length} paint(s), want ${hexes.length}`); continue; }
+        hexes.forEach((hex, i) => {
+          const g = arr[i], byte = (j: number): number => parseInt(hex.slice(j, j + 2), 16) / 255;
+          const a = hex.length === 9 ? byte(7) : 1, near = (x: number | undefined, y: number): boolean => typeof x === 'number' && Math.abs(x - y) < 1 / 512;
+          if (g?.type !== 'SOLID' || !g.color || !near(g.color.r, byte(1)) || !near(g.color.g, byte(3)) || !near(g.color.b, byte(5)) || !near(g.opacity ?? 1, a))
+            bad.push(`${key}[${i}] reads ${JSON.stringify({ type: g?.type, color: g?.color, opacity: g?.opacity })}, want ${hex}`);
+          if (g?.boundVariables && Object.keys(g.boundVariables).length) bad.push(`${key}[${i}] is BOUND to a variable`);
+        });
+      }
+      return bad.length ? bad.join(', ') : null;
+    },
+  },
+  literalFont: {
+    show: (p) => JSON.stringify(p),
+    check: (p, n) => {
+      const f = p as { family: string; style: string; size: number; lineHeight: number; fallback: { family: string; style: string } };
+      const fn = n.fontName as { family?: string; style?: string } | undefined, lh = n.lineHeight as { unit?: string; value?: number } | undefined;
+      const faceOk = !!fn && ((fn.family === f.family && fn.style === f.style) || (fn.family === f.fallback.family && fn.style === f.fallback.style));
+      const bad = [
+        ...(faceOk ? [] : [`font ${fn?.family} ${fn?.style}, want ${f.family} ${f.style} or ${f.fallback.family} ${f.fallback.style}`]),
+        ...(n.fontSize === f.size ? [] : [`size ${str(n.fontSize)}`]),
+        ...(lh?.unit === 'PIXELS' && lh.value === f.lineHeight ? [] : [`lineHeight ${str(lh)}`]),
+        ...(typeof n.textStyleId === 'string' && n.textStyleId ? [`text style ${n.textStyleId} applied over the literal font`] : []),
+      ];
+      return bad.length ? bad.join(', ') : null;
+    },
+  },
   // ── the gradient form of a fill (#1318) ────────────────────────────────────────────────────────
   // A GradientPaint carries its bindings on its STOPS, so the `paints` predicate above (which reads the
   // paint object's own `boundVariables`) cannot read it. Compared on everything the host holds: the paint

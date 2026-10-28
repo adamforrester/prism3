@@ -426,12 +426,37 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'provider',
     values: ['apple-pay', 'google-pay', 'paypal', 'shop-pay'],
     defs: ['wallet-button'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'Whose button WalletButton holds (#2343 PR 4, owner decisions Q-B4 A, Q-B5 A): the wallet provider that draws it. '
       + 'Each value is the provider\'s product name in kebab-case. `apple-pay` LEADS only because Figma needs a first '
       + 'member; the code prop has no default, a wallet is always named. SignInButton\'s providers (PR 5) are a '
-      + 'different set under the same name.',
+      + 'different set under the same name. `canonical` since SignInButton (#2343 PR 5) declared its own.',
+  },
+  {
+    axis: 'provider',
+    values: ['apple', 'google', 'facebook'],
+    defs: ['sign-in-button'],
+    relation: 'disjoint',
+    reason:
+      'Whose account SignInButton signs in with (#2343 PR 5, owner decision Q-S1 A): Apple, Google or Facebook, the '
+      + 'three providers whose own rules a custom sign-in button can follow. DISJOINT from the wallet providers: '
+      + '`apple-pay` and `apple` are different products with different rules, so no value is shared and no paint key '
+      + 'crosses the sets. `apple` LEADS only because Figma needs a first member; the code prop has no default, a '
+      + 'sign-in button always names its provider. The list is data: a provider joins with a rule record and its glyph.',
+  },
+  {
+    axis: 'style',
+    values: ['black', 'light', 'dark', 'neutral', 'blue'],
+    defs: ['sign-in-button'],
+    relation: 'disjoint',
+    reason:
+      'The provider\'s own color style, in the provider\'s own words (#2343 PR 5, owner decision Q-S4 A): Apple black, '
+      + 'Google light, dark and neutral, Facebook blue. Only the styles a member carries are values (Q-S5 A): Apple '
+      + 'white and outline and Facebook white join when `provider/apple-black` and `provider/facebook-blue` land, '
+      + 'and this entry gains `white` and `outline` in that PR (then `overlapping` with the field\'s canonical '
+      + '`outline`, a different treatment under one word). DISJOINT today from every other `style` set. `black` '
+      + 'LEADS, Apple\'s default and the first member.',
   },
   {
     axis: 'labeled',
@@ -519,7 +544,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button', 'sign-in-button'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '

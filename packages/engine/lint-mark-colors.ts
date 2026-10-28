@@ -50,7 +50,7 @@ const MARK_DEF = 'brand-mark';
 const MARK_PREFIX = 'brand-mark/';
 /** Every def that carries a brand mark in a slot or a nest, typed here: (d) reads each one, and a def that carries a
  *  mark without being listed fails. */
-const MARK_HOSTS = ['card-number-field', 'wallet-button'];
+const MARK_HOSTS = ['card-number-field', 'wallet-button', 'sign-in-button'];
 
 /** The colors a document paints, in document order: each path's hex `fill` (not a `url(#…)` reference, and
  *  not the wrapper's `fill="none"`) and each gradient `stop-color`. Pure. */

@@ -5716,4 +5716,59 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(members.length === 20 && off.length === 0, `wallet build/logos: every member's logo is an instance of its provider's own brand mark, locked to that mark's proportion with only its height bound (${off.length} off — ${off[0] ?? 'none'})`);
 }
 
+// #2343 PR 5 — SIGNINBUTTON BUILT BY THE REAL EXECUTOR: each provider's literal fill, edge, wash, ink, wording and font
+// land on the host as plain values, with no variable. The values are typed here from the providers' guidelines (read
+// 2026-10-27), never read off the def or the plan (docs/34). Mutation: the plugin executor's literal-fill branch
+// deleted → `sign-in build/literal` fails by name.
+{
+  const RULE: Record<string, { fill: string; edge?: string; ink: string; mark: string; word: string }> = {
+    'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'brand-mark/provider/apple', word: 'Continue with Apple' },
+    'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
+    'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
+    'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
+    'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook', word: 'Continue with Facebook' },
+  };
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const same = (paint: { type?: string; color?: { r: number; g: number; b: number }; boundVariables?: object } | undefined, hex: string): boolean =>
+    !!paint && paint.type === 'SOLID' && !!paint.color && rgb(hex).every((v, i) => Math.abs(v - [paint.color!.r, paint.color!.g, paint.color!.b][i]) < 1 / 512)
+    && !(paint.boundVariables && Object.keys(paint.boundVariables).length);
+  const defs = componentDefs;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const page: Page = { children: [] };
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, liveComponents: true, page }) as any;
+  const sb = defs.find((d) => d.id === 'sign-in-button')!;
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  let misses: string[] = [];
+  try { await prebuildDependencies(sb, { defs, project, host: shim, build }); misses = (await build(sb)).misses; }
+  catch (err) { misses = [`threw: ${(err as Error).message.slice(0, 200)}`]; }
+  const set = page.children.find((c) => c.name === 'sign-in-button' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const members = (set?.children as Node[] | undefined) ?? [];
+  ok(members.length === 60 && misses.length === 0, `sign-in build: the set builds 60 members with 0 misses (${members.length}; ${misses[0] ?? 'none'})`);
+  const off: string[] = [];
+  for (const m of members) {
+    const name = String(m.name);
+    const key = `${/provider=([a-z]+)/.exec(name)?.[1]}.${/style=([a-z]+)/.exec(name)?.[1]}`, state = /state=([a-z-]+)/.exec(name)?.[1] ?? '';
+    const r = RULE[key];
+    const kids = (m.children as Node[] | undefined) ?? [];
+    const label = kids.find((c) => c.name === 'label'), mark = kids.find((c) => c.name === 'mark');
+    const fills = (m.fills ?? []) as Array<{ type?: string; color?: { r: number; g: number; b: number }; opacity?: number; boundVariables?: object }>;
+    const strokes = (m.strokes ?? []) as typeof fills;
+    const washed = state === 'hover' || state === 'pressed';
+    const font = label?.fontName as { family?: string; style?: string } | undefined;
+    const why = !r ? `no rule for ${key}`
+      : !same(fills[0], r.fill) ? `fill ${JSON.stringify(fills[0])}`
+      : fills.length !== (washed ? 2 : 1) || (washed && !((fills[1]?.opacity ?? 1) < 0.5)) ? `${fills.length} fills at ${state}`
+      : (r.edge ? !same(strokes[0], r.edge) : strokes.length !== 0) ? `edge ${JSON.stringify(strokes[0] ?? null)}`
+      : !same(((label?.fills ?? []) as typeof fills)[0], r.ink) ? `ink ${JSON.stringify(((label?.fills ?? []) as typeof fills)[0])}`
+      : label?.characters !== r.word ? `wording ${String(label?.characters)}`
+      : key.startsWith('google.') && !(font?.family === 'Google Sans' && font.style === 'Medium' && label?.fontSize === 14 && (label?.lineHeight as { value?: number } | undefined)?.value === 20) ? `font ${JSON.stringify(font)} ${String(label?.fontSize)}`
+      : String((mark?.mainComponent as Node | undefined)?.name) !== r.mark ? `mark ${String((mark?.mainComponent as Node | undefined)?.name)}`
+      : '';
+    if (why) off.push(`${name}: ${why}`);
+  }
+  ok(members.length === 60 && off.length === 0, `sign-in build/literal: every member carries its provider's own fill (with a translucent wash over it at hover and pressed), edge, label ink, wording, font and glyph, as plain values (${off.length} off — ${off[0] ?? 'none'})`);
+}
+
 if (failed) process.exit(1);

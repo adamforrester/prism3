@@ -1534,6 +1534,26 @@
       ]
     },
     {
+      "from": "sign-in-button",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "sign-in-button",
+      "to": "brand-mark",
+      "part": "mark",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "name": "provider/apple"
+      }
+    },
+    {
       "from": "slider",
       "to": "text-field",
       "part": "inputMax",
@@ -1950,9 +1970,11 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "sign-in-button",
         "wallet-button"
       ],
       "affectedByChange": [
+        "sign-in-button",
         "wallet-button"
       ],
       "inheritedBy": []
@@ -2354,6 +2376,7 @@
         "search-field",
         "segmented-control-segment",
         "select",
+        "sign-in-button",
         "switch-control",
         "tab-item",
         "tag",
@@ -2396,6 +2419,7 @@
         "segmented-control",
         "segmented-control-segment",
         "select",
+        "sign-in-button",
         "slider",
         "switch-control",
         "switch-row",
@@ -2675,6 +2699,19 @@
       "affectedByChange": [],
       "inheritedBy": []
     },
+    "sign-in-button": {
+      "nests": [
+        "brand-mark",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "brand-mark",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "slider": {
       "nests": [
         "_slider-thumb",
@@ -2910,6 +2947,7 @@
     "segmented-control": 2,
     "segmented-control-segment": 1,
     "select": 1,
+    "sign-in-button": 1,
     "slider": 2,
     "spinner": 0,
     "switch-control": 1,

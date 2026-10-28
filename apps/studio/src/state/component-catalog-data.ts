@@ -270,6 +270,120 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "sign-in-button",
+    "name": "SignInButton",
+    "category": "form",
+    "summary": "Sign in with Apple, Google or Facebook, drawn to each provider's rules.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.apple.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.apple.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.apple.padding-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.medium.apple.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.small.apple.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.large.apple.padding-x-visual",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.medium.apple.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.apple.padding-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.apple.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.apple.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.apple.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.apple.gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.medium.facebook.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.facebook.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.facebook.padding-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.medium.facebook.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.small.facebook.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.large.facebook.padding-x-visual",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.medium.facebook.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.facebook.padding-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.facebook.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.facebook.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.facebook.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.facebook.gap",
+        "ref": "space.150"
+      }
+    ],
+    "page": "Sign-in button",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 60,
+    "nests": [
+      "brand-mark",
+      "focus-ring"
+    ]
+  },
+  {
     "id": "icon-button",
     "name": "IconButton",
     "category": "form",

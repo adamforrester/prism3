@@ -22,7 +22,7 @@
  * runs it without a live file. Verification against what the engine actually emits is a separate,
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
-import type { AxisKind, ComponentDef, NestVariantWhen, PartDef } from './component-schema';
+import type { AxisKind, ComponentDef, LiteralEntry, LiteralFont, NestVariantWhen, NestVariantWhere, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
@@ -132,6 +132,16 @@ export type FigmaNodePlan = {
    *  `textStyle` and `effectStyle` — one field per API shape, so the plan cannot imply a call that
    *  does not exist. */
   paints?: { fills?: string; strokes?: string };
+  /** LITERAL PAINT (#2343 PR 5, `ComponentDef.literal`): colors the def carries as VALUES, not variable names — a
+   *  provider's own fill, edge, wash and ink, which no brand may theme. A SEVENTH API shape: a plain `SolidPaint`
+   *  with no `boundVariables`. `fills` runs bottom to top (the fill, then the state's wash over it); each color is
+   *  `#rrggbb`, or `#rrggbbaa` whose alpha becomes the paint's opacity. Present INSTEAD of `paints` on its channel,
+   *  never beside it, and only on a part that declares `literal`, so every other plan is byte-identical. */
+  literalPaints?: { fills?: readonly string[]; strokes?: string };
+  /** A LITERAL FONT (#2343 PR 5): the face, size and line height a provider fixes, written onto the text node in
+   *  place of a text style. The executors load `family`/`style`, fall back to `fallback` when the face is not
+   *  installed, and report which one landed. Present INSTEAD of `textStyle`, never beside it. */
+  literalFont?: LiteralFont;
   /** A LINEAR GRADIENT fill (#1318) — a box's `fill` at a coordinate its `PartDef.gradient` names. A SIXTH
    *  API shape, and its own field for the reason `paints` is: a gradient is a `GradientPaint` whose STOPS
    *  carry the variable bindings (`ColorStop.boundVariables.color`, via `createVariableAlias`), and
@@ -1363,11 +1373,16 @@ export const figmaAnatomyPlan = (
   // axis picks a partial child coordinate (the Counter's `appearance=ghost` nests `shape=round`; the Password field's
   // `state=disabled` nests Button's disabled member, #2317). The validator keeps a mapped child axis out of `follow`,
   // so the order below never lets one overwrite the other: the two are disjoint, and either order lands the same.
-  const nestVariantOf = (nesting: { variant: Record<string, string>; follow?: readonly string[]; variantWhen?: NestVariantWhen }): Record<string, string> => {
+  const nestVariantOf = (nesting: { variant: Record<string, string>; follow?: readonly string[]; variantWhen?: NestVariantWhen; variantWhere?: NestVariantWhere }): Record<string, string> => {
     const out: Record<string, string> = { ...nesting.variant };
     for (const [axis, byValue] of Object.entries(nesting.variantWhen ?? {})) {
       const v = paintCoord[axis];
       if (v !== undefined && byValue[v]) Object.assign(out, byValue[v]);
+    }
+    // `variantWhere` (#2343 PR 5): the joint mapping, after the single-axis one. The validator keeps its child axes
+    // disjoint from `variantWhen`'s and `follow`'s, and every entry on the same host axes, so at most one matches.
+    for (const w of nesting.variantWhere ?? []) {
+      if (Object.entries(w.when).every(([axis, value]) => paintCoord[axis] === value)) Object.assign(out, w.set);
     }
     for (const axis of nesting.follow ?? []) {
       const v = paintCoord[axis];
@@ -1939,8 +1954,29 @@ export const figmaAnatomyPlan = (
     // THE TYPE KEY, resolved from the coordinate like every other binding key (#1248). This lookup
     // used to expand `{size}` alone, so a def could scale its type by size and by nothing else —
     // which is exactly the constraint #872 hit and deferred here.
+    // THE LITERAL RECORD (#2343 PR 5): the entry this member's coordinate names. A part that reads it and finds none
+    // throws: an unpainted provider button is the silent-loss shape.
+    let literal: LiteralEntry | undefined;
+    if (p.literal) {
+      const key = def.literal!.key.replace(/\{([^}]+)\}/g, (_, a: string) => paintCoord[a] ?? `{${a}}`);
+      literal = def.literal!.entries[key];
+      if (!literal) throw new Error(`${def.id}: anatomy part '${name}' reads literal '${p.literal}' at ${JSON.stringify(paintCoord)}, and the literal record has no entry '${key}'`);
+    }
+    const literalFont = p.literal === 'label' ? literal?.font : undefined;
     let textStyle: string | undefined;
-    if (p.type) textStyle = figmaTextStyleName(resolveKey(p.type, 'type'));
+    // A literal font REPLACES the type binding at this member: the provider fixes the face.
+    if (p.type && !literalFont) textStyle = figmaTextStyleName(resolveKey(p.type, 'type'));
+    const literalPaints: { fills?: string[]; strokes?: string } = {};
+    if (p.literal === 'surface') {
+      const wash = literal?.wash?.[paintCoord.state ?? 'rest'];
+      const fills = [literal?.fill, wash].filter((c): c is string => !!c);
+      if (!fills.length) throw new Error(`${def.id}: anatomy part '${name}' reads literal 'surface' at ${JSON.stringify(paintCoord)} and its entry has no fill`);
+      literalPaints.fills = fills;
+      if (literal?.edge) literalPaints.strokes = literal.edge;
+    } else if (p.literal === 'label') {
+      if (!literal?.ink || literal.text === undefined) throw new Error(`${def.id}: anatomy part '${name}' reads literal 'label' at ${JSON.stringify(paintCoord)} and its entry lacks an ink or a text`);
+      literalPaints.fills = [literal.ink];
+    }
 
     // PAINT BY PART KIND, and for a box by the part's OWN DECLARATION. `label` takes ink because it is
     // text; a slot takes ink on its VECTOR descendants; a box takes the slots it names in `paintSlots`.
@@ -2052,7 +2088,7 @@ export const figmaAnatomyPlan = (
     // that part. A `characters` write on a FRAME throws, and a text part with no declared property is
     // a part whose copy nothing is claiming to own.
     // A native slot's text carries its own literal copy (#2417), since no TEXT property can reach a slot sublayer.
-    const chars = p.kind === 'text' ? (placeholder.get(name) ?? p.characters) : undefined;
+    const chars = p.kind === 'text' ? (placeholder.get(name) ?? p.characters ?? (p.literal === 'label' ? literal?.text : undefined)) : undefined;
     // #1018: the canonical set-level default (the fallback `default`, constant across the set), carried
     // on the plan ONLY where it DIVERGES from this member's own `chars` — i.e. only on a `byVariant`
     // member whose per-coordinate copy differs from the fallback. Where the two are equal (every member
@@ -2307,11 +2343,13 @@ export const figmaAnatomyPlan = (
       ...(booleanParts.has(name) ? { visibleProp: booleanParts.get(name)!.prop } : {}),
       ...(booleanParts.get(name)?.visible === false ? { visible: false as const } : {}),
       ...(textStyle ? { textStyle } : {}),
+      ...(literalFont ? { literalFont } : {}),
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
       // here and nowhere else, so this line IS the rule #1009 asked to be located.
       ...(p.kind === 'text' ? { textAlignVertical: VERTICAL_ALIGN[p.verticalAlign ?? 'center'] } : {}),
       ...(ownTarget ? { swapTarget: ownTarget } : slotDefault ? { swapTarget: slotDefault } : (p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
+      ...(Object.keys(literalPaints).length ? { literalPaints } : {}),
       ...(gradientFill ? { gradientFill } : {}),
       // An inset instance's ink travels with it, onto the child (below): the wrapper frame draws nothing.
       ...(descendantFills && glyphInset === undefined ? { descendantFills } : {}),
@@ -4503,6 +4541,37 @@ const PAYLOAD_GRADIENT = `  if(n.gradientFill){
 const GRADIENT_CLAIM_SLOT = '__GRADIENT_CLAIM__';
 const PAYLOAD_GRADIENT_CLAIM = '&&!m.gradientFill';
 const hasGradient = (n: FigmaNodePlan): boolean => n.gradientFill !== undefined || n.children.some(hasGradient);
+/** #2343 PR 5 — LITERAL PAINT AND FONT, the paste twin of the plugin executor's `literalPaints` / `literalFont`
+ *  branches, spliced only into a payload whose plans carry one, so every other payload is byte-identical. Miss
+ *  strings match the plugin's byte for byte. A literal stroke skips the bound-stroke read-back; the literal read-back
+ *  checks it by value instead. */
+const LITERAL_FILL_CLAIM_SLOT = '__LITERAL_FILL_CLAIM__';
+const LITERAL_STROKE_CLAIM_SLOT = '__LITERAL_STROKE_CLAIM__';
+const LITERAL_FILL_SLOT = '__LITERAL_FILL__';
+const LITERAL_STROKE_COND_SLOT = '__LITERAL_STROKE_COND__';
+const LITERAL_STROKE_PAINT_SLOT = '__LITERAL_STROKE_PAINT__';
+const LITERAL_FONT_SLOT = '__LITERAL_FONT__';
+const PAYLOAD_LITERAL_FILL = `  const __lit=h=>{const c=i=>parseInt(h.slice(i,i+2),16)/255,a=h.length===9?c(7):1,p={type:'SOLID',color:{r:c(1),g:c(3),b:c(5)}};if(a<1)p.opacity=a;return p;};
+  const __litHeld=(arr,want)=>Array.isArray(arr)&&arr.length===want.length&&want.every((h,i)=>{const w=__lit(h),g=arr[i],near=(a,b)=>typeof a==='number'&&Math.abs(a-b)<1/512;return g&&g.type==='SOLID'&&g.color&&near(g.color.r,w.color.r)&&near(g.color.g,w.color.g)&&near(g.color.b,w.color.b)&&near(g.opacity==null?1:g.opacity,w.opacity==null?1:w.opacity);});
+  if(n.literalPaints&&n.literalPaints.fills)node.fills=n.literalPaints.fills.map(__lit);`;
+const PAYLOAD_LITERAL_FILL_CLAIM = '&&!(m.literalPaints&&m.literalPaints.fills)';
+const PAYLOAD_LITERAL_STROKE_CLAIM = '&&!(m.literalPaints&&m.literalPaints.strokes)';
+const PAYLOAD_LITERAL_STROKE_COND = '||(n.literalPaints&&n.literalPaints.strokes)';
+const PAYLOAD_LITERAL_STROKE_PAINT = 'n.literalPaints&&n.literalPaints.strokes?__lit(n.literalPaints.strokes):';
+const LITERAL_STROKE_MARK_SLOT = '__LITERAL_STROKE_MARK__';
+const PAYLOAD_LITERAL_STROKE_MARK = 'if(!(n.literalPaints&&n.literalPaints.strokes))';
+const LITERAL_READBACK_SLOT = '__LITERAL_READBACK__';
+const PAYLOAD_LITERAL_READBACK = `  if(n.literalPaints){if(n.literalPaints.fills&&!__litHeld(node.fills,n.literalPaints.fills))misses.push(n.name+'.fills -> DISCARDED (literal '+n.literalPaints.fills.join(' + ')+' set, not retained)');if(n.literalPaints.strokes&&!__litHeld(node.strokes,[n.literalPaints.strokes]))misses.push(n.name+'.strokes -> DISCARDED (literal '+n.literalPaints.strokes+' set, not retained)');}`;
+const PAYLOAD_LITERAL_FONT = `  if(n.literalFont){
+    const f=n.literalFont;let face=null;
+    for(const want of [{family:f.family,style:f.style},f.fallback]){try{await figma.loadFontAsync(want);face=want;break;}catch(err){misses.push(n.name+'.font -> '+want.family+' '+want.style+' ('+err.message+')');}}
+    if(face){
+      try{node.fontName={family:face.family,style:face.style};node.fontSize=f.size;node.lineHeight={unit:'PIXELS',value:f.lineHeight};}catch(err){misses.push(n.name+'.literalFont -> '+face.family+' '+face.style+' '+f.size+'/'+f.lineHeight+' ('+err.message+')');}
+      const fn=node.fontName,lh=node.lineHeight;
+      if(!(fn&&typeof fn==='object'&&fn.family===face.family&&fn.style===face.style)||node.fontSize!==f.size||!(lh&&typeof lh==='object'&&lh.unit==='PIXELS'&&lh.value===f.lineHeight))misses.push(n.name+'.literalFont -> DISCARDED (set '+face.family+' '+face.style+' '+f.size+'/'+f.lineHeight+')');
+    }
+  }`;
+const hasLiteral = (n: FigmaNodePlan): boolean => n.literalPaints !== undefined || n.literalFont !== undefined || n.children.some(hasLiteral);
 /** `PAYLOAD_BUILD` for these roots: the reserved-lines write, the pinned icons, the corner pin, the root's
  *  build width, the hugging wrap's max width and the gradient fill spliced in where one of them needs it. */
 /** #2417 — the native-slot conversion, shipped only in a payload whose plans hold a slot: every byte of the build
@@ -4546,6 +4615,14 @@ const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
     .replace(MAX_WIDTH_SLOT, roots.some(hasMaxWidth) ? PAYLOAD_MAX_WIDTH : '')
     .replace(GRADIENT_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT : '')
     .replace(GRADIENT_CLAIM_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT_CLAIM : '')
+    .replace(LITERAL_FILL_CLAIM_SLOT, roots.some(hasLiteral) ? PAYLOAD_LITERAL_FILL_CLAIM : '')
+    .replace(LITERAL_STROKE_CLAIM_SLOT, roots.some(hasLiteral) ? PAYLOAD_LITERAL_STROKE_CLAIM : '')
+    .replace(LITERAL_FILL_SLOT, roots.some(hasLiteral) ? PAYLOAD_LITERAL_FILL : '')
+    .replace(LITERAL_STROKE_COND_SLOT, roots.some(hasLiteral) ? PAYLOAD_LITERAL_STROKE_COND : '')
+    .replace(LITERAL_STROKE_PAINT_SLOT, roots.some(hasLiteral) ? PAYLOAD_LITERAL_STROKE_PAINT : '')
+    .replace(LITERAL_FONT_SLOT, roots.some(hasLiteral) ? PAYLOAD_LITERAL_FONT : '')
+    .replace(LITERAL_STROKE_MARK_SLOT, roots.some(hasLiteral) ? PAYLOAD_LITERAL_STROKE_MARK : '')
+    .replace(LITERAL_READBACK_SLOT, roots.some(hasLiteral) ? PAYLOAD_LITERAL_READBACK : '')
     // A function replacer, so the shipped source is inserted as written: a string replacement reads `$` patterns.
     .replace(NEST_OVERRIDES_DEF_SLOT, () => (roots.some(hasNestOverrides) ? 'const applyNestOverrides=' + applyNestOverridesSrc() + ';' : ''))
     .replace(NEST_OVERRIDES_SLOT, () => (roots.some(hasNestOverrides) ? PAYLOAD_NEST_OVERRIDES : ''))
@@ -4604,9 +4681,9 @@ const claimDefaults=(node,n,mode,layerOp)=>{
     if(isSet){set('fills',[]);w('strokes',[{type:'SOLID',color:{r:S.r,g:S.g,b:S.b}}],[]);w('strokeWeight',S.weight,1);w('strokeAlign',S.align,'INSIDE');w('dashPattern',S.dash.slice(),[]);}
     else{
       // A TEXT fill has no neutral value — \`[]\` is invisible text — so an unpainted label is REPORTED.
-      if(!P.fills${GRADIENT_CLAIM_SLOT}){if(t==='TEXT')misses.push(where+'.fills -> UNCLAIMED on a TEXT node (reported, not neutralized: [] is invisible text; the def must declare a text paint) — #865');else set('fills',[]);}
+      if(!P.fills${GRADIENT_CLAIM_SLOT}${LITERAL_FILL_CLAIM_SLOT}){if(t==='TEXT')misses.push(where+'.fills -> UNCLAIMED on a TEXT node (reported, not neutralized: [] is invisible text; the def must declare a text paint) — #865');else set('fills',[]);}
       // The weight is gated on the plan's binding (#1228): a literal write after the bind loop UNBINDS it.
-      if(!P.strokes){set('strokes',[]);if(!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>k in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
+      if(!P.strokes${LITERAL_STROKE_CLAIM_SLOT}){set('strokes',[]);if(!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>k in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
       set('dashPattern',[]);
     }
   }
@@ -4750,6 +4827,7 @@ const build=async(n)=>{
   // The PLACEHOLDER, after the style so the copy is set on a node already carrying the right font.
   // Both orders work (measured — the style survives a prior \`characters\` write, and vice versa), so
   // this one is chosen for reading order rather than necessity.
+${LITERAL_FONT_SLOT}
   if(typeof n.characters==='string'){
     try{node.characters=n.characters;}catch(err){misses.push(n.name+'.characters -> '+JSON.stringify(n.characters)+' ('+err.message+')');}
     // READ BACK, same discipline as the bindings: a text node that silently kept nothing is exactly
@@ -4824,8 +4902,9 @@ ${PLACEMENT_SLOT}
   // \`[]\` is invisible text. Lockstep with the plugin executor's paints branch.
   else if(node.type!=='TEXT')node.fills=[];}
 ${GRADIENT_SLOT}
-  if(n.paints&&n.paints.strokes){
-    const p=paint(n.paints.strokes,'strokes');
+${LITERAL_FILL_SLOT}
+  if((n.paints&&n.paints.strokes)${LITERAL_STROKE_COND_SLOT}){
+    const p=${LITERAL_STROKE_PAINT_SLOT}paint(n.paints.strokes,'strokes');
     // A stroke variable with no strokeWeight paints nothing visible, so the border appearance would
     // bind correctly and render as no border at all.
     // A PER-SIDE weight (#2695, \`strokeEdges\`) counts as written too: the literal would overwrite all four sides.
@@ -4845,7 +4924,7 @@ ${GRADIENT_SLOT}
     // The border-box motive is moot on an absolute node anyway: with no auto-layout there is no footprint
     // for the stroke to grow. \`&&node.layoutMode\` so an undefined layoutMode (a non-auto-layout frame) is
     // skipped, not compared true against \`'NONE'\`.
-    if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight&&!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>wrote.indexOf(k)>=0))node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;}
+    if(p){node.strokes=[p];${LITERAL_STROKE_MARK_SLOT}painted.strokes=1;if(!node.strokeWeight&&!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>wrote.indexOf(k)>=0))node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;}
   }
   if(n.descendantFills){
     // The ink lives on the VECTORs INSIDE the node, never on the node itself — a fill on the wrapper is a
@@ -4871,6 +4950,7 @@ ${GRADIENT_SLOT}
   const boundPaint=(arr)=>!!(arr&&arr[0]&&arr[0].boundVariables&&arr[0].boundVariables.color);
   if(painted.fills&&!boundPaint(node.fills))misses.push(n.name+'.fills -> DISCARDED (paint set, not retained)');
   if(painted.strokes&&!boundPaint(node.strokes))misses.push(n.name+'.strokes -> DISCARDED (paint set, not retained)');
+${LITERAL_READBACK_SLOT}
   // FLOW CHILDREN FIRST, absolute ones after — two passes, because an absolute child is positioned
   // against its parent's FINAL size and the parent hugs its flow content. Positioning inside one loop
   // would read \`node.width\` mid-append and silently make the result depend on the part's ORDER in the
@@ -5370,6 +5450,8 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'card-number-field',
   // #2343 PR 4: WalletButton, a set with headers like Button's.
   'wallet-button',
+  // #2343 PR 5: SignInButton, the same.
+  'sign-in-button',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

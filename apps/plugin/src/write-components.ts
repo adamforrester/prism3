@@ -1327,6 +1327,25 @@ const SET_BORDER = {
  *  properties genuinely require the node's font to be loaded, and a TEXT plan with no `textStyle` never
  *  loaded one. A throw here would lose a member that had otherwise built correctly, to fix its
  *  alignment. */
+/** Whether a node's paints are exactly the literal colors written (#2343 PR 5): same count, each a solid of that color
+ *  and opacity, to the host's float precision. */
+export const literalHeld = (arr: unknown, want: readonly string[]): boolean => {
+  if (!Array.isArray(arr) || arr.length !== want.length) return false;
+  return want.every((hex, i) => {
+    const w = literalSolid(hex), g = arr[i] as { type?: string; color?: { r: number; g: number; b: number }; opacity?: number };
+    const near = (a: number | undefined, b: number): boolean => typeof a === 'number' && Math.abs(a - b) < 1 / 512;
+    return g?.type === 'SOLID' && !!g.color && near(g.color.r, w.color.r) && near(g.color.g, w.color.g) && near(g.color.b, w.color.b) && near(g.opacity ?? 1, w.opacity ?? 1);
+  });
+};
+
+/** A LITERAL color (#2343 PR 5, `literalPaints`) as the solid paint the host takes: `#rrggbb`, or `#rrggbbaa` whose
+ *  alpha becomes the paint's `opacity`. Exported for the paste twin's parity test. */
+export const literalSolid = (hex: string): { type: 'SOLID'; color: { r: number; g: number; b: number }; opacity?: number } => {
+  const c = (i: number): number => parseInt(hex.slice(i, i + 2), 16) / 255;
+  const a = hex.length === 9 ? c(7) : 1;
+  return { type: 'SOLID', color: { r: c(1), g: c(3), b: c(5) }, ...(a < 1 ? { opacity: a } : {}) };
+};
+
 const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode: ClaimMode, layerOpacity?: number, inPlaceMember = false): void => {
   const where = n?.name ?? 'set';
   const set = (prop: keyof CompNode, value: unknown): void => {
@@ -1424,10 +1443,11 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
       if (t === 'TEXT') {
         // NO NEUTRAL VALUE EXISTS for a text fill: `[]` is invisible text, which is a worse defect than
         // an unclaimed one and would be found by eye just as late. So an unpainted label is REPORTED.
-        if (!n?.paints?.fills) misses.push(`${where}.fills -> UNCLAIMED on a TEXT node (a label with no paint is invisible, so this is reported rather than neutralized — the def must declare a text paint) — #865`);
+        if (!n?.paints?.fills && !n?.literalPaints?.fills) misses.push(`${where}.fills -> UNCLAIMED on a TEXT node (a label with no paint is invisible, so this is reported rather than neutralized — the def must declare a text paint) — #865`);
       // A GRADIENT fill (#1318) is a claimed fill too — it lives in its own plan field, not `paints.fills`.
-      } else if (!n?.paints?.fills && !n?.gradientFill) set('fills', []);
-      if (!n?.paints?.strokes) {
+      // A LITERAL fill or stroke (#2343 PR 5) is claimed too: the plan states its color as a value.
+      } else if (!n?.paints?.fills && !n?.gradientFill && !n?.literalPaints?.fills) set('fills', []);
+      if (!n?.paints?.strokes && !n?.literalPaints?.strokes) {
         set('strokes', []);
         // Both are set by the paints branch when it strokes; neutralized together with `strokes` so the
         // three never disagree. Figma's own defaults, and invisible without a stroke to draw.
@@ -2196,6 +2216,27 @@ const writeComponentSet = async (
           catch (err) { misses.push(`${n.name}.textStyle -> ${n.textStyle} REFUSED (${(err as Error).message})`); }
         }
       }
+      // A LITERAL FONT (#2343 PR 5): the face a provider fixes, in place of a text style. The face first, then its
+      // fallback, so the label draws when the face is not installed; a face that did not load is reported by name.
+      // Written as values, read back, and lockstep with the paste executor's twin (miss strings byte for byte).
+      if (n.literalFont) {
+        const f = n.literalFont;
+        let face: { family: string; style: string } | undefined;
+        for (const want of [{ family: f.family, style: f.style }, f.fallback]) {
+          try { await api.loadFontAsync(want); face = want; break; }
+          catch (err) { misses.push(`${n.name}.font -> ${want.family} ${want.style} (${(err as Error).message})`); }
+        }
+        if (face) {
+          try {
+            node.fontName = { family: face.family, style: face.style };
+            node.fontSize = f.size;
+            node.lineHeight = { unit: 'PIXELS', value: f.lineHeight };
+          } catch (err) { misses.push(`${n.name}.literalFont -> ${face.family} ${face.style} ${f.size}/${f.lineHeight} (${(err as Error).message})`); }
+          const fn = node.fontName, lh = node.lineHeight;
+          if (!(fn && typeof fn === 'object' && fn.family === face.family && fn.style === face.style) || node.fontSize !== f.size || !(lh && typeof lh === 'object' && lh.unit === 'PIXELS' && lh.value === f.lineHeight))
+            misses.push(`${n.name}.literalFont -> DISCARDED (set ${face.family} ${face.style} ${f.size}/${f.lineHeight})`);
+        }
+      }
       // The PLACEHOLDER copy, after the style so it is written on a node already carrying the right font.
       // Both orders work (measured); this one is chosen for reading order.
       // IN PLACE, a TEXT node already bound to a property is skipped: its `characters` IS the set's one shared default
@@ -2398,6 +2439,9 @@ const writeComponentSet = async (
         // stays as the floor for any other declared-but-unresolvable fill (a stale file, a held inverse tint).
         else if (node.type !== 'TEXT') node.fills = [];
       }
+      // LITERAL PAINT (#2343 PR 5): a provider's own colors, as plain solids with no variable. Bottom to top: the fill,
+      // then the state's wash over it. A `#rrggbbaa` color's alpha is the paint's opacity. Lockstep with the paste twin.
+      if (n.literalPaints?.fills) node.fills = n.literalPaints.fills.map(literalSolid);
       // A GRADIENT FILL (#1318) — the veil's directional washes. Each stop is bound through the Paint Style
       // executor's own binder, onto the stop (`setBoundVariableForPaint` takes only a solid). A stop whose
       // variable the file lacks leaves the node CLEAR rather than half a gradient in placeholder black — #1387's rule for
@@ -2428,11 +2472,11 @@ const writeComponentSet = async (
           paintedGradient = true;
         } else node.fills = [];
       }
-      if (n.paints?.strokes) {
-        const p = paint(n.paints.strokes, 'strokes');
+      if (n.paints?.strokes || n.literalPaints?.strokes) {
+        const p = n.literalPaints?.strokes ? literalSolid(n.literalPaints.strokes) : paint(n.paints!.strokes!, 'strokes');
         if (p) {
           assignPaint('strokes', p);
-          paintedStrokes = true;
+          if (!n.literalPaints?.strokes) paintedStrokes = true;
           // A stroke variable with no weight binds correctly and paints nothing visible.
           //
           // GATED ON `wrote` (#1266). A part declaring `strokeWidth` had `strokeWeight` BOUND in the loop
@@ -2480,6 +2524,11 @@ const writeComponentSet = async (
       if (paintedFills && !boundPaint(node.fills)) misses.push(`${n.name}.fills -> DISCARDED (paint set, not retained)`);
       if (paintedGradient && !boundGradient(node.fills, n.gradientFill!.stops.length)) misses.push(`${n.name}.fills -> DISCARDED (gradient set, not retained)`);
       if (paintedStrokes && !boundPaint(node.strokes)) misses.push(`${n.name}.strokes -> DISCARDED (paint set, not retained)`);
+      // A LITERAL paint (#2343 PR 5) is read back by value: as many solids as the plan wrote, each its color.
+      for (const key of ['fills', 'strokes'] as const) {
+        const want = key === 'fills' ? n.literalPaints?.fills : n.literalPaints?.strokes ? [n.literalPaints.strokes] : undefined;
+        if (want && !literalHeld(node[key], want)) misses.push(`${n.name}.${key} -> DISCARDED (literal ${want.join(' + ')} set, not retained)`);
+      }
       return appliedStyle;
     };
     const appliedStyle = kept ? undefined : await own();

@@ -76,6 +76,8 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
 import { heightExclusions } from './branded-button';
+import { makeSignInButton } from './components/sign-in-button';
+import { BRAND_MARK_NAMES as SIGN_IN_MARK_NAMES } from './brand-mark-glyphs';
 import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter, searchField, cardNumberField, progress } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
@@ -3964,6 +3966,8 @@ for (const b of brands) {
       'search-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       // #2343 PR 4: the Card number field too.
       'card-number-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
+      // #2343 PR 5: SignInButton's Apple and Facebook spacing is Button's, per provider; Google's is Google's and fixed.
+      'sign-in-button': { keys: ['apple.padding-x', 'apple.padding-x-visual', 'apple.padding-y', 'apple.gap', 'facebook.padding-x', 'facebook.padding-x-visual', 'facebook.padding-y', 'facebook.gap', 'google.padding-x', 'google.padding-x-visual', 'google.gap'], sizes: ['small', 'medium', 'large'] },
       textarea: { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'] },
       select: { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       // #2894 (owner Q539, Q?4 A): the rows' block padding follows density too.
@@ -3994,6 +3998,12 @@ for (const b of brands) {
       'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'password-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'search-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
+      // Apple and Facebook move one step with density, Button's numbers; Google stays at 12 / 12 / 8 at every density.
+      'sign-in-button': {
+        compact: 'small 12/8/4/6/12/8/4/6/12/12/8 · medium 12/8/6/6/12/8/6/6/12/12/8 · large 20/12/6/8/20/12/6/8/12/12/8',
+        comfortable: 'small 16/12/6/8/16/12/6/8/12/12/8 · medium 16/12/8/8/16/12/8/8/12/12/8 · large 24/16/8/12/24/16/8/12/12/12/8',
+        spacious: 'small 20/16/8/12/20/16/8/12/12/12/8 · medium 20/16/12/12/20/16/12/12/12/12/8 · large 32/20/12/16/32/20/12/16/12/12/8',
+      },
       'card-number-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       textarea: { compact: 'small 12/4 · medium 12/6 · large 20/6', comfortable: 'small 16/6 · medium 16/8 · large 24/8', spacious: 'small 20/8 · medium 20/12 · large 32/12' },
       select: { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
@@ -4077,6 +4087,7 @@ for (const b of brands) {
       'search-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2343 PR 4: the Card number field, TextField's gap through the shared field factory.
       'card-number-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'sign-in-button': ['small', 'medium', 'large'].flatMap((v) => ['apple', 'google', 'facebook'].map((p) => `size.${v}.${p}.gap`)),
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       link: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2666: the label-to-separator gap inside an item, and the same gap between items.
@@ -4125,6 +4136,12 @@ for (const b of brands) {
       'password-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       'search-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       'card-number-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      // #2343 PR 5: Apple and Facebook carry Button's #326 rule; Google sets 12 at both sides (its own rule), so its
+      // icon side equals its label side and only the gap is ordered under each.
+      'sign-in-button': { prefix: 'sized', lt: [
+        ...(['apple', 'facebook'] as const).flatMap((p) => P326.map(([a, b]) => [`${p}.${a}`, `${p}.${b}`] as [string, string])),
+        ['google.gap', 'google.padding-x-visual'], ['google.gap', 'google.padding-x'],
+      ] },
       select: { prefix: 'sized', lt: [['gap', 'pad-x']] },
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
@@ -4162,7 +4179,7 @@ for (const b of brands) {
     // `padding-x-visual` while its rule stays #325-only.
     const lacks326 = (defs: readonly ComponentDef[]): string[] => defs
       .filter((d) => Object.entries(d.tokens).some(([k, ref]) => k.split('.').pop() === 'padding-x-visual' && String(ref).startsWith('space.')))
-      .filter((d) => { const lt = RULES[d.id]?.lt.map(([a, b]) => `${a}<${b}`) ?? []; return !(lt.includes('gap<padding-x-visual') && lt.includes('padding-x-visual<padding-x')); })
+      .filter((d) => { const lt = RULES[d.id]?.lt.map(([a, b]) => `${a.split('.').pop()}<${b.split('.').pop()}`) ?? []; return !(lt.includes('gap<padding-x-visual') && lt.includes('padding-x-visual<padding-x')); })
       .map((d) => d.id);
     const tagDef326 = componentDefs.find((d) => d.id === 'tag')!;
     const fixture326 = lacks326([{ ...tagDef326, tokens: { ...tagDef326.tokens, 'size.medium.padding-x-visual': 'space.100' } }]);
@@ -18608,7 +18625,7 @@ arm: {
   // drifts fails this arm by name for every def built from it, and `lint-component-surface` names each def's digest
   // (docs/34: the helper is the subject, not the oracle). BRANDED is a hand list: a branded button joins it.
   {
-    const BRANDED = ['wallet-button'];
+    const BRANDED = ['wallet-button', 'sign-in-button'];
     const RING = { kind: 'absolute', when: 'focus-visible', nests: 'focus-ring', inset: 'ring-offset', strokeInset: 'ring-width', nesting: { kind: 'nest-fixed', variant: { surface: 'default' } } };
     const SHARED_TOKENS: Record<string, string> = {
       'size.small.height': 'size.sm.height', 'size.medium.height': 'size.md.height', 'size.large.height': 'size.lg.height',
@@ -18635,6 +18652,160 @@ arm: {
     ok(JSON.stringify(ex) === JSON.stringify([{ provider: ['a'], size: ['small'] }, { provider: ['c'], size: ['small'] }, { provider: ['c'], size: ['medium'] }, { provider: ['b'], size: ['large'] }]),
       `#2343 branded-button factory: heightExclusions rules out each rung under a floor or over a ceiling, in rung order (${JSON.stringify(ex)})`);
   }
+  // #2343 PR 5 — SIGNINBUTTON HOLDS EACH PROVIDER'S RULES. Typed HERE from the providers' guidelines (the proposal's §2
+  // table, read 2026-10-27: Apple's HIG, Google's branding guidelines, Facebook's Login UX page) and the owner's calls
+  // (Q-S1 to Q-S12, all A), never read off the def or its rule record (docs/34). Each arm's mutation is in the PR's
+  // progress entry. `AWAITING` is the three pairs whose glyph is not in the mark set yet (Q-S5 A).
+  {
+    const sb = componentDefs.find((d) => d.id === 'sign-in-button')!;
+    type R = { fill: string; edge?: string; ink: string; mark: string };
+    const RULES: Record<string, R> = {
+      'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'brand-mark/provider/apple' },
+      'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'brand-mark/provider/apple-black' },
+      'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'brand-mark/provider/apple-black' },
+      'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google' },
+      'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google' },
+      'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google' },
+      'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook' },
+      'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'brand-mark/provider/facebook-blue' },
+    };
+    const AWAITING = ['apple.white', 'apple.outline', 'facebook.white'];
+    const NAME: Record<string, string> = { apple: 'Apple', google: 'Google', facebook: 'Facebook' };
+    const GOOGLE_FONT = { family: 'Google Sans', style: 'Medium', size: 14, lineHeight: 20 };
+    type N = AnatomyPlan['root'];
+    const nodes = (n: N): N[] => [n, ...(n.children ?? []).flatMap(nodes)];
+    const plans = figmaAnatomySet(sb, {});
+    const keyOf = (p: AnatomyPlan): string => `${p.coord.provider}.${p.coord.style}`;
+    const label = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.type === 'TEXT');
+    const mark = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.nestTarget?.startsWith('brand-mark/'));
+    // ARTWORK: today's members are exactly the rule pairs minus the three awaiting their glyph, 4 states × 3 sizes each.
+    const present = [...new Set(plans.map(keyOf))].sort();
+    const wantPresent = Object.keys(RULES).filter((k) => !AWAITING.includes(k)).sort();
+    ok(plans.length === 60 && JSON.stringify(present) === JSON.stringify(wantPresent),
+      `#2343 PR 5 provider rules ARTWORK: 60 members, the 5 pairs whose glyph exists (got ${plans.length}: ${present.join(', ')})`);
+    // ...and dropping the two awaited files in yields all eight pairs, 96 members, with no change to the def.
+    const full = makeSignInButton([...SIGN_IN_MARK_NAMES, 'provider/apple-black', 'provider/facebook-blue']);
+    // The glyphs are not in the registry yet, so the 96 are counted and their mapping read, not projected.
+    const fullErrs = validateComponentDef(full).errors;
+    const fullPairs = (full.variants.provider ?? []).flatMap((pv) => (full.variants.style ?? []).map((st) => ({ provider: pv, style: st })))
+      .filter((c) => !isExcludedCoordinate(full, c)).map((c) => `${c.provider}.${c.style}`).sort();
+    const fullNest = (full.anatomy!.parts.mark.nesting as { variantWhere?: { when: Record<string, string>; set: Record<string, string> }[] }).variantWhere ?? [];
+    const fullMarks = fullNest.filter((w) => `brand-mark/${w.set.name}` !== RULES[`${w.when.provider}.${w.when.style}`]?.mark).map((w) => `${w.when.provider}.${w.when.style} → ${w.set.name}`);
+    const fullLit = Object.entries(full.literal?.entries ?? {}).filter(([k, e]) => e.fill !== RULES[k]?.fill || (e.edge ?? null) !== (RULES[k]?.edge ?? null) || e.ink !== RULES[k]?.ink).map(([k]) => k);
+    ok(fullErrs.length === 0 && figmaVariantCount(full) === 96 && JSON.stringify(fullPairs) === JSON.stringify(Object.keys(RULES).sort()) && fullNest.length === 8 && fullMarks.length === 0 && fullLit.length === 0 && Object.keys(full.literal?.entries ?? {}).length === 8,
+      `#2343 PR 5 provider rules ARTWORK (data-driven): with provider/apple-black and provider/facebook-blue in the mark set the def validates with all 8 pairs, 96 members, each mapped to its own glyph and colors (errors ${fullErrs.slice(0, 2).join('; ') || 'none'}; ${figmaVariantCount(full)} members: ${fullPairs.join(', ')}; glyphs off ${fullMarks.join(', ') || 'none'}; colors off ${fullLit.join(', ') || 'none'})`);
+    // COLOR: every member's fill, edge and label ink are the provider's own, as literals, never a bound variable.
+    const checkColor = (ps: AnatomyPlan[]): string[] => ps.flatMap((p) => {
+      const r = RULES[keyOf(p)], lit = p.root.literalPaints, l = label(p);
+      const why = !r ? 'no rule' : lit?.fills?.[0] !== r.fill ? `fill ${lit?.fills?.[0]}` : (lit?.strokes ?? null) !== (r.edge ?? null) ? `edge ${lit?.strokes}`
+        : l?.literalPaints?.fills?.[0] !== r.ink || l?.literalPaints?.fills?.length !== 1 ? `ink ${JSON.stringify(l?.literalPaints)}`
+        : nodes(p.root).some((n) => n.paints?.fills || n.paints?.strokes || n.gradientFill || n.descendantFills) ? 'a bound paint' : '';
+      return why ? [`${planComponentName(p)}: ${why}`] : [];
+    });
+    const offColor = checkColor(plans);
+    ok(offColor.length === 0, `#2343 PR 5 provider rules COLOR: every member's fill, 1px edge and label ink are the provider's published values, as literals with no bound paint (${offColor.slice(0, 3).join('; ') || 'clean'})`);
+    // WASH: hover and pressed lay one translucent paint over the fill; the fill under it never changes; rest and
+    // focus-visible have the fill alone.
+    const offWash = plans.flatMap((p) => {
+      const f = p.root.literalPaints?.fills ?? [], washed = p.coord.state === 'hover' || p.coord.state === 'pressed';
+      const alpha = f[1]?.length === 9 ? parseInt(f[1].slice(7), 16) / 255 : 1;
+      return (washed ? f.length === 2 && alpha > 0 && alpha < 0.5 : f.length === 1) ? [] : [`${planComponentName(p)}: ${JSON.stringify(f)}`];
+    });
+    const pressedDeeper = plans.filter((p) => p.coord.state === 'pressed').every((p) => {
+      const h = plans.find((q) => q.coord.state === 'hover' && keyOf(q) === keyOf(p) && q.size === p.size);
+      return !!h && parseInt(p.root.literalPaints!.fills![1].slice(7), 16) > parseInt(h.root.literalPaints!.fills![1].slice(7), 16);
+    });
+    ok(offWash.length === 0 && pressedDeeper, `#2343 PR 5 provider rules WASH: hover and pressed lay a translucent wash over an unchanged fill, pressed deeper than hover, and rest and focus-visible show the fill alone (${offWash.slice(0, 3).join('; ') || 'clean'}; pressed deeper: ${pressedDeeper})`);
+    // FONT: Google Sans Medium 14/20 on every Google member at every size; the brand's label type elsewhere (Q-S7 A).
+    const offFont = plans.flatMap((p) => {
+      const l = label(p), f = l?.literalFont;
+      const google = p.coord.provider === 'google';
+      const why = google
+        ? (!f || f.family !== GOOGLE_FONT.family || f.style !== GOOGLE_FONT.style || f.size !== GOOGLE_FONT.size || f.lineHeight !== GOOGLE_FONT.lineHeight || !f.fallback?.family || l?.textStyle ? `font ${JSON.stringify(f)} style ${l?.textStyle}` : '')
+        : (f || !/^label\/(sm|md|lg)\/emphasis$/.test(String(l?.textStyle).replace(/^.*?(label\/)/, 'label/')) ? `font ${JSON.stringify(f)} style ${l?.textStyle}` : '');
+      return why ? [`${planComponentName(p)}: ${why}`] : [];
+    });
+    ok(offFont.length === 0, `#2343 PR 5 provider rules FONT: Google members set Google Sans Medium 14/20 as a literal with a fallback at every size, and Apple and Facebook take the brand's label emphasis style (${offFont.slice(0, 3).join('; ') || 'clean'})`);
+    // WIDTH: Apple's 140 floor, the largest of the three, on every member.
+    const narrow = plans.filter((p) => !(typeof p.root.minWidth === 'number' && p.root.minWidth >= 140)).map(planComponentName);
+    ok(narrow.length === 0, `#2343 PR 5 provider rules WIDTH: every member's width floor is at least 140 (${narrow.slice(0, 3).join(', ') || 'clean'})`);
+    // PARITY: every provider in a stack is the same height at a size (Apple's and Google's parity rules, Q-S3 A).
+    const heights = new Map<string, Set<string>>();
+    for (const p of plans) heights.set(String(p.size), (heights.get(String(p.size)) ?? new Set()).add(String(p.root.bound?.height)));
+    ok([...heights.values()].every((h) => h.size === 1) && heights.size === 3, `#2343 PR 5 provider rules PARITY: one height per size across every provider (${[...heights].map(([s, h]) => `${s}: ${[...h].join('|')}`).join('; ')})`);
+    // MARK: the provider's own glyph for the style, nested whole, height bound, width from its proportion, own paint.
+    const offMark = plans.flatMap((p) => {
+      const n = mark(p), want = RULES[keyOf(p)]?.mark;
+      const why = !n ? 'no mark' : n.nestTarget !== want ? `nests ${n.nestTarget}, not ${want}` : !n.fixedPaint ? 'no fixedPaint' : !n.aspectLock ? 'no aspect lock' : n.bound?.width ? 'binds a width' : !n.bound?.height ? 'binds no height' : n.nestOverrides?.length ? 'carries overrides' : '';
+      return why ? [`${planComponentName(p)}: ${why}`] : [];
+    });
+    ok(offMark.length === 0, `#2343 PR 5 provider rules MARK: each member nests its provider's own glyph for its style, unaltered (${offMark.slice(0, 3).join('; ') || 'clean'})`);
+    // WORDING: "Continue with <Provider>" in Figma, with no TEXT property (Q-S8 A); the code prop takes the provider's list.
+    const offWord = plans.flatMap((p) => {
+      const l = label(p);
+      return l?.characters === `Continue with ${NAME[String(p.coord.provider)]}` && !l.propertyRef ? [] : [`${planComponentName(p)}: ${JSON.stringify(l?.characters)}${l?.propertyRef ? ' with a text property' : ''}`];
+    });
+    const wording = sb.props.find((pr) => pr.name === 'wording')?.description ?? '';
+    ok(offWord.length === 0 && Object.keys(sb.figmaProperties?.texts ?? {}).length === 0 && /Apple continue, sign-in, sign-up/.test(wording) && /Google continue, sign-in, sign-up/.test(wording) && /Facebook continue, login/.test(wording),
+      `#2343 PR 5 provider rules WORDING: every label reads Continue with <Provider> with no text property, and the wording prop lists each provider's own words (${offWord.slice(0, 3).join('; ') || 'clean'}; prop '${wording.slice(0, 120)}')`);
+    // NAME: the visible wording is the accessible name (SC 2.5.3); no aria-label; the glyph decorative.
+    const nameLine = (sb.anatomy?.codeOnly ?? []).find((c) => c.startsWith('the accessible name — ')) ?? '';
+    ok(/named by its visible wording/.test(sb.accessibility.aria) && /Add no label of your own/.test(sb.accessibility.aria) && /No aria-label is added/.test(nameLine) && /aria-hidden/.test(nameLine) && sb.accessibility.wcag.some((w) => w.startsWith('2.5.3')),
+      `#2343 PR 5 provider rules NAME: the visible wording is the accessible name, no aria-label is added and the glyph is hidden (aria '${sb.accessibility.aria.slice(0, 80)}'; codeOnly '${nameLine.slice(0, 80) || 'missing'}')`);
+    // CONTRAST, from the typed values: each style's ink on its fill clears 4.5:1, except Facebook's two styles, which
+    // measure 4.23:1 on the provider's own blue. A known shortfall, recorded rather than failed, and stated in the docs.
+    const lum = (hex: string): number => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const ratio = (a: string, b: string): number => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+    const SHORTFALL: Record<string, number> = { 'facebook.blue': 4.23, 'facebook.white': 4.23 };
+    const offContrast = Object.entries(RULES).flatMap(([k, r]) => {
+      const c = ratio(r.ink, r.fill);
+      return (k in SHORTFALL ? Math.abs(c - SHORTFALL[k]) < 0.01 : c >= 4.5) ? [] : [`${k}: ${c.toFixed(2)}:1`];
+    });
+    ok(offContrast.length === 0 && sb.accessibility.wcag.some((w) => /4\.23:1/.test(w)), `#2343 PR 5 provider rules CONTRAST: every style's label clears 4.5:1 on its fill, and Facebook's two styles measure the known 4.23:1, stated in the docs (${offContrast.join('; ') || 'clean'})`);
+  }
+  // #2343 PR 5 — THE LITERAL RECORD STAYS WHERE IT WAS DECIDED. A literal is a value no theme moves, so a def that
+  // carries one is listed here by name; a second def reaching for it fails until its own decision lands (docs/34: the
+  // list is the owner's, not derived). The validator's refusals are driven on a copy of SignInButton.
+  {
+    const LITERAL_DEFS = ['sign-in-button'];
+    const carrying = componentDefs.filter((d) => d.literal || Object.values(d.anatomy?.parts ?? {}).some((p) => p.literal)).map((d) => d.id).sort();
+    ok(JSON.stringify(carrying) === JSON.stringify(LITERAL_DEFS), `#2343 PR 5 literal paint: only the defs the owner decided carry a literal record (${carrying.join(', ') || 'none'})`);
+    const sb = componentDefs.find((d) => d.id === 'sign-in-button')!;
+    const withPart = (name: string, patch: Partial<PartDef>): ComponentDef => ({ ...sb, anatomy: { ...sb.anatomy!, parts: { ...sb.anatomy!.parts, [name]: { ...sb.anatomy!.parts[name], ...patch } as PartDef } } });
+    const errs = (d: ComponentDef): string[] => validateComponentDef(d).errors;
+    const firstKey = Object.keys(sb.literal!.entries)[0];
+    const withEntry = (patch: object): ComponentDef => ({ ...sb, literal: { ...sb.literal!, entries: { ...sb.literal!.entries, [firstKey]: { ...sb.literal!.entries[firstKey], ...patch } } } });
+    const cases: [string, ComponentDef, RegExp][] = [
+      ['a literal part beside paintSlots', withPart('container', { paintSlots: ['fill'] }), /beside the paint grammar/],
+      ['literal surface on a text part', withPart('label', { literal: 'surface' }), /declares literal 'surface'/],
+      ['a literal part on a def with no record', { ...sb, literal: undefined }, /carries no 'literal' record/],
+      ['an uppercase color', withEntry({ fill: '#FFFFFF' }), /is not a lowercase #rrggbb/],
+      ['an opaque wash', withEntry({ wash: { hover: '#000000' } }), /not a translucent #rrggbbaa/],
+      ['a wash at a state the def lacks', withEntry({ wash: { disabled: '#0000001a' } }), /names a state the def does not have/],
+      ['a key on an unprojected axis', { ...sb, literal: { ...sb.literal!, key: '{surface}' } }, /not a projected variant axis/],
+      ['a line height under the size', withEntry({ font: { family: 'X', style: 'Medium', size: 14, lineHeight: 12, fallback: { family: 'Y', style: 'Medium' } } }), /a line height at least the size/],
+    ];
+    const missed = cases.filter(([, d, re]) => !errs(d).some((e) => re.test(e))).map(([why]) => why);
+    ok(errs(sb).length === 0 && missed.length === 0, `#2343 PR 5 literal paint: the validator refuses each malformed literal by name (missed: ${missed.join(', ') || 'none'})`);
+    // A projected member whose coordinate names no entry throws, never projects unpainted.
+    const missingEntry: ComponentDef = { ...sb, literal: { ...sb.literal!, entries: Object.fromEntries(Object.entries(sb.literal!.entries).filter(([k]) => k !== 'google.dark')) } };
+    let threw = '';
+    try { figmaAnatomySet(missingEntry, {}); } catch (err) { threw = (err as Error).message; }
+    ok(/has no entry 'google\.dark'/.test(threw), `#2343 PR 5 literal paint: a member whose coordinate names no literal entry throws at projection (got ${threw.slice(0, 120) || 'no throw'})`);
+    // variantWhere: the joint mapping's refusals.
+    const mk = sb.anatomy!.parts.mark;
+    const nest = mk.nesting as Extract<NonNullable<PartDef['nesting']>, { kind: 'nest-fixed' }>;
+    const withWhere = (vw: unknown): ComponentDef => withPart('mark', { nesting: { ...nest, variantWhere: vw as never } });
+    const whereCases: [string, ComponentDef, RegExp][] = [
+      ['entries on different axis sets', withWhere([{ when: { provider: 'apple', style: 'black' }, set: { name: 'provider/apple' } }, { when: { provider: 'google' }, set: { name: 'provider/google' } }]), /Name the same host axes in every entry/],
+      ['an unprojected axis', withWhere([{ when: { surface: 'inverse' }, set: { name: 'provider/apple' } }]), /not an axis this def PROJECTS/],
+      ['a value the axis lacks', withWhere([{ when: { provider: 'twitter', style: 'black' }, set: { name: 'provider/apple' } }]), /not a projected value of 'provider'/],
+      ['a repeated when', withWhere([{ when: { provider: 'apple', style: 'black' }, set: { name: 'provider/apple' } }, { when: { provider: 'apple', style: 'black' }, set: { name: 'provider/google' } }]), /repeats a 'when'/],
+      ['a set axis the variant lacks', withWhere([{ when: { provider: 'apple', style: 'black' }, set: { kind: 'provider' } }]), /which its 'variant' does not name/],
+    ];
+    const whereMissed = whereCases.filter(([, d, re]) => !errs(d).some((e) => re.test(e))).map(([why]) => why);
+    ok(whereMissed.length === 0, `#2343 PR 5 variantWhere: the validator refuses each unsafe joint mapping by name (missed: ${whereMissed.join(', ') || 'none'})`);
+  }
   // #2713 — `ai.generationPriority` follows the build-component skill's written scale. Before it, each def's
   // number was set alone, so parts an agent must never generate on their own ranked from 2 to 9 and the
   // focus ring sat level with Text field. The tier of each def is a HAND-WRITTEN literal here, not read
@@ -18646,7 +18817,7 @@ arm: {
     const SCALE = [1, 2, 3, 4, 5, 6, 9];
     const TIER: Record<string, number> = {
       button: 1,
-      'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
+      'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'sign-in-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
       'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
@@ -21006,6 +21177,9 @@ arm: {
       // CODE INPUT (#2428, Q330 A): the cell's character binds four rungs, 16 / 20 / 24 / 40. It exists only where the
       // cell holds a character.
       { def: componentDefs.find((d) => d.id === 'code-input-cell')!, part: 'digit', axes: { size: 4 }, at: { state: 'filled' } },
+      // SIGNINBUTTON (#2343 PR 5): the label emphasis style per size, on Apple and Facebook; Google's label sets a literal
+      // font instead (Q-S7 A), so its members carry no style and are not in this grid.
+      { def: componentDefs.find((d) => d.id === 'sign-in-button')!, part: 'label', axes: { size: 3 }, at: { provider: 'apple', style: 'black' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -22696,6 +22870,44 @@ arm: {
       }
       ok(pasted === 4 && tiles === 2 && bad.length === 0,
         `#2343 Q720 A paste executor: a payment tile's frame reads back with radius/sm corners, a border-width/hairline edge in color/border/primary, and clips; a square mark's or a logo's has no edge (${bad.join(' | ') || 'clean'})`);
+    }
+
+    // ---- #2343 PR 5: SignInButton's literal paint and font through the PASTE executor ----
+    // The plugin leg is in test-write-components (`sign-in build/literal`). Values typed from the guidelines; misses
+    // read for the literal channels only (the nested glyph has no component in this stub file).
+    {
+      const sb = componentDefs.find((x) => x.id === 'sign-in-button')!;
+      const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+      const same = (p: { type?: string; color?: { r: number; g: number; b: number }; opacity?: number } | undefined, hex: string): boolean =>
+        !!p && p.type === 'SOLID' && !!p.color && rgb(hex).every((v, i) => Math.abs(v - [p.color!.r, p.color!.g, p.color!.b][i]) < 1 / 512)
+        && Math.abs((p.opacity ?? 1) - (hex.length === 9 ? parseInt(hex.slice(7), 16) / 255 : 1)) < 1 / 512;
+      const CASES = [
+        { coord: { provider: 'google', style: 'light', state: 'hover' }, size: 'medium', fills: ['#ffffff', '#0000001a'], edge: '#747775', ink: '#1f1f1f', font: 'Google Sans', word: 'Continue with Google' },
+        { coord: { provider: 'apple', style: 'black', state: 'rest' }, size: 'large', fills: ['#000000'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Apple' },
+        { coord: { provider: 'facebook', style: 'blue', state: 'pressed' }, size: 'small', fills: ['#1877f2', '#ffffff33'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Facebook' },
+      ];
+      const bad: string[] = [];
+      for (const c of CASES) {
+        const plan = figmaAnatomyPlan(sb, c.size, c.coord as never);
+        const page: StubPage = { children: [] };
+        const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page });
+        const walk = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(walk)];
+        const all = page.children.flatMap((x) => walk(x as Record<string, unknown>));
+        const box = all.find((n) => n.name === 'container' || (Array.isArray(n.fills) && (n.children as unknown[] | undefined)?.length)) as Record<string, unknown> | undefined;
+        const text = all.find((n) => n.type === 'TEXT');
+        const fills = (box?.fills ?? []) as Array<{ type?: string; color?: { r: number; g: number; b: number }; opacity?: number }>;
+        const strokes = (box?.strokes ?? []) as typeof fills;
+        const font = text?.fontName as { family?: string } | undefined;
+        const litMisses = run.misses.filter((m) => /\.(fills|strokes|font|literalFont|characters) ->|THREW/.test(m) && !/^mark/.test(m));
+        const why = fills.length !== c.fills.length || !c.fills.every((h, i) => same(fills[i], h)) ? `fills ${JSON.stringify(fills)}`
+          : (c.edge ? !same(strokes[0], c.edge) : strokes.length !== 0) ? `strokes ${JSON.stringify(strokes)}`
+          : !same(((text?.fills ?? []) as typeof fills)[0], c.ink) ? `ink ${JSON.stringify(text?.fills)}`
+          : text?.characters !== c.word ? `wording ${String(text?.characters)}`
+          : c.font && !(font?.family === c.font && text?.fontSize === 14) ? `font ${JSON.stringify(font)}`
+          : litMisses.length ? litMisses[0] : '';
+        if (why) bad.push(`${JSON.stringify(c.coord)}: ${why}`);
+      }
+      ok(bad.length === 0, `#2343 PR 5 paste executor: SignInButton's literal fill, wash, edge, label ink, wording and Google's font land as plain values, nothing discarded (${bad.join(' | ') || 'clean'})`);
     }
 
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------
@@ -31513,6 +31725,10 @@ arm: {
     // one short word that never wraps (divider.ts codeOnly), and the root is exactly one label line box tall.
     'divider.container':
       "a labeled divider's label is one short word that never wraps and the root is one label line box tall, so the two lines center against the only line; the plain rule stretches across and is not moved by it.",
+    // `sign-in-button` (#2343 PR 5): the button is one fixed height and its wording is one short line that never wraps
+    // (the provider's own words), so the glyph centers against the only line, as Button's icon does.
+    'sign-in-button.container':
+      "a sign-in button is one fixed height and its label is the provider's one-line wording, which never wraps, so the glyph centers against the only line, as on Button.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -35412,6 +35628,10 @@ arm: {
     // #2343 PR 4: a wallet button always names its provider, so the prop is required and has no default to match. Figma
     // still needs a first member; apple-pay leads, in the proposal's order.
     'wallet-button.provider': { prop: 'provider', map: { undefined: 'apple-pay' }, reason: 'provider is required in code (a wallet button always names its wallet), so Figma\'s first member stands in: apple-pay, the proposal\'s first' },
+    // #2343 PR 5: a sign-in button always names its provider, and its style defaults per provider (black, light, blue,
+    // Q-S4 A), so neither has one code default. Figma's first member is Apple's own default, apple black.
+    'sign-in-button.provider': { prop: 'provider', map: { undefined: 'apple' }, reason: 'provider is required in code (a sign-in button always names its provider), so Figma\'s first member stands in: apple, the owner\'s first' },
+    'sign-in-button.style': { prop: 'style', map: { undefined: 'black' }, reason: 'style defaults per provider in code (black, light, blue; Q-S4 A), so no one value answers it; the first member is Apple\'s default, black' },
     // #3051 (owner Q3051.1 A): code has no labeled prop. A non-empty `label` is the labeled divider; unset, the plain rule.
     'divider.labeled': { prop: 'label', map: { undefined: 'false' }, reason: 'a divider is labeled by setting `label`; with no label it is the plain rule' },
     'breadcrumbs.path': { prop: 'responsive', map: { undefined: 'full', false: 'full', true: 'full' }, reason: 'Breadcrumbs renders the trail by default; `responsive` only swaps in the parent link below 480px' },
