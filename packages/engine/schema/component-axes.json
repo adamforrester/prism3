@@ -397,6 +397,40 @@
       "↳ swap trailing icon": "INSTANCE_SWAP"
     }
   },
+  "card-number-field": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "read-only",
+        "rest"
+      ],
+      "status": [
+        "default",
+        "error",
+        "success",
+        "warning"
+      ]
+    },
+    "members": 84,
+    "properties": {
+      "card mark": "BOOLEAN",
+      "leading icon": "BOOLEAN",
+      "message": "BOOLEAN",
+      "placeholder": "TEXT",
+      "value": "TEXT",
+      "↳ swap card mark": "INSTANCE_SWAP",
+      "↳ swap leading icon": "INSTANCE_SWAP"
+    }
+  },
   "checkbox-control": {
     "axes": {
       "selection": [

@@ -149,14 +149,18 @@ const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<Shi
   // the same file (`liveRoot`), so each nested instance has the properties its set really declared, `#id` suffixes and
   // all. Against a catalog name with nothing behind it there is no property to set, and the round-trip would be
   // measuring the harness.
+  // A SLOT THAT STARTS AT A BRAND MARK (#2343 PR 4, the Card number field's tile) is built the same way: the plugin builds
+  // the mark first (`prebuildDependencies`), so the swap is an instance of the real mark, whose own extent the aspect lock
+  // reads. Against the FPO catalog name alone there is no mark, and the instance would be measuring the harness.
+  const marks = plans.some((p) => JSON.stringify(p.root).includes('"swapTarget":"brand-mark/'));
   // So is a plan that LOCKS a nested instance to its main's proportion (#2343 PR 2, WalletButton's logo, PR 4): the
   // executor reads the proportion off the main component, and a bare catalog name has no size to read, so the built
   // standalone components answer as themselves (`liveComponents`), as Figma's do.
   const locks = plans.some((p) => JSON.stringify(p.root).includes('"aspectLock"'));
-  const overrides = locks || plans.some((p) => JSON.stringify(p.root).includes('"nestOverrides"'));
+  const overrides = marks || locks || plans.some((p) => JSON.stringify(p.root).includes('"nestOverrides"'));
   // Only the FPO swap target is a catalog name then: a nested def's own name must answer as the set built here, never as
   // a bare component of that name, which a plain-component lookup would find first.
-  const shim = makeShim({ ...fullFor(overrides ? [...plans, ...ALL_PLANS()] : plans), ...(overrides ? { comps: [SWAP_TARGET], liveRoot: true } : {}), ...(locks ? { liveComponents: true } : {}), page, ...extra });
+  const shim = makeShim({ ...fullFor(overrides ? [...plans, ...ALL_PLANS()] : plans), ...(overrides ? { comps: [SWAP_TARGET], liveRoot: true } : {}), ...(marks || locks ? { liveComponents: true } : {}), page, ...extra });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
   if (overrides) await prebuildDependencies(def, { defs: componentDefs, project: (d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), host: shim as any, build: (d) => applyComponentPlan(figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }) });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
@@ -701,6 +705,40 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // one fails here rather than the block quietly checking fewer frames.
     for (const ratio of Object.keys(CONTRACT))
       ok(seenRatios.has(ratio), `aspect-lock: a member for the owner-decided ratio ${ratio} was built (scope floor)`);
+  }
+}
+
+// ── THE PAYMENT TILE, READ BACK (#2343 PR 4) — THE INDEPENDENT ORACLE FOR A SLOT'S LOCK ───────────
+//
+// The diff above holds the plan's promise for the Card number field's tile: the instance is locked. What the plan does
+// not state is WHICH proportion, because it belongs to the component swapped in. This block authors it: the tile
+// artboard is 8:5 (32×20, owner decisions Q720 A and Q780 A), so every member's built tile is an instance of the generic
+// tile, locked at 1.6, its height bound to the icon rung of the member's size (20 / 20 / 24). Built the way the plugin
+// builds it, the marks first, so the instance's main is the real mark. A mark artboard redrawn square, a lock taken from
+// the slot instead of its main, or a height rung moved in the def each fail here by name.
+{
+  const TILE_RATIO = 32 / 20;
+  const HEIGHT: Record<string, string> = { small: 'icon/size/sm', medium: 'icon/size/sm', large: 'icon/size/md' };
+  const def = componentDefs.find((d) => d.id === 'card-number-field');
+  ok(!!def, 'payment tile: the card-number-field def is registered and projects');
+  if (def) {
+    const r = await roundTrip(def);
+    const find = (n: HostNode, name: string): HostNode | undefined => (n.name === name ? n : ((n.children as HostNode[] | undefined) ?? []).map((c) => find(c, name)).find(Boolean));
+    const byName = new Map(r.hostMembers.map((m) => [String(m.name ?? ''), m] as const));
+    const bad: string[] = [];
+    for (const plan of r.plans) {
+      const m = byName.get(planComponentName(plan));
+      const tile = m ? find(m, 'cardMark') : undefined;
+      const v = (tile as { targetAspectRatio?: { x?: unknown; y?: unknown } | null } | undefined)?.targetAspectRatio;
+      const got = v && typeof v.x === 'number' && typeof v.y === 'number' && v.y ? v.x / v.y : undefined;
+      const main = (tile as { mainComponent?: { name?: unknown } | null } | undefined)?.mainComponent;
+      const h = r.ports.varName(String(((tile?.boundVariables as Record<string, { id?: unknown } | undefined> | undefined)?.height?.id) ?? ''));
+      const want = HEIGHT[String(plan.size)];
+      if (got === undefined || Math.abs(got - TILE_RATIO) > 1e-6 || !/^brand-mark\/[a-z]+\/generic$/.test(String(main?.name)) || !want || !String(h ?? '').endsWith(want))
+        bad.push(`${planComponentName(plan)}: ratio ${got === undefined ? JSON.stringify(v) : got.toFixed(4)}, instance of ${String(main?.name)}, height ${String(h)}`);
+    }
+    ok(r.plans.length === 84 && bad.length === 0,
+      `payment tile: on all ${r.plans.length} members the built tile is an instance of the generic tile, locked at 8:5 (1.6000), its height the icon rung of the member's size${bad.length ? ` — WRONG on ${bad.length}: ${bad.slice(0, 3).join(' | ')}` : ''}`);
   }
 }
 
