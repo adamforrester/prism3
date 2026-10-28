@@ -34,13 +34,16 @@ unchanged, so `EXECUTOR_REVISION` stays.
   A). So a set current by its print shows as current at once, and `restampQuiet` (`main.ts`) records it under today's
   engine after the next Apply Theme, build or update apply (not after the update's check, which is a read). It records
   against the stored brand only the sets whose plans print as recorded, so it is right after any write. It also gives an
-  entry from before this change, under today's engine, its print. Until then each load prints the stale sets again.
+  entry from before this change, under today's engine, its print (`q811/migrate`). Until then each load prints the stale sets again.
 
-### Q811.1 — does an executor revision still make every set due? Built: yes (A)
+### Q811.1 — does an executor revision still make every set due? Decided: yes (A)
+
+**Decided A (owner, 2026-10-27, Q820 A); C filed as #3101.** An `EXECUTOR_REVISION` change keeps every recorded set
+due, as built. The follow-up, #3101, records which sets each executor change reaches, so only those come up.
 
 ```text
 Q811.1. An EXECUTOR_REVISION move: due, or read by the plan?
-   A (built) Every recorded set is due ("Engine update: Prism3 draws components differently"). A plan print cannot
+   A (owner) Every recorded set is due ("Engine update: Prism3 draws components differently"). A plan print cannot
              see the executor: the revision moves exactly when the code that turns a plan into layers moves
              (executor-revision.ts: 7 of 22 pipeline commits changed the executor alone and moved no plan byte), and
              the update's own dry run reads every member stamped under another revision as one to update
@@ -48,7 +51,7 @@ Q811.1. An EXECUTOR_REVISION move: due, or read by the plan?
              with the full check and the agent's update-components.
    B         Read a revision move by the plan print, as an engine move. Fewer due sets; misses executor-only
              drawing fixes until the set's plan next moves.
-   C (rec)   A revision names the sets it reaches (a declared list beside EXECUTOR_REVISION, lint-enforced), and
+   C (#3101) A revision names the sets it reaches (a declared list beside EXECUTOR_REVISION, lint-enforced), and
              only those are due. Precise, but a new declaration for every executor change: its own PR.
 ```
 
@@ -74,6 +77,7 @@ Each mutation was made on a committed tree and failed by name:
 | Review M6: `fileSets` prints against the stored brand (`printNow()`) | `test-build-completed.ts`: "q811/panel brand: under an engine move, a lever changed in the panel and not yet applied makes the set due …" |
 | `dueWhy` words a missing list as an empty one | `test-update-file.ts`: "#3090 finding 1 why: an engine update over a set recorded with no print says so …" |
 | The adapter invents an empty `moved` list | `test-write-adapter.ts`: "file-sets with an engine due reading and no moved list keeps the set due with none" |
+| `restampQuiet`'s stale filter loses `!ledger[id].print` (review's nit) | `test-build-completed.ts`: "q811/migrate: the next write gives a print-less entry under today's engine its print" |
 
 `paints` belongs in the deciding hash: a paint binding the engine moves is a drawing change. The hash is the whole
 projection; the per-facet arms (`q811/facet <facet>`, one per facet plus the variants' own fields) hold that each

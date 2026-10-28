@@ -25,12 +25,12 @@
  * not built: the apply's hash covers only the sets it acts on, so it would record sets from a check it did not
  * re-verify, and when the check finds nothing to change there is no apply at all.
  *
- * WHY A REVISION MOVE STILL MAKES A SET DUE (Q811.1, decided here on the evidence). A plan print cannot see the
- * executor: `EXECUTOR_REVISION` moves exactly when the code that turns a plan into layers moves (`executor-revision.ts`:
+ * WHY A REVISION MOVE STILL MAKES A SET DUE (Q811.1, the owner's decision Q820 A, 2026-10-27). A plan print cannot
+ * see the executor: `EXECUTOR_REVISION` moves exactly when the code that turns a plan into layers moves (`executor-revision.ts`:
  * 7 of 22 pipeline commits changed the executor alone and no plan byte), and the update's own dry run reads every
  * member stamped under another revision as one to update (`update-plan.ts`, `revField !== rev`). Calling such a set
  * current would hide a drawing change and disagree with the full check. The cost is the coarse signal for those
- * releases only; narrowing it (a revision naming the sets it reaches) is the owner's call, held as Q811.1.
+ * releases only; narrowing it (an executor change naming the sets it reaches) is the follow-up, #3101.
  *
  * WHAT IT CANNOT SEE: hand edits. Those need the members read, which the background pass after load does a set at a
  * time (`handEditsOf`, `update-plan.ts`), and the full check scoped to the flagged sets does again, exactly, before

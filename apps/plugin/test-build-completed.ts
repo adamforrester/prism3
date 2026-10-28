@@ -47,7 +47,8 @@
  * `q811/restamp`; the update's record without its print AND `restampQuiet` a no-op → `ledger/print` (either alone is
  * covered by the other: the quiet re-record gives a no-print entry its print); `dueOf` reading a print-less entry under a
  * moved engine `unrecorded` → `q811/unprinted` (#3090 finding 1); `fileSets` printing against the stored brand,
- * `printNow()` → `q811/panel brand` (#3090 M6, section 6). Q699 A
+ * `printNow()` → `q811/panel brand` (#3090 M6, section 6); `restampQuiet`'s stale filter losing `!ledger[id].print`, so a
+ * print-less entry under today's engine never gains its print → `q811/migrate`. Q699 A
  * (section 6): `main.ts`'s `brandOf` reading the stored brand whatever the panel sends → `q699/due` and `q699/update`
  * ("Nothing was updated: the file changed since the check"). #3023 Q701 B (section 6b): the panel's `brandFor` sending its own brand with
  * Theme unticked → `q701/update writes A`, `q701/next load`. The hand-edit pass (section 7): `stale()` cut to
@@ -291,6 +292,15 @@ pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRe
 await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
 ok(ledger().badge?.engine !== OLD && ledger().badge?.print?.plan === asRecorded.print!.plan,
   `q811/restamp: the next write records the quiet set under today's engine, its print kept (${JSON.stringify({ engine: ledger().badge?.engine, plan: ledger().badge?.print?.plan })})`);
+// An entry from before Q811 A (no print) under TODAY's engine reads current, and the next write gives it its print.
+const { print: _q, ...printless } = asRecorded;
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: printless } }));
+const fsT = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsT?.due?.badge) === JSON.stringify({ state: 'current' }) && !ledger().badge?.print,
+  `q811/migrate: a print-less entry under today's engine reads current, and the read records nothing (${JSON.stringify({ due: fsT?.due?.badge, print: !!ledger().badge?.print })})`);
+await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
+ok(ledger().badge?.engine === asRecorded.engine && ledger().badge?.print?.plan === asRecorded.print!.plan,
+  `q811/migrate: the next write gives a print-less entry under today's engine its print (${JSON.stringify({ engine: ledger().badge?.engine, plan: ledger().badge?.print?.plan ?? null })})`);
 // #3090 finding 1: an entry from before Q811 A (no print) under an older engine. It reads due for the engine, naming
 // nothing, never "not checked yet"; a write does not record it quietly, nor does the check; the update's apply does,
 // with its print, and the next read finds it current.
