@@ -1682,7 +1682,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Primary outline hover fill — opaque, the label and icon clear their floor on it",
+      "description": "Primary outline hover fill — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.9098039269447327,
         "g": 0.9137254953384399,
@@ -1701,7 +1701,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Primary outline pressed fill — opaque, the label and icon clear their floor on it",
+      "description": "Primary outline pressed fill — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.8549019694328308,
         "g": 0.8627451062202454,
@@ -2080,7 +2080,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Destructive outline hover fill — opaque, the label and icon clear their floor on it",
+      "description": "Destructive outline hover fill — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.9098039269447327,
         "g": 0.9137254953384399,
@@ -2099,7 +2099,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Destructive outline pressed fill — opaque, the label and icon clear their floor on it",
+      "description": "Destructive outline pressed fill — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.8549019694328308,
         "g": 0.8627451062202454,
@@ -2455,7 +2455,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Neutral outline hover fill — opaque, the label and icon clear their floor on it",
+      "description": "Neutral outline hover fill — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.9098039269447327,
         "g": 0.9137254953384399,
@@ -2474,7 +2474,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Neutral outline pressed fill — opaque, the label and icon clear their floor on it",
+      "description": "Neutral outline pressed fill — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.8549019694328308,
         "g": 0.8627451062202454,
@@ -4338,7 +4338,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Primary outline hover fill on inverse — opaque, the label and icon clear their floor on it",
+      "description": "Primary outline hover fill on inverse — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.08235294371843338,
         "g": 0.09019608050584793,
@@ -4357,7 +4357,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Primary outline pressed fill on inverse — opaque, the label and icon clear their floor on it",
+      "description": "Primary outline pressed fill on inverse — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.12156862765550613,
         "g": 0.13333334028720856,
@@ -4713,7 +4713,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Destructive outline hover fill on inverse — opaque, the label and icon clear their floor on it",
+      "description": "Destructive outline hover fill on inverse — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.08235294371843338,
         "g": 0.09019608050584793,
@@ -4732,7 +4732,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Destructive outline pressed fill on inverse — opaque, the label and icon clear their floor on it",
+      "description": "Destructive outline pressed fill on inverse — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.12156862765550613,
         "g": 0.13333334028720856,
@@ -5088,7 +5088,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Neutral outline hover fill on inverse — opaque, the label and icon clear their floor on it",
+      "description": "Neutral outline hover fill on inverse — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.08235294371843338,
         "g": 0.09019608050584793,
@@ -5107,7 +5107,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Neutral outline pressed fill on inverse — opaque, the label and icon clear their floor on it",
+      "description": "Neutral outline pressed fill on inverse — opaque; the label and icon are measured on it",
       "value": {
         "r": 0.12156862765550613,
         "g": 0.13333334028720856,
