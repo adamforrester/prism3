@@ -6502,6 +6502,70 @@ if (runs('19')) {
     ok(false, `#3071 Outline hover fill: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 19-outline-hover
+// #3115: the Outline hover chips (four since #3105) keep their rows whatever is selected. The selected chip is bold, and
+// a chip is never narrower than its label (`.p3-choice`, #1975), so where the four only just fit on one row (the owner's
+// window, about 1650 wide) the bold "Neutral overlay wash" pushed "No hover fill" onto a second. Each option is picked in
+// turn on both hosts at 1280 and 380, where the four wrap whatever is picked (#1975's fallback), and at the chips' own
+// tightest one-row width: the group held at its `max-content` width read with "No hover fill" picked, so the edge does
+// not hang on a font's metrics. The chips' rows (distinct tops) are read after each pick. EXPECTED: one row count per
+// host and width whatever is picked, and one row at the tightest width (literal rules, typed here); ACTUAL: the drawn
+// chips.
+// Mutation, failing here by name: the reserved bold width removed → `#3115 web tightest: the Outline hover chips keep
+// their rows whatever is picked — none 1, overlay-neutral 2, solid-tint 1, opaque-fill 2` (and the same on figma).
+// The hidden copy shown and given no empty alternative text → `#3115 web 1280: each option is named by its label once
+// (… radio "Neutral overlay wash Neutral overlay wash" …)`, on every host and width.
+if (runs('3115')) {
+  const CHIPS_3115 = '[data-p3="levers-pane"] [data-p3="outline-interaction-chips"]';
+  // Each option's hook spelled whole, as the hook guard reads them; "No hover fill" first, the width read under it.
+  const OPTION_HOOKS_3115 = {
+    none: '[data-p3="outline-interaction-chips-none"]', 'overlay-neutral': '[data-p3="outline-interaction-chips-overlay-neutral"]',
+    'solid-tint': '[data-p3="outline-interaction-chips-solid-tint"]', 'opaque-fill': '[data-p3="outline-interaction-chips-opaque-fill"]',
+  };
+  const OPTIONS_3115 = Object.keys(OPTION_HOOKS_3115);
+  for (const host of ['web', 'figma']) {
+    for (const w of [1280, 380, 'tightest']) {
+      const where = `#3115 ${host} ${w}`;
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: w === 'tightest' ? 1280 : w, h: 900 });
+      try {
+        await goPlace(page, 'color-interactive');
+        const rows = {};
+        /** The group's width in px under `tightest`, read once under the first pick and held for every later one. */
+        let held = null;
+        for (const v of OPTIONS_3115) {
+          const opt = `${CHIPS_3115} ${OPTION_HOOKS_3115[v]}`;
+          await page.locator(opt).scrollIntoViewIfNeeded();
+          await hooks.click(page.locator(opt));
+          await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', opt, { timeout: 5000 }).catch(() => {});
+          await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+          const read = await page.evaluate(([s, tight, px]) => {
+            const g = document.querySelector(s);
+            if (!g) return null;
+            if (tight) {
+              if (px === null) { g.style.width = 'max-content'; px = g.getBoundingClientRect().width; }
+              g.style.width = `${px}px`;
+            }
+            const on = g.querySelector('[aria-checked="true"]')?.getAttribute('data-value');
+            return { on, px, rows: new Set([...g.querySelectorAll('.p3-seg-tab')].map((b) => Math.round(b.getBoundingClientRect().top))).size };
+          }, [CHIPS_3115, w === 'tightest', held]);
+          held = read?.px ?? held;
+          rows[v] = read;
+        }
+        const picked = OPTIONS_3115.every((v) => rows[v]?.on === v);
+        const counts = OPTIONS_3115.map((v) => rows[v]?.rows);
+        ok(picked && counts.every((n) => n && n === counts[0]),
+          `${where}: the Outline hover chips keep their rows whatever is picked — ${OPTIONS_3115.map((v, i) => `${v} ${counts[i]}${rows[v]?.on === v ? '' : ` (shows ${rows[v]?.on})`}`).join(', ')}`);
+        // The reserved width is a hidden copy of each label; the radios' names stay the label alone (literals typed here).
+        const named = await page.locator(CHIPS_3115).ariaSnapshot();
+        ok(['Neutral overlay wash', 'Tinted wash', 'Solid fill', 'No hover fill'].every((l) => named.includes(`radio "${l}"`)),
+          `${where}: each option is named by its label once (${JSON.stringify(named)})`);
+        if (w === 'tightest') ok(counts[0] === 1, `${where}: the four fit one row at their own max-content width (${counts[0]} rows at ${held}px)`);
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+} // 3115
 
 // =============================================================================================
 // 20. Type (S6.2, S6.3): Font families in the two panes, the type sample and the preview's sections

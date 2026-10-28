@@ -434,6 +434,7 @@ export const choice = <V extends string>(label: string, role: string, options: r
     b.type = 'button';
     b.setAttribute('role', 'radio');
     b.dataset.value = o.v;
+    b.dataset.label = o.l;   // the bold width every option reserves (#3115)
     b.textContent = o.l;
     b.onclick = () => { if (b.getAttribute('aria-checked') !== 'true') onPick(o.v); };
     return b;
