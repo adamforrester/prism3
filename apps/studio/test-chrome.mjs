@@ -6217,8 +6217,9 @@ if (runs('19')) {
     const on = await persisted(page);
     const sel = await page.evaluate((l) => {
       const b = document.querySelector(l);
-      const one = (st) => { const s = b?.querySelector(`[data-p3="outline-hover-fill-${st}-select"]`); return s ? { v: s.value, auto: s.options[0]?.textContent ?? null, off: s.disabled } : null; };
-      return { hover: one('hover'), pressed: one('pressed'), ratio: b?.querySelector('[data-p3="outline-hover-fill-ratio"]')?.textContent ?? null };
+      const one = (sel) => { const s = b?.querySelector(sel); return s ? { v: s.value, auto: s.options[0]?.textContent ?? null, off: s.disabled } : null; };
+      return { hover: one('[data-p3="outline-hover-fill-hover-select"]'), pressed: one('[data-p3="outline-hover-fill-pressed-select"]'),
+        ratio: b?.querySelector('[data-p3="outline-hover-fill-ratio"]')?.textContent ?? null };
     }, lever);
     ok(chip === 'Solid fill' && on?.outlineInteraction === 'opaque-fill' && !('outlineHoverFill' in (on ?? {}))
       && sel.hover?.v === '' && /^Auto: [A-Z][a-z-]* \d{3}$/.test(sel.hover?.auto ?? '') && sel.pressed?.off === true && /hover, .* pressed/.test(sel.ratio ?? ''),

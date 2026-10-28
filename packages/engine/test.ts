@@ -32556,8 +32556,8 @@ arm: {
 //       method keeps), an ink differing only by its second pair, or by a clamp its wash-default value needed.
 //   (E) NOT GUARANTEED — the baseline's guaranteed set holds no `hover-fill` path; its brand-dependent set holds
 //       exactly the twelve the reference brand emits.
-//   (F) REFUSED, BY NAME — the step setting without the method, a generate-only mode, an unknown step, an override
-//       aimed at the fill.
+//   (F) REFUSED, BY NAME — a generate-only mode, an unknown step, an override aimed at the fill; and the step setting
+//       under another method is ignored with a note, not refused.
 {
   const GROUNDS_3071 = [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'band']] as const;
   const STATES_3071 = ['hover', 'pressed'] as const;
@@ -32727,7 +32727,11 @@ arm: {
       try { const t = brandTheme({ ...input, ...patch } as BrandInput); if (resolve) resolveAllModes(t); } catch (e) { msg = (e as Error).message; }
       ok(re.test(msg), `#3071 (F) refused: ${label} (${msg.slice(0, 120) || 'accepted'})`);
     };
-    refuses('outlineHoverFill without opaque-fill', { outlineHoverFill: { light: { hover: 'neutral.050' } } }, /outlineHoverFill: .*needs outlineInteraction: opaque-fill/);
+    // Under another method the picks are kept and ignored, with a note, so every lever still varies on its own.
+    const ignored = brandTheme({ ...input, outlineHoverFill: { light: { hover: 'neutral.050' } } } as BrandInput);
+    ok(ignored.notes.some((n) => /^outlineHoverFill: set, and read only under outlineInteraction: opaque-fill/.test(n))
+      && !resolveAllModes(ignored).some((m) => Object.keys(m.roles).some((k) => k.includes('hover-fill'))),
+      '#3071 (F) outlineHoverFill under another method emits nothing and says so in a note');
     refuses('a generate-only mode', { modes: ['light', 'hc-light'], outlineInteraction: 'opaque-fill', outlineHoverFill: { 'hc-light': { hover: 'neutral.050' } } }, /outlineHoverFill\.hc-light: .*generate-only/);
     refuses('an unknown step', { outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: 'neutral.051' } } }, /outlineHoverFill\.light\.hover: 'neutral\.051' is not a palette step/, true);
     refuses('an override on the fill', { outlineInteraction: 'opaque-fill', overrides: { light: { 'interactive.primary.hover-fill.hover': { palette: 'neutral', step: '100' } } } }, /'interactive\.primary\.hover-fill\.hover' is the opaque outline hover fill/, true);

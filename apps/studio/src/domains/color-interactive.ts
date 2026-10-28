@@ -176,7 +176,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       return rs.length ? Math.min(...rs) : undefined;
     };
     const wh = worst('hover'), wp = worst('pressed');
-    if (wh !== undefined && wp !== undefined) b.ctl.append(hook(subLine(`Labels and icons on it, at worst: ${fmtRatio(wh)} hover, ${fmtRatio(wp)} pressed. They darken where they need to, to stay legible.`), 'outline-hover-fill-ratio'));
+    if (wh !== undefined && wp !== undefined) b.ctl.append(hook(subLine(`Labels and icons on it, at worst: ${fmtRatio(wh)} hover, ${fmtRatio(wp)} pressed. They shift where they need to, to stay legible.`), 'outline-hover-fill-ratio'));
     if (editingLine()) b.ctl.append(editingLine()!);
     return [{ el: b.el, said: `${b.said} ${said.join(' ')}`.toLowerCase(), key: 'outlineHoverFill', block: b }];
   };

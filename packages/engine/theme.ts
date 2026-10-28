@@ -295,14 +295,13 @@ export type OutlineInteraction = typeof OUTLINE_INTERACTION_VALUES[number];
 export type OutlineHoverFill = Partial<Record<ModeName, { hover: string; pressed?: string }>>;
 
 /**
- * Validate `outlineHoverFill` (#3071): only with `outlineInteraction: 'opaque-fill'`, keyed by an editable mode the
- * brand declares, each `{ hover, pressed? }` a `palette.step`. Whether the step exists is checked where the
- * palettes resolve (`modes.ts`).
+ * Validate `outlineHoverFill` (#3071): keyed by an editable mode the brand declares, each `{ hover, pressed? }` a
+ * `palette.step`. Whether the step exists is checked where the palettes resolve (`modes.ts`). It is read only under
+ * `outlineInteraction: 'opaque-fill'`; under another method it is kept and ignored, with a note, so a brief that
+ * switches method keeps its picks (every lever varies on its own, as the lever sweep builds them).
  */
-export const validOutlineHoverFill = (raw: unknown, method: unknown, modes: readonly string[], editable: readonly string[]): OutlineHoverFill | undefined => {
+export const validOutlineHoverFill = (raw: unknown, modes: readonly string[], editable: readonly string[]): OutlineHoverFill | undefined => {
   if (raw === undefined) return undefined;
-  if (method !== 'opaque-fill')
-    throw new Error(`outlineHoverFill: picks the opaque outline hover fill, so it needs outlineInteraction: opaque-fill (got ${JSON.stringify(method ?? 'overlay-neutral')})`);
   if (!raw || typeof raw !== 'object' || Array.isArray(raw))
     throw new Error(`outlineHoverFill: must be a map of mode to { hover, pressed? } (got ${JSON.stringify(raw)})`);
   const STEP = /^[a-z][a-z0-9-]*\.[0-9]+$/;
@@ -402,7 +401,8 @@ export type Theme = {
   // 'none': no hover expression, no overlays. (`overlay-tint` — the colour's own
   // hue at low alpha — is scheduled; needs per-colour alpha ramps.)
   outlineInteraction: OutlineInteraction;
-  // The opaque hover fill's page step per mode (#3071), read only under 'opaque-fill'. Unset modes take the default rule.
+  // The opaque hover fill's page step per mode (#3071), read only under 'opaque-fill' (ignored, with a note, otherwise).
+  // Unset modes take the default rule.
   outlineHoverFill?: OutlineHoverFill;
   // Neutral interactive emphasis (docs/20 §10). 'subtle' (default): a light-grey neutral
   // fill; 'strong': a bold near-black (light) / near-white (dark) neutral fill.
@@ -634,7 +634,7 @@ export type BrandInput = {
   outlineInteraction?: OutlineInteraction;
   /** The opaque outline hover fill's page step (#3071), per editable mode: `{ light: { hover: 'neutral.050' } }`.
    *  `pressed` defaults to the next step toward the ink. A mode not named, the inverse band and the generate-only
-   *  modes take the default rule (the neutral step nearest 1.15:1 against the ground). Only with 'opaque-fill'. */
+   *  modes take the default rule (the neutral step nearest 1.15:1 against the ground). Read only under 'opaque-fill'. */
   outlineHoverFill?: OutlineHoverFill;
   /** Neutral interactive emphasis (docs/20 §10). 'subtle' (default) is a light-grey
    *  neutral fill; 'strong' is a bold near-black/near-white neutral fill. */
@@ -2579,7 +2579,9 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (!CUSTOMIZABLE_MODES.includes(m))
       throw new Error(`overrides: mode '${m}' is generate-only and not customizable — only ${CUSTOMIZABLE_MODES.join('/')} accept overrides`);
   }
-  const outlineHoverFill = validOutlineHoverFill(input.outlineHoverFill, input.outlineInteraction, modesAll, CUSTOMIZABLE_MODES);
+  const outlineHoverFill = validOutlineHoverFill(input.outlineHoverFill, modesAll, CUSTOMIZABLE_MODES);
+  if (outlineHoverFill && input.outlineInteraction !== 'opaque-fill')
+    notes.push(`outlineHoverFill: set, and read only under outlineInteraction: opaque-fill; this brand's outline hover is '${input.outlineInteraction ?? 'overlay-neutral'}', so the picks are ignored.`);
   if (Object.keys(input.overrides ?? {}).length) notes.push(`overrides: color overrides in ${Object.keys(input.overrides!).join(', ')} — those roles point at the chosen ramp steps; a pick below its contrast floor is warned, not blocked.`);
   // Per-mode interactive anchors (A2b) — same customizable-mode rule as overrides. An anchor
   // re-derives the whole interactive column for that mode (still floor-gated via `chromatic`).

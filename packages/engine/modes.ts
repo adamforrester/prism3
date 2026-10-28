@@ -2583,7 +2583,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         const h = side.reduce((a, b) => (Math.abs(contrast(b.x.rgb, ground) - HOVER_RATIO) < Math.abs(contrast(a.x.rgb, ground) - HOVER_RATIO) ? b : a)).i;
         const p = Math.min(Math.max(h + dir, 0), neutralSteps.length - 1);
         fills = {
-          hover: { path: `${ns}.${r2p.neutral}.${neutralSteps[h].key}`, rgb: neutralSteps[h].rgb, why: `the ${r2p.neutral} step nearest ${HOVER_RATIO}:1 on the ${groundName}` },
+          hover: { path: `${ns}.${r2p.neutral}.${neutralSteps[h].key}`, rgb: neutralSteps[h].rgb, why: `the default step on the ${groundName}` },
           pressed: { path: `${ns}.${r2p.neutral}.${neutralSteps[p].key}`, rgb: neutralSteps[p].rgb, why: 'the next step past hover' },
         };
       }

@@ -888,7 +888,7 @@
       "label": "Outline hover fill",
       "control": "object",
       "advanced": true,
-      "description": "The solid hover fill of outline and text buttons, per mode: a palette step, such as neutral 050. Pressed takes the next step unless you pick one. The label and icon darken where they need to, to stay legible on it. Modes you leave on Auto, and inverse surfaces, take the gray nearest 1.15:1 against their ground."
+      "description": "The solid hover fill of outline and text buttons, per mode: a palette step, such as neutral 050. Pressed takes the next step unless you pick one. The label and icon move along their own color where they need to, to stay legible on it. Modes you leave on Auto, and inverse surfaces, take the gray step closest to their ground."
     },
     {
       "key": "neutralEmphasis",

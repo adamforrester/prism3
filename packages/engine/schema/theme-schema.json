@@ -245,7 +245,7 @@
     },
     "outlineHoverFill": {
       "type": "object",
-      "description": "OPTIONAL, only with `outlineInteraction: opaque-fill` (#3071). The opaque outline hover fill's page step per editable mode (light, dark, a custom mode): `{ light: { hover: neutral.050 } }`. `hover` is a palette step; `pressed` defaults to the next step toward the ink. Unnamed modes, the generate-only modes and every inverse band take the default rule: the neutral step nearest 1.15:1 against the ground, pressed the next step.",
+      "description": "OPTIONAL, read only under `outlineInteraction: opaque-fill` (#3071; ignored, with a note, under another method). The opaque outline hover fill's page step per editable mode (light, dark, a custom mode): `{ light: { hover: neutral.050 } }`. `hover` is a palette step; `pressed` defaults to the next step toward the ink. Unnamed modes, the generate-only modes and every inverse band take the default rule: the neutral step nearest 1.15:1 against the ground, pressed the next step.",
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
