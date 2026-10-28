@@ -105,6 +105,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | never detach a Prism3 component to match a design; place it attached and file the differences | 2026-10-06 | `docs/46-never-detach.md` | #2259 |
 | emit a conforming DTCG projection beside the canonical `$extensions` tree, so Style Dictionary is a consumability gate rather than a dependency *(decided 2026-08-07; indexed 2026-10-09, after `19` §9 had described it as open for two months — the first code-layer decision in this table)* | 2026-08-07 | `docs/19-code-library-and-dx.md` §9 | #609 |
 | Inverse colors is its own group below Semantic colors, column-aligned; a group the style-guide generator draws or rearranges is never clipped and never overlaps the frames below it | 2026-10-19 | `docs/45-style-guide-generator.md` | #2818 |
+| the effect-style and gradient-style tables each sit in a group frame of their own, Effect styles and Gradient styles, stacked last on the semantic page; an effect specimen sits at its header's x in every row, its shadow overflowing the cell | 2026-10-28 | `docs/45-style-guide-generator.md` | #3135 |
 | a brand's own glass roles are brand-dependent | 2026-10-27 | `docs/30-versioning-and-compatibility.md` | #3073 |
 | the opaque outline hover fill is brand-dependent | 2026-10-27 | `docs/30-versioning-and-compatibility.md` | #3071 |
 
