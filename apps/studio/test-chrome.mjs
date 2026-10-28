@@ -16572,14 +16572,24 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         ok(tg.box === String(on) && tg.checking && fs.length === 1 && fs.every(want(brand)) && uc.length === 1 && JSON.stringify(uc[0].defs) === JSON.stringify(['button', 'select']) && uc.every(want(brand)),
           `${where}: #3023 Q701 B: Theme ${words}: the checklist checks the file again, then the due sets, against that brand (${JSON.stringify({ box: tg.box, checking: tg.checking, fileSets: fs.map((m) => 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none'), check: uc.map((m) => [m.defs, 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none']) })})`);
       }
+      // #3083 (Q3083.3 A): the select's pick is the one the update posts, and the repaint the pick causes keeps focus
+      // on the select. MUTATION: `sel.onchange` writes 'keep' whatever is picked → this arm and the update-sets one below.
+      step = 'the hand-edits pick';
+      await page.locator('[data-p3="update-hand-edits"]').focus();
+      await page.selectOption('[data-p3="update-hand-edits"]', 'overwrite');
+      await settle(page);
+      const pick = await page.evaluate(() => ({ v: document.querySelector('[data-p3="update-hand-edits"]')?.value ?? null, f: document.activeElement?.getAttribute('data-p3') ?? null }));
+      ok(pick.v === 'overwrite' && pick.f === 'update-hand-edits',
+        `${where}: #3083 Q3083.3 A: Overwrite picked, the select keeps it across the repaint and keeps focus (${JSON.stringify(pick)})`);
       step = 'the update';
       // The theme unticked, so the update is the run's first step and posts at once, with no brand: the stored one.
       await page.evaluate(() => { window.__ia2.length = 0; });
       await hooks.click(page.locator('[data-p3="update-go"]'));
       await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
       const sent = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-sets'));
-      ok(sent.length === 1 && canon(sent[0]) === canon({ type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep' }),
-        `${where}: Q2909.8 A, #3023 Q701 B: with Theme unticked, the update posts the ticked sets with the check's own hash, Keep, and no brand, so the host lays the stored one (${sent.length ? wireDiff(sent[0], { type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep' }) : 'nothing posted'})`);
+      const UPD = { type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'overwrite' };
+      ok(sent.length === 1 && canon(sent[0]) === canon(UPD),
+        `${where}: Q2909.8 A, #3023 Q701 B, #3083 Q3083.3 A: with Theme unticked, the update posts the ticked sets with the check's own hash, the picked Overwrite, and no brand, so the host lays the stored one (${sent.length ? wireDiff(sent[0], UPD) : 'nothing posted'})`);
       // The run ends on the update's verdict, and the due read after it measures against the brand the run left in the
       // file: with Theme unticked, the stored one, so the badge does not flag the sets the run just wrote (#3023).
       step = 'the due read after the run';
