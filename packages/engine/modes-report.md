@@ -20,7 +20,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.primary | neutral.950 | — | — | · |
 | inverse.background.secondary | neutral.900 | — | — | · |
 | inverse.background.tertiary | neutral.850 | — | — | · |
-| scrim.default | black-alpha.40 | — | — | · |
+| scrim.default | black-alpha.80 | — | — | · |
 | glass.surface | white-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
@@ -308,7 +308,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.primary | neutral.025 | — | — | · |
 | inverse.background.secondary | neutral.050 | — | — | · |
 | inverse.background.tertiary | neutral.100 | — | — | · |
-| scrim.default | black-alpha.60 | — | — | · |
+| scrim.default | black-alpha.80 | — | — | · |
 | glass.surface | black-alpha.70 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
@@ -596,7 +596,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.primary | black | — | — | · |
 | inverse.background.secondary | black | — | — | · |
 | inverse.background.tertiary | black | — | — | · |
-| scrim.default | black-alpha.60 | — | — | · |
+| scrim.default | black-alpha.90 | — | — | · |
 | glass.surface | white-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |
@@ -884,7 +884,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.background.primary | white | — | — | · |
 | inverse.background.secondary | white | — | — | · |
 | inverse.background.tertiary | white | — | — | · |
-| scrim.default | black-alpha.70 | — | — | · |
+| scrim.default | black-alpha.90 | — | — | · |
 | glass.surface | black-alpha.90 | — | — | · |
 | veil.dark.subtle | black-alpha.50 | — | — | · |
 | veil.dark.medium | black-alpha.60 | — | — | · |

@@ -2587,16 +2587,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Modal and drawer backdrop — black, 40% (60% in dark and hc-light; 70% in hc-dark)",
+      "description": "Modal and drawer backdrop — black, 80% (90% in high-contrast modes)",
       "value": {
         "r": 0,
         "g": 0,
         "b": 0,
-        "a": 0.6000000238418579
+        "a": 0.800000011920929
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/black-alpha/60"
+        "name": "nbds/core/palette/black-alpha/80"
       }
     },
     {
