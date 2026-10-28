@@ -1451,7 +1451,7 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Update file: the as-built ledger flags the due sets, a background pass reads hand edits, and the checklist checks and updates the due sets in place",
+          "via": "Update file: the as-built ledger flags the due sets, the button's badge recounts them live with Theme's unapplied changes as one item, a background pass reads hand edits, and the checklist checks and updates the due sets in place",
           "sources": [
             "apps/plugin/src/as-built-ledger.ts",
             "apps/plugin/src/update-plan.ts",
@@ -1461,7 +1461,8 @@
           "messages": [
             "update-sets",
             "update-check-request",
-            "hand-edits-request"
+            "hand-edits-request",
+            "due-request"
           ]
         }
       }

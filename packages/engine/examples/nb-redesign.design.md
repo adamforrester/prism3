@@ -68,6 +68,11 @@ glassRoles: { card: { role: foreground.primary, alpha: 70 } }
 outlineInteraction: opaque-fill
 outlineHoverFill: { light: { hover: neutral.050 } }
 
+# The checked radio's dot is 70% of the radio, not half (#3086, owner Q816 A): 14px at medium, as the brand's master
+# draws it. Snapped to the 2px sub-grid at every size, so small is 12 and large 16. 14 is off the dimension grid, so
+# medium's dot is a plain 14px rather than a link to a dimension step; no token is added.
+radioDot: 70
+
 # ── GEOMETRY ─────────────────────────────────────────────────────────────────────────
 # Sharp corners — radius scale 0 collapses the soft rungs (only the pill survives).
 radiusScale: 0

@@ -98,6 +98,8 @@ export const DIALOG_DESC = 'How dialogs size their title and the surface they si
 export const BANNER_DESC = 'How banners draw their surface and edge.';
 // #2942: DRAFT placeholder for the owner (Q2 A), in Banner's pattern.
 export const LINK_DESC = 'How links draw their underline.';
+// #3086: DRAFT for the owner, in Banner's pattern.
+export const RADIO_DESC = 'How big the dot in a selected radio is.';
 // #2909 Q2909.4 A: DRAFT for the owner (Q2909.10 A), after the round-4 wireframe's block.
 export const SHARED_DESC = 'Settings every component family follows. Density is set in Theme.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
@@ -395,6 +397,8 @@ export const DOMAINS = [
       { title: 'Banner', desc: BANNER_DESC, rows: [{ ctl: 'chips', keys: ['bannerStyle'], drive: 'banner' }] },
       // #2942 (owner Q3 A): the underline's read-only line; its one home is Theme › Type › Weights and styles.
       { title: 'Link', desc: LINK_DESC, rows: [{ ctl: 'underlineLink' }] },
+      // #3086: Radio dot size's one home, drawn in the Radio section's Radio options block (`domains/radio-options.ts`).
+      { title: 'Radio', desc: RADIO_DESC, rows: [{ ctl: 'chips', keys: ['radioDot'], drive: 'radio' }] },
       { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },
     ],
     status: 'new',

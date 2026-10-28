@@ -85,7 +85,7 @@
  * `checkbox-control`'s box binding with a round corner. The DOT is where radio departs from checkbox: a
  * checkbox mark is a `vector` sized full-bleed (a glyph carries its optical inset in its own artboard),
  * but a radio's dot is a filled `box` with no artboard, so full-bleed would make the dot BE the disc.
- * `control.size.*.dot` (half the box edge, #910) is the dot's own key. The dot is an `indicator` box that
+ * `control.size.*.dot` (half the box edge, #910; a brand's `radioDot` share since #3086) is the dot's own key. The dot is an `indicator` box that
  * DRAWS ITSELF and has no children, so #864's fill-behind-a-glyph refusal never applies (there is no
  * glyph behind it) — this def touches none of the #1354 indicator-rule widening that `switch-control`'s
  * glyph-carrying thumb needed. `indicator`, not `fill`: the ring's `control` box already owns the border
@@ -120,7 +120,7 @@ export const radioControl: ComponentDef = {
   status: 'draft',
   summary: 'Outlined radio ring; dot and brand ring on select. Nested by Radio.Row; no label.',
   description:
-    'The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle, half the ring\'s diameter, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.',
+    'The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle, half the ring\'s diameter unless the brand sets a larger radio dot, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.',
 
   // The atom's surface, not the field's. No `label`, no `description`, no form wiring — those are the
   // Row's and the Group's. What it exposes is the visual state a host drives through the nest.
@@ -239,8 +239,9 @@ export const radioControl: ComponentDef = {
     'size.medium.control': 'control.size.md.height',
     'size.large.control': 'control.size.lg.height',
 
-    // ── THE INNER DOT'S DIAMETER (#910), half the box edge — 8/10/12 in every shipped brand at comfortable
-    // density, 6/8/10 at compact, so it tracks brand density exactly as the box it sits in does. Its own key rather than the
+    // ── THE INNER DOT'S DIAMETER (#910), half the box edge by default — 8/10/12 at comfortable density, 6/8/10 at
+    // compact, so it tracks brand density exactly as the box it sits in does. The brand's radio dot setting (#3086,
+    // `radioDot`) moves the token's value to a larger share (the reference brand's 70%: 12/14/16); this binding is the same. Its own key rather than the
     // control's, because a filled box has no artboard to carry an optical inset (full-bleed would draw
     // the whole disc).
     'size.small.dot': 'control.size.sm.dot',

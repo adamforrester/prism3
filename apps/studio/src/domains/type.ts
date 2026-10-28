@@ -65,7 +65,7 @@ import { emToPercentLabel } from '../em-percent';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { chipChoice, choice, leverBlock, leverOf, promoteLever, refuseOption, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock, keepFocus, pageEdit } from '../ui/lever-kit';
+import { chipChoice, choice, leverBlock, leverOf, promoteLever, refuseOption, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock, keepFocus, pageEdit, wordsOf } from '../ui/lever-kit';
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
@@ -969,7 +969,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const ty = theme.typography;
     const roleOrder = ty.weightRoles.map((w) => w.role);
     const linkG = new Set(ty.composites.filter((c) => c.link).map((c) => c.group));
-    const b = leverBlock('typography.weights', { label: S63.matrixLabel, desc: S63.matrixTip, group: true });
+    // #3093: its Link column is Underlined link styles' control (`typography.links`), which has no block of its own.
+    const b = leverBlock('typography.weights', { label: S63.matrixLabel, desc: S63.matrixTip, group: true, alsoSays: wordsOf('typography.links') });
     const grid = hook(h('div', 'p3-wmatrix'), 'weights-matrix');
     const head = h('div', 'p3-wmatrix-row p3-wmatrix-head');
     head.append(h('span', 'p3-field-label', S63.textType), ...roleOrder.map((r) => hook(h('span', 'p3-field-label', S63.weightName(r)), 'weights-col')), hook(h('span', 'p3-field-label', S63.link), 'weights-col'));
@@ -1058,7 +1059,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const ty = theme.typography;
     const italicG = new Set(ty.composites.filter((c) => c.italic).map((c) => c.group));
     const italicDefG = new Set(ty.composites.filter((c) => c.italicDefault).map((c) => c.group));
-    const b = leverBlock('typography.italics', { label: S63.italicsLabel, desc: S63.italicsTip, group: true });
+    // #3093: its Only chip is Italic-only text types' control (`typography.italicDefault`), which has no block of its own.
+    const b = leverBlock('typography.italics', { label: S63.italicsLabel, desc: S63.italicsTip, group: true, alsoSays: wordsOf('typography.italicDefault') });
     const rows = hook(h('div', 'p3-fillrows'), 'italic-rows');
     for (const g of TYPE_GROUP_ORDER) {
       const row = hook(h('div', 'p3-titalic'), 'italic-row');
@@ -1343,7 +1345,9 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const shown = items.filter((it) => it.said);
     for (const it of shown) it.el.hidden = !!q && !it.said.includes(q);
     const fam = root.querySelector<HTMLElement>('[data-p3="lever-typography-families"]');
-    if (fam) fam.hidden = !!q && !fam.querySelector('[data-p3="family-row"]:not([hidden])');
+    // #3093: the block shows for its own words too (Font families), not only for a text type's row that matches.
+    const famSaid = items.find((it) => it.key === 'typography.families')?.block?.said ?? '';
+    if (fam) fam.hidden = !!q && !famSaid.includes(q) && !fam.querySelector('[data-p3="family-row"]:not([hidden])');
     for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) s.hidden = !!q && !s.querySelector('.p3-lever:not([hidden])');
     for (const n of root.querySelectorAll<HTMLElement>('.p3-intro, .p3-nextrow, .p3-advrow > .p3-btn')) n.hidden = !!q;
     setSearchHits(q ? shown.filter((it) => !it.el.hidden).length : null);

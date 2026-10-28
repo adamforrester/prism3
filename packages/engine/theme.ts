@@ -14,7 +14,7 @@
  *                     / hex; primitives under palette). This is what makes the system white-label.
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
-import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
+import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, RADIO_DOT_SHARES, RADIO_DOT_DEFAULT, RadioDotShare, SPACE_BASE, GRID_BASE } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000, ACHROMATIC_C } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
@@ -419,6 +419,9 @@ export type Theme = {
   // Brand-added glass roles (#3073, owner Q806, Q807 A), `color.glass.<name>`, validated by `validGlassRoles`. Unset
   // adds none: the brand ships `color.glass.surface` alone.
   glassRoles?: Record<string, GlassRoleInput>;
+  // The radio dot (#3086, owner Q816 A): `control.size.*.dot` as a share of the box edge, in percent. Unset reads as 50,
+  // half the edge. Already applied to `dims.controls`; carried here so the token descriptions can name the share.
+  radioDot?: RadioDotShare;
   // Strict interactive contrast (#1389, B4a). false (default): the inverse PRIMARY filled button
   // carries the vivid brand `on-fill` ink (#1244), which clears AA at `rest` but may dip below it on
   // the TRANSIENT hover / pressed states now that the fill steps toward the ground. true: primary's and
@@ -656,6 +659,10 @@ export type BrandInput = {
   /** Brand-added glass roles (#3073): `color.glass.<name>`, each a semantic role's palette color (`role`, per mode)
    *  or one palette color (`palette`), at `alpha` percent. `surface` is the shipped glass and cannot be redefined. */
   glassRoles?: Record<string, GlassRoleInput>;
+  /** The radio dot (#3086, owner Q816 A): the checked radio's dot as a share of the radio's size, in percent, at sm, md and
+   *  lg alike. 50 (default) is half the box edge, today's dot. Snapped to the 2px sub-grid and never wider than the box
+   *  minus its 2px ring. It moves the value of `control.size.{sm,md,lg}.dot` only; no token is added. */
+  radioDot?: RadioDotShare;
   /** Strict interactive contrast (#1389, B4a). OPTIONAL, OPT-IN (off by default). The inverse filled
    *  button steps its fill per state; the primary and destructive labels' brand ink (#1244/#1384) clears AA at
    *  `rest` but dips on the transient hover/pressed steps. Off keeps the brand ink (rest AA held, later states
@@ -801,7 +808,7 @@ export type BrandInputAuthored =
  *  px is already fed in by the space extras at base 4, 6 and 8, so deleting either of those lines
  *  changes no committed output. A guard nothing can exercise is a guard nothing can notice the loss of,
  *  which is `docs/34`'s shape 14 — so the seam is opened here rather than the guard left unfalsifiable. */
-export const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = []): Dims => {
+export const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = [], radioDot: RadioDotShare = RADIO_DOT_DEFAULT): Dims => {
   // Space is `mult × spaceBase`; the dimension grid is `baseUnit`-stepped. At a non-default spaceBase the
   // half-steps (1.5×/0.25×/0.75×) land OFF the grid (e.g. spaceBase 12 → space.150 = 18px, absent from the
   // baseUnit-4 grid), so `space.<k> → {dimension.<px>}` would dangle (#274). Feed every space px into the
@@ -843,7 +850,13 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
   // 30 are on NEITHER the base-4 grid NOR the space extras — so this rescues two more px at the default
   // baseUnit, `md`'s 24 already a grid member. `width` moved from `2× height` to `2× track` (#1425); its
   // new values 32/48/64/80/96 are all multiples of 4, so the widened track still aliases by construction.
-  const controls = controlSizes(density);
+  //
+  // THE RADIO DOT SETTING (#3086, owner Q816 A, "no new token") is NOT fed here: the grid keeps the default half dot's
+  // px whatever the setting says. Feeding the brand's dot would mint a primitive its grid lacks (the reference brand's
+  // 70% lands on 14, which its comfortable grid does not hold), a new brand-dependent path that `token-contract --check`
+  // reports, and feeding it INSTEAD of the half dot would drop `core.dimension.10`, a guaranteed one. Unfed, a dot on
+  // the grid aliases its step and one off it is a literal px, the `controlLeaf` fallback (`tree.ts`).
+  const controls = controlSizes(density, radioDot);
   return {
     // Icon px join the grid extras for the same reason space does (#274): at a non-default baseUnit
     // (e.g. 6) the fixed icon ladder lands OFF the grid, and `icon.size.<k> -> {dimension.<px>}`
@@ -867,7 +880,8 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
       // construction, and feeding it would ADD `core.dimension.30` to that member, promoting the path to
       // guaranteed (a CONTRACT MINOR, measured).
       // Spacious is the one density outside the corpus; `lint-lever-sweep.ts` holds it to the contract.
-      ...[...controls, ...(density === 'spacious' ? controlSizes('comfortable') : [])]
+      // `controlSizes(density)`, not `controls`: the default ladder, so the radio dot setting moves no primitive (#3086).
+      ...[...controlSizes(density), ...(density === 'spacious' ? controlSizes('comfortable') : [])]
         .flatMap((c) => [c.height, c.width, c.dot, c.inset, c.track, c.thumb, (c.height - c.dot) / 2])]),
     space,
     radius: radiusScale(rScale, baseMd, 128, 999),
@@ -2774,6 +2788,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'neutralEmphasis', value: input.neutralEmphasis, options: ['subtle', 'strong'] },
     { path: 'raisedSurface', value: input.raisedSurface, options: RAISED_SURFACE_VALUES },
     { path: 'scrimStrength', value: input.scrimStrength, options: SCRIM_STRENGTH_VALUES },
+    { path: 'radioDot', value: input.radioDot, options: RADIO_DOT_SHARES },
   ];
   for (const { path, value, options } of enumLevers) {
     if (value !== undefined && !(options as readonly unknown[]).includes(value))
@@ -3027,6 +3042,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const baseUnit = GRID_BASE;
   const spaceBase = SPACE_BASE;
   const density = input.density ?? 'comfortable';
+  const radioDot: RadioDotShare = input.radioDot ?? RADIO_DOT_DEFAULT;
   const rScale = input.radiusScale ?? 1;
   const baseMd = input.baseMd ?? 4;
   // The 1px hairline sentinel (#1362) is ALWAYS emitted since #2053 (owner, 2026-10-04): `radiusScale` pushes
@@ -3055,7 +3071,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       // The control ladder rides the same lever (#900). Same no-diff suppression by construction:
       // `controlSizes` is a pure function of the density, so a mode at the baseline density is
       // filtered out by the condition above rather than by a JSON compare.
-      controlsByMode[m] = controlSizes(lev.density);
+      controlsByMode[m] = controlSizes(lev.density, radioDot);
     }
   }
   notes.push(`dimensions: ${baseUnit}px grid, ${spaceBase}px spacing rhythm, '${density}' density (sets component sizes), radius scale ${n2(rScale)} (base radius ${n2(baseMd)}px).`);
@@ -3144,7 +3160,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const layout = buildLayout(input.layout);
   // #3052 — a gutter/margin off the spacing scale is named, never silent. The dims are the same call the
   // theme's own `dims` makes below, so the note and the emitted link read one grid.
-  const gapNotes = gridGapNotes(layout, buildDims(baseUnit, spaceBase, density, rScale, baseMd, []));
+  const gapNotes = gridGapNotes(layout, buildDims(baseUnit, spaceBase, density, rScale, baseMd, [], radioDot));
   notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${n2(b.px)}`).join(', ')}); ${layout.baseColumns}-column grid (${layout.grid.map((g) => g.columns).join('/')} by breakpoint); gutters ${layout.grid.map((g) => g.gutterPx).join('/')}px and margins ${layout.grid.map((g) => g.marginPx).join('/')}px, ${gapNotes.length ? 'from the spacing scale except as noted below' : 'from the spacing scale'}; containers max ${n2(layout.containerMax)}px, narrow ${n2(layout.containerNarrow)}px.`);
   notes.push(...gapNotes);
   // The label category always carries the `default` role (Q225 A, Q226 A: Tabs binds it unselected), before the
@@ -3485,9 +3501,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     ...(input.raisedSurface ? { raisedSurface: input.raisedSurface } : {}),
     ...(input.scrimStrength ? { scrimStrength: input.scrimStrength } : {}),
     ...(glassRoles ? { glassRoles } : {}),
+    ...(radioDot !== RADIO_DOT_DEFAULT ? { radioDot } : {}),
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
     linkStateRungs: input.linkStateRungs,
-    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, []), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
+    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, [], radioDot), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
     motion,
     typography,
     shadow,
@@ -3532,7 +3549,8 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
   // Engine taxonomy (not NB's): 8px space rhythm reproducing Prism2's numbered
   // scale; NB's 4px grid still backs radius/borders. NB ships radius scale=1 and
   // a 720px layout outlier.
-  const dims = buildDims(baseUnit, 8, 'comfortable', 1, baseMd, [720]);
+  // The reference brand's radio dot is 70% of the box (#3086, owner Q816 A): 14px at medium, its master's hand edit.
+  const dims = buildDims(baseUnit, 8, 'comfortable', 1, baseMd, [720], 70);
   return {
     id: 'nb', root: 'nbds', namespace: `nbds.${CORE_TIER}.palette`, colorFormat: 'rgb', modes: ALL_MODES, palettes,
     roleToPalette: { brand: 'red', neutral: 'neutral', success: 'green', warning: 'amber', danger: 'red', info: 'info', action: 'red' },
@@ -3550,6 +3568,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     // The reference brand's card glass (#3073, owner Q807 A; 70%, the owner's correction of 2026-10-27): the card
     // ground, `foreground.primary`'s palette color in each mode, at 70%.
     glassRoles: { card: { role: 'foreground.primary', alpha: 70 } },
+    radioDot: 70,
     dims, motion: buildMotion(),
     // The label category always ships the `default` role (Q225 A, Q226 A), here as in every brand.
     // #3077 (owner decisions 2026-10-27): caption.md is 10px, and display, title, body, caption and label are pinned
