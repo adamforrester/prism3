@@ -163,7 +163,8 @@ export const mountAgentLink = (): void => {
   label.htmlFor = chip.id;
   label.setAttribute('aria-hidden', 'true');
   // #2949 (Q600 A): Minimize, at the rail's foot since Q731, whether the link is on or off. A plain button: the main thread decides.
-  const { btn: minBtn, mark: minMark, tip: minTip } = tile('agent-minimize', 'Minimize');
+  // Its icon alone (#3083, the owner, 2026-10-28), as the strip's Restore is: the name and the tooltip say "Minimize".
+  const { btn: minBtn, mark: minMark, tip: minTip } = tile('agent-minimize', null);
   minBtn.classList.add('p3-agent-min');
   minBtn.setAttribute('aria-label', 'Minimize');
   minTip.textContent = 'Minimize';
