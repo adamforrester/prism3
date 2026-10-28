@@ -215,7 +215,11 @@ export interface HostSession {
    *  file has run. `null` until the first answer; `error` is the host's words when it could not read the file. */
   readonly fileSets: { readonly present: readonly string[]; readonly setUp: boolean; readonly error: string | null;
     /** Q2909.8 A: each present set as the as-built ledger reads it. */
-    readonly due: Readonly<Record<string, SetDueView>> } | null;
+    readonly due: Readonly<Record<string, SetDueView>>;
+    /** #3110: read from the ledger alone at open, before any page loaded; the full read replaces it. */
+    readonly partial?: boolean;
+    /** #3110: one of the host's own reads after open, not an answer to the panel's request. */
+    readonly atOpen?: boolean } | null;
   /** #3081 Q810 A: the badge's live recount, the newest answer by `seq`: what is due against the panel's brand, and
    *  whether Apply Theme would change the file (`theme`). `null` until the first answer. */
   readonly liveDue: { readonly seq: number; readonly present: readonly string[]; readonly theme: boolean; readonly error: string | null;
@@ -414,7 +418,11 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       return { ...s, docSettings: { panels: m.panels, cover: m.cover, styleGuide: m.styleGuide, error: m.error } };
     case 'file-sets':
       // The main thread starts the hand-edit pass after its first answer at load, so the pass is out from here.
-      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass };
+      // #3110: the host's reads after open (the ledger's, then the file's) never replace a read the panel asked for, nor
+      // the ledger's a full one. Before, the read after open always landed first; now it yields, so a request can win.
+      if (m.atOpen && s.fileSets && !s.fileSets.atOpen) return s;
+      if (m.partial && s.fileSets && !s.fileSets.partial) return s;
+      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due, ...(m.partial ? { partial: true } : {}), ...(m.atOpen ? { atOpen: true } : {}) }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass };
     case 'file-due':
       // An answer older than the one held was overtaken by a newer request: the newer answer is the brand on screen.
       return s.liveDue && m.seq < s.liveDue.seq ? s : { ...s, liveDue: { seq: m.seq, present: m.present, theme: m.theme, error: m.error, due: m.due } };

@@ -519,7 +519,7 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
     const plan = computePrunePlan(snapshot);
     // THE CANVAS FURNITURE (#2406, #2188): labels and backdrops whose set is gone, or whose def the pilot no longer
     // covers. Found by their tag, file-wide; a live set's furniture is the build's to redraw, never prune's.
-    await figma.loadAllPagesAsync();
+    await loadPagesYielding();
     const tagged = (figma.root.findAllWithCriteria({ types: ['INSTANCE'], sharedPluginData: { namespace: FURNITURE_NS, keys: [FURNITURE_KEY] } }) as readonly InstanceNode[])
       .map((node) => ({ node, tag: readTag(node as unknown as XNode) }))
       .filter((x): x is { node: InstanceNode; tag: FurnitureTag } => x.tag !== null);
@@ -791,7 +791,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // is built before it, deepest first (`build-deps.ts`). One that is already in the file is left alone:
     // rebuilding it would orphan its placed instances, so it keeps its STALE reading exactly as before. A
     // dependency that fails stops here, so the parent is never built against a missing nest.
-    await figma.loadAllPagesAsync();
+    await loadPagesYielding();
     // A NAMED VERSION BEFORE THE FIRST WRITE (#2828), for the def and the sets it adds first. A host that refuses
     // lands in the catch below with nothing written.
     await saveBeforeBuild(figma as unknown as Parameters<typeof saveBeforeBuild>[0], def, { defs: componentDefs, project });
@@ -999,8 +999,8 @@ const panelBeside = async (f: FurnitureOutcome, setId: string, defId: string): P
  * whether Set up file has run. Never throws to the panel: an unreadable file answers with `error` and nothing present.
  */
 const presentDefs = async (): Promise<string[]> => {
-  await figma.loadAllPagesAsync();
-  const names = presentNames(figma as unknown as Parameters<typeof presentNames>[0]);
+  await timed('page loads', loadPagesYielding);
+  const names = await timed('file search', () => presentNames(figma as unknown as Parameters<typeof presentNames>[0]));
   presentCache = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
   return presentCache;
 };
@@ -1008,6 +1008,31 @@ const presentDefs = async (): Promise<string[]> => {
  *  in the panel never loads every page or walks the file: that is the costly part on a large file. A write starting and
  *  ending clears them (`guarded`), so the next recount reads the file again. */
 let presentCache: string[] | null = null;
+/**
+ * #3110: EVERY PAGE LOADED, ONE AT A TIME, THE THREAD HANDED BACK BETWEEN THEM. Figma loads a page on the main thread
+ * and the file freezes while it does: `loadAllPagesAsync` alone on a file of 60 pages held it for about 20 s, the first
+ * open of a session (a page stays loaded for the rest of it). One page per turn keeps the file answering between pages.
+ * The closing `loadAllPagesAsync` has nothing left to load; it is still called, because under `dynamic-page` the
+ * document-wide searches after it (`presentNames`, the update's `locateSets`) need it called. A host whose pages carry
+ * no `loadAsync` (a Node shim) skips straight to it. Every read and write in this file that needs every page loads them
+ * here, so none of them freezes the file while the read after open is still going.
+ */
+const loadPagesYielding = async (): Promise<void> => {
+  for (const p of figma.root.children as readonly { loadAsync?(): Promise<void> }[]) {
+    if (typeof p.loadAsync !== 'function') continue;
+    await p.loadAsync();
+    await breathe();
+  }
+  await figma.loadAllPagesAsync();
+};
+/** #3110: stage timings for plugin open, kept only when `PRISM3_OPEN_TIMINGS` is an array on the global (a test, or a
+ *  debug session, sets it), so a normal run times nothing. Each stage pushes its name and how long it took. */
+const timed = async <T>(stage: string, fn: () => T | Promise<T>): Promise<T> => {
+  const log = (globalThis as { PRISM3_OPEN_TIMINGS?: unknown }).PRISM3_OPEN_TIMINGS;
+  if (!Array.isArray(log)) return fn();
+  const t0 = Date.now();
+  try { return await fn(); } finally { log.push({ stage, ms: Date.now() - t0 }); }
+};
 /** The brand a due read, a scoped check or the panel's update measures against (#2909, Q699 A, built on its
  *  recommendation): the brand the panel holds when it sends one, so the counts shown are what the run writes after its
  *  Theme step stores that brand, and a lever not yet applied shows its sets as due on the first opening. Absent (the
@@ -1026,14 +1051,35 @@ const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) =>
     try { return d ? entryFor(mat(d)) : null; } catch { return null; }
   };
 };
-const fileSets = async (input?: BrandInput): Promise<void> => {
+/** `atOpen`: the read after open (#3110), as against an answer to the panel's own `file-sets-request`. It now yields, so
+ *  a request asked meanwhile can be answered first; the panel tells the two apart by this. */
+const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
   try {
     const present = await presentDefs();
     // #2909 Q2909.8 A: what is due, from the as-built ledger, one root read (`as-built-ledger.ts`), against the panel's brand.
-    postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due: dueOf(readLedger(figma.root), present, ledgerNow(input)) });
+    const due = await timed('due (file)', () => dueOf(readLedger(figma.root), present, ledgerNow(input)));
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due, ...(atOpen ? { atOpen: true as const } : {}) });
   } catch (e) {
-    postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, error: (e as Error)?.message ?? String(e) });
+    postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, error: (e as Error)?.message ?? String(e), ...(atOpen ? { atOpen: true as const } : {}) });
   }
+};
+/**
+ * #3110: WHAT IS DUE AT OPEN, FROM THE ROOT LEDGER ALONE: no page is loaded, so the panel is ready at once on a file of
+ * any size. The ledger holds one entry per set Prism3 wrote, at the root, so the sets it names are the ones read as
+ * present, against the stored brand, as the read at load always was. It cannot see a set it holds no entry for (built
+ * before it, or by hand), nor one deleted since, nor whether Set up file has run, so the answer says it is `partial`:
+ * the panel shows such a set as Checking, and Update file's checklist never opens on it. The full read follows, a page
+ * at a time (`fileSets`), and replaces it. Both carry `atOpen`, so the panel keeps an answer it asked for meanwhile.
+ */
+const ledgerSets = async (): Promise<void> => {
+  try {
+    const ledger = await timed('ledger read', () => readLedger(figma.root));
+    const present = componentDefs.filter((d) => d.figmaProperties && ledger[d.id]).map((d) => d.id);
+    const due = await timed('due (ledger)', () => dueOf(ledger, present, ledgerNow()));
+    // `setUp` is not read: it needs a document-wide search, so every page loaded. Only the checklist reads it, and the
+    // checklist waits for the full read.
+    postToUi({ type: 'file-sets', present, setUp: false, due, partial: true, atOpen: true });
+  } catch { /* the full read follows and says why */ }
 };
 
 /** #3081 Q810 A: the badge's live recount. It counts what is due against the panel's brand, and whether the file holds
@@ -1083,7 +1129,7 @@ const handEditsPass = async (): Promise<void> => {
 const checkSets = async (defs: readonly string[], input?: BrandInput): Promise<void> => {
   try {
     const { targets, refused } = updateTargets(defs, input);
-    await figma.loadAllPagesAsync();
+    await loadPagesYielding();
     const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe);
     r.refused.push(...refused);
     // `previewUpdate` adds a preview for each target it found, in the targets' order, and names the rest as missing or
@@ -1136,7 +1182,7 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
   try {
     const { targets, unknown, refused } = updateTargets(defId, input);
     if (unknown !== null) return unknownDef(unknown, sink);
-    await figma.loadAllPagesAsync();
+    await loadPagesYielding();
     if (previewHash === null) {
       const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe);
       r.refused.push(...refused);
@@ -1176,7 +1222,7 @@ const captureBaseline = async (defId: string | undefined, sink: ActionSink): Pro
   try {
     const { targets, unknown, refused } = updateTargets(defId);
     if (unknown !== null) return unknownDef(unknown, sink);
-    await figma.loadAllPagesAsync();
+    await loadPagesYielding();
     const r = await captureBaselines(figma as unknown as UpdateHost, targets, breathe);
     r.refused.push(...refused);
     sink.data({ update: { mode: 'capture', ...r } });
@@ -1193,7 +1239,7 @@ const adoptMembers = async (defId: string | undefined, sink: ActionSink): Promis
   try {
     const { targets, unknown, refused } = updateTargets(defId);
     if (unknown !== null) return unknownDef(unknown, sink);
-    await figma.loadAllPagesAsync();
+    await loadPagesYielding();
     const r = await adoptAll(figma as unknown as UpdateHost, targets, breathe);
     r.refused.push(...refused);
     sink.data({ update: { mode: 'adopt', ...r } });
@@ -1216,7 +1262,7 @@ const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink
     if (defId !== undefined && !componentDefs.some((d) => d.id === defId)) return unknownDef(defId, sink);
     let brandInput: BrandInput | null = null;
     try { brandInput = restoreInput(figma.root); } catch { /* untrusted/absent → defaults, as `buildComponents` */ }
-    await figma.loadAllPagesAsync();
+    await loadPagesYielding();
     const api = figma as unknown as SpecApi;
     const { targets, skipped } = specTargets(api, defId, scope === 'page' ? figma.currentPage : undefined);
     const drawn: string[] = [], items: string[] = [...skipped];
@@ -1257,7 +1303,7 @@ const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink
  */
 const fileSetup = async (sink: ActionSink): Promise<void> => {
   try {
-    await figma.loadAllPagesAsync();
+    await loadPagesYielding();
     const scaffold = await scaffoldSkeleton(figma, TAXONOMY);
     // THE SETS ON A FORMER PAGE (#2989, owner decision Q656 A) move to the page the taxonomy names now, after a named
     // version, as Update moves them (`page-moves.ts`). No page is deleted: one left empty is named for the owner.
@@ -1353,7 +1399,9 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
     const panel = sink === uiSink;
     // One table at a time, yielding to the host between them and within a big one (#1778). Each reading goes to
     // the pending pill and, logged, to the console: a hung run's last line names the table it hung on, and
-    // `tableMs` is the live figure `CELLS_PER_YIELD` is calibrated against.
+    // `tableMs` is the live figure `CELLS_PER_YIELD` is calibrated against. Pages first, one per turn (#3110):
+    // `runStyleGuide`'s own `loadAllPagesAsync` then has nothing left to load.
+    await loadPagesYielding();
     const result = await runStyleGuide(figma, contract, options, {
       // A NAMED VERSION BEFORE THE FIRST WRITE (#2828); a host that refuses ends the run in the catch below.
       beforeWrite: (tables) => saveVersion(figma, { run: 'style-guide', tables }).then(() => undefined),
@@ -1387,7 +1435,7 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
  */
 const styleGuideCatalog = async (): Promise<void> => {
   try {
-    await figma.loadAllPagesAsync();
+    await loadPagesYielding();
     const { catalog } = await readCatalog(figma.variables, () => figma.getLocalTextStylesAsync(), { effect: () => figma.getLocalEffectStylesAsync(), paint: () => figma.getLocalPaintStylesAsync() });
     postToUi({ type: 'style-guide-catalog', catalog: catalogFor(catalog, savedContract().contract, isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0])) });
   } catch (e) {
@@ -1514,6 +1562,8 @@ const sendFonts = async (): Promise<void> => {
  */
 const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void> => {
   try {
+    // Pages first, one per turn (#3110): `removeRetiredTables`' own `loadAllPagesAsync` then has nothing left to load.
+    await loadPagesYielding();
     const { removed, left } = await removeRetiredTables(figma, savedContract().contract, ids);
     const n = removed.length;
     const summary = n ? `${n} table${n === 1 ? '' : 's'} removed: ${removed.join(', ')}` : 'No table removed';
@@ -1630,7 +1680,8 @@ onUiMessage((msg: UiToMain) => {
       // The link is off on every launch; the panel's control starts from this.
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
       // #2909 Q2909.8 A: what is due, from the ledger, then the background hand-edit pass, so the panel knows both at rest.
-      void fileSets().then(() => handEditsPass());
+      // #3110: the ledger's answer first, with no page loaded, so the panel is ready before the file is read.
+      void ledgerSets().then(() => timed('file-sets', () => fileSets(undefined, true))).then(() => timed('hand-edit pass', handEditsPass));
       void sendThemePref();
       void sendActivityHeight();
       postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root) });

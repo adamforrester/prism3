@@ -82,7 +82,8 @@ export type HostMessage =
   | { kind: 'doc-settings'; panels: boolean; cover: boolean; styleGuide: Record<string, unknown> | null; error: string | null }
   // #2909 — Update file's checklist: the def ids whose set the file holds, whether Set up file has run, and (Q2909.8 A)
   // what the as-built ledger says each present set is: current, due and why, or not recorded.
-  | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null; due: Readonly<Record<string, SetDueView>> }
+  // #3110: `partial` when the host read it from the ledger alone at open, before any page loaded.
+  | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null; due: Readonly<Record<string, SetDueView>>; partial?: boolean; atOpen?: boolean }
   // #3081 Q810 A — the badge's live recount: what is due against the panel's brand, and whether the file holds it.
   | { kind: 'file-due'; seq: number; present: readonly string[]; theme: boolean; error: string | null; due: Readonly<Record<string, SetDueView>> }
   // #2909 Q2909.8 A — one set's hand edits from the background pass after load, or its end.
@@ -449,7 +450,7 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   },
   // #2909. Ids that are not strings are dropped; a malformed `setUp` reads as not set up, the claim that asks for more.
   'file-sets': (m) => ({ kind: 'file-sets', present: Array.isArray(m.present) ? (m.present as unknown[]).filter(str) : [], setUp: m.setUp === true,
-    error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due) }),
+    error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due), ...(m.partial === true ? { partial: true } : {}), ...(m.atOpen === true ? { atOpen: true } : {}) }),
   // #3081 Q810 A. An answer with no number to match is dropped; a malformed `theme` reads as nothing to apply.
   'file-due': (m) => (typeof m.seq === 'number' ? { kind: 'file-due', seq: m.seq, present: Array.isArray(m.present) ? (m.present as unknown[]).filter(str) : [],
     theme: m.theme === true, error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due) } : null),

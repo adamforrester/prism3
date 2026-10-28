@@ -65,12 +65,14 @@ result whose `ok` is false is the action's own verdict and arrives as a normal r
 ## How it is built
 
 - `server.ts` — the stdio JSON-RPC loop (hand-rolled like `packages/engine/mcp.ts`, reusing its
-  protocol constants) and an RFC 6455 WebSocket server on `node:http` + `node:crypto`, with no `ws`
+  protocol constants and its `initialize` rule, `negotiateHandshakeVersion`: a handshake client gets
+  `2024-11-05` back, never `2026-07-28`, which Claude Code refuses, #3109) and an RFC 6455 WebSocket server on `node:http` + `node:crypto`, with no `ws`
   package. It binds loopback only (127.0.0.1, and ::1 where available).
 - `apps/plugin/src/agent-bridge-relay.ts` — the plugin side. It runs in the UI iframe, since the main
   thread has no network, and relays commands to the main thread's dispatcher.
 - `apps/plugin/test-agent-bridge.ts` — the gate, an arm of the plugin's `test` step. It spawns this
-  server, speaks MCP to it over stdio, drives its socket with a hand-rolled client (fragmented,
+  server, speaks MCP to it over stdio (including the shared `initialize` probes in
+  `packages/engine/mcp-handshake-probes.ts`), drives its socket with a hand-rolled client (fragmented,
   64-bit-length, ping, unmasked and disconnect cases), then connects the real relay to the real
   `main.ts` and proves a `figma_run` reaches the panel's own handler.
 

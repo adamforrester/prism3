@@ -416,6 +416,19 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
     '#3081 file-due: the recount lands in liveDue, leaves fileSets as it was, and invalidates host:update alone');
   const l0 = step(l1.next, { kind: 'file-due', seq: 3, present: [], theme: false, error: null, due: {} });
   ok(l0.next === l1.next && l0.topics.length === 0, '#3081 file-due: an answer older than the one held changes nothing and invalidates nothing');
+  // #3110: the answer at open, from the ledger alone, lands as partial, starts the pass, and never replaces a full read.
+  const part = step(init, { kind: 'file-sets', present: ['button'], setUp: false, error: null, due, partial: true, atOpen: true });
+  ok(part.next.fileSets?.partial === true && part.next.handPass === 'running', '#3110: the answer at open lands marked partial and starts the hand-edit pass');
+  const late = step(f.next, { kind: 'file-sets', present: [], setUp: false, error: null, due: {}, partial: true, atOpen: true });
+  ok(same(late.next.fileSets, f.next.fileSets), '#3110: an answer at open arriving after a full read leaves the full read in place');
+  const full = step(part.next, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due });
+  ok(full.next.fileSets?.partial === undefined && full.next.fileSets?.setUp === true, '#3110: the full read replaces the answer at open');
+  // The host's full read after open yields, so the checklist's own answer (under the panel's brand) can land first. The
+  // later read after open, under the stored brand, must not replace it.
+  const openFull = step(f.next, { kind: 'file-sets', present: [], setUp: true, error: null, due: {}, atOpen: true });
+  ok(same(openFull.next.fileSets, f.next.fileSets), '#3110: the host\'s read after open, landing after an answer the panel asked for, leaves that answer in place');
+  const atOpenFull = step(part.next, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due, atOpen: true });
+  ok(atOpenFull.next.fileSets?.partial === undefined && atOpenFull.next.fileSets?.atOpen === true, '#3110: the host\'s full read after open replaces its ledger answer');
   const bad = step(init, { kind: 'file-sets', present: [], setUp: false, error: 'boom', due: {} });
   ok(bad.next.handPass === 'idle', 'Q2909.8 A: a file-sets that could not read the file starts no pass');
   // Each set's hand edits land as they come, one by one, and the pass's end marks it done.

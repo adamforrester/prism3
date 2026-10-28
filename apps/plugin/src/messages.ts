@@ -492,7 +492,13 @@ export type MainToUi =
    *  `error` when the file could not be read; then `present` is empty and `setUp` false. */
   | { type: 'file-sets'; present: string[]; setUp: boolean; error?: string;
       /** #2909 Q2909.8 A: each present set read against the as-built ledger (`as-built-ledger.ts` `dueOf`). */
-      due: Record<string, SetDue> }
+      due: Record<string, SetDue>;
+      /** #3110: read from the root ledger alone at open, before any page loads: the sets it names, not every set the
+       *  file holds, and `setUp` unread (false). The full read follows and replaces it. */
+      partial?: true;
+      /** #3110: one of the host's own reads after open (the ledger's, then the file's), not an answer to the panel's
+       *  `file-sets-request`. */
+      atOpen?: true }
   /** #3081 Q810 A: the answer to `due-request`, by its `seq`: the sets the file holds (as the last `file-sets` read found
    *  them, or read again after a write), each read against the ledger under the panel's brand, and `theme`: the file does
    *  not hold that brand, so Apply Theme would change it. `error` when the file could not be read. */
