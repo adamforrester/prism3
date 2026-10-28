@@ -9463,9 +9463,9 @@ for (const host of ['web', 'figma']) {
         `#2931 Q579 A, #2905 Q10 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
       const B = r.buttons, F = r.fields;
       ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
-        && JSON.stringify(F.ids) === JSON.stringify(['code-input', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
-        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its seven sets (Code input since Q-2789.3 A, its cell beside it since #2989), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
-      ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog|Banner)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
+        && JSON.stringify(F.ids) === JSON.stringify(['card-number-field', 'code-input', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
+        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its eight sets (Code input since Q-2789.3 A, its cell beside it since #2989, Card number field since #2343 PR 4), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
+      ok(!r.other.some((t) => /^(Buttons|Button|Card number field|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog|Banner)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
         `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
       for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T], ['Dialog', D], ['Banner', BN]]) {
         const xs = e ? [e.head, ...e.rows, e.line, e.block] : [];
@@ -9482,7 +9482,8 @@ for (const host of ['web', 'figma']) {
       ok(!!S && S.title === 'Search options' && S.desc === 'How Search field draws its edge, apart from the other fields.'
         && JSON.stringify(S.chips) === JSON.stringify(['Follow field style', 'Outline', 'Underline']) && S.readout === 'now Outline',
         `#2952, #2905 Q10 A: ${host} ${w}: Search options: its drafted title and description, Search field style's chips, and under Follow the readout "now Outline" (${JSON.stringify(S)})`);
-      ok(r.title === 'Code input', `#2905, Q-2789.3 A: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Code input (${r.title})`);
+      // #2343 PR 4: Card number field sorts first in Fields, so it is the set the preview opens on.
+      ok(r.title === 'Card number field', `#2905, Q-2789.3 A: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Card number field (${r.title})`);
       await hooks.click(page.locator('[data-p3="field-style-choice-underline"]'));
       await page.waitForFunction(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent !== 'Rounded', null, { timeout: 5000 }).catch(() => {});
       const u = await page.evaluate(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent ?? null);

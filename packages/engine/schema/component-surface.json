@@ -763,6 +763,18 @@
         "↳ swap trailing icon:INSTANCE_SWAP"
       ]
     },
+    "card-number-field": {
+      "members": 84,
+      "sha256": "778283cf9be742332b722c2d0d96fc6bee5d70370115cab74838fa23108e61fe",
+      "properties": [
+        "card mark:BOOLEAN",
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "value:TEXT",
+        "↳ swap card mark:INSTANCE_SWAP"
+      ]
+    },
     "banner": {
       "members": 8,
       "sha256": "d335048f7c7fde249944fafed0e0b17feff04751e38b41ba11513ca533033557",

@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (109)
+## Findings (112)
 
 ### axis values
 
@@ -19,9 +19,9 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis inset** — the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider
 - **axis selection** — the selection axis takes 4 value sets — [selected, unselected] in link, pagination-item, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control
 - **axis shape** — the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress
-- **axis size** — the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner
-- **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
-- **axis style** — the style axis takes 3 value sets — [outline] in password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [inline, standalone] in link
+- **axis size** — the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner
+- **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
+- **axis style** — the style axis takes 3 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [inline, standalone] in link
 - **axis tone** — the tone axis takes 3 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge; [danger, info, success, warning] in banner
 - **axis type** — the type axis takes 8 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [range, single] in slider
 - **axis weight** — the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link
@@ -34,6 +34,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **button** — button has the variant axis width and no prop of that name
 - **button-destructive** — button-destructive has the variant axis width and no prop of that name
 - **button-neutral** — button-neutral has the variant axis width and no prop of that name
+- **card-number-field** — card-number-field has the variant axes style and status and no props of those names
 - **checkbox-control** — checkbox-control has the variant axes selection and status and no props of those names
 - **checkbox-group** — checkbox-group has the variant axis status and no prop of that name
 - **checkbox-row** — checkbox-row has the variant axis status and no prop of that name
@@ -64,7 +65,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### size default
 
-- **field-label** — field-label defaults size to small; 46 of 47 sized components default to medium
+- **field-label** — field-label defaults size to small; 47 of 48 sized components default to medium
 
 ### size order
 
@@ -77,6 +78,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **button** — button declares its sizes as [medium, small, large], not smallest first
 - **button-destructive** — button-destructive declares its sizes as [medium, small, large], not smallest first
 - **button-neutral** — button-neutral declares its sizes as [medium, small, large], not smallest first
+- **card-number-field** — card-number-field declares its sizes as [medium, small, large], not smallest first
 - **checkbox-control** — checkbox-control declares its sizes as [medium, small, large], not smallest first
 - **checkbox-group** — checkbox-group declares its sizes as [medium, small, large], not smallest first
 - **checkbox-row** — checkbox-row declares its sizes as [medium, small, large], not smallest first
@@ -119,6 +121,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **button** — button declares the state inactive, which the design-file state axis does not draw
 - **button-destructive** — button-destructive declares the state inactive, which the design-file state axis does not draw
 - **button-neutral** — button-neutral declares the state inactive, which the design-file state axis does not draw
+- **card-number-field** — card-number-field declares the states pending and empty, which the design-file state axis does not draw
 - **code-input** — code-input declares the state pending, which the design-file state axis does not draw
 - **icon-button** — icon-button declares the state inactive, which the design-file state axis does not draw
 - **icon-button-destructive** — icon-button-destructive declares the state inactive, which the design-file state axis does not draw
@@ -180,6 +183,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | button-destructive | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
 | button-group | form | — | — |
 | button-neutral | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
+| card-number-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
 | checkbox-control | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | checkbox-group | form | — | — |
 | checkbox-row | form | rest, hover, pressed, focus-visible, disabled, read-only | — |
@@ -230,18 +234,18 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 | State | Components |
 |---|---|
-| disabled | _slider-thumb, button, button-destructive, button-neutral, checkbox-control, checkbox-row, code-input, code-input-cell, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tag, text-field, textarea |
-| empty | password-field, search-field, select, text-field, textarea |
+| disabled | _slider-thumb, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tag, text-field, textarea |
+| empty | card-number-field, password-field, search-field, select, text-field, textarea |
 | error | code-input-cell |
-| filled | code-input, code-input-cell, password-field, search-field, select, text-field, textarea |
-| focus-visible | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-row, code-input, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tag, text-field, textarea, wallet-button |
-| focus-visible-filled | code-input, code-input-cell, password-field, search-field, select, text-field, textarea |
-| hover | _slider-thumb, button, button-destructive, button-neutral, checkbox-control, checkbox-row, code-input, code-input-cell, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tag, text-field, textarea |
+| filled | card-number-field, code-input, code-input-cell, password-field, search-field, select, text-field, textarea |
+| focus-visible | _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tag, text-field, textarea, wallet-button |
+| focus-visible-filled | card-number-field, code-input, code-input-cell, password-field, search-field, select, text-field, textarea |
+| hover | _slider-thumb, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tag, text-field, textarea |
 | inactive | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral |
-| pending | button, button-destructive, button-neutral, code-input, icon-button, icon-button-destructive, icon-button-neutral, password-field, search-field, select, switch-row, text-field, textarea |
+| pending | button, button-destructive, button-neutral, card-number-field, code-input, icon-button, icon-button-destructive, icon-button-neutral, password-field, search-field, select, switch-row, text-field, textarea |
 | pressed | _slider-thumb, button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, radio-control, radio-row, segmented-control-segment, slider, switch-control, switch-row, tab-item, tag |
-| read-only | checkbox-row, password-field, radio-row, search-field, select, switch-row, tag, text-field, textarea |
-| rest | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-row, code-input, code-input-cell, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tag, text-field, textarea, wallet-button |
+| read-only | card-number-field, checkbox-row, password-field, radio-row, search-field, select, switch-row, tag, text-field, textarea |
+| rest | _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tag, text-field, textarea, wallet-button |
 
 ## Variant axes
 
@@ -279,14 +283,14 @@ Generated from the component definitions and the emission by `packages/engine/em
 | shape | circular, square | icon-button, icon-button-destructive, icon-button-neutral |
 |  | flush, round | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
 |  | circular, linear | progress |
-| size | large, medium, small | _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea, wallet-button |
+| size | large, medium, small | _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea, wallet-button |
 |  | medium, small | badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row |
 |  | large, medium, small, xlarge | code-input, code-input-cell |
 |  | large, medium, small, x-small | spinner |
 | status | default, error | checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row |
-|  | default, error, success, warning | field-message, password-field, search-field, select, text-field, textarea |
+|  | default, error, success, warning | card-number-field, field-message, password-field, search-field, select, text-field, textarea |
 |  | active, complete, error | progress |
-| style | outline | password-field, search-field, text-field, textarea |
+| style | outline | card-number-field, password-field, search-field, text-field, textarea |
 |  | border, underline | pagination, pagination-item |
 |  | inline, standalone | link |
 | surface | default, inverse | button, button-destructive, button-neutral, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, focus-ring, icon-button, icon-button-destructive, icon-button-neutral, link |
@@ -322,6 +326,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | button | medium, small, large | medium |
 | button-destructive | medium, small, large | medium |
 | button-neutral | medium, small, large | medium |
+| card-number-field | medium, small, large | medium |
 | checkbox-control | medium, small, large | medium |
 | checkbox-group | medium, small, large | medium |
 | checkbox-row | medium, small, large | medium |
@@ -404,7 +409,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | list-item | — | — |
 | count | pagination | — | — |
 |  | tab-item | — | — |
-| defaultValue | checkbox-group | — | — |
+| defaultValue | card-number-field | — | — |
+|  | checkbox-group | — | — |
 |  | code-input | — | — |
 |  | counter | — | — |
 |  | password-field | — | — |
@@ -422,6 +428,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button | false | — |
 |  | button-destructive | false | — |
 |  | button-neutral | false | — |
+|  | card-number-field | false | — |
 |  | checkbox-control | false | — |
 |  | checkbox-group | false | — |
 |  | checkbox-row | false | — |
@@ -458,7 +465,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button-neutral | false | — |
 | headingLevel | accordion | 3 | 2, 3, 4, 5, 6 |
 |  | banner | 2 | 2, 3, 4, 5, 6 |
-| helpText | code-input | — | — |
+| helpText | card-number-field | — | — |
+|  | code-input | — | — |
 |  | password-field | — | — |
 |  | search-field | — | — |
 |  | select | — | — |
@@ -480,7 +488,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-destructive | — | — |
 |  | icon-button-neutral | — | — |
 |  | list-item | — | — |
-| id | code-input | — | — |
+| id | card-number-field | — | — |
+|  | code-input | — | — |
 |  | field-message | — | — |
 |  | password-field | — | — |
 |  | search-field | — | — |
@@ -507,6 +516,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | isPending | button | false | — |
 |  | button-destructive | false | — |
 |  | button-neutral | false | — |
+|  | card-number-field | false | — |
 |  | code-input | false | — |
 |  | icon-button | false | — |
 |  | icon-button-destructive | false | — |
@@ -531,6 +541,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
+|  | card-number-field | — | — |
 |  | checkbox-group | — | — |
 |  | checkbox-row | — | — |
 |  | code-input | — | — |
@@ -557,7 +568,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | tag | — | — |
 |  | text-field | — | — |
 |  | textarea | — | — |
-| leadingIcon | password-field | — | — |
+| leadingIcon | card-number-field | — | — |
+|  | password-field | — | — |
 |  | search-field | — | — |
 |  | segmented-control-segment | — | — |
 |  | select | — | — |
@@ -579,6 +591,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | progress | 0 | — |
 |  | slider | 0 | — |
 | name | brand-mark | — | 74 values |
+|  | card-number-field | — | — |
 |  | checkbox-group | — | — |
 |  | code-input | — | — |
 |  | counter | — | — |
@@ -591,7 +604,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | slider | — | — |
 |  | text-field | — | — |
 |  | textarea | — | — |
-| onChange | checkbox-group | — | — |
+| onChange | card-number-field | — | — |
+|  | checkbox-group | — | — |
 |  | checkbox-row | — | — |
 |  | code-input | — | — |
 |  | counter | — | — |
@@ -618,12 +632,14 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | toast | — | — |
 | page | pagination | — | — |
 |  | pagination-item | — | — |
-| placeholder | password-field | — | — |
+| placeholder | card-number-field | — | — |
+|  | password-field | — | — |
 |  | search-field | — | — |
 |  | select | — | — |
 |  | text-field | — | — |
 |  | textarea | — | — |
-| readOnly | checkbox-row | false | — |
+| readOnly | card-number-field | false | — |
+|  | checkbox-row | false | — |
 |  | password-field | false | — |
 |  | radio-row | false | — |
 |  | search-field | false | — |
@@ -633,7 +649,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | tag | false | — |
 |  | text-field | false | — |
 |  | textarea | false | — |
-| required | checkbox-group | false | — |
+| required | card-number-field | false | — |
+|  | checkbox-group | false | — |
 |  | field-label | false | — |
 |  | password-field | false | — |
 |  | radio-group | false | — |
@@ -654,7 +671,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-destructive | square | square, circular |
 |  | icon-button-neutral | square | square, circular |
 |  | progress | linear | linear, circular |
-| showMessage | code-input | false | — |
+| showMessage | card-number-field | false | — |
+|  | code-input | false | — |
 |  | counter | false | — |
 |  | password-field | false | — |
 |  | search-field | false | — |
@@ -675,6 +693,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button | medium | small, medium, large |
 |  | button-destructive | medium | small, medium, large |
 |  | button-neutral | medium | small, medium, large |
+|  | card-number-field | medium | small, medium, large |
 |  | checkbox-control | medium | small, medium, large |
 |  | checkbox-group | medium | small, medium, large |
 |  | checkbox-row | medium | small, medium, large |
@@ -764,7 +783,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | tag | select | select, dismissible |
 |  | text-field | text | text, email, url, tel, search, password |
 |  | wallet-button | plain | — |
-| validation | checkbox-control | default | default, error |
+| validation | card-number-field | default | default, error, warning, success |
+|  | checkbox-control | default | default, error |
 |  | checkbox-group | default | default, error |
 |  | checkbox-row | default | default, error |
 |  | code-input | default | default, error |
@@ -779,7 +799,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | switch-row | default | default, error |
 |  | text-field | default | default, error, warning, success |
 |  | textarea | default | default, error, warning, success |
-| validationMessage | checkbox-group | — | — |
+| validationMessage | card-number-field | — | — |
+|  | checkbox-group | — | — |
 |  | code-input | — | — |
 |  | password-field | — | — |
 |  | radio-group | — | — |
@@ -790,6 +811,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | textarea | — | — |
 | value | accordion | — | — |
 |  | badge | — | — |
+|  | card-number-field | — | — |
 |  | checkbox-group | — | — |
 |  | checkbox-row | — | — |
 |  | code-input | — | — |
