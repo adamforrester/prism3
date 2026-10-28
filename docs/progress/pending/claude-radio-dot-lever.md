@@ -29,8 +29,10 @@ and the Theme carries no `radioDot`. `regen` moved only the reference brand's fi
 **Gates (test.ts 19h).** G1 the reference brand's dot is 12/14/16 in DTCG and in the Figma control collection, for the
 legacy fixture and the seed. G2 every default corpus brand's dot is half its box with the #910 line and no share, and
 `radioDot: 50` written out is byte-identical to unset. G3 nine share × density brands against a hand-worked table, per
-rung. G4 dot ≤ box − 2 × ring, the ring read from `border-width.thick` and Radio.Control's binding. Mutations M1–M5 in
-the block header, each failing by name. `test-component-groups.ts` holds the Radio section to the defs that nest
+rung. G4 dot ≤ box − 2 × ring, the ring read from `border-width.thick` and Radio.Control's binding. G5 (from review)
+a dark mode with its own density carries the share, read from the dot leaf's `modes.dark` entry against the same hand
+table. G6 (from review) the Figma dot line names the share, read from the emitted control collection. Mutations M1–M7
+in the block header, each failing by name. `test-component-groups.ts` holds the Radio section to the defs that nest
 `radio-control`, and pins the defs binding `control.size.*.dot` to Radio.Control, Badge and List.Item.
 
 **Trap for later.** Badge's dot and List's bullet bind the same tokens, so the reference brand's badge dot is now 12
