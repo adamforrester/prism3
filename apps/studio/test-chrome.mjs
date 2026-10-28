@@ -13071,7 +13071,7 @@ console.log('\n#2909 Q2995.2 A. The rail at the plugin\'s least height');
 // The owner's Q2995.2 A: at the plugin's least window height (420, `MIN_SIZE` in apps/plugin/src/main.ts), every rail
 // tile lies inside the window and each area tile keeps its label; below the height the rail needs, the logo hides to make
 // the room. Since #3083 (2026-10-28) the foot's three tiles draw no label, the foot is shorter, and the rail fits at 420
-// with its logo, so the hide is held at 360 (measured: the rail first runs short of room just under 400). The fit is
+// with its logo, so the hide is held at 360 (measured: the rail first runs short of room just under 378 since #3083 moved `ctl-h` to 36; 400 with #3120 alone). The fit is
 // measured, not a breakpoint, so it holds at any height. EXPECTED is the window's own edge and the labels this suite
 // authors for the rail; MUTATION: the logo kept at every height (`rail.ts` `fit` removed) → the `inside the window` arm
 // at 360, by name, at both widths.
