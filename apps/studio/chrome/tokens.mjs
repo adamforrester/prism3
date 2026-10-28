@@ -253,7 +253,9 @@ export const RAW = [
   [/\b(rgba?|hsla?|hwb|oklch|oklab|lab|lch|color)\(/gi, 'raw color function'],
   [/(?<![\w-])-?\d*\.?\d+(px|rem|em|pt|vh|vw|ch)\b/gi, 'raw length'],
   [/(?<![\w-])\d*\.?\d+(ms|s)\b/gi, 'raw duration'],
-  // T5: no shadows anywhere. Elevation is carried by the background/foreground roles and hairlines.
+  // T5: no shadows anywhere. Elevation is carried by the background/foreground roles and hairlines. The product's one
+  // exception, the Activity drawer's top edge (#3113), is let through by the product build alone, word for word
+  // (`SHADOW_EXCEPTION`, `spec.mjs`); this scan still refuses it, so the mockups keep T5 whole.
   [/\b(box-shadow|text-shadow)\s*:|drop-shadow\(/gi, 'shadow (T5: no shadows)'],
 ];
 /** Pushes one message per raw value in `text` (comments stripped) onto `errors`. */

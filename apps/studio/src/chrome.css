@@ -25,7 +25,11 @@
  *
  * Layering (IA-2): the top bar on `bar-bg`, the tab row on `levers-bg`, the preview pane on `bg-page`.
  * Edges (B1): a control on the top bar takes `edge-bar`, a control on the levers ground takes `edge`.
- * Radius (owner, 2026-10-01): containers take `radius-xl`, controls take `radius-lg`. No shadows (T5).
+ * Radius (owner, 2026-10-01): containers take `radius-xl`, controls take `radius-lg`. No shadows (T5), with ONE exception
+ * the owner made on #3113 (2026-10-28): a subtle shadow along the top edge of the Activity drawer while it overlays the
+ * preview (the open drawer; the strip and the sheet at 380), so it reads as an overlay that slides up and over. Its color
+ * is the chrome's own scrim, no new token. The build allows that one rule word for word (`SHADOW_EXCEPTION`,
+ * `chrome/spec.mjs`) and `test:chrome` allows it on the drawer alone.
  *
  * The comments here ship in both bundles, so they are held to US English and the voice standard.
  */
@@ -562,9 +566,12 @@
 .p3-drawer {
   position: sticky; bottom: 0; z-index: 20; display: flex; flex-direction: column; min-height: 0;
   background: var(--p3-bg-page); border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
-  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal);
 }
 .p3-drawer[data-open="false"][data-ever="false"] { display: none; }
+/* T5's one exception (the owner, #3113): the drawer's top edge casts a subtle shadow up over what it covers, while it
+   overlays the preview: open, and at 380 as the strip and the sheet. Never the closed bar row wider. */
+.p3-drawer[data-open="true"], .p3-frame[data-w="narrow"] .p3-drawer { box-shadow: 0 calc(-1 * var(--p3-space-025)) var(--p3-space-150) calc(-1 * var(--p3-space-050)) var(--p3-scrim); }
 .p3-drawer-bar {
   display: flex; align-items: center; gap: var(--p3-space-100); flex: none; width: 100%;
   min-height: var(--p3-bar-h); padding: var(--p3-space-050) var(--p3-space-300);
@@ -573,7 +580,26 @@
 .p3-drawer-bar > .p3-ico { color: var(--p3-icon-2); }
 .p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type { transform: rotate(180deg); }
 .p3-drawer-last { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.p3-drawer-count { color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
+/* Q3113.3 A: the split counts. "1 failed" in the error ink after the error glyph, "1 warning" in the text ink after the
+   warning glyph, "n running" quiet. Inline, so each keeps the row's text baseline. */
+.p3-drawer-count { color: var(--p3-text-2); white-space: nowrap; }
+.p3-drawer-count[data-kind="bad"] { color: var(--p3-bad-text); }
+.p3-drawer-count[data-kind="warn"] { color: var(--p3-text); }
+.p3-drawer-count > .p3-ico, .p3-drawer-link > .p3-ico, .p3-drawer-linkline > .p3-ico { display: inline-block; vertical-align: text-bottom; margin-inline-end: var(--p3-space-050); }
+.p3-drawer-count[data-kind="bad"] > .p3-ico { color: var(--p3-bad-icon); }
+.p3-drawer-count[data-kind="warn"] > .p3-ico { color: var(--p3-warn-icon); }
+.p3-drawer-counts { display: flex; align-items: baseline; gap: var(--p3-space-100); min-width: 0; }
+/* Q3113.2 A: a state's mark, a glyph in its status ink (or the running ring), and the verdict's words: a failure's in
+   the error ink, any other in the text ink. */
+.p3-op-mark { display: inline-flex; flex: none; }
+.p3-op-mark[data-state="ok"] { color: var(--p3-ok-icon); }
+.p3-op-mark[data-state="warn"] { color: var(--p3-warn-icon); }
+.p3-op-mark[data-state="bad"] { color: var(--p3-bad-icon); }
+.p3-op-markslot { display: inline-flex; flex: none; }
+.p3-op-markslot:empty { display: none; }
+:is(.p3-op-verdict, .p3-drawer-verdict)[data-state="bad"] { color: var(--p3-bad-text); }
+.p3-op-verdict { min-width: 0; overflow-wrap: anywhere; }
+.p3-op-verdict[hidden] { display: none; }
 /* The bar row's text runs: the summary, its time, the counts and the agent status, on one baseline (#2213, the
    owner's review). Centered in the row like the dot and the caret, but aligned on their baseline among themselves. */
 .p3-drawer-text { display: flex; align-items: baseline; gap: inherit; flex: 1 1 auto; min-width: 0; }
@@ -582,8 +608,14 @@
    right, beside the caret, and the error ink when the link is in trouble. One line. It takes only the room the row has
    left (from no width, up to its words' own), so the summary never gives way to it; its tooltip and its accessible
    name carry the link's full status line. */
-.p3-drawer-link { flex: 1000 1 0%; min-width: 0; max-width: max-content; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.p3-drawer-link { flex: 1000 1 0%; min-width: 0; max-width: max-content; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text-2);
+  padding-inline-start: var(--p3-space-100); border-inline-start: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-drawer-link[data-error="true"] { color: var(--p3-bad-text); }
+/* Q3113.7 A: the link as a glyph, a dot and one word; the full line, heading the open drawer, the same way. */
+.p3-drawer-link > .p3-ico, .p3-drawer-linkline > .p3-ico { color: var(--p3-icon-2); }
+.p3-drawer-link-dot { background: var(--p3-ok-icon); vertical-align: middle; margin-inline-end: var(--p3-space-050); }
+:is(.p3-drawer-link, .p3-drawer-linkline)[data-error="true"] .p3-drawer-link-dot { background: var(--p3-bad-icon); }
+.p3-drawer-linkline[data-error="true"] { color: var(--p3-bad-text); }
 .p3-drawer-body {
   display: grid; gap: var(--p3-space-100); align-content: start; min-height: 0;
   max-height: calc(6 * var(--p3-bar-h)); overflow: auto; padding: 0 var(--p3-space-300) var(--p3-space-200);
@@ -591,8 +623,11 @@
 .p3-drawer-body[hidden] { display: none; }
 .p3-drawer-note { margin: 0; }
 .p3-drawer-note[hidden] { display: none; }
-/* "Close Activity": only the full-pane sheet at 380 has no bar row to close it from. */
-.p3-drawer-close { display: none; justify-self: end; }
+/* Q3113.8 A: the sheet's header row at 380 (a 24 × 24 close icon, "Activity", the counts, the agent dot), which takes the
+   bar row's place there. Wider, the bar row closes the drawer and no header is drawn. */
+.p3-drawer-head { display: none; }
+.p3-frame .p3-drawer-head > .p3-btn.p3-drawer-close { width: var(--p3-hit-min); min-width: var(--p3-hit-min); height: var(--p3-hit-min); min-height: var(--p3-hit-min); padding: 0; }
+.p3-drawer-title { font-weight: var(--p3-fw-strong); }
 /* One operation: a header that expands its body. */
 .p3-ops { display: grid; gap: var(--p3-space-050); }
 .p3-op { border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl); }
@@ -605,13 +640,18 @@
 .p3-op-head[aria-expanded="true"] > .p3-ico:first-child { transform: rotate(90deg); }
 .p3-op-agent { display: inline-flex; align-items: center; gap: var(--p3-space-050); color: var(--p3-text-2); font-size: var(--p3-fs-12); }
 .p3-op-agent[hidden] { display: none; }
-.p3-op-when { margin-left: auto; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
-.p3-op-body { display: grid; gap: var(--p3-space-100); padding: 0 var(--p3-space-150) var(--p3-space-150); font-size: var(--p3-fs-12); }
+.p3-op-when { margin-left: auto; color: var(--p3-text-2); white-space: nowrap; }
+.p3-op-body { display: grid; gap: var(--p3-space-100); padding: 0 var(--p3-space-150) var(--p3-space-150); }
 .p3-op-body[hidden] { display: none; }
 /* A run's details, one line per item, console-style (#2177): the chrome's mono font, each line its own block, a long
    one wrapping inside the drawer rather than widening it. */
 .p3-op-summary { margin: 0; padding: 0; list-style: none; font-family: var(--p3-font-mono); overflow-wrap: anywhere; }
 .p3-op-line { margin: 0; }
+/* Q3113.5 A: a bad result's first line, its reason, in the UI face at the emphasis weight; the rest stays mono. */
+.p3-op-reason { margin: 0; font-weight: var(--p3-fw-emphasis); overflow-wrap: anywhere; }
+/* Q3113.4 A: a bad result's next steps. */
+.p3-op-next { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); }
+.p3-op-copied:empty { display: none; }
 /* An Update's library publish description and its Copy button (#2858). */
 .p3-op-publish { display: grid; gap: var(--p3-space-050); }
 .p3-op-publish-head { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-100); }
@@ -622,9 +662,17 @@
 .p3-op-prog::-webkit-progress-value { background: var(--p3-icon); }
 .p3-op-prog::-moz-progress-bar { background: var(--p3-icon); }
 .p3-op-history > summary { cursor: pointer; color: var(--p3-text-2); }
-.p3-op-history > ul { margin: var(--p3-space-050) 0 0; padding-left: var(--p3-space-300); }
-/* An earlier result's details (#2281): the current run's mono lines, set in a little under the entry's time and verdict. */
-.p3-op-entry > .p3-op-summary { margin-top: var(--p3-space-050); padding-left: var(--p3-space-150); }
+/* Q3113.6 A: one line per earlier result (its mark, time, words and Agent), each opening its own lines (#2281). */
+.p3-op-history > ul { display: grid; gap: var(--p3-space-025); margin: var(--p3-space-050) 0 0; padding: 0; list-style: none; }
+.p3-op-entry > summary { cursor: pointer; list-style: none; }
+.p3-op-entry > summary::-webkit-details-marker { display: none; }
+.p3-op-entry-head > .p3-ico:first-child { color: var(--p3-icon-2); }
+.p3-op-entry[open] > summary .p3-op-entry-head > .p3-ico:first-child { transform: rotate(90deg); }
+/* An entry with no lines of its own sets its mark under the others' chevrons. */
+.p3-op-entry-row > .p3-op-entry-head { padding-inline-start: var(--p3-icon-xs); margin-inline-start: var(--p3-space-075); }
+.p3-op-entry-head { display: inline-flex; align-items: center; gap: var(--p3-space-075); }
+.p3-op-entry-head > .p3-op-when { margin-left: 0; }
+.p3-op-entry > :is(.p3-op-summary, .p3-op-reason) { margin-top: var(--p3-space-050); padding-left: var(--p3-space-300); }
 /* Under the two panes, the drawer is the preview pane's bottom row (plan §3.9). */
 .p3-frame[data-layout="panes"] .p3-drawer { grid-area: drawer; position: static; border-left: 0; }
 /* At 380: the closed drawer is the strip, pinned to the bottom edge; the open drawer is a full-pane sheet
@@ -635,7 +683,16 @@
 .p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) :is(.p3-nav, .p3-subnav, .p3-notices, .p3-panes, .p3-inspect) { display: none; }
 .p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] { flex: 1 1 auto; border-top: 0; }
 .p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] .p3-drawer-body { flex: 1 1 auto; max-height: none; }
-.p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] .p3-drawer-close { display: inline-flex; }
+.p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] > .p3-drawer-bar { display: none; }
+.p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] .p3-drawer-head {
+  display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-sm); padding-top: var(--p3-space-050);
+}
+/* Q3113.8 A: row headers wrap in the sheet, so a verdict and its time are never cut; the Settings/Preview toggle hides
+   while the sheet is open, as the panes do. */
+.p3-frame[data-w="narrow"] .p3-op-head { flex-wrap: wrap; }
+.p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) .p3-pane-toggle { display: none; }
+/* At 380 the bar row's agent status is its glyph and dot (Q3113.7 A); the word stays in its name. */
+.p3-frame[data-w="narrow"] .p3-drawer-link-word { display: none; }
 /* #2176 (the owner's AD1–AD3): the open drawer's handle, at the wide tier. A window splitter: its box is the hit target
    (hit-min tall, the pill's width plus space-200 a side), centered on the drawer's top edge over the bar row. Its one
    mark is the pill, which sits space-075 inside the drawer's top border, the way a sheet's grabber does, and is

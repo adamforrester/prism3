@@ -10,7 +10,9 @@
  * IT FAILS THE BUILD, naming each failure, on the five checks from `build-v6.mjs` that concern the CSS
  * it produces, plus the inputs they need, plus one rule of the product's own, [hover]:
  *
- *   [raw]       `chrome.css` carries a raw hex, color function, length, duration or shadow (v6 check 4);
+ *   [raw]       `chrome.css` carries a raw hex, color function, length, duration or shadow (v6 check 4), but T5's
+ *               one exception, SHADOW_EXCEPTION's rule (`spec.mjs`, #3113), word for word, exactly once, its value
+ *               only chrome variables and its color the scrim (SHADOW_CANARIES hold the exception that narrow);
  *               a named color, `currentColor`, a `var()` fallback, or a `url()` or `image-set()`
  *               source that is not a `data:` URI (`scanRawStrict`); or reads a variable that is not
  *               `--p3-*`.
@@ -61,7 +63,7 @@ import {
   scanRawStrict, ratio, fmtRatio,
 } from './tokens.mjs';
 import { glyphGaps, glyphWatchFiles } from './glyphs.mjs';
-import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS as MOCKUP_PAIRS, PRODUCT_PAIRS, DECORATIVE, INACTIVE } from './spec.mjs';
+import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS as MOCKUP_PAIRS, PRODUCT_PAIRS, DECORATIVE, INACTIVE, SHADOW_EXCEPTION } from './spec.mjs';
 
 const PAIRS = [...MOCKUP_PAIRS, ...PRODUCT_PAIRS];
 
@@ -111,6 +113,30 @@ const ICON_PERMISSION = 'Permission is hereby granted, free of charge, to any pe
  * finding must contain, or null for CSS the scan must pass. A canary that stops flagging, or a must-pass
  * one that starts failing, fails [raw] by name.
  */
+/**
+ * T5'S ONE EXCEPTION (#3113): the strict scan runs over `chrome.css` with SHADOW_EXCEPTION's rule taken out, word for
+ * word, and only when it occurs exactly once. Its value must be the shape the owner allowed, typed here, not read from
+ * the rule: offsets and blur from chrome variables (`0`, `var(--p3-*)`, `calc(-1 * var(--p3-*))`), and the scrim as its
+ * color. Returns the text to scan and what is wrong with the exception, if anything.
+ */
+const SHADOW_VALUE = /^0 calc\(-1 \* var\(--p3-[a-z0-9-]+\)\) var\(--p3-[a-z0-9-]+\) calc\(-1 \* var\(--p3-[a-z0-9-]+\)\) var\(--p3-scrim\)$/;
+export const withoutShadowException = (css, rule = SHADOW_EXCEPTION.rule) => {
+  const code = css.replace(/\/\*[\s\S]*?\*\//g, (c) => ' '.repeat(c.length));
+  const value = /\{\s*box-shadow:\s*([^;]+);\s*\}$/.exec(rule)?.[1] ?? null;
+  const problems = [];
+  if (!value || !SHADOW_VALUE.test(value)) problems.push(`SHADOW_EXCEPTION's value is not chrome spacing variables and the scrim: ${JSON.stringify(value)}`);
+  const n = code.split(rule).length - 1;
+  if (n !== 1) problems.push(`SHADOW_EXCEPTION's rule occurs ${n} times in chrome.css, not exactly once`);
+  return { text: n === 1 && !problems.length ? code.replace(rule, '') : code, problems };
+};
+/** The exception's own canaries: [what, css, must be flagged]. The same declaration on another selector, a second copy, or
+ *  a raw value inside the allowed rule still fails [raw]; the rule alone passes. */
+export const SHADOW_CANARIES = [
+  ['the allowed rule alone', SHADOW_EXCEPTION.rule, false],
+  ['the same shadow on the top bar', `${SHADOW_EXCEPTION.rule}\n.p3-bar { box-shadow: 0 0 var(--p3-space-150) var(--p3-scrim); }`, true],
+  ['the allowed rule twice', `${SHADOW_EXCEPTION.rule}\n${SHADOW_EXCEPTION.rule}`, true],
+];
+
 export const RAW_CANARIES = [
   ['a named color in a nested rule', '.a { gap: var(--p3-x); & .b { color: red } }', 'named color "red"'],
   ['a named color beside a nested rule', '.a { color: red; & .b { gap: var(--p3-x) } }', 'named color "red"'],
@@ -396,10 +422,20 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
     if (flag && !got.some((g) => g.includes(flag))) fail('raw', `self-check: the strict scan no longer flags ${label} (want "${flag}", got ${JSON.stringify(got)})`);
     if (!flag && got.length) fail('raw', `self-check: the strict scan now refuses ${label}: ${got.join('; ')}`);
   }
-  // [raw] the hand-written rules carry no raw value and read only chrome variables.
+  // [raw] T5's one exception (#3113): its canaries first (SHADOW_CANARIES).
+  for (const [label, css, mustFail] of SHADOW_CANARIES) {
+    const { text, problems } = withoutShadowException(css);
+    const got = [...problems];
+    scanRawStrict(text, 'canary', got);
+    if (mustFail && !got.length) fail('raw', `self-check: T5's exception no longer refuses ${label}`);
+    if (!mustFail && got.length) fail('raw', `self-check: T5's exception now refuses ${label}: ${got.join('; ')}`);
+  }
+  // [raw] the hand-written rules carry no raw value and read only chrome variables, but the exception's one rule.
   const where = rel(chromeCssFile);
   const raw = [];
-  scanRawStrict(src, where, raw);
+  const scanned = withoutShadowException(src);
+  for (const msg of scanned.problems) fail('raw', `${where}: ${msg}`);
+  scanRawStrict(scanned.text, where, raw);
   for (const msg of raw) fail('raw', msg);
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '');
   for (const m of code.matchAll(/var\(\s*--([a-z0-9-]+)/gi)) {
