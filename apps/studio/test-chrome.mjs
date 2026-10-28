@@ -16488,6 +16488,10 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const BOXED = { ...BOOT_INPUT, controlShape: 'boxed' };
       ok(burst.length === 1 && canon(burst[0].input) === canon(BOXED) && heavy.length === 0,
         `${where}: Q810 A: three quick changes ask for the count once, after the last, with the brand the panel holds; the file is not read again and the full check is not run (${burst.length} asked${burst[0] ? `, ${wireDiff(burst[0].input, BOXED)}` : ''}; heavier reads ${JSON.stringify(heavy)})`);
+      // Each ask carries a newer number than the one before, so an answer to an older ask, landing late, is known as late.
+      const seqs = [settled.at(-1)?.seq ?? null, burst[0]?.seq ?? null];
+      ok(Number.isInteger(seqs[0]) && Number.isInteger(seqs[1]) && seqs[1] > seqs[0],
+        `${where}: Q810 A: two asks in a row carry a rising number, the later one higher (${JSON.stringify(seqs)})`);
       // The answer: the two sets that change moves are due, and the file does not hold this brand: 2 + Theme's one item.
       await answer(burst[0]?.seq ?? 0, true, DUE);
       await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '3', null, { timeout: 5000 }).catch(() => {});

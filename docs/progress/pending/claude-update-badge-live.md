@@ -62,6 +62,7 @@ Each mutation was made on a committed tree and failed by name:
 | `guarded`'s end-of-write clear dropped, the start clear kept (review's MF) | `test-build-completed.ts`: "q810/mid-write: a recount asked during a write answers from the sets cached mid-write …" (0 page loads after) |
 | No recount on `identity` (`subscribe('identity', recountDue)` dropped; review's MID) | `test:chrome`: "IA2 figma … Q810 A: a brand name typed with no setting changed asks for the count once, after the debounce, carrying the new name …" ("asked":0), light and dark |
 | `fileDue`'s `catch` posts no `error` (review's MX) | `test-build-completed.ts`: "q810/error: a recount whose read of the file fails answers with the error, and nothing due" ("error":null) |
+| `recountDue` sends `dueSeq`, not `++dueSeq`: every ask goes out as 0 (review's MS) | `test:chrome`: "IA2 figma … Q810 A: two asks in a row carry a rising number, the later one higher" ([0,0]), light and dark |
 
 The chrome rows ran as mutated builds in the same worktree, each rebuilt and restored, never pushed.
 
