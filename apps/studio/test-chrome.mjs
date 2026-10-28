@@ -16418,6 +16418,25 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const alone = await badgeNow();
       ok(one.length === 1 && alone.text === '1' && alone.name === 'Update file, 1 due',
         `${where}: Q810 A: Theme counts as one item: with no set due and the brand not applied, the badge reads 1, and so does the name (${JSON.stringify(alone)})`);
+      // A name typed on the Brand page, with no lever moved: `syncIdentity` writes it without a rebuild, so only the
+      // `identity` topic tells the badge. The file's stored brand compares by the whole input, the name included, so the
+      // panel asks once, after the debounce, carrying the new name. The name is put back after, so the steps below read
+      // the brand they did.
+      await goPlace(page, 'brand');
+      const nameField = page.locator('[data-p3="brand-name"]');
+      const nameWas = await nameField.inputValue();
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await nameField.fill('Renamed 3096');
+      const named = await nextAsk();
+      const namedHeavy = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'file-sets-request' || m.type === 'update-check-request').map((m) => m.type));
+      ok(named.length === 1 && named[0].input?.name === 'Renamed 3096' && named[0].input?.controlShape === 'hairline' && namedHeavy.length === 0,
+        `${where}: Q810 A: a brand name typed with no setting changed asks for the count once, after the debounce, carrying the new name; the file is not read again (${JSON.stringify({ asked: named.length, name: named[0]?.input?.name ?? null, heavy: namedHeavy })})`);
+      await answer(named.at(-1)?.seq ?? 0, true, CURRENT);
+      await nameField.fill(nameWas);
+      const unnamed = await nextAsk();
+      await answer(unnamed.at(-1)?.seq ?? 0, true, CURRENT);
+      const heldSeq = unnamed.at(-1)?.seq ?? 0;
+      await goPlace(page, 'components');
       // #3028 (#3023 Q701 B) holds: the checklist, with Theme unticked, reads its own answers. A live answer landing while it
       // is open changes neither its rows nor what it asks.
       step = 'the live badge with Theme unticked';
@@ -16439,8 +16458,8 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null }));
       const before = await rowsOf();
       await page.evaluate(() => { window.__ia2.length = 0; });
-      // The answer held (Theme alone, 1) is answered again with another reading: nothing due, Theme applied.
-      await answer(one.at(-1)?.seq ?? 0, false, CURRENT);
+      // The answer held (Theme alone, 1, the name put back) is answered again with another reading: nothing due, Theme applied.
+      await answer(heldSeq, false, CURRENT);
       await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
       const liveLanded = (await badgeNow()).text === null;
       const afterLive = await rowsOf();

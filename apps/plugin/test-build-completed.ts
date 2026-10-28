@@ -53,7 +53,8 @@
  * (`fileDue`) reading the stored brand whatever the panel sends → `q810/rises`; it reading the file's sets again each time
  * (`presentCache` unused) → `q810/cheap`; `guarded` keeping the sets it caches after a write → `q810/after a write`; its
  * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`; `guarded` keeping the sets a recount
- * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7).
+ * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7); its `catch` posting
+ * no `error` (a failed read reaching the panel as a live answer with nothing due) → `q810/error`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -492,6 +493,14 @@ ok(pageLoads === 1 && dW?.present?.includes('badge'), `q810/after a write: a wri
 pageLoads = 0;
 await ask({ type: 'due-request', input: brandB, seq: 7 }, 'file-due');
 ok(pageLoads === 0, `q810/cheap again: the recount after that reuses the sets read (${pageLoads} page loads)`);
+// A recount that cannot read the file says so (`error`), so the panel falls back to the load's read instead of drawing
+// an answer with nothing due. Another write clears the cached sets, and the read after it is refused.
+await build('badge');
+await new Promise((res) => realTimeout(res, 100));
+shim.loadAllPagesAsync = async () => { throw new Error('pages refused'); };
+const dE = (await ask({ type: 'due-request', input: brandB, seq: 8 }, 'file-due'))[0];
+ok(dE?.seq === 8 && typeof dE.error === 'string' && dE.error.includes('pages refused') && Object.keys(dE.due ?? {}).length === 0,
+  `q810/error: a recount whose read of the file fails answers with the error, and nothing due (${JSON.stringify({ seq: dE?.seq, error: dE?.error ?? null, due: dE?.due })})`);
 shim.loadAllPagesAsync = loadAll;
 
 // 7. #2909 S2: the background hand-edit pass stops when a write starts (`handEditsPass`'s `stale()`, the run guard). A

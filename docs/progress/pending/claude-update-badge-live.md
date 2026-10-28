@@ -60,8 +60,26 @@ Each mutation was made on a committed tree and failed by name:
 | `liveShown` reduced to `!restoreFailure` (asks with the boot placeholder) | `test:chrome`: "IA2 figma … Q810 A: before a brand is chosen … the panel asks for no count and shows no live answer …" ("early":1) |
 | `!restoreFailure &&` dropped from `liveShown` (review's MC) | `test:chrome`: "IA2 figma … Q810 A: after a failed restore (the stored brand does not resolve), a setting change asks for no count …" ("asked":1, badge "4"), light and dark |
 | `guarded`'s end-of-write clear dropped, the start clear kept (review's MF) | `test-build-completed.ts`: "q810/mid-write: a recount asked during a write answers from the sets cached mid-write …" (0 page loads after) |
+| No recount on `identity` (`subscribe('identity', recountDue)` dropped; review's MID) | `test:chrome`: "IA2 figma … Q810 A: a brand name typed with no setting changed asks for the count once, after the debounce, carrying the new name …" ("asked":0), light and dark |
+| `fileDue`'s `catch` posts no `error` (review's MX) | `test-build-completed.ts`: "q810/error: a recount whose read of the file fails answers with the error, and nothing due" ("error":null) |
 
 The chrome rows ran as mutated builds in the same worktree, each rebuilt and restored, never pushed.
+
+### Owed by #3090 (due by plan), which lands after this
+
+The agreed order is #3089, this PR, then #3090. #3090 gives `dueOf` a fourth argument, `print`, defaulting to
+`() => null`, and with no print a printed entry under a moved engine reads `unrecorded`, never `due`. `fileDue` here
+calls `dueOf(…, ledgerNow(input))` with three arguments, and nothing flags it: git merges `main.ts` clean and the plugin
+typechecks. So when #3090 lands, it owes:
+
+- `fileDue` passing `printNow(input)` into `dueOf`, as `fileSets` does (`needsPrint` with `breathe()`, then the print);
+- a `q810` arm in `test-build-completed.ts`: a printed entry under an older `ENGINE_VERSION` whose plan the panel's brand
+  changes is counted, and the same entry with an unchanged plan is not;
+- the recount's cost measured again: a print projects each engine-moved set's plans (about 0.85 s for every def in
+  Node, by #3090's review), which the 11.8 ms median above does not include, and `q810/cheap` counts page loads only.
+
+Without the first, the badge never counts an engine-moved set whose drawing changed, while the checklist lists it as
+Due.
 
 ### Gaps
 
