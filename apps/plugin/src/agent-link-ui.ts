@@ -1,5 +1,11 @@
 /**
- * THE AGENT LINK'S PANEL CONTROL — UI IFRAME side: the Agent tile in the top bar.
+ * THE AGENT LINK'S PANEL CONTROL — UI IFRAME side: the Agent switch in the top bar.
+ *
+ * THE SWITCH SINCE #3083 (the owner's Q3083.5 B, Q3083.6 A and Q3083.7 B, 2026-10-28): the tile below became a bare
+ * "Agent" and the chrome's switch (`dom.ts` `switchEl`) at a bar-only size, on the bar ground, in the same slot and with
+ * the same hook (`agent-toggle`). It is a `role="switch"` button named "Agent", `aria-checked` for on or off, and a click
+ * still posts `agent-link`. The tile's green dot and the on mark's fill and edge (Q738 A, Q788 C) are gone: the switch's
+ * on state says it. At 380 the label drops and the switch stands alone. The history below is kept as written.
  *
  * PLACEMENT SINCE Q731 (the owner, 2026-10-26): the Agent tile is on the top bar again, in the place Minimize held
  * (after the brand, before Update file), and Minimize is at the rail's foot, where #2909 had put the Agent tile. The tile
@@ -142,21 +148,20 @@ export const mountAgentLink = (): void => {
   let shownShort: string | null = null;
   let shownError = false;
 
-  // The Agent tile (the owner's top-bar decision T7 A, 2026-10-05): a bar tile like Theme, Activity and Export, its
-  // glyph over "Agent", the glyph alone when narrow. A click switches the link, the same request the old popover's
-  // switch posted: the main thread is the authority, so the tile shows only the state it publishes. It is a toggle,
-  // so it carries `aria-pressed` (the old switch's `aria-checked`) under the fixed name "Agent". A green dot on the glyph while the link is on; nothing while it is off.
+  // The Agent switch (#3083, the owner's Q3083.5 B, Q3083.6 A and Q3083.7 B, 2026-10-28): a bare "Agent" and the chrome's
+  // switch, at the bar's own size, on the bar ground. It replaced the Agent tile (T7 A), its green dot and the on mark's
+  // fill and edge (Q738 A, Q788 C). A click switches the link, the same request the tile posted: the main thread is the
+  // authority, so the switch shows only the state it publishes (`set`, in `render`), never its own click. One fixed name,
+  // "Agent" (the owner's Q44 note), and `aria-checked` says on or off; at 380 the label drops and the name stays.
+  // The label is a `<label>` beside the switch, not inside it, so the switch stays the chrome's one track-and-knob kind
+  // (#2183) and a click on the word turns it too. It is hidden from assistive tech: the switch's own name says "Agent".
   const wrap = h('div', 'p3-popwrap');
-  const { btn: chip, mark, tip } = tile('agent-toggle', 'Agent');
-  // A toggle (the owner's Q44 note): one fixed name, and `aria-pressed` says on or off, so the state is announced once.
-  chip.setAttribute('aria-label', 'Agent');
-  // Q738 A: the hook for the on fill the rail drew behind an on Agent tile, which the bar draws too (`chrome.css`).
-  chip.classList.add('p3-agent-tile');
-  tip.textContent = 'Agent';
-  const dot = hook(h('span', 'p3-dot p3-agent-dot'), 'agent-dot');
-  dot.setAttribute('aria-hidden', 'true');
-  // #2909 (Q2909.19 A): the chain link, the rail's Agent icon.
-  mark.append(glyph('link'), dot);
+  const { el: chip, set: setChip } = switchEl('agent-toggle', 'Agent', () => post({ type: 'agent-link', on: !state?.on }));
+  chip.classList.add('p3-agent-switch');
+  chip.id = 'p3-agent-switch';
+  const label = h('label', 'p3-agent-switch-label', 'Agent');
+  label.htmlFor = chip.id;
+  label.setAttribute('aria-hidden', 'true');
   // #2949 (Q600 A): Minimize, at the rail's foot since Q731, whether the link is on or off. A plain button: the main thread decides.
   const { btn: minBtn, mark: minMark, tip: minTip } = tile('agent-minimize', 'Minimize');
   minBtn.classList.add('p3-agent-min');
@@ -165,7 +170,7 @@ export const mountAgentLink = (): void => {
   // The collapse glyph, two arrows in toward the center, the mirror of the strip's Restore (the owner, 2026-10-26; it was a minus).
   minMark.append(glyph('collapse'));
   minBtn.addEventListener('click', () => post({ type: 'minimize-ui', minimized: true }));
-  wrap.append(chip, minBtn);
+  wrap.append(label, chip, minBtn);
 
   // #2879 (Q613 3 A): the library home's row: its title, the link's full status line, and the switch. The same request as
   // the tile's click; the switch shows only what the main thread publishes.
@@ -227,8 +232,7 @@ export const mountAgentLink = (): void => {
 
   const render = (): void => {
     const on = !!state?.on;
-    chip.setAttribute('aria-pressed', String(on));
-    chip.dataset.on = String(on);
+    setChip(on);
     homeSwitch.set(on);
     homeStatus.textContent = agentLinkStatusText(state);
     renderStrip();
@@ -251,7 +255,6 @@ export const mountAgentLink = (): void => {
     if (on && drawerTicker === null) drawerTicker = setInterval(render, 30_000);
     if (!on && drawerTicker !== null) { clearInterval(drawerTicker); drawerTicker = null; }
   };
-  chip.addEventListener('click', () => post({ type: 'agent-link', on: !state?.on }));
 
   // Transport B: while the link is on, hold a socket to the local desktop bridge and relay its commands
   // to the main thread (`agent-bridge-relay.ts`). Nothing connects while the link is off.

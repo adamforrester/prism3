@@ -199,6 +199,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const sets = hook(h('div', 'p3-upd-item'), 'update-item-sets');
     sets.append(h('b', 'p3-upd-title', UPDATE_COPY.sets), h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.setsDueSub(due.length + [...t.update].filter((id) => !due.includes(id)).length, fresh2.length)));
     const updating = [...new Set([...due, ...t.update])];
+    let handN = 0;
     if (updating.length) {
       const list = hook(h('div', 'p3-upd-sets'), 'update-due-sets');
       for (const id of updating) {
@@ -221,25 +222,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       }
       sets.append(list);
       if (chk && chk !== 'pending' && chk.error) sets.append(hook(h('p', 'p3-sg-error', UPDATE_COPY.checkError), 'update-check-error'));
-      // One choice for every hand edit the update meets (the owner's starter-kit posture: Keep, by default).
-      const handN = [...t.update].reduce((n, id) => n + (checkOf(id)?.handEdited ?? r.handEdits.get(id)?.edited ?? 0), 0);
-      if (handN > 0) {
-        const grp = hook(h('div', 'p3-seg p3-upd-hand'), 'update-hand-edits');
-        grp.setAttribute('role', 'radiogroup');
-        grp.setAttribute('aria-label', UPDATE_COPY.handEdits);
-        for (const k of ['keep', 'overwrite', 'accept'] as const) {
-          const b = hook(h('button', 'p3-seg-tab', UPDATE_COPY.handChoice[k]), `update-hand-${k}`);
-          b.type = 'button';
-          b.dataset.key = `hand=${k}`;
-          b.setAttribute('role', 'radio');
-          b.setAttribute('aria-checked', String(t.handEdits === k));
-          b.onclick = () => { ticks = { ...t, handEdits: k }; paint(); };
-          grp.append(b);
-        }
-        const wrap = h('div', 'p3-upd-handrow');
-        wrap.append(h('span', 'p3-sub', UPDATE_COPY.handEdits), grp);
-        sets.append(wrap);
-      }
+      // One choice for every hand edit the update meets (the owner's starter-kit posture: Keep, by default). Since #3083
+      // (the owner's Q3083.3 A) a compact select in the foot, before Cancel and Update file, built below.
+      handN = [...t.update].reduce((n, id) => n + (checkOf(id)?.handEdited ?? r.handEdits.get(id)?.edited ?? 0), 0);
       if (t.update.size) sets.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
     }
     if (unrec.length && !unrec.every((id) => t.update.has(id) || checkOf(id))) {
@@ -285,7 +270,28 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         updatable.length && answered ? { defs: updatable, previewHash: exact ? answered.previewHash : '', checked: answered.sets, handEdits: t2.handEdits } : null);
       close();
     };
-    return { body, foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close), go] };
+    const foot: HTMLElement[] = [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close), go];
+    if (handN > 0) {
+      // #3083 (Q3083.3 A, Q3083.4 A): "Hand edits", then the select, its label tied to it; a repaint keeps focus on it.
+      const wrap = hook(h('div', 'p3-upd-handsel'), 'update-hand-row');
+      const lab = h('label', 'p3-sub', UPDATE_COPY.handEdits);
+      lab.htmlFor = 'p3-upd-hand';
+      const sw = h('div', 'p3-selwrap');
+      const sel = hook(h('select', 'p3-select'), 'update-hand-edits');
+      sel.id = 'p3-upd-hand';
+      sel.dataset.key = 'hand';
+      for (const k of ['keep', 'overwrite', 'accept'] as const) {
+        const o = h('option', undefined, UPDATE_COPY.handChoice[k]);
+        o.value = k;
+        sel.append(o);
+      }
+      sel.value = t2.handEdits;
+      sel.onchange = () => { ticks = { ...t2, handEdits: sel.value as HandEditChoice }; paint(); };
+      sw.append(sel, glyph('chev'));
+      wrap.append(lab, sw);
+      foot.unshift(wrap);
+    }
+    return { body, foot };
   };
 
   const cleanBody = (): { body: HTMLElement[]; foot: HTMLElement[] } => {
