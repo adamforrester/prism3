@@ -22698,6 +22698,32 @@ arm: {
         `#2343 Q720 A paste executor: a payment tile's frame reads back with radius/sm corners, a border-width/hairline edge in color/border/primary, and clips; a square mark's or a logo's has no edge (${bad.join(' | ') || 'clean'})`);
     }
 
+    // ---- #3127: the paste executor's artboard read-back, at Figma's precision, per kind ----
+    // The plugin leg is in test-write-components. The importer here stores its artboard at float32, as the host does: a
+    // logo whose width float32 cannot hold exactly (34.97 → 34.970001220703125) reads back with no glyphViewBox miss.
+    // Then it sizes the frame to the ink: a square kind and a logo each still miss, named for their own box. Mutations:
+    // the payload's compare back to `!==` → `#3127 paste at its own width`; it passing anything → `#3127 paste ink`.
+    {
+      const markDef = componentDefs.find((x) => x.id === 'brand-mark')!;
+      const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<PayloadResult>;
+      const paste = async (name: string, host: (n: Record<string, any>) => void): Promise<string[]> => {
+        const plan = figmaAnatomyPlan(markDef, undefined, { name } as never);
+        const stub = makeFigmaStub({ vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: [], comps: [], page: { children: [] } }) as Record<string, any>;
+        const svg = stub.createNodeFromSvg as (src: string) => Record<string, any>;
+        stub.createNodeFromSvg = (src: string) => { const n = svg(src); host(n); return n; };
+        try { return (await new AsyncFunction('figma', planToPluginJs(plan))(stub)).misses.filter((m) => m.includes('.glyphViewBox')); }
+        catch (e) { return [`payload THREW -> ${(e as Error).message}`]; }
+      };
+      const f32 = await paste('logo/amex', (n) => n.resize(Math.fround(n.width), Math.fround(n.height)));
+      ok(Math.fround(34.97) !== 34.97 && f32.length === 0,
+        `#3127 paste at its own width: a 34.97 × 24 logo imported at float32 reads back at its artboard, with no glyphViewBox miss (${f32[0] ?? 'none'})`);
+      const ink = (n: Record<string, any>) => { const v = (n.children ?? [])[0]; if (v) n.resize(v.width, v.height); };
+      const inkSquare = await paste('provider/apple', ink);
+      const inkLogo = await paste('logo/visa', ink);
+      ok(inkSquare.some((m) => m.includes('every host binding a square')) && inkLogo.some((m) => m.includes('a host binding its 27.4x24 box')),
+        `#3127 paste ink: a square-kind mark and a logo whose frames are sized to their ink each still miss, named for their own box (${inkSquare[0] ?? 'no square miss'} | ${inkLogo[0] ?? 'no logo miss'})`);
+    }
+
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------
     // The stub stores `minHeight` via `Math.fround`, as the host does. At the live metrics (16px at 165%, 3 rows
     // = 79.2, read back 79.19999694824219) an exact compare in PAYLOAD_MIN_LINES reports a kept floor DISCARDED.
