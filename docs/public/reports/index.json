@@ -1,7 +1,7 @@
 {
   "$schema": "prism3-report/index/1",
   "generated": true,
-  "components": 58,
+  "components": 59,
   "reports": [
     {
       "id": "token-usage",
