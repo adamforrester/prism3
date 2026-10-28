@@ -950,6 +950,11 @@ if (MODE === 'run') assertBundleFresh({ repo: REPO, bundle: 'apps/plugin/dist/ui
   effect: 'the figma host would test the old UI', build: 'npm run -w @prism3/plugin build' });
 if (MODE === 'run') assertBundleFresh({ repo: REPO, bundle: 'apps/studio/dist/main.js', roots: STUDIO_SOURCE_ROOTS, label: 'main.js freshness',
   effect: 'the web host would test the old UI', build: 'npm run -w @prism3/studio build' });
+/** The vendored icon set (#3083), read as text from `src/shell/icons/tabler.ts`: each icon's name and its path list, in
+ *  order. Parsed here, not imported, so the glyph arms hold the drawn DOM to the file and share no code with `dom.ts`. */
+const TABLER_SET = new Map([...readFileSync(join(STUDIO, 'src/shell/icons/tabler.ts'), 'utf8').matchAll(/^  '([a-z0-9-]+)': \[(.*)\],$/gm)]
+  .map(([, name, list]) => [name, [...list.matchAll(/'([^']*)'/g)].map((m) => m[1])]));
+if (MODE === 'run' && TABLER_SET.size < 20) { console.error(`✗ src/shell/icons/tabler.ts parsed to ${TABLER_SET.size} icons; the glyph arms need the vendored set`); process.exit(1); }
 const FIGMA = {
   light: { cls: 'figma-light', vars: { '--figma-color-bg': '#ffffff', '--figma-color-text': '#000000e5' } },
   dark: { cls: 'figma-dark', vars: { '--figma-color-bg': '#2c2c2c', '--figma-color-text': '#ffffff' } },
@@ -1783,6 +1788,29 @@ if (runs('1')) for (const host of ['web', 'figma']) {
         // No label clips or wraps at 9px: one line (its box no taller than its line height), nothing scrolled, inside the rail.
         const badFit = rl.geo.filter((g) => !g.label || g.label.h > g.lh + 0.5 || g.sw > g.cw || g.sh > g.ch + 0.5 || !rl.railBox || g.label.l < rl.railBox.l - 0.5 || g.label.r > rl.railBox.r + 0.5);
         ok(rl.geo.length === ORDER.length && badFit.length === 0, `rail ${where}: every rail label fits on one line inside the rail, unclipped (${badFit.map((g) => `${g.hook} ${g.label?.w}×${g.label?.h} (line ${g.lh})`).join(', ') || 'all'})`);
+        // #3083, Q813 A (the owner picked Tabler, 2026-10-27): every glyph the chrome draws is a Tabler outline icon from the
+        // vendored set, and nothing else draws a glyph. THE ORACLE is `src/shell/icons/tabler.ts` read as text in Node
+        // (`TABLER_SET`), never `dom.ts`'s name map; THE SUBJECT is every <svg> in the document as drawn, its paths read
+        // back from the DOM. A glyph matches when its path list is one vendored icon's, exactly, in order. MUTATION: a hand
+        // path appended in `glyph()` (`dom.ts`) → `… every glyph is a vendored Tabler icon …`, by name.
+        const gl = await page.evaluate(() => [...document.querySelectorAll('svg')].map((s) => {
+          const ps = [...s.querySelectorAll('path')];
+          const cs = getComputedStyle(s), b = s.getBoundingClientRect();
+          return { cls: s.getAttribute('class'), glyph: s.dataset.glyph ?? null, icon: s.dataset.icon ?? null, vb: s.getAttribute('viewBox'),
+            other: s.querySelectorAll(':scope *:not(path)').length, ds: ps.map((n) => n.getAttribute('d')), w: b.width, shown: b.width > 0,
+            sw: ps.map((n) => getComputedStyle(n).strokeWidth), cap: cs.strokeLinecap, join: cs.strokeLinejoin, fill: cs.fill, stroke: cs.stroke, color: cs.color };
+        }));
+        const stray = gl.filter((g) => !(g.cls ?? '').split(/\s+/).includes('p3-ico') || g.vb !== '0 0 24 24' || g.other > 0 || !g.icon || !TABLER_SET.has(g.icon)
+          || JSON.stringify(TABLER_SET.get(g.icon)) !== JSON.stringify(g.ds));
+        ok(gl.length >= 5 && stray.length === 0, `glyphs ${where}: every glyph is a vendored Tabler icon, drawn as its paths and nothing else, on the 24 grid (#3083, Q813 A) (${gl.length} drawn${stray.length ? `; stray: ${stray.slice(0, 3).map((g) => `${g.glyph ?? g.cls} (${g.icon}) ${JSON.stringify(g.ds)}`).join(' | ')}` : ''})`);
+        // The line (Q813 A: "a lighter line, about 1.5px", Tabler at stroke 1.5): every glyph strokes 1.5 on its 24 grid in
+        // round caps and joins, its ink `currentColor`, no fill; so at the rail's 24px the line renders 1.5px. Literals from
+        // the decision. MUTATION: `stroke-width` back to Tabler's 2 in `glyph()` → both arms, by name.
+        const GLYPH_STROKE = 1.5;
+        const offLine = gl.filter((g) => g.sw.some((x) => x !== `${GLYPH_STROKE}px`) || g.cap !== 'round' || g.join !== 'round' || g.fill !== 'none' || g.stroke !== g.color);
+        ok(offLine.length === 0, `glyphs ${where}: every glyph strokes ${GLYPH_STROKE} on its 24 grid, round caps and joins, in currentColor, unfilled (${offLine.slice(0, 3).map((g) => `${g.glyph} ${g.sw.join('/')} ${g.cap}/${g.join} fill ${g.fill}`).join(' | ') || 'all'})`);
+        const railLine = gl.filter((g) => g.shown && Math.abs(g.w - RAIL_ICON) < 0.5).map((g) => ({ glyph: g.glyph, px: Math.round(parseFloat(g.sw[0]) * g.w / 24 * 1000) / 1000 }));
+        ok(railLine.length >= ORDER.length && railLine.every((x) => x.px === GLYPH_STROKE), `glyphs ${where}: at ${RAIL_ICON}px every glyph's line renders ${GLYPH_STROKE}px (${JSON.stringify(railLine)})`);
         // Theme's tab row (the owner, 2026-10-26): one step more on the spacing scale, `space.150` (12px) to `space.200`
         // (16px), wherever the row is drawn (wide; narrow it is a select). MUTATION: the gap back to `--p3-space-150` →
         // this arm, by name, at 1280 and 640 on both hosts.
@@ -2742,14 +2770,20 @@ for (const host of ['web', 'figma']) {
         // to restore, never the same one. Read from the drawn SVG paths and measured here, not from `dom.ts`'s names: each
         // arrowhead is a three-point stroke whose corner is its tip; each shaft a two-point line. Inward: every tip lies
         // nearer the glyph's center than every shaft's far end reaches; outward: every tip lies at least as far out as the
-        // shafts reach. MUTATIONS: `glyph('restore')` for Minimize in `agent-link-ui.ts` → both arms, by name; the
-        // `collapse` path's heads moved to the outer corners in `dom.ts` → the direction arm, by name.
+        // shafts reach. Distances are from the glyph's own center, read from its viewBox (#3083: Tabler's 24 grid, center 12).
+        // MUTATIONS: `glyph('restore')` for Minimize in `agent-link-ui.ts` → both arms, by name; `collapse` mapped to
+        // `arrows-diagonal-2` in `dom.ts` (outward, on the other diagonal) → the direction arm, by name.
         const mirror = await page.evaluate(() => {
           const ds = (sel) => [...(document.querySelector(sel)?.querySelectorAll('svg.p3-ico path') ?? [])].map((n) => n.getAttribute('d') ?? '');
           const g = (sel) => [...(document.querySelector(sel)?.querySelectorAll('svg.p3-ico') ?? [])].map((n) => n.innerHTML).join('');
-          return { min: ds('[data-p3="agent-minimize"]'), restore: ds('[data-p3="agent-strip-restore"]'), minSvg: g('[data-p3="agent-minimize"]'), restoreSvg: g('[data-p3="agent-strip-restore"]') };
+          const vb = (sel) => document.querySelector(sel)?.querySelector('svg.p3-ico')?.getAttribute('viewBox') ?? '';
+          return { min: ds('[data-p3="agent-minimize"]'), restore: ds('[data-p3="agent-strip-restore"]'), minSvg: g('[data-p3="agent-minimize"]'), restoreSvg: g('[data-p3="agent-strip-restore"]'),
+            minVb: vb('[data-p3="agent-minimize"]'), restoreVb: vb('[data-p3="agent-strip-restore"]') };
         });
-        const reach = (paths) => {
+        const reach = (paths, viewBox) => {
+          const box = viewBox.split(/[\s,]+/).map(Number);
+          if (box.length !== 4 || box.some((n) => !Number.isFinite(n))) return null;
+          const cx = box[0] + box[2] / 2, cy = box[1] + box[3] / 2;
           // A path of absolute and relative M/L/H/V commands only, as the chrome's line glyphs are drawn; anything else
           // reads as unparsed (null), which fails.
           const subs = [];
@@ -2768,21 +2802,28 @@ for (const host of ['web', 'figma']) {
               cur?.push([x, y]);
             }
           }
-          const r = ([px, py]) => Math.hypot(px - 8, py - 8);
+          const r = ([px, py]) => Math.hypot(px - cx, py - cy);
           const tips = subs.filter((p) => p.length === 3).map((p) => r(p[1]));
           const shafts = subs.filter((p) => p.length === 2).map((p) => Math.max(r(p[0]), r(p[1])));
           const arms = subs.filter((p) => p.length === 3).flatMap((p) => [Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]), Math.hypot(p[2][0] - p[1][0], p[2][1] - p[1][1])]);
-          return tips.length >= 2 && shafts.length >= 2 ? { tips, shafts, arms } : null;
+          // Each shaft's diagonal: the sign of its run times its rise (negative: bottom-left to top-right on SVG's y-down grid).
+          const diag = subs.filter((p) => p.length === 2).map((p) => Math.sign((p[1][0] - p[0][0]) * (p[1][1] - p[0][1])));
+          return tips.length >= 2 && shafts.length >= 2 ? { tips, shafts, arms, diag } : null;
         };
-        const rm = reach(mirror.min), rr = reach(mirror.restore);
+        const rm = reach(mirror.min, mirror.minVb), rr = reach(mirror.restore, mirror.restoreVb);
         const inward = !!rm && Math.max(...rm.tips) < Math.min(...rm.shafts) - 1;
         const outward = !!rr && Math.min(...rr.tips) >= Math.max(...rr.shafts) - 0.5;
         // The review's nit (2026-10-27): an exact mirror, every arrowhead's arms on both glyphs the same length.
-        // MUTATION: Minimize's heads back to 3.5 long in `dom.ts` → this arm, by name.
+        // MUTATION: `arrows-diagonal-minimize-2`'s first head cut to 3.5 long in `icons/tabler.ts` → this arm, by name.
         const armsEq = !!rm && !!rr && [...rm.arms, ...rr.arms].every((a) => Math.abs(a - rr.arms[0]) < 0.01);
         ok(armsEq, `mirror ${where}: Minimize's and Restore's arrowheads have arms of one length, an exact mirror (Minimize ${JSON.stringify(rm?.arms)}, Restore ${JSON.stringify(rr?.arms)})`);
         ok(mirror.minSvg !== '' && mirror.restoreSvg !== '' && mirror.minSvg !== mirror.restoreSvg,
           `mirror ${where}: Minimize and the strip's Restore draw different glyphs, never the same one (the owner, 2026-10-26) (Minimize ${JSON.stringify(mirror.min)}, Restore ${JSON.stringify(mirror.restore)})`);
+        // #3083: Tabler draws Minimize on either diagonal (`arrows-diagonal-minimize`, `-2`); an exact mirror of Restore's
+        // `arrows-diagonal` keeps Restore's. MUTATION: `collapse` mapped to `arrows-diagonal-minimize` in `dom.ts` → this
+        // arm, by name.
+        const oneDiag = !!rm && !!rr && [...rm.diag, ...rr.diag].every((d) => d !== 0 && d === rr.diag[0]);
+        ok(oneDiag, `mirror ${where}: Minimize's arrows run on Restore's diagonal, an exact mirror (#3083) (Minimize ${JSON.stringify(rm?.diag)}, Restore ${JSON.stringify(rr?.diag)})`);
         ok(inward && outward,
           `mirror ${where}: Minimize's arrows point inward, to the center, and Restore's outward, to the corners (the owner, 2026-10-26) (Minimize tips ${JSON.stringify(rm?.tips)} vs shafts ${JSON.stringify(rm?.shafts)}; Restore tips ${JSON.stringify(rr?.tips)} vs shafts ${JSON.stringify(rr?.shafts)})`);
         await takeWrites(page);
@@ -5014,9 +5055,10 @@ for (const host of ['web', 'figma']) {
 // =============================================================================================
 if (runs('18-s4f')) {
 {
-  /** The shut and the open shackle, as drawn (`lock` and `unlock` in `shell/dom.ts`), by their path data. Literal. */
-  const SHUT = 'M5.4 7.2V5.2a2.6 2.6 0 0 1 5.2 0v2';
-  const OPEN = 'M5.4 7.2V5.2a2.6 2.6 0 0 1 5.1-.7';
+  /** The shut and the open shackle, as drawn (`lock` and `unlock` in `shell/dom.ts`: Tabler's `lock` and `lock-open`, #3083),
+   *  by their path data. Literal. Tabler draws the body and the keyhole first, so the shackle is the glyph's last path. */
+  const SHUT = 'M8 11v-4a4 4 0 1 1 8 0v4';
+  const OPEN = 'M8 11v-5a4 4 0 0 1 8 0';
   for (const host of ['web', 'figma']) {
     const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
     await goPlace(page, 'color-fills');
@@ -5024,7 +5066,7 @@ if (runs('18-s4f')) {
       const b = document.querySelector('[data-p3="levers-pane"] :is([data-p3="icons-unpair"], [data-p3="icons-pair"])');
       const svg = b?.querySelector('svg');
       return { hook: b?.getAttribute('data-p3') ?? null, name: b?.textContent?.trim() ?? null, label: b?.getAttribute('aria-label'),
-        hidden: svg?.getAttribute('aria-hidden') ?? null, shackle: svg?.querySelectorAll('path')[0]?.getAttribute('d') ?? null,
+        hidden: svg?.getAttribute('aria-hidden') ?? null, shackle: [...(svg?.querySelectorAll('path') ?? [])].at(-1)?.getAttribute('d') ?? null,
         drawn: svg ? Math.round(svg.getBoundingClientRect().width) : 0, inBlock: !!b?.closest('[data-p3="lever-icon-contrast"]') };
     });
     const p0 = await lock();
@@ -8418,6 +8460,55 @@ for (const host of ['web', 'figma']) {
     ok(false, `#2047: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+// #3092: the gutter and margin picker follows the engine's link order (Q785 A, #3052): the spacing steps, then the core
+// dimension steps no spacing step has, in their own group. Picking 44 for md's margin stores 44 and the export links
+// md's margin to core dimension 44. Independence (docs/34): every expected value is typed here; the stored input is read
+// back from the PERSISTED brand and the link from the export's own base file, the bytes Download writes.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    /** Typed from #3092 and the prism3 example (namespace pds3, md margin Auto 24 = space.300). */
+    const PICK_PX = '44', WANT_STORED = '{"md":44}', WANT_LABEL = '44px · core.dimension.44';
+    const WANT_FILE = 'prism3.base.tokens.json', WANT_LINK = '{pds3.core.dimension.44}';
+    const WANT_GROUPS = ['Spacing steps', 'Dimension steps'];
+    await goPlace(page, 'layout');
+    await hooks.click(page.locator('[data-p3="bp-margin-pick"][data-bp="md"]'));
+    await hooks.need(page, '[data-p3="value-picker"]');
+    const listed = await page.evaluate((v) => {
+      const groups = [...document.querySelectorAll('[data-p3="value-picker"] [data-p3="value-picker-group"]')]
+        .map((g) => ({ name: g.querySelector('.p3-vpick-cap')?.textContent ?? null, named: document.getElementById(g.getAttribute('aria-labelledby') ?? '')?.textContent ?? null,
+          values: [...g.querySelectorAll('[data-p3="value-picker-value"]')].map((b) => b.dataset.value) }));
+      const b = document.querySelector(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${v}"]`);
+      return { groups, label: b?.querySelector('.p3-vpick-key')?.textContent ?? null, in: b?.closest('[data-p3="value-picker-group"]')?.querySelector('.p3-vpick-cap')?.textContent ?? null };
+    }, PICK_PX);
+    const [sp, dm] = listed.groups;
+    ok(JSON.stringify(listed.groups.map((g) => g.name)) === JSON.stringify(WANT_GROUPS) && listed.groups.every((g) => g.named === g.name),
+      `#3092: md's margin picker lists two named groups, ${WANT_GROUPS.join(' then ')} — ${JSON.stringify(listed.groups.map((g) => [g.name, g.named]))}`);
+    ok(!!sp && !!dm && sp.values.includes('24') && !sp.values.includes(PICK_PX) && dm.values.includes(PICK_PX) && !dm.values.some((v) => sp.values.includes(v)),
+      `#3092: ${PICK_PX} is in the dimension group, not the spacing group, and no value is in both — ${JSON.stringify(listed.groups.map((g) => g.values))}`);
+    ok(listed.label === WANT_LABEL && listed.in === WANT_GROUPS[1], `#3092: the ${PICK_PX} entry reads "${WANT_LABEL}" under ${WANT_GROUPS[1]} — "${listed.label}" under ${listed.in}`);
+    await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${PICK_PX}"]`));
+    await page.waitForFunction(() => document.querySelector('[data-p3="bp-margin-pick"][data-bp="md"]')?.dataset.set === 'true', null, { timeout: 5000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="value-picker-close"]'));
+    const stored = (await layoutPersisted(page))?.marginOverrides;
+    ok(JSON.stringify(stored) === WANT_STORED, `#3092: picking ${PICK_PX} for md's margin stores layout.marginOverrides ${WANT_STORED} — ${JSON.stringify(stored)}`);
+    await hooks.click(page.locator('[data-p3="rail-export"]'));
+    await hooks.need(page, '[data-p3="export-page"]');
+    // The preview is a sample of tokens, so the link is read from the downloaded base file (the consumer set, #2552).
+    const pending = page.waitForEvent('download', { predicate: (d) => d.suggestedFilename() === WANT_FILE, timeout: 15000 });
+    await hooks.click(page.locator('[data-p3="export-page"] [data-p3="dialog-confirm"]'));
+    const dl = await pending.catch(() => null);
+    const link = { found: !!dl, value: null };
+    if (dl) {
+      const tree = JSON.parse(readFileSync(await dl.path(), 'utf8'));
+      link.value = tree[Object.keys(tree)[0]]?.grid?.md?.margin?.$value ?? null;
+    }
+    ok(link.found && link.value === WANT_LINK, `#3092: the export's ${WANT_FILE} links grid md margin to ${WANT_LINK} — ${JSON.stringify(link)}`);
+    ok(errors.length === 0, `#3092: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3092: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 // Q59: previewing a derived mode, every control on Layout is disabled under the derived line; the preview still draws.
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
@@ -9716,7 +9807,7 @@ const BAR_PROBE = () => {
     }
     if (((r.width <= 2 && r.height >= 8) || (r.height <= 2 && r.width >= 8)) && alpha(cs.backgroundColor) > 0) dividers.push(`${n.getAttribute('data-p3') ?? n.className} a ${Math.round(r.width)}×${Math.round(r.height)} bar`);
   }
-  const chev = (b) => { const g = [...b.querySelectorAll('svg.p3-ico')].filter(shown).at(-1); return !!g && /M4 6l4 4 4-4/.test(g.innerHTML); };
+  const chev = (b) => { const g = [...b.querySelectorAll('svg.p3-ico')].filter(shown).at(-1); return !!g && /d="M6 9l6 6l6 -6"/.test(g.innerHTML); };
   const white = ['brand-switcher', 'figma-open'].filter((k) => q(k)).map((k) => {
     const b = q(k), cs = getComputedStyle(b);
     return { k, bg: cs.backgroundColor === page, edge: parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle === 'solid' && alpha(cs.borderTopColor) > 0, chev: chev(b) };
@@ -9978,8 +10069,8 @@ if (runs('29b')) {
 const CONTRAST_PROBE = () => {
   const b = document.querySelector('[data-p3="verdict"]');
   const g = b.querySelector('.p3-tile-mark svg.p3-ico');
-  return { state: b.dataset.state, check: !!g && /M3 8\.5l3 3 7-7/.test(g.innerHTML) && g.classList.contains('p3-tile-ok'),
-    warn: !!g && /M8 1\.8l6\.6 11\.7H1\.4z/.test(g.innerHTML) && g.classList.contains('p3-tile-bad'),
+  return { state: b.dataset.state, check: !!g && /d="M5 12l5 5l10 -10"/.test(g.innerHTML) && g.classList.contains('p3-tile-ok'),
+    warn: !!g && /d="M10\.363 3\.591l-8\.106 13\.534/.test(g.innerHTML) && g.classList.contains('p3-tile-bad'),
     count: b.querySelector('[data-p3="verdict-count"]')?.textContent ?? null, tip: b.querySelector('[data-p3="verdict-tip"]')?.textContent ?? null, name: b.getAttribute('aria-label') };
 };
 for (const host of ['web', 'figma']) {
@@ -11844,12 +11935,14 @@ const HEADING_PROBE = ({ strong, big, exempt, paneSel }) => {
   return { found, heads, tokenLabels, infos, swept: headingEls.length, unclassified, skips, sections, tokenLines };
 };
 /** The hint lines (`.p3-state-hint`) and every drawn ⓘ glyph outside a button, in the levers pane. The ⓘ glyph is known by
- *  its drawing, typed here: a ring of radius 6.2 and a dot of radius 0.9 (`glyph('info')`). */
+ *  its drawing, typed here: Tabler's `info-circle` ring, dot and stem (`glyph('info')`, #3083). Inside the probe, which
+ *  runs in the page. */
 const HINT_PROBE = () => {
+  const INFO_PATHS = ['M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0', 'M12 9h.01', 'M11 12h1v4h1'];
   const pane = document.querySelector('[data-p3="levers-pane"]');
   const vis = (n) => n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden' && !n.closest('[hidden]');
   const hints = [...pane.querySelectorAll('.p3-state-hint')].filter(vis).map((n) => ({ hook: n.getAttribute('data-p3'), text: n.textContent.trim().slice(0, 60), glyphs: n.querySelectorAll('svg').length }));
-  const stray = [...pane.querySelectorAll('svg')].filter(vis).filter((s) => s.querySelector('circle[r="6.2"]') && s.querySelector('circle[r="0.9"]') && !s.closest('button'))
+  const stray = [...pane.querySelectorAll('svg')].filter(vis).filter((s) => JSON.stringify([...s.querySelectorAll('path')].map((n) => n.getAttribute('d'))) === JSON.stringify(INFO_PATHS) && !s.closest('button'))
     .map((s) => `${s.parentElement?.getAttribute('data-p3') ?? s.parentElement?.className}: "${(s.parentElement?.textContent ?? '').trim().slice(0, 50)}"`);
   return { hints, stray };
 };
@@ -13296,9 +13389,10 @@ const RO_READ = ([q, exceptions, noteClasses]) => {
   const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
   const ratio = (a, b) => { const x = lum(a), y = lum(b); return Math.round(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100; };
   const glyph = line?.querySelector('svg') ?? null;
-  // RX3 A: the note's own warning glyph, known by its drawing (a triangle path, a stem and a dot of radius 0.9), typed
-  // here as HINT_PROBE types the ⓘ's; never the ⓘ (HP3: the ⓘ is only ever a button).
-  const warnGlyph = !!glyph && /^M8 1\.8l6\.6 11\.7H1\.4z$/.test(glyph.querySelector('path')?.getAttribute('d') ?? '') && !!glyph.querySelector('circle[r="0.9"]') && !glyph.querySelector('circle[r="6.2"]');
+  // RX3 A: the note's own warning glyph, known by its drawing (Tabler's `alert-triangle` stem, triangle and dot, #3083),
+  // typed here as HINT_PROBE types the ⓘ's; never the ⓘ (HP3: the ⓘ is only ever a button).
+  const WARN_PATHS = ['M12 9v4', 'M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0', 'M12 16h.01'];
+  const warnGlyph = !!glyph && JSON.stringify([...glyph.querySelectorAll('path')].map((n) => n.getAttribute('d'))) === JSON.stringify(WARN_PATHS);
   const ground = line ? rgb(getComputedStyle(line).backgroundColor) : null;
   const look = line ? {
     classes: noteClasses.every((c) => line.classList.contains(c)), glyph: !!glyph && glyph.getClientRects().length > 0 && warnGlyph,
@@ -14672,7 +14766,10 @@ for (const host of ['web', 'figma']) {
         await hooks.need(page, '[data-p3="value-picker"]');
         const on = '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="true"]';
         selected(await page.evaluate(FC_LOOK, on), await page.evaluate(FC_LOOK, '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="false"]'), what);
-        await drawn(on, what);
+        // The label is the value's key (`.p3-vpick-key`), read alone (#3083): the whole value's text box also spanned the key's
+        // check glyph and the weight's type sample, so on CI's rendering the glyph's ink was carrying the ratio, and Tabler's
+        // lighter check dropped it under the floor while the label itself was never the subject.
+        await drawn(`${on} .p3-vpick-key`, what);
         await controlsOptIn(`${place}, ${what} open`);
         await page.locator(on).scrollIntoViewIfNeeded();
         await shot(name);
