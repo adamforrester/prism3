@@ -42467,6 +42467,1213 @@
         }
       ]
     },
+    "card-number-field": {
+      "id": "card-number-field",
+      "name": "CardNumberField",
+      "members": 84,
+      "axes": [
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "hover",
+            "filled",
+            "focus-visible",
+            "focus-visible-filled",
+            "disabled",
+            "read-only"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [
+        "pending",
+        "empty"
+      ],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 84
+        },
+        {
+          "part": "container/label",
+          "kind": "instance",
+          "members": 84
+        },
+        {
+          "part": "container/control",
+          "kind": "frame",
+          "members": 84
+        },
+        {
+          "part": "container/control/content",
+          "kind": "frame",
+          "members": 84
+        },
+        {
+          "part": "container/control/content/leadingVisual",
+          "kind": "swap",
+          "members": 84
+        },
+        {
+          "part": "container/control/content/entry",
+          "kind": "frame",
+          "members": 84
+        },
+        {
+          "part": "container/control/content/entry/placeholder",
+          "kind": "text",
+          "members": 48,
+          "when": {
+            "state": [
+              "rest",
+              "hover",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        },
+        {
+          "part": "container/control/cardMark",
+          "kind": "swap",
+          "members": 84
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "members": 84
+        },
+        {
+          "part": "container/control/content/entry/value",
+          "kind": "text",
+          "members": 36,
+          "when": {
+            "state": [
+              "filled",
+              "focus-visible-filled",
+              "read-only"
+            ]
+          }
+        },
+        {
+          "part": "container/control/content/entry/caret",
+          "kind": "frame",
+          "members": 12,
+          "when": {
+            "state": [
+              "focus-visible"
+            ]
+          }
+        },
+        {
+          "part": "container/control/focusRing",
+          "kind": "instance",
+          "members": 24,
+          "when": {
+            "state": [
+              "focus-visible",
+              "focus-visible-filled"
+            ]
+          }
+        },
+        {
+          "part": "container/control/content/entry/caretEnd",
+          "kind": "frame",
+          "members": 12,
+          "when": {
+            "state": [
+              "focus-visible-filled"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.200"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.md.min-height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/control/cardMark",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "values": {
+                "height": {
+                  "token": "control.size.md.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "values": {
+                "height": {
+                  "token": "control.size.md.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control",
+              "values": {
+                "paddingTop": {
+                  "token": "space.075"
+                },
+                "paddingRight": {
+                  "token": "space.200"
+                },
+                "paddingBottom": {
+                  "token": "space.075"
+                },
+                "paddingLeft": {
+                  "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.md.min-height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/control/cardMark",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.300"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.300"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/control/cardMark",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/control/content/entry/placeholder",
+              "textStyle": "type.body.md.default"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/control/content/entry/placeholder",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container/control/content/entry/placeholder",
+              "textStyle": "type.body.lg.default"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "textStyle": "type.body.lg.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "status",
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "status": "default",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.field.border.hover"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.focus"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "focus-visible-filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.focus"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "fill": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.disabled.fill",
+              "stroke": "color.disabled.border"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.disabled.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "read-only"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "focus-visible-filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "fill": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.disabled.fill",
+              "stroke": "color.disabled.border"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.disabled.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "read-only"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "focus-visible-filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "fill": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.disabled.fill",
+              "stroke": "color.disabled.border"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.disabled.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "read-only"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "focus-visible-filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "fill": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.disabled.fill",
+              "stroke": "color.disabled.border"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.disabled.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "read-only"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/label",
+          "kind": "instance",
+          "component": "field-label",
+          "variant": {
+            "size": "medium",
+            "emphasis": "secondary",
+            "weight": "regular",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "emphasis",
+            "weight"
+          ]
+        },
+        {
+          "part": "container/control/content/leadingVisual",
+          "kind": "swap",
+          "property": "↳ swap leading icon",
+          "visibility": "leading icon"
+        },
+        {
+          "part": "container/control/cardMark",
+          "kind": "swap",
+          "property": "↳ swap card mark",
+          "visibility": "card mark",
+          "default": "payment/generic"
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "component": "field-message",
+          "variant": {
+            "status": "default"
+          },
+          "follows": [
+            "status"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/control/focusRing",
+          "kind": "instance",
+          "component": "focus-ring",
+          "variant": {
+            "surface": "default"
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "placeholder",
+          "type": "TEXT",
+          "default": "Placeholder"
+        },
+        {
+          "name": "value",
+          "type": "TEXT",
+          "default": "1234 5678 9012 3456"
+        },
+        {
+          "name": "leading icon",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "↳ swap leading icon",
+          "type": "INSTANCE_SWAP"
+        },
+        {
+          "name": "card mark",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "↳ swap card mark",
+          "type": "INSTANCE_SWAP"
+        },
+        {
+          "name": "message",
+          "type": "BOOLEAN",
+          "default": false
+        }
+      ]
+    },
     "banner": {
       "id": "banner",
       "name": "Banner",

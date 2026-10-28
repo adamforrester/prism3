@@ -399,7 +399,9 @@ const iconUsage = () => {
         if (!source) throw new Error(`analysis reports: ${def.id}.${part} draws "${p.glyph}", which is neither in the icon set nor a component-owned glyph`);
         glyphs.push({ part, glyph: p.glyph, source, how: 'drawn', ...when });
       }
-      if (p.kind === 'slot') {
+      // A slot that keeps its content's own paint hosts a brand mark, not an icon (#2343 PR 4): it is no icon slot, and
+      // its default is a mark, which the mark set reports, not this one.
+      if (p.kind === 'slot' && !p.fixedPaint) {
         iconSlots.push(part);
         if (p.swapDefault) glyphs.push({ part, glyph: p.swapDefault, source: 'icon set', how: 'swap default', ...when });
       }

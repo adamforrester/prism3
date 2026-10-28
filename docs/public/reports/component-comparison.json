@@ -1140,6 +1140,147 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "card-number-field",
+      "name": "CardNumberField",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only",
+        "empty"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only"
+      ],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ],
+        "style": [
+          "outline"
+        ],
+        "status": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "placeholder"
+        },
+        {
+          "name": "helpText"
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
+          "name": "showMessage",
+          "default": false
+        },
+        {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "brand",
+          "default": "generic",
+          "values": [
+            "generic",
+            "amex",
+            "diners-club",
+            "discover",
+            "maestro",
+            "mastercard",
+            "visa"
+          ]
+        },
+        {
+          "name": "brandName"
+        },
+        {
+          "name": "showCardMark",
+          "default": true
+        },
+        {
+          "name": "renderInput"
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "leadingIcon"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "id"
+        },
+        {
+          "name": "name"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "checkbox-control",
       "name": "Checkbox.Control",
       "category": "form",
@@ -5103,6 +5244,7 @@
       "button",
       "button-destructive",
       "button-neutral",
+      "card-number-field",
       "checkbox-control",
       "checkbox-row",
       "code-input",
@@ -5131,6 +5273,7 @@
       "textarea"
     ],
     "empty": [
+      "card-number-field",
       "password-field",
       "search-field",
       "select",
@@ -5141,6 +5284,7 @@
       "code-input-cell"
     ],
     "filled": [
+      "card-number-field",
       "code-input",
       "code-input-cell",
       "password-field",
@@ -5155,6 +5299,7 @@
       "button",
       "button-destructive",
       "button-neutral",
+      "card-number-field",
       "checkbox-control",
       "checkbox-row",
       "code-input",
@@ -5184,6 +5329,7 @@
       "wallet-button"
     ],
     "focus-visible-filled": [
+      "card-number-field",
       "code-input",
       "code-input-cell",
       "password-field",
@@ -5197,6 +5343,7 @@
       "button",
       "button-destructive",
       "button-neutral",
+      "card-number-field",
       "checkbox-control",
       "checkbox-row",
       "code-input",
@@ -5235,6 +5382,7 @@
       "button",
       "button-destructive",
       "button-neutral",
+      "card-number-field",
       "code-input",
       "icon-button",
       "icon-button-destructive",
@@ -5271,6 +5419,7 @@
       "tag"
     ],
     "read-only": [
+      "card-number-field",
       "checkbox-row",
       "password-field",
       "radio-row",
@@ -5287,6 +5436,7 @@
       "button",
       "button-destructive",
       "button-neutral",
+      "card-number-field",
       "checkbox-control",
       "checkbox-row",
       "code-input",
@@ -5706,6 +5856,7 @@
           "button",
           "button-destructive",
           "button-neutral",
+          "card-number-field",
           "checkbox-control",
           "checkbox-group",
           "checkbox-row",
@@ -5804,6 +5955,7 @@
           "warning"
         ],
         "components": [
+          "card-number-field",
           "field-message",
           "password-field",
           "search-field",
@@ -5829,6 +5981,7 @@
           "outline"
         ],
         "components": [
+          "card-number-field",
           "password-field",
           "search-field",
           "text-field",
@@ -6250,6 +6403,26 @@
         "default": 1
       }
     ],
+    "brand": [
+      {
+        "id": "card-number-field",
+        "default": "generic",
+        "values": [
+          "generic",
+          "amex",
+          "diners-club",
+          "discover",
+          "maestro",
+          "mastercard",
+          "visa"
+        ]
+      }
+    ],
+    "brandName": [
+      {
+        "id": "card-number-field"
+      }
+    ],
     "buttonStyle": [
       {
         "id": "wallet-button"
@@ -6346,6 +6519,9 @@
     ],
     "defaultValue": [
       {
+        "id": "card-number-field"
+      },
+      {
         "id": "checkbox-group"
       },
       {
@@ -6429,6 +6605,10 @@
       },
       {
         "id": "button-neutral",
+        "default": false
+      },
+      {
+        "id": "card-number-field",
         "default": false
       },
       {
@@ -6652,6 +6832,9 @@
     ],
     "helpText": [
       {
+        "id": "card-number-field"
+      },
+      {
         "id": "code-input"
       },
       {
@@ -6744,6 +6927,9 @@
       }
     ],
     "id": [
+      {
+        "id": "card-number-field"
+      },
       {
         "id": "code-input"
       },
@@ -6939,6 +7125,10 @@
         "default": false
       },
       {
+        "id": "card-number-field",
+        "default": false
+      },
+      {
         "id": "code-input",
         "default": false
       },
@@ -7047,6 +7237,9 @@
       },
       {
         "id": "button-neutral"
+      },
+      {
+        "id": "card-number-field"
       },
       {
         "id": "checkbox-group"
@@ -7162,6 +7355,9 @@
       }
     ],
     "leadingIcon": [
+      {
+        "id": "card-number-field"
+      },
       {
         "id": "password-field"
       },
@@ -7365,6 +7561,9 @@
         ]
       },
       {
+        "id": "card-number-field"
+      },
+      {
         "id": "checkbox-group"
       },
       {
@@ -7466,6 +7665,9 @@
       }
     ],
     "onChange": [
+      {
+        "id": "card-number-field"
+      },
       {
         "id": "checkbox-group"
       },
@@ -7617,6 +7819,9 @@
     ],
     "placeholder": [
       {
+        "id": "card-number-field"
+      },
+      {
         "id": "password-field"
       },
       {
@@ -7683,6 +7888,10 @@
     ],
     "readOnly": [
       {
+        "id": "card-number-field",
+        "default": false
+      },
+      {
         "id": "checkbox-row",
         "default": false
       },
@@ -7723,6 +7932,11 @@
         "default": false
       }
     ],
+    "renderInput": [
+      {
+        "id": "card-number-field"
+      }
+    ],
     "renderItem": [
       {
         "id": "pagination"
@@ -7734,6 +7948,10 @@
       }
     ],
     "required": [
+      {
+        "id": "card-number-field",
+        "default": false
+      },
       {
         "id": "checkbox-group",
         "default": false
@@ -7900,6 +8118,12 @@
         ]
       }
     ],
+    "showCardMark": [
+      {
+        "id": "card-number-field",
+        "default": true
+      }
+    ],
     "showCheck": [
       {
         "id": "tag",
@@ -7925,6 +8149,10 @@
       }
     ],
     "showMessage": [
+      {
+        "id": "card-number-field",
+        "default": false
+      },
       {
         "id": "code-input",
         "default": false
@@ -8073,6 +8301,15 @@
       },
       {
         "id": "button-neutral",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "card-number-field",
         "default": "medium",
         "values": [
           "small",
@@ -8857,6 +9094,16 @@
     ],
     "validation": [
       {
+        "id": "card-number-field",
+        "default": "default",
+        "values": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      {
         "id": "checkbox-control",
         "default": "default",
         "values": [
@@ -8989,6 +9236,9 @@
     ],
     "validationMessage": [
       {
+        "id": "card-number-field"
+      },
+      {
         "id": "checkbox-group"
       },
       {
@@ -9022,6 +9272,9 @@
       },
       {
         "id": "badge"
+      },
+      {
+        "id": "card-number-field"
       },
       {
         "id": "checkbox-group"
@@ -9240,6 +9493,14 @@
     },
     {
       "kind": "state not drawn",
+      "subject": "card-number-field",
+      "components": [
+        "card-number-field"
+      ],
+      "detail": "card-number-field declares the states pending and empty, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
       "subject": "code-input",
       "components": [
         "code-input"
@@ -9394,6 +9655,7 @@
         "button",
         "button-destructive",
         "button-neutral",
+        "card-number-field",
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
@@ -9433,12 +9695,13 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
       "subject": "axis status",
       "components": [
+        "card-number-field",
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
@@ -9456,12 +9719,13 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress"
+      "detail": "the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress"
     },
     {
       "kind": "axis values",
       "subject": "axis style",
       "components": [
+        "card-number-field",
         "link",
         "pagination",
         "pagination-item",
@@ -9470,7 +9734,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the style axis takes 3 value sets — [outline] in password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [inline, standalone] in link"
+      "detail": "the style axis takes 3 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [inline, standalone] in link"
     },
     {
       "kind": "axis values",
@@ -9589,6 +9853,14 @@
         "button-neutral"
       ],
       "detail": "button-neutral declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "card-number-field",
+      "components": [
+        "card-number-field"
+      ],
+      "detail": "card-number-field declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -9884,7 +10156,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 46 of 47 sized components default to medium"
+      "detail": "field-label defaults size to small; 47 of 48 sized components default to medium"
     },
     {
       "kind": "prop default",
@@ -9963,6 +10235,14 @@
         "button-neutral"
       ],
       "detail": "button-neutral has the variant axis width and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "card-number-field",
+      "components": [
+        "card-number-field"
+      ],
+      "detail": "card-number-field has the variant axes style and status and no props of those names"
     },
     {
       "kind": "axis without prop",

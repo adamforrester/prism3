@@ -226,8 +226,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "223 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 223. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "224 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 224. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
@@ -678,6 +678,12 @@ jobs:
       # host pushes descendantFills into one.
       - name: A brand mark keeps its own colors from file to plan
         run: npx --yes tsx@4 packages/engine/lint-mark-colors.ts
+
+      # #2343 PR 4: a payment-tile slot (the Card number field's) offers exactly its listed card networks, each a tile in
+      # the marks folder (Q-C7 A), starts at the generic tile on every member and in its swap property, and binds its
+      # height alone under the aspect lock.
+      - name: A payment-tile slot takes card networks only and starts at the generic tile
+        run: npx --yes tsx@4 packages/engine/lint-mark-slots.ts
 
       - name: The component nesting graph resolves and is acyclic
         run: npx --yes tsx@4 packages/engine/lint-nesting.ts
