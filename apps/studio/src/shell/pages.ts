@@ -43,8 +43,9 @@ export const BACKGROUND_FILLS_DESC = 'The base page planes and their inverse cou
  *  and the preview's Foreground section there (Q23). That preview section sits on the contrast floor, not the page, so
  *  its sentence says so. The Style guide's own Foreground section keeps its sentence ("placed ON the page"). */
 export const FOREGROUND_FILLS_DESC = "Content surfaces, shown on the contrast floor they're measured against.";
-/** The Scrim copy (S4f, QA-B10, APPROVED), shared by the levers' Scrim section and the preview's (Q23). */
-export const SCRIM_DESC = "The overlay that dims the page behind a modal. It isn't editable.";
+/** The Scrim copy (S4f, QA-B10, APPROVED), shared by the levers' Scrim section and the preview's (Q23). Since #3050
+ *  the section holds Scrim strength, so "It isn't editable." went: the remaining sentence is a DRAFT for the owner. */
+export const SCRIM_DESC = 'The overlay that dims the page behind a modal.';
 // #3073: DRAFT for the owner, the Glass section's line.
 export const GLASS_DESC = 'The see-through fill behind a background blur. The white glass is fixed; add a glass fill to match a surface, such as a card.';
 /** The Fields copy (Q29, APPROVED), shared by the levers' Fields section and, since S4f (#2016, Q80), the preview's. */
@@ -95,6 +96,8 @@ export const TAG_DESC = 'How tags draw their shape.';
 export const DIALOG_DESC = 'How dialogs size their title and the surface they sit on.';
 // #2924: DRAFT for the owner (Q2 on #2924), the wireframe's section line.
 export const BANNER_DESC = 'How banners draw their surface and edge.';
+// #2942: DRAFT placeholder for the owner (Q2 A), in Banner's pattern.
+export const LINK_DESC = 'How links draw their underline.';
 // #2909 Q2909.4 A: DRAFT for the owner (Q2909.10 A), after the round-4 wireframe's block.
 export const SHARED_DESC = 'Settings every component family follows. Density is set in Theme.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
@@ -183,7 +186,8 @@ export const DOMAINS = [
           // S4f (QA-B10): the scrim left Background fills for its own read-only section, so Background fills' description
           // dropped its scrim clause (the owner's Q26 intro again), as the preview's Background section's did (Q23).
           { title: 'Background fills', desc: BACKGROUND_FILLS_DESC, rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
-          { title: 'Scrim', desc: SCRIM_DESC, rows: [{ ctl: 'scrim' }] },
+          // #3050 (owner Q825 B): Scrim strength's one home, the Scrim section, above the scrim's read-only row.
+          { title: 'Scrim', desc: SCRIM_DESC, rows: [{ ctl: 'scrim', keys: ['scrimStrength'] }] },
           // #3073 (owner Q806, Q807 A): the shipped white glass, read-only, and the glass fills a brand adds (`glassRoles`).
           { title: 'Glass', desc: GLASS_DESC, rows: [{ ctl: 'glass', keys: ['glassRoles'] }] },
           // S4d (owner decision Q44): the neutral ladder in its own section, the approved heading with the preview's
@@ -276,6 +280,8 @@ export const DOMAINS = [
         title: 'Weights and styles', desc: WEIGHTS_DESC, advanced: true, rows: [
           { ctl: 'weightRoles', keys: ['typography.weightRoles'] },
           { ctl: 'weights', keys: ['typography.weights', 'typography.links'] },
+          // #2942 (owner Q3 A): beside Underlined link styles, because it writes tokens and the -link text styles.
+          { ctl: 'underline', keys: ['typography.underline'] },
           { ctl: 'italics', keys: ['typography.italics', 'typography.italicDefault'] },
           // S6.3: Pin a font cut (Q64), a schema input.
           { ctl: 'facePins', schemaOnly: ['typography.faces'] },
@@ -381,6 +387,8 @@ export const DOMAINS = [
       { title: 'Dialog', desc: DIALOG_DESC, rows: [{ ctl: 'chips', keys: ['dialogTitleSize'], drive: 'dialog' }, { ctl: 'chips', keys: ['raisedSurface'], drive: 'dialog' }] },
       // #2924: Banner style's one home, drawn in the Banner section's Banner options block (`domains/banner-options.ts`).
       { title: 'Banner', desc: BANNER_DESC, rows: [{ ctl: 'chips', keys: ['bannerStyle'], drive: 'banner' }] },
+      // #2942 (owner Q3 A): the underline's read-only line; its one home is Theme › Type › Weights and styles.
+      { title: 'Link', desc: LINK_DESC, rows: [{ ctl: 'underlineLink' }] },
       { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },
     ],
     status: 'new',

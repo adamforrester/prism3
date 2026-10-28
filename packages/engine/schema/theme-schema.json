@@ -255,6 +255,12 @@
       "default": "card",
       "description": "OPTIONAL. The raised surface (#3049): what `color.foreground.raised`, the panel a dialog or sheet draws over the scrim, holds in light and hc-light. 'card' (default): the card surface, `foreground.primary`. 'page': the page, `background.primary`. 'white': pure white. Dark and hc-dark always take the card surface, so a dialog keeps its lift there."
     },
+    "scrimStrength": {
+      "type": "string",
+      "enum": ["standard", "strong"],
+      "default": "standard",
+      "description": "OPTIONAL. The scrim's strength (#3050): which `black-alpha` step `color.scrim.default`, the backdrop behind a dialog or sheet, aliases in each mode. 'standard' (default): 40% light, 60% dark, 60% hc-light, 70% hc-dark. 'strong': 80% light and dark, 90% hc-light and hc-dark. No token name changes."
+    },
     "glassRoles": {
       "type": "object",
       "description": "OPTIONAL. Brand-added glass roles (#3073): `color.glass.<name>`, each a translucent fill beside the shipped `color.glass.surface` (white or black glass). The key is the role name, lower-case kebab-case, never `surface`. Each names exactly one color source, `role` (a semantic role whose palette color is read per mode, such as `foreground.primary`, the card ground) or `palette` (one palette color, such as `neutral.050`, `white` or `black`), plus `alpha`, a whole percent from 1 to 99. The engine emits it as a palette alpha step, so a Figma fill bound to it stays translucent. Brand-dependent: never part of the guaranteed token names.",
@@ -444,6 +450,16 @@
           "type": "array",
           "items": { "type": "string", "enum": ["display", "title", "body", "label", "caption", "eyebrow", "code"] },
           "description": "Roles that get an underlined `.<weight>-link` variant per size×weight (underline baked; color stays text.link.*). Default ['body','caption']. `label` is always included, whatever is listed: a text button underlines its label, in the button's own ink (#2324)."
+        },
+        "underline": {
+          "type": "object",
+          "additionalProperties": false,
+          "default": { "thickness": "auto", "offset": "auto" },
+          "properties": {
+            "thickness": { "oneOf": [ { "type": "number" }, { "type": "string", "enum": ["auto"] } ], "description": "OPTIONAL. Link underline thickness as a share of the font size (0.05 = 5%), or 'auto' (the font decides; default). Held to a whole percent and clamped to 1-20%: an out-of-range value is corrected to the nearest bound, not refused (#2942). A set value emits core.font.underline.thickness ($type number)." },
+            "offset": { "oneOf": [ { "type": "number" }, { "type": "string", "enum": ["auto"] } ], "description": "OPTIONAL. Link underline offset below the baseline as a share of the font size (0.25 = 25%), or 'auto' (the font decides; default). Held to a whole percent and clamped to 0-50%: an out-of-range value is corrected to the nearest bound, not refused (#2942). A set value emits core.font.underline.offset ($type number)." }
+          },
+          "description": "OPTIONAL. The underline every -link text style draws (#2942). Figma: a PERCENT written into each -link style (neither field takes a variable), or AUTO. CSS: em. Auto emits no token."
         },
         "italics": {
           "type": "array",

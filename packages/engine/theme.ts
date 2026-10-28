@@ -241,6 +241,9 @@ export const CORE_TIER = 'core';
 /** The `raisedSurface` lever's values (#3049, owner Q3049.4): the card surface (default), the page, or white. */
 export const RAISED_SURFACE_VALUES = ['card', 'page', 'white'] as const;
 export type RaisedSurface = typeof RAISED_SURFACE_VALUES[number];
+/** The `scrimStrength` lever's values (#3050, owner Q825 B): today's scrim (default), or a heavier one. */
+export const SCRIM_STRENGTH_VALUES = ['standard', 'strong'] as const;
+export type ScrimStrength = typeof SCRIM_STRENGTH_VALUES[number];
 
 /**
  * A brand-added glass role (#3073, owner Q806, Q807 A): `color.glass.<name>`, a translucent fill beside the shipped
@@ -370,6 +373,9 @@ export type Theme = {
   // The raised surface (#3049, owner Q721 A, Q3049.1 C–Q3049.4): what `color.foreground.raised`, Dialog's panel,
   // holds in the light-family modes. Unset reads as `card`. The dark family always holds the card, whatever this says.
   raisedSurface?: RaisedSurface;
+  // The scrim's strength (#3050, owner Q825 B): which `black-alpha` step `color.scrim.default` aliases in each mode.
+  // Unset reads as `standard`, today's steps; `scrimStep` in `modes.ts` holds the table.
+  scrimStrength?: ScrimStrength;
   // Brand-added glass roles (#3073, owner Q806, Q807 A), `color.glass.<name>`, validated by `validGlassRoles`. Unset
   // adds none: the brand ships `color.glass.surface` alone.
   glassRoles?: Record<string, GlassRoleInput>;
@@ -597,6 +603,10 @@ export type BrandInput = {
    *  'card' (default) is the card surface, `foreground.primary`; 'page' is the page, `background.primary`; 'white'
    *  is the palette's white. Dark and hc-dark always take the card surface, so a dialog keeps its lift there. */
   raisedSurface?: RaisedSurface;
+  /** The scrim's strength (#3050): how heavily `color.scrim.default`, the backdrop behind a dialog, dims the page.
+   *  'standard' (default) is 40% light, 60% dark, 60% hc-light, 70% hc-dark; 'strong' is 80% light and dark and 90%
+   *  in both high-contrast modes. It moves the alias to an existing `black-alpha` step; no token name changes. */
+  scrimStrength?: ScrimStrength;
   /** Brand-added glass roles (#3073): `color.glass.<name>`, each a semantic role's palette color (`role`, per mode)
    *  or one palette color (`palette`), at `alpha` percent. `surface` is the shipped glass and cannot be redefined. */
   glassRoles?: Record<string, GlassRoleInput>;
@@ -1096,6 +1106,8 @@ export type Typography = {
   fluid: boolean;                                     // responsive sizing on (Phase 3)
   minViewport: number;                                // px — fluid clamp() interpolation floor
   maxViewport: number;                                // px — fluid clamp() interpolation ceiling
+  /** #2942 — the link underline, each field a whole percent of the font size, or 'auto' (see `resolveUnderline`). */
+  underline: ResolvedUnderline;
   // Per-mode typography levers (Phase D) — only modes whose `modeLevers.families`/`weights` deviate
   // the baseline. Each carries the RE-DERIVED primitives (via the same helpers buildTypography uses):
   // family stacks per family-role, weight-role → numeric per weight-role. Every typography COMPOSITE
@@ -1345,6 +1357,12 @@ export type TypographyInput = {
   /** Which roles get an underlined `.link` variant for every size×weight. Default
    *  `['body','caption']`. Underline is baked; the link colour stays `text.link.*`. */
   links?: TypeGroup[];
+  /** #2942 (owner Q1/Q4/Q5/Q800/Q801 A) — the underline every `-link` style draws: thickness and offset, each a
+   *  unitless SHARE OF THE FONT SIZE (0.05 = 5%), or `'auto'`, which leaves it to the font. Default auto for both,
+   *  so a brand that never sets it is byte-identical. A set value is held to a whole percent and CLAMPED to its
+   *  bound (thickness 1–20%, offset 0–50%), corrected rather than refused, like the per-breakpoint column count
+   *  (`resolveUnderline`). A set field emits `core.font.underline.<field>` (`$type: number`); auto emits nothing. */
+  underline?: { thickness?: number | 'auto'; offset?: number | 'auto' };
   /** Which roles ship an `.*-italic` variant for every size×weight (and, for link
    *  roles, an italic-link too — italic and link are orthogonal). Italic is a
    *  weight-PAIRED modifier (`strong` + `strong-italic`), NOT a weight role; it
@@ -1481,6 +1499,23 @@ export const TYPE_LINK_DEFAULT: readonly TypeGroup[] = ['body', 'caption'];
  *  the text appearance underlines its label at rest and in every state, and the underline is fixed, not a brand
  *  setting. Its color is the button's own ink (`interactive.<family>.text.*`), not `text.link.*`. */
 export const TYPE_LINK_ALWAYS: readonly TypeGroup[] = ['label'];
+/** #2942 (owner Q801 A) — the underline bounds, in whole percents of the font size. A set value outside them is
+ *  corrected to the nearest bound, not refused: the Studio's number field can reach it, and the column-count clamp
+ *  set that precedent for a UI knob. The Studio's two fields read these bounds from here, so the panel and the clamp
+ *  cannot disagree; `test.ts` (#2942) states the four numbers itself. */
+export const UNDERLINE_BOUNDS = { thickness: { min: 1, max: 20 }, offset: { min: 0, max: 50 } } as const;
+/** #2942 (owner Q800 A) — what the "Custom underline" switch starts at when turned on, in whole percents. */
+export const UNDERLINE_ON_DEFAULT = { thickness: 5, offset: 25 } as const;
+export type ResolvedUnderline = { thickness: number | 'auto'; offset: number | 'auto' };
+/** Input share (0.05) → a whole, clamped percent (5), or 'auto'. Unset, null or non-finite reads as auto. */
+export const resolveUnderline = (u: TypographyInput['underline']): ResolvedUnderline => {
+  const pct = (v: number | 'auto' | undefined, k: keyof typeof UNDERLINE_BOUNDS): number | 'auto' => {
+    if (v === undefined || v === null || v === 'auto' || typeof v !== 'number' || !Number.isFinite(v)) return 'auto';
+    const { min, max } = UNDERLINE_BOUNDS[k];
+    return Math.max(min, Math.min(max, Math.round(v * 100)));
+  };
+  return { thickness: pct(u?.thickness, 'thickness'), offset: pct(u?.offset, 'offset') };
+};
 const TYPE_TRACK_DEFAULT: Record<TypeGroup, string> = {
   display: 'tight', title: 'snug', label: 'normal', eyebrow: 'wider',
   body: 'normal', caption: 'normal', code: 'normal',
@@ -2057,6 +2092,7 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
     // to the comparison's default alone left every test green and refused against a range the theme never had.
     minViewport: vpMin,
     maxViewport: vpMax,
+    underline: resolveUnderline(t.underline),
   };
 };
 
@@ -2653,6 +2689,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'outlineInteraction', value: input.outlineInteraction, options: ['overlay-neutral', 'solid-tint', 'none'] },
     { path: 'neutralEmphasis', value: input.neutralEmphasis, options: ['subtle', 'strong'] },
     { path: 'raisedSurface', value: input.raisedSurface, options: RAISED_SURFACE_VALUES },
+    { path: 'scrimStrength', value: input.scrimStrength, options: SCRIM_STRENGTH_VALUES },
   ];
   for (const { path, value, options } of enumLevers) {
     if (value !== undefined && !(options as readonly unknown[]).includes(value))
@@ -3353,6 +3390,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
     neutralEmphasis, strictInteractiveContrast, interactivePalettes,
     ...(input.raisedSurface ? { raisedSurface: input.raisedSurface } : {}),
+    ...(input.scrimStrength ? { scrimStrength: input.scrimStrength } : {}),
     ...(glassRoles ? { glassRoles } : {}),
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
     linkStateRungs: input.linkStateRungs,
@@ -3411,12 +3449,15 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     neutralEmphasis: 'subtle', strictInteractiveContrast: false, interactivePalettes: [],
     // The reference brand's own designs put dialogs on white (#3049, owner Q3049.4), not on its card surface.
     raisedSurface: 'white',
+    // The reference brand's designs put a heavy black backdrop behind its dialogs (#3050, owner Q825 B): the strong scrim.
+    scrimStrength: 'strong',
     // The reference brand's card glass (#3073, owner Q807 A; 70%, the owner's correction of 2026-10-27): the card
     // ground, `foreground.primary`'s palette color in each mode, at 70%.
     glassRoles: { card: { role: 'foreground.primary', alpha: 70 } },
     dims, motion: buildMotion(),
     // The label category always ships the `default` role (Q225 A, Q226 A), here as in every brand.
-    typography: buildTypography(withLabelDefault(undefined)),
+    // #2942 (owner, 2026-10-27): the reference brand's link underline is 5% thick, 25% below the baseline.
+    typography: buildTypography(withLabelDefault({ underline: { thickness: 0.05, offset: 0.25 } })),
     shadow: buildShadow(s.neutralHue.hue, { tint: { amount: 0 } }),  // NB ships pure-black shadows
     // NB caps at 1920 + narrow 720. Its md margin is 44 (#3052, Q785 A). The 41px figure behind it is the
     // brand's desktop spec in its own two-mode layout, where md carries the 24-column, 16px-gutter grid:
@@ -3430,7 +3471,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
       // heavier inverse shadows: lift-primary is the field's common choice.
       'reference brand: anchors measured from the shipped system; the brand red also serves as danger, since the brand hue is its danger hue.',
       `dimensions: ${baseUnit}px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius ${baseMd}px).`,
-      'typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900.',
+      'typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900; link underline 5% thick, 25% offset, as the reference sets it.',
       'shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference\'s heavier dark shadows.',
       'layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale, except the md margin: 44px, as the reference sets it, which is not a spacing step, so it links to core dimension 44.',
     ],

@@ -662,13 +662,6 @@
           "$description": "Disabled control border — muted neutral"
         }
       },
-      "scrim": {
-        "default": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.black-alpha.60}",
-          "$description": "Scrim — black backdrop behind modals and drawers; opacity 60%"
-        }
-      },
       "glass": {
         "surface": {
           "$type": "color",

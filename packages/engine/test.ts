@@ -12119,6 +12119,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Dark lands on 650 (~2.4:1), a full 100 from `border/primary`'s 750 (owner Q270.2), not 700.
   { mode: 'light', name: 'color/border/secondary', nb: 'palette/neutral/400', engine: 'palette/neutral/250' },
   { mode: 'dark', name: 'color/border/secondary', nb: 'palette/neutral/500', engine: 'palette/neutral/650' },
+  // NINTH group (#3050, owner Q825 B): the scrim. The frozen export carries the scrim at 40 / 60 / 60 / 70; the reference
+  // brand's own dialog designs put a heavy black backdrop behind the end drawer and the full-screen panel, so it sets
+  // `scrimStrength: strong`, which moves the alias to the existing 80 step in light and dark and 90 in high contrast.
+  // A value lever: the variable's name is unchanged, so this is a divergence of an EXISTING var, in all four modes.
+  { mode: 'light', name: 'color/scrim/default', nb: 'palette/black-alpha/40', engine: 'palette/black-alpha/80' },
+  { mode: 'dark', name: 'color/scrim/default', nb: 'palette/black-alpha/60', engine: 'palette/black-alpha/80' },
+  { mode: 'hc-light', name: 'color/scrim/default', nb: 'palette/black-alpha/60', engine: 'palette/black-alpha/90' },
+  { mode: 'hc-dark', name: 'color/scrim/default', nb: 'palette/black-alpha/70', engine: 'palette/black-alpha/90' },
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
@@ -12612,7 +12620,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   for (const n of NB_ENGINE_ADDED_STYLES.filter((x) => x.startsWith('label/') && x.endsWith('-link'))) {
     const ln: any = emittedByName.get(n), plain: any = emittedByName.get(n.replace(/-link$/, ''));
     if (!ln || !plain) { linkBad.push(`${n}: ${ln ? 'no plain twin' : 'not emitted'}`); continue; }
-    const { textDecoration: lnDeco, ...lnRest } = ln.properties, { textDecoration: plDeco, ...plRest } = plain.properties;
+    // #2942: the underline's thickness and offset are part of the underline, so they are set aside with it.
+    const { textDecoration: lnDeco, textDecorationThickness: _t, textDecorationOffset: _o, ...lnRest } = ln.properties, { textDecoration: plDeco, ...plRest } = plain.properties;
     if (JSON.stringify(lnRest) !== JSON.stringify(plRest)) linkBad.push(`${n}: properties other than the underline differ from ${n.replace(/-link$/, '')}`);
     if (JSON.stringify(lnDeco) !== JSON.stringify({ bindable: false, value: 'UNDERLINE' }) || JSON.stringify(plDeco) !== JSON.stringify({ bindable: false, value: 'NONE' }))
       linkBad.push(`${n}: textDecoration ${JSON.stringify(lnDeco)} (its twin ${JSON.stringify(plDeco)})`);
@@ -36606,6 +36615,95 @@ arm: {
   ok(emitBad.length === 0, `#3049 committed emission: the reference brand's raised surface is white in light and its card elsewhere; every other brand's equals its card in every mode${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
 }
 
+// ------------------------------------------------------------------- #3050: the scrim's strength
+// Owner decisions (2026-10-27, on #3050): a per-brand value lever, `scrimStrength: standard | strong` (Q3050.1 A,
+// Q3050.2 A). `standard`, the default, keeps the steps before the lever; `strong` is the EXISTING 80% step in light and
+// dark (Q825 B, replacing A's 75), with high contrast one step heavier where the ramp allows, so 90 in both. No step is
+// added, so no token name moves. EXPECTED is typed here, from the decision; ACTUAL is the resolved roles and the
+// committed emission, never `SCRIM_STEPS` (docs/34 shape 1: a gate built on the table it checks agrees with any bug).
+{
+  const EXPECTED: Record<'unset' | 'standard' | 'strong', Record<string, number>> = {
+    unset: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
+    standard: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
+    strong: { light: 80, dark: 80, 'hc-light': 90, 'hc-dark': 90 },
+  };
+  type V = keyof typeof EXPECTED;
+  const strip = (i: BrandInput): BrandInput => { const { scrimStrength: _drop, ...rest } = i as BrandInput & { scrimStrength?: string }; return rest as BrandInput; };
+  const withLever = (i: BrandInput, v: V): BrandInput => (v === 'unset' ? strip(i) : { ...strip(i), scrimStrength: v } as BrandInput);
+  const wendysIn = standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input;
+  const seedIn = readExampleBrand('./examples/nb-redesign.design.md');
+  const INPUTS: [string, BrandInput][] = [...EXAMPLE_IDS.map((ex) => [ex, exampleBrands()[ex] as BrandInput] as [string, BrandInput]), ['wendys', wendysIn], ['nb-redesign', seedIn]];
+  const themeFor = (name: string, v: V): Theme | undefined => name === 'nb'
+    ? (() => { const t = { ...nbTheme() } as Theme & { scrimStrength?: string }; if (v === 'unset') delete t.scrimStrength; else t.scrimStrength = v; return t as Theme; })()
+    : exampleTheme(`${name} (scrimStrength ${v})`, () => brandTheme(withLever(INPUTS.find(([n]) => n === name)![1], v)));
+  const NAMES = ['nb', ...INPUTS.map(([n]) => n)];
+  // THE STEP PER MODE, every brand × option × mode: the alias names `black-alpha.<step>`, the role is black, and its
+  // alpha is the step, so the swatch a UI renders and the token a consumer resolves say the same thing.
+  const bad: Record<V, string[]> = { unset: [], standard: [], strong: [] };
+  const cells: Record<V, number> = { unset: 0, standard: 0, strong: 0 };
+  for (const name of NAMES) for (const v of Object.keys(EXPECTED) as V[]) {
+    const th = themeFor(name, v);
+    if (!th) continue;
+    for (const M of resolveAllModes(th)) {
+      const want = EXPECTED[v][M.mode];
+      if (want === undefined) continue;   // a custom mode is not in the decision's table
+      const r = (M.roles as Record<string, { path: string; hex: string; alpha?: number } | undefined>)['scrim.default'];
+      cells[v]++;
+      const at = `${name}/${M.mode}`;
+      if (!r) { bad[v].push(`${at}: scrim.default UNRESOLVED`); continue; }
+      if (r.path !== `${th.namespace}.black-alpha.${want}` || r.hex.toLowerCase() !== '#000000' || r.alpha !== want / 100)
+        bad[v].push(`${at}: ${r.path} ${r.hex} alpha ${r.alpha}, want black-alpha.${want}`);
+    }
+  }
+  // Six brands carry the four modes; the redesign seed ships light alone, so it adds one cell per option.
+  const minCells = (NAMES.length - 1) * 4 + 1;
+  ok(cells.unset >= minCells && bad.unset.length === 0,
+    `#3050 scrim unset: scrim.default holds black-alpha 40 light / 60 dark / 60 hc-light / 70 hc-dark in every brand (${cells.unset} cells${bad.unset.length ? `; WRONG: ${bad.unset.slice(0, 4).join('; ')}` : ''})`);
+  ok(cells.standard >= minCells && bad.standard.length === 0,
+    `#3050 scrim standard: scrim.default holds black-alpha 40 / 60 / 60 / 70 in every brand (${cells.standard} cells${bad.standard.length ? `; WRONG: ${bad.standard.slice(0, 4).join('; ')}` : ''})`);
+  ok(cells.strong >= minCells && bad.strong.length === 0,
+    `#3050 scrim strong: scrim.default holds black-alpha 80 light / 80 dark / 90 hc-light / 90 hc-dark in every brand (${cells.strong} cells${bad.strong.length ? `; WRONG: ${bad.strong.slice(0, 4).join('; ')}` : ''})`);
+
+  // NO TOKEN NAME MOVES (Q825 B): `strong` aliases an existing step, so a brand's emitted names are the same set under
+  // either option, and the only leaf whose value differs is `color.scrim.default`.
+  {
+    const leaves = (o: any, pre = '', out: Map<string, string> = new Map()): Map<string, string> => {
+      for (const [k, v] of Object.entries(o ?? {})) {
+        if (k.startsWith('$')) continue;
+        const p = pre ? `${pre}.${k}` : k;
+        if (v && typeof v === 'object' && '$value' in (v as object)) out.set(p, JSON.stringify([(v as any).$value, (v as any).$extensions?.prism3?.modes]));
+        else if (v && typeof v === 'object') leaves(v, p, out);
+      }
+      return out;
+    };
+    const base = exampleBrands()['prism3'] as BrandInput;
+    const std = leaves(buildTree(brandTheme(withLever(base, 'standard'))).tree);
+    const str = leaves(buildTree(brandTheme(withLever(base, 'strong'))).tree);
+    const namesSame = std.size === str.size && [...std.keys()].every((k) => str.has(k));
+    const moved = [...std.keys()].filter((k) => str.get(k) !== std.get(k));
+    ok(std.size > 500 && namesSame && moved.length === 1 && moved[0].endsWith('.color.scrim.default'),
+      `#3050 no new token names: standard and strong emit the same ${std.size} names, and only color.scrim.default changes value (moved: ${moved.join(', ') || 'none'})`);
+  }
+
+  // THE REFERENCE BRAND IS STRONG in both inputs, and the committed emission shows it; every other committed brand
+  // leaves the lever unset, so its emission holds today's steps (byte-identical: `regen --check` holds the artifacts).
+  ok((nbTheme() as Theme & { scrimStrength?: string }).scrimStrength === 'strong' && (seedIn as BrandInput & { scrimStrength?: string }).scrimStrength === 'strong',
+    `#3050: the reference brand's legacy fixture and its redesign seed design.md both set scrimStrength: strong`);
+  const emitBad: string[] = [];
+  for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
+    const t = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const root = Object.keys(t)[0];
+    const sc = t[root]?.color?.scrim?.default;
+    const modeVal = (n: any, m: string): string | undefined => m === 'light' ? n?.$value : n?.$extensions?.prism3?.modes?.[m]?.$value ?? n?.$value;
+    for (const m of ['light', 'dark', 'hc-light', 'hc-dark']) {
+      const want = `{${root}.core.palette.black-alpha.${EXPECTED[b === 'nb' ? 'strong' : 'unset'][m]}}`;
+      const got = modeVal(sc, m);
+      if (got !== want) emitBad.push(`${b}/${m}: ${got} ≠ ${want}`);
+    }
+  }
+  ok(emitBad.length === 0, `#3050 committed emission: the reference brand's scrim is 80 / 80 / 90 / 90, every other brand's 40 / 60 / 60 / 70${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
+}
+
 // ------------------------------------------------------------------- #3073: brand glass roles
 // Owner decisions (2026-10-27, on #3073): Prism3 ships one glass role, `color.glass.surface` (white 70%), and a brand
 // adds its own as `color.glass.<name>` through the `glassRoles` lever (Q806, Q807 A). Each names a palette color, or a
@@ -37414,6 +37512,91 @@ arm: {
   }
   ok(brands.length >= 5 && ['aurora', 'harbor', 'prism3'].every((b) => brands.includes(`${b}.tokens.json`)) && pinned === brands.length * INVARIANT_PX.length && off.length === 0,
     `#2965 brand-invariant steps: border-width none / hairline / thick / heavy / x-heavy resolve to 0 / 1 / 2 / 4 / 6px and focus.ring width / offset / offset-field to 2 / 2 / 0px in every corpus brand's composed tree, in every mode (${brands.length} brands, ${pinned} leaves; ${off.length} off — ${off.slice(0, 3).join('; ') || 'none'})`);
+}
+
+// ------------------------------------------------------------------- #2942: the link underline
+// Owner Q1–Q6 A, Q800 A, Q801 A (2026-10-27). `typography.underline` sets thickness and offset as shares of the font
+// size; auto emits nothing. Every expected number is typed here: the bounds (thickness 1–20%, offset 0–50%, whole
+// percents), the reference brand's 5% / 25%, and the other brands' absence, read off their COMMITTED files rather than
+// a fresh build, so the subject (`resolveUnderline`, `tree.ts`, `emit-figma-font.ts`, `write-plan.ts`) is never its
+// own oracle (docs/34 shape 1).
+{
+  const U = (underline: unknown): Theme['typography']['underline'] =>
+    brandTheme({ ...MINIMAL_BRAND, typography: { underline } } as BrandInput).typography.underline;
+  // [input, expected thickness %, expected offset %, why]
+  const CLAMP: [unknown, number | 'auto', number | 'auto', string][] = [
+    [{ thickness: 0.05, offset: 0.25 }, 5, 25, 'in range'],
+    [{ thickness: 0.004, offset: -0.3 }, 1, 0, 'below both bounds → 1% and 0%'],
+    [{ thickness: 0.5, offset: 0.9 }, 20, 50, 'above both bounds → 20% and 50%'],
+    [{ thickness: 0.2, offset: 0.5 }, 20, 50, 'exactly at the upper bounds'],
+    [{ thickness: 0.01, offset: 0 }, 1, 0, 'exactly at the lower bounds'],
+    [{ thickness: 0.054, offset: 0.256 }, 5, 26, 'whole percents, rounded'],
+    [{ thickness: 0.07 }, 7, 'auto', 'one field set, the other auto'],
+    [{ thickness: 'auto', offset: 'auto' }, 'auto', 'auto', 'both auto'],
+    [undefined, 'auto', 'auto', 'unset'],
+  ];
+  const clampOff = CLAMP.filter(([inp, t, o]) => { const r = U(inp); return r.thickness !== t || r.offset !== o; })
+    .map(([inp, t, o, why]) => `${why}: ${JSON.stringify(inp)} → ${JSON.stringify(U(inp))} (want ${t}/${o})`);
+  ok(clampOff.length === 0, `#2942 underline clamp: whole percents, thickness 1–20%, offset 0–50%, corrected to the nearest bound, never refused (${CLAMP.length} cases; ${clampOff.join('; ') || 'none off'})`);
+  const clamped = buildTree(brandTheme({ ...MINIMAL_BRAND, typography: { underline: { thickness: 0.5, offset: -1 } } } as BrandInput)).tree;
+  const cf = (clamped as any)[Object.keys(clamped)[0]].core.font.underline;
+  ok(cf?.thickness?.$value === 0.2 && cf?.offset?.$value === 0 && cf?.thickness?.$extensions?.prism3?.figma?.percent === 20 && cf?.offset?.$extensions?.prism3?.figma?.percent === 0,
+    `#2942 underline clamp reaches the tokens: thickness 0.5 → $value 0.2 (PERCENT 20), offset -1 → $value 0 (PERCENT 0) (got ${JSON.stringify([cf?.thickness?.$value, cf?.offset?.$value])})`);
+
+  // OFF: no token, no Figma field, and the plan writes AUTO on every underlined row (nothing on a plain one).
+  const off = brandTheme(MINIMAL_BRAND);
+  const offFont = (buildTree(off).tree as any)[Object.keys(buildTree(off).tree)[0]].core.font;
+  const offStyles = buildFigmaTextStyles(off).styles;
+  const offPlan = buildTextStylePlan(off);
+  const offUl = offPlan.filter((r) => r.textDecoration === 'UNDERLINE');
+  ok(offFont.underline === undefined && offStyles.every((x) => !('textDecorationThickness' in x.properties) && !('textDecorationOffset' in x.properties))
+    && offUl.length > 0 && offUl.every((r) => r.underlineThicknessPct === 'AUTO' && r.underlineOffsetPct === 'AUTO')
+    && offPlan.filter((r) => r.textDecoration === 'NONE').every((r) => !('underlineThicknessPct' in r) && !('underlineOffsetPct' in r)),
+    `#2942 underline off: no core.font.underline token, no text-style field, and every underlined plan row writes AUTO for both (${offUl.length} rows)`);
+
+  // ON, the reference brand: 0.05 / 0.25 as numbers, PERCENT 5 / 25 on every -link style and plan row, nothing on the rest.
+  const ref = nbTheme();
+  const refTree = buildTree(ref).tree as any;
+  const rf = refTree[Object.keys(refTree)[0]].core.font.underline;
+  ok(rf?.thickness?.$type === 'number' && rf.thickness.$value === 0.05 && rf?.offset?.$type === 'number' && rf.offset.$value === 0.25,
+    `#2942 underline on: the reference brand emits core.font.underline.thickness 0.05 and .offset 0.25, $type number (got ${JSON.stringify([rf?.thickness?.$type, rf?.thickness?.$value, rf?.offset?.$type, rf?.offset?.$value])})`);
+  const refPlan = buildTextStylePlan(ref);
+  const refLinks = refPlan.filter((r) => r.name.endsWith('-link'));
+  const refOff = refLinks.filter((r) => r.textDecoration !== 'UNDERLINE' || r.underlineThicknessPct !== 5 || r.underlineOffsetPct !== 25);
+  ok(refLinks.length === 18 && refOff.length === 0 && refPlan.filter((r) => !r.name.endsWith('-link')).every((r) => r.textDecoration === 'NONE' && !('underlineThicknessPct' in r)),
+    `#2942 underline on: the reference brand's 18 -link plan rows write PERCENT 5 / 25, and no plain row carries either (${refLinks.length} rows; ${refOff.length} off)`);
+
+  // OTHER BRANDS UNCHANGED: their committed emission carries no underline token and no underline field. Read from disk.
+  const others = ['aurora', 'harbor', 'prism3', 'wendys'];
+  const leaked: string[] = [];
+  for (const b of others) {
+    const tok = readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8');
+    if (/"underline":\s*\{\s*"(thickness|offset)"/.test(tok)) leaked.push(`${b}.tokens.json`);
+    const ts = resolve(HERE, `./out/figma/${b}/text-styles.json`);
+    if (existsSync(ts) && /textDecoration(Thickness|Offset)/.test(readFileSync(ts, 'utf8'))) leaked.push(`figma/${b}/text-styles.json`);
+  }
+  ok(leaked.length === 0 && existsSync(resolve(HERE, './out/figma/aurora/text-styles.json')),
+    `#2942 underline: every other brand's committed tokens and text styles are untouched — no underline token, no thickness or offset field (${others.join(', ')}; ${leaked.join(', ') || 'none leaked'})`);
+  const committedNb = JSON.parse(readFileSync(resolve(HERE, './out/figma/nb/text-styles.json'), 'utf8')) as { styles: { name: string; properties: Record<string, any> }[] };
+  const nbFile = committedNb.styles.filter((x) => x.name.endsWith('-link'));
+  ok(nbFile.length === 18 && nbFile.every((x) => JSON.stringify(x.properties.textDecorationThickness) === JSON.stringify({ bindable: false, value: { unit: 'PERCENT', value: 5 } })
+    && JSON.stringify(x.properties.textDecorationOffset) === JSON.stringify({ bindable: false, value: { unit: 'PERCENT', value: 25 } })),
+    `#2942 underline: the reference brand's committed text-styles.json carries PERCENT 5 / 25 on all 18 -link styles (${nbFile.length})`);
+  // And on nothing else: a style that is not underlined carries neither field (the reviewer's R1, #3075).
+  const plainCarry = committedNb.styles.filter((x) => x.properties.textDecoration?.value !== 'UNDERLINE' && ('textDecorationThickness' in x.properties || 'textDecorationOffset' in x.properties));
+  ok(committedNb.styles.length > nbFile.length && plainCarry.length === 0,
+    `#2942 underline: no style in the reference brand's committed text-styles.json that is not underlined carries a thickness or offset (${committedNb.styles.length - nbFile.length} plain; ${plainCarry.length} carry one${plainCarry.length ? `: ${plainCarry.slice(0, 3).map((x) => x.name).join(', ')}` : ''})`);
+
+  // THE PASTE PATH: run its text-styles pass into the file shim and read the styles back.
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<{ skipped: unknown[] }>;
+  const shim = new FileShim();
+  shim.faces = refPlan.map((r) => ({ family: r.fontFamilyPrimary, style: r.fontStyle }));
+  const pasted = await new AsyncFunction('figma', passJs('nb', 'text-styles'))(shim);
+  const pLinks = (shim.styles.text as any[]).filter((x) => x.name.endsWith('-link'));
+  const pOff = pLinks.filter((x) => JSON.stringify(x.textDecorationThickness) !== JSON.stringify({ unit: 'PERCENT', value: 5 }) || JSON.stringify(x.textDecorationOffset) !== JSON.stringify({ unit: 'PERCENT', value: 25 }));
+  const pPlain = (shim.styles.text as any[]).filter((x) => !x.name.endsWith('-link') && ('textDecorationThickness' in x || 'textDecorationOffset' in x));
+  ok(pasted.skipped.length === 0 && pLinks.length === 18 && pOff.length === 0 && pPlain.length === 0,
+    `#2942 underline, paste path: the reference brand's 18 pasted -link styles read PERCENT 5 / 25, and no plain style has either field (${pLinks.length} links; ${pOff.length} off; ${pPlain.length} plain touched)`);
 }
 
 // ------------------------------------------------------------------- report

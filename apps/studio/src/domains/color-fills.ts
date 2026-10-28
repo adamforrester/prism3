@@ -7,8 +7,9 @@
  * S4f, QA-B1: under "Default" Primary, Secondary, Tertiary and the contrast floor with its own info text, QA-B3,
  * QA-B6; under "Inverse" the inverse fill's palette select, then Inverse primary,
  * secondary and tertiary; each row names its token, Q41, and opens the step picker, Q45); **Scrim** (S4f, QA-B10:
- * the scrim's read-only row, out of Background fills; then, #3093, the panel over it, `foreground.raised`, read-only, with
- * a link that opens Dialog surface, its one home in Components › Dialog); **Foreground** (the neutral ladder,
+ * the scrim's strength, Standard / Strong (#3050), and its read-only row, out of Background fills; then, #3093, the panel
+ * over it, `foreground.raised`, read-only, with a link that opens Dialog surface, its one home in Components › Dialog);
+ * **Foreground** (the neutral ladder,
  * page and inverse, Q44); **Foreground fills** (a row per fill: a small swatch, its name and role, and a button
  * that opens the step picker under the row, with the ratio on it; then the subtle fills, the on-color inks and
  * the inverse fills, Q49); **Text color** (the same rows for the text inks, page and inverse: the permanent,
@@ -44,7 +45,7 @@ import {
   BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoFollows, floorAutoLabel, floorAutoShortLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
   iconOverrideCount, iconsPaired, lockedTo, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
-  SCRIM_ROLE, SURFACE_TOKENS, clearFloorReset, floorResetNotice, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
+  SCRIM_ROLE, SURFACE_TOKENS, brandScrimStrength, setScrimStrength, clearFloorReset, floorResetNotice, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
   type FillRow, type InverseTier, type PageTier,
 } from '../state/fills-input';
 import { floorNoneText } from '../state/floor-refusal';
@@ -55,7 +56,7 @@ import type { BlockKey } from '../state/component-groups';
 import { leverHook } from '../levers/controls';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { infoTip, inlineConfirm, jumpLabel, leverBlock, leverOf, onCommitted, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, markRefused } from '../ui/lever-kit';
+import { choice, infoTip, inlineConfirm, jumpLabel, leverBlock, leverOf, onCommitted, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, markRefused } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
@@ -299,19 +300,26 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     return [{ el: b.el, said: `${b.said} default inverse background fills primary secondary tertiary contrast floor inverse fill palette ${Object.values(SURFACE_TOKENS).join(' ')}`, key: 'surfaces', block: b }];
   };
 
-  /** The Scrim section (S4f, QA-B10): the scrim's read-only row, out of Background fills into its own section, as the
-   *  preview's Scrim section is. */
+  /** The Scrim section (S4f, QA-B10): out of Background fills into its own section, as the preview's Scrim section is.
+   *  Since #3050 (owner Q825 B) it is the `scrimStrength` lever's block: Standard / Strong as chips (the label and
+   *  option names are DRAFTS), then the scrim's read-only row, which reads out the step the choice gives this mode. */
   const scrim = (): Item[] => {
+    const b = leverBlock('scrimStrength', { group: true });
+    const L = leverOf('scrimStrength');
+    const opts = (L?.options ?? []).map((o) => ({ v: String(o.value) as ReturnType<typeof brandScrimStrength>, l: o.label }));
+    const c = choice(L?.label ?? 'Scrim strength', 'scrim-strength-choice', opts, (v) => edit('scrimStrength', () => setScrimStrength(v)));
+    c.set(brandScrimStrength());
+    b.ctl.append(c.el);
     const r = scrimRow();
-    if (!r) return [];
-    const wrap = h('div', 'p3-fillrow-wrap');
-    wrap.append(r);
-    // #3093: the panel over the scrim follows it. A section draws its first item, so the two rows share one box.
+    if (r) {
+      const wrap = h('div', 'p3-fillrow-wrap');
+      wrap.append(r);
+      b.ctl.append(wrap);
+    }
+    // #3093: the panel over the scrim follows it, inside the Scrim block.
     const raised = raisedRow();
-    if (!raised) return [{ el: wrap, said: `scrim ${SCRIM_ROLE}`, key: 'scrim' }];
-    const box = hook(h('div', 'p3-fillrows'), 'scrim-rows');
-    box.append(wrap, raised.el);
-    return [{ el: box, said: '', key: 'scrim-rows' }, { el: wrap, said: `scrim ${SCRIM_ROLE}`, key: 'scrim' }, raised];
+    if (raised) b.ctl.append(raised.el);
+    return [{ el: b.el, said: `${b.said} scrim ${SCRIM_ROLE}`, key: 'scrimStrength', block: b }, ...(raised ? [raised] : [])];
   };
 
   /** #3093: the panel over the scrim, `foreground.raised`, read-only: a fill row's swatch, name and role, and in place

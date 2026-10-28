@@ -266,6 +266,8 @@
  *     APPROVED sub-headings; the floor's APPROVED info text (QA-B6); the icon contrast block's info text, Interactive's
  *     Icons description (QA-I10). All literal.
  *   · SCRIM (QA-B10): its own lever section and preview section, its copy APPROVED, the scrim row not in Background fills.
+ *     Since #3050 the section is Scrim strength's block: Standard / Strong write `scrimStrength`, and the row reads
+ *     out the step each gives (the copy a DRAFT).
  *   · FIELDS (#2016, Q80): a preview section on the page, and an edit in the levers' Fields reveals it (QA-B9's rule).
  *   · #1971 (Q81): Background with no badge, every other section with its badges (Foreground's since GR2, the owner,
  *     2026-10-04: each bold fill's badge prints its emitted hex against the emitted floor); Q23 pairs for
@@ -4390,7 +4392,9 @@ const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', 
   // S4f (QA-I10): the Icon section's pairing control is the icon contrast lever's block, as Interactive drew it.
   ['iconContrast', '[data-p3="lever-icon-contrast"]'],
   // #3073: the Glass section is the glassRoles lever's block, holding the shipped glass read-only and the brand's own.
-  ['glassRoles', '[data-p3="lever-glass-roles"]']];
+  ['glassRoles', '[data-p3="lever-glass-roles"]'],
+  // #3050: the Scrim section is the scrimStrength lever's block, its chips above the scrim's read-only row.
+  ['scrimStrength', '[data-p3="lever-scrim-strength"]']];
 /** S4f (QA-B1): Background fills' rows, by the role each names: the three page tiers (Primary was "Page", QA-B3),
  *  the contrast floor (a setting, named by its input), and the inverse fill's three tiers. Literal. */
 const SURFACE_ROW_ROLES = ['background.primary', 'background.secondary', 'background.tertiary', 'surfaces.floorStep',
@@ -4686,7 +4690,8 @@ for (const host of ['web', 'figma']) {
     Glass: 'The see-through fill behind a background blur. The white glass is fixed; add a glass fill to match a surface, such as a card.',
     // S4f (QA-B10): the scrim left Background fills, so its description is the owner's Q26 intro; Scrim's is APPROVED.
     'Background fills': 'The base page planes and their inverse counterparts.',
-    Scrim: "The overlay that dims the page behind a modal. It isn't editable.",
+    // #3050: the section now holds Scrim strength, so "It isn't editable." went; the sentence left is a DRAFT for the owner.
+    Scrim: 'The overlay that dims the page behind a modal.',
     // Q44: the APPROVED heading with the preview's Foreground description (Q23); Border and Icon take the preview's (Q23).
     // #1971 (APPROVED, owner 2026-10-05, superseding GR3): the preview's Foreground sits on the contrast floor, so its sentence (and the levers', Q23) says so.
     Foreground: "Content surfaces, shown on the contrast floor they're measured against.",
@@ -4774,6 +4779,41 @@ if (runs('18')) {
     ok(false, `#3073 Glass: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 18-glass
+// #3050 (owner Q825 B): Surfaces & fills › Scrim. Scrim strength's chips, Standard and Strong (DRAFT labels), sit above the
+// scrim's read-only row; Strong writes `scrimStrength: 'strong'` and the row reads out black-alpha 80 in Light, Standard
+// writes 'standard' and reads out 40. The steps are literals from the decision; ACTUAL is the persisted brand and the DOM.
+if (runs('18')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    const read = () => page.evaluate(() => {
+      const b = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-scrim-strength"]');
+      return {
+        section: b?.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent ?? null,
+        chips: [...(b?.querySelectorAll('[data-p3^="scrim-strength-choice-"]') ?? [])].map((n) => [n.textContent, n.getAttribute('aria-checked')]),
+        rowInBlock: !!b?.querySelector('[data-p3="scrim-row"]'),
+        read: b?.querySelector('[data-p3="scrim-readout"]')?.textContent ?? null,
+      };
+    });
+    const r0 = await read();
+    ok(r0.section === 'Scrim' && JSON.stringify(r0.chips) === JSON.stringify([['Standard', 'true'], ['Strong', 'false']]) && r0.rowInBlock && r0.read === 'black-alpha 40 · 40%',
+      `#3050: Surfaces & fills › Scrim holds Scrim strength's chips, Standard checked on a brand without the lever, above the row reading black-alpha 40 · 40% (${JSON.stringify(r0)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="scrim-strength-choice-strong"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent === 'black-alpha 80 · 80%', null, { timeout: 5000 }).catch(() => {});
+    const strong = await persisted(page);
+    const r1 = await read();
+    ok(strong?.scrimStrength === 'strong' && r1.read === 'black-alpha 80 · 80%' && r1.chips[1]?.[1] === 'true',
+      `#3050: Strong writes scrimStrength: strong and the row reads black-alpha 80 · 80% (${strong?.scrimStrength}, ${JSON.stringify(r1)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="scrim-strength-choice-standard"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent === 'black-alpha 40 · 40%', null, { timeout: 5000 }).catch(() => {});
+    const std = await persisted(page);
+    ok(std?.scrimStrength === 'standard' && (await read()).read === 'black-alpha 40 · 40%',
+      `#3050: Standard writes scrimStrength: standard and the row reads black-alpha 40 · 40% again (${std?.scrimStrength})`);
+    ok(errors.length === 0, `#3050 Scrim: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3050 Scrim: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 18-scrim
 // =============================================================================================
 // S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
 // fills read-only in a derived mode, the Unpair button included (Q56, Q59)
@@ -6732,7 +6772,7 @@ for (const host of ['web', 'figma']) {
       if (TYPE_S63_COPY[title]) ok(lev?.[1] === TYPE_S63_COPY[title], `${host}: "${title}" reads "${TYPE_S63_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
     }
     for (const [k, want] of Object.entries(TYPE_S63_WORDS)) ok(JSON.stringify(r.words[k]) === JSON.stringify(want), `${host}: the ${k} copy reads ${JSON.stringify(want)} (${JSON.stringify(r.words[k])})`);
-    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 12 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 12 advanced (${JSON.stringify(r.folds)})`);
+    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 13 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 13 advanced (#2942: Underline thickness and offset is the 13th) (${JSON.stringify(r.folds)})`);
     const WANT_NAMES = {
       weight: [['p3-fill-label', 'Strong'], ['p3-fill-tok', 'font.weight-role.strong']], lh: [['p3-fill-label', 'normal'], ['p3-fill-tok', 'font.line-height-role.normal']],
       matrix: [['p3-fill-label', 'Body'], ['p3-fill-tok', 'type.body']],
@@ -8973,7 +9013,7 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
  *  the move: the levers pane no longer has a section per preview section. */
 // #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
 // #2909 Q2909.4 A: the shared block is the list's first section.
-const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents'];
+const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
@@ -9290,8 +9330,8 @@ for (const host of ['web', 'figma']) {
         };
       });
       const r0 = await read();
-      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
-        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options", one "Dialog options" (#2958) and one "Banner options" line (#2924), in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options", one "Dialog options" (#2958), one "Banner options" (#2924) and one "Link options" line (#2942), in the list, and not in the preview (${JSON.stringify(r0)})`);
       ok(r0.expanded === 'false' && !r0.shown,
         `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
       ok(r0.rows === 4 && r0.lineBelowSets,
@@ -9321,7 +9361,7 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
       await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
       const r3 = await read();
-      ok(r3.toggles.length === 6 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
+      ok(r3.toggles.length === 7 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
         `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
       // Opening the line focuses its section's first set (wireframe v2's rule, #2905): with Badge (Other components) in
       // the preview, close and reopen it, and the preview shows Buttons. (Buttons is the preview's default, so the check
@@ -9455,8 +9495,8 @@ for (const host of ['web', 'figma']) {
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
       });
-      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents']),
-        `#2905 Q548, #2931 Q579 A, #2958, #2924: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents']),
+        `#2905 Q548, #2931 Q579 A, #2958, #2924, #2942: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Link, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
       const D = r.dialogs;
       ok(!!D && JSON.stringify(D.ids) === JSON.stringify(['dialog']) && D.folds + D.families === 0,
         `#2958: ${host} ${w}: the Dialog section lists Dialog as a row, with no family row and no fold (${JSON.stringify({ ids: D?.ids, folds: D?.folds, families: D?.families })})`);
@@ -11692,9 +11732,10 @@ const EXPECT_HEADINGS = {
     // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
     // #2958: Dialog, its Dialog options (L2) and Dialog title size (L3), Tag options' way.
     // #2924: Banner, its Banner options (L2) and Banner style (L3), Dialog options' way.
-    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents'],
+    // #2942: Link, its Link options (L2), holding one read-only line and no lever.
+    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents'],
     // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
-    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options'],
+    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options'],
     L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size', 'Banner style'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
@@ -11713,7 +11754,8 @@ const HEADING_ADVANCED = {
   shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
   // #2844: a family's settings are closed behind their line; the audit reads them open.
   components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]',
-    '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]', '[data-p3="cp-opts-toggle"][data-key="opts=banners"]'],
+    '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]', '[data-p3="cp-opts-toggle"][data-key="opts=banners"]',
+    '[data-p3="cp-opts-toggle"][data-key="opts=links"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
@@ -16234,7 +16276,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       shared: document.querySelector('[data-p3="components-list"] > [data-p3="cp-shared"]') ? [...document.querySelector('[data-p3="components-list"]').children].indexOf(document.querySelector('[data-p3="cp-shared"]')) : -1,
     }));
     ok(JSON.stringify(tiers.caps.map((c) => c.tier)) === JSON.stringify(['components', 'subcomponents']) && tiers.caps.every((c) => c.role === 'group' && /^(Components|Subcomponents) · \d+ sets$/.test(c.named ?? ''))
-      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
+      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
       `${where}: Q2909.17 A: Components lists its sections under the tiers, each a group named by its caption, Components then Subcomponents (${JSON.stringify(tiers.caps)})`);
     ok(tiers.empty === 'Content components and Blocks: no component sets yet.', `${where}: Q2909.17 A: the two tiers no definition is in yet are named in one line ("${tiers.empty}")`);
     // The shared block, first in the list after the intro: Density's read-only line, then Control shape's chips.

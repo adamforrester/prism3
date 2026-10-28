@@ -1246,6 +1246,18 @@
             "$value": "{nbds.core.font.letter-spacing.50}",
             "$description": "letter-spacing role 'wider' → 0.05em — a relative-emphasis name a mode may re-point; the step itself never changes"
           }
+        },
+        "underline": {
+          "thickness": {
+            "$type": "number",
+            "$value": 0.05,
+            "$description": "Link underline thickness: 5% of the font size (0.05em in CSS). Every underlined text style draws it."
+          },
+          "offset": {
+            "$type": "number",
+            "$value": 0.25,
+            "$description": "Link underline offset, below the baseline: 25% of the font size (0.25em in CSS). Every underlined text style draws it."
+          }
         }
       }
     },
@@ -1969,8 +1981,8 @@
       "scrim": {
         "default": {
           "$type": "color",
-          "$value": "{nbds.core.palette.black-alpha.40}",
-          "$description": "Scrim — black backdrop behind modals and drawers; opacity 40%"
+          "$value": "{nbds.core.palette.black-alpha.80}",
+          "$description": "Scrim — black backdrop behind modals and drawers; opacity 80%"
         }
       },
       "glass": {
