@@ -1023,7 +1023,8 @@ section('dropped — a fill the plan no longer has is named, plan against file (
   };
   const want = (await Promise.all(['hover', 'pressed'].flatMap((st) => ['default', 'inverse'].map((g) => wash(st, g)))))
     .map((v) => `button · the member · fill: the plan says none, the file has ${v} (12 members).`);
-  ok(want.every((l) => /interactive\/primary\/overlay\/(hover|pressed)/.test(l)), `premise: the built text hover and pressed members carry the primary overlay wash (${JSON.stringify(want)})`);
+  // The reference brand's text button takes its opaque hover fill under Fill (#3071, owner Q824 A), not the wash.
+  ok(want.every((l) => /interactive\/primary\/hover-fill\/(hover|pressed) \(/.test(l)), `premise: the built text hover and pressed members carry the primary opaque hover fill (${JSON.stringify(want)})`);
   const v = previewVerdict(await previewUpdate(b.shim, [{ def: 'button', plans: textOnly }]));
   const lines = v.lines.filter((l) => l.startsWith('button · ') && l.includes(' fill: '));
   ok(JSON.stringify([...lines].sort()) === JSON.stringify([...want].sort()),
