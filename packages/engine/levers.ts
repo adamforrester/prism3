@@ -109,6 +109,12 @@ export const leverManifest: Lever[] = [
   { key: 'raisedSurface', group: 'color', kind: 'value', label: 'Dialog surface', control: 'enum', default: 'card',
     options: enumOpts(['card', 'Card'], ['page', 'Page'], ['white', 'White']),
     description: 'The surface of every dialog and sheet in light mode: the card color, the page color, or white. Dark mode always uses the card color, so the panel stays lifted.' },
+  // #3050 (owner Q825 B) — label, option labels and description are a DRAFT for the owner (on the build PR). It moves
+  // a token value, not a binding: the dialog's backdrop binds `color.scrim.default` once, and this picks which existing
+  // `black-alpha` step that token aliases in each mode. Its home in the Studio is Surfaces & fills › Scrim.
+  { key: 'scrimStrength', group: 'color', kind: 'value', label: 'Scrim strength', control: 'enum', default: 'standard',
+    options: enumOpts(['standard', 'Standard'], ['strong', 'Strong']),
+    description: 'How much the backdrop behind a dialog dims the page. Standard keeps the page readable behind it. Strong dims it further, so the page stops competing with the dialog.' },
   // #3073 (owner Q806, Q807 A) — label and description are a DRAFT for the owner (on the build PR). It adds roles, it
   // never moves `color.glass.surface`. Its home in the Studio is Surfaces & fills › Glass.
   { key: 'glassRoles', group: 'color', kind: 'value', label: 'Glass fills', control: 'object', advanced: true, itemLabel: 'glass fill',

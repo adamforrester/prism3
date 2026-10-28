@@ -786,5 +786,43 @@ ok(halfRes.orphans.find((o) => o.name === 'color')!.names.includes(nbVar('color/
     `#2566 re-apply rewrites every existing icon variable's scopes to FRAME_FILL + SHAPE_FILL${wrong.length ? ` — STILL: ${wrong.slice(0, 4).map((v) => `${v.name}=[${v.scopes.join(',')}]`).join('; ')}` : ''}`);
 }
 
+// ---- #3050: Apply Theme MOVES the scrim's alias for a strong brand, on the same variable ------------------------
+// `scrimStrength` is a value lever: `color/scrim/default` keeps its name and its id, and only the palette step it
+// aliases moves. A file applied under `standard` (the reference brand with the lever removed) is re-applied under the
+// reference brand as it ships (`strong`), and the alias in each mode is read off the shim and resolved to a palette
+// variable's NAME. The expected steps are literals (owner Q825 B), not read off the plan or `SCRIM_STEPS`.
+{
+  const { scrimStrength: _strong, ...standardTheme } = nbThemeFrom(nbMeasured);
+  const standardPlan = buildWritePlan(buildFigmaColor(standardTheme));
+  const sShim = new VariablesShim();
+  await opacityFirst(sShim);
+  const aliasSteps = (): Record<string, string> => {
+    const v = sShim.vars.find((x) => x.name === nbVar('color/scrim/default'));
+    const col = sShim.collections.find((c) => c.id === v?.variableCollectionId);
+    const out: Record<string, string> = {};
+    for (const m of col?.modes ?? []) {
+      const val = v?.valuesByMode[m.modeId];
+      const target = val && 'type' in val ? sShim.vars.find((x) => x.id === val.id) : undefined;
+      out[m.name] = target?.name.replace(nbVar('core/palette/'), '') ?? String(JSON.stringify(val));
+    }
+    return out;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  await applyWritePlan(standardPlan, sShim as any);
+  const before = aliasSteps();
+  const idBefore = sShim.vars.find((x) => x.name === nbVar('color/scrim/default'))?.id;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  const re = await applyWritePlan(plan, sShim as any);
+  const after = aliasSteps();
+  const idAfter = sShim.vars.find((x) => x.name === nbVar('color/scrim/default'))?.id;
+  const want = (l: number, d: number, hl: number, hd: number) => JSON.stringify({ light: `black-alpha/${l}`, dark: `black-alpha/${d}`, 'hc-light': `black-alpha/${hl}`, 'hc-dark': `black-alpha/${hd}` });
+  ok(JSON.stringify(before) === want(40, 60, 60, 70),
+    `#3050 standard: color/scrim/default aliases black-alpha 40 / 60 / 60 / 70 (${JSON.stringify(before)})`);
+  ok(JSON.stringify(after) === want(80, 80, 90, 90),
+    `#3050 strong: re-apply moves color/scrim/default's alias to black-alpha 80 / 80 / 90 / 90 (${JSON.stringify(after)})`);
+  ok(!!idBefore && idBefore === idAfter && re.colorCreated === 0 && re.misses.length === 0,
+    `#3050 the alias moves on the same variable: same id, nothing created, no misses (${idBefore} → ${idAfter}, created ${re.colorCreated})`);
+}
+
 console.log(`\nplugin write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
