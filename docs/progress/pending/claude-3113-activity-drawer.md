@@ -67,5 +67,5 @@ explicit owner exception to T5 (no shadows), scoped to this edge.** It is record
 - `lint:contrast`: no new pair. The marks are `ok-icon`, `warn-icon` and `bad-icon` on `bg-page`. The words are `text` and
   `bad-text`, and the unread dot is `icon`, all on `bg-page`.
 
-Out of scope, filed separately: "Show the set in Figma" needs a main-thread message that selects a set's page, and fixes
-for a specific cause need structured results from the writers.
+Out of scope, filed separately: "Show the set in Figma" needs a main-thread message that selects a set's page (#3119), and fixes
+for a specific cause need structured results from the writers (#3118).
