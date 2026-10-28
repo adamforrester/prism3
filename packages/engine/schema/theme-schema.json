@@ -445,6 +445,16 @@
           "items": { "type": "string", "enum": ["display", "title", "body", "label", "caption", "eyebrow", "code"] },
           "description": "Roles that get an underlined `.<weight>-link` variant per size×weight (underline baked; color stays text.link.*). Default ['body','caption']. `label` is always included, whatever is listed: a text button underlines its label, in the button's own ink (#2324)."
         },
+        "underline": {
+          "type": "object",
+          "additionalProperties": false,
+          "default": { "thickness": "auto", "offset": "auto" },
+          "properties": {
+            "thickness": { "oneOf": [ { "type": "number" }, { "type": "string", "enum": ["auto"] } ], "description": "OPTIONAL. Link underline thickness as a share of the font size (0.05 = 5%), or 'auto' (the font decides; default). Held to a whole percent and clamped to 1-20%: an out-of-range value is corrected to the nearest bound, not refused (#2942). A set value emits core.font.underline.thickness ($type number)." },
+            "offset": { "oneOf": [ { "type": "number" }, { "type": "string", "enum": ["auto"] } ], "description": "OPTIONAL. Link underline offset below the baseline as a share of the font size (0.25 = 25%), or 'auto' (the font decides; default). Held to a whole percent and clamped to 0-50%: an out-of-range value is corrected to the nearest bound, not refused (#2942). A set value emits core.font.underline.offset ($type number)." }
+          },
+          "description": "OPTIONAL. The underline every -link text style draws (#2942). Figma: a PERCENT written into each -link style (neither field takes a variable), or AUTO. CSS: em. Auto emits no token."
+        },
         "italics": {
           "type": "array",
           "items": { "type": "string", "enum": ["display", "title", "body", "label", "caption", "eyebrow", "code"] },

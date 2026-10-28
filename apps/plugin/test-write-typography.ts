@@ -135,6 +135,7 @@ class VariablesShim {
 }
 
 // ---- the in-memory text-style shim + fake font registry ------------------------------------
+const UNWRITTEN = { unit: 'UNWRITTEN' } as const;
 class ShimTextStyle {
   name = '';
   description = '';
@@ -144,6 +145,9 @@ class ShimTextStyle {
   letterSpacing: unknown = { unit: 'PERCENT', value: 0 };
   textCase = 'ORIGINAL';
   textDecoration = 'NONE';
+  // #2942 — a sentinel, not Figma's AUTO, so a read-back can tell a field the executor never wrote from one it set AUTO.
+  textDecorationThickness: unknown = UNWRITTEN;
+  textDecorationOffset: unknown = UNWRITTEN;
   bound: Record<string, string> = {};
   setBoundVariable(field: string, variable: { name: string } | null): void { if (variable) this.bound[field] = variable.name; }
 }
@@ -763,6 +767,45 @@ ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded ===
     `#1789 a named face whose load already failed under an earlier CROSSED candidate is still reported (got ${JSON.stringify(crossedFirst.unavailable)}, crossedMisses ${crossedFirst.crossedMisses})`);
   ok(JSON.stringify(attempts) === JSON.stringify([{ family: 'Playfair Display', style: 'SemiBold Italic' }]) && crossedFirst.attempted === 1 && crossedFirst.loaded === 0,
     `#1789 ...with no second load attempt for that face (got ${JSON.stringify(attempts)}, attempted ${crossedFirst.attempted})`);
+}
+
+// ---- #2942: the link underline, read back off the built `-link` styles ------------------------------------------
+// The EXPECTED values are typed here (owner, 2026-10-27: the reference brand sets 5% thickness and 25% offset), never
+// read from the lever, the theme or the plan, so a wrong value anywhere upstream fails this. Figma writes them as
+// PERCENT of the font size; neither field takes a variable, so the executor writes literals into every `-link` style.
+{
+  console.log('\n#2942 — link underline thickness and offset (read back from the built text styles)');
+  const REF_THICKNESS = { unit: 'PERCENT', value: 5 };
+  const REF_OFFSET = { unit: 'PERCENT', value: 25 };
+  const AUTO = { unit: 'AUTO' };
+  /** The reference brand's `-link` styles: body and caption at every size and weight it ships, plus label's (Q6 A). */
+  const REF_LINK_STYLES = 18;
+  const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+  const links = tShim.styles.filter((s) => s.name.endsWith('-link'));
+  const plain = tShim.styles.filter((s) => !s.name.endsWith('-link'));
+  const offRef = links.filter((s) => !same(s.textDecorationThickness, REF_THICKNESS) || !same(s.textDecorationOffset, REF_OFFSET));
+  ok(links.length === REF_LINK_STYLES && links.every((s) => s.textDecoration === 'UNDERLINE') && offRef.length === 0,
+    `#2942 underline read-back: the reference brand's ${REF_LINK_STYLES} -link styles each read thickness PERCENT 5 and offset PERCENT 25 (${links.length} -link styles; ${offRef.length} off${offRef.length ? `: ${offRef.slice(0, 2).map((s) => `${s.name} ${JSON.stringify(s.textDecorationThickness)}/${JSON.stringify(s.textDecorationOffset)}`).join('; ')}` : ''})`);
+  ok(links.some((s) => s.name.startsWith('label/')) && links.some((s) => s.name.startsWith('body/')) && links.some((s) => s.name.startsWith('caption/')),
+    '#2942 underline reach (Q6 A): body, caption and the label styles text buttons use all carry it');
+  const touched = plain.filter((s) => s.textDecoration !== 'NONE' || s.textDecorationThickness !== UNWRITTEN || s.textDecorationOffset !== UNWRITTEN);
+  ok(plain.length > 0 && touched.length === 0,
+    `#2942 underline: no plain style is underlined or has either field written (${plain.length} plain; ${touched.length} touched${touched.length ? `: ${touched.slice(0, 2).map((s) => s.name).join(', ')}` : ''})`);
+
+  // OFF = AUTO, written explicitly over a style that held the reference brand's values: styles are reused by name, so
+  // a brand back at auto must not keep 5%/25%. The auto brand is the committed Prism3 example, which sets no underline.
+  const autoInput = exampleBrands()['prism3'] as BrandInput | undefined;
+  const autoPlan = autoInput ? buildTextStylePlan(brandTheme(autoInput)) : [];
+  for (const r of autoPlan) allFonts.add(`${r.fontFamilyPrimary}|${r.fontStyle}`);
+  await applyTextStylePlan(autoPlan, tApi);
+  const autoLinkNames = new Set(autoPlan.filter((r) => r.name.endsWith('-link')).map((r) => r.name));
+  const reused = links.filter((s) => autoLinkNames.has(s.name));
+  const stillSet = reused.filter((s) => !same(s.textDecorationThickness, AUTO) || !same(s.textDecorationOffset, AUTO));
+  ok(autoLinkNames.size > 0 && reused.length >= 10 && stillSet.length === 0,
+    `#2942 underline off: re-applying an auto brand over the same styles writes AUTO to both fields of every reused -link style (${reused.length} reused; ${stillSet.length} kept a value${stillSet.length ? `: ${stillSet.slice(0, 2).map((s) => `${s.name} ${JSON.stringify(s.textDecorationThickness)}`).join('; ')}` : ''})`);
+  const autoLinks = tShim.styles.filter((s) => autoLinkNames.has(s.name));
+  ok(autoLinks.length === autoLinkNames.size && autoLinks.every((s) => same(s.textDecorationThickness, AUTO) && same(s.textDecorationOffset, AUTO)),
+    `#2942 underline off: every -link style of the auto brand reads AUTO for both (${autoLinks.length})`);
 }
 
 console.log(`\nplugin TYPOGRAPHY write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);

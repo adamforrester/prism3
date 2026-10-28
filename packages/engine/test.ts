@@ -12612,7 +12612,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   for (const n of NB_ENGINE_ADDED_STYLES.filter((x) => x.startsWith('label/') && x.endsWith('-link'))) {
     const ln: any = emittedByName.get(n), plain: any = emittedByName.get(n.replace(/-link$/, ''));
     if (!ln || !plain) { linkBad.push(`${n}: ${ln ? 'no plain twin' : 'not emitted'}`); continue; }
-    const { textDecoration: lnDeco, ...lnRest } = ln.properties, { textDecoration: plDeco, ...plRest } = plain.properties;
+    // #2942: the underline's thickness and offset are part of the underline, so they are set aside with it.
+    const { textDecoration: lnDeco, textDecorationThickness: _t, textDecorationOffset: _o, ...lnRest } = ln.properties, { textDecoration: plDeco, ...plRest } = plain.properties;
     if (JSON.stringify(lnRest) !== JSON.stringify(plRest)) linkBad.push(`${n}: properties other than the underline differ from ${n.replace(/-link$/, '')}`);
     if (JSON.stringify(lnDeco) !== JSON.stringify({ bindable: false, value: 'UNDERLINE' }) || JSON.stringify(plDeco) !== JSON.stringify({ bindable: false, value: 'NONE' }))
       linkBad.push(`${n}: textDecoration ${JSON.stringify(lnDeco)} (its twin ${JSON.stringify(plDeco)})`);
@@ -37414,6 +37415,91 @@ arm: {
   }
   ok(brands.length >= 5 && ['aurora', 'harbor', 'prism3'].every((b) => brands.includes(`${b}.tokens.json`)) && pinned === brands.length * INVARIANT_PX.length && off.length === 0,
     `#2965 brand-invariant steps: border-width none / hairline / thick / heavy / x-heavy resolve to 0 / 1 / 2 / 4 / 6px and focus.ring width / offset / offset-field to 2 / 2 / 0px in every corpus brand's composed tree, in every mode (${brands.length} brands, ${pinned} leaves; ${off.length} off — ${off.slice(0, 3).join('; ') || 'none'})`);
+}
+
+// ------------------------------------------------------------------- #2942: the link underline
+// Owner Q1–Q6 A, Q800 A, Q801 A (2026-10-27). `typography.underline` sets thickness and offset as shares of the font
+// size; auto emits nothing. Every expected number is typed here: the bounds (thickness 1–20%, offset 0–50%, whole
+// percents), the reference brand's 5% / 25%, and the other brands' absence, read off their COMMITTED files rather than
+// a fresh build, so the subject (`resolveUnderline`, `tree.ts`, `emit-figma-font.ts`, `write-plan.ts`) is never its
+// own oracle (docs/34 shape 1).
+{
+  const U = (underline: unknown): Theme['typography']['underline'] =>
+    brandTheme({ ...MINIMAL_BRAND, typography: { underline } } as BrandInput).typography.underline;
+  // [input, expected thickness %, expected offset %, why]
+  const CLAMP: [unknown, number | 'auto', number | 'auto', string][] = [
+    [{ thickness: 0.05, offset: 0.25 }, 5, 25, 'in range'],
+    [{ thickness: 0.004, offset: -0.3 }, 1, 0, 'below both bounds → 1% and 0%'],
+    [{ thickness: 0.5, offset: 0.9 }, 20, 50, 'above both bounds → 20% and 50%'],
+    [{ thickness: 0.2, offset: 0.5 }, 20, 50, 'exactly at the upper bounds'],
+    [{ thickness: 0.01, offset: 0 }, 1, 0, 'exactly at the lower bounds'],
+    [{ thickness: 0.054, offset: 0.256 }, 5, 26, 'whole percents, rounded'],
+    [{ thickness: 0.07 }, 7, 'auto', 'one field set, the other auto'],
+    [{ thickness: 'auto', offset: 'auto' }, 'auto', 'auto', 'both auto'],
+    [undefined, 'auto', 'auto', 'unset'],
+  ];
+  const clampOff = CLAMP.filter(([inp, t, o]) => { const r = U(inp); return r.thickness !== t || r.offset !== o; })
+    .map(([inp, t, o, why]) => `${why}: ${JSON.stringify(inp)} → ${JSON.stringify(U(inp))} (want ${t}/${o})`);
+  ok(clampOff.length === 0, `#2942 underline clamp: whole percents, thickness 1–20%, offset 0–50%, corrected to the nearest bound, never refused (${CLAMP.length} cases; ${clampOff.join('; ') || 'none off'})`);
+  const clamped = buildTree(brandTheme({ ...MINIMAL_BRAND, typography: { underline: { thickness: 0.5, offset: -1 } } } as BrandInput)).tree;
+  const cf = (clamped as any)[Object.keys(clamped)[0]].core.font.underline;
+  ok(cf?.thickness?.$value === 0.2 && cf?.offset?.$value === 0 && cf?.thickness?.$extensions?.prism3?.figma?.percent === 20 && cf?.offset?.$extensions?.prism3?.figma?.percent === 0,
+    `#2942 underline clamp reaches the tokens: thickness 0.5 → $value 0.2 (PERCENT 20), offset -1 → $value 0 (PERCENT 0) (got ${JSON.stringify([cf?.thickness?.$value, cf?.offset?.$value])})`);
+
+  // OFF: no token, no Figma field, and the plan writes AUTO on every underlined row (nothing on a plain one).
+  const off = brandTheme(MINIMAL_BRAND);
+  const offFont = (buildTree(off).tree as any)[Object.keys(buildTree(off).tree)[0]].core.font;
+  const offStyles = buildFigmaTextStyles(off).styles;
+  const offPlan = buildTextStylePlan(off);
+  const offUl = offPlan.filter((r) => r.textDecoration === 'UNDERLINE');
+  ok(offFont.underline === undefined && offStyles.every((x) => !('textDecorationThickness' in x.properties) && !('textDecorationOffset' in x.properties))
+    && offUl.length > 0 && offUl.every((r) => r.underlineThicknessPct === 'AUTO' && r.underlineOffsetPct === 'AUTO')
+    && offPlan.filter((r) => r.textDecoration === 'NONE').every((r) => !('underlineThicknessPct' in r) && !('underlineOffsetPct' in r)),
+    `#2942 underline off: no core.font.underline token, no text-style field, and every underlined plan row writes AUTO for both (${offUl.length} rows)`);
+
+  // ON, the reference brand: 0.05 / 0.25 as numbers, PERCENT 5 / 25 on every -link style and plan row, nothing on the rest.
+  const ref = nbTheme();
+  const refTree = buildTree(ref).tree as any;
+  const rf = refTree[Object.keys(refTree)[0]].core.font.underline;
+  ok(rf?.thickness?.$type === 'number' && rf.thickness.$value === 0.05 && rf?.offset?.$type === 'number' && rf.offset.$value === 0.25,
+    `#2942 underline on: the reference brand emits core.font.underline.thickness 0.05 and .offset 0.25, $type number (got ${JSON.stringify([rf?.thickness?.$type, rf?.thickness?.$value, rf?.offset?.$type, rf?.offset?.$value])})`);
+  const refPlan = buildTextStylePlan(ref);
+  const refLinks = refPlan.filter((r) => r.name.endsWith('-link'));
+  const refOff = refLinks.filter((r) => r.textDecoration !== 'UNDERLINE' || r.underlineThicknessPct !== 5 || r.underlineOffsetPct !== 25);
+  ok(refLinks.length === 18 && refOff.length === 0 && refPlan.filter((r) => !r.name.endsWith('-link')).every((r) => r.textDecoration === 'NONE' && !('underlineThicknessPct' in r)),
+    `#2942 underline on: the reference brand's 18 -link plan rows write PERCENT 5 / 25, and no plain row carries either (${refLinks.length} rows; ${refOff.length} off)`);
+
+  // OTHER BRANDS UNCHANGED: their committed emission carries no underline token and no underline field. Read from disk.
+  const others = ['aurora', 'harbor', 'prism3', 'wendys'];
+  const leaked: string[] = [];
+  for (const b of others) {
+    const tok = readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8');
+    if (/"underline":\s*\{\s*"(thickness|offset)"/.test(tok)) leaked.push(`${b}.tokens.json`);
+    const ts = resolve(HERE, `./out/figma/${b}/text-styles.json`);
+    if (existsSync(ts) && /textDecoration(Thickness|Offset)/.test(readFileSync(ts, 'utf8'))) leaked.push(`figma/${b}/text-styles.json`);
+  }
+  ok(leaked.length === 0 && existsSync(resolve(HERE, './out/figma/aurora/text-styles.json')),
+    `#2942 underline: every other brand's committed tokens and text styles are untouched — no underline token, no thickness or offset field (${others.join(', ')}; ${leaked.join(', ') || 'none leaked'})`);
+  const committedNb = JSON.parse(readFileSync(resolve(HERE, './out/figma/nb/text-styles.json'), 'utf8')) as { styles: { name: string; properties: Record<string, any> }[] };
+  const nbFile = committedNb.styles.filter((x) => x.name.endsWith('-link'));
+  ok(nbFile.length === 18 && nbFile.every((x) => JSON.stringify(x.properties.textDecorationThickness) === JSON.stringify({ bindable: false, value: { unit: 'PERCENT', value: 5 } })
+    && JSON.stringify(x.properties.textDecorationOffset) === JSON.stringify({ bindable: false, value: { unit: 'PERCENT', value: 25 } })),
+    `#2942 underline: the reference brand's committed text-styles.json carries PERCENT 5 / 25 on all 18 -link styles (${nbFile.length})`);
+  // And on nothing else: a style that is not underlined carries neither field (the reviewer's R1, #3075).
+  const plainCarry = committedNb.styles.filter((x) => x.properties.textDecoration?.value !== 'UNDERLINE' && ('textDecorationThickness' in x.properties || 'textDecorationOffset' in x.properties));
+  ok(committedNb.styles.length > nbFile.length && plainCarry.length === 0,
+    `#2942 underline: no style in the reference brand's committed text-styles.json that is not underlined carries a thickness or offset (${committedNb.styles.length - nbFile.length} plain; ${plainCarry.length} carry one${plainCarry.length ? `: ${plainCarry.slice(0, 3).map((x) => x.name).join(', ')}` : ''})`);
+
+  // THE PASTE PATH: run its text-styles pass into the file shim and read the styles back.
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<{ skipped: unknown[] }>;
+  const shim = new FileShim();
+  shim.faces = refPlan.map((r) => ({ family: r.fontFamilyPrimary, style: r.fontStyle }));
+  const pasted = await new AsyncFunction('figma', passJs('nb', 'text-styles'))(shim);
+  const pLinks = (shim.styles.text as any[]).filter((x) => x.name.endsWith('-link'));
+  const pOff = pLinks.filter((x) => JSON.stringify(x.textDecorationThickness) !== JSON.stringify({ unit: 'PERCENT', value: 5 }) || JSON.stringify(x.textDecorationOffset) !== JSON.stringify({ unit: 'PERCENT', value: 25 }));
+  const pPlain = (shim.styles.text as any[]).filter((x) => !x.name.endsWith('-link') && ('textDecorationThickness' in x || 'textDecorationOffset' in x));
+  ok(pasted.skipped.length === 0 && pLinks.length === 18 && pOff.length === 0 && pPlain.length === 0,
+    `#2942 underline, paste path: the reference brand's 18 pasted -link styles read PERCENT 5 / 25, and no plain style has either field (${pLinks.length} links; ${pOff.length} off; ${pPlain.length} plain touched)`);
 }
 
 // ------------------------------------------------------------------- report
