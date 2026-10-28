@@ -34,7 +34,7 @@ import type { StyleGuidesLend } from './shell/style-guides';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { DocumentationLend } from './shell/documentation';
-import { brandFor, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
+import { brandFor, DUE_DEBOUNCE_MS, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
 import { readSaved, savedDrawOptions } from './state/style-guides';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
@@ -370,6 +370,8 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   if (m.kind === 'component-result' && prev.componentState === 'pending') runAfterResult(m, prev.componentDef);
   // #2909: Update file's run moves to its next step on the verdict of the one out, before this message's topics fire.
   advanceUpdate(m, prev);
+  // #3081 Q810 A: a write's verdict, or a fresh read of the file's sets, may change what Update file would change.
+  if (DUE_AFTER.has(m.kind)) recountDue();
   const effect = brandEffectFor(m, prev, host);
   // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and what
   // dirtiness is measured against (#722).
@@ -1939,10 +1941,35 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   const refusedStep = STEP_OF_OP[host.refused?.op ?? 'readback'];
   if (m.kind === 'refused' && !m.agent && (refusedStep === step || (step === 'update' && refusedStep === 'sets'))) { updatePhase = null; endStep(false, m.message); }
 };
+/** #3081 Q810 A: THE BADGE, LIVE. Update file's badge counts everything Update file would change: the sets due against
+ *  the brand the panel holds, and one item for Theme changes the file does not hold yet. The panel asks for the count
+ *  after a setting changes (`brand`, and `identity`, which edits the name without a rebuild) and after each write's
+ *  verdict. It waits `DUE_DEBOUNCE_MS` after the last of a burst and asks once. The host answers from the ledger and the
+ *  stored brand alone (`due-request`, `fileDue` in the plugin), never the full check. Apply Theme does not reset the
+ *  panel's own `isDirty` baseline (`provenance` is reassigned only by a load), so the Theme item is the host's reading
+ *  of the file's stored brand, which Apply Theme writes. Nothing is asked, and no live answer is shown, while no brand is
+ *  chosen (the boot placeholder before the host's restore answers, or the start moment), or after a failed restore, when
+ *  the brand on screen is the demo's: the badge then keeps the read at load (`liveShown`). */
+let dueSeq = 0;
+let dueTimer: ReturnType<typeof setTimeout> | null = null;
+const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished']);
+/** Whether the panel holds a brand of its own to count against: one is chosen, and it resolved. */
+const liveShown = (): boolean => !restoreFailure && !firstRun() && provenance !== bootProvenance;
+const recountDue = (): void => {
+  if (!commit.isFigma) return;
+  if (dueTimer !== null) clearTimeout(dueTimer);
+  dueTimer = setTimeout(() => {
+    dueTimer = null;
+    if (!liveShown()) return;
+    commit.requestDue(lastGoodInput, ++dueSeq);
+  }, DUE_DEBOUNCE_MS);
+};
+subscribe('brand', recountDue);
+subscribe('identity', recountDue);
 /** Update file's reads and writes, lent to the shell (`shell/update-file.ts`). */
 const updateFileLend: UpdateFileLend = {
   read: () => ({
-    fileSets: host.fileSets, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: restoreFailure ? RESTORE_OFF_HINT : null,
+    fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: restoreFailure ? RESTORE_OFF_HINT : null,
     prune: { busy: host.pruneBusy, preview: host.prunePreview, verdict: host.pruneVerdict },
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
     handEdits: host.handEdits, updateCheck: host.updateCheck,

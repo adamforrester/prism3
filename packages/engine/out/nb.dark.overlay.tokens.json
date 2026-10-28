@@ -427,6 +427,18 @@
               "$description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.selected)"
             }
           },
+          "hover-fill": {
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.850}",
+              "$description": "primary outline/text hover fill — neutral.850, the default step on the page; opaque, the label and icon are measured on it"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.800}",
+              "$description": "primary outline/text pressed fill — neutral.800, the next step past hover; opaque, the label and icon are measured on it"
+            }
+          },
           "subtle-fill": {
             "selected": {
               "$type": "color",
@@ -530,6 +542,18 @@
               "$value": "{nbds.core.palette.white-alpha.20}",
               "$description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)"
             }
+          },
+          "hover-fill": {
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.850}",
+              "$description": "destructive outline/text hover fill — neutral.850, the default step on the page; opaque, the label and icon are measured on it"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.800}",
+              "$description": "destructive outline/text pressed fill — neutral.800, the next step past hover; opaque, the label and icon are measured on it"
+            }
           }
         },
         "neutral": {
@@ -631,6 +655,18 @@
               "$type": "color",
               "$value": "{nbds.core.palette.white-alpha.20}",
               "$description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)"
+            }
+          },
+          "hover-fill": {
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.850}",
+              "$description": "neutral outline/text hover fill — neutral.850, the default step on the page; opaque, the label and icon are measured on it"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.800}",
+              "$description": "neutral outline/text pressed fill — neutral.800, the next step past hover; opaque, the label and icon are measured on it"
             }
           }
         }
@@ -1064,6 +1100,18 @@
                 "$value": "{nbds.core.palette.black-alpha.20}",
                 "$description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
               }
+            },
+            "hover-fill": {
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.050}",
+                "$description": "primary outline/text hover fill on an inverse surface — neutral.050, the default step on the inverse band; opaque, the label and icon are measured on it"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.100}",
+                "$description": "primary outline/text pressed fill on an inverse surface — neutral.100, the next step past hover; opaque, the label and icon are measured on it"
+              }
             }
           },
           "destructive": {
@@ -1166,6 +1214,18 @@
                 "$value": "{nbds.core.palette.black-alpha.20}",
                 "$description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
               }
+            },
+            "hover-fill": {
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.050}",
+                "$description": "destructive outline/text hover fill on an inverse surface — neutral.050, the default step on the inverse band; opaque, the label and icon are measured on it"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.100}",
+                "$description": "destructive outline/text pressed fill on an inverse surface — neutral.100, the next step past hover; opaque, the label and icon are measured on it"
+              }
             }
           },
           "neutral": {
@@ -1267,6 +1327,18 @@
                 "$type": "color",
                 "$value": "{nbds.core.palette.black-alpha.20}",
                 "$description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
+              }
+            },
+            "hover-fill": {
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.050}",
+                "$description": "neutral outline/text hover fill on an inverse surface — neutral.050, the default step on the inverse band; opaque, the label and icon are measured on it"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.100}",
+                "$description": "neutral outline/text pressed fill on an inverse surface — neutral.100, the next step past hover; opaque, the label and icon are measured on it"
               }
             }
           }

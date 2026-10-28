@@ -106,6 +106,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | emit a conforming DTCG projection beside the canonical `$extensions` tree, so Style Dictionary is a consumability gate rather than a dependency *(decided 2026-08-07; indexed 2026-10-09, after `19` §9 had described it as open for two months — the first code-layer decision in this table)* | 2026-08-07 | `docs/19-code-library-and-dx.md` §9 | #609 |
 | Inverse colors is its own group below Semantic colors, column-aligned; a group the style-guide generator draws or rearranges is never clipped and never overlaps the frames below it | 2026-10-19 | `docs/45-style-guide-generator.md` | #2818 |
 | a brand's own glass roles are brand-dependent | 2026-10-27 | `docs/30-versioning-and-compatibility.md` | #3073 |
+| the opaque outline hover fill is brand-dependent | 2026-10-27 | `docs/30-versioning-and-compatibility.md` | #3071 |
 
 ## Known gaps, named rather than silent
 
