@@ -36,10 +36,18 @@ the panel is ready, and no turn holds the thread for more than one page.
   brand, as the read at load always was. It is marked `partial`: the ledger cannot see a set built before it or by hand,
   nor one deleted since, and `setUp` needs a document-wide search, so it is not read (sent false). The badge counts from
   it at once.
-- **Pages load one per turn (`loadPagesYielding`).** Every multi-page read (`presentDefs`, so the full read after open,
-  the checklist's own read and the hand-edit pass) loads the pages one at a time with `breathe` between them, then calls
-  `loadAllPagesAsync`. That last call has nothing left to load, but under `dynamic-page` the document-wide searches after
+- **Pages load one per turn (`loadPagesYielding`).** Every place in `main.ts` that needs every page loads them this way:
+  `presentDefs` (the full read after open, the checklist's own read, the hand-edit pass), the scoped check, Style
+  guides' catalog, prune, and each write's entry. It loads the pages one at a time with `breathe` between them, then
+  calls `loadAllPagesAsync`. The executors' own `loadAllPagesAsync` calls, which run after their entry, then have
+  nothing left to load. That last call has nothing left to load, but under `dynamic-page` the document-wide searches after
   it (`presentNames`, the update's `locateSets`) need it called.
+- **The reads after open are tagged (`atOpen`).** The full read after open now yields, so a checklist opened during it
+  can be answered first, under the panel's brand (Q699 A), while the read after open measures the stored brand. Both of
+  the host's reads after open carry `atOpen`. A read after open never replaces an answer the panel asked for
+  (`host-session.ts`), and the checklist never takes one as its answer (`awaitingRead`). Answers to a request stay
+  untagged, as before. Before this, `loadAllPagesAsync` held the thread, so the read after open always landed first.
+  The independent review found this race.
 - **The panel shows Checking (DRAFT).** While the answer is partial, a set the ledger does not name reads Checking
   (`UPDATE_COPY.status.checking`, already a placeholder, Q2909.10 A), never Not in file. Update file's checklist waits on
   the full read with its existing "Checking the file…" (`awaitingRead`). A partial answer never replaces a full one
@@ -62,6 +70,10 @@ Each mutation was made on a committed `wip:` tree and failed by name:
 | `statusesOf` reads a partial answer's missing set as Not in file | `test-update-file.ts`: "#3110 status: at open, a set the ledger does not name reads Checking …" |
 | `awaitingRead` ignores `partial` | `test-update-file.ts`: "#3110 checklist: it never opens on the answer at open …" |
 | `host-session` lets a partial answer replace a full one | `test-host-session.ts`: "#3110: an answer at open arriving after a full read leaves the full read in place" |
+| `host-session` lets a read after open replace an answer the panel asked for | `test-host-session.ts`: "#3110: the host's read after open, landing after an answer the panel asked for, leaves that answer in place" |
+| `awaitingRead` takes a read after open as the checklist's answer | `test-update-file.ts`: "#3110 checklist: the host's read after open, landing after the checklist asked, is not its answer" |
+| The full read after open posted untagged | `test-open-large-file.ts`: "open/full: the full read follows, tagged as the read after open …" |
+| `styleGuideCatalog` back on one `loadAllPagesAsync` (asked mid-read) | `test-open-large-file.ts`: "open/yields: … the reads asked mid-read included" (worst 51) |
 
 ### Gaps
 
@@ -70,5 +82,5 @@ Each mutation was made on a committed `wip:` tree and failed by name:
 - The full read and the hand-edit pass still load every page after open, now one per turn. Whether the pass should wait
   until Components or Update file is opened, so that a plain open loads no page at all, is a held question for the
   owner (Q3110.1 on the PR).
-- A set the ledger names but that was deleted by hand shows on the badge until the full read lands, a second or so
-  later on a large file. #3091 tracks the same gap for the live recount.
+- A set the ledger names but that was deleted by hand shows on the badge until the full read lands, about 20 s later on
+  the 60-page file. #3091 tracks the same gap for the live recount.

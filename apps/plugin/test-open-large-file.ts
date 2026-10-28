@@ -10,7 +10,8 @@
  *   · `open/yields`: the read that follows loads the pages one per turn of the event loop, never several between two
  *     turns, so the file answers between pages;
  *   · `open/full` and `open/ledger`: the full read still finds every set the file holds, the ones the ledger does not
- *     name included, and the ledger's answer agrees with it on what is due.
+ *     name included, and the ledger's answer agrees with it on what is due. Both carry `atOpen`;
+ *   · `open/race`: a request the panel sends while that read is going is answered without `atOpen`.
  *
  * THE STAND-IN. 60 pages, one in ten a divider; 50 component sets, one per page from the first, each named by a
  * buildable def's id, as the build names them; a ledger at the root naming 45 of them, 3 of those due for their
@@ -30,7 +31,11 @@
  *
  * MUTATIONS, each failing by name: `ui-ready` reading the file first (`fileSets()` in place of `ledgerSets()`) →
  * `open/ready`; `loadPagesYielding` as one `loadAllPagesAsync` → `open/yields`; `ledgerSets` dropping `partial` →
- * `open/partial`.
+ * `open/partial`; the read after open posted untagged → `open/full`; `styleGuideCatalog` back on `loadAllPagesAsync`
+ * → `open/yields`.
+ *
+ * Also held: `open/race`, the checklist's own request asked while the read after open is still going, is answered
+ * without `atOpen`, so the panel keeps it over the read after open (`host-session.ts`, `awaitingRead`).
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -156,24 +161,38 @@ await import('./src/main');
 console.log(`plugin open on a ${PAGES}-page, ${SETS}-set stand-in (#3110), ${PAGE_MS} ms a page`);
 loads = 0; inTurn = 0; worstTurn = 0;
 t0.at = Date.now();
-(shim.ui as { onmessage: (m: unknown) => void }).onmessage({ type: 'ui-ready' });
+const send = (m: unknown): void => (shim.ui as { onmessage: (m: unknown) => void }).onmessage(m);
+send({ type: 'ui-ready' });
 const sets = () => posted.filter((p) => p.msg?.type === 'file-sets');
+// While the read after open runs, the panel opens Update file's checklist (its own `file-sets-request`, under the
+// panel's brand, Q699 A) and Style guides (`style-guide-catalog-request`, which needs every page). Neither may load
+// the rest in one go, and the checklist's answer must be told apart from the read after open, which may land after it.
+for (let i = 0; i < 200 && loads < 10; i++) await new Promise((res) => realTimeout(res, 1));
+const loadsAtAsk = loads;
+send({ type: 'file-sets-request', input: { ...(JSON.parse(sharedData.get('prism3:brandInput') ?? '{}')), density: 'compact' } });
+send({ type: 'style-guide-catalog-request' });
 const done = () => posted.find((p) => p.msg?.type === 'hand-edits' && p.msg.done === true);
 for (let i = 0; i < 2000 && !done(); i++) await new Promise((res) => realTimeout(res, 5));
 
-const [first, full] = sets();
+const first = sets()[0];
+const full = sets().find((p) => p.msg.atOpen === true && p.msg.partial !== true);
+const answer = sets().find((p) => p.msg.atOpen !== true);
 ok(first !== undefined && first.loads === 0,
   `open/ready: the panel's first answer lands with no page loaded (${first ? `${first.loads} of ${PAGES} pages loaded, at ${first.at} ms` : 'no answer'})`);
 ok(first?.msg?.partial === true, `open/partial: that answer says it is the ledger's alone (partial ${first?.msg?.partial})`);
 const firstDue = Object.entries((first?.msg?.due ?? {}) as Record<string, { state: string }>).filter(([, d]) => d.state === 'due').map(([id]) => id);
 ok(first?.msg?.present?.length === RECORDED && firstDue.length === DUE,
   `open/ledger: it names the ${RECORDED} sets the ledger records, ${DUE} of them due (${first?.msg?.present?.length} present, ${firstDue.length} due)`);
+ok(first?.msg?.atOpen === true, `open/tagged: it is tagged as the host's read after open (atOpen ${first?.msg?.atOpen})`);
+ok(answer !== undefined && answer.msg.present?.length === SETS && loadsAtAsk > 0 && loadsAtAsk < PAGES,
+  `open/race: the checklist's request, asked mid-read (${loadsAtAsk} of ${PAGES} pages loaded), is answered untagged, so the panel can tell it from the read after open (${answer ? `${answer.msg.present?.length} present` : 'no answer'})`);
+ok(posted.some((p) => p.msg?.type === 'style-guide-catalog'), `open/catalog: Style guides' read, asked mid-read, answers (${posted.some((p) => p.msg?.type === 'style-guide-catalog')})`);
 ok(full !== undefined && full.msg.partial === undefined && full.msg.present?.length === SETS && !full.msg.error,
-  `open/full: the full read follows and finds all ${SETS} sets, the ${SETS - RECORDED} the ledger does not name included (${full ? `${full.msg.present?.length} present, partial ${full.msg.partial}, error ${full.msg.error ?? 'none'}` : 'no answer'})`);
+  `open/full: the full read follows, tagged as the read after open, and finds all ${SETS} sets, the ${SETS - RECORDED} the ledger does not name included (${full ? `${full.msg.present?.length} present, partial ${full.msg.partial}, error ${full.msg.error ?? 'none'}` : 'no answer'})`);
 const fullDue = Object.entries((full?.msg?.due ?? {}) as Record<string, { state: string }>).filter(([, d]) => d.state === 'due').map(([id]) => id);
 ok(JSON.stringify(fullDue) === JSON.stringify(firstDue), `open/agree: the ledger's answer and the full read agree on what is due (${JSON.stringify(firstDue)} vs ${JSON.stringify(fullDue)})`);
 ok(loads === PAGES, `open/control: the read after the answer does load every page, once (${loads} page loads)`);
-ok(worstTurn <= 1, `open/yields: no turn of the event loop loads more than one page (worst ${worstTurn})`);
+ok(worstTurn <= 1, `open/yields: no turn of the event loop loads more than one page, the reads asked mid-read included (worst ${worstTurn})`);
 ok(done() !== undefined, `open/pass: the hand-edit pass runs after the read and ends (${done() ? `at ${done()!.at} ms` : 'no end in 10 s'})`);
 
 console.log('\n  measured (not asserted):');
