@@ -6585,7 +6585,7 @@ for (const host of ['web', 'figma']) {
       if (TYPE_S63_COPY[title]) ok(lev?.[1] === TYPE_S63_COPY[title], `${host}: "${title}" reads "${TYPE_S63_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
     }
     for (const [k, want] of Object.entries(TYPE_S63_WORDS)) ok(JSON.stringify(r.words[k]) === JSON.stringify(want), `${host}: the ${k} copy reads ${JSON.stringify(want)} (${JSON.stringify(r.words[k])})`);
-    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 12 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 12 advanced (${JSON.stringify(r.folds)})`);
+    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 13 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 13 advanced (#2942: Underline thickness and offset is the 13th) (${JSON.stringify(r.folds)})`);
     const WANT_NAMES = {
       weight: [['p3-fill-label', 'Strong'], ['p3-fill-tok', 'font.weight-role.strong']], lh: [['p3-fill-label', 'normal'], ['p3-fill-tok', 'font.line-height-role.normal']],
       matrix: [['p3-fill-label', 'Body'], ['p3-fill-tok', 'type.body']],
@@ -8826,7 +8826,7 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
  *  the move: the levers pane no longer has a section per preview section. */
 // #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
 // #2909 Q2909.4 A: the shared block is the list's first section.
-const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents'];
+const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
@@ -9143,8 +9143,8 @@ for (const host of ['web', 'figma']) {
         };
       });
       const r0 = await read();
-      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
-        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options", one "Dialog options" (#2958) and one "Banner options" line (#2924), in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options", one "Dialog options" (#2958), one "Banner options" (#2924) and one "Link options" line (#2942), in the list, and not in the preview (${JSON.stringify(r0)})`);
       ok(r0.expanded === 'false' && !r0.shown,
         `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
       ok(r0.rows === 4 && r0.lineBelowSets,
@@ -9174,7 +9174,7 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
       await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
       const r3 = await read();
-      ok(r3.toggles.length === 6 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
+      ok(r3.toggles.length === 7 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
         `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
       // Opening the line focuses its section's first set (wireframe v2's rule, #2905): with Badge (Other components) in
       // the preview, close and reopen it, and the preview shows Buttons. (Buttons is the preview's default, so the check
@@ -9308,8 +9308,8 @@ for (const host of ['web', 'figma']) {
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
       });
-      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents']),
-        `#2905 Q548, #2931 Q579 A, #2958, #2924: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents']),
+        `#2905 Q548, #2931 Q579 A, #2958, #2924, #2942: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Link, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
       const D = r.dialogs;
       ok(!!D && JSON.stringify(D.ids) === JSON.stringify(['dialog']) && D.folds + D.families === 0,
         `#2958: ${host} ${w}: the Dialog section lists Dialog as a row, with no family row and no fold (${JSON.stringify({ ids: D?.ids, folds: D?.folds, families: D?.families })})`);
@@ -11545,9 +11545,10 @@ const EXPECT_HEADINGS = {
     // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
     // #2958: Dialog, its Dialog options (L2) and Dialog title size (L3), Tag options' way.
     // #2924: Banner, its Banner options (L2) and Banner style (L3), Dialog options' way.
-    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents'],
+    // #2942: Link, its Link options (L2), holding one read-only line and no lever.
+    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents'],
     // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
-    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options'],
+    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options'],
     L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size', 'Banner style'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
@@ -11566,7 +11567,8 @@ const HEADING_ADVANCED = {
   shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
   // #2844: a family's settings are closed behind their line; the audit reads them open.
   components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]',
-    '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]', '[data-p3="cp-opts-toggle"][data-key="opts=banners"]'],
+    '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]', '[data-p3="cp-opts-toggle"][data-key="opts=banners"]',
+    '[data-p3="cp-opts-toggle"][data-key="opts=links"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
@@ -16085,7 +16087,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       shared: document.querySelector('[data-p3="components-list"] > [data-p3="cp-shared"]') ? [...document.querySelector('[data-p3="components-list"]').children].indexOf(document.querySelector('[data-p3="cp-shared"]')) : -1,
     }));
     ok(JSON.stringify(tiers.caps.map((c) => c.tier)) === JSON.stringify(['components', 'subcomponents']) && tiers.caps.every((c) => c.role === 'group' && /^(Components|Subcomponents) · \d+ sets$/.test(c.named ?? ''))
-      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
+      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
       `${where}: Q2909.17 A: Components lists its sections under the tiers, each a group named by its caption, Components then Subcomponents (${JSON.stringify(tiers.caps)})`);
     ok(tiers.empty === 'Content components and Blocks: no component sets yet.', `${where}: Q2909.17 A: the two tiers no definition is in yet are named in one line ("${tiers.empty}")`);
     // The shared block, first in the list after the intro: Density's read-only line, then Control shape's chips.
