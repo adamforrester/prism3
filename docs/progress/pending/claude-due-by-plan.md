@@ -59,6 +59,41 @@ The evidence for C: `EXECUTOR_REVISION` rose 36 times between 2026-10-07 and 202
 almost every release between two of the owner's rebuilds still marks every set due, now with a reason that says why.
 Q811 A's saving lands on releases that move only `ENGINE_VERSION`.
 
+### Integration with #3096 (the live badge) and #3111 (open loads no page)
+
+Both landed on main first, in the agreed order, and #3096's entry recorded what this PR owes them.
+
+- **`fileDue` prints** (#3096's recount): `needsPrint`, the prints a set at a time, then `dueOf(…, print)`, against
+  the panel's brand, as `fileSets` does. Without it, `print` defaults to `() => null` and an engine-moved printed set
+  reads `unrecorded`: the badge would not count a set the checklist lists as Due. Git merges `main.ts` clean there and
+  the plugin typechecks either way, so the arm below is the only thing that holds it.
+- **`ledgerSets` prints too** (#3111's answer at open), against the stored brand, as the full read after it does.
+  Chosen over leaving it print-less: a print projects plans in memory and loads no page, so open stays page-load-free
+  (`test-open-large-file.ts`'s `open/ready` still passes); without one, every printed set under a moved engine reads
+  `unrecorded` ("not checked yet") at open and the first answer disagrees with the full read on what is due. On a large
+  file the full read waits on every page (about 20 s on the 60-page reference master), so the ledger's answer is the
+  only correct one the panel has for that long. The cost is time to that first answer, measured below.
+- **Prints are memoized across reads** (`printMemo`, `main.ts`), by the materialized def's JSON, the same identity the
+  ledger's `def` hash uses: a set's plans are a function of that def, and the engine's code is fixed for the session.
+  So the ledger's answer, the full read and each recount project a stale set once per distinct brand, not once each.
+  Bounded at 256 prints. `printYielding` hands the thread back only after a projection: a yield per memoized set made
+  each recount wait on 56 timers (about 105 ms median before, 29 ms after).
+
+Measured in Node, not asserted: 56 buildable sets present, every entry printed under an older engine, the example brand
+stored, the panel one lever apart (`density: compact`), 70 pages at no load cost:
+
+| Read | Before (no print) | With prints |
+|---|---|---|
+| Ledger answer at open (0 pages loaded) | about 10 ms | 1.0 s: 56 sets projected, about 16 ms each, yielding between |
+| Full read's due step after it | | 6 ms: every print memoized |
+| First recount, the panel one lever apart | 11.8 ms median (#3096) | 0.93 s: the 56 sets the lever moves project again |
+| Each recount after that, same brand (50 runs) | | median 28.8 ms, p90 38.7 ms, max 45 ms |
+| Recount with the panel on the stored brand, after open | | 20.7 ms |
+| First recount with no read before it (cold memo) | | 1.1 s; then 31 ms median |
+
+So the first recount after an engine move projects every stale set the panel's brand moves, once; the memo then holds
+(`q810/memo`). The badge's 250 ms debounce is unchanged.
+
 ### Gates and mutations
 
 Each mutation was made on a committed tree and failed by name:
@@ -78,6 +113,9 @@ Each mutation was made on a committed tree and failed by name:
 | `dueWhy` words a missing list as an empty one | `test-update-file.ts`: "#3090 finding 1 why: an engine update over a set recorded with no print says so …" |
 | The adapter invents an empty `moved` list | `test-write-adapter.ts`: "file-sets with an engine due reading and no moved list keeps the set due with none" |
 | `restampQuiet`'s stale filter loses `!ledger[id].print` (review's nit) | `test-build-completed.ts`: "q811/migrate: the next write gives a print-less entry under today's engine its print" |
+| `fileDue` calls `dueOf` without `printNow(input)` (#3096 into #3090) | `test-build-completed.ts`: "q810/engine: under an older engine, a printed set whose plans the panel's brand changes is due for the engine, and the badge counts it …" and "q810/engine control: … is current, and the badge does not count it" (both read `unrecorded`) |
+| `ledgerSets` calls `dueOf` without the print | `test-build-completed.ts`: "q810/engine at open: the ledger's answer at open prints the engine-moved set as the full read does …" (`unrecorded` vs due) |
+| `printNow` projects on every call (`printMemo` unused) | `test-build-completed.ts`: "q810/memo: a second recount against the same brand projects no plan again" (1 projected by the second) |
 
 `paints` belongs in the deciding hash: a paint binding the engine moves is a drawing change. The hash is the whole
 projection; the per-facet arms (`q811/facet <facet>`, one per facet plus the variants' own fields) hold that each
@@ -90,7 +128,7 @@ the checklist row.
 ### Gaps
 
 - Nothing was run in Figma. Projecting every stale set at load is untimed there; in Node all 57 buildable defs project
-  in about 0.85 s.
+  in about 0.85 s, and the ledger's answer at open waits on them (above).
 - A set whose definition moved for a lever and for the engine in one release reads as an engine update: the ledger
   holds no brand to tell the two apart.
 - The reason names parts by their plan names ("container", "focus ring"), and facets coarsely; it cannot say "now 2px",

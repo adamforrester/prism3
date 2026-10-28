@@ -60,7 +60,9 @@
  * (`presentCache` unused) → `q810/cheap`; `guarded` keeping the sets it caches after a write → `q810/after a write`; its
  * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`; `guarded` keeping the sets a recount
  * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7); its `catch` posting
- * no `error` (a failed read reaching the panel as a live answer with nothing due) → `q810/error`.
+ * no `error` (a failed read reaching the panel as a live answer with nothing due) → `q810/error`; `fileDue` calling
+ * `dueOf` without `printNow(input)`, so an engine-moved set reads `unrecorded` → `q810/engine`; `ledgerSets` the same → `q810/engine at open`; `printNow` projecting on every call (`printMemo` unused) → `q810/memo`
+ * (#3096 into #3090).
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -567,6 +569,47 @@ const dE = (await ask({ type: 'due-request', input: brandB, seq: 8 }, 'file-due'
 ok(dE?.seq === 8 && typeof dE.error === 'string' && dE.error.includes('pages refused') && Object.keys(dE.due ?? {}).length === 0,
   `q810/error: a recount whose read of the file fails answers with the error, and nothing due (${JSON.stringify({ seq: dE?.seq, error: dE?.error ?? null, due: dE?.due })})`);
 shim.loadAllPagesAsync = loadAll;
+// #3096 into #3090 (Q811 A): an engine move under the badge. The entry for the set (drawn under A in 6b, with its print)
+// is planted under an older engine. With the panel on B, a lever the set follows, its plans would change: the recount
+// reads it due for the engine and the badge counts it. With the panel on A, the drawing would not change: current, not
+// counted. Without the print in `fileDue`, both read `unrecorded` and the badge counts neither.
+const { badgeCount } = await import('../studio/src/state/update-file');
+const asA = ledger()[LEVER_DEF];
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: { ...asA, engine: '0.0.0-before' } } }));
+const one = [{ id: LEVER_DEF }] as unknown as Parameters<typeof badgeCount>[0];
+const liveOf = (d: any) => ({ present: d?.present ?? [], theme: false, error: d?.error ?? null, due: d?.due ?? {} });
+const dEB = (await ask({ type: 'due-request', input: brandB, seq: 9 }, 'file-due'))[0];
+const dEA = (await ask({ type: 'due-request', input: brandA, seq: 10 }, 'file-due'))[0];
+ok(!!asA?.print && dEB?.due?.[LEVER_DEF]?.state === 'due' && dEB.due[LEVER_DEF].reason === 'engine' && badgeCount(one, null, liveOf(dEB)) === 1,
+  `q810/engine: under an older engine, a printed set whose plans the panel's brand changes is due for the engine, and the badge counts it (${JSON.stringify({ due: dEB?.due?.[LEVER_DEF], badge: badgeCount(one, null, liveOf(dEB)) })})`);
+ok(JSON.stringify(dEA?.due?.[LEVER_DEF]) === JSON.stringify({ state: 'current' }) && badgeCount(one, null, liveOf(dEA)) === 0,
+  `q810/engine control: the same entry, the panel's brand leaving its plans unchanged, is current, and the badge does not count it (${JSON.stringify({ due: dEA?.due?.[LEVER_DEF], badge: badgeCount(one, null, liveOf(dEA)) })})`);
+// The print memo holds: a recount against a brand not seen before projects the set's plans, and a second against the
+// same brand projects nothing (the projections are counted through the `print` stage `main.ts` logs).
+const gl = globalThis as { PRISM3_OPEN_TIMINGS?: { stage: string }[] };
+const prints = (): number => (gl.PRISM3_OPEN_TIMINGS ?? []).filter((x) => x.stage === 'print').length;
+gl.PRISM3_OPEN_TIMINGS = [];
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: { ...asA, engine: '0.0.0-before', print: { ...asA.print, plan: 'replanted' } } } }));
+const brandC: BrandInput = { ...brandA, density: 'spacious' };
+const memoFirst = (await ask({ type: 'due-request', input: brandC, seq: 11 }, 'file-due'))[0];
+const afterFirst = prints();
+await ask({ type: 'due-request', input: brandC, seq: 12 }, 'file-due');
+const afterSecond = prints();
+delete gl.PRISM3_OPEN_TIMINGS;
+ok(memoFirst?.due?.[LEVER_DEF]?.state === 'due' && afterFirst > 0 && afterSecond === afterFirst,
+  `q810/memo: a second recount against the same brand projects no plan again (${afterFirst} projected by the first, ${afterSecond - afterFirst} by the second)`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: { ...asA, engine: '0.0.0-before' } } }));
+// The read at open, the same planted entry (#3110's `ledgerSets`, then the full read). The file stores B, which moves
+// the set's plans, so both answers read it due for the engine. The ledger's answer prints too, loading no page: without
+// the print it would read `unrecorded` and disagree with the full read that replaces it. That it loads no page is
+// `test-open-large-file.ts`'s `open/ready`.
+const atOpen = await ask({ type: 'ui-ready' }, 'hand-edits', (m) => m.done === true);
+const openSets = posted.filter((m) => m?.type === 'file-sets' && m.atOpen === true);
+const ledgerAns = openSets.find((m) => m.partial === true);
+const fullAns = openSets.find((m) => m.partial !== true);
+ok(atOpen.length > 0 && ledgerAns?.due?.[LEVER_DEF]?.state === 'due' && ledgerAns.due[LEVER_DEF].reason === 'engine' && JSON.stringify(ledgerAns.due[LEVER_DEF]) === JSON.stringify(fullAns?.due?.[LEVER_DEF]),
+  `q810/engine at open: the ledger's answer at open prints the engine-moved set as the full read does, due for the engine in both (${JSON.stringify({ ledger: ledgerAns?.due?.[LEVER_DEF], full: fullAns?.due?.[LEVER_DEF] })})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: asA } }));
 
 // 7. #2909 S2: the background hand-edit pass stops when a write starts (`handEditsPass`'s `stale()`, the run guard). A
 //    build is held mid-run (its page switch waits on a promise this test releases), the pass is asked for, and no set's

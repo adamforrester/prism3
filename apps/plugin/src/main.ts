@@ -1052,19 +1052,48 @@ const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) =>
   };
 };
 /** The print of the plans each def would be drawn from now, against `input`'s brand (#3082 Q811 A): the plans a build
- *  hands the executor (`project` in `buildComponents`). Memoized per call; a def the engine cannot plan has none. */
-const printNow = (input?: BrandInput): ((def: string) => PlanPrint | null) => {
+ *  hands the executor (`project` in `buildComponents`). A def the engine cannot plan has none. Memoized across calls
+ *  (`printMemo`), so the reads after open and the badge's recounts project a stale set once, not once each. */
+const printNow = (input?: BrandInput): Printer => {
   const mat = materializerFor(brandOf(input));
-  const memo = new Map<string, PlanPrint | null>();
-  return (id) => {
-    if (memo.has(id)) return memo.get(id)!;
+  const defs = new Map<string, { m: ComponentDef; key: string } | null>();
+  const defOf = (id: string): { m: ComponentDef; key: string } | null => {
+    if (defs.has(id)) return defs.get(id)!;
     const d = componentDefs.find((x) => x.id === id);
+    let v: { m: ComponentDef; key: string } | null = null;
+    try { if (d) { const m = mat(d); v = { m, key: JSON.stringify(m) }; } } catch { v = null; }
+    defs.set(id, v);
+    return v;
+  };
+  const print = (id: string): PlanPrint | null => {
+    const v = defOf(id);
+    if (!v) return null;
+    const { m, key } = v;
+    if (printMemo.has(key)) return printMemo.get(key)!;
     let p: PlanPrint | null = null;
-    try { p = d ? printOf(figmaAnatomySet(mat(d), { swapTarget: SWAP_TARGET })) : null; } catch { p = null; }
-    memo.set(id, p);
+    const t0 = Date.now();
+    try { p = printOf(figmaAnatomySet(m, { swapTarget: SWAP_TARGET })); } catch { p = null; }
+    // Each projection is logged as a `print` stage when timings are kept (`timed`), so a test can count them.
+    const log = (globalThis as { PRISM3_OPEN_TIMINGS?: unknown }).PRISM3_OPEN_TIMINGS;
+    if (Array.isArray(log)) log.push({ stage: 'print', ms: Date.now() - t0 });
+    if (printMemo.size >= PRINT_MEMO_MAX) printMemo.delete(printMemo.keys().next().value!);
+    printMemo.set(key, p);
     return p;
   };
+  return Object.assign(print, { held: (id: string) => { const v = defOf(id); return !v || printMemo.has(v.key); } });
 };
+type Printer = ((def: string) => PlanPrint | null) & { readonly held: (def: string) => boolean };
+/** Prints `ids` ahead of a `dueOf`, handing the thread back after each set it projects. A print the memo holds costs no
+ *  projection, so it yields nothing: a turn per set would make each recount wait on a timer per stale set. */
+const printYielding = async (print: Printer, ids: readonly string[]): Promise<void> => {
+  for (const id of ids) { if (print.held(id)) continue; print(id); await breathe(); }
+};
+/** #3096 into #3090: a set's plans are a function of its materialized def alone (the engine's code is fixed for the
+ *  session), so its print is kept by that def's JSON, whatever brand produced it. Projecting is the costly part of a
+ *  read under a moved engine (about 0.85 s for every def in Node): the ledger read at open, the full read after it and
+ *  each recount the badge asks would otherwise project the same stale sets again. Bounded, oldest out first. */
+const printMemo = new Map<string, PlanPrint | null>();
+const PRINT_MEMO_MAX = 256;
 /**
  * THE QUIET RE-RECORD (#3082 Q811 A), after a write: each set whose entry names another engine (or carries no print, an
  * entry from before Q811 A) and whose plans print now as they did when it was drawn is recorded again under today's
@@ -1098,7 +1127,7 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
     const ledger = readLedger(figma.root);
     const now = ledgerNow(input);
     const print = printNow(input);
-    for (const id of needsPrint(ledger, present, now)) { print(id); await breathe(); }
+    await printYielding(print, needsPrint(ledger, present, now));
     const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
     postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due, ...(atOpen ? { atOpen: true as const } : {}) });
   } catch (e) {
@@ -1117,7 +1146,14 @@ const ledgerSets = async (): Promise<void> => {
   try {
     const ledger = await timed('ledger read', () => readLedger(figma.root));
     const present = componentDefs.filter((d) => d.figmaProperties && ledger[d.id]).map((d) => d.id);
-    const due = await timed('due (ledger)', () => dueOf(ledger, present, ledgerNow()));
+    // #3096 into #3090: the ledger's read prints too, as `fileSets` does, against the same stored brand: without a print
+    // a printed set under a moved engine reads `unrecorded`, and the panel's first answer would disagree with the full
+    // read on what is due. Printing projects the plans in memory and loads no page, a set at a time with the thread
+    // handed back; the full read after it finds those prints memoized.
+    const now = ledgerNow();
+    const print = printNow();
+    await printYielding(print, needsPrint(ledger, present, now));
+    const due = await timed('due (ledger)', () => dueOf(ledger, present, now, print));
     // `setUp` is not read: it needs a document-wide search, so every page loaded. Only the checklist reads it, and the
     // checklist waits for the full read.
     postToUi({ type: 'file-sets', present, setUp: false, due, partial: true, atOpen: true });
@@ -1132,7 +1168,13 @@ const ledgerSets = async (): Promise<void> => {
 const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void> => {
   try {
     const present = presentCache ?? await presentDefs();
-    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(readLedger(figma.root), present, ledgerNow(input)) });
+    // #3096 into #3090: printed as `fileSets` prints, against the panel's brand, or an engine-moved set whose drawing
+    // changed would read `unrecorded` and the badge would not count it while the checklist lists it as Due.
+    const ledger = readLedger(figma.root);
+    const now = ledgerNow(input);
+    const print = printNow(input);
+    await printYielding(print, needsPrint(ledger, present, now));
+    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(ledger, present, now, print) });
   } catch (e) {
     postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, error: (e as Error)?.message ?? String(e) });
   }
