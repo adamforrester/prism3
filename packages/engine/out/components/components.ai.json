@@ -490,7 +490,8 @@
         "commonPartners": [
           "icon",
           "link",
-          "button"
+          "button",
+          "wallet-button"
         ],
         "triggerKeywords": [
           "brand mark",
@@ -518,7 +519,6 @@
         "supersededBy": [],
         "planned": [
           "sign-in-button",
-          "wallet-button",
           "payment-field",
           "card-number-field"
         ],
@@ -1486,6 +1486,152 @@
         "replacesPatterns": [
           "input[type=button|submit]",
           "div[role=button]"
+        ]
+      }
+    },
+    "wallet-button": {
+      "id": "wallet-button",
+      "name": "WalletButton",
+      "aliases": [
+        "express-checkout-button",
+        "payment-button",
+        "pay-button"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Express checkout with Apple Pay, Google Pay, PayPal or Shop Pay, drawn by the provider.",
+      "description": "A payment button for a wallet: Apple Pay, Google Pay, PayPal or Shop Pay. The provider draws the button itself, so its logo, colors, wording and font are the provider's and never change with the theme. The component sets the height, the width, the corner radius where the provider allows one, and the focus ring. Each provider has a smallest and a largest height, so Shop Pay starts at the medium size and PayPal stops at medium. The design file shows each button's space and logo for layout; the button the customer sees comes from the provider.",
+      "props": [
+        {
+          "name": "provider",
+          "type": "enum: 'apple-pay' | 'google-pay' | 'paypal' | 'shop-pay'",
+          "required": true,
+          "values": [
+            "apple-pay",
+            "google-pay",
+            "paypal",
+            "shop-pay"
+          ],
+          "description": "Which wallet. Each needs its provider's script on the page, which draws the button."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The height: 36, 44 or 56px. Shop Pay has no small size and PayPal no large one, because each provider sets a smallest and a largest height."
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "default": "plain",
+          "required": false,
+          "description": "The provider's wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain."
+        },
+        {
+          "name": "buttonStyle",
+          "type": "string",
+          "required": false,
+          "description": "The provider's color style, from its own list, passed to the provider: black or white for Apple Pay and Google Pay, gold, blue, silver, white or black for PayPal. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. Unset, the provider's default."
+        }
+      ],
+      "states": [
+        "rest",
+        "focus-visible"
+      ],
+      "variants": {
+        "provider": {
+          "values": [
+            "apple-pay",
+            "google-pay",
+            "paypal",
+            "shop-pay"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "button, drawn and named by the provider's element",
+        "wcag": [
+          "1.4.11 Non-text Contrast (the provider's style is picked for the ground: dark buttons on light grounds, light ones on dark grounds)",
+          "2.4.7 Focus Visible (the focus ring around the provider's button)",
+          "2.5.8 Target Size (every size is at least 36px high, above the 24px floor)",
+          "4.1.2 Name, Role, Value (from the provider's element)"
+        ],
+        "keyboard": "Tab reaches the button; Enter or Space starts the provider's payment sheet. The provider's element handles the keys.",
+        "focus": "The focus ring around the provider's button at keyboard focus.",
+        "aria": "The provider's element supplies the role and the accessible name, translated by the provider. Add no label of your own, which would announce the provider twice."
+      },
+      "content": {
+        "labelPattern": "The provider's own wording only, chosen from its list (plain, buy, checkout, pay and the rest). Never your own text."
+      },
+      "docs": {
+        "usage": "Offer the wallets the checkout accepts as a row or stack of buttons, each the same height, above or beside the card form. Pick each provider's style for the ground, and let the provider draw the button.",
+        "do": [
+          "Give every wallet button in a group the same size",
+          "Pick dark styles on light grounds and light styles on dark grounds",
+          "Keep clear space around each button"
+        ],
+        "dont": [
+          "Draw a wallet button yourself or restyle the provider's one",
+          "Write your own wording on a wallet button",
+          "Make one wallet button smaller than the others beside it"
+        ],
+        "contentGuidelines": "The provider's wording, in the provider's language handling. Nothing to write."
+      },
+      "ai": {
+        "primaryPurpose": "Offer an express checkout with a wallet, drawn by the wallet provider.",
+        "whenToUse": "On a cart, checkout or product page, for each wallet the store accepts: Apple Pay, Google Pay, PayPal or Shop Pay.",
+        "avoidWhen": "For a store's own checkout or pay action, use Button. To show which cards and wallets are accepted, use Brand mark tiles in a row. For signing in with a provider, use a sign-in button, not a wallet button.",
+        "commonPartners": [
+          "button",
+          "brand-mark",
+          "button-group"
+        ],
+        "triggerKeywords": [
+          "apple pay",
+          "google pay",
+          "paypal button",
+          "shop pay",
+          "express checkout",
+          "wallet button",
+          "pay with"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None of its own. The provider's element appears once its script has drawn it, in the space the component holds.",
+        "exit": "None.",
+        "reduceMotion": "No motion of its own to reduce."
+      },
+      "composition": {
+        "composesWith": [
+          "brand-mark",
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "sign-in-button",
+          "payment-field"
+        ],
+        "replacesPatterns": [
+          "a hand-drawn wallet button",
+          "a wallet logo pasted into a Button"
         ]
       }
     },
@@ -6607,8 +6753,8 @@
       ],
       "category": "foundations",
       "status": "draft",
-      "summary": "A thin rule between groups of content. Horizontal or vertical, and it fills its container.",
-      "description": "A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. It carries no content and has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator.",
+      "summary": "A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.",
+      "description": "A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. A labeled divider breaks a horizontal rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label, and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.",
       "props": [
         {
           "name": "orientation",
@@ -6638,7 +6784,13 @@
           "type": "boolean",
           "default": true,
           "required": false,
-          "description": "Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden=\"true\". Set false when the rule marks a real break in the content: it becomes a separator, an <hr> for a horizontal rule, drawn in border.tertiary so it reaches 3:1 on every background."
+          "description": "Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden=\"true\". Set false when the rule marks a real break in the content: it becomes a separator, an <hr> for a horizontal rule, drawn in border.tertiary so it reaches 3:1 on every background. It has no effect on a labeled divider, where the label marks the break."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": false,
+          "description": "One short word that breaks the rule in the middle, such as Or. Setting it makes a labeled divider: a line on each side, centered on the label. Horizontal with no inset only. Screen readers read the label as plain text and skip the two lines. Pass the translated word."
         }
       ],
       "states": [],
@@ -6657,40 +6809,49 @@
             "middle-inset"
           ],
           "kind": "authoring"
+        },
+        "labeled": {
+          "values": [
+            "false",
+            "true"
+          ],
+          "kind": "authoring"
         }
       },
       "accessibility": {
-        "role": "none with aria-hidden=\"true\" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native <hr> for a horizontal rule, role=\"separator\" with aria-orientation=\"vertical\" for a vertical one)",
+        "role": "none with aria-hidden=\"true\" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native <hr> for a horizontal rule, role=\"separator\" with aria-orientation=\"vertical\" for a vertical one); a labeled divider takes no role, its two lines hidden and its label read as plain text",
         "wcag": [
           "1.3.1 Info and Relationships — a rule that marks a real break in content is a separator, so assistive technology hears the break a sighted reader sees",
-          "1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum. A divider that marks a real boundary (decorative=false) uses border.tertiary, which reaches 3:1 on every background."
+          "1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum. A divider that marks a real boundary (decorative=false) uses border.tertiary, which reaches 3:1 on every background.",
+          "1.4.3 Contrast (Minimum) — a labeled divider's label is text.secondary, which clears 4.5:1 against the primary and secondary page backgrounds in every mode. Its two lines are decorative and need no minimum."
         ],
         "focus": "None. A divider is not focusable and takes no place in the tab order.",
-        "aria": "By default the rule sets aria-hidden=\"true\", so a screen reader does not announce a break that means nothing. With decorative=false, an <hr> needs no attributes, and a vertical rule sets role=\"separator\" and aria-orientation=\"vertical\"."
+        "aria": "By default the rule sets aria-hidden=\"true\", so a screen reader does not announce a break that means nothing. With decorative=false, an <hr> needs no attributes, and a vertical rule sets role=\"separator\" and aria-orientation=\"vertical\". A labeled divider sets no role: a separator hides its own text, so the label would not be read. Its two lines set aria-hidden=\"true\", and the label is plain text in the reading order, read as Or between the two groups. Pass the translated word."
       },
       "content": {
-        "labelPattern": "A divider carries no text. To title the group below it, use a heading, not a label on the rule."
+        "labelPattern": "A labeled divider names the choice between two groups of actions with one short word, such as Or, in sentence case. To title the group below, use a heading."
       },
       "docs": {
-        "usage": "Use a divider to separate groups of related content when spacing alone does not make the groups clear: sections of a page, rows in an accordion or list, or a cluster of controls in a toolbar. Horizontal by default, spanning its container; vertical between items in a row. Inset it from the start to line up with indented content, or from both ends to separate within a section. It is decorative by default; set decorative to false when the rule marks a real break in the content.",
+        "usage": "Use a divider to separate groups of related content when spacing alone does not make the groups clear: sections of a page, rows in an accordion or list, or a cluster of controls in a toolbar. Horizontal by default, spanning its container; vertical between items in a row. Inset it from the start to line up with indented content, or from both ends to separate within a section. It is decorative by default; set decorative to false when the rule marks a real break in the content. Give it a label, such as Or, when it sits between two alternative groups of actions, such as social sign-in above and email sign-in below.",
         "do": [
           "Let the divider span its container, so the break reads as a break between whole groups",
           "Try spacing first, and add a divider when the groups still run together",
           "Use a vertical divider between clusters of controls in a row, such as a toolbar",
-          "Leave a divider decorative unless it marks a real break in the content, so a screen reader is not told about every visual line"
+          "Leave a divider decorative unless it marks a real break in the content, so a screen reader is not told about every visual line",
+          "Use a labeled divider with Or between two alternative ways to do one thing, such as two ways to sign in"
         ],
         "dont": [
           "Put a divider between every item in a list; increase the spacing instead",
-          "Put text or controls inside a divider; title the group with a heading instead",
+          "Put a title, a sentence or controls inside a divider; title the group with a heading, and keep a label to one short word such as Or",
           "Use a divider as the only cue that two groups are separate when the rule is faint; add spacing too",
           "Stack a divider directly against a border, such as the edge of a card, so two lines sit side by side"
         ],
-        "contentGuidelines": "A divider holds no copy."
+        "contentGuidelines": "A plain divider holds no copy. A labeled divider holds one short word, such as Or, in sentence case, with no punctuation."
       },
       "ai": {
         "primaryPurpose": "Separate groups of content with a thin horizontal or vertical rule that spans its container.",
         "whenToUse": "Two groups of content sit next to each other and spacing alone does not separate them: page sections, accordion or list rows, or clusters of controls in a toolbar (vertical).",
-        "avoidWhen": "Spacing already separates the groups, the edge is a container's own border (a card or field draws its own), or the break needs a title (use a heading).",
+        "avoidWhen": "Spacing already separates the groups, the edge is a container's own border (a card or field draws its own), or the break needs a title or more than one short word (use a heading). A labeled divider is for one word, such as Or, between two alternative groups of actions.",
         "commonPartners": [
           "accordion",
           "list"
@@ -6703,7 +6864,10 @@
           "vertical rule",
           "hr",
           "line between sections",
-          "section break"
+          "section break",
+          "or divider",
+          "labeled divider",
+          "text divider"
         ],
         "generationPriority": 3
       },

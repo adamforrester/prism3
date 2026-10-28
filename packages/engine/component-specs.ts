@@ -316,7 +316,10 @@ export const componentSpec = (authored: ComponentDef, opts: { def?: ComponentDef
       const rel = partDef?.nesting;
       const variant = rel && rel.kind !== 'swap' ? { ...rel.variant } : { ...n.nestVariant ?? {} };
       const when = rel && rel.kind !== 'swap' && rel.variantWhen ? (JSON.parse(JSON.stringify(rel.variantWhen)) as Record<string, Record<string, Record<string, string>>>) : undefined;
-      nesting.push({ part: path, kind: 'instance', component: n.nestTarget, variant, ...(when ? { when } : {}), follows: rel && rel.kind !== 'swap' ? [...rel.follow ?? []] : [], exposes: [...n.nestExpose ?? []] });
+      // A nest of a standalone-component def (#2343 PR 4) targets the member's own component, `<id>/<value>`, which moves
+      // with `when`; the model names the def, and the variant and `when` say which member each host member holds.
+      const standalone = !!partDef?.nests && n.nestTarget.startsWith(`${partDef.nests}/`);
+      nesting.push({ part: path, kind: 'instance', component: standalone ? partDef!.nests! : n.nestTarget, variant, ...(when ? { when } : {}), follows: rel && rel.kind !== 'swap' ? [...rel.follow ?? []] : [], exposes: [...n.nestExpose ?? []] });
     } else if (n.type === 'INSTANCE_SWAP' && n.propertyRef?.field === 'mainComponent') {
       nesting.push({ part: path, kind: 'swap', property: n.propertyRef.prop, ...(n.visibleProp ? { visibility: n.visibleProp } : {}), ...(partDef?.swapDefault ? { default: partDef.swapDefault } : {}) });
     } else if (n.type === 'INSTANCE_SWAP' && n.swapTarget) {

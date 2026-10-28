@@ -569,13 +569,19 @@
         "middle-inset",
         "none"
       ],
+      "labeled": [
+        "false",
+        "true"
+      ],
       "orientation": [
         "horizontal",
         "vertical"
       ]
     },
-    "members": 5,
-    "properties": {}
+    "members": 6,
+    "properties": {
+      "label": "TEXT"
+    }
   },
   "field-label": {
     "axes": {
@@ -1516,6 +1522,27 @@
       ]
     },
     "members": 30,
+    "properties": {}
+  },
+  "wallet-button": {
+    "axes": {
+      "provider": [
+        "apple-pay",
+        "google-pay",
+        "paypal",
+        "shop-pay"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "focus-visible",
+        "rest"
+      ]
+    },
+    "members": 20,
     "properties": {}
   }
 }

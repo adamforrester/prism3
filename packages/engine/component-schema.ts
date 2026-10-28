@@ -548,6 +548,16 @@ export type PartDef = {
    *  translucent overlay on the same node. That rule used to be a hardcoded `??` in the projector with
    *  a paragraph explaining it; as a declaration it is visible in the def that depends on it. */
   paintSlots?: readonly string[];
+  /** For `box` parts: ONE PAINTED SURFACE DRAWN IN PIECES (#3051). Boxes that name the same `paintGroup` are one
+   *  surface split by layout — the divider's plain rule and the two lines either side of its label — so they claim
+   *  the same `paintSlots` and take the same variable ON PURPOSE. It is the one admission to the #933 rule that no
+   *  two boxes claim one slot: that rule exists because `paintOf` is blind to which part asked, so two claimants
+   *  bind one variable, which is a defect when they are two surfaces and the intent when they are one.
+   *
+   *  Declared, not inferred: the validator admits a shared slot only when EVERY claimant names the same group, and
+   *  refuses the field off a `box`, on a box that paints nothing, on a group whose members' `paintSlots` differ, and
+   *  on a group of one (nothing shares it). */
+  paintGroup?: string;
   /** For `box` parts: a LINEAR GRADIENT form of the box's `fill` (#1318), chosen by one variant axis.
    *
    *  At a coordinate whose `axis` value is a key of `angles`, the box's fill is not a solid: it is a
@@ -3557,6 +3567,17 @@ export type State = (typeof STATES)[number];
  * axis. `lint-axis-values.ts` carries the two values, shared by Breadcrumbs, its item and the separator.
  */
 /*
+ * ── `provider`: THE THIRTY-THIRD NAME, FOR WALLETBUTTON (#2343 proposal §2.3, owner decisions Q-B4 A and Q-B5 A) ──
+ *
+ * `provider` (`apple-pay | google-pay | paypal | shop-pay`) is WHOSE BUTTON the slot holds: the payment provider that
+ * draws it, and whose rules set its logo, colors, wording and height range. The proposal's axis table named it, and
+ * SignInButton (PR 5) takes it for its sign-in providers. It clears the bar with the nearest defeated: `name` is which
+ * glyph or mark a single-member component is (`icon`, `brand-mark`), not a third party that owns a whole control;
+ * `type` is a content format, and on a wallet button the provider's own wording list is a code setting called type;
+ * `kind` is a role a part plays by its place (a breadcrumb step). None says "this control belongs to another
+ * company, under its rules". An AUTHORING axis. `lint-axis-values.ts` carries the four values as a `sole` set.
+ */
+/*
  * ── `labeled`: THE TWENTY-EIGHTH NAME, FOR PAGINATION'S PREVIOUS AND NEXT (owner decision Q414 A, 2026-10-18, #2665) ──
  *
  * `labeled` (`false | true`) is WHETHER a control shows its word beside its icon: Pagination.Item's previous and next
@@ -3575,7 +3596,7 @@ export const VARIANT_AXES = [
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer', 'layout', 'labeled', 'kind', 'path', 'separator',
+  'placement', 'footer', 'layout', 'labeled', 'kind', 'path', 'separator', 'provider',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -4164,9 +4185,27 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   for (const n of names)
     for (const slot of parts[n].kind === 'box' ? parts[n].paintSlots ?? [] : [])
       claimants.set(slot, [...(claimants.get(slot) ?? []), n]);
+  // THE ONE ADMISSION (#3051): every claimant names the same `paintGroup`, so they are one surface in pieces.
+  const grouped = (who: string[]) => {
+    const g = parts[who[0]].paintGroup;
+    return g !== undefined && who.every((n) => parts[n].paintGroup === g);
+  };
   for (const [slot, who] of claimants)
-    if (who.length > 1)
+    if (who.length > 1 && !grouped(who))
       e.push(`anatomy: parts [${who.join(', ')}] all declare paintSlots '${slot}' — the projector resolves a slot once, so every one of them would bind the same variable rather than each getting its own`);
+  const groups = new Map<string, string[]>();
+  for (const n of names) {
+    const g = parts[n].paintGroup;
+    if (g === undefined) continue;
+    if (parts[n].kind !== 'box') e.push(`anatomy part '${n}' is kind '${parts[n].kind}' but declares paintGroup — only a box paints a surface that can be split into pieces`);
+    else if (!(parts[n].paintSlots ?? []).length) e.push(`anatomy part '${n}' declares paintGroup '${g}' but paints nothing (no paintSlots) — a group shares a paint, so every member must take one`);
+    groups.set(g, [...(groups.get(g) ?? []), n]);
+  }
+  for (const [g, who] of groups) {
+    if (who.length < 2) e.push(`anatomy: paintGroup '${g}' has one member (${who[0]}) — a group admits a shared slot, and one part shares nothing`);
+    const slots = new Set(who.map((n) => JSON.stringify(parts[n].paintSlots ?? [])));
+    if (slots.size > 1) e.push(`anatomy: paintGroup '${g}' members [${who.join(', ')}] declare different paintSlots — one surface in pieces takes one paint, so every piece names the same slots`);
+  }
 
   // A BOX MAY CLAIM `indicator` ONLY IF IT DRAWS THE INDICATOR ITSELF (#910). This is #864's premise kept
   // as a check rather than as prose: a box taking an ink slot paints a rectangle BEHIND the node that

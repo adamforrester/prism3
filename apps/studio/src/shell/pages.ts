@@ -45,6 +45,8 @@ export const BACKGROUND_FILLS_DESC = 'The base page planes and their inverse cou
 export const FOREGROUND_FILLS_DESC = "Content surfaces, shown on the contrast floor they're measured against.";
 /** The Scrim copy (S4f, QA-B10, APPROVED), shared by the levers' Scrim section and the preview's (Q23). */
 export const SCRIM_DESC = "The overlay that dims the page behind a modal. It isn't editable.";
+// #3073: DRAFT for the owner, the Glass section's line.
+export const GLASS_DESC = 'The see-through fill behind a background blur. The white glass is fixed; add a glass fill to match a surface, such as a card.';
 /** The Fields copy (Q29, APPROVED), shared by the levers' Fields section and, since S4f (#2016, Q80), the preview's. */
 export const FIELDS_DESC = 'Form field fills, borders and text, in every state.';
 /** The Faces copy (S6.2), the preview's Font families section's. The Type levers drew it too until TY1 A split their
@@ -93,6 +95,8 @@ export const TAG_DESC = 'How tags draw their shape.';
 export const DIALOG_DESC = 'How dialogs size their title and the surface they sit on.';
 // #2924: DRAFT for the owner (Q2 on #2924), the wireframe's section line.
 export const BANNER_DESC = 'How banners draw their surface and edge.';
+// #2942: DRAFT placeholder for the owner (Q2 A), in Banner's pattern.
+export const LINK_DESC = 'How links draw their underline.';
 // #2909 Q2909.4 A: DRAFT for the owner (Q2909.10 A), after the round-4 wireframe's block.
 export const SHARED_DESC = 'Settings every component family follows. Density is set in Theme.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
@@ -182,6 +186,8 @@ export const DOMAINS = [
           // dropped its scrim clause (the owner's Q26 intro again), as the preview's Background section's did (Q23).
           { title: 'Background fills', desc: BACKGROUND_FILLS_DESC, rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
           { title: 'Scrim', desc: SCRIM_DESC, rows: [{ ctl: 'scrim' }] },
+          // #3073 (owner Q806, Q807 A): the shipped white glass, read-only, and the glass fills a brand adds (`glassRoles`).
+          { title: 'Glass', desc: GLASS_DESC, rows: [{ ctl: 'glass', keys: ['glassRoles'] }] },
           // S4d (owner decision Q44): the neutral ladder in its own section, the approved heading with the preview's
           // Foreground description (Q23; since #1971 the floor's sentence, FOREGROUND_FILLS_DESC). The fills keep Foreground fills.
           { title: 'Foreground', desc: FOREGROUND_FILLS_DESC, rows: [{ ctl: 'foreground', schemaOnly: ['overrides'] }] },
@@ -272,6 +278,8 @@ export const DOMAINS = [
         title: 'Weights and styles', desc: WEIGHTS_DESC, advanced: true, rows: [
           { ctl: 'weightRoles', keys: ['typography.weightRoles'] },
           { ctl: 'weights', keys: ['typography.weights', 'typography.links'] },
+          // #2942 (owner Q3 A): beside Underlined link styles, because it writes tokens and the -link text styles.
+          { ctl: 'underline', keys: ['typography.underline'] },
           { ctl: 'italics', keys: ['typography.italics', 'typography.italicDefault'] },
           // S6.3: Pin a font cut (Q64), a schema input.
           { ctl: 'facePins', schemaOnly: ['typography.faces'] },
@@ -377,6 +385,8 @@ export const DOMAINS = [
       { title: 'Dialog', desc: DIALOG_DESC, rows: [{ ctl: 'chips', keys: ['dialogTitleSize'], drive: 'dialog' }, { ctl: 'chips', keys: ['raisedSurface'], drive: 'dialog' }] },
       // #2924: Banner style's one home, drawn in the Banner section's Banner options block (`domains/banner-options.ts`).
       { title: 'Banner', desc: BANNER_DESC, rows: [{ ctl: 'chips', keys: ['bannerStyle'], drive: 'banner' }] },
+      // #2942 (owner Q3 A): the underline's read-only line; its one home is Theme › Type › Weights and styles.
+      { title: 'Link', desc: LINK_DESC, rows: [{ ctl: 'underlineLink' }] },
       { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },
     ],
     status: 'new',
@@ -469,8 +479,8 @@ export const viewLabel = (v: ViewId | InspectId): string =>
  *  Documentation is "Docs" on the rail and "Documentation" in its own header. */
 export const RAIL_AREAS = [
   { id: 'theme', label: 'Theme', name: 'Theme', glyph: 'swatches' },
-  // A hyphen, so the word breaks as "Compo-nents" in the 60px column (the wireframe's own break): the face has no soft hyphen, and the word never fits one line there. The tile's name stays whole.
-  { id: 'components', label: 'Compo-nents', name: 'Components', glyph: 'diamonds' },
+  // Whole since Q732 A (2026-10-26): at the rail's 9px the word fits one line, so the wireframe's "Compo-nents" break went.
+  { id: 'components', label: 'Components', name: 'Components', glyph: 'diamonds' },
   { id: 'documentation', label: 'Docs', name: 'Documentation', glyph: 'page' },
   { id: 'export', label: 'Export', name: 'Export', glyph: 'send' },
 ] as const;

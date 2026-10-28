@@ -299,6 +299,13 @@
       "title": "Inverse colors is its own group, never clipped, never overlapping",
       "doc": "docs/45-style-guide-generator.md",
       "section": null
+    },
+    {
+      "date": "2026-10-27",
+      "issue": 3073,
+      "title": "a brand's own glass roles are brand-dependent",
+      "doc": "docs/30-versioning-and-compatibility.md",
+      "section": null
     }
   ]
 }

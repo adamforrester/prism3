@@ -513,6 +513,79 @@
         }
       ]
     },
+    "wallet-button": {
+      "codeOnly": [
+        "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option (clamped for Google Pay, below), and type and buttonStyle through unchanged.",
+        "the height limits — Shop Pay's 40px floor and PayPal's 55px ceiling: a small Shop Pay button is drawn at 40 and a large PayPal button at 55, and the design file has no member for either.",
+        "the corner — Google Pay allows a radius of at most half the button's height, so the component passes min(radius, height / 2) as its buttonRadius. A soft brand's radius can pass half of a small or compact button. Apple Pay, PayPal and Shop Pay take the brand radius as it is.",
+        "the width — the container fills its column, with a 120px floor. Apple Pay's titled buttons need 140, so a titled Apple Pay button takes the larger floor; Shop Pay's \"Buy with\" button needs 193.",
+        "the provider's own states — the provider's element owns hover, pressed and disabled and draws them itself, and the design file cannot show them without copying the button. The component adds only the focus ring, outside the provider's element, at focus-visible.",
+        "the accessible name — the provider's element names itself (\"Apple Pay\", \"Buy with Google Pay\"). The component adds no label, so nothing is announced twice.",
+        "loading — the slot keeps its height before the provider's script has drawn the button, so the page does not move when it arrives.",
+        "RTL — the provider's element lays out its own wording. The container mirrors nothing."
+      ],
+      "notes": {
+        "contested": [
+          "Q-W1 (the Figma member): built as A, a layout stand-in with the provider's logo and no fill. B, the owner supplies each provider's own button artwork per style and the stand-in draws it, adding a style axis; C, Prism3 paints the providers' fills, which needs a literal-paint engine field and colors the providers do not publish.",
+          "Q-W2 (heights outside a provider's range): built as A, no member. B, clamp in Figma too, which needs a height that is not a token.",
+          "Q-W3 (the shared factory, Q-B4 A): SignInButton is PR 5, so the factory lands with its second component rather than as an abstraction with one user.",
+          "Every logo in the owner's set is drawn for a light ground (Apple Pay and Shop Pay in one ink, Google Pay in five colors, the PayPal wordmark in three). A dark-style stand-in would need each provider's light logo, which the set does not hold.",
+          "Q-W5 (shape): built as A, no shape axis, the brand's radius.md. The proposal's §2.3 gave a shape axis, rectangle or pill. B, a shape axis whose pill binds radius.capsule, clamped to half the height for Google Pay.",
+          "Q-B5 A decided valid provider × style pairs only. With the style axis held by Q-W1, the build applies it to provider × size: Shop Pay has no small member and PayPal no large one."
+        ],
+        "unverified": [
+          "The provider limits typed in the gate are the proposal's reading of each provider's guidelines on 2026-10-25."
+        ],
+        "evolution": [
+          "Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A, read here onto provider × size while style waits on Q-W1) and the provider's own element in code (Q-B8 A). Built in PR 4 on the owner's logo marks (PR 3)."
+        ],
+        "projection": [
+          "In Figma each member is the provider's area, a frame at the size and radius the rules allow, with the provider's logo nested as a brand-mark/logo instance whose height is bound and whose width follows its proportion, keeping its own paint."
+        ]
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
+    },
     "icon-button": {
       "codeOnly": [
         "touch-target-expansion — the same decoupling of the optical box from the hit box Button records, and the one component where it matters MOST: `size=small` is a 36px square in every example brand (28px at compact density), so the optical box is below the Apple HIG 44×44 floor in every brand. Figma has no concept of a hit area larger than the frame, so the expansion cannot project and the emitted small square is the optical size only. A designer measuring it in Figma is reading the wrong box.",
@@ -2646,17 +2719,22 @@
         "filling the container — a divider spans its container: a horizontal rule `inline-size: 100%` (or the stretch a flex or grid column gives it), a vertical rule `align-self: stretch` in a row. Figma cannot hold that for a standalone component, which has no parent, so the standalone member binds a nominal length (`container.narrow` across, `size.md.height` tall) and a host that nests it stretches the instance with `crossAxisFill`.",
         "the element — for a separator (decorative=false), use `<hr>` for a horizontal rule: it is a separator to assistive technology with no extra attributes. Reset its border and margin (`border: 0; margin: 0`) and paint it as a box: `block-size: var(--border-width-hairline); background: var(--color-border-tertiary)`. A vertical rule is a `<div role=\"separator\" aria-orientation=\"vertical\">` with `inline-size` set to the hairline instead, because `<hr>` is horizontal by default. Never give a divider focus: a separator that is not a splitter takes no place in the tab order.",
         "the inset in code — a margin on logical edges, so it mirrors in right-to-left text: `margin-inline-start: var(--space-200)` at inset, both `margin-inline` sides at middle-inset, and `margin-block: var(--space-100)` for a vertical middle inset. Figma holds the same distances as the divider's padding.",
-        "forced colors — under `forced-colors: active` a background is replaced, and a 1px box painted only by `background` can disappear. Give it `background: CanvasText` (or a `border-block-start` in place of the background) inside a `@media (forced-colors: active)` block so the rule survives."
+        "forced colors — under `forced-colors: active` a background is replaced, and a 1px box painted only by `background` can disappear. Give it `background: CanvasText` (or a `border-block-start` in place of the background) inside a `@media (forced-colors: active)` block so the rule survives.",
+        "the labeled divider in code — a non-empty `label` makes it; there is no separate prop. Markup: `<div class=\"divider\" data-labeled><span class=\"divider-line\" aria-hidden=\"true\"></span><span class=\"divider-label\">Or</span><span class=\"divider-line\" aria-hidden=\"true\"></span></div>`, with `display: flex; align-items: center; gap: var(--space-300)` on the wrapper, `flex: 1 1 0; block-size: var(--border-width-hairline); background: var(--color-border-secondary)` on each line, and `font: var(--type-label-md-default); color: var(--color-text-secondary); white-space: nowrap` on the label. Horizontal with `inset=\"none\"` only: refuse (or ignore) a label on a vertical or inset divider.",
+        "the labeled divider's semantics — ARIA 1.2 makes a separator's children presentational, so a `role=\"separator\"` wrapper would hide the label from assistive technology. The wrapper takes no role and no `aria-hidden`, both lines are `aria-hidden=\"true\"`, and the label is plain text in the reading order, read as \"Or\" between the two groups. `decorative` has no effect on a labeled divider, and its lines keep `color.border.secondary`. Not focusable. Under forced colors the lines take `background: CanvasText`, as the plain rule does; the label keeps the system text color.",
+        "RTL — the labeled divider is symmetric, so nothing moves; flex order and logical properties mirror it for free.",
+        "text expansion — the label hugs its word and the lines take what is left, so a longer translation shortens both lines equally. Keep it to one or two words; the label does not wrap."
       ],
       "notes": {
         "contested": [
           "Approved defaults (owner Q190.3 A): the `orientation` axis and its two values; `border-width.hairline` as the thickness; `color.border.secondary` as the color (the decorative rung of the edge ladder, ~2:1 against the page since #2569; a separator, decorative=false, paints `color.border.tertiary` in code); filling the container; no states; its own Figma page. Held back: a `thick` thickness and a `color.border.primary` variant, each one more axis value when a consumer needs it.",
           "DECORATIVE BY DEFAULT (owner Q190.1 A, after the brief): `decorative` defaults to true and hides the rule from assistive technology. The inverse default, a separator everywhere, is the more common real-world bug: a screen reader announces a separator between every toolbar button.",
           "THE INSET STEPS ARE DRAFT (owner Q190.2 A): `space.200` for the start and both-ends insets, `space.100` for a vertical middle inset, the closest existing steps; the brief names no token. A vertical rule takes no start-only inset, so the Figma set is five members.",
-          "THE LABELLED DIVIDER is deferred to its own issue: the brief's `label` and `labelPosition` (the \"OR\" between two ways to sign in)."
+          "THE LABELED DIVIDER (#3051) is built on the proposal's recommendations, held for the owner's confirmation in the PR: Q3051.1 A a `labeled` axis plus a `label` text property and prop; Q3051.2 A no role on the wrapper, the lines aria-hidden, the label read as text; Q3051.3 A center only (the brief's `labelPosition` start and end are a later value addition, `alignment: center | start | end`); Q3051.4 A `type.label.md.default` with `space.300`; Q3051.5 A `color.text.secondary`; Q3051.6 A horizontal, inset `none` only; Q3051.7 A \"Or\", sentence case."
         ],
         "unverified": [
           "A HOST STRETCHING A BOUND LENGTH. The standalone member binds its length to a variable; a host that nests it with `crossAxisFill` projects the instance as STRETCH on that axis. That stretch overriding the inherited width binding on the real Figma host is expected but not yet measured — the first nesting host (Accordion) is where it gets measured.",
+          "THE LABELED DIVIDER ON A REAL HOST (#3051): the two lines GROW along a fixed row and center on a root one label line box tall. The offline shim builds and reads it back; a stretched nested instance (Accordion's `crossAxisFill`) has not been measured with a label, because no host nests the labeled member yet.",
           "THE NOMINAL LENGTHS ARE PLACEHOLDERS. `container.narrow` (720px) and `size.md.height` make the standalone members rule-shaped; nobody has decided they are right, and in use the rule fills its container."
         ],
         "evolution": [],
@@ -3186,7 +3264,7 @@
         "The external link — isExternal adds target=\"_blank\", rel=\"noopener noreferrer\", the trailing external icon and visually hidden \"(opens in new tab)\" text.",
         "The visited color — :visited uses color.text.link.visited for content and docs links, usually omitted in app navigation. Browsers allow only color properties under :visited. Figma carries no visited member.",
         "The current page — current renders aria-current=\"page\" on the current item in a navigation and on a breadcrumb's last item; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height), and hover changes the color only: no underline joins the bar.",
-        "The underline — text-decoration-skip-ink: auto and a text-underline-offset, so the line clears descenders. Standalone shows it at :hover, :active and :focus-visible; inline at every state.",
+        "The underline — text-decoration-skip-ink: auto, text-decoration-thickness: calc(var(--<root>-core-font-underline-thickness) * 1em) and text-underline-offset: calc(var(--<root>-core-font-underline-offset) * 1em), so the line clears descenders. core.font.underline.thickness and .offset are shares of the font size, emitted only when the brand sets them; unset, the var() is invalid at computed-value time and both properties fall back to auto, the same as Figma's AUTO. Standalone shows it at :hover, :active and :focus-visible; inline at every state.",
         "The hit-target expansion — the box is one text line tall; where the line is under 24px, a code-side hit area (padding with a matching negative margin, or a pseudo-element) reaches 24px without moving the text around it. An inline link in a sentence is exempt.",
         "The skip link — \"Skip to main content\", the first focusable element, href=\"#main\", visually hidden by clipping until it has focus. A pattern built from Link, not a separate component.",
         "The color transition — about 150ms on color and the underline at hover and focus; under prefers-reduced-motion it snaps.",

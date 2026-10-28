@@ -179,6 +179,16 @@
       "description": "The surface of every dialog and sheet in light mode: the card color, the page color, or white. Dark mode always uses the card color, so the panel stays lifted."
     },
     {
+      "key": "glassRoles",
+      "group": "color",
+      "kind": "value",
+      "label": "Glass fills",
+      "control": "object",
+      "advanced": true,
+      "itemLabel": "glass fill",
+      "description": "Glass fills the brand adds beside the white glass. Each takes a color, from a palette or from a role such as the card, at an opacity, and is named color.glass.<name>."
+    },
+    {
       "key": "strictInteractiveContrast",
       "group": "color",
       "kind": "value",
@@ -646,6 +656,20 @@
       "advanced": true,
       "itemLabel": "type role",
       "description": "Which text types get an underlined link style. The default is body and caption. Labels are always included: a text button’s label is underlined."
+    },
+    {
+      "key": "typography.underline",
+      "group": "type",
+      "kind": "value",
+      "label": "Underline thickness and offset",
+      "control": "object",
+      "advanced": true,
+      "default": {
+        "thickness": "auto",
+        "offset": "auto"
+      },
+      "unit": "% of font size",
+      "description": "The underline on every link style, as a share of the font size: 5% thickness is 0.8px on 16px text, and a 25% offset puts the line 4px below the text. Auto leaves it to the font."
     },
     {
       "key": "typography.italics",

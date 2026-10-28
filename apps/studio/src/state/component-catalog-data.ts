@@ -253,6 +253,23 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "wallet-button",
+    "name": "WalletButton",
+    "category": "form",
+    "summary": "Express checkout with Apple Pay, Google Pay, PayPal or Shop Pay, drawn by the provider.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Wallet button",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 20,
+    "nests": [
+      "brand-mark",
+      "focus-ring"
+    ]
+  },
+  {
     "id": "icon-button",
     "name": "IconButton",
     "category": "form",
@@ -943,14 +960,19 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "divider",
     "name": "Divider",
     "category": "foundations",
-    "summary": "A thin rule between groups of content. Horizontal or vertical, and it fills its container.",
+    "summary": "A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.",
     "unit": "variants",
-    "spacing": [],
+    "spacing": [
+      {
+        "key": "gap",
+        "ref": "space.300"
+      }
+    ],
     "page": "Divider",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 5,
+    "members": 6,
     "nests": []
   },
   {

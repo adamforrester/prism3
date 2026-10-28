@@ -53,6 +53,11 @@ roleColors: { danger: primary }
 # and the full-screen panel as #FFFFFF over the scrim. Light only, as this seed is; a dark mode would keep the card.
 raisedSurface: white
 
+# Card glass (#3073, owner Q807 A, 70% per the owner's correction of 2026-10-27): a glass band set on a card takes the
+# card ground's color (`foreground.primary`'s palette color) at 70%, so it reads as the card and only the blurred photo
+# shows through. `color.glass.surface`, the white glass, is unchanged.
+glassRoles: { card: { role: foreground.primary, alpha: 70 } }
+
 # ── GEOMETRY ─────────────────────────────────────────────────────────────────────────
 # Sharp corners — radius scale 0 collapses the soft rungs (only the pill survives).
 radiusScale: 0
@@ -67,9 +72,12 @@ controlShape: rounded
 # `radiusHairline: true` here if the finished NB wants the 1px rung engine-side.
 
 # ── LAYOUT ───────────────────────────────────────────────────────────────────────────
-# The brand's md grid margin is 44px (brand spec, #3052): at 1440 wide with 24 columns and
-# 16px gutters, (1440 − 2×44 − 23×16) / 24 = 41px whole-pixel columns. 44 is no spacing step,
-# so `grid/margin` md links to `core/dimension/44` (Q785 A). sm keeps the engine's 16.
+# The brand's md grid margin is 44px (brand spec, #3052). The 41px figure is the brand's
+# desktop spec in its own two-mode layout, where md carries the 24-column, 16px-gutter grid:
+# (1440 − 2×44 − 23×16) / 24 = 41px whole-pixel columns. It is not a property of the
+# engine's 5-breakpoint grid, where md is 8 columns and a 44 margin gives 71px columns at
+# 768 (#3070). 44 is no spacing step, so `grid/margin` md links to `core/dimension/44`
+# (Q785 A). sm keeps the engine's 16.
 layout: { marginOverrides: { md: 44 } }
 
 # ── TYPOGRAPHY ───────────────────────────────────────────────────────────────────────
@@ -112,6 +120,8 @@ typography:
   trackingShift: { display: 1, body: -1, label: -1, caption: -1, eyebrow: -1 }
   # Fluid heading sizes on, clamped between the 375 and 1440 viewports.
   responsive: { fluid: true, minViewport: 375, maxViewport: 1440 }
+  # Link underline (#2942): 5% of the font size thick, 25% below the baseline, on every -link style.
+  underline: { thickness: 0.05, offset: 0.25 }
 ---
 
 # New Balance — redesign seed brief

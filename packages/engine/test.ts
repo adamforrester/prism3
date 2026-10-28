@@ -240,6 +240,9 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
 // `<brand> (<what changed>)`, e.g. `harbor (modes light, wireframe)`. A refusal specific to one lever
 // value is the #1811 shape, and it crashed the suite exactly like a refused base brief did.
 const exampleLoadFailed = new Set<string>();
+/** The color variables a brand adds through `glassRoles` (#3073), by brand, root stripped. Spelled from the owner's
+ *  decision (Q807 A: the reference brand adds `card`), never read off the input, so a stray one anywhere fails. */
+const BRAND_ADDED_GLASS: Record<string, string[]> = { nb: ['color/glass/card'] };
 const exampleTheme = <T = Theme,>(name: string, build: () => T): T | undefined => {
   try { return build(); } catch (e) {
     // LOAD-BEARING, and the one line here that looks tidiable. When a single row is dropped (one density
@@ -3967,6 +3970,8 @@ for (const b of brands) {
       // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
       // glyph-to-message gap. The action-to-close 4px is not listed: it stays at the floor.
       toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
+      // Divider (#3051): the labeled divider's label-to-line gap.
+      divider: { keys: [], sizes: [], bare: ['gap'] },
       'breadcrumb-item': { keys: ['gap'], sizes: ['small', 'medium'] },
       breadcrumbs: { bare: ['back-gap'], keys: ['gap'], sizes: ['small', 'medium'] },
     };
@@ -4002,6 +4007,8 @@ for (const b of brands) {
       banner: { compact: 'bare 12/8/8', comfortable: 'bare 16/12/12', spacious: 'bare 20/16/16' },
       // Toast (#2668, the proposal's §8 approved by call 13 A): comfortable is 8/16/8 padding, 8 to the controls, 12 glyph to message.
       toast: { compact: 'bare 6/12/6/6/8', comfortable: 'bare 8/16/8/8/12', spacious: 'bare 12/20/12/12/16' },
+      // Divider (#3051, Q3051.4 A): the label-to-line gap. Comfortable is the owner's space.300, 24px.
+      divider: { compact: 'bare 20', comfortable: 'bare 24', spacious: 'bare 32' },
       // Breadcrumbs (#2666, DRAFT): the label-to-separator gap, repeated between items, and the parent path's
       // chevron-to-link gap (Link's own icon gap). Comfortable is the proposal's space.050 / space.100; compact clamps
       // the small gap at space.050, as Link's does.
@@ -4050,6 +4057,8 @@ for (const b of brands) {
       // Banner (#2579): the glyph→content gap and the fixed title→body gap (one action since Q533.1, so no action gap).
       banner: ['gap', 'content-gap'],
       toast: ['gap', 'glyph-gap', 'controls-gap'],
+      // #3051: the labeled divider's label-to-line gap (the plain rule's zero gap does not follow density).
+      divider: ['gap'],
       // #2709: the three defs with a density-following gap that joined after this list was written.
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2888: the Search field, TextField's gap through the shared field factory.
@@ -5166,7 +5175,10 @@ arm: {
     // if this rule is the one that is wrong, arm 2 reports the whole register as stale.
     const isInv = (k: string) => k === 'inverse' || k.startsWith('inverse.');
     const covered = (k: string): boolean => roleSet.has(`inverse.${k}`);
-    const uncovered = [...roleSet].filter((k) => !isInv(k) && !covered(k)).map((k) => `color.${k}`).sort();
+    // #3073: a brand's own glass roles are brand-dependent, so a static register cannot name them; the register's
+    // glass entry states the rule for them. Spelled per brand (this arm reads the reference brand's modes).
+    const brandGlass = new Set(BRAND_ADDED_GLASS.nb.map((n) => n.replace(/^color\//, '').replace(/\//g, '.')));
+    const uncovered = [...roleSet].filter((k) => !isInv(k) && !covered(k) && !brandGlass.has(k)).map((k) => `color.${k}`).sort();
     const unregistered = uncovered.filter((k) => !INVERSE_GAP_PATHS.has(k));
     ok(unregistered.length === 0,
       `inverse: every role without an inverse counterpart is registered in INVERSE_GAPS with a reason (${uncovered.length} uncovered, ${INVERSE_GAP_PATHS.size} registered)` +
@@ -5653,6 +5665,9 @@ arm: {
           // NOT carry it survives with the root attached and so still diverges, which is the behaviour
           // wanted — this de-roots what is there, it does not assume it.
           .variables.map((v: any) => String(v.name).replace(new RegExp(`^${rootOfBrand(b)}/`), ''))
+          // #3073: a brand's own glass roles (`glassRoles`) are brand-dependent by decision (Q807 A), so they are not
+          // part of the shared set. Spelled per brand, so a stray glass role on any other brand still diverges.
+          .filter((n: string) => !(BRAND_ADDED_GLASS[b] ?? []).includes(n))
           .sort().join('|'));
       // `roleSets[0]` only exists if the floor arm above passed. Guarded rather than indexed blind: an
       // empty `figmaBrands` used to CRASH here, so the floor arm's failure was reported and then buried
@@ -12310,6 +12325,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const ENGINE_ADDED_VARS = [
       // #3049 — the panel over the scrim, Dialog's own surface. An exact name in `foreground`, a family NB exports.
       'color/foreground/raised',
+      // #3073 — the reference brand's card glass: alpha steps of its card ground (light neutral.050, dark neutral.900).
+      // Exact names, not a `palette/` prefix: NB exports that family, and only the steps a glass role reads are minted.
+      'palette/neutral-050-alpha/70', 'palette/neutral-900-alpha/70',
       // #1140 — the third rung of the neutral edge ladder, on both grounds. `border` was the only
       // surface/ink category stopping at secondary. Two exact names rather than any prefix: `border` is
       // a family NB fully defines, so the whole value of pinning it is that a spurious sibling fails.
@@ -12594,7 +12612,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   for (const n of NB_ENGINE_ADDED_STYLES.filter((x) => x.startsWith('label/') && x.endsWith('-link'))) {
     const ln: any = emittedByName.get(n), plain: any = emittedByName.get(n.replace(/-link$/, ''));
     if (!ln || !plain) { linkBad.push(`${n}: ${ln ? 'no plain twin' : 'not emitted'}`); continue; }
-    const { textDecoration: lnDeco, ...lnRest } = ln.properties, { textDecoration: plDeco, ...plRest } = plain.properties;
+    // #2942: the underline's thickness and offset are part of the underline, so they are set aside with it.
+    const { textDecoration: lnDeco, textDecorationThickness: _t, textDecorationOffset: _o, ...lnRest } = ln.properties, { textDecoration: plDeco, ...plRest } = plain.properties;
     if (JSON.stringify(lnRest) !== JSON.stringify(plRest)) linkBad.push(`${n}: properties other than the underline differ from ${n.replace(/-link$/, '')}`);
     if (JSON.stringify(lnDeco) !== JSON.stringify({ bindable: false, value: 'UNDERLINE' }) || JSON.stringify(plDeco) !== JSON.stringify({ bindable: false, value: 'NONE' }))
       linkBad.push(`${n}: textDecoration ${JSON.stringify(lnDeco)} (its twin ${JSON.stringify(plDeco)})`);
@@ -18473,6 +18492,87 @@ arm: {
     const want = d.id === 'button' ? 'icon-button' : d.id.replace(/^button-/, 'icon-button-');
     ok(d.composition?.alternativeTo?.[0] === want, `#1697 ${d.id} names its own family's icon-only alternative (${want}; got ${d.composition?.alternativeTo?.[0]})`);
   }
+  // #2343 PR 4 — WALLETBUTTON HOLDS EACH PROVIDER'S RULES. The rules are typed HERE from the providers' guidelines (the
+  // proposal's §2.1 table, read 2026-10-25), never read off the def, so a def that drifts from them fails by name
+  // (docs/34). Heights are measured on harbor built at comfortable density, the corpus default; compact and spacious
+  // move every rung, and the code clamps there (the def's codeOnly, Q-W2 on the PR). Radius is measured at all three
+  // densities. Each arm's mutation is in the PR's progress entry.
+  {
+    const wb = componentDefs.find((d) => d.id === 'wallet-button')!;
+    type Rule = { minH?: number; maxH?: number; minW?: number; halfHeightRadius?: true; logo: string };
+    const RULES: Record<string, Rule> = {
+      'apple-pay': { minH: 30, minW: 100, logo: 'brand-mark/logo/apple-pay' },
+      'google-pay': { halfHeightRadius: true, logo: 'brand-mark/logo/google-pay' },
+      paypal: { minH: 25, maxH: 55, logo: 'brand-mark/logo/paypal-wordmark' },
+      'shop-pay': { minH: 40, minW: 120, logo: 'brand-mark/logo/shop-pay' },
+    };
+    const harbor = parseDesignMd(readFileSync(new URL('./examples/harbor.design.md', import.meta.url), 'utf8')).input;
+    const builds = (['compact', 'comfortable', 'spacious'] as const).map((density) => {
+      const t = buildTree(brandTheme({ ...harbor, density })).tree as Record<string, unknown>;
+      const r = Object.keys(t)[0];
+      return { density, px: (v: string | undefined): number => (v ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
+    });
+    const comfortable = builds.find((b) => b.density === 'comfortable')!;
+    const plans = figmaAnatomySet(wb, {});
+    const providers = [...new Set(plans.map((p) => String(p.coord.provider)))].sort();
+    ok(JSON.stringify(providers) === JSON.stringify(Object.keys(RULES).sort()), `#2343 PR 4 provider rules: the wallet providers are the four the rules name (${providers.join(', ')})`);
+    // Heights: every member inside its provider's range, and every size inside the range has its member.
+    const height = (p: AnatomyPlan): number => comfortable.px(p.root.bound?.height);
+    const outOfRange = plans.filter((p) => { const r = RULES[String(p.coord.provider)]; const h = height(p); return !(h >= (r?.minH ?? 0) && h <= (r?.maxH ?? Infinity)); });
+    const sizes = (wb.variants.size ?? []);
+    const heightOf = (size: string): number => comfortable.px(wb.tokens[`size.${size}.height`]?.replace(/\./g, '/'));
+    const missing = Object.entries(RULES).flatMap(([prov, r]) => sizes.filter((sz) => heightOf(sz) >= (r.minH ?? 0) && heightOf(sz) <= (r.maxH ?? Infinity) && !plans.some((p) => p.coord.provider === prov && p.size === sz)).map((sz) => `${prov}/${sz}`));
+    ok(outOfRange.length === 0 && missing.length === 0 && plans.every((p) => Number.isFinite(height(p))),
+      `#2343 PR 4 provider rules HEIGHT: every member's height is inside its provider's range, and every size inside it has a member (outside: ${outOfRange.map((p) => `${planComponentName(p)} at ${height(p)}`).join('; ') || 'none'}; missing: ${missing.join(', ') || 'none'})`);
+    // Width: the floor clears the provider's minimum.
+    const narrow = plans.filter((p) => { const w = typeof p.root.minWidth === 'number' ? p.root.minWidth : NaN; return !(w >= (RULES[String(p.coord.provider)]?.minW ?? 0)); });
+    ok(narrow.length === 0, `#2343 PR 4 provider rules WIDTH: every member's width floor clears its provider's minimum (${narrow.map((p) => `${planComponentName(p)}: ${p.root.minWidth}`).join('; ') || 'clean'})`);
+    // Radius: Google Pay's at most half the height, at every density.
+    const corners = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const;
+    const overHalf = (bs: typeof builds) => plans.filter((p) => RULES[String(p.coord.provider)]?.halfHeightRadius).flatMap((p) => bs.flatMap((b) => {
+      const h = b.px(p.root.bound?.height), rs = corners.map((c) => b.px(p.root.bound?.[c]));
+      return rs.every((r) => r <= h / 2) ? [] : [`${planComponentName(p)} @ ${b.density}: radius ${rs[0]} over height ${h}`];
+    }));
+    const round = overHalf(builds);
+    ok(round.length === 0 && plans.some((p) => p.coord.provider === 'google-pay'), `#2343 PR 4 provider rules RADIUS: Google Pay's corner is at most half its height at every density (${round.join('; ') || 'clean'})`);
+    // ...and in every brand, not only harbor: at the softest corner the levers allow (`radiusScale` and `baseMd` at
+    // their manifest maxima) `radius.md` passes half of a compact small height, so the code must clamp Google Pay's
+    // `buttonRadius` to min(radius, height / 2). The lever bounds come from the manifest, the clamp from codeOnly.
+    const leverMax = (key: string): number => (leverManifest.find((l) => l.key === key) as { max?: number } | undefined)?.max ?? NaN;
+    const softest = (['compact', 'comfortable', 'spacious'] as const).map((density) => {
+      const t = buildTree(brandTheme({ ...harbor, density, radiusScale: leverMax('radiusScale'), baseMd: leverMax('baseMd') })).tree as Record<string, unknown>;
+      const r = Object.keys(t)[0];
+      return { density, px: (v: string | undefined): number => (v ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
+    });
+    const softOver = overHalf(softest);
+    const clamped = (wb.anatomy.codeOnly ?? []).some((c) => /Google Pay/.test(c) && /min\(radius, height \/ 2\)/.test(c));
+    ok(Number.isFinite(leverMax('radiusScale')) && Number.isFinite(leverMax('baseMd')) && (softOver.length === 0 || clamped),
+      `#2343 PR 4 provider rules RADIUS (every brand): where the softest brand's corner passes half the height, the code clamps Google Pay's radius to min(radius, height / 2) (over half at radiusScale ${leverMax('radiusScale')} × baseMd ${leverMax('baseMd')}: ${softOver.length}, e.g. ${softOver[0] ?? 'none'}; clamp in codeOnly: ${clamped})`);
+    // Colors not retinted: no node of a member paints, and the logo keeps its own paint.
+    type N = AnatomyPlan['root'];
+    const nodes = (n: N): N[] => [n, ...(n.children ?? []).flatMap(nodes)];
+    const painted = plans.flatMap((p) => nodes(p.root).filter((n) => n.paints?.fills || n.paints?.strokes || n.descendantFills || n.gradientFill).map((n) => `${planComponentName(p)}.${n.name}`));
+    const logoOf = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.nestTarget?.startsWith('brand-mark/'));
+    const unfixed = plans.filter((p) => !logoOf(p)?.fixedPaint).map(planComponentName);
+    ok(painted.length === 0 && unfixed.length === 0, `#2343 PR 4 provider rules COLOR: no member paints over or under the provider's area, and its logo keeps its own paint (painted: ${painted.slice(0, 3).join(', ') || 'none'}; logo without fixedPaint: ${unfixed.slice(0, 3).join(', ') || 'none'})`);
+    // The mark unaltered: the provider's own logo, nested whole, its height set and its width from its proportion.
+    const altered = plans.flatMap((p) => {
+      const n = logoOf(p), want = RULES[String(p.coord.provider)]?.logo;
+      const why = !n ? 'no logo' : n.nestTarget !== want ? `nests ${n.nestTarget}, not ${want}` : n.nestOverrides?.length ? 'carries overrides' : !n.aspectLock ? 'no aspect lock' : n.bound?.width ? 'binds a width' : !n.bound?.height ? 'binds no height' : '';
+      return why ? [`${planComponentName(p)}: ${why}`] : [];
+    });
+    ok(altered.length === 0, `#2343 PR 4 provider rules MARK: each member nests its provider's own logo unaltered, height bound and width from its proportion (${altered.slice(0, 3).join('; ') || 'clean'})`);
+    // Wording: the provider's alone. No member draws text of its own, so Prism3 never writes on the button.
+    const worded = plans.flatMap((p) => nodes(p.root).filter((n) => n.type === 'TEXT').map((n) => `${planComponentName(p)}.${n.name}`));
+    ok(worded.length === 0 && wb.props.every((pr) => pr.name !== 'label'), `#2343 PR 4 provider rules WORDING: no member draws a text node and the code takes no label, so the only wording is the provider's (text: ${worded.slice(0, 3).join(', ') || 'none'})`);
+    // The accessible name: the provider's element supplies it, and the component adds no label (it would be announced
+    // twice). Held on both places the contract is written, the shipped aria line and the codeOnly bullet.
+    const nameLine = (wb.anatomy.codeOnly ?? []).find((c) => c.startsWith('the accessible name — ')) ?? '';
+    const a11yText = `${wb.accessibility.aria} ${nameLine}`;
+    ok(/provider's element supplies the role and the accessible name/.test(wb.accessibility.aria) && /Add no label of your own/.test(wb.accessibility.aria)
+      && /provider's element names itself/.test(nameLine) && /component adds no label/.test(nameLine) && !/aria-label/.test(a11yText),
+      `#2343 PR 4 provider rules NAME: the provider's element supplies the accessible name and the component adds no label (aria '${wb.accessibility.aria}'; codeOnly '${nameLine || 'missing'}')`);
+  }
   // #2713 — `ai.generationPriority` follows the build-component skill's written scale. Before it, each def's
   // number was set alone, so parts an agent must never generate on their own ranked from 2 to 9 and the
   // focus ring sat level with Text field. The tier of each def is a HAND-WRITTEN literal here, not read
@@ -18484,7 +18584,7 @@ arm: {
     const SCALE = [1, 2, 3, 4, 5, 6, 9];
     const TIER: Record<string, number> = {
       button: 1,
-      'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
+      'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
       'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
@@ -29817,7 +29917,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -31323,6 +31423,10 @@ arm: {
     // truncates on one line), so the separator centers against the only line, in Figma and in code.
     'breadcrumb-item.container':
       "a breadcrumb step is one text line tall and never wraps (breadcrumb-item.ts codeOnly), so the separator centers against the only line.",
+    // `divider` (#3051, Q3051.4 A): the labeled divider centers its two hairlines on the label's line box. The label is
+    // one short word that never wraps (divider.ts codeOnly), and the root is exactly one label line box tall.
+    'divider.container':
+      "a labeled divider's label is one short word that never wraps and the root is one label line box tall, so the two lines center against the only line; the plain rule stretches across and is not moved by it.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -35014,6 +35118,11 @@ arm: {
     // #2666 (owner call 11 A): code has no path prop. `responsive` (default true) swaps the trail for the parent link
     // below 480px by a container query, and either value renders the trail at every wider width, so the code default
     // path is the full trail whatever `responsive` holds.
+    // #2343 PR 4: a wallet button always names its provider, so the prop is required and has no default to match. Figma
+    // still needs a first member; apple-pay leads, in the proposal's order.
+    'wallet-button.provider': { prop: 'provider', map: { undefined: 'apple-pay' }, reason: 'provider is required in code (a wallet button always names its wallet), so Figma\'s first member stands in: apple-pay, the proposal\'s first' },
+    // #3051 (owner Q3051.1 A): code has no labeled prop. A non-empty `label` is the labeled divider; unset, the plain rule.
+    'divider.labeled': { prop: 'label', map: { undefined: 'false' }, reason: 'a divider is labeled by setting `label`; with no label it is the plain rule' },
     'breadcrumbs.path': { prop: 'responsive', map: { undefined: 'full', false: 'full', true: 'full' }, reason: 'Breadcrumbs renders the trail by default; `responsive` only swaps in the parent link below 480px' },
   };
   // NO RECORDED EXCEPTIONS (#2752, owner decisions Q1 B and Q2 A, 2026-10-16): every size ladder leads with medium and
@@ -35107,14 +35216,15 @@ arm: {
     'vertical/none': ['space/0', 'space/0', 'space/0', 'space/0'],
     'vertical/middle-inset': ['space/100', 'space/0', 'space/100', 'space/0'],
   };
-  ok(JSON.stringify(divider.variants) === JSON.stringify({ orientation: ['horizontal', 'vertical'], inset: ['none', 'inset', 'middle-inset'] }),
-    `#2455 divider: two axes, orientation = [horizontal, vertical] and inset = [none, inset, middle-inset], each default first so it is the code default and Figma's default member (got ${JSON.stringify(divider.variants)})`);
+  // #3051 added the third axis, `labeled` (its own arm below); the five plain members are read at labeled=false.
+  ok(JSON.stringify(divider.variants) === JSON.stringify({ orientation: ['horizontal', 'vertical'], inset: ['none', 'inset', 'middle-inset'], labeled: ['false', 'true'] }),
+    `#2455 divider: three axes, orientation = [horizontal, vertical], inset = [none, inset, middle-inset] and labeled = [false, true] (#3051), each default first so it is the code default and Figma's default member (got ${JSON.stringify(divider.variants)})`);
   ok(divider.states.length === 0, `#2455 divider: no states, because it is not interactive (got [${divider.states.join(', ')}])`);
-  ok(figmaVariantCount(divider) === 5,
-    `#2455 divider inset: the Figma set is five members — vertical takes none and middle-inset only (got ${figmaVariantCount(divider)})`);
+  ok(figmaVariantCount(divider) === 6,
+    `#2455 divider inset: the Figma set is six members — five plain (vertical takes none and middle-inset only) and one labeled (#3051) (got ${figmaVariantCount(divider)})`);
   for (const [coord, pad] of Object.entries(INSET)) {
     const [o, inset] = coord.split('/');
-    const root = figmaAnatomyPlan(divider, undefined, { orientation: o, inset } as never).root as any;
+    const root = figmaAnatomyPlan(divider, undefined, { orientation: o, inset, labeled: 'false' } as never).root as any;
     const rule = (root.children ?? [])[0];
     const got = [root.bound?.paddingTop, root.bound?.paddingRight, root.bound?.paddingBottom, root.bound?.paddingLeft];
     ok(JSON.stringify(got) === JSON.stringify(pad),
@@ -35127,7 +35237,7 @@ arm: {
       `#2455 divider ${o} inset=${inset}: the rule's color is color/border/secondary and it fills the root's content box (grow along, stretch across) (got fills ${rule?.paints?.fills}, grow ${rule?.layoutGrow}, align ${rule?.layoutAlign})`);
   }
   let threw = false;
-  try { figmaAnatomyPlan(divider, undefined, { orientation: 'vertical', inset: 'inset' } as never); } catch { threw = true; }
+  try { figmaAnatomyPlan(divider, undefined, { orientation: 'vertical', inset: 'inset', labeled: 'false' } as never); } catch { threw = true; }
   ok(threw, '#2455 divider inset: vertical × inset is not a member, so it has no plan');
   const inset = divider.props.find((p) => p.name === 'inset');
   ok(inset?.default === 'none' && JSON.stringify(inset?.values) === JSON.stringify(['none', 'inset', 'middle-inset']),
@@ -35139,6 +35249,90 @@ arm: {
     '#2455 divider decorative: no Figma property (it changes no pixel), and the codeOnly list says so in an entry that leads with it');
   ok(/^none with aria-hidden="true" by default\b/.test(divider.accessibility.role) && /decorative=false, separator\b/.test(divider.accessibility.role),
     `#2455 divider decorative: the code role is none with aria-hidden by default, and separator with decorative=false (got '${divider.accessibility.role}')`);
+}
+
+// ------------------------------------------------------------------- #3051: the labeled divider
+// The owner's seven calls (Q3051.1–.7, all A), each held against a literal typed HERE from the issue and the owner's
+// comment, never read off the def (docs/34 shape 1). ACTUAL is the projected plan, the def's props and prose, and the
+// resolved roles of every example brand, so a rebind, a regated part or a reworded contract fails by name.
+{
+  const D3051 = '#3051 divider labeled';
+  const findIn = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findIn(c, name)).find(Boolean));
+  const set = figmaAnatomySet(divider);
+  const labeledPlans = set.filter((p) => (p.coord as any).labeled === 'true');
+  const plainPlans = set.filter((p) => (p.coord as any).labeled === 'false');
+  // Q3051.3 A + Q3051.6 A: one labeled member, horizontal, inset none, centered (no alignment axis).
+  ok(labeledPlans.length === 1 && (labeledPlans[0].coord as any).orientation === 'horizontal' && (labeledPlans[0].coord as any).inset === 'none'
+    && plainPlans.length === 5 && !('alignment' in (divider.variants ?? {})),
+    `${D3051}: exactly one labeled member, horizontal with inset none, and five plain ones; no alignment axis, center only (got labeled at ${JSON.stringify(labeledPlans.map((p) => p.coord))}, ${plainPlans.length} plain)`);
+  // Label present ONLY when labeled=true: the three labeled cells on the labeled member and on no plain one, and the
+  // plain `rule` on every plain member and not on the labeled one.
+  const LABELED_CELLS = ['leadingRule', 'label', 'trailingRule'];
+  const wrongPresence: string[] = [];
+  for (const p of set) {
+    const names = ((p.root as any).children ?? []).map((c: any) => c.name);
+    const want = (p.coord as any).labeled === 'true' ? LABELED_CELLS : ['rule'];
+    if (JSON.stringify(names) !== JSON.stringify(want)) wrongPresence.push(`${planComponentName(p)}: [${names.join(', ')}]`);
+  }
+  ok(wrongPresence.length === 0,
+    `${D3051}: the label and its two lines are present only when labeled=true, in the order line, label, line; every plain member draws the one rule${wrongPresence.length ? ` — WRONG: ${wrongPresence.join('; ')}` : ''}`);
+  const lp = labeledPlans[0];
+  if (lp) {
+    const root = lp.root as any;
+    const label = findIn(root, 'label'), lead = findIn(root, 'leadingRule'), trail = findIn(root, 'trailingRule');
+    // Q3051.4 A + Q3051.5 A: the label's ink and size bound to the tokens the owner picked.
+    ok(label?.type === 'TEXT' && label?.paints?.fills === 'color/text/secondary' && label?.textStyle === 'label/md/default',
+      `${D3051}: the label is text in color/text/secondary at the label/md/default style (Q3051.4 A, Q3051.5 A) (got ${label?.type}, ink ${label?.paints?.fills}, style ${label?.textStyle})`);
+    // Q3051.7 A: "Or", sentence case, driven by the `label` text property.
+    ok(label?.characters === 'Or' && label?.propertyRef?.prop === 'label',
+      `${D3051}: the label's placeholder is "Or", sentence case, driven by the label text property (Q3051.7 A) (got "${label?.characters}", property ${label?.propertyRef?.prop})`);
+    const textProp = planSetProperties(set as any).find((p: any) => p.name === 'label');
+    ok(textProp?.type === 'TEXT' && textProp?.default === 'Or',
+      `${D3051}: the set carries one TEXT property, label, default "Or" (got ${JSON.stringify(textProp)})`);
+    // Lines FILL and never overlap the label: in flow, on either side of it, each growing along the row while the
+    // label hugs, with the 24px gap between each line and the label, and the row centering all three across.
+    const lineOk = (l: any) => l?.type === 'FRAME' && l?.layoutGrow === 1 && l?.layoutPositioning !== 'ABSOLUTE' && l?.layoutAlign !== 'STRETCH'
+      && l?.paints?.fills === 'color/border/secondary' && l?.bound?.height === 'border-width/hairline';
+    ok(lineOk(lead) && lineOk(trail),
+      `${D3051}: both lines fill (grow along the row), stay in flow, keep the rule's color/border/secondary and the border-width/hairline thickness (got lead grow ${lead?.layoutGrow} fill ${lead?.paints?.fills} h ${lead?.bound?.height}; trail grow ${trail?.layoutGrow} fill ${trail?.paints?.fills} h ${trail?.bound?.height})`);
+    ok(!label?.layoutGrow && label?.layoutPositioning !== 'ABSOLUTE' && label?.layoutAlign !== 'STRETCH' && !label?.textAutoResize?.startsWith?.('NONE'),
+      `${D3051}: the label hugs its word in flow, between the two lines, so neither line runs under it (got grow ${label?.layoutGrow}, positioning ${label?.layoutPositioning}, align ${label?.layoutAlign})`);
+    ok(root.layoutMode === 'HORIZONTAL' && root.counterAxisAlignItems === 'CENTER' && root.bound?.itemSpacing === 'space/300'
+      && root.bound?.height === 'type/label/md/line-box' && root.bound?.width === 'container/narrow' && !root.paints?.fills,
+      `${D3051}: the root is a row one label line box tall (type/label/md/line-box), centered across, space/300 between the label and each line, painting nothing (got ${root.layoutMode}, align ${root.counterAxisAlignItems}, gap ${root.bound?.itemSpacing}, h ${root.bound?.height}, w ${root.bound?.width})`);
+    // The gap follows density but never reaches zero (the lines would touch the label).
+    const gapAt = ['compact', 'comfortable', 'spacious'].map((d) => applySpacingDensity(divider, d as never).tokens['gap']);
+    ok(gapAt[1] === 'space.300' && gapAt.every((g) => g && g !== 'space.0'),
+      `${D3051}: the label-to-line gap is space.300 at comfortable and follows density without collapsing (got ${gapAt.join(' / ')})`);
+  }
+  // Q3051.1 A: the code API is a label string prop, and no separate labeled prop.
+  const labelProp = divider.props.find((p) => p.name === 'label');
+  ok(labelProp?.type === 'string' && labelProp.default === undefined && !divider.props.some((p) => p.name === 'labeled'),
+    `${D3051}: the code API is a label string prop with no default, and no labeled prop (Q3051.1 A) (got ${JSON.stringify(labelProp)})`);
+  // Q3051.2 A, the a11y contract: no role on the wrapper, the lines aria-hidden, the label read as text, and never a
+  // separator around the label.
+  const a11y = `${divider.accessibility.role} ${divider.accessibility.aria}`;
+  const sem = (divider.anatomy?.codeOnly ?? []).find((c) => c.startsWith('the labeled divider\'s semantics — ')) ?? '';
+  ok(/a labeled divider takes no role/.test(divider.accessibility.role) && /two lines set aria-hidden="true"/.test(divider.accessibility.aria)
+    && /label is plain text in the reading order/.test(divider.accessibility.aria) && !/labeled divider[^.]*role="separator" aria-label/.test(a11y)
+    && /wrapper takes no role/.test(sem) && /both lines are `aria-hidden="true"`/.test(sem) && /not focusable/i.test(sem),
+    `${D3051}: the a11y contract — no role on the wrapper, both lines aria-hidden, the label read as plain text, not focusable (Q3051.2 A) (role '${divider.accessibility.role}')`);
+  // Q3051.5 A, held for EVERY brand, not only the default: text.secondary clears 4.5:1 against the two page tiers in
+  // every mode. Recomputed from the roles' own colors (the lint-ratio-truth lesson), never read off a reported ratio.
+  const under: string[] = [];
+  for (const [id, input] of Object.entries(exampleBrands())) {
+    for (const m of resolveAllModes(brandTheme(input as BrandInput))) {
+      const ink = m.roles['text.secondary'];
+      for (const g of ['background.primary', 'background.secondary']) {
+        const ground = m.roles[g];
+        if (!ink || !ground) { under.push(`${id} ${m.mode} ${g}: role absent`); continue; }
+        const c = contrast(hexToRgb(ink.hex), hexToRgb(ground.hex));
+        if (!(c >= 4.5)) under.push(`${id} ${m.mode} text.secondary on ${g}: ${c.toFixed(2)}`);
+      }
+    }
+  }
+  ok(under.length === 0,
+    `${D3051}: the label ink text.secondary clears 4.5:1 against background.primary and background.secondary in every mode of every example brand${under.length ? ` — UNDER: ${under.slice(0, 4).join('; ')}` : ''}`);
 }
 
 // ---- centered Tabs (#2518, owner decision Q222 A) ----
@@ -36413,6 +36607,155 @@ arm: {
   ok(emitBad.length === 0, `#3049 committed emission: the reference brand's raised surface is white in light and its card elsewhere; every other brand's equals its card in every mode${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
 }
 
+// ------------------------------------------------------------------- #3073: brand glass roles
+// Owner decisions (2026-10-27, on #3073): Prism3 ships one glass role, `color.glass.surface` (white 70%), and a brand
+// adds its own as `color.glass.<name>` through the `glassRoles` lever (Q806, Q807 A). Each names a palette color, or a
+// semantic role's palette color, plus an alpha, and is emitted as a translucent palette alpha step. Brand-added roles
+// are brand-dependent, never in the guaranteed contract. The reference brand adds `card`, the card ground
+// (`foreground.primary`'s palette color) at 70% (the owner's correction of 2026-10-27, replacing 50%).
+//
+// EXPECTED is typed here, from the decision: which brand adds which role from which source at which alpha, and what
+// `glass.surface` holds per mode. ACTUAL is the committed emission (DTCG, Figma, the contract baseline) and the
+// resolved roles, never `validGlassRoles` or `glassAlphaFamily` (docs/34 shape 1).
+{
+  const BRAND_GLASS: Record<string, Record<string, { source: string; alpha: number }>> = {
+    nb: { card: { source: 'foreground.primary', alpha: 0.7 } },
+  };
+  const SURFACE: Record<string, { rgb: number[]; a: number }> = {
+    light: { rgb: [255, 255, 255], a: 0.7 }, dark: { rgb: [0, 0, 0], a: 0.7 },
+    'hc-light': { rgb: [255, 255, 255], a: 0.9 }, 'hc-dark': { rgb: [0, 0, 0], a: 0.9 },
+  };
+  const rgba = (h: string) => {
+    const m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(h);
+    if (m) { const n = parseInt(m[1], 16); return { rgb: [n >> 16 & 255, n >> 8 & 255, n & 255], a: m[2] ? parseInt(m[2], 16) / 255 : 1 }; }
+    const f = /^rgba?\(\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\s*\)$/.exec(h);
+    return f ? { rgb: [Number(f[1]), Number(f[2]), Number(f[3])], a: f[4] === undefined ? 1 : Number(f[4]) } : null;
+  };
+  const dtcg = readdirSync(resolve(HERE, './out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.') && !f.includes('.overlay.'));
+  ok(dtcg.length >= 5 && Object.keys(BRAND_GLASS).every((b) => dtcg.includes(`${b}.tokens.json`)),
+    `#3073: every committed DTCG brand is read, the brands that add glass roles among them (${dtcg.length})`);
+  const surfaceBad: string[] = [], setBad: string[] = [], hueBad: string[] = [], alphaBad: string[] = [], stepBad: string[] = [];
+  for (const f of dtcg) {
+    const brand = f.replace('.tokens.json', '');
+    const tr = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+    const root = Object.keys(tr).find((k) => !k.startsWith('$'))!;
+    const inMode = (n: any, m: string) => String(m === 'light' ? n?.$value : n?.$extensions?.prism3?.modes?.[m]?.$value ?? n?.$value);
+    const leafOf = (ref: string): any => { let v: any = ref; for (let i = 0; i < 8 && /^\{.+\}$/.test(String(v)); i++) v = String(v).slice(1, -1).split('.').reduce((n: any, k) => n?.[k], tr)?.$value; return v; };
+    const glass = tr[root].color?.glass ?? {};
+    // (a) glass.surface is VALUE-identical in every brand: the resolved rgba per mode equals the spelled one.
+    for (const m of Object.keys(SURFACE)) {
+      const v = rgba(String(leafOf(inMode(glass.surface, m))));
+      if (!v || v.rgb.join() !== SURFACE[m].rgb.join() || Math.abs(v.a - SURFACE[m].a) > 0.005) surfaceBad.push(`${brand}/${m}: ${v ? `rgba(${v.rgb.join(', ')}, ${v.a.toFixed(3)})` : 'unresolved'}`);
+    }
+    // (c) the glass group holds `surface` and exactly the roles this brand adds; a brand without the lever adds none,
+    // and no palette alpha family outside white/black-alpha exists unless a brand glass role reads it.
+    const want = ['surface', ...Object.keys(BRAND_GLASS[brand] ?? {})].sort().join();
+    const got = Object.keys(glass).filter((k) => !k.startsWith('$')).sort().join();
+    if (got !== want) setBad.push(`${brand}: [${got}], want [${want}]`);
+    const read = new Set<string>();
+    for (const name of Object.keys(BRAND_GLASS[brand] ?? {})) for (const m of Object.keys(SURFACE)) read.add(/^\{[^.]+(?:\.[^.]+)*?\.core\.palette\.([^.]+)\./.exec(inMode(glass[name], m))?.[1] ?? '');
+    const strays = Object.keys(tr[root].core?.palette ?? {}).filter((k) => /-alpha$/.test(k) && k !== 'white-alpha' && k !== 'black-alpha' && !read.has(k));
+    if (strays.length) setBad.push(`${brand}: palette alpha families no glass role reads: ${strays.join(', ')}`);
+    // (b) each added role's opaque color equals its named source's color, and its alpha the declared one, per mode;
+    // and it aliases a palette alpha step (the alpha lives in the value, so a bound Figma fill stays translucent).
+    for (const [name, spec] of Object.entries(BRAND_GLASS[brand] ?? {})) {
+      const src = spec.source.split('.').reduce((n: any, k) => n?.[k], tr[root].color);
+      for (const m of Object.keys(SURFACE)) {
+        const ref = inMode(glass[name], m);
+        const g = rgba(String(leafOf(ref))), s = rgba(String(leafOf(inMode(src, m))));
+        if (!/^\{.+\.core\.palette\.[a-z0-9-]+-alpha\.\d+\}$/.test(ref)) stepBad.push(`${brand}/${name}/${m}: ${ref}`);
+        if (!g || !s) { hueBad.push(`${brand}/${name}/${m}: unresolved (glass ${!!g}, source ${!!s})`); continue; }
+        if (g.rgb.join() !== s.rgb.join()) hueBad.push(`${brand}/${name}/${m}: rgb(${g.rgb.join(', ')}) via ${ref}, ${spec.source} rgb(${s.rgb.join(', ')})`);
+        if (Math.abs(g.a - spec.alpha) > 0.005) alphaBad.push(`${brand}/${name}/${m}: ${g.a.toFixed(3)}, want ${spec.alpha}`);
+      }
+    }
+  }
+  ok(surfaceBad.length === 0, `#3073 glass.surface is value-identical in every brand: white 70% light, black 70% dark, white/black 90% in high contrast${surfaceBad.length ? ` — WRONG: ${surfaceBad.slice(0, 4).join('; ')}` : ''}`);
+  ok(hueBad.length === 0, `#3073 brand glass: each added role's opaque color equals its named source color in every mode${hueBad.length ? ` — WRONG: ${hueBad.slice(0, 4).join('; ')}` : ''}`);
+  ok(alphaBad.length === 0, `#3073 brand glass: each added role's alpha equals its declared alpha in every mode${alphaBad.length ? ` — WRONG: ${alphaBad.slice(0, 4).join('; ')}` : ''}`);
+  ok(stepBad.length === 0, `#3073 brand glass: each added role aliases a palette alpha step in every mode${stepBad.length ? ` — WRONG: ${stepBad.slice(0, 4).join('; ')}` : ''}`);
+  ok(setBad.length === 0, `#3073 brand glass: brands without the lever emit no extra glass roles or alpha steps, and a brand with it emits exactly its own${setBad.length ? ` — WRONG: ${setBad.slice(0, 4).join('; ')}` : ''}`);
+
+  // Figma: Apply Theme writes `color/glass/<name>` in the color collection, in every color mode, aliasing a translucent
+  // palette primitive whose color is the source variable's own.
+  const figBad: string[] = [];
+  const figBrands = readdirSync(resolve(HERE, './out/figma'));
+  for (const b of figBrands) {
+    const dir = resolve(HERE, './out/figma', b);
+    for (const x of readdirSync(dir).filter((y) => /^color\.[a-z-]+\.json$/.test(y))) {
+      const file = JSON.parse(readFileSync(resolve(dir, x), 'utf8'));
+      const vars = file.variables as any[];
+      const root = String(vars[0]?.name ?? '').split('/')[0];
+      const names = vars.map((v) => String(v.name)).filter((n) => n.startsWith(`${root}/color/glass/`)).map((n) => n.slice(`${root}/color/glass/`.length)).sort().join();
+      const want = ['surface', ...Object.keys(BRAND_GLASS[b] ?? {})].sort().join();
+      if (file.$collection !== 'color' || names !== want) figBad.push(`${b}/${x}: collection ${file.$collection}, glass [${names}], want [${want}]`);
+      for (const [name, spec] of Object.entries(BRAND_GLASS[b] ?? {})) {
+        const gv = vars.find((v) => v.name === `${root}/color/glass/${name}`), sv = vars.find((v) => v.name === `${root}/color/${spec.source.replace(/\./g, '/')}`);
+        const same = gv && sv && ['r', 'g', 'b'].every((k) => Math.abs(gv.value[k] - sv.value[k]) < 1e-6);
+        if (!(gv?.alias?.name && /\/core\/palette\/[a-z0-9-]+-alpha\/\d+$/.test(gv.alias.name) && same && Math.abs(gv.value.a - spec.alpha) < 0.005))
+          figBad.push(`${b}/${x}: ${name} → ${gv?.alias?.name ?? 'no alias'} a ${gv?.value?.a}${same ? '' : `, not ${spec.source}'s color`}`);
+      }
+    }
+  }
+  ok(figBrands.length >= 4 && figBrands.includes('nb') && figBad.length === 0,
+    `#3073 Figma: color/glass/<name> is in the color collection exactly for the brands that add it, in every color mode, aliasing a translucent alpha primitive of its source's color${figBad.length ? ` — WRONG: ${figBad.slice(0, 4).join('; ')}` : ''}`);
+
+  // (d) brand-added roles are brand-dependent: the guaranteed contract holds `color.glass.surface` as its only glass
+  // role and no palette alpha family but white/black, and each added role is listed (represented) as brand-dependent.
+  const contract = JSON.parse(readFileSync(resolve(HERE, './schema/token-contract.json'), 'utf8'));
+  const gGlass = Object.keys(contract.guaranteed).filter((p) => p.startsWith('color.glass.'));
+  const gAlpha = Object.keys(contract.guaranteed).filter((p) => /^core\.palette\.[^.]+-alpha\./.test(p) && !/^core\.palette\.(?:white|black)-alpha\./.test(p));
+  const notDependent = Object.values(BRAND_GLASS).flatMap((r) => Object.keys(r)).map((n) => `color.glass.${n}`).filter((p) => !contract.brandDependent.includes(p));
+  ok(gGlass.join() === 'color.glass.surface' && gAlpha.length === 0 && notDependent.length === 0,
+    `#3073 contract: brand-added glass roles are absent from the guaranteed contract (guaranteed glass [${gGlass.join(', ')}]${gAlpha.length ? `, alpha steps ${gAlpha.join(', ')}` : ''}${notDependent.length ? `; not brand-dependent: ${notDependent.join(', ')}` : ''})`);
+
+  // THE INPUTS: the reference brand's legacy fixture and its redesign seed design.md both declare `card`, the card
+  // ground at 70%.
+  const seed = readExampleBrand('./examples/nb-redesign.design.md') as BrandInput & { glassRoles?: unknown };
+  const CARD = JSON.stringify({ card: { role: 'foreground.primary', alpha: 70 } });
+  ok(JSON.stringify(nbTheme().glassRoles) === CARD && JSON.stringify(seed.glassRoles) === CARD,
+    `#3073 Q807 A: the reference brand's legacy fixture and its redesign seed both declare glassRoles.card = foreground.primary at 70% (fixture ${JSON.stringify(nbTheme().glassRoles)}, seed ${JSON.stringify(seed.glassRoles)})`);
+
+  // THE LEVER, in memory, on a brand that does not set it: a palette source mints its alpha step, `glass.surface`
+  // does not move, an override of the source carries to the role, and every malformed input is refused by message.
+  const base = exampleBrands()['prism3'] as BrandInput;
+  const rolesOf = (i: unknown) => resolveAllModes(brandTheme(i as BrandInput));
+  const plain = rolesOf(base), tinted = rolesOf({ ...base, glassRoles: { tint: { palette: 'neutral.100', alpha: 40 } } });
+  const neutral100 = plain.find((m) => m.mode === 'light')!.roles;
+  const tint = tinted.map((m) => [m.mode, m.roles['glass.tint']] as const);
+  const n100 = brandTheme(base).palettes.find((p) => p.palette === 'neutral')!.steps.find((s) => s.key === '100')!;
+  ok(neutral100['glass.tint'] === undefined && tint.every(([, r]) => r?.path.endsWith('.neutral-100-alpha.40') && r.alpha === 0.4 && r.hex.toLowerCase() === hex(n100.rgb).toLowerCase()),
+    `#3073 lever: glassRoles.tint = neutral.100 at 40% resolves to neutral-100-alpha.40, neutral 100's color at 0.4, in every mode, and is absent without the lever (${tint.map(([m, r]) => `${m} ${r?.path?.split('.').slice(-2).join('.')}`).join(', ')})`);
+  const tintTree = buildTree(brandTheme({ ...base, glassRoles: { tint: { palette: 'neutral.100', alpha: 40 } } } as BrandInput)).tree;
+  const tintLeaf = rgba(String(Object.values(tintTree)[0] && (Object.values(tintTree)[0] as any).core?.palette?.['neutral-100-alpha']?.['40']?.$value));
+  ok(!!tintLeaf && tintLeaf.rgb.join() === [n100.rgb.r, n100.rgb.g, n100.rgb.b].join() && Math.abs(tintLeaf.a - 0.4) < 0.005,
+    `#3073 lever: the tree mints core.palette.neutral-100-alpha.40 at neutral 100's color and 40% (${tintLeaf ? `rgba(${tintLeaf.rgb.join(', ')}, ${tintLeaf.a.toFixed(3)})` : 'missing'})`);
+  const surfMoved = plain.flatMap((m) => { const t = tinted.find((x) => x.mode === m.mode)!.roles['glass.surface']; const p = m.roles['glass.surface']; return p.path === t.path && p.hex === t.hex && p.alpha === t.alpha ? [] : [m.mode]; });
+  ok(surfMoved.length === 0, `#3073 lever: adding a glass role leaves glass.surface unchanged in every mode${surfMoved.length ? ` — MOVED: ${surfMoved.join(', ')}` : ''}`);
+  const followed = rolesOf({ ...base, glassRoles: { card: { role: 'foreground.primary', alpha: 70 } }, overrides: { light: { 'foreground.primary': { palette: 'neutral', step: '100' } } } }).find((m) => m.mode === 'light')!.roles['glass.card'];
+  ok(!!followed?.path.endsWith('.neutral-100-alpha.70'), `#3073 lever: a role source follows an override of that role (light foreground.primary → neutral.100 gives ${followed?.path})`);
+  const REFUSED: [string, unknown, RegExp][] = [
+    ['the shipped name', { surface: { palette: 'neutral.100', alpha: 70 } }, /'surface' is the glass role every brand ships/],
+    ['a non-kebab name', { Card: { palette: 'neutral.100', alpha: 70 } }, /lower-case kebab-case/],
+    ['both sources', { card: { role: 'foreground.primary', palette: 'neutral.100', alpha: 70 } }, /exactly one color source/],
+    ['no source', { card: { alpha: 70 } }, /exactly one color source/],
+    ['alpha 0', { card: { palette: 'neutral.100', alpha: 0 } }, /whole percent from 1 to 99/],
+    ['alpha 100', { card: { palette: 'neutral.100', alpha: 100 } }, /whole percent from 1 to 99/],
+    ['a fractional alpha', { card: { palette: 'neutral.100', alpha: 50.5 } }, /whole percent from 1 to 99/],
+    ['an unknown field', { card: { palette: 'neutral.100', alpha: 70, blur: 8 } }, /unknown field/],
+    ['a glass source', { card: { role: 'glass.surface', alpha: 70 } }, /cannot take its color from another glass role/],
+    ['an unknown role', { card: { role: 'foreground.nope', alpha: 70 } }, /is not a color role/],
+    ['a translucent role', { card: { role: 'scrim.default', alpha: 70 } }, /not an opaque palette color/],
+    ['an unknown palette step', { card: { palette: 'nope.100', alpha: 70 } }, /is not a palette step/],
+    ['white off the alpha ramp', { card: { palette: 'white', alpha: 45 } }, /alpha ramp has the steps/],
+  ];
+  const notRefused = REFUSED.filter(([, g, re]) => { try { rolesOf({ ...base, glassRoles: g }); return true; } catch (e) { return !re.test(String((e as Error).message)); } }).map(([what]) => what);
+  ok(notRefused.length === 0, `#3073 lever: every malformed glassRoles input is refused by message (${REFUSED.length} cases)${notRefused.length ? ` — NOT REFUSED: ${notRefused.join(', ')}` : ''}`);
+  let ovMsg = '';
+  try { rolesOf({ ...base, glassRoles: { card: { role: 'foreground.primary', alpha: 70 } }, overrides: { light: { 'glass.card': { palette: 'neutral', step: '100' } } } }); } catch (e) { ovMsg = String((e as Error).message); }
+  ok(/is a brand glass role, set by `glassRoles.card`/.test(ovMsg), `#3073 lever: an override aimed at a brand glass role is refused, pointing at its source (${ovMsg.slice(0, 90) || 'not refused'})`);
+}
+
 // ------------------------------------------------------------------- #2317: the Password field
 // Each owner decision held against a literal (Q301): the 84 members and their exact axes with no visibility axis
 // (Q301.6 A), the anatomy with no trailing slot and the toggle OUTSIDE the box on the label row (Q301.2 B), the toggle's
@@ -37072,6 +37415,91 @@ arm: {
   }
   ok(brands.length >= 5 && ['aurora', 'harbor', 'prism3'].every((b) => brands.includes(`${b}.tokens.json`)) && pinned === brands.length * INVARIANT_PX.length && off.length === 0,
     `#2965 brand-invariant steps: border-width none / hairline / thick / heavy / x-heavy resolve to 0 / 1 / 2 / 4 / 6px and focus.ring width / offset / offset-field to 2 / 2 / 0px in every corpus brand's composed tree, in every mode (${brands.length} brands, ${pinned} leaves; ${off.length} off — ${off.slice(0, 3).join('; ') || 'none'})`);
+}
+
+// ------------------------------------------------------------------- #2942: the link underline
+// Owner Q1–Q6 A, Q800 A, Q801 A (2026-10-27). `typography.underline` sets thickness and offset as shares of the font
+// size; auto emits nothing. Every expected number is typed here: the bounds (thickness 1–20%, offset 0–50%, whole
+// percents), the reference brand's 5% / 25%, and the other brands' absence, read off their COMMITTED files rather than
+// a fresh build, so the subject (`resolveUnderline`, `tree.ts`, `emit-figma-font.ts`, `write-plan.ts`) is never its
+// own oracle (docs/34 shape 1).
+{
+  const U = (underline: unknown): Theme['typography']['underline'] =>
+    brandTheme({ ...MINIMAL_BRAND, typography: { underline } } as BrandInput).typography.underline;
+  // [input, expected thickness %, expected offset %, why]
+  const CLAMP: [unknown, number | 'auto', number | 'auto', string][] = [
+    [{ thickness: 0.05, offset: 0.25 }, 5, 25, 'in range'],
+    [{ thickness: 0.004, offset: -0.3 }, 1, 0, 'below both bounds → 1% and 0%'],
+    [{ thickness: 0.5, offset: 0.9 }, 20, 50, 'above both bounds → 20% and 50%'],
+    [{ thickness: 0.2, offset: 0.5 }, 20, 50, 'exactly at the upper bounds'],
+    [{ thickness: 0.01, offset: 0 }, 1, 0, 'exactly at the lower bounds'],
+    [{ thickness: 0.054, offset: 0.256 }, 5, 26, 'whole percents, rounded'],
+    [{ thickness: 0.07 }, 7, 'auto', 'one field set, the other auto'],
+    [{ thickness: 'auto', offset: 'auto' }, 'auto', 'auto', 'both auto'],
+    [undefined, 'auto', 'auto', 'unset'],
+  ];
+  const clampOff = CLAMP.filter(([inp, t, o]) => { const r = U(inp); return r.thickness !== t || r.offset !== o; })
+    .map(([inp, t, o, why]) => `${why}: ${JSON.stringify(inp)} → ${JSON.stringify(U(inp))} (want ${t}/${o})`);
+  ok(clampOff.length === 0, `#2942 underline clamp: whole percents, thickness 1–20%, offset 0–50%, corrected to the nearest bound, never refused (${CLAMP.length} cases; ${clampOff.join('; ') || 'none off'})`);
+  const clamped = buildTree(brandTheme({ ...MINIMAL_BRAND, typography: { underline: { thickness: 0.5, offset: -1 } } } as BrandInput)).tree;
+  const cf = (clamped as any)[Object.keys(clamped)[0]].core.font.underline;
+  ok(cf?.thickness?.$value === 0.2 && cf?.offset?.$value === 0 && cf?.thickness?.$extensions?.prism3?.figma?.percent === 20 && cf?.offset?.$extensions?.prism3?.figma?.percent === 0,
+    `#2942 underline clamp reaches the tokens: thickness 0.5 → $value 0.2 (PERCENT 20), offset -1 → $value 0 (PERCENT 0) (got ${JSON.stringify([cf?.thickness?.$value, cf?.offset?.$value])})`);
+
+  // OFF: no token, no Figma field, and the plan writes AUTO on every underlined row (nothing on a plain one).
+  const off = brandTheme(MINIMAL_BRAND);
+  const offFont = (buildTree(off).tree as any)[Object.keys(buildTree(off).tree)[0]].core.font;
+  const offStyles = buildFigmaTextStyles(off).styles;
+  const offPlan = buildTextStylePlan(off);
+  const offUl = offPlan.filter((r) => r.textDecoration === 'UNDERLINE');
+  ok(offFont.underline === undefined && offStyles.every((x) => !('textDecorationThickness' in x.properties) && !('textDecorationOffset' in x.properties))
+    && offUl.length > 0 && offUl.every((r) => r.underlineThicknessPct === 'AUTO' && r.underlineOffsetPct === 'AUTO')
+    && offPlan.filter((r) => r.textDecoration === 'NONE').every((r) => !('underlineThicknessPct' in r) && !('underlineOffsetPct' in r)),
+    `#2942 underline off: no core.font.underline token, no text-style field, and every underlined plan row writes AUTO for both (${offUl.length} rows)`);
+
+  // ON, the reference brand: 0.05 / 0.25 as numbers, PERCENT 5 / 25 on every -link style and plan row, nothing on the rest.
+  const ref = nbTheme();
+  const refTree = buildTree(ref).tree as any;
+  const rf = refTree[Object.keys(refTree)[0]].core.font.underline;
+  ok(rf?.thickness?.$type === 'number' && rf.thickness.$value === 0.05 && rf?.offset?.$type === 'number' && rf.offset.$value === 0.25,
+    `#2942 underline on: the reference brand emits core.font.underline.thickness 0.05 and .offset 0.25, $type number (got ${JSON.stringify([rf?.thickness?.$type, rf?.thickness?.$value, rf?.offset?.$type, rf?.offset?.$value])})`);
+  const refPlan = buildTextStylePlan(ref);
+  const refLinks = refPlan.filter((r) => r.name.endsWith('-link'));
+  const refOff = refLinks.filter((r) => r.textDecoration !== 'UNDERLINE' || r.underlineThicknessPct !== 5 || r.underlineOffsetPct !== 25);
+  ok(refLinks.length === 18 && refOff.length === 0 && refPlan.filter((r) => !r.name.endsWith('-link')).every((r) => r.textDecoration === 'NONE' && !('underlineThicknessPct' in r)),
+    `#2942 underline on: the reference brand's 18 -link plan rows write PERCENT 5 / 25, and no plain row carries either (${refLinks.length} rows; ${refOff.length} off)`);
+
+  // OTHER BRANDS UNCHANGED: their committed emission carries no underline token and no underline field. Read from disk.
+  const others = ['aurora', 'harbor', 'prism3', 'wendys'];
+  const leaked: string[] = [];
+  for (const b of others) {
+    const tok = readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8');
+    if (/"underline":\s*\{\s*"(thickness|offset)"/.test(tok)) leaked.push(`${b}.tokens.json`);
+    const ts = resolve(HERE, `./out/figma/${b}/text-styles.json`);
+    if (existsSync(ts) && /textDecoration(Thickness|Offset)/.test(readFileSync(ts, 'utf8'))) leaked.push(`figma/${b}/text-styles.json`);
+  }
+  ok(leaked.length === 0 && existsSync(resolve(HERE, './out/figma/aurora/text-styles.json')),
+    `#2942 underline: every other brand's committed tokens and text styles are untouched — no underline token, no thickness or offset field (${others.join(', ')}; ${leaked.join(', ') || 'none leaked'})`);
+  const committedNb = JSON.parse(readFileSync(resolve(HERE, './out/figma/nb/text-styles.json'), 'utf8')) as { styles: { name: string; properties: Record<string, any> }[] };
+  const nbFile = committedNb.styles.filter((x) => x.name.endsWith('-link'));
+  ok(nbFile.length === 18 && nbFile.every((x) => JSON.stringify(x.properties.textDecorationThickness) === JSON.stringify({ bindable: false, value: { unit: 'PERCENT', value: 5 } })
+    && JSON.stringify(x.properties.textDecorationOffset) === JSON.stringify({ bindable: false, value: { unit: 'PERCENT', value: 25 } })),
+    `#2942 underline: the reference brand's committed text-styles.json carries PERCENT 5 / 25 on all 18 -link styles (${nbFile.length})`);
+  // And on nothing else: a style that is not underlined carries neither field (the reviewer's R1, #3075).
+  const plainCarry = committedNb.styles.filter((x) => x.properties.textDecoration?.value !== 'UNDERLINE' && ('textDecorationThickness' in x.properties || 'textDecorationOffset' in x.properties));
+  ok(committedNb.styles.length > nbFile.length && plainCarry.length === 0,
+    `#2942 underline: no style in the reference brand's committed text-styles.json that is not underlined carries a thickness or offset (${committedNb.styles.length - nbFile.length} plain; ${plainCarry.length} carry one${plainCarry.length ? `: ${plainCarry.slice(0, 3).map((x) => x.name).join(', ')}` : ''})`);
+
+  // THE PASTE PATH: run its text-styles pass into the file shim and read the styles back.
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<{ skipped: unknown[] }>;
+  const shim = new FileShim();
+  shim.faces = refPlan.map((r) => ({ family: r.fontFamilyPrimary, style: r.fontStyle }));
+  const pasted = await new AsyncFunction('figma', passJs('nb', 'text-styles'))(shim);
+  const pLinks = (shim.styles.text as any[]).filter((x) => x.name.endsWith('-link'));
+  const pOff = pLinks.filter((x) => JSON.stringify(x.textDecorationThickness) !== JSON.stringify({ unit: 'PERCENT', value: 5 }) || JSON.stringify(x.textDecorationOffset) !== JSON.stringify({ unit: 'PERCENT', value: 25 }));
+  const pPlain = (shim.styles.text as any[]).filter((x) => !x.name.endsWith('-link') && ('textDecorationThickness' in x || 'textDecorationOffset' in x));
+  ok(pasted.skipped.length === 0 && pLinks.length === 18 && pOff.length === 0 && pPlain.length === 0,
+    `#2942 underline, paste path: the reference brand's 18 pasted -link styles read PERCENT 5 / 25, and no plain style has either field (${pLinks.length} links; ${pOff.length} off; ${pPlain.length} plain touched)`);
 }
 
 // ------------------------------------------------------------------- report

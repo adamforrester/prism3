@@ -2343,6 +2343,32 @@
               }
             }
           }
+        },
+        "neutral-050-alpha": {
+          "70": {
+            "$type": "color",
+            "$value": "rgba(232, 233, 234, 0.7)",
+            "$description": "neutral.050 at 70% — alpha, a glass fill the brand adds",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "alpha": 0.7
+              }
+            }
+          }
+        },
+        "neutral-900-alpha": {
+          "70": {
+            "$type": "color",
+            "$value": "rgba(21, 23, 25, 0.7)",
+            "$description": "neutral.900 at 70% — alpha, a glass fill the brand adds",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "alpha": 0.7
+              }
+            }
+          }
         }
       },
       "dimension": {
@@ -3973,6 +3999,42 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "nbds.core.font.letter-spacing.50"
+              }
+            }
+          }
+        },
+        "underline": {
+          "thickness": {
+            "$type": "number",
+            "$value": 0.05,
+            "$description": "Link underline thickness: 5% of the font size (0.05em in CSS). Every underlined text style draws it.",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "unitless": true,
+                "figma": {
+                  "kind": "style-part",
+                  "field": "textDecorationThickness",
+                  "unit": "PERCENT",
+                  "percent": 5
+                }
+              }
+            }
+          },
+          "offset": {
+            "$type": "number",
+            "$value": 0.25,
+            "$description": "Link underline offset, below the baseline: 25% of the font size (0.25em in CSS). Every underlined text style draws it.",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "unitless": true,
+                "figma": {
+                  "kind": "style-part",
+                  "field": "textDecorationOffset",
+                  "unit": "PERCENT",
+                  "percent": 25
+                }
               }
             }
           }
@@ -10315,6 +10377,48 @@
                   "contrast": 1,
                   "against": "self",
                   "description": "Glass — the translucent black fill behind the glass background blur; opacity 90%"
+                }
+              },
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ]
+              }
+            }
+          }
+        },
+        "card": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.neutral-050-alpha.70}",
+          "$description": "Glass card — foreground.primary's color at 70% behind the glass background blur, a glass fill this brand adds",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.core.palette.neutral-050-alpha.70",
+              "contrast": 1,
+              "against": "self",
+              "modes": {
+                "dark": {
+                  "$value": "{nbds.core.palette.neutral-900-alpha.70}",
+                  "aliasOf": "nbds.core.palette.neutral-900-alpha.70",
+                  "contrast": 1,
+                  "against": "self"
+                },
+                "hc-light": {
+                  "$value": "{nbds.core.palette.white-alpha.70}",
+                  "aliasOf": "nbds.core.palette.white-alpha.70",
+                  "contrast": 1,
+                  "against": "self"
+                },
+                "hc-dark": {
+                  "$value": "{nbds.core.palette.black-alpha.70}",
+                  "aliasOf": "nbds.core.palette.black-alpha.70",
+                  "contrast": 1,
+                  "against": "self"
                 }
               },
               "figma": {
@@ -18150,7 +18254,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -18227,7 +18333,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -18306,7 +18414,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -18383,7 +18493,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -18462,7 +18574,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -18539,7 +18653,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -18618,7 +18734,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -18695,7 +18813,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -18776,7 +18896,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -18853,7 +18975,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -18943,7 +19067,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -19020,7 +19146,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -19110,7 +19238,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -19187,7 +19317,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -19279,7 +19411,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -19356,7 +19490,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -19435,7 +19571,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -19512,7 +19650,9 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing",
-                    "textDecoration"
+                    "textDecoration",
+                    "textDecorationThickness",
+                    "textDecorationOffset"
                   ]
                 }
               }
@@ -21438,7 +21578,7 @@
       "decisions": [
         "reference brand: anchors measured from the shipped system; the brand red also serves as danger, since the brand hue is its danger hue.",
         "dimensions: 4px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius 4px).",
-        "typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900.",
+        "typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900; link underline 5% thick, 25% offset, as the reference sets it.",
         "shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference's heavier dark shadows.",
         "layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale, except the md margin: 44px, as the reference sets it, which is not a spacing step, so it links to core dimension 44."
       ]

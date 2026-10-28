@@ -9818,6 +9818,276 @@
         }
       ]
     },
+    "wallet-button": {
+      "id": "wallet-button",
+      "name": "WalletButton",
+      "members": 20,
+      "axes": [
+        {
+          "name": "provider",
+          "figmaName": "provider",
+          "values": [
+            "apple-pay",
+            "google-pay",
+            "paypal",
+            "shop-pay"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "focus-visible"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 20
+        },
+        {
+          "part": "container/mark",
+          "kind": "instance",
+          "members": 20
+        },
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "members": 10,
+          "when": {
+            "state": [
+              "focus-visible"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.lg"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "provider",
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "provider": "apple-pay",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple-pay",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google-pay",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google-pay",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "shop-pay",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "shop-pay",
+            "state": "focus-visible"
+          },
+          "parts": []
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/mark",
+          "kind": "instance",
+          "component": "brand-mark",
+          "variant": {
+            "name": "logo/apple-pay"
+          },
+          "when": {
+            "provider": {
+              "apple-pay": {
+                "name": "logo/apple-pay"
+              },
+              "google-pay": {
+                "name": "logo/google-pay"
+              },
+              "paypal": {
+                "name": "logo/paypal-wordmark"
+              },
+              "shop-pay": {
+                "name": "logo/shop-pay"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "component": "focus-ring",
+          "variant": {
+            "surface": "default"
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": []
+    },
     "icon-button": {
       "id": "icon-button",
       "name": "IconButton",
@@ -28132,7 +28402,7 @@
     "divider": {
       "id": "divider",
       "name": "Divider",
-      "members": 5,
+      "members": 6,
       "axes": [
         {
           "name": "orientation",
@@ -28152,6 +28422,15 @@
             "middle-inset"
           ],
           "kind": "variant"
+        },
+        {
+          "name": "labeled",
+          "figmaName": "labeled",
+          "values": [
+            "false",
+            "true"
+          ],
+          "kind": "variant"
         }
       ],
       "codeOnlyStates": [],
@@ -28159,23 +28438,60 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 5
+          "members": 6
         },
         {
           "part": "container/rule",
           "kind": "frame",
-          "members": 5
+          "members": 5,
+          "when": {
+            "labeled": [
+              "false"
+            ]
+          }
+        },
+        {
+          "part": "container/leadingRule",
+          "kind": "frame",
+          "members": 1,
+          "when": {
+            "labeled": [
+              "true"
+            ]
+          }
+        },
+        {
+          "part": "container/label",
+          "kind": "text",
+          "members": 1,
+          "when": {
+            "labeled": [
+              "true"
+            ]
+          }
+        },
+        {
+          "part": "container/trailingRule",
+          "kind": "frame",
+          "members": 1,
+          "when": {
+            "labeled": [
+              "true"
+            ]
+          }
         }
       ],
       "redlineKey": [
         "orientation",
-        "inset"
+        "inset",
+        "labeled"
       ],
       "redlines": [
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28192,6 +28508,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.300"
                 },
                 "height": {
                   "token": "border-width.hairline"
@@ -28206,7 +28525,59 @@
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "inset"
+            "inset": "none",
+            "labeled": "true"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.300"
+                },
+                "height": {
+                  "token": "type.label.md.line-box"
+                },
+                "width": {
+                  "token": "container.narrow"
+                }
+              }
+            },
+            {
+              "part": "container/leadingRule",
+              "values": {
+                "height": {
+                  "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/trailingRule",
+              "values": {
+                "height": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28223,6 +28594,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.300"
                 },
                 "height": {
                   "token": "border-width.hairline"
@@ -28237,7 +28611,8 @@
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "middle-inset"
+            "inset": "middle-inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28254,6 +28629,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.300"
                 },
                 "height": {
                   "token": "border-width.hairline"
@@ -28268,7 +28646,8 @@
         {
           "where": {
             "orientation": "vertical",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28285,6 +28664,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.300"
                 },
                 "height": {
                   "token": "size.md.height"
@@ -28299,7 +28681,8 @@
         {
           "where": {
             "orientation": "vertical",
-            "inset": "middle-inset"
+            "inset": "middle-inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28316,6 +28699,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.300"
                 },
                 "height": {
                   "token": "size.md.height"
@@ -28332,18 +28718,25 @@
       "type": [
         {
           "where": {},
-          "parts": []
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.label.md.default"
+            }
+          ]
         }
       ],
       "colorKey": [
         "orientation",
-        "inset"
+        "inset",
+        "labeled"
       ],
       "colors": [
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28355,7 +28748,29 @@
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "inset"
+            "inset": "none",
+            "labeled": "true"
+          },
+          "parts": [
+            {
+              "part": "container/leadingRule",
+              "fill": "color.border.secondary"
+            },
+            {
+              "part": "container/label",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/trailingRule",
+              "fill": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28367,7 +28782,8 @@
         {
           "where": {
             "orientation": "horizontal",
-            "inset": "middle-inset"
+            "inset": "middle-inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28379,7 +28795,8 @@
         {
           "where": {
             "orientation": "vertical",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28391,7 +28808,8 @@
         {
           "where": {
             "orientation": "vertical",
-            "inset": "middle-inset"
+            "inset": "middle-inset",
+            "labeled": "false"
           },
           "parts": [
             {
@@ -28402,7 +28820,13 @@
         }
       ],
       "nesting": [],
-      "properties": []
+      "properties": [
+        {
+          "name": "label",
+          "type": "TEXT",
+          "default": "Or"
+        }
+      ]
     },
     "_accordion-indicator": {
       "id": "_accordion-indicator",
@@ -29486,7 +29910,8 @@
           "component": "divider",
           "variant": {
             "orientation": "horizontal",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "follows": [],
           "exposes": []
@@ -35127,7 +35552,8 @@
           "component": "divider",
           "variant": {
             "orientation": "horizontal",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "follows": [],
           "exposes": []
@@ -35143,7 +35569,8 @@
           "component": "divider",
           "variant": {
             "orientation": "horizontal",
-            "inset": "none"
+            "inset": "none",
+            "labeled": "false"
           },
           "follows": [],
           "exposes": []

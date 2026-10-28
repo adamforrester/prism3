@@ -781,11 +781,12 @@ const COLOR_SUBS = ['[data-p3="color-sub-palettes"]', '[data-p3="color-sub-fills
 /** The plugin's own top-bar controls (S1.4): the Agent chip (IA-3), the Figma menu, and Apply Theme. (The Pages menu
  *  went with the old Style guide page in H12, #2289, owner PG1 A; section 26 holds its absence on both hosts.) */
 /** #2909 IA v2 phase 1 (the owner's decisions of 2026-10-24, round-4 wireframe): the plugin's shell is the left rail. Its
- *  four areas in order, then its foot (Agent, Help, Appearance); the top bar holds the brand switcher and Update file
- *  (and Minimize, link on or off, the owner's direction of 2026-10-24), and the levers header its search. The Figma menu, Apply Theme, the bar's
+ *  four areas in order, then its foot (Minimize, Help, Appearance); the top bar holds the brand switcher, the Agent tile
+ *  and Update file, and the levers header its search. Q731 (the owner, 2026-10-26) swapped Agent and Minimize: Agent
+ *  was at the rail's foot and Minimize (link on or off, the owner's direction of 2026-10-24) on the bar. The Figma menu, Apply Theme, the bar's
  *  Activity, Export and Docs tiles and the bar's product mark are gone from the plugin. Authored from the wireframe. */
 const FIGMA_RAIL_AREAS = ['[data-p3="rail-theme"]', '[data-p3="rail-components"]', '[data-p3="rail-documentation"]', '[data-p3="rail-export"]'];
-const FIGMA_RAIL_FOOT = ['[data-p3="agent-toggle"]', '[data-p3="docs-open"]', '[data-p3="theme-toggle"]'];
+const FIGMA_RAIL_FOOT = ['[data-p3="agent-minimize"]', '[data-p3="docs-open"]', '[data-p3="theme-toggle"]'];
 const FIGMA_RAIL = [...FIGMA_RAIL_AREAS, ...FIGMA_RAIL_FOOT];
 /** #2909 IA v2 phase 2 (Q2909.9 A): the web studio gets the same rail, with Theme, Components and Export only, and Help
  *  and Appearance at its foot (no Agent: the web has no link). Its bar holds the brand switcher alone (no Update file,
@@ -794,8 +795,8 @@ const WEB_RAIL_AREAS = ['[data-p3="rail-theme"]', '[data-p3="rail-components"]',
 const WEB_RAIL_FOOT = ['[data-p3="docs-open"]', '[data-p3="theme-toggle"]'];
 const WEB_RAIL = [...WEB_RAIL_AREAS, ...WEB_RAIL_FOOT];
 const WEB_BAR = ['[data-p3="brand-switcher"]', '[data-p3="search-open"]'];
-// Minimize is on the top bar whether the link is on or off (the owner's direction on #2909, 2026-10-24).
-const FIGMA_BAR = ['[data-p3="brand-switcher"]', '[data-p3="agent-minimize"]', '[data-p3="update-file"]', '[data-p3="search-open"]'];
+// Q731 (2026-10-26): the Agent tile is on the top bar, in the place Minimize held; Minimize is at the rail's foot.
+const FIGMA_BAR = ['[data-p3="brand-switcher"]', '[data-p3="agent-toggle"]', '[data-p3="update-file"]', '[data-p3="search-open"]'];
 /** On the rail the tab row is Theme's pages alone: Components is an area (Q2909.1 A, Q2909.21 A). */
 const FIGMA_TABS = TABS;
 const EXPECT_CONTROLS = {
@@ -817,7 +818,7 @@ const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base
   '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
-  '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="fills-continue"]'];
+  '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="glass-role-add"]', '[data-p3="fills-continue"]'];
 /** Color › Interactive in the two panes (S5.2): the controls its levers must render, by hook, at the top of the
  *  levers (the jump links, then Actions; the rest of the page is section 19's). */
 const INTERACTIVE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="interactive-jump-link"]', '[data-p3="action-palette-select"]',
@@ -882,9 +883,9 @@ const FOCUS_STOPS = {
   // Q2909.9 A: the web's rail tiles, then the bar's brand switcher; Contrast in the preview header.
   'web wide': [...WEB_RAIL, '[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
   'web narrow': [...WEB_RAIL, '[data-p3="brand-switcher"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  // #2909: the rail's tiles, then the bar's brand switcher and Update file; Contrast in the preview header.
-  'figma wide': [...FIGMA_RAIL, '[data-p3="brand-switcher"]', '[data-p3="update-file"]', '[data-p3="verdict"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  'figma narrow': [...FIGMA_RAIL, '[data-p3="brand-switcher"]', '[data-p3="update-file"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  // #2909: the rail's tiles, then the bar's brand switcher, Agent (Q731) and Update file; Contrast in the preview header.
+  'figma wide': [...FIGMA_RAIL, '[data-p3="brand-switcher"]', '[data-p3="agent-toggle"]', '[data-p3="update-file"]', '[data-p3="verdict"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  'figma narrow': [...FIGMA_RAIL, '[data-p3="brand-switcher"]', '[data-p3="agent-toggle"]', '[data-p3="update-file"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
 };
 const PLACE_FLOOR = { text: 9, edges: 10, glyphs: 3, controls: 12, fonts: 9 };
 /** Inspect at 380: the tab row is a select and the bar is glyphs, so fewer chrome words are drawn. */
@@ -1696,6 +1697,7 @@ if (runs('1')) for (const host of ['web', 'figma']) {
             rail: vis(rail), width: r ? Math.round(r.width) : 0, left: r ? Math.round(r.left) : -1, frameLeft: Math.round(frame.left),
             order: tiles.map((t) => t.getAttribute('data-p3')), names: tiles.map((t) => t.getAttribute('aria-label')),
             labels: tiles.map((t) => vis(t.querySelector('.p3-tile-label'))),
+            texts: tiles.map((t) => t.querySelector('.p3-tile-label')?.textContent ?? null),
             icons: tiles.map((t) => [...t.querySelectorAll('.p3-tile-mark svg')].map((g) => g.dataset.glyph ?? '?').join('+')),
             current: cur?.getAttribute('data-p3') ?? null,
             curBg: cur ? getComputedStyle(cur.querySelector('.p3-tile-mark')).backgroundColor : null,
@@ -1703,28 +1705,40 @@ if (runs('1')) for (const host of ['web', 'figma']) {
               logoHidden: mark?.querySelector('.logo')?.getAttribute('aria-hidden') === 'true', control: !!mark && (mark.matches('button, a[href], [tabindex]') || !!mark.querySelector('button, a[href], [tabindex]')) },
             // The bar's old mark was an image named "Prism3 Studio"; none is drawn there now, on either host.
             barMark: document.querySelectorAll('[data-p3="top-bar"] [role="img"]').length,
+            // The rail polish (owner, 2026-10-26): each tile's mark and icon box, and its label's size, tracking and box.
+            geo: tiles.map((t) => {
+              const box = (n) => { const b = n?.getBoundingClientRect(); return b ? { l: b.left, r: b.right, t: b.top, b: b.bottom, w: b.width, h: b.height } : null; };
+              const lab = t.querySelector('.p3-tile-label');
+              const cs = lab ? getComputedStyle(lab) : null;
+              return { hook: t.getAttribute('data-p3'), mark: box(t.querySelector('.p3-tile-mark')), icon: box(t.querySelector('.p3-tile-mark svg')),
+                fs: cs?.fontSize ?? null, ls: cs?.letterSpacing ?? null, lh: cs ? parseFloat(cs.lineHeight) : null, label: box(lab),
+                sw: lab?.scrollWidth ?? 0, cw: lab?.clientWidth ?? 0, sh: lab?.scrollHeight ?? 0, ch: lab?.clientHeight ?? 0 };
+            }),
+            railBox: r ? { l: r.left, r: r.right } : null,
           };
         });
         // Q2909.9 A: the web's rail is Theme, Components and Export, then Help and Appearance: no Documentation (no file to
-        // document) and no Agent (no link). MUTATION: Documentation back on the web's rail (`railAreas` returning every
-        // area) → this arm, by name, at every web width and theme.
+        // document) and no Minimize (no window to shrink). MUTATION: Documentation back on the web's rail (`railAreas`
+        // returning every area) → this arm, by name, at every web width and theme. Q731 (the owner, 2026-10-26): the
+        // plugin's foot opens with Minimize, where the Agent tile was. MUTATION: `agent` back in the rail's `foot` and
+        // `minimize` back on the bar in `frame.ts` → this arm, by name, at every plugin width and theme.
         const web = host === 'web';
         const ORDER = web ? ['rail-theme', 'rail-components', 'rail-export', 'docs-open', 'theme-toggle']
-          : ['rail-theme', 'rail-components', 'rail-documentation', 'rail-export', 'agent-toggle', 'docs-open', 'theme-toggle'];
-        const NAMES = web ? ['Theme', 'Components', 'Export', 'Help'] : ['Theme', 'Components', 'Documentation', 'Export', 'Agent', 'Help'];
+          : ['rail-theme', 'rail-components', 'rail-documentation', 'rail-export', 'agent-minimize', 'docs-open', 'theme-toggle'];
+        const NAMES = web ? ['Theme', 'Components', 'Export', 'Help'] : ['Theme', 'Components', 'Documentation', 'Export', 'Minimize', 'Help'];
         ok(rl.rail && rl.width === 60 && rl.left === 0 && rl.frameLeft >= 60, `rail ${where}: the left rail is drawn at the window's left edge, 60px wide, and the frame starts after it (${JSON.stringify({ rail: rl.rail, width: rl.width, left: rl.left, frameLeft: rl.frameLeft })})`);
         ok(JSON.stringify(rl.order) === JSON.stringify(ORDER), web ? `rail ${where}: Theme, Components, Export, then Help and Appearance, in that order: no Documentation and no Agent on the web (Q2909.9 A) (${rl.order.join(', ')})`
-          : `rail ${where}: Theme, Components, Documentation, Export, then Agent, Help and Appearance, in that order (${rl.order.join(', ')})`);
+          : `rail ${where}: Theme, Components, Documentation, Export, then Minimize at the foot where Agent was (Q731), Help and Appearance, in that order (${rl.order.join(', ')})`);
         ok(JSON.stringify(rl.names.slice(0, NAMES.length)) === JSON.stringify(NAMES) && /^Appearance: /.test(rl.names[NAMES.length] ?? ''),
           `rail ${where}: each tile is named in full (${rl.names.join(', ')})`);
         // #2995 (should-fix 1): each tile draws the icon the owner chose in Q2909.19 A, written here from the decision's own
         // words, not read from `pages.ts`, `dom.ts` or `theme.ts`: three swatches, four diamonds, a ruled page, an arrow up out
-        // of a tray, a chain link, a question mark in a circle. Appearance, amended by Q2995.3 B, draws the current choice's
+        // of a tray, the collapse arrows (Minimize, since Q731), a question mark in a circle. Appearance, amended by Q2995.3 B, draws the current choice's
         // glyph: a monitor (`system`) for Match Figma, the default here, a sun for light, a moon for dark; the sweep below
         // chooses each in turn. The web (Q2909.9 A) draws five of the tiles, and its default is System, also a monitor.
         // MUTATION: the fixed half-filled circle back (`glyph(cur.glyph)` → `glyph('halfmoon')` in
         // `frame.ts` `themeToggle`) → this arm and the sweep's, by name, at every width and theme.
-        const Q2909_19_A = web ? ['swatches', 'diamonds', 'send', 'help', 'system'] : ['swatches', 'diamonds', 'page', 'send', 'link', 'help', 'system'];
+        const Q2909_19_A = web ? ['swatches', 'diamonds', 'send', 'help', 'system'] : ['swatches', 'diamonds', 'page', 'send', 'collapse', 'help', 'system'];
         ok(JSON.stringify(rl.icons) === JSON.stringify(Q2909_19_A),
           `rail ${where}: each tile draws its Q2909.19 A icon by name, Appearance the current choice's (${web ? 'System' : 'Match Figma'}, a monitor; Q2995.3 B) (${rl.order.map((o, i) => `${o}=${rl.icons[i]}`).join(', ')})`);
         const Q2995_3_B = [['[data-p3="theme-option-light"]', 'Light', 'sun'], ['[data-p3="theme-option-dark"]', 'Dark', 'moon'], web ? ['[data-p3="theme-option-system"]', 'System', 'system'] : ['[data-p3="theme-option-figma"]', 'Match Figma', 'system']];
@@ -1744,6 +1758,34 @@ if (runs('1')) for (const host of ['web', 'figma']) {
         ok(JSON.stringify(looks) === JSON.stringify(want),
           `rail ${where}: Appearance draws the current choice's glyph by name, its name and tooltip the choice (Q2995.3 B): ${Q2995_3_B.map(([, n, g], k) => `${n} wants ${g}, drew ${looks[k]?.icon} ("${looks[k]?.name}")`).join('; ')}`);
         ok(rl.labels.length === ORDER.length && rl.labels.every(Boolean), `rail ${where}: every tile shows its label, at this width too (Q2909.16 A) (${JSON.stringify(rl.labels)})`);
+        // Q732 A (the owner, 2026-10-26): no manual hyphen in a rail label; "Components" and "Appearance" read whole. Any
+        // hyphen, dash or soft hyphen counts. MUTATION: `Compo-nents` back in `pages.ts` → this arm, by name, on both hosts.
+        const hyphened = rl.texts.filter((t) => t === null || /[-\u00ad\u2010\u2011]/.test(t));
+        ok(hyphened.length === 0 && rl.texts.includes('Components') && rl.texts.includes('Appearance'),
+          `rail ${where}: no rail label contains a hyphen, "Components" and "Appearance" whole (Q732 A) (${JSON.stringify(rl.texts)})`);
+        // The rail polish (the owner's hands-on look, 2026-10-26, #2909). Literals, from the owner's words, never read from
+        // `chrome.css` or the token map. MUTATIONS, each failing its arm by name: the label rule's `font-size` back to
+        // `--p3-fs-12` → `… every rail label renders at 9px …`; its `letter-spacing` dropped → `… at -0.01em …`; the icon rule
+        // dropped → `… every rail icon renders 24 × 24 …`; the mark's `height` back to `min-height: ctl-h-xs` → `… inside a square mark …`.
+        const RAIL_LABEL_PX = 9, RAIL_LABEL_EM = -0.01, RAIL_ICON = 24;
+        const badLabel = rl.geo.filter((g) => g.fs !== `${RAIL_LABEL_PX}px`);
+        ok(rl.geo.length === ORDER.length && badLabel.length === 0, `rail ${where}: every rail label renders at ${RAIL_LABEL_PX}px (${badLabel.map((g) => `${g.hook} ${g.fs}`).join(', ') || 'all'})`);
+        // A computed `normal` reads as NaN, which compares false: so a value that is not a number fails, rather than passes.
+        const badTrack = rl.geo.filter((g) => { const em = parseFloat(g.ls) / parseFloat(g.fs); return !Number.isFinite(em) || Math.abs(em - RAIL_LABEL_EM) > 0.0005; });
+        ok(rl.geo.length === ORDER.length && badTrack.length === 0, `rail ${where}: every rail label tracks at ${RAIL_LABEL_EM}em (${badTrack.map((g) => `${g.hook} ${g.ls}`).join(', ') || 'all'})`);
+        const badIcon = rl.geo.filter((g) => !g.icon || Math.abs(g.icon.w - RAIL_ICON) > 0.5 || Math.abs(g.icon.h - RAIL_ICON) > 0.5);
+        ok(rl.geo.length === ORDER.length && badIcon.length === 0, `rail ${where}: every rail icon renders ${RAIL_ICON} × ${RAIL_ICON} (${badIcon.map((g) => `${g.hook} ${g.icon?.w}×${g.icon?.h}`).join(', ') || 'all'})`);
+        const badMark = rl.geo.filter((g) => !g.mark || !g.icon || Math.abs(g.mark.w - g.mark.h) > 0.5 || g.mark.w < RAIL_ICON
+          || g.icon.l < g.mark.l - 0.5 || g.icon.r > g.mark.r + 0.5 || g.icon.t < g.mark.t - 0.5 || g.icon.b > g.mark.b + 0.5);
+        ok(rl.geo.length === ORDER.length && badMark.length === 0, `rail ${where}: every rail icon sits inside a square mark, never a landscape one (${badMark.map((g) => `${g.hook} ${g.mark?.w}×${g.mark?.h}`).join(', ') || 'all'})`);
+        // No label clips or wraps at 9px: one line (its box no taller than its line height), nothing scrolled, inside the rail.
+        const badFit = rl.geo.filter((g) => !g.label || g.label.h > g.lh + 0.5 || g.sw > g.cw || g.sh > g.ch + 0.5 || !rl.railBox || g.label.l < rl.railBox.l - 0.5 || g.label.r > rl.railBox.r + 0.5);
+        ok(rl.geo.length === ORDER.length && badFit.length === 0, `rail ${where}: every rail label fits on one line inside the rail, unclipped (${badFit.map((g) => `${g.hook} ${g.label?.w}×${g.label?.h} (line ${g.lh})`).join(', ') || 'all'})`);
+        // Theme's tab row (the owner, 2026-10-26): one step more on the spacing scale, `space.150` (12px) to `space.200`
+        // (16px), wherever the row is drawn (wide; narrow it is a select). MUTATION: the gap back to `--p3-space-150` →
+        // this arm, by name, at 1280 and 640 on both hosts.
+        const tabGap = await page.evaluate(() => { const t = document.querySelector('[data-p3="frame"] .p3-nav .p3-tabs'); return t && t.getBoundingClientRect().width > 0 && getComputedStyle(t).display !== 'none' ? getComputedStyle(t).columnGap : null; });
+        if (w > 560) ok(tabGap === '16px', `rail ${where}: the Theme tab row's gap is 16px, one step up from 12px (read ${tabGap})`);
         ok(rl.current === 'rail-theme' && hexOfRgb(rl.curBg) === RAIL_SELECTED[theme], `rail ${where}: Theme is the current area, its tile filled with the inset role (${RAIL_SELECTED[theme]}) (${rl.current}, ${rl.curBg})`);
         // Q2995.2 A (#2909): at the plugin's least height (420) the logo hides so every tile keeps its label; elsewhere it shows.
         // The web's rail (five tiles, Q2909.9 A) fits at 420 with its logo, so only the plugin's hides it there.
@@ -2600,11 +2642,15 @@ for (const host of ['web', 'figma']) {
         // click posts the same `agent-link` request the old popover's switch did; the main thread's published state is
         // what the tile shows: the fixed name "Agent" (a toggle, Q44), aria-pressed false or true, and a green dot only while on.
         const agentState = () => page.evaluate(() => {
-          const c = document.querySelector('[data-p3="rail-foot"] [data-p3="bar-agent"] [data-p3="agent-toggle"]');
+          const c = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-toggle"]');
           const dot = c?.querySelector('[data-p3="agent-dot"]');
           const lab = c?.querySelector('.p3-tile-label');
           const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none' && getComputedStyle(n).visibility !== 'hidden'; };
-          return { inBar: !!c, name: c?.getAttribute('aria-label') ?? null, pressed: c?.getAttribute('aria-pressed') ?? null, dot: vis(dot), label: vis(lab) ? lab.textContent : null,
+          // Q731: where it sits on the bar, after the brand switcher and before Update file, and never on the rail.
+          const upd = document.querySelector('[data-p3="top-bar"] [data-p3="update-file"]'), brand = document.querySelector('[data-p3="top-bar"] [data-p3="brand-switcher"]');
+          const after = (a, b) => !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING);
+          return { inBar: !!c, onRail: !!document.querySelector('[data-p3="rail"] [data-p3="agent-toggle"]'), afterBrand: after(c, brand), beforeUpdate: after(upd, c),
+            name: c?.getAttribute('aria-label') ?? null, pressed: c?.getAttribute('aria-pressed') ?? null, dot: vis(dot), label: vis(lab) ? lab.textContent : null,
             tip: c?.querySelector('[data-p3="agent-toggle-tip"]')?.textContent ?? null };
         });
         const chip = await page.evaluate(() => {
@@ -2614,16 +2660,19 @@ for (const host of ['web', 'figma']) {
           const strip = document.querySelector('[data-p3="agent-strip"]');
           const outside = [...document.body.querySelectorAll('*')].filter((e) => !frame.contains(e) && !e.contains(frame) && !strip?.contains(e) && !['SCRIPT', 'STYLE'].includes(e.tagName));
           return {
-            inBar: !!document.querySelector('[data-p3="rail-foot"] [data-p3="bar-agent"] [data-p3="agent-toggle"]'),
+            inBar: !!document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-toggle"]'),
             old: !!document.querySelector('#p3-agent-link'), popover: !!document.querySelector('.p3-agent-chip, .p3-agent-pop'),
             strays: outside.filter((e) => /agent/i.test(e.textContent ?? '') || e.querySelector('button')).map((e) => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ''}`),
           };
         });
         const a0 = await agentState();
-        // #2909: the Agent tile sits in the rail's foot, its label kept at every width (Q2909.16 A).
-        ok(a0.inBar && a0.name === 'Agent' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent' && a0.label === 'Agent',
-          `T7 ${where}: the Agent tile sits in the rail foot's Agent slot, named "Agent", aria-pressed false, no dot, labelled "Agent" (${JSON.stringify(a0)})`);
-        hooks.absent(ok, { seen: chip.inBar, state: 'the Agent tile in the rail' }, !chip.old && !chip.popover && chip.strays.length === 0,
+        // Q731 (the owner, 2026-10-26): the Agent tile sits on the top bar, in the place Minimize held before the rail polish
+        // (after the brand switcher, before Update file), and not on the rail. Its label shows where the bar's tiles show
+        // theirs (S13.1 holds which), so it is not read here. MUTATION: `agent` back in the rail's `foot` and `minimize` back
+        // on the bar in `frame.ts` → this arm, by name, at every width and theme.
+        ok(a0.inBar && !a0.onRail && a0.afterBrand && a0.beforeUpdate && a0.name === 'Agent' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent',
+          `Q731 ${where}: the Agent tile sits on the top bar, after the brand switcher and before Update file, where Minimize was, never on the rail; named "Agent", aria-pressed false, no dot (${JSON.stringify(a0)})`);
+        hooks.absent(ok, { seen: chip.inBar, state: 'the Agent tile on the top bar' }, !chip.old && !chip.popover && chip.strays.length === 0,
           `D6 ${where}: the old chips are gone — no bottom-left chip, no Agent chip or popover, and nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'}, chip or popover ${chip.popover ? 'present' : 'absent'})`);
         const slot = await page.evaluate(() => { const s0 = document.querySelector('[data-p3="bar-agent"]'); s0.__p3Mark = 'slot'; return true; });
         // A re-render of the bar (the brand menu opening and closing; the Pages menu did this until H12, #2289) keeps the
@@ -2665,23 +2714,75 @@ for (const host of ['web', 'figma']) {
         // draws the strip alone, its line in the Activity drawer's words plus the command and its age, whole at the
         // strip's size (480×40, the size `main.ts` resizes to), with Restore and Turn off; restored, the same frame node
         // is drawn again. The window's size is the main thread's (`test-agent-link.ts` strip/*); here the viewport stands in.
-        // #2909 (round 4): Minimize sits on the top bar, in its own slot before Update file, apart from the Agent tile.
+        // Q731 (the owner, 2026-10-26): Minimize sits at the rail's foot, in its own slot where the Agent tile was, first
+        // after the divider, and nowhere on the top bar.
         const minTile = () => page.evaluate(() => {
-          const slot = document.querySelector('[data-p3="top-bar"] [data-p3="bar-minimize"]');
+          const slot = document.querySelector('[data-p3="rail-foot"] [data-p3="rail-minimize"]');
           const b = slot?.querySelector('[data-p3="agent-minimize"]');
           const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
           const kids = slot ? [...slot.querySelectorAll('[data-p3="agent-toggle"], [data-p3="agent-minimize"]')].map((n) => n.getAttribute('data-p3')) : [];
-          const upd = document.querySelector('[data-p3="top-bar"] [data-p3="update-file"]');
-          return { shown: vis(b), name: b?.getAttribute('aria-label') ?? null, order: kids, beforeUpdate: !!slot && !!upd && !!(slot.compareDocumentPosition(upd) & Node.DOCUMENT_POSITION_FOLLOWING) };
+          const foot = [...document.querySelectorAll('[data-p3="rail-foot"] .p3-tile')].filter(vis).map((n) => n.getAttribute('data-p3'));
+          return { shown: vis(b), name: b?.getAttribute('aria-label') ?? null, order: kids, footFirst: foot[0] ?? null,
+            inBar: !!document.querySelector('[data-p3="top-bar"] [data-p3="agent-minimize"]'),
+            glyph: [...(b?.querySelectorAll('.p3-tile-mark svg') ?? [])].map((g) => g.dataset.glyph ?? '?').join('+') };
         });
         // The owner's direction (#2909, 2026-10-24): Minimize does not depend on the link. Before the link is on, it is drawn.
         await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, on: false, since: null } });
         const m0 = await minTile();
-        ok(m0.shown && m0.name === 'Minimize' && m0.beforeUpdate, `#2909 ${where}: with the link off, Minimize shows on the top bar, before Update file (${JSON.stringify(m0)})`);
+        // MUTATION: `minimize` back on the bar and `agent` back in the rail's `foot` in `frame.ts` → this arm and the next, by name.
+        ok(m0.shown && m0.name === 'Minimize' && m0.footFirst === 'agent-minimize' && !m0.inBar && m0.glyph === 'collapse',
+          `Q731 ${where}: with the link off, Minimize shows at the rail's foot where Agent was, never on the top bar, drawing the collapse glyph (${JSON.stringify(m0)})`);
         await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
         const m1 = await minTile();
-        ok(m1.shown && m1.name === 'Minimize' && JSON.stringify(m1.order) === '["agent-minimize"]' && m1.beforeUpdate,
-          `#2949 ${where}: with the link on, Minimize shows on the top bar, before Update file, named "Minimize" (#2909) (${JSON.stringify(m1)})`);
+        ok(m1.shown && m1.name === 'Minimize' && JSON.stringify(m1.order) === '["agent-minimize"]' && m1.footFirst === 'agent-minimize' && !m1.inBar && m1.glyph === 'collapse',
+          `#2949 Q731 ${where}: with the link on, Minimize shows at the rail's foot where Agent was, never on the top bar, named "Minimize", drawing the collapse glyph (${JSON.stringify(m1)})`);
+        // The owner (2026-10-26): Minimize and the strip's Restore draw MIRROR glyphs, arrows inward to minimize and outward
+        // to restore, never the same one. Read from the drawn SVG paths and measured here, not from `dom.ts`'s names: each
+        // arrowhead is a three-point stroke whose corner is its tip; each shaft a two-point line. Inward: every tip lies
+        // nearer the glyph's center than every shaft's far end reaches; outward: every tip lies at least as far out as the
+        // shafts reach. MUTATIONS: `glyph('restore')` for Minimize in `agent-link-ui.ts` → both arms, by name; the
+        // `collapse` path's heads moved to the outer corners in `dom.ts` → the direction arm, by name.
+        const mirror = await page.evaluate(() => {
+          const ds = (sel) => [...(document.querySelector(sel)?.querySelectorAll('svg.p3-ico path') ?? [])].map((n) => n.getAttribute('d') ?? '');
+          const g = (sel) => [...(document.querySelector(sel)?.querySelectorAll('svg.p3-ico') ?? [])].map((n) => n.innerHTML).join('');
+          return { min: ds('[data-p3="agent-minimize"]'), restore: ds('[data-p3="agent-strip-restore"]'), minSvg: g('[data-p3="agent-minimize"]'), restoreSvg: g('[data-p3="agent-strip-restore"]') };
+        });
+        const reach = (paths) => {
+          // A path of absolute and relative M/L/H/V commands only, as the chrome's line glyphs are drawn; anything else
+          // reads as unparsed (null), which fails.
+          const subs = [];
+          for (const d of paths) {
+            const toks = d.match(/[MLHVmlhv]|-?\d*\.?\d+/g) ?? [];
+            if (/[^MLHVmlhv\d\s.,-]/.test(d)) return null;
+            let x = 0, y = 0, cmd = '', cur = null;
+            for (let i = 0; i < toks.length;) {
+              if (/[A-Za-z]/.test(toks[i])) cmd = toks[i++];
+              const n = () => Number(toks[i++]);
+              if (cmd === 'M' || cmd === 'm') { const a = n(), b = n(); x = cmd === 'M' ? a : x + a; y = cmd === 'M' ? b : y + b; cur = [[x, y]]; subs.push(cur); cmd = cmd === 'M' ? 'L' : 'l'; continue; }
+              if (cmd === 'L' || cmd === 'l') { const a = n(), b = n(); x = cmd === 'L' ? a : x + a; y = cmd === 'L' ? b : y + b; }
+              else if (cmd === 'H' || cmd === 'h') { const a = n(); x = cmd === 'H' ? a : x + a; }
+              else if (cmd === 'V' || cmd === 'v') { const a = n(); y = cmd === 'V' ? a : y + a; }
+              else return null;
+              cur?.push([x, y]);
+            }
+          }
+          const r = ([px, py]) => Math.hypot(px - 8, py - 8);
+          const tips = subs.filter((p) => p.length === 3).map((p) => r(p[1]));
+          const shafts = subs.filter((p) => p.length === 2).map((p) => Math.max(r(p[0]), r(p[1])));
+          const arms = subs.filter((p) => p.length === 3).flatMap((p) => [Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]), Math.hypot(p[2][0] - p[1][0], p[2][1] - p[1][1])]);
+          return tips.length >= 2 && shafts.length >= 2 ? { tips, shafts, arms } : null;
+        };
+        const rm = reach(mirror.min), rr = reach(mirror.restore);
+        const inward = !!rm && Math.max(...rm.tips) < Math.min(...rm.shafts) - 1;
+        const outward = !!rr && Math.min(...rr.tips) >= Math.max(...rr.shafts) - 0.5;
+        // The review's nit (2026-10-27): an exact mirror, every arrowhead's arms on both glyphs the same length.
+        // MUTATION: Minimize's heads back to 3.5 long in `dom.ts` → this arm, by name.
+        const armsEq = !!rm && !!rr && [...rm.arms, ...rr.arms].every((a) => Math.abs(a - rr.arms[0]) < 0.01);
+        ok(armsEq, `mirror ${where}: Minimize's and Restore's arrowheads have arms of one length, an exact mirror (Minimize ${JSON.stringify(rm?.arms)}, Restore ${JSON.stringify(rr?.arms)})`);
+        ok(mirror.minSvg !== '' && mirror.restoreSvg !== '' && mirror.minSvg !== mirror.restoreSvg,
+          `mirror ${where}: Minimize and the strip's Restore draw different glyphs, never the same one (the owner, 2026-10-26) (Minimize ${JSON.stringify(mirror.min)}, Restore ${JSON.stringify(mirror.restore)})`);
+        ok(inward && outward,
+          `mirror ${where}: Minimize's arrows point inward, to the center, and Restore's outward, to the corners (the owner, 2026-10-26) (Minimize tips ${JSON.stringify(rm?.tips)} vs shafts ${JSON.stringify(rm?.shafts)}; Restore tips ${JSON.stringify(rr?.tips)} vs shafts ${JSON.stringify(rr?.shafts)})`);
         await takeWrites(page);
         await hooks.click(page.locator('[data-p3="agent-minimize"]'), WAIT);
         const mw = await takeWrites(page);
@@ -4145,7 +4246,9 @@ ok(Object.entries(EMITTED_FLOOR).some(([m, x]) => x.hex !== EMITTED[m]), `the or
 /** The manifest keys v6 homes on Surfaces & fills, with their hooks. R2: every lever on this page is shown. */
 const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', '[data-p3="lever-gradients"]'],
   // S4f (QA-I10): the Icon section's pairing control is the icon contrast lever's block, as Interactive drew it.
-  ['iconContrast', '[data-p3="lever-icon-contrast"]']];
+  ['iconContrast', '[data-p3="lever-icon-contrast"]'],
+  // #3073: the Glass section is the glassRoles lever's block, holding the shipped glass read-only and the brand's own.
+  ['glassRoles', '[data-p3="lever-glass-roles"]']];
 /** S4f (QA-B1): Background fills' rows, by the role each names: the three page tiers (Primary was "Page", QA-B3),
  *  the contrast floor (a setting, named by its input), and the inverse fill's three tiers. Literal. */
 const SURFACE_ROW_ROLES = ['background.primary', 'background.secondary', 'background.tertiary', 'surfaces.floorStep',
@@ -4194,7 +4297,7 @@ const ICON_ROW_ROLES = [...inks('icon'), ...SEM_INK.map((s) => `icon.on-${s}`), 
  *  read from the committed emission rather than from the page, so a role the engine adds needs a row too. The
  *  count is held to the eight Q29 names, so an empty read fails. */
 /** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick. */
-const READONLY_ROW_ROLES = ['scrim.default', 'border.focus', 'inverse.border.focus'];
+const READONLY_ROW_ROLES = ['scrim.default', 'glass.surface', 'border.focus', 'inverse.border.focus'];
 const FIELD_ROW_ROLES = (() => {
   const out = [];
   const walk = (n, path) => { if (!n || typeof n !== 'object') return; if ('$value' in n) { out.push(path.join('.')); return; } for (const [k, v] of Object.entries(n)) if (!k.startsWith('$')) walk(v, [...path, k]); };
@@ -4365,7 +4468,7 @@ for (const host of ['web', 'figma']) {
   ok(c.icons.length === ICON_ROW_ROLES.length && badLock.length === 0, `${host}: paired, each of the ${ICON_ROW_ROLES.length} icon rows is locked and reads "Follows text.X"${badLock.length ? ` — not: ${badLock.slice(0, 4).map((r) => `${r} ${JSON.stringify(c.icons.find((x) => x.role === r))}`).join(', ')}` : ''}`);
   ok(c.pairNote === 'Icons follow their text color. Unpair them to set icons on their own.' && c.unpair === 'Unpair icons from text', `${host}: the Icon section's note and button are the approved copy — read ${JSON.stringify([c.pairNote, c.unpair])}`);
   // Jump links (Q49): one per section, each to its own section, in order.
-  ok(JSON.stringify(c.jumps.map((j) => j.text)) === JSON.stringify(c.jumps.map((j) => j.to)) && c.jumps.length === 9, `${host}: a jump link to each of the 9 sections, each naming its target — read ${JSON.stringify(c.jumps)}`);
+  ok(JSON.stringify(c.jumps.map((j) => j.text)) === JSON.stringify(c.jumps.map((j) => j.to)) && c.jumps.length === 10, `${host}: a jump link to each of the 10 sections, each naming its target — read ${JSON.stringify(c.jumps)}`);
   ok(JSON.stringify([...c.fieldRows].sort()) === JSON.stringify([...FIELD_ROW_ROLES].sort()), `${host}: the Fields section holds exactly the emitted field roles' rows — holds ${JSON.stringify(c.fieldRows)}`);
   // The approved copy (S4c, owner decisions Q26, Q27, Q29; Q23 for "Text color"), read as rendered. Literal.
   const copy = await page.evaluate(() => ({
@@ -4435,7 +4538,9 @@ for (const host of ['web', 'figma']) {
     `${host}: QA-I10: the icon contrast block carries Interactive's Icons description (ICONS_DESC) — read ${JSON.stringify(copy.iconTip)}`);
   const FILLS_COPY = {
     intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
-    titles: ['Background fills', 'Scrim', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
+    titles: ['Background fills', 'Scrim', 'Glass', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
+    // #3073: DRAFT for the owner, the Glass section's line.
+    Glass: 'The see-through fill behind a background blur. The white glass is fixed; add a glass fill to match a surface, such as a card.',
     // S4f (QA-B10): the scrim left Background fills, so its description is the owner's Q26 intro; Scrim's is APPROVED.
     'Background fills': 'The base page planes and their inverse counterparts.',
     Scrim: "The overlay that dims the page behind a modal. It isn't editable.",
@@ -4457,7 +4562,7 @@ for (const host of ['web', 'figma']) {
     `${host}: Background fills heads its two groups (QA-B7), and Foreground, Foreground fills, Text color, Border and Icon each head their inverse rows "Inverse" — read ${JSON.stringify(copy.subs)}`);
   ok(copy.intro === FILLS_COPY.intro, `${host}: the Surfaces & fills intro is the owner's (Q27) — read ${JSON.stringify(copy.intro)}`);
   ok(JSON.stringify(copy.titles) === JSON.stringify(FILLS_COPY.titles), `${host}: the Surfaces & fills sections are ${FILLS_COPY.titles.join(', ')} — read ${JSON.stringify(copy.titles)}`);
-  for (const t of ['Background fills', 'Scrim', 'Foreground', 'Text color', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
+  for (const t of ['Background fills', 'Scrim', 'Glass', 'Foreground', 'Text color', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
   // Q23: the levers' descriptions are the preview sections' own, read off both sides as rendered, so an edit to one
   // side alone fails here as well as against the literal above. Background fills pairs with the preview's
   // Background (Q26's rename); since S4f Scrim (QA-B10) and Fields (#2016) have preview sections of their own.
@@ -4475,6 +4580,57 @@ for (const host of ['web', 'figma']) {
   await ctx.close();
 }
 } // 18-readonly
+// #3073 (owner Q806, Q807 A): Surfaces & fills › Glass. The shipped glass is read-only (its primitive and opacity, from
+// the emission), and the glassRoles lever's controls write the brand input: Add writes the card color at 70%, the
+// opacity field writes its percent, a name the engine refuses ('surface') marks the block and leaves the last valid
+// theme, and Remove of the last fill drops the key. EXPECTED is typed here; ACTUAL is the persisted brand and the DOM.
+if (runs('18')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    const glassAlias = String(OUT[OUT_ROOT]?.color?.glass?.surface?.$value ?? '').slice(1, -1).split('.');
+    const [gPal, gStep] = glassAlias.slice(-2);
+    const gAlpha = OUT[OUT_ROOT]?.core?.palette?.[gPal]?.[gStep]?.$extensions?.prism3?.alpha;
+    const read0 = await page.evaluate(() => ({
+      read: document.querySelector('[data-p3="levers-pane"] [data-p3="glass-surface-readout"]')?.textContent ?? null,
+      section: document.querySelector('[data-p3="levers-pane"] [data-p3="glass-surface-row"]')?.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent ?? null,
+      added: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="glass-role-row"]').length,
+    }));
+    ok(read0.read === `${gPal} ${gStep} · ${Math.round(gAlpha * 100)}%` && read0.section === 'Glass' && read0.added === 0,
+      `#3073: Surfaces & fills › Glass shows the shipped glass read-only as "${gPal} ${gStep} · ${Math.round(gAlpha * 100)}%" and no added fill on a brand without the lever (${JSON.stringify(read0)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-role-add"]'));
+    await page.waitForFunction(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="glass-role-row"]').length === 1, null, { timeout: 5000 }).catch(() => {});
+    const added = await persisted(page);
+    const row = await page.evaluate(() => { const r = document.querySelector('[data-p3="levers-pane"] [data-p3="glass-role-row"]'); return r ? { role: r.dataset.role, wash: !!r.querySelector('.p3-scrim-wash'), src: r.querySelector('[data-p3="glass-role-source"]')?.value ?? null } : null; });
+    ok(JSON.stringify(added?.glassRoles) === JSON.stringify({ card: { role: 'foreground.primary', alpha: 70 } }) && row?.role === 'glass.card' && row.wash && row.src === 'role:foreground.primary',
+      `#3073: Add glass fill writes glassRoles.card = the card color at 70% and draws its row with a translucent swatch (${JSON.stringify(added?.glassRoles)}, ${JSON.stringify(row)})`);
+    const alpha = page.locator('[data-p3="levers-pane"] [data-p3="glass-role-alpha"]');
+    await alpha.fill('40');
+    await alpha.press('Enter');
+    await alpha.blur();
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.glassRoles?.card?.alpha === 40; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    ok((await persisted(page))?.glassRoles?.card?.alpha === 40, `#3073: the opacity field writes glassRoles.card.alpha (${JSON.stringify((await persisted(page))?.glassRoles)})`);
+    const name = page.locator('[data-p3="levers-pane"] [data-p3="glass-role-name"]');
+    await name.fill('surface');
+    await name.press('Enter');
+    await name.blur();
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="lever-glass-roles"][data-refused="true"], [data-p3="levers-pane"] [data-p3="lever-glass-roles"] .p3-refmark:not([hidden])'), null, { timeout: 5000 }).catch(() => {});
+    const refused = await page.evaluate(() => { const b = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-glass-roles"]'); return !!b && (b.getAttribute('data-refused') === 'true' || !!b.querySelector('.p3-refmark:not([hidden])')); });
+    ok(refused, `#3073: renaming a glass fill to "surface", the shipped glass's name, is refused by the engine and marks the Glass block`);
+    // Back to a valid name, then Remove: the last fill gone drops the key, byte-identical to never having had it.
+    await name.fill('card');
+    await name.press('Enter');
+    await name.blur();
+    await page.waitForTimeout(200);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-role-remove"]'));
+    await page.waitForFunction(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="glass-role-row"]').length === 0, null, { timeout: 5000 }).catch(() => {});
+    const gone = await persisted(page);
+    ok(gone && !('glassRoles' in gone), `#3073: removing the last glass fill drops glassRoles from the brand (${JSON.stringify(gone?.glassRoles)})`);
+    ok(errors.length === 0, `#3073 Glass: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3073 Glass: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 18-glass
 // =============================================================================================
 // S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
 // fills read-only in a derived mode, the Unpair button included (Q56, Q59)
@@ -6429,7 +6585,7 @@ for (const host of ['web', 'figma']) {
       if (TYPE_S63_COPY[title]) ok(lev?.[1] === TYPE_S63_COPY[title], `${host}: "${title}" reads "${TYPE_S63_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
     }
     for (const [k, want] of Object.entries(TYPE_S63_WORDS)) ok(JSON.stringify(r.words[k]) === JSON.stringify(want), `${host}: the ${k} copy reads ${JSON.stringify(want)} (${JSON.stringify(r.words[k])})`);
-    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 12 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 12 advanced (${JSON.stringify(r.folds)})`);
+    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 13 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 13 advanced (#2942: Underline thickness and offset is the 13th) (${JSON.stringify(r.folds)})`);
     const WANT_NAMES = {
       weight: [['p3-fill-label', 'Strong'], ['p3-fill-tok', 'font.weight-role.strong']], lh: [['p3-fill-label', 'normal'], ['p3-fill-tok', 'font.line-height-role.normal']],
       matrix: [['p3-fill-label', 'Body'], ['p3-fill-tok', 'type.body']],
@@ -7071,7 +7227,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     await setTop('preview-body', 0);
     const a0 = await sec(PAIRS_FILLS.Border);
     ok(a0.found && !a0.inView, `QA-B9: on Surfaces & fills the preview's Border section starts below the fold, so the reveal can move (${JSON.stringify(a0)})`);
-    await hooks.click(page.locator('#p3-lsec-fills-5 [data-p3="fill-pick"]').first());
+    await hooks.click(page.locator('#p3-lsec-fills-6 [data-p3="fill-pick"]').first());
     await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
     const opened = await sec(PAIRS_FILLS.Border);
     ok(opened.top === 0, `QA-B9: opening a step picker is not an edit, and does not move the preview (scrollTop ${opened.top}, was 0)`);
@@ -7104,7 +7260,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
       ok(lands(f1), `#2016: editing a Fields step on Surfaces & fills brings the preview's Fields section into view (top at ${f1.rel}px, scrollTop ${f1.top}, in view ${f1.inView})`);
       await page.keyboard.press('Escape');
     }
-    await hooks.click(page.locator('#p3-lsec-fills-5 [data-p3="fill-pick"]').first());
+    await hooks.click(page.locator('#p3-lsec-fills-6 [data-p3="fill-pick"]').first());
     await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
 
     // (c) Under reduced motion it lands at once: in place when the edit returns, in one step taken in the edit
@@ -7122,7 +7278,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
 
     // (d) Focusing a lever (by Tab and by focus()), and changing the mode, never move the preview.
     await setTop('preview-body', 0);
-    await page.locator('#p3-lsec-fills-6 [data-p3="icons-unpair"], #p3-lsec-fills-6 [data-p3="icons-pair"]').first().focus();
+    await page.locator('#p3-lsec-fills-7 [data-p3="icons-unpair"], #p3-lsec-fills-7 [data-p3="icons-pair"]').first().focus();
     await page.keyboard.press('Tab');
     await page.keyboard.press('Shift+Tab');
     const d1 = await frames('preview');
@@ -7153,8 +7309,8 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
       }, i);
       return { f, j };
     };
-    const ja = await jumpTo(5);
-    ok(Math.abs(ja.j.rel) <= 2 && ja.j.focus === 'p3-lsec-fills-5', `QA-B17: the Border jump link lands its section at the top of the levers pane, and focuses it (${JSON.stringify(ja.j)})`);
+    const ja = await jumpTo(6);
+    ok(Math.abs(ja.j.rel) <= 2 && ja.j.focus === 'p3-lsec-fills-6', `QA-B17: the Border jump link lands its section at the top of the levers pane, and focuses it (${JSON.stringify(ja.j)})`);
     ok(ja.f.g.between >= 2, `QA-B17: without reduced motion a jump link glides through positions on its way (${ja.f.g.between} in-between over ${ja.f.g.steps} steps)`);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const jb = await jumpTo(4);
@@ -8670,7 +8826,7 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
  *  the move: the levers pane no longer has a section per preview section. */
 // #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
 // #2909 Q2909.4 A: the shared block is the list's first section.
-const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents'];
+const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
@@ -8987,8 +9143,8 @@ for (const host of ['web', 'figma']) {
         };
       });
       const r0 = await read();
-      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
-        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options", one "Dialog options" (#2958) and one "Banner options" line (#2924), in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options", one "Dialog options" (#2958), one "Banner options" (#2924) and one "Link options" line (#2942), in the list, and not in the preview (${JSON.stringify(r0)})`);
       ok(r0.expanded === 'false' && !r0.shown,
         `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
       ok(r0.rows === 4 && r0.lineBelowSets,
@@ -9018,7 +9174,7 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
       await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
       const r3 = await read();
-      ok(r3.toggles.length === 6 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
+      ok(r3.toggles.length === 7 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
         `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
       // Opening the line focuses its section's first set (wireframe v2's rule, #2905): with Badge (Other components) in
       // the preview, close and reopen it, and the preview shows Buttons. (Buttons is the preview's default, so the check
@@ -9152,8 +9308,8 @@ for (const host of ['web', 'figma']) {
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
       });
-      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents']),
-        `#2905 Q548, #2931 Q579 A, #2958, #2924: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents']),
+        `#2905 Q548, #2931 Q579 A, #2958, #2924, #2942: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Link, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
       const D = r.dialogs;
       ok(!!D && JSON.stringify(D.ids) === JSON.stringify(['dialog']) && D.folds + D.families === 0,
         `#2958: ${host} ${w}: the Dialog section lists Dialog as a row, with no family row and no fold (${JSON.stringify({ ids: D?.ids, folds: D?.folds, families: D?.families })})`);
@@ -9495,7 +9651,8 @@ const BAR_PROBE = () => {
   const buttons = [...bar.querySelectorAll('button')].filter((b) => shown(b) && !inside(b.parentElement ?? b));
   const filled = buttons.filter((b) => { const c = getComputedStyle(b).backgroundColor; return alpha(c) > 0 && c !== page; }).map((b) => b.getAttribute('data-p3') ?? b.className);
   const ctl = (k) => (k === 'product-mark' ? q(k) : q(k)?.closest('button') ?? q(k));
-  const rowsOf = HOOKS.filter((k) => shown(q(k))).map((k) => ({ k, top: Math.round(ctl(k).getBoundingClientRect().top), mid: Math.round((ctl(k).getBoundingClientRect().top + ctl(k).getBoundingClientRect().bottom) / 2) }));
+  // In document order (`order`), not `HOOKS`' listing order, so a reordered bar is read as drawn (Q731 moved Agent here).
+  const rowsOf = order.filter((k) => shown(q(k))).map((k) => ({ k, top: Math.round(ctl(k).getBoundingClientRect().top), mid: Math.round((ctl(k).getBoundingClientRect().top + ctl(k).getBoundingClientRect().bottom) / 2) }));
   const firstMid = Math.min(...rowsOf.map((x) => x.mid));
   const row1 = rowsOf.filter((x) => x.mid < firstMid + 8).map((x) => x.k);
   const row2 = rowsOf.filter((x) => x.mid >= firstMid + 8).map((x) => x.k);
@@ -9512,9 +9669,11 @@ const BAR_ORDER = {
   // #2909 Q2909.9 A: the web's bar is the brand switcher alone: the mark, Contrast, Theme, Activity and Export moved to
   // the rail, the Theme area and the Export area, and the web has no file to write and no window to shrink.
   web: ['brand-switcher'],
-  // #2909 (round 4, and the owner's direction of 2026-10-24): the plugin's bar is the brand switcher, Minimize (link on or
-  // off) and Update file; the rest moved to the rail, the Theme area and the drawer.
-  figma: ['brand-switcher', 'agent-minimize', 'update-file'],
+  // #2909 (round 4): the plugin's bar is the brand switcher, then the Agent tile in the place Minimize held, and Update
+  // file at the outer end (Q731, the owner, 2026-10-26: Agent and Minimize swapped placements, Minimize to the rail's
+  // foot); the rest moved to the rail, the Theme area and the drawer. MUTATION: `placed.agent` after `placed.update` in
+  // `bar.ts` → `bar order` and `bar rows`, by name, at every plugin width and theme.
+  figma: ['brand-switcher', 'agent-toggle', 'update-file'],
 };
 const TILE_LABEL = { verdict: 'Contrast', 'theme-toggle': 'Theme', 'agent-toggle': 'Agent', 'activity-open': 'Activity', 'export-open': 'Export', 'agent-minimize': 'Minimize' };
 for (const { w, h } of WIDTHS) {
@@ -9531,7 +9690,7 @@ for (const { w, h } of WIDTHS) {
         ok(bp.dividers.length === 0, `${where}: bar dividers: none between the bar's items (${bp.dividers.join(' | ') || 'none'})`);
         for (const x of bp.white) ok(x.bg && x.edge && x.chev, `${where}: bar menus: ${x.k} is a white button with an edge and ▾ (white ${x.bg}, edge ${x.edge}, ▾ ${x.chev})`);
         ok(bp.white.length === 1, `${where}: bar menus: the brand switcher measured (${bp.white.map((x) => x.k).join(', ')})`);
-        ok(bp.tiles.length === (host === 'web' ? 0 : 1), `${where}: bar tiles: ${host === 'web' ? 'none on the web bar, whose tiles moved to the rail (Q2909.9 A)' : 'Minimize alone on the plugin bar, whose other tiles moved to the rail (#2909)'} (${bp.tiles.map((x) => x.k).join(', ')})`);
+        ok(bp.tiles.length === (host === 'web' ? 0 : 1), `${where}: bar tiles: ${host === 'web' ? 'none on the web bar, whose tiles moved to the rail (Q2909.9 A)' : 'the Agent tile alone on the plugin bar, where Minimize was (Q731); the other tiles moved to the rail (#2909)'} (${bp.tiles.map((x) => x.k).join(', ')})`);
         // #2214 (BL1 A+B, BL3 A): above the narrow tier every label drops together when the full bar would not fit on
         // one row, which `FIT_ORACLE` measures; an ambiguous width (within 1px) accepts either.
         const fit29 = narrow ? null : await page.evaluate(FIT_ORACLE);
@@ -9546,7 +9705,7 @@ for (const { w, h } of WIDTHS) {
         }
         ok(JSON.stringify(bp.filled) === JSON.stringify(host === 'web' ? [] : ['update-file']), `${where}: bar fill: ${host === 'web' ? 'no control' : 'Update file alone (#2909)'} is filled (${bp.filled.join(', ') || 'none'})`);
         // #2909: the bar is one row at every width on both hosts now (round 4; Q2909.9 A for the web).
-        ok(bp.row2.length === 0 && JSON.stringify(bp.row1) === JSON.stringify(BAR_ORDER[host]), `${where}: bar rows: the bar is one row, ${host === 'web' ? 'the brand alone' : 'the brand and Update file'} (${bp.row1.join(', ')} / ${bp.row2.join(', ') || 'none'})`);
+        ok(bp.row2.length === 0 && JSON.stringify(bp.row1) === JSON.stringify(BAR_ORDER[host]), `${where}: bar rows: the bar is one row, ${host === 'web' ? 'the brand alone' : 'the brand, Agent and Update file'} (${bp.row1.join(', ')} / ${bp.row2.join(', ') || 'none'})`);
         // The plugin's last control, Update file, ends at the page content's right edge; the web's bar has nothing at its
         // right end now, its switcher sitting at the left.
         if (w !== 640 && host === 'figma') {
@@ -9712,7 +9871,7 @@ for (const { w, h } of WIDTHS) {
 } // 29
 
 // =============================================================================================
-// 29b. The owner's "A · Menu bar" (2026-10-05), two behaviors held directly, both hosts, both themes:
+// 29b. The owner's "A · Menu bar" (2026-10-05), three behaviors held directly, both hosts, both themes:
 //   · CONTRAST'S MARK FOLLOWS THE VERDICT: a check and no count while every pair passes; a warning glyph and the
 //     count below floor once an edit puts pairs below it. The web's edit is test-verdict-count.ts's two-mode
 //     fixture, whose count is derived by hand there: 2 of 884, 2 modes. The plugin's is a restore of a one-mode
@@ -9721,6 +9880,13 @@ for (const { w, h } of WIDTHS) {
 //     chrome on Figma's theme; a choice applies, is posted to the main thread as `set-theme-pref`, and, after a
 //     reload, comes back (the main thread's `theme-pref` reply, which `apps/plugin/test-theme-pref.ts` holds) as the
 //     checked choice and the chrome's theme.
+//   · THE AGENT TILE'S ON FILL ON THE BAR (Q738 A, the owner, 2026-10-26), the plugin at 1280 and 380: with the link on,
+//     the top bar's Agent tile fills a square mark with the `fill-2` role, read off a probe, and `aria-pressed` is true;
+//     with the link off, the mark is not that color.
+//     Q788 C (the owner, 2026-10-27): that fill is `bar-bg` itself in dark, so an on mark also takes the bar's control edge,
+//     `edge-bar`, and the arm compares the mark with the ground it is drawn on: its edge or its fill at 3:1 on it.
+//   Mutation: the `.p3-agent-tile[data-on="true"]` arm dropped from the on-fill rule in `chrome.css` → `29b … Q738 A: with
+//     the link on, …`. The Q788 C edge rule dropped → `29b figma dark … Q788 C: with the link on, …` (and in light, 1.14:1).
 // =============================================================================================
 if (runs('29b')) console.log('\n29b. The menu bar: Contrast per verdict, the plugin Theme menu');
 const LOW_FIXTURE = {
@@ -9789,10 +9955,11 @@ for (const host of ['web', 'figma']) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
         // Last, after the console check: a link switched on opens the desktop bridge's socket, which no harness serves.
-        if (host === 'figma' && w === WIDTHS[0].w) {
+        // At 1280 and 380 since Q738 A: the on fill is owed at every width, the glyph-only tile at 380 too.
+        if (host === 'figma') {
           // #2909: the plugin draws no Activity tile, so Activity's "agent link on" name, its tile dot and D-RED A's dot
           // colors are RETIRED for the plugin (the drawer's row says what runs; its right end says the link's status, §31).
-          // The Agent tile's dot stays (Q2909.22 A): filled, at its glyph's top right, in the ok green, its mark filled too.
+          // The Agent tile's dot stays (Q2909.22 A): filled, at its glyph's top right, in the ok green.
           await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), AGENT_ON);
           await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 3000 }).catch(() => {});
           const ag = await page.evaluate(() => {
@@ -9807,10 +9974,40 @@ for (const host of ['web', 'figma']) {
           });
           ok(ag.shown && ag.filled && ag.color === ag.okColor && ag.dy <= 0 && ag.dx >= 0 && ag.name === 'Agent' && ag.pressed === 'true',
             `${where}: the Agent tile's dot, while the link is on: filled, at its glyph's top right, in the ok green ${ag.okColor} (${JSON.stringify(ag)})`);
-          // The block above left the chrome on the other theme (its kept-choice reload), so that is the theme the role is read in.
-          const shownTheme = theme === 'light' ? 'dark' : 'light';
-          ok(hexOfRgb(ag.mark) === RAIL_SELECTED[shownTheme], `${where}: the Agent tile is filled while the link is on (Q2909.22 A), with the inset role in the ${shownTheme} chrome (${RAIL_SELECTED[shownTheme]}) (${ag.mark})`);
+          // Q738 A (the owner, 2026-10-26): on the top bar since Q731, an on Agent tile's mark carries the fill the rail drew
+          // behind an on tile (Q2909.22 A), the `fill-2` role, as a 24 × 24 square behind the glyph. The expected color is
+          // the role itself, read off a probe in the frame, never off the tile's rule. Q788 C (the owner, 2026-10-27): the
+          // mark is judged against the ground it is drawn on, the first opaque background behind it (the bar's), never
+          // against its own role, since in dark `fill-2` IS `bar-bg`: while on, its edge or its fill clears 3:1 on that
+          // ground; off, it has neither. The theme in the name is the chrome's as read, since 29b's Theme menu step
+          // switches it at 1280.
+          const FILL_PROBE = () => {
+            const p = document.createElement('div'); p.style.background = 'var(--p3-fill-2)';
+            document.querySelector('[data-p3="frame"]').append(p);
+            const fill = getComputedStyle(p).backgroundColor; p.remove();
+            const b = document.querySelector('[data-p3="top-bar"] [data-p3="agent-toggle"]'), m = b?.querySelector('.p3-tile-mark');
+            const r = m?.getBoundingClientRect(), cs = m ? getComputedStyle(m) : null;
+            let ground = null;
+            for (let e = m?.parentElement; e && !ground; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') ground = c; }
+            return { theme: document.documentElement.dataset.theme, fill, mark: cs ? cs.backgroundColor : null, ground,
+              edge: cs && cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0 ? cs.outlineColor : null, edgeW: cs ? cs.outlineWidth : null,
+              pressed: b?.getAttribute('aria-pressed') ?? null, w: r ? Math.round(r.width * 10) / 10 : null, h: r ? Math.round(r.height * 10) / 10 : null };
+          };
+          const rgb = (c) => { const v = /^rgba?\(([^)]+)\)$/.exec(c ?? '')?.[1].split(/[,\s/]+/).filter(Boolean).map(Number); return v && (v.length < 4 || v[3] === 1) ? v.slice(0, 3) : null; };
+          const lum = (v) => v.map((x) => { x /= 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }).reduce((t, x, i) => t + x * [0.2126, 0.7152, 0.0722][i], 0);
+          const ratio = (c1, c2) => { const [x, y] = [rgb(c1), rgb(c2)]; if (!x || !y) return null; const [p, q] = [lum(x), lum(y)].sort((u, v) => v - u); return Math.round(((p + 0.05) / (q + 0.05)) * 100) / 100; };
+          const f1 = await page.evaluate(FILL_PROBE);
+          const at = `29b ${host} ${f1.theme} ${w}`;
+          ok(f1.fill !== 'rgba(0, 0, 0, 0)' && f1.mark === f1.fill && f1.pressed === 'true' && f1.w === 24 && f1.h === 24,
+            `${at}: Q738 A: with the link on, the bar's Agent tile fills a 24 × 24 mark with the on fill, fill-2 ${f1.fill}, as the rail did, aria-pressed true (${JSON.stringify(f1)})`);
+          const onEdge = ratio(f1.edge, f1.ground), onFill = ratio(f1.mark, f1.ground);
+          ok(!!f1.ground && ((onEdge ?? 0) >= 3 || (onFill ?? 0) >= 3),
+            `${at}: Q788 C: with the link on, the bar's Agent mark reads against the ground it is drawn on, ${f1.ground}: its edge or its fill at 3:1 or more (edge ${f1.edge} ${onEdge}:1, fill ${f1.mark} ${onFill}:1)`);
           await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
+          await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'false', null, { timeout: 3000 }).catch(() => {});
+          const f0 = await page.evaluate(FILL_PROBE);
+          ok(f0.mark !== f0.fill && f0.edge === null && f0.pressed === 'false' && f0.w === 24 && f0.h === 24,
+            `${at}: Q738 A, Q788 C: with the link off, the bar's Agent mark has neither the on fill nor the edge, the same 24 × 24, aria-pressed false (${JSON.stringify(f0)})`);
         }
       } catch (e) {
         ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
@@ -11304,7 +11501,7 @@ const EXPECT_HEADINGS = {
     L2: ['Primary brand color', 'Additional brand colors', 'Neutral hue', 'Neutral chroma', 'Success color', 'Warning color', 'Danger color', 'Info color'],
   },
   'color-fills': {
-    L1: ['Background fills', 'Scrim', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
+    L1: ['Background fills', 'Scrim', 'Glass', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
     // Heading pass 2 (BG1 A, #2181; HP5, #2218): the Background fills and Gradients levers say their names once, in their
     // section titles, and Background fills' subgroups are "Default" and "Inverse".
     L2: ['Icon contrast floor', 'Default', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse'],
@@ -11348,9 +11545,10 @@ const EXPECT_HEADINGS = {
     // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
     // #2958: Dialog, its Dialog options (L2) and Dialog title size (L3), Tag options' way.
     // #2924: Banner, its Banner options (L2) and Banner style (L3), Dialog options' way.
-    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components', 'Subcomponents'],
+    // #2942: Link, its Link options (L2), holding one read-only line and no lever.
+    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents'],
     // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
-    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options'],
+    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options'],
     L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size', 'Banner style'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
@@ -11369,7 +11567,8 @@ const HEADING_ADVANCED = {
   shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
   // #2844: a family's settings are closed behind their line; the audit reads them open.
   components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]',
-    '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]', '[data-p3="cp-opts-toggle"][data-key="opts=banners"]'],
+    '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]', '[data-p3="cp-opts-toggle"][data-key="opts=banners"]',
+    '[data-p3="cp-opts-toggle"][data-key="opts=links"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
@@ -12501,7 +12700,7 @@ for (const theme of ['light', 'dark']) for (const w of [1280, 380]) {
         logo: !!mark && mark.getClientRects().length > 0 };
     });
     ok(r.n === 7 && r.out.length === 0, `#2909 Q2995.2 A ${where}: every rail tile lies inside the window (${r.n} tiles; past the bottom edge: ${r.out.join(', ') || 'none'})`);
-    ok(JSON.stringify(r.labels) === JSON.stringify(['Theme', 'Compo-nents', 'Docs', 'Export', 'Agent', 'Help', 'Appear-ance']), `#2909 Q2995.2 A ${where}: every rail tile keeps its label (${JSON.stringify(r.labels)})`);
+    ok(JSON.stringify(r.labels) === JSON.stringify(['Theme', 'Components', 'Docs', 'Export', 'Minimize', 'Help', 'Appearance']), `#2909 Q2995.2 A ${where}: every rail tile keeps its label (${JSON.stringify(r.labels)})`);
     ok(!r.logo, `#2909 Q2995.2 A ${where}: the rail's logo hides to make the room (logo drawn ${r.logo})`);
     ok(errors.length === 0, `#2909 Q2995.2 A ${where}: 0 console errors${errors.length ? ` — ${errors[0]}` : ''}`);
   } finally { await ctx.close(); }
@@ -15888,7 +16087,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       shared: document.querySelector('[data-p3="components-list"] > [data-p3="cp-shared"]') ? [...document.querySelector('[data-p3="components-list"]').children].indexOf(document.querySelector('[data-p3="cp-shared"]')) : -1,
     }));
     ok(JSON.stringify(tiers.caps.map((c) => c.tier)) === JSON.stringify(['components', 'subcomponents']) && tiers.caps.every((c) => c.role === 'group' && /^(Components|Subcomponents) · \d+ sets$/.test(c.named ?? ''))
-      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
+      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
       `${where}: Q2909.17 A: Components lists its sections under the tiers, each a group named by its caption, Components then Subcomponents (${JSON.stringify(tiers.caps)})`);
     ok(tiers.empty === 'Content components and Blocks: no component sets yet.', `${where}: Q2909.17 A: the two tiers no definition is in yet are named in one line ("${tiers.empty}")`);
     // The shared block, first in the list after the intro: Density's read-only line, then Control shape's chips.

@@ -9,10 +9,10 @@
   "note": "tokens: every token a definition declares or the design-file projection binds, keyed by path below the root. components.<id>.keys are the definition binding keys that name it; parts.<part>.where lists, per axis, the values the part is bound at — an axis bound at every value is left out, so an empty where means every member. byComponent is the inverse. unused lists emitted tokens nothing binds.",
   "summary": {
     "emitted": 795,
-    "used": 264,
-    "unusedSemantic": 251,
+    "used": 265,
+    "unusedSemantic": 250,
     "unusedPrimitive": 280,
-    "components": 57
+    "components": 58
   },
   "tokens": {
     "border-width.hairline": {
@@ -136,13 +136,46 @@
         },
         "divider": {
           "keys": [
-            "horizontal.height",
+            "horizontal.false.height",
+            "line.height",
             "vertical.width"
           ],
           "parts": {
             "container": {
               "members": 5,
-              "where": {}
+              "where": {
+                "labeled": [
+                  "false"
+                ]
+              }
+            },
+            "leadingRule": {
+              "members": 1,
+              "where": {
+                "inset": [
+                  "none"
+                ],
+                "labeled": [
+                  "true"
+                ],
+                "orientation": [
+                  "horizontal"
+                ]
+              }
+            },
+            "trailingRule": {
+              "members": 1,
+              "where": {
+                "inset": [
+                  "none"
+                ],
+                "labeled": [
+                  "true"
+                ],
+                "orientation": [
+                  "horizontal"
+                ]
+              }
             }
           }
         },
@@ -1480,9 +1513,41 @@
             "fill"
           ],
           "parts": {
+            "leadingRule": {
+              "members": 1,
+              "where": {
+                "inset": [
+                  "none"
+                ],
+                "labeled": [
+                  "true"
+                ],
+                "orientation": [
+                  "horizontal"
+                ]
+              }
+            },
             "rule": {
               "members": 5,
-              "where": {}
+              "where": {
+                "labeled": [
+                  "false"
+                ]
+              }
+            },
+            "trailingRule": {
+              "members": 1,
+              "where": {
+                "inset": [
+                  "none"
+                ],
+                "labeled": [
+                  "true"
+                ],
+                "orientation": [
+                  "horizontal"
+                ]
+              }
             }
           }
         },
@@ -14967,6 +15032,27 @@
             }
           }
         },
+        "divider": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "label": {
+              "members": 1,
+              "where": {
+                "inset": [
+                  "none"
+                ],
+                "labeled": [
+                  "true"
+                ],
+                "orientation": [
+                  "horizontal"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "secondary.indicator",
@@ -15540,7 +15626,7 @@
           ],
           "parts": {
             "container": {
-              "members": 3,
+              "members": 4,
               "where": {
                 "orientation": [
                   "horizontal"
@@ -17142,6 +17228,21 @@
               }
             }
           }
+        },
+        "wallet-button": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 10,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -17695,6 +17796,21 @@
               }
             }
           }
+        },
+        "wallet-button": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 10,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -17846,6 +17962,26 @@
             "ringGlyph": {
               "members": 1,
               "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "wallet-button": {
+          "keys": [
+            "size.large.mark"
+          ],
+          "parts": {
+            "mark": {
+              "members": 6,
+              "where": {
+                "provider": [
+                  "apple-pay",
+                  "google-pay",
+                  "shop-pay"
+                ],
                 "size": [
                   "large"
                 ]
@@ -18569,6 +18705,21 @@
               }
             }
           }
+        },
+        "wallet-button": {
+          "keys": [
+            "size.medium.mark"
+          ],
+          "parts": {
+            "mark": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -19271,6 +19422,26 @@
               "where": {
                 "intent": [
                   "success"
+                ]
+              }
+            }
+          }
+        },
+        "wallet-button": {
+          "keys": [
+            "size.small.mark"
+          ],
+          "parts": {
+            "mark": {
+              "members": 6,
+              "where": {
+                "provider": [
+                  "apple-pay",
+                  "google-pay",
+                  "paypal"
+                ],
+                "size": [
+                  "small"
                 ]
               }
             }
@@ -20065,6 +20236,17 @@
           "parts": {
             "track": {
               "members": 3,
+              "where": {}
+            }
+          }
+        },
+        "wallet-button": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "container": {
+              "members": 20,
               "where": {}
             }
           }
@@ -20905,6 +21087,26 @@
               }
             }
           }
+        },
+        "wallet-button": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "provider": [
+                  "apple-pay",
+                  "google-pay",
+                  "shop-pay"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -20988,7 +21190,8 @@
         },
         "divider": {
           "keys": [
-            "vertical.height"
+            "vertical.false.height",
+            "vertical.true.height"
           ],
           "parts": {
             "container": {
@@ -20997,6 +21200,9 @@
                 "inset": [
                   "middle-inset",
                   "none"
+                ],
+                "labeled": [
+                  "false"
                 ],
                 "orientation": [
                   "vertical"
@@ -21214,6 +21420,21 @@
                 ],
                 "type": [
                   "dismissible"
+                ]
+              }
+            }
+          }
+        },
+        "wallet-button": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "medium"
                 ]
               }
             }
@@ -21602,6 +21823,26 @@
               }
             }
           }
+        },
+        "wallet-button": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "provider": [
+                  "apple-pay",
+                  "google-pay",
+                  "paypal"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -21807,7 +22048,7 @@
           ],
           "parts": {
             "container": {
-              "members": 5,
+              "members": 6,
               "where": {}
             }
           }
@@ -22812,6 +23053,9 @@
                 "inset": [
                   "middle-inset"
                 ],
+                "labeled": [
+                  "false"
+                ],
                 "orientation": [
                   "vertical"
                 ]
@@ -23665,6 +23909,9 @@
                   "inset",
                   "middle-inset"
                 ],
+                "labeled": [
+                  "false"
+                ],
                 "orientation": [
                   "horizontal"
                 ]
@@ -24041,6 +24288,17 @@
                   "end"
                 ]
               }
+            }
+          }
+        },
+        "divider": {
+          "keys": [
+            "gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {}
             }
           }
         },
@@ -26271,6 +26529,27 @@
     "type.label.md.default": {
       "type": "typography",
       "components": {
+        "divider": {
+          "keys": [
+            "label.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 1,
+              "where": {
+                "inset": [
+                  "none"
+                ],
+                "labeled": [
+                  "true"
+                ],
+                "orientation": [
+                  "horizontal"
+                ]
+              }
+            }
+          }
+        },
         "pagination": {
           "keys": [
             "size.medium.type"
@@ -26712,6 +26991,32 @@
                 ],
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.label.md.line-box": {
+      "type": "dimension",
+      "components": {
+        "divider": {
+          "keys": [
+            "horizontal.true.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 1,
+              "where": {
+                "inset": [
+                  "none"
+                ],
+                "labeled": [
+                  "true"
+                ],
+                "orientation": [
+                  "horizontal"
                 ]
               }
             }
@@ -28303,12 +28608,16 @@
       "drawnNotDeclared": []
     },
     "divider": {
-      "members": 5,
+      "members": 6,
       "axes": {
         "inset": [
           "inset",
           "middle-inset",
           "none"
+        ],
+        "labeled": [
+          "false",
+          "true"
         ],
         "orientation": [
           "horizontal",
@@ -28319,11 +28628,15 @@
         "border-width.hairline",
         "color.border.secondary",
         "color.border.tertiary",
+        "color.text.secondary",
         "container.narrow",
         "size.md.height",
         "space.0",
         "space.100",
-        "space.200"
+        "space.200",
+        "space.300",
+        "type.label.md.default",
+        "type.label.md.line-box"
       ],
       "declaredNotDrawn": [
         "color.border.tertiary"
@@ -30129,6 +30442,39 @@
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
+    },
+    "wallet-button": {
+      "members": 20,
+      "axes": {
+        "provider": [
+          "apple-pay",
+          "google-pay",
+          "paypal",
+          "shop-pay"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "focus-visible",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.lg",
+        "icon.size.md",
+        "icon.size.sm",
+        "radius.md",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
     }
   },
   "unused": {
@@ -30372,7 +30718,6 @@
       "type.label.lg.default-link",
       "type.label.lg.line-box",
       "type.label.md.default-link",
-      "type.label.md.line-box",
       "type.label.sm.default-link",
       "type.label.sm.line-box",
       "type.title.2xl.emphasis",
