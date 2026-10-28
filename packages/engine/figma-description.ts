@@ -290,7 +290,8 @@ export const figmaControlDescription = (field: string, c: Record<string, number>
   switch (field) {
     case 'height': return `Checkbox / radio box — ${c.height}px square`;
     case 'width': return `Switch track width — ${c.width}px (twice the ${c.track}px track height)`;
-    case 'dot': return `Radio dot — ${c.dot}px (half the ${c.height}px box)`;
+    // `dotShare` is the brand's radio dot setting (#3086), present only off the default half.
+    case 'dot': return `Radio dot — ${c.dot}px (${c.dotShare ? `${c.dotShare / 100} × the ${c.height}px box, on the 2px grid` : `half the ${c.height}px box`})`;
     case 'line-box': return `Label line height (body ${bodyRung}, ${c['line-box']}px) — the control centers on the label's first line.`;
     case 'inset': return `Switch thumb inset — ${c.inset}px ((${c.track}px track − ${c.thumb}px thumb) ÷ 2). Switches only.`;
     case 'radius': return `Checkbox/radio corner — ${c.radius}px, clamped to the ${c.height}px box (does not follow the radius scale).`;

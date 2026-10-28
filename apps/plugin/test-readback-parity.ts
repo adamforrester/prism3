@@ -103,6 +103,7 @@ import { join } from 'node:path';
 import type { BrandInput } from '@prism3/engine/theme';
 import { FileShim } from './file-shim';
 import { runApplyTheme, themePlans } from './src/apply-theme';
+import { holdsInput } from './src/persist-figma';
 import { brandFromDesignMd } from './mcp-paste';
 import { adaptBrand } from '../../tools/exporter-comparison/adapt-figma-emission.ts';
 import type { Adapted } from '../../tools/exporter-comparison/adapt-figma-emission.ts';
@@ -322,8 +323,14 @@ for (const brand of GATED) {
     const faces = new Map<string, { family: string; style: string }>();
     for (const r of themePlans(input).textPlan) faces.set(`${r.fontFamilyPrimary}|${r.fontStyle}`, { family: r.fontFamilyPrimary, style: r.fontStyle });
     file.faces = [...faces.values()];
+    const heldBefore = holdsInput(file.root as any, input);
     const applied = await runApplyTheme(input, file as any);
     ok(applied.guarded.ok === true, `${brand}: Apply Theme ran without a pre-flight refusal`);
+    // #3081 Q810 A: Apply Theme stores the brand it wrote, so Update file's badge stops counting the Theme item. The
+    // panel's `isDirty` baseline is not what resets: that is the brand as loaded. A brand one lever apart is still unapplied.
+    const other: BrandInput = { ...input, controlShape: input.controlShape === 'pill' ? 'rounded' : 'pill' };
+    ok(!heldBefore && holdsInput(file.root as any, input) && !holdsInput(file.root as any, other),
+      `${brand} #3081: before Apply Theme the fresh file holds no brand; after it, the file holds the brand applied, and not one a lever apart (before ${heldBefore})`);
     // Motion in the file (#2412): every variable in `motion` is TIMING or EASING, left at ALL_SCOPES (no scopes write
     // reached the host, which would have thrown), and the count is the plan's.
     const motionCol = file.collections.find((c: any) => c.name === 'motion');

@@ -9,7 +9,7 @@
 
 ## Overview
 
-The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle, half the ring's diameter, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.
+The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle, half the ring's diameter unless the brand sets a larger radio dot, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.
 
 - **Purpose:** Render the atomic radio control — the outlined circle, its inner selection dot and its focus ring — for a host row to nest.
 - **Use when:** Inside Radio.Row, the common case. On its own only with an external label and its own ARIA wiring.
