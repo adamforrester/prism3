@@ -75,6 +75,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
+import { heightExclusions } from './branded-button';
 import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter, searchField, cardNumberField, progress } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
@@ -18767,6 +18768,38 @@ arm: {
     ok(/provider's element supplies the role and the accessible name/.test(wb.accessibility.aria) && /Add no label of your own/.test(wb.accessibility.aria)
       && /provider's element names itself/.test(nameLine) && /component adds no label/.test(nameLine) && !/aria-label/.test(a11yText),
       `#2343 PR 4 provider rules NAME: the provider's element supplies the accessible name and the component adds no label (aria '${wb.accessibility.aria}'; codeOnly '${nameLine || 'missing'}')`);
+  }
+  // #2343 BRANDED-BUTTON FACTORY (Q-W3 A, Q-S11 A) — every branded button carries the shared skeleton from
+  // `branded-button.ts`. The expected blocks are typed HERE as literals, never read off the helpers, so a helper that
+  // drifts fails this arm by name for every def built from it, and `lint-component-surface` names each def's digest
+  // (docs/34: the helper is the subject, not the oracle). BRANDED is a hand list: a branded button joins it.
+  {
+    const BRANDED = ['wallet-button'];
+    const RING = { kind: 'absolute', when: 'focus-visible', nests: 'focus-ring', inset: 'ring-offset', strokeInset: 'ring-width', nesting: { kind: 'nest-fixed', variant: { surface: 'default' } } };
+    const SHARED_TOKENS: Record<string, string> = {
+      'size.small.height': 'size.sm.height', 'size.medium.height': 'size.md.height', 'size.large.height': 'size.lg.height',
+      radius: 'radius.md', 'ring-width': 'focus.ring.width', 'ring-offset': 'focus.ring.offset',
+    };
+    const bad = BRANDED.flatMap((id) => {
+      const d = componentDefs.find((x) => x.id === id);
+      if (!d) return [`${id}: not registered`];
+      const parts = d.anatomy.parts as Record<string, Record<string, unknown>>;
+      const { note: _ringNote, ...ring } = parts.focusRing ?? {};
+      const mark = parts.mark ?? {};
+      const why: string[] = [];
+      if (JSON.stringify(ring) !== JSON.stringify(RING)) why.push(`focusRing ${JSON.stringify(ring)}`);
+      for (const [k, v] of Object.entries(SHARED_TOKENS)) if (d.tokens[k] !== v) why.push(`tokens.${k} = ${d.tokens[k]}, not ${v}`);
+      if (!(mark.kind === 'nest' && mark.nests === 'brand-mark' && mark.aspectLock === true && mark.fixedPaint === true
+        && (mark.nesting as { kind?: string } | undefined)?.kind === 'nest-fixed' && typeof mark.height === 'string' && !('width' in mark) && !('size' in mark)))
+        why.push(`mark ${JSON.stringify({ kind: mark.kind, nests: mark.nests, aspectLock: mark.aspectLock, fixedPaint: mark.fixedPaint })}`);
+      if (JSON.stringify(d.variants.size) !== JSON.stringify(['medium', 'small', 'large'])) why.push(`size ${JSON.stringify(d.variants.size)}`);
+      return why.map((w) => `${id}: ${w}`);
+    });
+    ok(bad.length === 0, `#2343 branded-button factory: every branded button carries the shared focus ring, height, radius and ring tokens, the fixed-paint aspect-locked mark and the medium-first size axis (${bad.slice(0, 4).join('; ') || 'clean'})`);
+    // The height exclusions, from a rule record the arm types itself: one entry per (rung, provider), rung order first.
+    const ex = heightExclusions({ a: { mark: 'x/a', minHeight: 40 }, b: { mark: 'x/b', maxHeight: 55 }, c: { mark: 'x/c', minHeight: 50 } }, { small: 36, medium: 44, large: 56 });
+    ok(JSON.stringify(ex) === JSON.stringify([{ provider: ['a'], size: ['small'] }, { provider: ['c'], size: ['small'] }, { provider: ['c'], size: ['medium'] }, { provider: ['b'], size: ['large'] }]),
+      `#2343 branded-button factory: heightExclusions rules out each rung under a floor or over a ceiling, in rung order (${JSON.stringify(ex)})`);
   }
   // #2713 — `ai.generationPriority` follows the build-component skill's written scale. Before it, each def's
   // number was set alone, so parts an agent must never generate on their own ranked from 2 to 9 and the

@@ -235,6 +235,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
       b.type = 'button';
       b.setAttribute('role', 'radio');
       b.dataset.key = `${String(key)}=${v}`;
+      b.dataset.label = l;   // the bold width every option reserves (#3115)
       const on = S.opt[key] === v;
       b.setAttribute('aria-checked', String(on));
       b.tabIndex = on ? 0 : -1;

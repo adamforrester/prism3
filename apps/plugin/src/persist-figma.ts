@@ -49,3 +49,20 @@ export const restoreInput = (root: SharedDataPort): BrandInput | null => {
   const raw = root.getSharedPluginData(NS, KEY);
   return deserializeBrandInput(raw);
 };
+
+/** Recursively key-sorted JSON: two brands are the same when these match, whatever order their keys were set in. */
+const canon = (v: unknown): string => JSON.stringify(v, (_, x) => (x && typeof x === 'object' && !Array.isArray(x)
+  ? Object.fromEntries(Object.keys(x as object).sort().map((k) => [k, (x as Record<string, unknown>)[k]])) : x));
+
+/**
+ * #3081 Q810 A: whether the file holds `input` as its brand, as Apply Theme stores it (`persistInput`). Update file's
+ * badge counts unapplied Theme changes as one item from this. It does not use the panel's `isDirty`: that baseline is
+ * the brand as it was loaded, and Apply Theme does not reset it. Both sides go through the same serialize and parse and
+ * are compared with keys sorted. False when the file holds no brand, or one this build can't read: Theme would write it.
+ */
+export const holdsInput = (root: SharedDataPort, input: BrandInput): boolean => {
+  try {
+    const held = restoreInput(root);
+    return !!held && canon(held) === canon(deserializeBrandInput(serializeBrandInput(input)));
+  } catch { return false; }
+};
