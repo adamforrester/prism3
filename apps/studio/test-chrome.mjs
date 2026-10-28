@@ -1028,10 +1028,29 @@ const goPlace = async (page, place) => {
   await page.evaluate(() => document.fonts.ready);
 };
 
+/** Wait until the mode control has settled on radios or the select. The control measures itself after it is drawn and on
+ *  every resize of the header (`preview.ts` `fit`), so straight after a page opens it can still be on radios that are about
+ *  to give way to the select. Choosing from that first frame clicked a radio that was hidden a moment later, which timed
+ *  out on CI (section 24, #3083's merge with #3094). Settled: its choice and row are the same across two frames and one of
+ *  the two is drawn. Bounded; on a timeout the caller's own wait names the hook. */
+async function settleModes(page) {
+  for (let i = 0; i < 25; i++) {
+    const still = await page.evaluate(() => new Promise((done) => {
+      const w = document.querySelector('[data-p3="mode-control"]')?.parentElement;
+      if (!w) { requestAnimationFrame(() => done(false)); return; }
+      const at = () => `${w.dataset.fit}|${w.dataset.row ?? ''}`;
+      const was = at();
+      requestAnimationFrame(() => requestAnimationFrame(() => done(at() === was
+        && [...w.querySelectorAll('[data-p3="mode-select"], [data-p3="mode-option"]')].some((n) => n.getClientRects().length > 0))));
+    }));
+    if (still) return;
+  }
+}
 /** Choose a mode in the preview header by whichever control represents it: its radio, or, where the modes do not all
  *  fit, the select of the same modes (both are the mode choice, PREVIEW_HEAD_ALL). #2909: the plugin's preview header is
  *  narrower by the rail and holds Contrast, so at 1280 it can show the select where the web shows radios. */
 async function pickMode(page, mode) {
+  await settleModes(page);
   if (await page.locator('[data-p3="mode-select"]').isVisible()) await page.locator('[data-p3="mode-select"]').selectOption(mode);
   else await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
@@ -8309,6 +8328,7 @@ const openDepth = async (page) => {
 };
 /** Choose a mode in the preview header: its radio, or, where the modes do not all fit, the select of the same modes. */
 const chooseModeAny = async (page, mode) => {
+  await settleModes(page);
   if (await page.locator('[data-p3="mode-select"]').isVisible()) await page.locator('[data-p3="mode-select"]').selectOption(mode);
   else await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
