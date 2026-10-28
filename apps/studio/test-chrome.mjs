@@ -3279,6 +3279,29 @@ for (const host of ['web', 'figma']) {
           const landed = area === 'components' ? at.place === 'components' && at.levers && at.build === 0 : at.layout === 'page' && at.docs;
           ok(landed && px.length === 0, `${area} ${where}: the rail opens the ${area} area and writes nothing — ${JSON.stringify(at)}, posted ${JSON.stringify(px)}`);
         }
+        // #3128: a set the build queue posts that the host refuses (the plugin's run guard still held) gets no verdict.
+        // The run ends on the refusal: Update file is free again, the Build set row is not left running, and its result
+        // carries the host's words. Two sets ticked, the theme not; the first lands, the second is refused.
+        await openUpdate({ present: [], setUp: true });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+        await hooks.need(page, '[data-p3="update-set"]', WAIT);
+        await hooks.click(page.locator('[data-p3="update-set"]').nth(0), WAIT);
+        await hooks.click(page.locator('[data-p3="update-set"]').nth(1), WAIT);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+        const rfW1 = (await takeWrites(page)).map(keyOf);
+        await postMsg(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 1', summary: 'built', lines: ['built'] });
+        const rfW2 = (await takeWrites(page)).map(keyOf);
+        const REFUSED_WORDS = 'Build set is already running. Try again when it finishes.';
+        await postMsg(page, { type: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: REFUSED_WORDS });
+        await settle(page);
+        const rfU = await updBtn();
+        const rfC = (await drawerState(page)).ops['components'];
+        ok(JSON.stringify(rfW1) === '["build-components"]' && JSON.stringify(rfW2) === '["build-components"]' && !rfU.busy && rfC?.state !== 'running' && String(rfC?.summary ?? '').includes(REFUSED_WORDS),
+          `${where}: #3128: a set the host refuses ends the run: Update file is free and the Build set row stops, with the host's words (posted ${JSON.stringify(rfW1)} then ${JSON.stringify(rfW2)}, Update file ${JSON.stringify(rfU)}, row ${JSON.stringify(rfC ?? null)})`);
+        if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
         // #2830 Q2830.3 A: Documentation › Specs is a real control. Draw specs posts the panel's `draw-specs` (for the
         // current page; the host picks the page) and nothing else, reads as drawing until the host answers, and then shows
         // the host's verdict as its result line. The verdict is planted as the main thread posts one.
