@@ -817,7 +817,7 @@ const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-h
  *  controls, for the previewed mode (owner decision Q22). */
 const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor-pick"]',
   '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="surface-secondary-pick"]', '[data-p3="surface-tertiary-pick"]',
-  '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
+  '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="raised-surface-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
   '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="glass-role-add"]', '[data-p3="fills-continue"]'];
@@ -2208,6 +2208,169 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
 } // 6
 
 // =============================================================================================
+// 6b. Search reaches every lever (#3093): its label, searched on its home, shows it there
+// =============================================================================================
+if (runs('6b')) console.log(`\nSearch reaches every lever (#3093)\n${'='.repeat(78)}`);
+/** #3093: a sample of the levers search must reach, typed here: each lever's key, its label as the issue names it,
+ *  and its home place (the owner's decisions, never read from `pages.ts`). Every Components settings block the issue
+ *  audits is here, Dialog surface first. The sweep below reads every lever from the manifest (`levers.ts`, committed
+ *  as `schema/lever-manifest.json`), so a new lever cannot be missed; this sample holds the labels themselves, so a
+ *  label the manifest renames, or a lever the manifest loses, fails by name here. */
+const SEARCH_SAMPLE = [
+  { key: 'raisedSurface', label: 'Dialog surface', place: 'components' },
+  { key: 'dialogTitleSize', label: 'Dialog title size', place: 'components' },
+  { key: 'fieldStyle', label: 'Field style', place: 'components' },
+  { key: 'searchFieldStyle', label: 'Search field style', place: 'components' },
+  { key: 'tagStyle', label: 'Tag style', place: 'components' },
+  { key: 'bannerStyle', label: 'Banner style', place: 'components' },
+  { key: 'controlShape', label: 'Control shape', place: 'components' },
+  { key: 'buttonIcons', label: 'Button icons', place: 'components' },
+  { key: 'density', label: 'Density', place: 'shape' },
+  { key: 'primary', label: 'Primary brand color', place: 'color-palettes' },
+  { key: 'motionPersonality.tempo', label: 'Motion tempo', place: 'depth' },
+];
+/** The hook rule, written here (read by section 12 too) (the `leverHook` contract: dots to dashes, camel case to kebab case). */
+const kebabHook = (k) => `lever-${k.replace(/\./g, '-').replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
+/** The issue's other words for Dialog surface: a word of its label, the label, a word of its description, its key. */
+const RAISED_QUERIES = ['dialog', 'dialog surface', 'white', 'raisedSurface'];
+/** The levers with no block of their own in the state the sweep opens on, each with the block that draws its control
+ *  and says its words (`alsoSays`, #2175): a search for the lever shows that block. Typed here, each by its reason. */
+const SEARCH_STANDS_IN = {
+  'neutral.anchor': 'neutral.hue',            // Pin a neutral: the Pinned choice in the neutral source, until pinned (#2175)
+  'typography.links': 'typography.weights',   // Underlined link styles: the weights table's Link column
+  'typography.italicDefault': 'typography.italics', // Italic-only text types: each text type's Only chip
+  'outlineHoverFill': 'outlineInteraction',   // Outline hover fill: drawn only under Opaque fill; Outline hover's description names it (#3071)
+};
+/** Every place a lever can live, in the tab row's order (`PLACE_CLICKS`, typed above). */
+const SEARCH_PLACES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
+if (runs('6b')) {
+const levers = manifest.levers.filter((l) => !l.deprecated);
+ok(levers.length >= 50 && SEARCH_SAMPLE.every((s) => levers.some((l) => l.key === s.key)), `#3093: the manifest lists the levers to sweep (${levers.length}) and every sampled key`);
+for (const s of SEARCH_SAMPLE) {
+  const got = levers.find((l) => l.key === s.key)?.label;
+  ok(got === s.label, `#3093: ${s.key}'s label is "${s.label}" (the manifest says "${got}")`);
+}
+ok(SEARCH_PLACES.every((p) => Object.hasOwn(PLACE_CLICKS, p)) && Object.keys(PLACE_CLICKS).every((p) => SEARCH_PLACES.includes(p)), `#3093: the sweep visits every place (${SEARCH_PLACES.join(', ')})`);
+const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+/** Search `q` on the page in view, and read whether each hook's lever block is shown in the levers pane. */
+const shows = async (q, hookIds) => {
+  await page.locator('[data-p3="search-input"]').fill(q);
+  return page.evaluate((hs) => Object.fromEntries(hs.map((hk) => {
+    const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${hk}"]`);
+    return [hk, !!n && n.getBoundingClientRect().height > 0];
+  })), hookIds);
+};
+/** Each lever's key → the places where searching its label shows its block. */
+const foundAt = new Map(levers.map((l) => [l.key, []]));
+for (const place of SEARCH_PLACES) {
+  await goPlace(page, place);
+  if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+  await hooks.need(page, '[data-p3="search-input"]');
+  for (const l of levers) {
+    const hk = kebabHook(SEARCH_STANDS_IN[l.key] ?? l.key);
+    if ((await shows(l.label, [hk]))[hk]) foundAt.get(l.key).push(place);
+  }
+  if (place === 'components') {
+    for (const q of RAISED_QUERIES) {
+      const r = await shows(q, ['lever-raised-surface']);
+      const status = await page.evaluate(() => document.querySelector('[data-p3="search-status"]')?.textContent ?? '');
+      ok(r['lever-raised-surface'] && /^\d+ settings? match/.test(status), `#3093: on Components, searching "${q}" shows Dialog surface (${JSON.stringify({ ...r, status })})`);
+    }
+  }
+  await page.locator('[data-p3="search-input"]').fill('');
+}
+for (const l of levers) {
+  const at = foundAt.get(l.key);
+  const via = SEARCH_STANDS_IN[l.key] ? ` (by ${SEARCH_STANDS_IN[l.key]}'s block, which draws its control)` : '';
+  ok(at.length === 1, `#3093: searching "${l.label}" shows ${l.key}'s lever${via} on one page, its home (shown on ${at.length ? at.join(', ') : 'no page'})`);
+}
+for (const s of SEARCH_SAMPLE) {
+  const at = foundAt.get(s.key) ?? [];
+  ok(at.length === 1 && at[0] === s.place, `#3093: searching "${s.label}" shows ${s.key} on ${s.place} (shown on ${at.length ? at.join(', ') : 'no page'})`);
+}
+// The re-filter (#3093 review): a block draws its levers anew after an edit or a mode change, and the page filters it
+// again (its `brand` and `mode` subscriptions). Searching "white" shows Dialog surface alone in Dialog options; an edit
+// to Dialog surface, then a mode change, must leave Dialog title size hidden.
+{
+  const DIALOG = ['lever-raised-surface', 'lever-dialog-title-size'];
+  await goPlace(page, 'components');
+  if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+  await hooks.need(page, '[data-p3="search-input"]');
+  const before = await shows('white', DIALOG);
+  const chip = page.locator('[data-p3="levers-pane"] [data-p3="lever-raised-surface"] [role="radio"][aria-checked="false"]').first();
+  const picked = await chip.getAttribute('data-value') ?? await chip.textContent();
+  await hooks.click(chip);
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="lever-raised-surface"]'));
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const read = () => page.evaluate((hs) => Object.fromEntries(hs.map((hk) => {
+    const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${hk}"]`);
+    return [hk, !!n && n.getBoundingClientRect().height > 0];
+  })), DIALOG);
+  const afterEdit = await read();
+  ok(before['lever-raised-surface'] && !before['lever-dialog-title-size'] && afterEdit['lever-raised-surface'] && !afterEdit['lever-dialog-title-size'],
+    `#3093: on Components, searching "white" then picking Dialog surface's "${String(picked).trim()}" keeps Dialog title size hidden (${JSON.stringify({ before, after: afterEdit })})`);
+  await pickMode(page, 'dark');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const afterMode = await read();
+  ok(afterMode['lever-raised-surface'] && !afterMode['lever-dialog-title-size'],
+    `#3093: on Components, searching "white" then changing the mode keeps Dialog title size hidden (${JSON.stringify({ before: afterEdit, after: afterMode })})`);
+  await page.locator('[data-p3="search-input"]').fill('');
+}
+ok(errors.length === 0, `#3093: the search sweep raised no page error (${errors.join(' | ')})`);
+await ctx.close();
+}
+
+// The Color row's link (#3093 part 2): Surfaces & fills draws the panel over the scrim, `foreground.raised`, read-only,
+// with a link to Dialog surface that opens its block in Components and focuses its checked chip.
+if (runs('6b')) {
+/** The link's words, typed (DRAFT on #3093): the lever's label after "Set by". */
+const RAISED_LINK = 'Set by Dialog surface';
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  await goPlace(page, 'color-fills');
+  const row = await page.evaluate(() => {
+    const r = document.querySelector('[data-p3="levers-pane"] [data-p3="raised-row"]');
+    const a = r?.querySelector('[data-p3="raised-surface-link"]');
+    return { role: r?.dataset.role ?? null, link: a?.textContent?.trim() ?? null, tag: a?.tagName ?? null, pickers: r ? r.querySelectorAll('[data-p3="fill-pick"]').length : null };
+  });
+  ok(row.role === 'foreground.raised' && row.link === RAISED_LINK && row.tag === 'BUTTON' && row.pickers === 0,
+    `#3093: ${host}: Color › Surfaces & fills draws foreground.raised read-only, its "${RAISED_LINK}" a link (${JSON.stringify(row)})`);
+  // The row's own search (#3094 review): it sits beside the Scrim block, not inside it, so a query that matches the row
+  // and not the block shows the row. Nested in the block, the hidden block hid it while the status still counted it.
+  if (host === 'web') {
+    if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+    await hooks.need(page, '[data-p3="search-input"]');
+    const seen = async (q, hk) => {
+      await page.locator('[data-p3="search-input"]').fill(q);
+      return page.evaluate((k) => {
+        const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${k}"]`);
+        return { [k]: !!n && n.getBoundingClientRect().height > 0, status: document.querySelector('[data-p3="search-status"]')?.textContent ?? '' };
+      }, hk);
+    };
+    const dp = await seen('dialog panel', 'raised-row');
+    ok(dp['raised-row'] && /^1 setting match/.test(dp.status), `#3093: web: on Color › Surfaces & fills, searching "dialog panel" shows the Dialog panel row (${JSON.stringify(dp)})`);
+    const sc = await seen('scrim', 'scrim-strength-choice');
+    ok(sc['scrim-strength-choice'], `#3093: web: on Color › Surfaces & fills, searching "scrim" still shows the Scrim strength chips (${JSON.stringify(sc)})`);
+    await page.locator('[data-p3="search-input"]').fill('');
+  }
+  await hooks.click(page.locator('[data-p3="raised-surface-link"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
+  const home = await page.evaluate(() => {
+    const lv = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-raised-surface"]');
+    const f = document.activeElement;
+    const pane = document.querySelector('[data-p3="levers-pane"]')?.getBoundingClientRect();
+    const r = lv?.getBoundingClientRect();
+    return { shown: !!r && r.height > 0, inView: !!r && !!pane && r.top >= pane.top - 1 && r.top < pane.bottom,
+      focus: !!lv && lv.contains(f) && f.getAttribute('aria-checked') === 'true', toggle: document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]')?.getAttribute('aria-expanded') };
+  });
+  ok(home.shown && home.inView && home.focus && home.toggle === 'true',
+    `#3093: ${host}: the link opens Components › Dialog options, Dialog surface in view with its checked chip focused (${JSON.stringify(home)})`);
+  ok(errors.length === 0, `#3093: ${host}: the Color row's link raised no page error (${errors.join(' | ')})`);
+  await ctx.close();
+}
+} // 6b
+
+// =============================================================================================
 // 7. One home per page (V1): every place names its literal home, and nothing but a place change moves it
 // =============================================================================================
 if (runs('7')) console.log(`\nHomes (V1, V12) — one home per page, never moved by scroll or focus\n${'='.repeat(78)}`);
@@ -3382,8 +3545,6 @@ const PALETTES_LEVERS = [
   ['status.success', '[data-p3="lever-status-success"]', true], ['status.warning', '[data-p3="lever-status-warning"]', true],
   ['status.danger', '[data-p3="lever-status-danger"]', true], ['status.info', '[data-p3="lever-status-info"]', true],
 ];
-/** The hook rule, written here (the `leverHook` contract: dots to dashes, camel case to kebab case). */
-const kebabHook = (k) => `lever-${k.replace(/\./g, '-').replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
 if (runs('12')) {
 for (const [key, hook, adv] of PALETTES_LEVERS) {
   const lev = manifest.levers.find((l) => l.key === key);
@@ -4387,8 +4548,9 @@ const ICON_ROW_ROLES = [...inks('icon'), ...SEM_INK.map((s) => `icon.on-${s}`), 
 /** The Fields rows (S4c, owner decision Q29): one per field role the default theme EMITS, page and inverse,
  *  read from the committed emission rather than from the page, so a role the engine adds needs a row too. The
  *  count is held to the eight Q29 names, so an empty read fails. */
-/** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick. */
-const READONLY_ROW_ROLES = ['scrim.default', 'glass.surface', 'border.focus', 'inverse.border.focus'];
+/** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick; and (#3093) the
+ *  panel over it, whose control is Dialog surface in Components, so its row links there. */
+const READONLY_ROW_ROLES = ['scrim.default', 'glass.surface', 'border.focus', 'inverse.border.focus', 'foreground.raised'];
 const FIELD_ROW_ROLES = (() => {
   const out = [];
   const walk = (n, path) => { if (!n || typeof n !== 'object') return; if ('$value' in n) { out.push(path.join('.')); return; } for (const [k, v] of Object.entries(n)) if (!k.startsWith('$')) walk(v, [...path, k]); };
@@ -4925,6 +5087,8 @@ const fillsControls = (page) => page.evaluate(DERIVED_CONTROLS, [FILLS_SCOPE, DE
  *  controls, Unpair and the default theme's two gradient editors. Set below the measured count, 145 in each of
  *  hc-light, hc-dark and wireframe on both hosts (printed per mode), so a page that drew less fails. */
 const DERIVED_CONTROLS_FLOOR = 140;
+/** RX1 A's "way to" link on this page (#3093): it edits nothing, so a derived mode leaves it live. */
+const FILLS_STAYS_LIVE = ['raised-surface-link'];
 /** At least this many of them enabled in Light: all but the 31 icon rows locked while paired. 114 measured. */
 if (runs('18-s4d')) {
 const LIGHT_ENABLED_FLOOR = 110;
@@ -4964,7 +5128,9 @@ for (const host of ['web', 'figma']) {
     await showMode(page, mode);
     await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode && document.querySelector('[data-p3="levers-pane"] .p3-state')?.textContent?.includes('auto-derived'), mode, { timeout: 5000 }).catch(() => {});
     const cs = await fillsControls(page);
-    const live = cs.filter((c) => !c.disabled);
+    const live = cs.filter((c) => !c.disabled && !FILLS_STAYS_LIVE.includes(c.hook));
+    const ways = cs.filter((c) => FILLS_STAYS_LIVE.includes(c.hook));
+    ok(ways.length === FILLS_STAYS_LIVE.length && ways.every((c) => !c.disabled), `#3093: ${host} ${mode}: the Dialog panel row's link stays live (${JSON.stringify(ways)})`);
     const unpair = cs.find((c) => c.hook === 'icons-unpair');
     console.log(`  ${host} ${mode}: ${cs.length} controls on Surfaces & fills, ${live.length} enabled`);
     ok(cs.length >= DERIVED_CONTROLS_FLOOR && live.length === 0,
@@ -13582,6 +13748,8 @@ const RO_EXCEPTIONS = [
   'shape-see-components', 'components-density-link', 'type-fluid-layout',
   // #2909 Q2909.3 A: Control shape's read-only line on Shape only opens its home.
   'shape-control-shape-link',
+  // #3093: the panel over the scrim's read-only row on Surfaces & fills only opens Dialog surface's home.
+  'raised-surface-link',
   'fills-continue', 'interactive-continue', 'type-continue', 'depth-continue', 'shape-continue', 'layout-continue',
 ];
 /** The studio's boxed note (RX2 A), by its classes. */
