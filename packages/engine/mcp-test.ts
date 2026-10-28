@@ -378,10 +378,11 @@ await new Promise((r) => setTimeout(r, 3000));
   // The bridge kept its own copy of the pre-#1867 fallback because nothing probed it. So find every
   // `initialize` handler in the tree by reading the source, independently of the register, and hold
   // each one to a named suite that reads the shared probes. A scan that found none would pass vacuously,
-  // so each registered server must also be FOUND.
+  // so each registered server must also be FOUND. A handler is a `case` label or a strict-equality
+  // comparison on the method name; a test's `method:` request field is neither.
   const ROOT = resolve(HERE, '../..');
   const SKIP = new Set(['node_modules', 'dist', 'release', 'out', '.git']);
-  const HANDLER = /case\s+['"]initialize['"]/;
+  const HANDLER = /(?:case\s+|===\s*)['"]initialize['"]/;
   const found: string[] = [];
   const walk = (rel: string): void => {
     for (const e of readdirSync(resolve(ROOT, rel), { withFileTypes: true })) {

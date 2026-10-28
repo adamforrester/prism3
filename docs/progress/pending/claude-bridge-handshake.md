@@ -13,12 +13,13 @@ that sent `initialize` cannot use that answer.
   they check (`docs/34` shape 1). `mcp-test.ts` and `apps/plugin/test-agent-bridge.ts` drive them over each server's
   real stdio.
 - **A register, checked against the tree.** `MCP_SERVERS` maps each server to its suite. `mcp-test.ts` scans
-  `packages/`, `apps/` and `tools/` for `initialize` handlers and fails by file on one the register does not name, on a
+  `packages/`, `apps/` and `tools/` for `initialize` handlers (a `case 'initialize'` or an `=== 'initialize'`
+  comparison) and fails by file on one the register does not name, on a
   registered server the scan cannot find, and on a suite that no longer reads the probes.
 - **Where it runs.** No new gate. The bridge was already gated: `test-agent-bridge.ts` is an arm of the plugin's
   `test` step, which `verify.ts` and `ci.yml` both run, and `mcp-test.ts` is an engine gate in both.
 
 **Mutations, each failing by name:** the bridge echoing `2026-07-28` again fails three bridge probes
 (`2025-06-18`, `2025-11-25`, `2026-07-28`); dropping the `!== LATEST` clause from the shared rule fails the
-`2026-07-28` probe in BOTH suites; an unregistered `case 'initialize'` under `tools/` and a bridge suite that stops
+`2026-07-28` probe in BOTH suites; an unregistered `case 'initialize'` under `tools/`, an unregistered `=== 'initialize'` handler under `tools/`, and a bridge suite that stops
 reading the probes each fail the register check.
