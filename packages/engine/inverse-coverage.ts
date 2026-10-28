@@ -110,7 +110,9 @@ export const INVERSE_GAPS: InverseGap[] = [
       + 'follows the page polarity so the page text roles read on it. Whether a glass band set inside an '
       + 'inverse band should take the band\'s polarity instead has not been asked: the source comp is a '
       + 'product card on the page. Adding `inverse.glass.surface` is a MINOR the day a design needs it; '
-      + 'until then this register holds the question rather than an invented answer.',
+      + 'until then this register holds the question rather than an invented answer. A brand\'s own glass roles '
+      + '(`color.glass.<name>`, the `glassRoles` lever, #3073) sit under the same question and are brand-dependent, '
+      + 'so this register cannot list them by name: they have no inverse twin, and `test.ts` exempts them by brand.',
   },
   {
     paths: [
