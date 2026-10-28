@@ -82,7 +82,8 @@ export type HostMessage =
   | { kind: 'doc-settings'; panels: boolean; cover: boolean; styleGuide: Record<string, unknown> | null; error: string | null }
   // #2909 — Update file's checklist: the def ids whose set the file holds, whether Set up file has run, and (Q2909.8 A)
   // what the as-built ledger says each present set is: current, due and why, or not recorded.
-  | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null; due: Readonly<Record<string, SetDueView>> }
+  // #3110: `partial` when the host read it from the ledger alone at open, before any page loaded.
+  | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null; due: Readonly<Record<string, SetDueView>>; partial?: boolean; atOpen?: boolean }
   // #2909 Q2909.8 A — one set's hand edits from the background pass after load, or its end.
   | { kind: 'hand-edits'; def: string; members: number; edited: number }
   | { kind: 'hand-edits-done' }
@@ -444,7 +445,7 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   },
   // #2909. Ids that are not strings are dropped; a malformed `setUp` reads as not set up, the claim that asks for more.
   'file-sets': (m) => ({ kind: 'file-sets', present: Array.isArray(m.present) ? (m.present as unknown[]).filter(str) : [], setUp: m.setUp === true,
-    error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due) }),
+    error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due), ...(m.partial === true ? { partial: true } : {}), ...(m.atOpen === true ? { atOpen: true } : {}) }),
   // #2909 Q2909.8 A. A reading with a field of the wrong type is dropped: a guessed count would be a status nobody read.
   'hand-edits': (m) => {
     if ('done' in m && m.done === true) return { kind: 'hand-edits-done' };

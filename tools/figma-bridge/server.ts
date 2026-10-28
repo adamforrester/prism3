@@ -35,7 +35,7 @@ import type { Duplex } from 'node:stream';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
-import { PROTOCOL_VERSIONS, LATEST_PROTOCOL_VERSION, META } from '../../packages/engine/mcp';
+import { PROTOCOL_VERSIONS, META, negotiateHandshakeVersion } from '../../packages/engine/mcp';
 import { AGENT_PROTOCOL_VERSION, AGENT_COMMANDS } from '../../apps/plugin/src/agent-protocol';
 import { BRIDGE_PORT } from '../../apps/plugin/src/agent-bridge-relay';
 import type { AgentCommand, AgentResult, AgentLinkState, AgentProgress } from '../../apps/plugin/src/agent-protocol';
@@ -357,11 +357,10 @@ export const handleRpc = async (req: Rpc, bridge: Bridge, notify: (method: strin
   switch (req.method) {
     case 'server/discover':
       return ok({ protocolVersions: [...PROTOCOL_VERSIONS], capabilities: { tools: { listChanged: false } }, serverInfo: SERVER_INFO });
-    case 'initialize': {
-      const want = req.params?.protocolVersion;
-      const version = typeof want === 'string' && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : LATEST_PROTOCOL_VERSION;
-      return ok({ protocolVersion: version, capabilities: { tools: { listChanged: false } }, serverInfo: SERVER_INFO });
-    }
+    // The engine server's rule, imported rather than copied: a copy here kept the old fallback after
+    // #1867 fixed it there, and Claude Code refused the bridge's `2026-07-28` answer (#3109).
+    case 'initialize':
+      return ok({ protocolVersion: negotiateHandshakeVersion(req.params?.protocolVersion), capabilities: { tools: { listChanged: false } }, serverInfo: SERVER_INFO });
     case 'notifications/initialized':
     case 'initialized':
       return null;

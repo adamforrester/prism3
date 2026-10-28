@@ -1147,6 +1147,24 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-gstop { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, var(--p3-step-w)) auto; gap: var(--p3-space-100); align-items: center; }
 .p3-gstop > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
 .p3-num-input { min-width: 0; }
+/* #3106: an added glass fill. Its head is the shipped glass's row (the swatch, the name over its token, as tall as the
+   swatch) with the small remove button on the right, as a gradient's; its color and opacity sit on one line under the
+   name, starting where the name starts. Its own grid, not .p3-fillrow, so a snug pane keeps the remove button beside
+   the name instead of stretching it under the row. */
+.p3-glassrow { display: grid; gap: var(--p3-space-100); }
+.p3-glasshead { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--p3-space-200); align-items: center; }
+.p3-glasshead > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
+.p3-glassctl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-100); align-items: center; padding-inline-start: calc(var(--p3-swatch-h) + var(--p3-space-200)); }
+.p3-glassctl .p3-num-input { flex: none; width: var(--p3-step-w); }
+/* A snug pane gives the color its room: the line starts under the swatch, not under the name, and the opacity drops
+   its % (its name still says percent). */
+.p3-levers[data-fit="snug"] .p3-glassctl { padding-inline-start: 0; }
+.p3-levers[data-fit="snug"] .p3-glassctl .p3-colorfield-meta { display: none; }
+/* #3106 (Q827 A): the name of the glass fill being added, its Add and Cancel, the token it makes, and why it can't be used. */
+.p3-glassdraft { display: grid; gap: var(--p3-space-050); }
+.p3-glassdraft-btns { display: flex; gap: var(--p3-space-100); }
+.p3-glassdraft-btns > .p3-btn { min-height: var(--p3-ctl-h); }
+.p3-glassdraft-btns > .p3-btn-icon { min-width: var(--p3-ctl-h); }
 /* S4d: a group's sub-heading inside a section's rows (the preview's "Inverse"), the Icon section's pairing note,
    and the jump links to each section (Q49). Color › Interactive's jump links (S5.2) take these same rules, once,
    so the two pages draw one control. */
