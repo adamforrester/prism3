@@ -242,6 +242,9 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
 // `<brand> (<what changed>)`, e.g. `harbor (modes light, wireframe)`. A refusal specific to one lever
 // value is the #1811 shape, and it crashed the suite exactly like a refused base brief did.
 const exampleLoadFailed = new Set<string>();
+/** The color variables a brand adds through `glassRoles` (#3073), by brand, root stripped. Spelled from the owner's
+ *  decision (Q807 A: the reference brand adds `card`), never read off the input, so a stray one anywhere fails. */
+const BRAND_ADDED_GLASS: Record<string, string[]> = { nb: ['color/glass/card'] };
 const exampleTheme = <T = Theme,>(name: string, build: () => T): T | undefined => {
   try { return build(); } catch (e) {
     // LOAD-BEARING, and the one line here that looks tidiable. When a single row is dropped (one density
@@ -5180,7 +5183,10 @@ arm: {
     // if this rule is the one that is wrong, arm 2 reports the whole register as stale.
     const isInv = (k: string) => k === 'inverse' || k.startsWith('inverse.');
     const covered = (k: string): boolean => roleSet.has(`inverse.${k}`);
-    const uncovered = [...roleSet].filter((k) => !isInv(k) && !covered(k)).map((k) => `color.${k}`).sort();
+    // #3073: a brand's own glass roles are brand-dependent, so a static register cannot name them; the register's
+    // glass entry states the rule for them. Spelled per brand (this arm reads the reference brand's modes).
+    const brandGlass = new Set(BRAND_ADDED_GLASS.nb.map((n) => n.replace(/^color\//, '').replace(/\//g, '.')));
+    const uncovered = [...roleSet].filter((k) => !isInv(k) && !covered(k) && !brandGlass.has(k)).map((k) => `color.${k}`).sort();
     const unregistered = uncovered.filter((k) => !INVERSE_GAP_PATHS.has(k));
     ok(unregistered.length === 0,
       `inverse: every role without an inverse counterpart is registered in INVERSE_GAPS with a reason (${uncovered.length} uncovered, ${INVERSE_GAP_PATHS.size} registered)` +
@@ -5667,6 +5673,9 @@ arm: {
           // NOT carry it survives with the root attached and so still diverges, which is the behaviour
           // wanted — this de-roots what is there, it does not assume it.
           .variables.map((v: any) => String(v.name).replace(new RegExp(`^${rootOfBrand(b)}/`), ''))
+          // #3073: a brand's own glass roles (`glassRoles`) are brand-dependent by decision (Q807 A), so they are not
+          // part of the shared set. Spelled per brand, so a stray glass role on any other brand still diverges.
+          .filter((n: string) => !(BRAND_ADDED_GLASS[b] ?? []).includes(n))
           .sort().join('|'));
       // `roleSets[0]` only exists if the floor arm above passed. Guarded rather than indexed blind: an
       // empty `figmaBrands` used to CRASH here, so the floor arm's failure was reported and then buried
@@ -12118,6 +12127,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Dark lands on 650 (~2.4:1), a full 100 from `border/primary`'s 750 (owner Q270.2), not 700.
   { mode: 'light', name: 'color/border/secondary', nb: 'palette/neutral/400', engine: 'palette/neutral/250' },
   { mode: 'dark', name: 'color/border/secondary', nb: 'palette/neutral/500', engine: 'palette/neutral/650' },
+  // NINTH group (#3050, owner Q825 B): the scrim. The frozen export carries the scrim at 40 / 60 / 60 / 70; the reference
+  // brand's own dialog designs put a heavy black backdrop behind the end drawer and the full-screen panel, so it sets
+  // `scrimStrength: strong`, which moves the alias to the existing 80 step in light and dark and 90 in high contrast.
+  // A value lever: the variable's name is unchanged, so this is a divergence of an EXISTING var, in all four modes.
+  { mode: 'light', name: 'color/scrim/default', nb: 'palette/black-alpha/40', engine: 'palette/black-alpha/80' },
+  { mode: 'dark', name: 'color/scrim/default', nb: 'palette/black-alpha/60', engine: 'palette/black-alpha/80' },
+  { mode: 'hc-light', name: 'color/scrim/default', nb: 'palette/black-alpha/60', engine: 'palette/black-alpha/90' },
+  { mode: 'hc-dark', name: 'color/scrim/default', nb: 'palette/black-alpha/70', engine: 'palette/black-alpha/90' },
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
@@ -12324,6 +12341,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const ENGINE_ADDED_VARS = [
       // #3049 — the panel over the scrim, Dialog's own surface. An exact name in `foreground`, a family NB exports.
       'color/foreground/raised',
+      // #3073 — the reference brand's card glass: alpha steps of its card ground (light neutral.050, dark neutral.900).
+      // Exact names, not a `palette/` prefix: NB exports that family, and only the steps a glass role reads are minted.
+      'palette/neutral-050-alpha/70', 'palette/neutral-900-alpha/70',
       // #1140 — the third rung of the neutral edge ladder, on both grounds. `border` was the only
       // surface/ink category stopping at secondary. Two exact names rather than any prefix: `border` is
       // a family NB fully defines, so the whole value of pinning it is that a spurious sibling fails.
@@ -12608,7 +12628,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   for (const n of NB_ENGINE_ADDED_STYLES.filter((x) => x.startsWith('label/') && x.endsWith('-link'))) {
     const ln: any = emittedByName.get(n), plain: any = emittedByName.get(n.replace(/-link$/, ''));
     if (!ln || !plain) { linkBad.push(`${n}: ${ln ? 'no plain twin' : 'not emitted'}`); continue; }
-    const { textDecoration: lnDeco, ...lnRest } = ln.properties, { textDecoration: plDeco, ...plRest } = plain.properties;
+    // #2942: the underline's thickness and offset are part of the underline, so they are set aside with it.
+    const { textDecoration: lnDeco, textDecorationThickness: _t, textDecorationOffset: _o, ...lnRest } = ln.properties, { textDecoration: plDeco, ...plRest } = plain.properties;
     if (JSON.stringify(lnRest) !== JSON.stringify(plRest)) linkBad.push(`${n}: properties other than the underline differ from ${n.replace(/-link$/, '')}`);
     if (JSON.stringify(lnDeco) !== JSON.stringify({ bindable: false, value: 'UNDERLINE' }) || JSON.stringify(plDeco) !== JSON.stringify({ bindable: false, value: 'NONE' }))
       linkBad.push(`${n}: textDecoration ${JSON.stringify(lnDeco)} (its twin ${JSON.stringify(plDeco)})`);
@@ -36613,6 +36634,244 @@ arm: {
   ok(emitBad.length === 0, `#3049 committed emission: the reference brand's raised surface is white in light and its card elsewhere; every other brand's equals its card in every mode${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
 }
 
+// ------------------------------------------------------------------- #3050: the scrim's strength
+// Owner decisions (2026-10-27, on #3050): a per-brand value lever, `scrimStrength: standard | strong` (Q3050.1 A,
+// Q3050.2 A). `standard`, the default, keeps the steps before the lever; `strong` is the EXISTING 80% step in light and
+// dark (Q825 B, replacing A's 75), with high contrast one step heavier where the ramp allows, so 90 in both. No step is
+// added, so no token name moves. EXPECTED is typed here, from the decision; ACTUAL is the resolved roles and the
+// committed emission, never `SCRIM_STEPS` (docs/34 shape 1: a gate built on the table it checks agrees with any bug).
+{
+  const EXPECTED: Record<'unset' | 'standard' | 'strong', Record<string, number>> = {
+    unset: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
+    standard: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
+    strong: { light: 80, dark: 80, 'hc-light': 90, 'hc-dark': 90 },
+  };
+  type V = keyof typeof EXPECTED;
+  const strip = (i: BrandInput): BrandInput => { const { scrimStrength: _drop, ...rest } = i as BrandInput & { scrimStrength?: string }; return rest as BrandInput; };
+  const withLever = (i: BrandInput, v: V): BrandInput => (v === 'unset' ? strip(i) : { ...strip(i), scrimStrength: v } as BrandInput);
+  const wendysIn = standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input;
+  const seedIn = readExampleBrand('./examples/nb-redesign.design.md');
+  const INPUTS: [string, BrandInput][] = [...EXAMPLE_IDS.map((ex) => [ex, exampleBrands()[ex] as BrandInput] as [string, BrandInput]), ['wendys', wendysIn], ['nb-redesign', seedIn]];
+  const themeFor = (name: string, v: V): Theme | undefined => name === 'nb'
+    ? (() => { const t = { ...nbTheme() } as Theme & { scrimStrength?: string }; if (v === 'unset') delete t.scrimStrength; else t.scrimStrength = v; return t as Theme; })()
+    : exampleTheme(`${name} (scrimStrength ${v})`, () => brandTheme(withLever(INPUTS.find(([n]) => n === name)![1], v)));
+  const NAMES = ['nb', ...INPUTS.map(([n]) => n)];
+  // THE STEP PER MODE, every brand × option × mode: the alias names `black-alpha.<step>`, the role is black, and its
+  // alpha is the step, so the swatch a UI renders and the token a consumer resolves say the same thing.
+  const bad: Record<V, string[]> = { unset: [], standard: [], strong: [] };
+  const cells: Record<V, number> = { unset: 0, standard: 0, strong: 0 };
+  for (const name of NAMES) for (const v of Object.keys(EXPECTED) as V[]) {
+    const th = themeFor(name, v);
+    if (!th) continue;
+    for (const M of resolveAllModes(th)) {
+      const want = EXPECTED[v][M.mode];
+      if (want === undefined) continue;   // a custom mode is not in the decision's table
+      const r = (M.roles as Record<string, { path: string; hex: string; alpha?: number } | undefined>)['scrim.default'];
+      cells[v]++;
+      const at = `${name}/${M.mode}`;
+      if (!r) { bad[v].push(`${at}: scrim.default UNRESOLVED`); continue; }
+      if (r.path !== `${th.namespace}.black-alpha.${want}` || r.hex.toLowerCase() !== '#000000' || r.alpha !== want / 100)
+        bad[v].push(`${at}: ${r.path} ${r.hex} alpha ${r.alpha}, want black-alpha.${want}`);
+    }
+  }
+  // Six brands carry the four modes; the redesign seed ships light alone, so it adds one cell per option.
+  const minCells = (NAMES.length - 1) * 4 + 1;
+  ok(cells.unset >= minCells && bad.unset.length === 0,
+    `#3050 scrim unset: scrim.default holds black-alpha 40 light / 60 dark / 60 hc-light / 70 hc-dark in every brand (${cells.unset} cells${bad.unset.length ? `; WRONG: ${bad.unset.slice(0, 4).join('; ')}` : ''})`);
+  ok(cells.standard >= minCells && bad.standard.length === 0,
+    `#3050 scrim standard: scrim.default holds black-alpha 40 / 60 / 60 / 70 in every brand (${cells.standard} cells${bad.standard.length ? `; WRONG: ${bad.standard.slice(0, 4).join('; ')}` : ''})`);
+  ok(cells.strong >= minCells && bad.strong.length === 0,
+    `#3050 scrim strong: scrim.default holds black-alpha 80 light / 80 dark / 90 hc-light / 90 hc-dark in every brand (${cells.strong} cells${bad.strong.length ? `; WRONG: ${bad.strong.slice(0, 4).join('; ')}` : ''})`);
+
+  // NO TOKEN NAME MOVES (Q825 B): `strong` aliases an existing step, so a brand's emitted names are the same set under
+  // either option, and the only leaf whose value differs is `color.scrim.default`.
+  {
+    const leaves = (o: any, pre = '', out: Map<string, string> = new Map()): Map<string, string> => {
+      for (const [k, v] of Object.entries(o ?? {})) {
+        if (k.startsWith('$')) continue;
+        const p = pre ? `${pre}.${k}` : k;
+        if (v && typeof v === 'object' && '$value' in (v as object)) out.set(p, JSON.stringify([(v as any).$value, (v as any).$extensions?.prism3?.modes]));
+        else if (v && typeof v === 'object') leaves(v, p, out);
+      }
+      return out;
+    };
+    const base = exampleBrands()['prism3'] as BrandInput;
+    const std = leaves(buildTree(brandTheme(withLever(base, 'standard'))).tree);
+    const str = leaves(buildTree(brandTheme(withLever(base, 'strong'))).tree);
+    const namesSame = std.size === str.size && [...std.keys()].every((k) => str.has(k));
+    const moved = [...std.keys()].filter((k) => str.get(k) !== std.get(k));
+    ok(std.size > 500 && namesSame && moved.length === 1 && moved[0].endsWith('.color.scrim.default'),
+      `#3050 no new token names: standard and strong emit the same ${std.size} names, and only color.scrim.default changes value (moved: ${moved.join(', ') || 'none'})`);
+  }
+
+  // THE REFERENCE BRAND IS STRONG in both inputs, and the committed emission shows it; every other committed brand
+  // leaves the lever unset, so its emission holds today's steps (byte-identical: `regen --check` holds the artifacts).
+  ok((nbTheme() as Theme & { scrimStrength?: string }).scrimStrength === 'strong' && (seedIn as BrandInput & { scrimStrength?: string }).scrimStrength === 'strong',
+    `#3050: the reference brand's legacy fixture and its redesign seed design.md both set scrimStrength: strong`);
+  const emitBad: string[] = [];
+  for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
+    const t = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const root = Object.keys(t)[0];
+    const sc = t[root]?.color?.scrim?.default;
+    const modeVal = (n: any, m: string): string | undefined => m === 'light' ? n?.$value : n?.$extensions?.prism3?.modes?.[m]?.$value ?? n?.$value;
+    for (const m of ['light', 'dark', 'hc-light', 'hc-dark']) {
+      const want = `{${root}.core.palette.black-alpha.${EXPECTED[b === 'nb' ? 'strong' : 'unset'][m]}}`;
+      const got = modeVal(sc, m);
+      if (got !== want) emitBad.push(`${b}/${m}: ${got} ≠ ${want}`);
+    }
+  }
+  ok(emitBad.length === 0, `#3050 committed emission: the reference brand's scrim is 80 / 80 / 90 / 90, every other brand's 40 / 60 / 60 / 70${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
+}
+
+// ------------------------------------------------------------------- #3073: brand glass roles
+// Owner decisions (2026-10-27, on #3073): Prism3 ships one glass role, `color.glass.surface` (white 70%), and a brand
+// adds its own as `color.glass.<name>` through the `glassRoles` lever (Q806, Q807 A). Each names a palette color, or a
+// semantic role's palette color, plus an alpha, and is emitted as a translucent palette alpha step. Brand-added roles
+// are brand-dependent, never in the guaranteed contract. The reference brand adds `card`, the card ground
+// (`foreground.primary`'s palette color) at 70% (the owner's correction of 2026-10-27, replacing 50%).
+//
+// EXPECTED is typed here, from the decision: which brand adds which role from which source at which alpha, and what
+// `glass.surface` holds per mode. ACTUAL is the committed emission (DTCG, Figma, the contract baseline) and the
+// resolved roles, never `validGlassRoles` or `glassAlphaFamily` (docs/34 shape 1).
+{
+  const BRAND_GLASS: Record<string, Record<string, { source: string; alpha: number }>> = {
+    nb: { card: { source: 'foreground.primary', alpha: 0.7 } },
+  };
+  const SURFACE: Record<string, { rgb: number[]; a: number }> = {
+    light: { rgb: [255, 255, 255], a: 0.7 }, dark: { rgb: [0, 0, 0], a: 0.7 },
+    'hc-light': { rgb: [255, 255, 255], a: 0.9 }, 'hc-dark': { rgb: [0, 0, 0], a: 0.9 },
+  };
+  const rgba = (h: string) => {
+    const m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(h);
+    if (m) { const n = parseInt(m[1], 16); return { rgb: [n >> 16 & 255, n >> 8 & 255, n & 255], a: m[2] ? parseInt(m[2], 16) / 255 : 1 }; }
+    const f = /^rgba?\(\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\s*\)$/.exec(h);
+    return f ? { rgb: [Number(f[1]), Number(f[2]), Number(f[3])], a: f[4] === undefined ? 1 : Number(f[4]) } : null;
+  };
+  const dtcg = readdirSync(resolve(HERE, './out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.') && !f.includes('.overlay.'));
+  ok(dtcg.length >= 5 && Object.keys(BRAND_GLASS).every((b) => dtcg.includes(`${b}.tokens.json`)),
+    `#3073: every committed DTCG brand is read, the brands that add glass roles among them (${dtcg.length})`);
+  const surfaceBad: string[] = [], setBad: string[] = [], hueBad: string[] = [], alphaBad: string[] = [], stepBad: string[] = [];
+  for (const f of dtcg) {
+    const brand = f.replace('.tokens.json', '');
+    const tr = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+    const root = Object.keys(tr).find((k) => !k.startsWith('$'))!;
+    const inMode = (n: any, m: string) => String(m === 'light' ? n?.$value : n?.$extensions?.prism3?.modes?.[m]?.$value ?? n?.$value);
+    const leafOf = (ref: string): any => { let v: any = ref; for (let i = 0; i < 8 && /^\{.+\}$/.test(String(v)); i++) v = String(v).slice(1, -1).split('.').reduce((n: any, k) => n?.[k], tr)?.$value; return v; };
+    const glass = tr[root].color?.glass ?? {};
+    // (a) glass.surface is VALUE-identical in every brand: the resolved rgba per mode equals the spelled one.
+    for (const m of Object.keys(SURFACE)) {
+      const v = rgba(String(leafOf(inMode(glass.surface, m))));
+      if (!v || v.rgb.join() !== SURFACE[m].rgb.join() || Math.abs(v.a - SURFACE[m].a) > 0.005) surfaceBad.push(`${brand}/${m}: ${v ? `rgba(${v.rgb.join(', ')}, ${v.a.toFixed(3)})` : 'unresolved'}`);
+    }
+    // (c) the glass group holds `surface` and exactly the roles this brand adds; a brand without the lever adds none,
+    // and no palette alpha family outside white/black-alpha exists unless a brand glass role reads it.
+    const want = ['surface', ...Object.keys(BRAND_GLASS[brand] ?? {})].sort().join();
+    const got = Object.keys(glass).filter((k) => !k.startsWith('$')).sort().join();
+    if (got !== want) setBad.push(`${brand}: [${got}], want [${want}]`);
+    const read = new Set<string>();
+    for (const name of Object.keys(BRAND_GLASS[brand] ?? {})) for (const m of Object.keys(SURFACE)) read.add(/^\{[^.]+(?:\.[^.]+)*?\.core\.palette\.([^.]+)\./.exec(inMode(glass[name], m))?.[1] ?? '');
+    const strays = Object.keys(tr[root].core?.palette ?? {}).filter((k) => /-alpha$/.test(k) && k !== 'white-alpha' && k !== 'black-alpha' && !read.has(k));
+    if (strays.length) setBad.push(`${brand}: palette alpha families no glass role reads: ${strays.join(', ')}`);
+    // (b) each added role's opaque color equals its named source's color, and its alpha the declared one, per mode;
+    // and it aliases a palette alpha step (the alpha lives in the value, so a bound Figma fill stays translucent).
+    for (const [name, spec] of Object.entries(BRAND_GLASS[brand] ?? {})) {
+      const src = spec.source.split('.').reduce((n: any, k) => n?.[k], tr[root].color);
+      for (const m of Object.keys(SURFACE)) {
+        const ref = inMode(glass[name], m);
+        const g = rgba(String(leafOf(ref))), s = rgba(String(leafOf(inMode(src, m))));
+        if (!/^\{.+\.core\.palette\.[a-z0-9-]+-alpha\.\d+\}$/.test(ref)) stepBad.push(`${brand}/${name}/${m}: ${ref}`);
+        if (!g || !s) { hueBad.push(`${brand}/${name}/${m}: unresolved (glass ${!!g}, source ${!!s})`); continue; }
+        if (g.rgb.join() !== s.rgb.join()) hueBad.push(`${brand}/${name}/${m}: rgb(${g.rgb.join(', ')}) via ${ref}, ${spec.source} rgb(${s.rgb.join(', ')})`);
+        if (Math.abs(g.a - spec.alpha) > 0.005) alphaBad.push(`${brand}/${name}/${m}: ${g.a.toFixed(3)}, want ${spec.alpha}`);
+      }
+    }
+  }
+  ok(surfaceBad.length === 0, `#3073 glass.surface is value-identical in every brand: white 70% light, black 70% dark, white/black 90% in high contrast${surfaceBad.length ? ` — WRONG: ${surfaceBad.slice(0, 4).join('; ')}` : ''}`);
+  ok(hueBad.length === 0, `#3073 brand glass: each added role's opaque color equals its named source color in every mode${hueBad.length ? ` — WRONG: ${hueBad.slice(0, 4).join('; ')}` : ''}`);
+  ok(alphaBad.length === 0, `#3073 brand glass: each added role's alpha equals its declared alpha in every mode${alphaBad.length ? ` — WRONG: ${alphaBad.slice(0, 4).join('; ')}` : ''}`);
+  ok(stepBad.length === 0, `#3073 brand glass: each added role aliases a palette alpha step in every mode${stepBad.length ? ` — WRONG: ${stepBad.slice(0, 4).join('; ')}` : ''}`);
+  ok(setBad.length === 0, `#3073 brand glass: brands without the lever emit no extra glass roles or alpha steps, and a brand with it emits exactly its own${setBad.length ? ` — WRONG: ${setBad.slice(0, 4).join('; ')}` : ''}`);
+
+  // Figma: Apply Theme writes `color/glass/<name>` in the color collection, in every color mode, aliasing a translucent
+  // palette primitive whose color is the source variable's own.
+  const figBad: string[] = [];
+  const figBrands = readdirSync(resolve(HERE, './out/figma'));
+  for (const b of figBrands) {
+    const dir = resolve(HERE, './out/figma', b);
+    for (const x of readdirSync(dir).filter((y) => /^color\.[a-z-]+\.json$/.test(y))) {
+      const file = JSON.parse(readFileSync(resolve(dir, x), 'utf8'));
+      const vars = file.variables as any[];
+      const root = String(vars[0]?.name ?? '').split('/')[0];
+      const names = vars.map((v) => String(v.name)).filter((n) => n.startsWith(`${root}/color/glass/`)).map((n) => n.slice(`${root}/color/glass/`.length)).sort().join();
+      const want = ['surface', ...Object.keys(BRAND_GLASS[b] ?? {})].sort().join();
+      if (file.$collection !== 'color' || names !== want) figBad.push(`${b}/${x}: collection ${file.$collection}, glass [${names}], want [${want}]`);
+      for (const [name, spec] of Object.entries(BRAND_GLASS[b] ?? {})) {
+        const gv = vars.find((v) => v.name === `${root}/color/glass/${name}`), sv = vars.find((v) => v.name === `${root}/color/${spec.source.replace(/\./g, '/')}`);
+        const same = gv && sv && ['r', 'g', 'b'].every((k) => Math.abs(gv.value[k] - sv.value[k]) < 1e-6);
+        if (!(gv?.alias?.name && /\/core\/palette\/[a-z0-9-]+-alpha\/\d+$/.test(gv.alias.name) && same && Math.abs(gv.value.a - spec.alpha) < 0.005))
+          figBad.push(`${b}/${x}: ${name} → ${gv?.alias?.name ?? 'no alias'} a ${gv?.value?.a}${same ? '' : `, not ${spec.source}'s color`}`);
+      }
+    }
+  }
+  ok(figBrands.length >= 4 && figBrands.includes('nb') && figBad.length === 0,
+    `#3073 Figma: color/glass/<name> is in the color collection exactly for the brands that add it, in every color mode, aliasing a translucent alpha primitive of its source's color${figBad.length ? ` — WRONG: ${figBad.slice(0, 4).join('; ')}` : ''}`);
+
+  // (d) brand-added roles are brand-dependent: the guaranteed contract holds `color.glass.surface` as its only glass
+  // role and no palette alpha family but white/black, and each added role is listed (represented) as brand-dependent.
+  const contract = JSON.parse(readFileSync(resolve(HERE, './schema/token-contract.json'), 'utf8'));
+  const gGlass = Object.keys(contract.guaranteed).filter((p) => p.startsWith('color.glass.'));
+  const gAlpha = Object.keys(contract.guaranteed).filter((p) => /^core\.palette\.[^.]+-alpha\./.test(p) && !/^core\.palette\.(?:white|black)-alpha\./.test(p));
+  const notDependent = Object.values(BRAND_GLASS).flatMap((r) => Object.keys(r)).map((n) => `color.glass.${n}`).filter((p) => !contract.brandDependent.includes(p));
+  ok(gGlass.join() === 'color.glass.surface' && gAlpha.length === 0 && notDependent.length === 0,
+    `#3073 contract: brand-added glass roles are absent from the guaranteed contract (guaranteed glass [${gGlass.join(', ')}]${gAlpha.length ? `, alpha steps ${gAlpha.join(', ')}` : ''}${notDependent.length ? `; not brand-dependent: ${notDependent.join(', ')}` : ''})`);
+
+  // THE INPUTS: the reference brand's legacy fixture and its redesign seed design.md both declare `card`, the card
+  // ground at 70%.
+  const seed = readExampleBrand('./examples/nb-redesign.design.md') as BrandInput & { glassRoles?: unknown };
+  const CARD = JSON.stringify({ card: { role: 'foreground.primary', alpha: 70 } });
+  ok(JSON.stringify(nbTheme().glassRoles) === CARD && JSON.stringify(seed.glassRoles) === CARD,
+    `#3073 Q807 A: the reference brand's legacy fixture and its redesign seed both declare glassRoles.card = foreground.primary at 70% (fixture ${JSON.stringify(nbTheme().glassRoles)}, seed ${JSON.stringify(seed.glassRoles)})`);
+
+  // THE LEVER, in memory, on a brand that does not set it: a palette source mints its alpha step, `glass.surface`
+  // does not move, an override of the source carries to the role, and every malformed input is refused by message.
+  const base = exampleBrands()['prism3'] as BrandInput;
+  const rolesOf = (i: unknown) => resolveAllModes(brandTheme(i as BrandInput));
+  const plain = rolesOf(base), tinted = rolesOf({ ...base, glassRoles: { tint: { palette: 'neutral.100', alpha: 40 } } });
+  const neutral100 = plain.find((m) => m.mode === 'light')!.roles;
+  const tint = tinted.map((m) => [m.mode, m.roles['glass.tint']] as const);
+  const n100 = brandTheme(base).palettes.find((p) => p.palette === 'neutral')!.steps.find((s) => s.key === '100')!;
+  ok(neutral100['glass.tint'] === undefined && tint.every(([, r]) => r?.path.endsWith('.neutral-100-alpha.40') && r.alpha === 0.4 && r.hex.toLowerCase() === hex(n100.rgb).toLowerCase()),
+    `#3073 lever: glassRoles.tint = neutral.100 at 40% resolves to neutral-100-alpha.40, neutral 100's color at 0.4, in every mode, and is absent without the lever (${tint.map(([m, r]) => `${m} ${r?.path?.split('.').slice(-2).join('.')}`).join(', ')})`);
+  const tintTree = buildTree(brandTheme({ ...base, glassRoles: { tint: { palette: 'neutral.100', alpha: 40 } } } as BrandInput)).tree;
+  const tintLeaf = rgba(String(Object.values(tintTree)[0] && (Object.values(tintTree)[0] as any).core?.palette?.['neutral-100-alpha']?.['40']?.$value));
+  ok(!!tintLeaf && tintLeaf.rgb.join() === [n100.rgb.r, n100.rgb.g, n100.rgb.b].join() && Math.abs(tintLeaf.a - 0.4) < 0.005,
+    `#3073 lever: the tree mints core.palette.neutral-100-alpha.40 at neutral 100's color and 40% (${tintLeaf ? `rgba(${tintLeaf.rgb.join(', ')}, ${tintLeaf.a.toFixed(3)})` : 'missing'})`);
+  const surfMoved = plain.flatMap((m) => { const t = tinted.find((x) => x.mode === m.mode)!.roles['glass.surface']; const p = m.roles['glass.surface']; return p.path === t.path && p.hex === t.hex && p.alpha === t.alpha ? [] : [m.mode]; });
+  ok(surfMoved.length === 0, `#3073 lever: adding a glass role leaves glass.surface unchanged in every mode${surfMoved.length ? ` — MOVED: ${surfMoved.join(', ')}` : ''}`);
+  const followed = rolesOf({ ...base, glassRoles: { card: { role: 'foreground.primary', alpha: 70 } }, overrides: { light: { 'foreground.primary': { palette: 'neutral', step: '100' } } } }).find((m) => m.mode === 'light')!.roles['glass.card'];
+  ok(!!followed?.path.endsWith('.neutral-100-alpha.70'), `#3073 lever: a role source follows an override of that role (light foreground.primary → neutral.100 gives ${followed?.path})`);
+  const REFUSED: [string, unknown, RegExp][] = [
+    ['the shipped name', { surface: { palette: 'neutral.100', alpha: 70 } }, /'surface' is the glass role every brand ships/],
+    ['a non-kebab name', { Card: { palette: 'neutral.100', alpha: 70 } }, /lower-case kebab-case/],
+    ['both sources', { card: { role: 'foreground.primary', palette: 'neutral.100', alpha: 70 } }, /exactly one color source/],
+    ['no source', { card: { alpha: 70 } }, /exactly one color source/],
+    ['alpha 0', { card: { palette: 'neutral.100', alpha: 0 } }, /whole percent from 1 to 99/],
+    ['alpha 100', { card: { palette: 'neutral.100', alpha: 100 } }, /whole percent from 1 to 99/],
+    ['a fractional alpha', { card: { palette: 'neutral.100', alpha: 50.5 } }, /whole percent from 1 to 99/],
+    ['an unknown field', { card: { palette: 'neutral.100', alpha: 70, blur: 8 } }, /unknown field/],
+    ['a glass source', { card: { role: 'glass.surface', alpha: 70 } }, /cannot take its color from another glass role/],
+    ['an unknown role', { card: { role: 'foreground.nope', alpha: 70 } }, /is not a color role/],
+    ['a translucent role', { card: { role: 'scrim.default', alpha: 70 } }, /not an opaque palette color/],
+    ['an unknown palette step', { card: { palette: 'nope.100', alpha: 70 } }, /is not a palette step/],
+    ['white off the alpha ramp', { card: { palette: 'white', alpha: 45 } }, /alpha ramp has the steps/],
+  ];
+  const notRefused = REFUSED.filter(([, g, re]) => { try { rolesOf({ ...base, glassRoles: g }); return true; } catch (e) { return !re.test(String((e as Error).message)); } }).map(([what]) => what);
+  ok(notRefused.length === 0, `#3073 lever: every malformed glassRoles input is refused by message (${REFUSED.length} cases)${notRefused.length ? ` — NOT REFUSED: ${notRefused.join(', ')}` : ''}`);
+  let ovMsg = '';
+  try { rolesOf({ ...base, glassRoles: { card: { role: 'foreground.primary', alpha: 70 } }, overrides: { light: { 'glass.card': { palette: 'neutral', step: '100' } } } }); } catch (e) { ovMsg = String((e as Error).message); }
+  ok(/is a brand glass role, set by `glassRoles.card`/.test(ovMsg), `#3073 lever: an override aimed at a brand glass role is refused, pointing at its source (${ovMsg.slice(0, 90) || 'not refused'})`);
+}
+
 // ------------------------------------------------------------------- #2317: the Password field
 // Each owner decision held against a literal (Q301): the 84 members and their exact axes with no visibility axis
 // (Q301.6 A), the anatomy with no trailing slot and the toggle OUTSIDE the box on the label row (Q301.2 B), the toggle's
@@ -37324,6 +37583,91 @@ arm: {
   }
   ok(brands.length >= 5 && ['aurora', 'harbor', 'prism3'].every((b) => brands.includes(`${b}.tokens.json`)) && pinned === brands.length * INVARIANT_PX.length && off.length === 0,
     `#2965 brand-invariant steps: border-width none / hairline / thick / heavy / x-heavy resolve to 0 / 1 / 2 / 4 / 6px and focus.ring width / offset / offset-field to 2 / 2 / 0px in every corpus brand's composed tree, in every mode (${brands.length} brands, ${pinned} leaves; ${off.length} off — ${off.slice(0, 3).join('; ') || 'none'})`);
+}
+
+// ------------------------------------------------------------------- #2942: the link underline
+// Owner Q1–Q6 A, Q800 A, Q801 A (2026-10-27). `typography.underline` sets thickness and offset as shares of the font
+// size; auto emits nothing. Every expected number is typed here: the bounds (thickness 1–20%, offset 0–50%, whole
+// percents), the reference brand's 5% / 25%, and the other brands' absence, read off their COMMITTED files rather than
+// a fresh build, so the subject (`resolveUnderline`, `tree.ts`, `emit-figma-font.ts`, `write-plan.ts`) is never its
+// own oracle (docs/34 shape 1).
+{
+  const U = (underline: unknown): Theme['typography']['underline'] =>
+    brandTheme({ ...MINIMAL_BRAND, typography: { underline } } as BrandInput).typography.underline;
+  // [input, expected thickness %, expected offset %, why]
+  const CLAMP: [unknown, number | 'auto', number | 'auto', string][] = [
+    [{ thickness: 0.05, offset: 0.25 }, 5, 25, 'in range'],
+    [{ thickness: 0.004, offset: -0.3 }, 1, 0, 'below both bounds → 1% and 0%'],
+    [{ thickness: 0.5, offset: 0.9 }, 20, 50, 'above both bounds → 20% and 50%'],
+    [{ thickness: 0.2, offset: 0.5 }, 20, 50, 'exactly at the upper bounds'],
+    [{ thickness: 0.01, offset: 0 }, 1, 0, 'exactly at the lower bounds'],
+    [{ thickness: 0.054, offset: 0.256 }, 5, 26, 'whole percents, rounded'],
+    [{ thickness: 0.07 }, 7, 'auto', 'one field set, the other auto'],
+    [{ thickness: 'auto', offset: 'auto' }, 'auto', 'auto', 'both auto'],
+    [undefined, 'auto', 'auto', 'unset'],
+  ];
+  const clampOff = CLAMP.filter(([inp, t, o]) => { const r = U(inp); return r.thickness !== t || r.offset !== o; })
+    .map(([inp, t, o, why]) => `${why}: ${JSON.stringify(inp)} → ${JSON.stringify(U(inp))} (want ${t}/${o})`);
+  ok(clampOff.length === 0, `#2942 underline clamp: whole percents, thickness 1–20%, offset 0–50%, corrected to the nearest bound, never refused (${CLAMP.length} cases; ${clampOff.join('; ') || 'none off'})`);
+  const clamped = buildTree(brandTheme({ ...MINIMAL_BRAND, typography: { underline: { thickness: 0.5, offset: -1 } } } as BrandInput)).tree;
+  const cf = (clamped as any)[Object.keys(clamped)[0]].core.font.underline;
+  ok(cf?.thickness?.$value === 0.2 && cf?.offset?.$value === 0 && cf?.thickness?.$extensions?.prism3?.figma?.percent === 20 && cf?.offset?.$extensions?.prism3?.figma?.percent === 0,
+    `#2942 underline clamp reaches the tokens: thickness 0.5 → $value 0.2 (PERCENT 20), offset -1 → $value 0 (PERCENT 0) (got ${JSON.stringify([cf?.thickness?.$value, cf?.offset?.$value])})`);
+
+  // OFF: no token, no Figma field, and the plan writes AUTO on every underlined row (nothing on a plain one).
+  const off = brandTheme(MINIMAL_BRAND);
+  const offFont = (buildTree(off).tree as any)[Object.keys(buildTree(off).tree)[0]].core.font;
+  const offStyles = buildFigmaTextStyles(off).styles;
+  const offPlan = buildTextStylePlan(off);
+  const offUl = offPlan.filter((r) => r.textDecoration === 'UNDERLINE');
+  ok(offFont.underline === undefined && offStyles.every((x) => !('textDecorationThickness' in x.properties) && !('textDecorationOffset' in x.properties))
+    && offUl.length > 0 && offUl.every((r) => r.underlineThicknessPct === 'AUTO' && r.underlineOffsetPct === 'AUTO')
+    && offPlan.filter((r) => r.textDecoration === 'NONE').every((r) => !('underlineThicknessPct' in r) && !('underlineOffsetPct' in r)),
+    `#2942 underline off: no core.font.underline token, no text-style field, and every underlined plan row writes AUTO for both (${offUl.length} rows)`);
+
+  // ON, the reference brand: 0.05 / 0.25 as numbers, PERCENT 5 / 25 on every -link style and plan row, nothing on the rest.
+  const ref = nbTheme();
+  const refTree = buildTree(ref).tree as any;
+  const rf = refTree[Object.keys(refTree)[0]].core.font.underline;
+  ok(rf?.thickness?.$type === 'number' && rf.thickness.$value === 0.05 && rf?.offset?.$type === 'number' && rf.offset.$value === 0.25,
+    `#2942 underline on: the reference brand emits core.font.underline.thickness 0.05 and .offset 0.25, $type number (got ${JSON.stringify([rf?.thickness?.$type, rf?.thickness?.$value, rf?.offset?.$type, rf?.offset?.$value])})`);
+  const refPlan = buildTextStylePlan(ref);
+  const refLinks = refPlan.filter((r) => r.name.endsWith('-link'));
+  const refOff = refLinks.filter((r) => r.textDecoration !== 'UNDERLINE' || r.underlineThicknessPct !== 5 || r.underlineOffsetPct !== 25);
+  ok(refLinks.length === 18 && refOff.length === 0 && refPlan.filter((r) => !r.name.endsWith('-link')).every((r) => r.textDecoration === 'NONE' && !('underlineThicknessPct' in r)),
+    `#2942 underline on: the reference brand's 18 -link plan rows write PERCENT 5 / 25, and no plain row carries either (${refLinks.length} rows; ${refOff.length} off)`);
+
+  // OTHER BRANDS UNCHANGED: their committed emission carries no underline token and no underline field. Read from disk.
+  const others = ['aurora', 'harbor', 'prism3', 'wendys'];
+  const leaked: string[] = [];
+  for (const b of others) {
+    const tok = readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8');
+    if (/"underline":\s*\{\s*"(thickness|offset)"/.test(tok)) leaked.push(`${b}.tokens.json`);
+    const ts = resolve(HERE, `./out/figma/${b}/text-styles.json`);
+    if (existsSync(ts) && /textDecoration(Thickness|Offset)/.test(readFileSync(ts, 'utf8'))) leaked.push(`figma/${b}/text-styles.json`);
+  }
+  ok(leaked.length === 0 && existsSync(resolve(HERE, './out/figma/aurora/text-styles.json')),
+    `#2942 underline: every other brand's committed tokens and text styles are untouched — no underline token, no thickness or offset field (${others.join(', ')}; ${leaked.join(', ') || 'none leaked'})`);
+  const committedNb = JSON.parse(readFileSync(resolve(HERE, './out/figma/nb/text-styles.json'), 'utf8')) as { styles: { name: string; properties: Record<string, any> }[] };
+  const nbFile = committedNb.styles.filter((x) => x.name.endsWith('-link'));
+  ok(nbFile.length === 18 && nbFile.every((x) => JSON.stringify(x.properties.textDecorationThickness) === JSON.stringify({ bindable: false, value: { unit: 'PERCENT', value: 5 } })
+    && JSON.stringify(x.properties.textDecorationOffset) === JSON.stringify({ bindable: false, value: { unit: 'PERCENT', value: 25 } })),
+    `#2942 underline: the reference brand's committed text-styles.json carries PERCENT 5 / 25 on all 18 -link styles (${nbFile.length})`);
+  // And on nothing else: a style that is not underlined carries neither field (the reviewer's R1, #3075).
+  const plainCarry = committedNb.styles.filter((x) => x.properties.textDecoration?.value !== 'UNDERLINE' && ('textDecorationThickness' in x.properties || 'textDecorationOffset' in x.properties));
+  ok(committedNb.styles.length > nbFile.length && plainCarry.length === 0,
+    `#2942 underline: no style in the reference brand's committed text-styles.json that is not underlined carries a thickness or offset (${committedNb.styles.length - nbFile.length} plain; ${plainCarry.length} carry one${plainCarry.length ? `: ${plainCarry.slice(0, 3).map((x) => x.name).join(', ')}` : ''})`);
+
+  // THE PASTE PATH: run its text-styles pass into the file shim and read the styles back.
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<{ skipped: unknown[] }>;
+  const shim = new FileShim();
+  shim.faces = refPlan.map((r) => ({ family: r.fontFamilyPrimary, style: r.fontStyle }));
+  const pasted = await new AsyncFunction('figma', passJs('nb', 'text-styles'))(shim);
+  const pLinks = (shim.styles.text as any[]).filter((x) => x.name.endsWith('-link'));
+  const pOff = pLinks.filter((x) => JSON.stringify(x.textDecorationThickness) !== JSON.stringify({ unit: 'PERCENT', value: 5 }) || JSON.stringify(x.textDecorationOffset) !== JSON.stringify({ unit: 'PERCENT', value: 25 }));
+  const pPlain = (shim.styles.text as any[]).filter((x) => !x.name.endsWith('-link') && ('textDecorationThickness' in x || 'textDecorationOffset' in x));
+  ok(pasted.skipped.length === 0 && pLinks.length === 18 && pOff.length === 0 && pPlain.length === 0,
+    `#2942 underline, paste path: the reference brand's 18 pasted -link styles read PERCENT 5 / 25, and no plain style has either field (${pLinks.length} links; ${pOff.length} off; ${pPlain.length} plain touched)`);
 }
 
 // ------------------------------------------------------------------- report

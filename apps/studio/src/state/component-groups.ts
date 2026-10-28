@@ -53,7 +53,7 @@ export type GroupRow = {
 };
 
 /** A section: one with settings (`SETTING_SECTIONS`), or Other components, or Subcomponents. */
-export type SectionKind = 'buttons' | 'fields' | 'tags' | 'dialogs' | 'banners' | GroupKind;
+export type SectionKind = 'buttons' | 'fields' | 'tags' | 'dialogs' | 'banners' | 'links' | GroupKind;
 
 export type GroupSection = {
   readonly kind: SectionKind;
@@ -72,7 +72,7 @@ export type GroupSection = {
  *  Tag holds the sets Tag style draws (`TAG_STYLE_PARTS`, held the same way). Dialog holds the sets Dialog title size
  *  reaches (`DIALOG_TITLE_TYPE_KEYS`, #2958, held the same way). Banner holds the sets Banner style reaches
  *  (`BANNER_STYLE_FILL_KEYS`, #2924, held the same way). */
-export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 'tags' | 'dialogs' | 'banners'; readonly pages: readonly string[]; readonly ids: readonly string[] }[] = [
+export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 'tags' | 'dialogs' | 'banners' | 'links'; readonly pages: readonly string[]; readonly ids: readonly string[] }[] = [
   { kind: 'buttons', pages: ['Buttons'], ids: [] },
   // #2888 shipped Search field; Q5 A on #2905 puts it inside Fields, with its own Search options block (#2952).
   // #2428: Code input joins Fields, as the component that nests the cell Field style draws (Q-2789.3 A). Since #2989 (Q656 A)
@@ -83,10 +83,12 @@ export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 
   { kind: 'dialogs', pages: [], ids: ['dialog'] },
   // #2924: Banner style's home (Q693 A: with Banner on the Components page), built as Dialog's is (#2962).
   { kind: 'banners', pages: [], ids: ['banner'] },
+  // #2942 (owner Q3 A): Link's first settings block, a read-only line for the underline, whose home is Theme › Type.
+  { kind: 'links', pages: [], ids: ['link'] },
 ];
 
 /** A settings block on the page: its key names its disclosure line (`opts=<key>`) and its open state. */
-export type BlockKey = 'buttons' | 'fields' | 'search' | 'tags' | 'dialogs' | 'banners';
+export type BlockKey = 'buttons' | 'fields' | 'search' | 'tags' | 'dialogs' | 'banners' | 'links';
 
 /** Each section's settings blocks, in the order they draw after its sets (#2952): a section holds a LIST, not one
  *  block, because Fields holds two, Field options and then Search options below it (#2905 Q5 A). Each block has its own
@@ -98,13 +100,14 @@ export const SECTION_BLOCKS: Readonly<Partial<Record<SectionKind, readonly Block
   tags: ['tags'],
   dialogs: ['dialogs'],
   banners: ['banners'],
+  links: ['links'],
 };
 
 /** The page's copy. DRAFT: the approved wireframe's own words (#2700), pending the owner's copy sign-off. */
 export const GROUPS_COPY = {
   intro: (n: number): string => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
   /** Q10 A on #2905: the section titles as drafted in wireframe v2, Tag's included (placed by #2931 Q579 A). */
-  sections: { buttons: 'Buttons', fields: 'Fields', tags: 'Tag', dialogs: 'Dialog', banners: 'Banner', components: 'Other components', subcomponents: 'Subcomponents' } as Record<SectionKind, string>,
+  sections: { buttons: 'Buttons', fields: 'Fields', tags: 'Tag', dialogs: 'Dialog', banners: 'Banner', links: 'Link', components: 'Other components', subcomponents: 'Subcomponents' } as Record<SectionKind, string>,
   sectionCount: (kind: SectionKind, rows: number, sets: number): string =>
     kind !== 'components' && kind !== 'subcomponents' ? plural(sets, 'set')
       : `${rows} ${kind === 'components' ? 'families and sets' : rows === 1 ? 'entry' : 'entries'} · ${plural(sets, 'set')}`,

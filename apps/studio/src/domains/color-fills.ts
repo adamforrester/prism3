@@ -7,7 +7,7 @@
  * S4f, QA-B1: under "Default" Primary, Secondary, Tertiary and the contrast floor with its own info text, QA-B3,
  * QA-B6; under "Inverse" the inverse fill's palette select, then Inverse primary,
  * secondary and tertiary; each row names its token, Q41, and opens the step picker, Q45); **Scrim** (S4f, QA-B10:
- * the scrim's read-only row, out of Background fills); **Foreground** (the neutral ladder,
+ * the scrim's strength, Standard / Strong (#3050), and its read-only row, out of Background fills); **Foreground** (the neutral ladder,
  * page and inverse, Q44); **Foreground fills** (a row per fill: a small swatch, its name and role, and a button
  * that opens the step picker under the row, with the ratio on it; then the subtle fills, the on-color inks and
  * the inverse fills, Q49); **Text color** (the same rows for the text inks, page and inverse: the permanent,
@@ -43,14 +43,15 @@ import {
   BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoFollows, floorAutoLabel, floorAutoShortLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
   iconOverrideCount, iconsPaired, lockedTo, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
-  SCRIM_ROLE, SURFACE_TOKENS, clearFloorReset, floorResetNotice, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
+  SCRIM_ROLE, SURFACE_TOKENS, brandScrimStrength, setScrimStrength, clearFloorReset, floorResetNotice, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
   type FillRow, type InverseTier, type PageTier,
 } from '../state/fills-input';
 import { floorNoneText } from '../state/floor-refusal';
+import { GLASS_SOURCES, addGlassRole, readGlassRoles, removeGlassRole, renameGlassRole, setGlassAlpha, setGlassSource, sourceOf } from '../state/glass-input';
 import { DOMAINS, ICONS_DESC, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { infoTip, inlineConfirm, jumpLabel, leverBlock, onCommitted, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, markRefused } from '../ui/lever-kit';
+import { choice, infoTip, inlineConfirm, jumpLabel, leverBlock, leverOf, onCommitted, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, markRefused } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
@@ -286,14 +287,23 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     return [{ el: b.el, said: `${b.said} default inverse background fills primary secondary tertiary contrast floor inverse fill palette ${Object.values(SURFACE_TOKENS).join(' ')}`, key: 'surfaces', block: b }];
   };
 
-  /** The Scrim section (S4f, QA-B10): the scrim's read-only row, out of Background fills into its own section, as the
-   *  preview's Scrim section is. */
+  /** The Scrim section (S4f, QA-B10): out of Background fills into its own section, as the preview's Scrim section is.
+   *  Since #3050 (owner Q825 B) it is the `scrimStrength` lever's block: Standard / Strong as chips (the label and
+   *  option names are DRAFTS), then the scrim's read-only row, which reads out the step the choice gives this mode. */
   const scrim = (): Item[] => {
+    const b = leverBlock('scrimStrength', { group: true });
+    const L = leverOf('scrimStrength');
+    const opts = (L?.options ?? []).map((o) => ({ v: String(o.value) as ReturnType<typeof brandScrimStrength>, l: o.label }));
+    const c = choice(L?.label ?? 'Scrim strength', 'scrim-strength-choice', opts, (v) => edit('scrimStrength', () => setScrimStrength(v)));
+    c.set(brandScrimStrength());
+    b.ctl.append(c.el);
     const r = scrimRow();
-    if (!r) return [];
-    const wrap = h('div', 'p3-fillrow-wrap');
-    wrap.append(r);
-    return [{ el: wrap, said: `scrim ${SCRIM_ROLE}`, key: 'scrim' }];
+    if (r) {
+      const wrap = h('div', 'p3-fillrow-wrap');
+      wrap.append(r);
+      b.ctl.append(wrap);
+    }
+    return [{ el: b.el, said: `${b.said} scrim ${SCRIM_ROLE}`, key: 'scrimStrength', block: b }];
   };
 
   /** The scrim, read-only (owner decision, 2026-10-02): a fill row's swatch, name and role, and in place of the
@@ -319,6 +329,82 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const read = hook(h('span', 'p3-fill-read', `${primitive} · ${opacity}%`), 'scrim-readout');
     read.title = 'A translucent wash has no ramp step to swap in — a step of the neutral ramp is opaque, and would replace the wash rather than retint it.';
     el.append(sw, nm, read);
+    return el;
+  };
+
+  /** The Glass section (#3073, owner Q806, Q807 A; every string a DRAFT for the owner): the shipped white glass,
+   *  read-only as the scrim is, then each glass fill the brand adds (`glassRoles`) with its name, color and opacity,
+   *  and a button that adds one. The engine checks a name and a source, and a refusal marks the block. */
+  const glass = (): Item[] => {
+    const b = leverBlock('glassRoles', { label: 'Glass', group: true });
+    const roles = rolesIn(currentMode);
+    const list = hook(h('div', 'p3-list'), 'glass-list');
+    const shipped = roles['glass.surface'];
+    if (shipped) list.append(washRow('glass.surface', 'Glass surface', 'glass-surface', shipped));
+    const added = readGlassRoles();
+    Object.entries(added).forEach(([name, g], i) => {
+      const token = `glass.${name}`;
+      const r = hook(h('div', 'p3-fillrow p3-glassrow'), 'glass-role-row');
+      r.dataset.role = token;
+      const sw = hook(h('span', 'p3-fill-sw p3-checker'), 'glass-role-swatch');
+      const res = roles[token];
+      if (res) {
+        const wsh = h('span', 'p3-scrim-wash');
+        wsh.dataset.content = '';
+        const n = parseInt(res.hex.slice(1), 16);
+        wsh.style.background = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${res.alpha ?? 1})`;
+        sw.append(wsh);
+      }
+      const nm = hook(h('input', 'p3-hex-input'), 'glass-role-name');
+      nm.type = 'text';
+      nm.value = name;
+      nm.id = `p3-glass-name-${i}`;
+      nm.setAttribute('aria-label', `Glass fill ${i + 1} name, color.glass.${name}`);
+      onCommitted(nm, (v) => edit('glassRoles', () => renameGlassRole(name, v)));
+      const src = selectField(`p3-glass-src-${i}`, `Glass fill ${i + 1} color`, 'glass-role-source', (v) => edit('glassRoles', () => setGlassSource(name, v)));
+      const cur = sourceOf(g);
+      src.set([...GLASS_SOURCES, ...(GLASS_SOURCES.some((o) => o.v === cur) ? [] : [{ v: cur, l: cur.slice(cur.indexOf(':') + 1) }])], cur);
+      const pf = h('div', 'p3-colorfield p3-numfield');
+      const al = hook(h('input', 'p3-hex-input p3-num-input'), 'glass-role-alpha');
+      al.type = 'number'; al.min = '1'; al.max = '99'; al.step = '1';
+      al.value = String(g.alpha);
+      al.setAttribute('aria-label', `Glass fill ${i + 1} opacity, percent`);
+      // An empty field puts its value back rather than writing nothing (#2487 A6).
+      onCommitted(al, (v) => {
+        if (!v.trim()) { al.value = String(g.alpha); return; }
+        edit('glassRoles', () => setGlassAlpha(name, Number(v)));
+      });
+      pf.append(al);
+      const rm = hook(h('button', 'p3-btn p3-btn-page p3-btn-icon'), 'glass-role-remove');
+      rm.type = 'button';
+      rm.setAttribute('aria-label', `Remove glass fill ${name}`);
+      rm.append(glyph('x'));
+      rm.onclick = () => edit('glassRoles', () => removeGlassRole(name));
+      r.append(sw, nm, src.el, pf, rm);
+      list.append(r);
+    });
+    const add = hook(h('button', 'p3-btn p3-addrow'), 'glass-role-add');
+    add.type = 'button';
+    add.append(glyph('plus'), h('span', 'p3-btn-label', 'Add glass fill'));
+    add.onclick = () => edit('glassRoles', () => addGlassRole());
+    list.append(add);
+    b.ctl.append(list);
+    return [{ el: b.el, said: `${b.said} glass surface ${Object.keys(added).map((n) => `glass.${n}`).join(' ')}`, key: 'glassRoles', block: b }];
+  };
+
+  /** A translucent role, read-only: the scrim row's swatch over the checkerboard, its name and token, and its
+   *  primitive and opacity in the previewed mode (#3073, the shipped glass). */
+  const washRow = (role: string, label: string, prefix: string, r: NonNullable<ReturnType<typeof rolesIn>[string]>): HTMLElement => {
+    const { primitive, opacity } = washReadOf(r);
+    const el = hook(h('div', 'p3-fillrow'), `${prefix}-row`);
+    el.dataset.role = role;
+    const sw = hook(h('span', 'p3-fill-sw p3-checker'), `${prefix}-swatch`);
+    const wsh = h('span', 'p3-scrim-wash');
+    wsh.dataset.content = '';
+    const n = parseInt(r.hex.slice(1), 16);
+    wsh.style.background = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${r.alpha ?? 1})`;
+    sw.append(wsh);
+    el.append(sw, tokenLabel(role, label), hook(h('span', 'p3-fill-read', `${primitive} · ${opacity}%`), `${prefix}-readout`));
     return el;
   };
 
@@ -653,7 +739,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     return [{ el: b.el, said: `${b.said} stops`, key: 'gradients', block: b }];
   };
 
-  const ROWS: Record<string, () => Item[]> = { surfaces, scrim, foreground, fills, text, border, icon, fields, gradients };
+  const ROWS: Record<string, () => Item[]> = { surfaces, scrim, glass, foreground, fills, text, border, icon, fields, gradients };
 
   // ── the page ──────────────────────────────────────────────────────────────────────────────────
   const section = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {
