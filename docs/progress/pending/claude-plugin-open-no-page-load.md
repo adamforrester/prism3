@@ -38,7 +38,9 @@ the panel is ready, and no turn holds the thread for more than one page.
   it at once.
 - **Pages load one per turn (`loadPagesYielding`).** Every place in `main.ts` that needs every page loads them this way:
   `presentDefs` (the full read after open, the checklist's own read, the hand-edit pass), the scoped check, Style
-  guides' catalog, prune, and each write's entry. It loads the pages one at a time with `breathe` between them, then
+  guides' catalog, Build style guides and its cleanup, prune, and each write's entry. The agent link's component
+  payloads (`mcp-steps.ts`) still call `loadAllPagesAsync` directly: the link is off by default, and they are out of
+  scope here. It loads the pages one at a time with `breathe` between them, then
   calls `loadAllPagesAsync`. The executors' own `loadAllPagesAsync` calls, which run after their entry, then have
   nothing left to load. That last call has nothing left to load, but under `dynamic-page` the document-wide searches after
   it (`presentNames`, the update's `locateSets`) need it called.
@@ -74,6 +76,17 @@ Each mutation was made on a committed `wip:` tree and failed by name:
 | `awaitingRead` takes a read after open as the checklist's answer | `test-update-file.ts`: "#3110 checklist: the host's read after open, landing after the checklist asked, is not its answer" |
 | The full read after open posted untagged | `test-open-large-file.ts`: "open/full: the full read follows, tagged as the read after open …" |
 | `styleGuideCatalog` back on one `loadAllPagesAsync` (asked mid-read) | `test-open-large-file.ts`: "open/yields: … the reads asked mid-read included" (worst 51) |
+| `checkSets` back on one `loadAllPagesAsync` | `test-open-large-file.ts`: "entry/check: it loads every page, one per turn" (worst 60) |
+| prune back on one `loadAllPagesAsync` | `test-open-large-file.ts`: "entry/prune: …" (worst 60) |
+| `styleGuide` without `loadPagesYielding` (its run's own `loadAllPagesAsync` loads them) | `test-open-large-file.ts`: "entry/style-guide: …" (worst 60) |
+| `styleGuideCleanup` without `loadPagesYielding` | `test-open-large-file.ts`: "entry/style-guide-cleanup: …" (worst 60) |
+| The read after open's error answer posted untagged | `test-open-large-file.ts`: "open/error: a read after open that fails is still tagged as the read after open" |
+| The adapter's inbound `file-sets` drops `partial` | `test-write-adapter.ts`: "accepts file-sets at open, the ledger's alone, keeps partial and atOpen" |
+| The adapter's inbound `file-sets` drops `atOpen` | `test-write-adapter.ts`: the same arm |
+| The adapter keeps a `partial` that is not `true` | `test-write-adapter.ts`: "accepts file-sets with a malformed partial and atOpen leaves both off" |
+
+The `entry/*` arms run each entry on the stand-in with its pages unloaded again, as on a fresh open. The independent
+review's mutants MC–MG all survived before these arms; each now fails by the name above.
 
 ### Gaps
 
@@ -82,5 +95,31 @@ Each mutation was made on a committed `wip:` tree and failed by name:
 - The full read and the hand-edit pass still load every page after open, now one per turn. Whether the pass should wait
   until Components or Update file is opened, so that a plain open loads no page at all, is a held question for the
   owner (Q3110.1 on the PR).
+- The other entries that now load pages one per turn (each write's entry, `drawSpecs`, `fileSetup`,
+  `captureBaseline`, `adoptMembers`, `updateComponents`) have no `entry/*` arm of their own; a revert of one of them is
+  not caught.
 - A set the ledger names but that was deleted by hand shows on the badge until the full read lands, about 20 s later on
   the 60-page file. #3091 tracks the same gap for the live recount.
+
+### Coordination with #3096 and #3090
+
+Neither had merged when this was written. Whichever lands second owes:
+
+- **#3096.** `git merge-tree` shows textual conflicts in 8 files: `main.ts`, `messages.ts`, `shell/update-file.ts`,
+  `state/host-session.ts`, `state/update-file.ts`, `write-adapter.ts`, `test-host-session.ts`, `test-update-file.ts`.
+  Every hunk resolves as keep both: `presentDefs` keeps `timed('page loads', loadPagesYielding)` and adds
+  `presentCache = …; return presentCache;` with its declaration; the `file-sets` message type keeps `partial`/`atOpen`,
+  then #3096's `file-due`; the `HostSession` field keeps `partial`/`atOpen`, then `liveDue`; the `reduce` `file-sets`
+  case keeps #3110's two guards and tagged return, then #3096's `case 'file-due'`; the shell's import list is the union
+  (`awaitingRead`, `badgeCount`, `LiveDue`); `state/update-file.ts` keeps `awaitingRead` above #3096's reworded
+  `dueCount` doc; the adapter's type and `INBOUND` keep both.
+- **#3090.** git flags nothing here, because `ledgerSets` is new code. In #3090, `fileSets` prints each set
+  `needsPrint` names (`print(id); await breathe();`) before `dueOf(…, print)`, and `dueOf` reads an engine-moved, printed
+  entry as `unrecorded` when `print` returns null, its default. So the second to land does one of:
+  - **(a)** give `ledgerSets` the same `needsPrint` loop and `printNow()`. On the first open after an engine release,
+    the ledger's answer then projects every engine-moved set before it posts: the independent review measured 45 sets at 251–346 ms in Node (worst
+    set `button`, 39–59 ms), the thread handed back between sets, and slower in the sandbox;
+  - **(b)** leave `ledgerSets` without a print. Engine-moved sets then read `unrecorded` at open and change when the
+    full read lands.
+
+  Either way, `open/agree` gets an engine-moved arm. Which one is the second PR's call.

@@ -32,7 +32,9 @@
  * MUTATIONS, each failing by name: `ui-ready` reading the file first (`fileSets()` in place of `ledgerSets()`) →
  * `open/ready`; `loadPagesYielding` as one `loadAllPagesAsync` → `open/yields`; `ledgerSets` dropping `partial` →
  * `open/partial`; the read after open posted untagged → `open/full`; `styleGuideCatalog` back on `loadAllPagesAsync`
- * → `open/yields`.
+ * → `open/yields`; `checkSets`, prune, `styleGuide` or `styleGuideCleanup` loading every page in one call →
+ * `entry/check`, `entry/prune`, `entry/style-guide`, `entry/style-guide-cleanup`; the read after open's error answer
+ * posted untagged → `open/error`.
  *
  * Also held: `open/race`, the checklist's own request asked while the read after open is still going, is answered
  * without `atOpen`, so the panel keeps it over the read after open (`host-session.ts`, `awaitingRead`).
@@ -42,6 +44,7 @@ import type { Node } from './component-shim';
 import { componentDefs } from '@prism3/engine/components/index';
 import { materializerFor } from './src/brand-def';
 import { entryFor, LEDGER_KEY, LEDGER_V } from './src/as-built-ledger';
+import exampleBrands from '@prism3/engine/schema/example-brands.json';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -139,6 +142,8 @@ Object.assign(shim, {
   on: () => undefined,
   loadAllPagesAsync: async () => { for (const p of pages) loadOne(p); allCalled = true; },
   setCurrentPageAsync: async () => undefined,
+  // No variable in the stand-in: prune and the style guide read the collections before their page loads.
+  variables: { ...(shim.variables as object), getLocalVariableCollectionsAsync: async () => [], getLocalVariablesAsync: async () => [] },
   getNodeByIdAsync: async () => null,
   listAvailableFontsAsync: async () => [],
   getLocalPaintStylesAsync: shim.getLocalPaintStylesAsync ?? (async () => []),
@@ -201,6 +206,48 @@ console.log(`    full read                   ${full?.at ?? '—'} ms`);
 console.log(`    hand-edit pass done         ${done()?.at ?? '—'} ms`);
 console.log(`    most pages in one turn      ${worstTurn} (${worstTurn * PAGE_MS} ms held)`);
 for (const t of timings) console.log(`    stage ${t.stage.padEnd(22)}${t.ms} ms`);
+
+/* ── every other entry that needs every page, each on a file not yet read ──────────────────────────── */
+
+// Each entry runs on the stand-in with its pages unloaded again, as on a fresh open of the file, so the read it does is its
+// own. One that loads every page in one call holds the thread for all of them (worst 51 or 60 here); one per turn holds
+// it for one. `entry/*` names the entry, so a mutation reverting one of them fails by that entry's name.
+const reply = (type: string, from: number) => posted.slice(from).find((p) => p.msg?.type === type);
+const entry = async (label: string, msg: unknown, answer: string): Promise<void> => {
+  for (const p of pages) p.loaded = false;
+  allCalled = false; loads = 0; inTurn = 0; worstTurn = 0;
+  const from = posted.length;
+  send(msg);
+  for (let i = 0; i < 4000 && !reply(answer, from); i++) await new Promise((res) => realTimeout(res, 5));
+  ok(reply(answer, from) !== undefined && loads === PAGES && worstTurn <= 1,
+    `entry/${label}: it loads every page, one per turn (${loads} of ${PAGES} loaded, worst ${worstTurn} in one turn, ${reply(answer, from) ? `answered ${answer}${reply(answer, from)!.msg.summary ? `: ${reply(answer, from)!.msg.summary}` : ""}` : `no ${answer}`})`);
+};
+const stored = JSON.parse(sharedData.get('prism3:brandInput') ?? '{}');
+await entry('check', { type: 'update-check-request', defs: setIds.slice(0, DUE), input: stored }, 'update-check');
+// Prune plans from the brand it is sent, so it is sent a whole one; the stand-in stores none.
+await entry('prune', { type: 'prune', input: exampleBrands['aurora'], confirm: false }, 'prune-result');
+await entry('style-guide', { type: 'style-guide', options: {} }, 'style-guide-result');
+await entry('style-guide-cleanup', { type: 'style-guide-cleanup', ids: [] }, 'style-guide-cleanup-result');
+
+/* ── a read after open that fails ──────────────────────────────────────────────────────────────────── */
+
+// The full read after open, failing, still says it is the read after open: an error the panel did not ask for must not
+// replace an answer it did (`host-session.ts`). The document-wide search refuses, so the read answers with its error.
+{
+  for (const p of pages) p.loaded = false;
+  allCalled = false;
+  const from = posted.length;
+  const search = root.findAllWithCriteria;
+  root.findAllWithCriteria = () => { throw new Error('the stand-in refuses the search'); };
+  send({ type: 'ui-ready' });
+  const failedRead = () => posted.slice(from).find((p) => p.msg?.type === 'file-sets' && p.msg.error);
+  for (let i = 0; i < 4000 && !failedRead(); i++) await new Promise((res) => realTimeout(res, 5));
+  ok(failedRead()?.msg?.atOpen === true,
+    `open/error: a read after open that fails is still tagged as the read after open (${failedRead() ? `atOpen ${failedRead()!.msg.atOpen}, error ${failedRead()!.msg.error}` : 'no error answer'})`);
+  const end = posted.length;
+  for (let i = 0; i < 4000 && !posted.slice(end).some((p) => p.msg?.type === 'hand-edits' && p.msg.done === true); i++) await new Promise((res) => realTimeout(res, 5));
+  root.findAllWithCriteria = search;
+}
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');
 process.exit(failed ? 1 : 0);

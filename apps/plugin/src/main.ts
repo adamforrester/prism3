@@ -1380,7 +1380,9 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
     const panel = sink === uiSink;
     // One table at a time, yielding to the host between them and within a big one (#1778). Each reading goes to
     // the pending pill and, logged, to the console: a hung run's last line names the table it hung on, and
-    // `tableMs` is the live figure `CELLS_PER_YIELD` is calibrated against.
+    // `tableMs` is the live figure `CELLS_PER_YIELD` is calibrated against. Pages first, one per turn (#3110):
+    // `runStyleGuide`'s own `loadAllPagesAsync` then has nothing left to load.
+    await loadPagesYielding();
     const result = await runStyleGuide(figma, contract, options, {
       // A NAMED VERSION BEFORE THE FIRST WRITE (#2828); a host that refuses ends the run in the catch below.
       beforeWrite: (tables) => saveVersion(figma, { run: 'style-guide', tables }).then(() => undefined),
@@ -1541,6 +1543,8 @@ const sendFonts = async (): Promise<void> => {
  */
 const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void> => {
   try {
+    // Pages first, one per turn (#3110): `removeRetiredTables`' own `loadAllPagesAsync` then has nothing left to load.
+    await loadPagesYielding();
     const { removed, left } = await removeRetiredTables(figma, savedContract().contract, ids);
     const n = removed.length;
     const summary = n ? `${n} table${n === 1 ? '' : 's'} removed: ${removed.join(', ')}` : 'No table removed';
