@@ -3393,6 +3393,12 @@ for (const host of ['web', 'figma']) {
           const agentNext = await page.evaluate((r) => ({ next: [...document.querySelectorAll(`${r} [data-p3="op-next"] button`)].map((n) => n.textContent), agent: !document.querySelector(`${r} [data-p3="op-head"] .p3-op-agent`)?.hidden }), row);
           ok(agentNext.agent && JSON.stringify(agentNext.next) === '["Copy details"]',
             `#3126 review ${where}: an agent's ${kind} offers "Copy details" alone (${JSON.stringify(agentNext)})`);
+          // Back to the panel's own bad result, the state the checks below read: Set up file run again from Update file.
+          await openUpdate({ present: [], setUp: false });
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+          await takeWrites(page);
+          await postMsg(page, bad);
+          await page.waitForFunction((r) => !!document.querySelector(`${r} [data-p3="op-again"]`), row, { timeout: 5000 }).catch(() => {});
         }
         if (narrow) {
           // Q3113.8 A: the sheet's header row: the 24 × 24 close icon named "Close Activity", "Activity", the count; the bar
@@ -3451,7 +3457,7 @@ for (const host of ['web', 'figma']) {
         const rfC = (await drawerState(page)).ops['components'];
         ok(JSON.stringify(rfW1) === '["build-components"]' && JSON.stringify(rfW2) === '["build-components"]' && !rfU.busy && rfC?.state !== 'running' && String(rfC?.summary ?? '').includes(REFUSED_WORDS),
           `${where}: #3128: a set the host refuses ends the run: Update file is free and the Build set row stops, with the host's words (posted ${JSON.stringify(rfW1)} then ${JSON.stringify(rfW2)}, Update file ${JSON.stringify(rfU)}, row ${JSON.stringify(rfC ?? null)})`);
-        if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
         await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
         // #2830 Q2830.3 A: Documentation › Specs is a real control. Draw specs posts the panel's `draw-specs` (for the
         // current page; the host picks the page) and nothing else, reads as drawing until the host answers, and then shows
