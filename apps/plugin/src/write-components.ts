@@ -757,6 +757,20 @@ export const realYield: YieldFn = (ms = 0) => new Promise<void>((resolve) => { s
  *  wrong floor misses by whole lines. The same 0.01 is inlined in the paste payload
  *  (`anatomy-figma.ts` `PAYLOAD_MIN_LINES`) and the read-back (`anatomy-readback.ts` `minLines`). */
 export const MIN_HEIGHT_TOLERANCE = 0.01;
+/**
+ * #3127: THE ARTBOARD READ-BACK, AT FIGMA'S PRECISION. Figma stores a node's width and height as 32-bit floats, so a
+ * declared artboard that is not exact in binary comes back a hair off: a 34.97 × 24 logo reads 34.970001220703125. The
+ * exact compare called that "sized to its ink", 7 false misses on BrandMark's logos (each at its own width, 24 high).
+ * The tolerance is float32's error at these sizes, many times over, and far under any glyph sized to its ink (`minus`
+ * draws 14 × 2 on a 24 × 24 artboard). The expectation is the plan's own `glyphViewBox` per kind: square for an icon,
+ * `social/` and `provider/`; its own width × 24 for `logo/`; 32 × 20 for `payment/`.
+ */
+export const ARTBOARD_TOLERANCE = 0.001;
+export const atArtboard = (w: unknown, h: unknown, box: readonly [number, number]): boolean =>
+  Math.abs(Number(w) - box[0]) <= ARTBOARD_TOLERANCE && Math.abs(Number(h) - box[1]) <= ARTBOARD_TOLERANCE;
+/** The miss, naming what an ink-sized frame breaks for its kind: the square a host binds, or the mark's own box. */
+export const artboardMiss = (name: string, box: readonly [number, number], w: unknown, h: unknown): string =>
+  `${name}.glyphViewBox -> ${box[0]}x${box[1]} (the imported frame reads ${w}x${h}; the glyph was sized to its ink rather than to its artboard, so ${box[0] === box[1] ? 'every host binding a square' : `a host binding its ${box[0]}x${box[1]} box`} would distort it)`;
 
 /** The min and max sizes an in-place update clears from a node whose plan no longer sets them (#2976). */
 const MIN_MAX_SIZE = ['minWidth', 'maxWidth', 'minHeight', 'maxHeight'] as const;
@@ -2113,8 +2127,7 @@ const writeComponentSet = async (
         for (const v of (fresh.findAll?.((x) => x.type === 'VECTOR') ?? [])) wr(v as CompNode).constraints = { horizontal: 'SCALE', vertical: 'SCALE' };
         // THE ARTBOARD READ-BACK (below) asks what the IMPORT measured, so in place it reads the fresh import: the
         // frame the file holds is already sized by its host's binding.
-        if (n.glyphViewBox && (fresh.width !== n.glyphViewBox[0] || fresh.height !== n.glyphViewBox[1]))
-          misses.push(`${n.name}.glyphViewBox -> ${n.glyphViewBox[0]}x${n.glyphViewBox[1]} (the imported frame reads ${fresh.width}x${fresh.height}; the glyph was sized to its ink rather than to its artboard, so every host binding a square would distort it)`);
+        if (n.glyphViewBox && !atArtboard(fresh.width, fresh.height, n.glyphViewBox)) misses.push(artboardMiss(n.name, n.glyphViewBox, fresh.width, fresh.height));
         if (fw > 0 && fh > 0 && (fw !== ex.width || fh !== ex.height)) fresh.resize?.(Number(ex.width), Number(ex.height));
         // A GLYPH THAT TAKES NO HOST INK (#2343 PR 2, a brand mark) compares its vectors' FILLS too: its colors are the
         // document's own, so a mark whose provider changed a color and not a path must take the new import. A glyph a
@@ -2145,8 +2158,7 @@ const writeComponentSet = async (
       // that is #864's own class rather than a hypothetical: `minus` is 14×2 of drawing on a 24×24
       // artboard, and a member sized to its drawing distorts inside the square every host binds onto the
       // slot it swaps a glyph into (`size.{size}.icon`).
-      if (!ex && n.glyphViewBox && (node.width !== n.glyphViewBox[0] || node.height !== n.glyphViewBox[1]))
-        misses.push(`${n.name}.glyphViewBox -> ${n.glyphViewBox[0]}x${n.glyphViewBox[1]} (the imported frame reads ${node.width}x${node.height}; the glyph was sized to its ink rather than to its artboard, so every host binding a square would distort it)`);
+      if (!ex && n.glyphViewBox && !atArtboard(node.width, node.height, n.glyphViewBox)) misses.push(artboardMiss(n.name, n.glyphViewBox, node.width, node.height));
       // SCALE, on the OUTLINE and not on the frame. The frame is resized by whoever instances it — a host
       // binds `size.{size}.icon` onto its own slot — and a child left at Figma's MIN/MIN default keeps the
       // 24px it was drawn at, so a 16px instance would show the glyph's top-left corner. This is the one

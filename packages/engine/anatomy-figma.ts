@@ -4787,7 +4787,10 @@ const build=async(n)=>{
     // THE ARTBOARD, read back too, because an importer is free to size its result to the INK. That is
     // the second half of #864's own class: \`minus\` is 14×2 of drawing on a 24×24 artboard, and a member
     // sized to the drawing stretches non-uniformly into the square its host binds.
-    if(n.glyphViewBox&&(node.width!==n.glyphViewBox[0]||node.height!==n.glyphViewBox[1]))misses.push(n.name+'.glyphViewBox -> '+n.glyphViewBox[0]+'x'+n.glyphViewBox[1]+' (the imported frame reads '+node.width+'x'+node.height+'; the glyph was sized to its ink rather than to its artboard, so every host binding a square would distort it)');
+    // #3127: at Figma's precision. Width and height are stored as 32-bit floats, so an artboard not exact in binary
+    // (a 34.97 × 24 logo) reads a hair off; an exact compare called that ink-sized. The box is the plan's per kind:
+    // square for an icon, its own width × 24 for a logo, 32 × 20 for a payment tile. The plugin's twin is \`atArtboard\`.
+    if(n.glyphViewBox&&(Math.abs(node.width-n.glyphViewBox[0])>0.001||Math.abs(node.height-n.glyphViewBox[1])>0.001))misses.push(n.name+'.glyphViewBox -> '+n.glyphViewBox[0]+'x'+n.glyphViewBox[1]+' (the imported frame reads '+node.width+'x'+node.height+'; the glyph was sized to its ink rather than to its artboard, so '+(n.glyphViewBox[0]===n.glyphViewBox[1]?'every host binding a square':'a host binding its '+n.glyphViewBox[0]+'x'+n.glyphViewBox[1]+' box')+' would distort it)');
     // SCALE rather than the importer's default, on the OUTLINE and not on the frame. The frame is resized
     // by whoever instances it — a host binds \`size.{size}.icon\` onto its own slot — and a child left at
     // Figma's MIN/MIN constraint keeps the 24px it was drawn at, so a 16px instance would show the
