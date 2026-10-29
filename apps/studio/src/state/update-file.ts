@@ -197,7 +197,8 @@ export const UPDATE_COPY = {
   checked: (c: CheckedSetView): string => c.blocked ? 'Can’t be updated in place yet; the agent’s update check says why'
     : c.upToDate ? 'No member changes' : [`${c.update} of ${c.members} members change`, c.add ? `${c.add} added` : '', c.drop ? `${c.drop} kept and marked deprecated` : '', c.handEdited ? `${c.handEdited} edited by hand` : ''].filter(Boolean).join(' · '),
   handEdits: 'Hand edits',
-  handChoice: { keep: 'Keep them', overwrite: 'Overwrite them', accept: 'Accept as the new baseline' } as Record<HandEditChoice, string>,
+  // #3083 (the owner's Q3083.4 A, 2026-10-28; DRAFT): the short forms, for the compact select in the foot.
+  handChoice: { keep: 'Keep', overwrite: 'Overwrite', accept: 'Accept as baseline' } as Record<HandEditChoice, string>,
   unrecorded: (n: number): string => `${n} set${n === 1 ? '' : 's'} not checked yet: built before Prism3 kept a record.`,
   checkUnrecorded: (n: number): string => `Check ${n} set${n === 1 ? '' : 's'}`,
   saves: 'Saves a version first. If Figma refuses the save, nothing is written.',

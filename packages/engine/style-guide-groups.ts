@@ -13,8 +13,11 @@
  * So another brand's `accent` ramp lands in Palettes because it is a primitive color family, and an icon
  * family lands in Semantic colors when its variables are colors and in Space & size when they are sizes.
  *
- * A TYPE WITH NO GROUP STANDS ALONE (Q378 Q6 A): the effect styles, the gradient styles and any later type are
- * drawn ungrouped until this table gives them a group.
+ * A TYPE WITH NO GROUP STANDS ALONE (Q378 Q6 A): any later type is drawn ungrouped until this table gives it a group.
+ *
+ * THE EFFECT AND GRADIENT STYLES HAVE GROUPS OF THEIR OWN (owner direction on #3135, 2026-10-28, superseding Q6 A for
+ * those two): each is put in the same frame the other groups use, titled as its guide is, stacked last on the semantic
+ * page, Effect styles then Gradient styles.
  *
  * INVERSE HAS ITS OWN GROUP (owner decision, 2026-10-19, superseding the second row of #2801 and #2818): each inverse
  * family is its own guide (the owner's change on #2801, 2026-10-16), and the inverse guides sit in a group of their
@@ -47,6 +50,8 @@ export const STYLE_GUIDE_GROUPS: readonly StyleGuideGroup[] = [
   { id: 'space-size', tier: 'semantic', title: 'Space & size' },
   { id: 'borders', tier: 'semantic', title: 'Borders' },
   { id: 'semantic-fonts', tier: 'semantic', title: 'Fonts' },
+  { id: 'effect-styles', tier: 'semantic', title: 'Effect styles' },
+  { id: 'gradient-styles', tier: 'semantic', title: 'Gradient styles' },
 ];
 
 /** The font-variable kinds, each its own guide, all in the tier's Fonts group. */
@@ -68,7 +73,8 @@ export interface StyleGuideGuideFacts {
  *   • dimension, border width, opacity: Dimensions (primitive); semantic: Borders for a border width or a guide
  *     of radii, Space & size for the rest (space, size, icon size, control, opacity);
  *   • a font kind: the tier's Fonts; text styles: Fonts (semantic);
- *   • anything else (effect styles, gradient styles, a later type): null.
+ *   • effect styles (`shadow`): Effect styles; gradient styles (`gradient`): Gradient styles;
+ *   • anything else (a later type): null.
  */
 export const styleGuideGroupOf = (g: StyleGuideGuideFacts): string | null => {
   const primitive = g.tier === 'primitive';
@@ -79,6 +85,8 @@ export const styleGuideGroupOf = (g: StyleGuideGuideFacts): string | null => {
   }
   if (FONT_TYPES.has(g.type)) return primitive ? 'primitive-fonts' : 'semantic-fonts';
   if (g.type === 'typography') return 'semantic-fonts';
+  if (g.type === 'shadow') return 'effect-styles';
+  if (g.type === 'gradient') return 'gradient-styles';
   return null;
 };
 
