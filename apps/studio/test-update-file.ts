@@ -4,13 +4,20 @@
  *   npx tsx apps/studio/test-update-file.ts
  *
  * INDEPENDENCE (docs/34). The catalog and the file's sets are typed here as literals; every expected tick, step and run
- * state is a literal read off the owner's decisions (Q2909.2 A: the theme is always an item and ticked; Q2909.5 A: new
- * sets unticked, ticked on a file that is not set up; Q668 A: the first checklist on a file that is not set up is the
- * setup), never computed by the module under test.
+ * state is a literal read off the owner's decisions (Q2909.2 A: the theme is always an item and ticked; Q668 A: the first
+ * checklist on a file that is not set up is the setup; Q3129.10 A: no set is ticked or queued for the checklist, a fresh
+ * file's included), never computed by the module under test.
  *
- * Mutations that fail here by name: new sets ticked on a set-up file → `ticks: on a set-up file …`; the setup step kept
- * on a set-up file → `steps: Set up file is never a step on a set-up file`; a failed step not ending the run →
- * `run: a failed step ends the run …`.
+ * Mutations that fail here by name: the setup step kept on a set-up file → `steps: Set up file is never a step on a
+ * set-up file`; a failed step not ending the run → `run: a failed step ends the run …`.
+ *
+ * THE ADD QUEUE (#3129, Q833 A, Q3129.2–4 A, Q3129.10–11 A): the `sets` step builds the file's queue, shown and built in
+ * Components' list order, without the sets the file holds or cannot build; a queued set the file lacks reads To add; the
+ * badge counts the queue and names its parts. Mutations that fail here by name: `queuedOf` keeping a set the file holds →
+ * `Q3129.2 A queue: a queued set the file holds …`; `queuedOf` in queue order → `Q833 A queue: … in Components' list
+ * order …`; `stepsOf` reading the ticks for `sets` → `steps: the first run sets up, then writes the theme, the queued
+ * sets …` and `Q2909.8 A steps: the in-place update runs before the queued sets are added`; `badgeParts` dropping the live queue → `Q3129.11 A badge: against the live recount …`; `statusesOf` ignoring the queue →
+ * `Q3129.4 A status: a queued set the file lacks reads To add …`; `badgeName` one total → `Q3129.11 A badge name …`.
  *
  * PHASE 2 (Q2909.8 A, the as-built ledger): the due sets are ticked and update in place, before the new sets are added;
  * a set the ledger never recorded is "Not checked yet" and is never ticked unasked; hand-edited is a status of its own,
@@ -27,7 +34,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, awaitingRead, badgeCount, defaultTicks, dueCount, engineWhy, dueSetsOf, newSetsOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, awaitingRead, badgeCount, badgeParts, defaultTicks, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -47,16 +54,17 @@ const FRESH = { present: [], setUp: false, error: null, due: {} };
 
 ok(same(newSetsOf(CAT, SET_UP), ['tag', 'badge']), 'new sets: buildable and not in the file, in catalog order; an unbuildable set is never offered');
 const t1 = defaultTicks(CAT, SET_UP);
-ok(t1.theme === true && t1.setup === false && t1.guides === false && t1.sets.size === 0,
-  'ticks: on a set-up file the theme is ticked (Q2909.2 A) and every new set is unticked (Q2909.5 A)');
+ok(t1.theme === true && t1.setup === false && t1.guides === false && !('sets' in t1),
+  'ticks: on a set-up file the theme is ticked (Q2909.2 A), and no set is ticked to add (#3129: the queue is the file\'s)');
 const t2 = defaultTicks(CAT, FRESH);
-ok(t2.setup && t2.theme && t2.guides && same([...t2.sets], ['button', 'tag', 'badge']),
-  'ticks: on a file that is not set up, the setup, the theme, every buildable set and the style guides are ticked (Q668 A, Q2909.5 A)');
+ok(t2.setup && t2.theme && t2.guides && !('sets' in t2),
+  'Q3129.10 A ticks: on a file that is not set up, the setup, the theme and the style guides are ticked, and no set is (Q668 A)');
 
-ok(same(stepsOf(t1, SET_UP), ['theme']), 'steps: a set-up file with the defaults writes the theme only');
-ok(same(stepsOf({ ...t1, setup: true }, SET_UP), ['theme']), 'steps: Set up file is never a step on a set-up file');
-ok(same(stepsOf(t2, FRESH), ['setup', 'theme', 'sets', 'guides']), 'steps: the first run sets up, then writes the theme, the sets and the style guides, in that order');
-ok(same(stepsOf({ ...t2, theme: false, sets: new Set() }, FRESH), ['setup', 'guides']), 'steps: an unticked item is not a step');
+ok(same(stepsOf(t1, SET_UP, []), ['theme']), 'steps: a set-up file with the defaults and an empty queue writes the theme only');
+ok(same(stepsOf({ ...t1, setup: true }, SET_UP, []), ['theme']), 'steps: Set up file is never a step on a set-up file');
+ok(same(stepsOf(t2, FRESH, ['tag']), ['setup', 'theme', 'sets', 'guides']), 'steps: the first run sets up, then writes the theme, the queued sets and the style guides, in that order');
+ok(same(stepsOf(t2, FRESH, []), ['setup', 'theme', 'guides']), 'Q3129.10 A steps: a fresh file with nothing queued adds no set; the sets step runs while the queue holds a set');
+ok(same(stepsOf({ ...t2, theme: false }, FRESH, []), ['setup', 'guides']), 'steps: an unticked item is not a step');
 
 let r = startUpdate(['setup', 'theme', 'sets'], ['tag']);
 ok(stepOf(r) === 'setup' && !r.done, 'run: starts on its first step');
@@ -79,11 +87,11 @@ ok(same(dueSetsOf(CAT2, DUE), ['button', 'select']), 'Q2909.8 A due: the sets th
 ok(same(unrecordedOf(CAT2, DUE), ['badge']), 'Q2909.8 A unrecorded: the sets the file holds with no ledger entry');
 ok(same(unrecordedOf(CAT2, { ...DUE, due: {} }), ['button', 'tag', 'badge', 'select']), 'Q2909.8 A unrecorded: a set the ledger answered nothing for is not checked yet');
 const td = defaultTicks(CAT2, DUE);
-ok(same([...td.update], ['button', 'select']) && td.handEdits === 'keep' && td.sets.size === 0,
-  'Q2909.8 A ticks: every due set is ticked, hand edits are kept, a set never recorded is not ticked, and no new set is');
-ok(same(stepsOf(td, DUE), ['theme', 'update']), 'Q2909.8 A steps: a file with due sets writes the theme, then updates the sets in place');
-ok(same(stepsOf({ ...td, sets: new Set(['icon']) }, DUE), ['theme', 'update', 'sets']), 'Q2909.8 A steps: the in-place update runs before the new sets are added');
-ok(same(stepsOf({ ...td, update: new Set() }, DUE), ['theme']), 'Q2909.8 A steps: unticked, the due sets are not a step');
+ok(same([...td.update], ['button', 'select']) && td.handEdits === 'keep',
+  'Q2909.8 A ticks: every due set is ticked, hand edits are kept, and a set never recorded is not ticked');
+ok(same(stepsOf(td, DUE, []), ['theme', 'update']), 'Q2909.8 A steps: a file with due sets writes the theme, then updates the sets in place');
+ok(same(stepsOf(td, DUE, ['icon']), ['theme', 'update', 'sets']), 'Q2909.8 A steps: the in-place update runs before the queued sets are added');
+ok(same(stepsOf({ ...td, update: new Set() }, DUE, []), ['theme']), 'Q2909.8 A steps: unticked, the due sets are not a step');
 const check = { sets: [
   { def: 'button', hash: 'a', members: 4, update: 2, add: 0, drop: 0, handEdited: 1, noBaseline: 0, blocked: false, upToDate: false },
   { def: 'select', hash: 'b', members: 2, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false },
@@ -92,6 +100,9 @@ ok(same(updatableOf(td, check), ['button']), 'Q2909.8 A update: a set the check 
 ok(dueCount(CAT2, DUE) === 2 && dueCount(CAT2, null) === 0 && dueCount(CAT2, { ...DUE, error: 'x' }) === 0, 'Q2909.8 A badge: it counts the due sets, and nothing before the host answers or when it could not read');
 const hand = new Map([['tag', { edited: 3 }], ['button', { edited: 1 }]]);
 ok(same(statusesOf('icon', DUE, hand, 'done'), ['new']), 'Q2909.8 A status: a set the file lacks reads Not in file');
+ok(same(statusesOf('icon', DUE, hand, 'done', ['icon']), ['queued']) && UPDATE_COPY.status.queued === 'To add',
+  'Q3129.4 A status: a queued set the file lacks reads To add, not Not in file');
+ok(same(statusesOf('button', DUE, hand, 'done', ['button']), ['due', 'hand']), 'Q3129.2 A status: a queued set the file holds reads as the file holds it');
 ok(same(statusesOf('button', DUE, hand, 'done'), ['due', 'hand']), 'Q2909.8 A status: a due set with hand edits reads Due and Hand-edited, both');
 ok(same(statusesOf('tag', DUE, hand, 'done'), ['hand']), 'Q2909.8 A status: a hand-edited set reads Hand-edited, never Up to date (first class, not a warning)');
 ok(same(statusesOf('badge', DUE, new Map(), 'running'), ['unchecked']), 'Q2909.8 A status: a set never recorded reads Not checked yet');
@@ -112,6 +123,24 @@ ok(!awaitingRead(DUE, undefined) && !awaitingRead(DUE, null) && awaitingRead(DUE
 const OPEN = { ...DUE, atOpen: true } as const;
 ok(awaitingRead(OPEN, PART) && awaitingRead(OPEN, null), '#3110 checklist: the host\'s read after open, landing after the checklist asked, is not its answer');
 ok(!awaitingRead(OPEN, undefined), '#3110 checklist control: once the checklist has its answer, a later read after open does not close it');
+// ── #3129 Q833 A: the add queue ─────────────────────────────────────────────────────────────────────────────────────
+// A catalog whose list order differs from its catalog order: Tag before Badge in the catalog, Badge before Tag in the
+// list (rows alphabetical by label, Subcomponents last).
+const CATQ = [entry('tag'), entry('badge'), entry('focus-ring', false), entry('button')] as unknown as Catalog;
+const FILEQ = { present: ['button'], setUp: true, error: null, due: {} };
+ok(same(queuedOf(CATQ, FILEQ, ['tag', 'badge']), ['badge', 'tag']), `Q833 A queue: shown and built in Components' list order, not the order it was queued in (${JSON.stringify(queuedOf(CATQ, FILEQ, ['tag', 'badge']))})`);
+ok(same(queuedOf(CATQ, FILEQ, ['button', 'tag']), ['tag']), 'Q3129.2 A queue: a queued set the file holds leaves the queue at the next read');
+ok(same(queuedOf(CATQ, FILEQ, ['focus-ring', 'retired', 'tag', 'tag']), ['tag']), 'Q3129.3 A queue: a set the engine cannot build, or no longer defines, is never shown; a set queued twice shows once');
+ok(same(queuedOf(CATQ, null, ['tag']), []) && same(queuedOf(CATQ, FILEQ, null), []), 'queue: nothing before the host has read the file or the queue');
+ok(same(newSetsOf(CATQ, FILEQ), ['tag', 'badge']), 'queue: Add all and the boxes offer the buildable sets the file lacks');
+const DUEQ = { present: ['button'], setUp: true, error: null, due: { button: { state: 'due', reason: 'definition' } } } as const;
+ok(same(badgeParts(CATQ, DUEQ, null, ['tag', 'badge', 'button']), { add: 2, due: 1, theme: false }) && badgeCount(CATQ, DUEQ, null, ['tag', 'badge', 'button']) === 3,
+  'Q3129.11 A badge: the queue counts, the sets the file lacks only, beside the due sets (2 to add, 1 due: 3)');
+ok(same(badgeParts(CATQ, DUEQ, { present: ['button', 'tag'], theme: true, error: null, due: DUEQ.due }, ['tag', 'badge']), { add: 1, due: 1, theme: true }),
+  'Q3129.11 A badge: against the live recount, the queue counts the sets that recount found missing, and Theme counts as its own part');
+ok(UPDATE_COPY.badgeName({ add: 7, due: 3, theme: false }) === 'Update file, 7 to add, 3 due' && UPDATE_COPY.badgeName({ add: 7, due: 3, theme: true }) === 'Update file, 7 to add, 3 due, theme'
+  && UPDATE_COPY.badgeName({ add: 0, due: 2, theme: false }) === 'Update file, 2 due' && UPDATE_COPY.badgeName({ add: 0, due: 0, theme: true }) === 'Update file, theme',
+  `Q3129.11 A badge name: split, "Update file, 7 to add, 3 due", with ", theme" when Theme counts, and no part at zero (${UPDATE_COPY.badgeName({ add: 7, due: 3, theme: true })})`);
 const ru = startUpdate(['update', 'sets'], ['icon'], { defs: ['button'], previewHash: 'h', handEdits: 'keep' });
 ok(stepOf(ru) === 'update' && same(ru.update, { defs: ['button'], previewHash: 'h', handEdits: 'keep' }), 'Q2909.8 A run: the update step carries its sets, the check\'s hash and the hand-edit choice');
 

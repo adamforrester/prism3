@@ -151,6 +151,11 @@ export type UiToMain =
    *  whether the file holds that brand. Answered with one `file-due` carrying the same `seq`. A read; never refused by the
    *  run guard. The panel sends it debounced, after a setting changes and after a write's verdict. */
   | { type: 'due-request'; input?: BrandInput; seq: number }
+  /** #3129 Q833 A: Components' boxes, select-alls, and Update file's Remove, Remove all and Add all: queue `ids` in the
+   *  file (`on`) or take them out of its add queue (`add-queue.ts`). Writes no layer, so it saves no version and is
+   *  never refused by the run guard. It also clears the keys of sets the file holds and of sets the engine no longer
+   *  builds, so an Update file run ends with one carrying no ids. Answered with one `add-queue`. */
+  | { type: 'add-queue'; ids: string[]; on: boolean }
   /** #2909 Q2909.8 A: the background hand-edit pass, after load. Answered with one `hand-edits` per set the file holds,
    *  then one with `done`. A read; a later request, or a write starting, ends an earlier pass. */
   | { type: 'hand-edits-request' }
@@ -498,11 +503,17 @@ export type MainToUi =
       partial?: true;
       /** #3110: one of the host's own reads after open (the ledger's, then the file's), not an answer to the panel's
        *  `file-sets-request`. */
-      atOpen?: true }
+      atOpen?: true;
+      /** #3129 Q833 A: the add queue, minus the sets the file holds and the sets the engine cannot build (`add-queue.ts`),
+       *  in the order the root lists its keys. */
+      queued: string[] }
   /** #3081 Q810 A: the answer to `due-request`, by its `seq`: the sets the file holds (as the last `file-sets` read found
    *  them, or read again after a write), each read against the ledger under the panel's brand, and `theme`: the file does
    *  not hold that brand, so Apply Theme would change it. `error` when the file could not be read. */
-  | { type: 'file-due'; seq: number; present: string[]; theme: boolean; due: Record<string, SetDue>; error?: string }
+  | { type: 'file-due'; seq: number; present: string[]; theme: boolean; due: Record<string, SetDue>; error?: string; queued: string[] }
+  /** #3129 Q833 A: the answer to `add-queue`: the queue after the write, read as `file-sets`' `queued` is. `error` when the
+   *  write was refused; `queued` is then the queue as the file holds it. */
+  | { type: 'add-queue'; queued: string[]; error?: string }
   /** #2909 Q2909.8 A: one set's hand edits from the background pass (`handEditsOf`), or the pass's end (`done`). */
   | { type: 'hand-edits'; def: string; members: number; edited: number }
   | { type: 'hand-edits'; done: true }

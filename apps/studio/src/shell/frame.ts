@@ -97,7 +97,8 @@ const NEW_PAGES: Record<NewPageKey, {
    *  panel is read-only (`syncDerivedReadOnly` below). Brand and Palettes are brand-wide and stay editable. */
   readonly derivedReadOnly?: true;
   /** PM1 B (owner, 2026-10-08; #2321): the page always shows Light, and the mode control is held disabled while it is
-   *  up, described by the page's line at `id` (`syncModePin` below). */
+   *  up, described by the page's line at `why` (`syncModePin` below). `why: ''` holds it with no line: Components
+   *  draws no mode control (#3129 R4), so there is nothing for a line to describe. */
   readonly pinsLight?: { readonly why: string };
 }> = {
   brand: { levers: mountBrandLevers, preview: mountBrandPreview },
@@ -111,7 +112,9 @@ const NEW_PAGES: Record<NewPageKey, {
   // #2700: not held in a derived mode. Its levers pane is the list of sets and the action bar, which edit no brand
   // setting, so building stays available there as it always was; the Button options it shapes sit in the preview pane
   // now, and hold themselves read-only in a derived mode, in this frame's words (`domains/button-options.ts`).
-  components: { levers: mountComponentsLevers, preview: mountComponentsPreview },
+  // #3129 Q3129.14 B (the owner, 2026-10-29): Components always previews Light, as Palettes does (PM1 B), by the same
+  // pin; the mode Theme had comes back on leaving. Dark components are checked on Theme's pages.
+  components: { levers: mountComponentsLevers, preview: mountComponentsPreview, pinsLight: { why: '' } },
 };
 
 /** The levers panel's one line while the preview shows a derived mode (N-3 A, #1984). APPROVED (owner, RO1 A,
@@ -614,7 +617,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     }
   }
   cleanups.push(subscribe('mode', syncDerivedReadOnly));
-  // PM1 B (owner, 2026-10-08; #2321): a page that pins Light (Palettes). On the way in, the preview is switched to
+  // PM1 B (owner, 2026-10-08; #2321): a page that pins Light (Palettes; Components, #3129 Q3129.14 B). On the way in, the preview is switched to
   // Light, the mode the person had is kept, and the mode control is held in the disabled skin. On the way out, the
   // kept mode is put back, if the brand still ships it. The pin writes the store's own mode, so everything that reads
   // it (the page, Inspect, the verdict) agrees with what the held control shows. A mode written by anything else
@@ -721,6 +724,11 @@ export const mountFrame = (app: HTMLElement, opts: {
     // V1: the preview names the page's one home view. Nothing but a place change moves it.
     const home = place ? homeOf(place) : null;
     previewTitle.textContent = home ? viewLabel(home) : '';
+    // #3129 R3 (the owner, 2026-10-28): on Components the page's title sits at the left of the levers header, where the
+    // search sat, and the search goes flush right in that row, where Theme's tab row keeps it (Q835 A). The same node
+    // moves, so the preview body keeps its name and Inspect's close still finds it.
+    const titleHome = root.dataset.place === 'components' ? nav : previewHead;
+    if (previewTitle.parentElement !== titleHome) titleHome.prepend(previewTitle);
     const tabOf = place ? TABS.find((t) => t.id === place!.tab) : undefined;
     const pageName = (place?.sub ? tabOf?.subs?.find((x) => x.id === place!.sub)?.label : tabOf?.label) ?? '';
     pageHeading.textContent = pageName;
