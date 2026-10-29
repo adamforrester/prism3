@@ -9790,7 +9790,8 @@ for (const host of ['web', 'figma']) {
 // Q59, since #3129 Q3129.14 B: Components always previews Light, so a derived mode chosen on Theme never reaches it. In each
 // one, back on Components, no settings block carries the derived line, every control is live, the list is unheld and the
 // preview is drawn, and a scripted input on the minimum-width slider writes (the first build held them all, Q3129.14 A).
-// The blocks' own hold and the write's refusal (#2096) stay as the guard for a mode written while the pin is up.
+// The blocks' own hold and the write's refusal (#2096) stay as the guard for a mode written while the pin is up (the
+// next arm, Q3129.17 A).
 /** The derived line's words, typed (N-3 A): the blocks and the frame say the same. */
 const Q59_WORDS = "is auto-derived and can't be edited here.";
 {
@@ -9893,6 +9894,83 @@ const Q59_WORDS = "is auto-derived and can't be edited here.";
     ok(errors.length === 0, `components derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S8.2 derived modes: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// #3129 Q3129.17 A (the owner, 2026-10-29): the blocks' derived hold and #2096's write refusal stay as the guard for a
+// mode written while the pin is up (`frame.ts`, `syncModePin`: a write made while pinned is kept, not undone). Components
+// hides its held mode control (R4), so the write is made the way such a write lands: the hidden HC light radio is let go
+// of its hold and clicked, which runs the store's own `setCurrentMode`. Every block then carries the derived line in the
+// frame's words (N-3 A) and holds its controls, and a scripted input on the minimum-width slider writes nothing.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'components');
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=tags"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=search"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=banners"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=radios"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
+    await openButtonOptions(page);
+    const label = 'HC light';
+    const wrote = await page.evaluate(() => {
+      const r = document.querySelector('[data-p3="mode-option"][data-mode="hc-light"]');
+      if (!r) return null;
+      const held = r.disabled;
+      r.disabled = false;
+      r.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      return held;
+    });
+    await page.waitForFunction((l) => document.querySelector('[data-p3="button-options-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+    await settle(page);
+    const d = await page.evaluate(() => {
+      const held = (sel) => [...document.querySelectorAll(sel)].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true');
+      const opts = document.querySelector('[data-p3="button-options"]');
+      const ctls = [...(opts?.querySelectorAll(':is(button, select, input)') ?? [])].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="components-density-link"], [data-p3="components-weights-link"], [data-p3="components-outline-hover-link"]'));
+      return {
+        lines: Object.fromEntries(['button', 'field', 'tag', 'search', 'dialog', 'banner', 'radio'].map((k) => [k, document.querySelector(`[data-p3="${k}-options-derived"]`)?.textContent ?? null])),
+        n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled')).map((n) => n.getAttribute('data-p3') ?? n.tagName),
+        hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
+        link: !document.querySelector('[data-p3="components-density-link"]')?.matches(':disabled'),
+        chips: {
+          field: held('[data-p3="field-options"] [data-p3^="field-style-choice-"]'),
+          tag: held('[data-p3="tag-options"] [data-p3^="tag-style-choice-"]'),
+          search: held('[data-p3="search-options"] [data-p3^="search-field-style-choice-"]'),
+          dialog: held('[data-p3="dialog-options"] [data-p3^="dialog-title-size-choice-"], [data-p3="dialog-options"] [data-p3^="dialog-surface-choice-"]'),
+          banner: held('[data-p3="banner-options"] [data-p3^="banner-style-choice-"]'),
+          radio: held('[data-p3="radio-options"] [data-p3^="radio-dot-choice-"]'),
+          shared: held('[data-p3="shared-options"] [data-p3^="control-shape-choice-"]'),
+        },
+      };
+    });
+    const at = `#3129 Q3129.17 A: ${label} written while Components is up`;
+    const LINE = `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`;
+    ok(wrote === true, `${at}: the write is made past the pin's hold (the hidden radio was held: ${wrote})`);
+    ok(Object.values(d.lines).every((x) => x === LINE), `${at}: every settings block carries the derived line, in the frame's words (N-3 A) (${JSON.stringify(d.lines)})`);
+    ok(d.n >= 7 && d.enabled.length === 0 && d.link, `${at}: every Button option is held (${d.n - d.enabled.length}/${d.n}), the way to Shape left live (RX1 A: ${d.link})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
+    for (const hk of ['button-icons-choice-edges', 'button-content-size-choice-smaller', 'button-label-weight-choice-default', 'button-min-width-slider']) ok(d.hooks.includes(hk), `${at}: the ${hk} control is among the Button options held`);
+    const counts = { field: 2, tag: 2, search: 3, dialog: 6, banner: 2, radio: 4, shared: 4 };
+    ok(Object.entries(counts).every(([k, n]) => d.chips[k].length === n && d.chips[k].every(Boolean)),
+      `${at}: every family's settings chips are held (Field, Tag, Search, Dialog, Banner, Radio, Control shape) (${JSON.stringify(d.chips)})`);
+    // #2096: the write itself is refused, not only the DOM's disabled flag. A scripted `input` and its release on the
+    // held slider, to a value the brand does not hold, leave the persisted brand byte-identical.
+    const before = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+    const slid = await page.evaluate(() => {
+      const n = document.querySelector('[data-p3="button-min-width-slider"]');
+      if (!n) return null;
+      const v = Number(n.value) === 3.75 ? 3.5 : 3.75;
+      n.value = String(v);
+      n.dispatchEvent(new Event('input', { bubbles: true }));
+      n.dispatchEvent(new Event('change', { bubbles: true }));
+      return v;
+    });
+    await page.waitForTimeout(150);
+    const after = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+    ok(slid !== null && before !== null && after === before,
+      `${at}: #2096: a scripted input on the minimum-width slider writes nothing (prism3:brandInput byte-identical${slid === null ? ', slider not found' : after === before ? '' : `, buttonMinWidthMultiplier now ${JSON.parse(after ?? '{}')?.input?.buttonMinWidthMultiplier}`})`);
+    ok(errors.length === 0, `${at}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3129 Q3129.17 A: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q54, brand-wide: previewing Dark, a chip writes the same key as from Light and no per-mode value. (QA-B9's reveal ended
@@ -17630,6 +17708,18 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
       value: document.querySelector('[data-p3="mode-select"]')?.value ?? null }));
     ok(JSON.stringify(back.checked) === '["dark"]' && back.value === 'dark',
       `${where}: Q3129.14 B: returning to Theme from Components puts back Dark (checked ${JSON.stringify(back.checked)}, select ${back.value})`);
+    // A derived mode comes back too: Components entered from HC light, then Theme again. Dark is chosen again after.
+    step = 'Q3129.14 B: return to Theme in HC light';
+    await roShowMode(page, 'hc-light');
+    await goPlace(page, 'components');
+    await hooks.need(page, '[data-p3="components-levers"]');
+    await goPlace(page, 'brand');
+    await settle(page);
+    const backHc = await page.evaluate(() => ({ checked: [...document.querySelectorAll('[data-p3="mode-option"]')].filter((b) => b.getAttribute('aria-checked') === 'true').map((b) => b.dataset.mode),
+      value: document.querySelector('[data-p3="mode-select"]')?.value ?? null }));
+    ok(JSON.stringify(backHc.checked) === '["hc-light"]' && backHc.value === 'hc-light',
+      `${where}: Q3129.14 B: returning to Theme from Components entered in HC light puts back HC light (checked ${JSON.stringify(backHc.checked)}, select ${backHc.value})`);
+    await roShowMode(page, 'dark');
     await goPlace(page, 'components');
     await hooks.need(page, '[data-p3="components-levers"]');
     const pre = await page.evaluate(() => document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]').length);
