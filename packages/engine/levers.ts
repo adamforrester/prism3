@@ -109,6 +109,12 @@ export const leverManifest: Lever[] = [
   { key: 'raisedSurface', group: 'color', kind: 'value', label: 'Dialog surface', control: 'enum', default: 'card',
     options: enumOpts(['card', 'Card'], ['page', 'Page'], ['white', 'White']),
     description: 'The surface of every dialog and sheet in light mode: the card color, the page color, or white. Dark mode always uses the card color, so the panel stays lifted.' },
+  // #3050 (owner Q825 B) — label, option labels and description are a DRAFT for the owner (on the build PR). It moves
+  // a token value, not a binding: the dialog's backdrop binds `color.scrim.default` once, and this picks which existing
+  // `black-alpha` step that token aliases in each mode. Its home in the Studio is Surfaces & fills › Scrim.
+  { key: 'scrimStrength', group: 'color', kind: 'value', label: 'Scrim strength', control: 'enum', default: 'standard',
+    options: enumOpts(['standard', 'Standard'], ['strong', 'Strong']),
+    description: 'How much the backdrop behind a dialog dims the page. Standard keeps the page readable behind it. Strong dims it further, so the page stops competing with the dialog.' },
   // #3073 (owner Q806, Q807 A) — label and description are a DRAFT for the owner (on the build PR). It adds roles, it
   // never moves `color.glass.surface`. Its home in the Studio is Surfaces & fills › Glass.
   { key: 'glassRoles', group: 'color', kind: 'value', label: 'Glass fills', control: 'object', advanced: true, itemLabel: 'glass fill',
@@ -152,6 +158,12 @@ export const leverManifest: Lever[] = [
   { key: 'bannerStyle', group: 'form', kind: 'value', label: 'Banner style', control: 'enum', default: 'tinted',
     options: enumOpts(['tinted', 'Tinted'], ['outlined', 'Outlined']),
     description: 'The surface of every banner. Tinted fills it with the tone’s tint; Outlined draws the edge in the tone on the page color. Either way the edge and glyph clear 3:1.' },
+  // #3086 (owner Q816 A, no new token) — label, option labels and description are a DRAFT for the owner. It moves token
+  // values, not a binding: Radio binds `control.size.{sm,md,lg}.dot`, and this sets what those hold. List bullets and the
+  // badge dot bind the same tokens, so they follow. Its home in the Studio is Components › Radio (Q578).
+  { key: 'radioDot', group: 'form', kind: 'value', label: 'Radio dot size', control: 'enum', default: 50,
+    options: enumOpts([50, 'Default'], [60, '60%'], [70, '70%'], [80, '80%']),
+    description: 'How big the dot in a selected radio is, as a share of the radio, at every size. Default is half. The dot rounds to a 2px step and never covers the ring. List bullets and badge dots follow it.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', kind: 'structural', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),
@@ -248,8 +260,12 @@ export const leverManifest: Lever[] = [
   { key: 'disabledMin', group: 'advanced', kind: 'value', label: 'Reduced contrast floor', control: 'slider', default: 3, min: 3, max: 4.5, step: 0.5,
     description: 'How dim Reduced goes. 3:1 is the WCAG non-text / large-text threshold and where Primer and USWDS sit — the lowest ratio still legible. Escalates to 4.5:1 in high-contrast modes. Ignored on Full.' },
   { key: 'outlineInteraction', group: 'advanced', kind: 'value', label: 'Outline hover', control: 'enum', default: 'overlay-neutral',
-    options: enumOpts(['overlay-neutral', 'Neutral overlay wash'], ['solid-tint', 'Tinted wash'], ['none', 'No hover fill']),
-    description: 'How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = the control\'s own fill at 20% opacity (30% pressed), stepped down the opacity scale where the label needs more contrast and up where the hover would not show, so a destructive outline hovers red-tinted rather than gray; none = omit.' },
+    // #3071: 'opaque-fill' and its chip label are a DRAFT for the owner (on the build PR).
+    options: enumOpts(['overlay-neutral', 'Neutral overlay wash'], ['solid-tint', 'Tinted wash'], ['opaque-fill', 'Solid fill'], ['none', 'No hover fill']),
+    description: 'How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = the control\'s own fill at 20% opacity (30% pressed), stepped down the opacity scale where the label needs more contrast and up where the hover would not show, so a destructive outline hovers red-tinted rather than gray; opaque-fill = a solid palette step you pick (Outline hover fill), with the label and icon kept legible on it, on buttons and icon buttons only, while tags, segmented controls and pagination keep the wash; none = omit.' },
+  // #3071 (owner Q824 A): label and description are a DRAFT for the owner (on the build PR). Read only under 'opaque-fill'.
+  { key: 'outlineHoverFill', group: 'advanced', kind: 'value', label: 'Outline hover fill', control: 'object', advanced: true,
+    description: 'The solid hover fill of outline and text buttons, per mode: a palette step, such as neutral 050. Pressed takes the next step unless you pick one. The label and icon move along their own color where they need to, to stay legible on it. Modes you leave on Auto, and inverse surfaces, take the gray step closest to their ground.' },
   { key: 'neutralEmphasis', group: 'advanced', kind: 'value', label: 'Neutral emphasis', control: 'enum', default: 'subtle',
     options: enumOpts(['subtle', 'Subtle (light gray)'], ['strong', 'Strong (bold near-black/white)']),
     description: 'The neutral interactive fill boldness — subtle light gray (a surface) or a strong near-black/near-white fill.' },

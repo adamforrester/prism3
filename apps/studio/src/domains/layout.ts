@@ -14,8 +14,10 @@
  *
  * THE CONTROLS (owner decision D15). The grid columns and each breakpoint's columns, gutter and margin are value
  * pickers (Q65, `ui/value-picker.ts`); a button shows the value the brand holds, even a column count off the offered
- * list (any whole number 4–24 is legal; #2047). Gutter and margin offer only the spacing steps: the engine refuses an
- * off-scale px (#1593). The container widths are sliders over the manifest's range and step.
+ * list (any whole number 4–24 is legal; #2047). Gutter and margin follow the engine's link order (Q785 A, #3052, #3092):
+ * the spacing steps first, then, in their own group, the brand's core dimension steps no spacing step has, each of
+ * which links to `core/dimension/*`. No custom px: every gutter and margin measured so far is on one of the two lists
+ * (#3092's Q-block). The container widths are sliders over the manifest's range and step.
  *
  * WRITES. Every write goes through `state/layout-input.ts`, which writes what the legacy page wrote, byte for byte,
  * except D13's re-keying: a per-breakpoint setting stays with its breakpoint when names move (#2045), and one on a
@@ -67,7 +69,11 @@ export const LAYOUT_DRAFT = {
   maxTip: 'The widest content gets. Below this width, content fills the screen.',
   narrowTip: 'A narrower width for long text, so lines stay a readable length.',
   columnsHint: 'Column counts the grid can use. Any whole number from 4 to 24 works; these are the common ones.',
-  gapHint: 'Gutter and margin use the spacing steps, so each stays a spacing token.',
+  // #3092: the gutter and margin pickers list the spacing steps, then the dimension steps (the engine's link order,
+  // Q785 A). DRAFT, the hint and both group names.
+  gapHint: 'Spacing steps come first, so the value stays a spacing token. Dimension steps cover widths the spacing scale lacks.',
+  gapSpace: 'Spacing steps',
+  gapDimension: 'Dimension steps',
   limit: 'Seven breakpoints at most, xs to 3xl.',
   // Owner Q189 A (#2146): the error line's one-click fix for a brand that arrives starting above 0px. DRAFT.
   addZero: 'Add a 0px breakpoint',
@@ -172,10 +178,10 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     for (let i = 0; i < n; i++) { const b = h('i', 'p3-lsamp-bar'); b.style.background = tint(); row.append(b); }
     el.append(row);
   };
-  /** A width's sample: a bar that wide (capped at 96px, the widest spacing step). */
+  /** A width's sample: a bar that wide (capped at 128px, the top of the dimension grid's 4px run). */
   const gapSample = (px: number) => (el: HTMLElement): void => {
     const b = h('i', 'p3-lsamp-gap');
-    b.style.width = `${Math.min(px, 96)}px`;
+    b.style.width = `${Math.min(px, 128)}px`;
     b.style.background = tint();
     el.append(b);
   };
@@ -185,7 +191,14 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     if (cur !== undefined && !vs.includes(cur)) vs.push(cur);
     return vs.sort((a, b) => a - b).map((v) => ({ v, label: String(v), sample: colSample(v) }));
   };
-  const gapValues = (): PickerValue[] => theme.dims.space.map((s) => ({ v: s.px, label: `${s.px}px · space.${s.key}`, sample: gapSample(s.px) }));
+  /** The engine's link order (`gridGapLink`, Q785 A): the spacing steps, then each core dimension step that no spacing
+   *  step has, which links to `core/dimension/<px>` (#3092). */
+  const gapValues = (): PickerValue[] => {
+    const space = theme.dims.space.map((s) => ({ v: s.px, label: `${s.px}px · space.${s.key}`, sample: gapSample(s.px), group: LAYOUT_DRAFT.gapSpace }));
+    const dims = theme.dims.grid.filter((px) => !theme.dims.space.some((s) => s.px === px)).sort((a, b) => a - b)
+      .map((px) => ({ v: px, label: `${px}px · core.dimension.${px}`, sample: gapSample(px), group: LAYOUT_DRAFT.gapDimension }));
+    return [...space, ...dims];
+  };
 
   // ── Breakpoints ────────────────────────────────────────────────────────────────────────────────
   const breakpoints = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {

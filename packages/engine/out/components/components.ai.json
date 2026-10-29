@@ -491,6 +491,7 @@
           "icon",
           "link",
           "button",
+          "card-number-field",
           "wallet-button"
         ],
         "triggerKeywords": [
@@ -519,8 +520,7 @@
         "supersededBy": [],
         "planned": [
           "sign-in-button",
-          "payment-field",
-          "card-number-field"
+          "payment-field"
         ],
         "replacesPatterns": [
           "provider logos pasted into a design as images",
@@ -3012,6 +3012,7 @@
           "text-field",
           "password-field",
           "search-field",
+          "card-number-field",
           "textarea",
           "select",
           "checkbox-group",
@@ -4407,7 +4408,7 @@
       "category": "form",
       "status": "draft",
       "summary": "Outlined radio ring; dot and brand ring on select. Nested by Radio.Row; no label.",
-      "description": "The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle, half the ring's diameter, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.",
+      "description": "The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle, half the ring's diameter unless the brand sets a larger radio dot, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.",
       "props": [
         {
           "name": "checked",
@@ -10480,6 +10481,297 @@
           "search field with no label",
           "two clear buttons in a search field",
           "clear button on an empty search field"
+        ]
+      }
+    },
+    "card-number-field": {
+      "id": "card-number-field",
+      "name": "CardNumberField",
+      "aliases": [
+        "card-number-input",
+        "credit-card-number",
+        "card-number"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Card number field: a text field with the card network's tile at its trailing edge.",
+      "description": "A single-line field for a payment card's number. TextField's anatomy and contract, with the card network's tile at the trailing edge of the box: a generic card until the number shows the network, then that network's tile, in its own colors. The network is also stated in text, so the tile is decorative. Ask for the expiration date and the security code in their own text fields beside it, never in this box.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string | node",
+          "required": true,
+          "description": "The visible, persistent label (rendered as FieldLabel), usually \"Card number\". Required. Never the placeholder."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": false,
+          "description": "Controlled value: the digits only, without the spaces the field shows between groups. Pair with onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "required": false,
+          "description": "Uncontrolled initial value, digits only."
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Change handler (also onBlur / onFocus). Receives the digits without the group spaces."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "required": false,
+          "description": "A format example only, such as \"1234 1234 1234 1234\". It vanishes on input and never replaces the label."
+        },
+        {
+          "name": "helpText",
+          "type": "string | node",
+          "required": false,
+          "description": "Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby, such as \"The card type shows when you start typing.\""
+        },
+        {
+          "name": "validation",
+          "type": "enum: 'default' | 'error' | 'warning' | 'success'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ],
+          "description": "The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. A number that fails the checksum is a warning, not an error, because some valid cards fail it. The tile never takes the status color."
+        },
+        {
+          "name": "validationMessage",
+          "type": "string | node",
+          "required": false,
+          "description": "The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it, such as \"Enter the card number.\""
+        },
+        {
+          "name": "showMessage",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message. Never hides a message the field needs."
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Sets required / aria-required, and turns on the FieldLabel's required marker."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled. A disabled field also disables a hosted input. The tile keeps its own colors."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Focusable, copyable and submitted, and passes contrast, as on TextField. For a saved card, show the last four digits in a read-only display instead of this field."
+        },
+        {
+          "name": "brand",
+          "type": "enum: 'generic' | 'amex' | 'diners-club' | 'discover' | 'maestro' | 'mastercard' | 'visa'",
+          "default": "generic",
+          "required": false,
+          "values": [
+            "generic",
+            "amex",
+            "diners-club",
+            "discover",
+            "maestro",
+            "mastercard",
+            "visa"
+          ],
+          "description": "The card network the field shows: generic until the leading digits tell the network, then that network's tile. Set it from the card-type detection, or from the payment provider's card-brand event when the provider hosts the input. Card networks only: a wallet or pay-later tile is never a value, because no card number names one."
+        },
+        {
+          "name": "brandName",
+          "type": "string",
+          "required": false,
+          "description": "The detected network's name in the app's own words, such as \"Visa\". It goes in a visually hidden description on the input, linked by aria-describedby, so the network is never conveyed by the tile alone. Leave it empty while brand is generic."
+        },
+        {
+          "name": "showCardMark",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Whether the tile shows. On by default; the field shows the generic tile before it knows the network."
+        },
+        {
+          "name": "renderInput",
+          "type": "function",
+          "required": false,
+          "description": "Returns the payment provider's mount point, the element its hosted input mounts into. With it, the field draws the label, box, tile, focus ring and message around the provider's input and never renders the card number input itself. Without it, the field renders a native input, which puts the page outside the lightest card-data compliance scope."
+        },
+        {
+          "name": "isPending",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Async validation in progress; sets aria-busy; does not block typing."
+        },
+        {
+          "name": "leadingIcon",
+          "type": "slot",
+          "required": false,
+          "description": "An optional leading glyph before the value, aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "TextField's three tiers: the input type and the nested label scale with it. The tile is 20px tall at small and medium and 24px at large, its width from the tile's proportion. Every size keeps the input's 44px target."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "description": "Wiring + form submission; auto-generated with useId if omitted, tying label to input and the aria-describedby chain."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "A real <input name> in the native mode, so the field works in a native <form>. A hosted input has no name on the page."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only",
+        "empty"
+      ],
+      "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        },
+        "style": {
+          "values": [
+            "outline"
+          ],
+          "kind": "authoring"
+        },
+        "status": {
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ],
+          "kind": "runtime"
+        }
+      },
+      "accessibility": {
+        "role": "textbox (a native <input inputmode=\"numeric\">, or the payment provider's hosted input inside its frame)",
+        "wcag": [
+          "1.3.5 Identify Input Purpose (autocomplete cc-number, never off)",
+          "1.3.1 Info and Relationships (label, describedby and the hidden network name)",
+          "1.4.1 Use of Color (the network is stated in text, never by the tile alone)",
+          "3.2.2 On Input (no auto-advance when the number is complete)",
+          "3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion",
+          "1.4.11 Non-text Contrast (TextField's field boundary)",
+          "2.4.13 Focus Appearance (intent)"
+        ],
+        "keyboard": "Native text editing. Tab reaches the input; the tile is not a stop. Focus never moves on its own when the number is complete.",
+        "focus": "The input takes TextField's focus ring. With a hosted input, the ring follows the provider's focus event, and clicking the label focuses the provider's input.",
+        "aria": "The host wires the label, aria-describedby and aria-invalid as TextField does. The tile is aria-hidden. The detected network's name is a visually hidden description on the input, added to aria-describedby and never a live region, so typing is not interrupted by speech. Reformatting is not announced. With a hosted input, the label text is also passed to the provider's own label option, because a label outside the frame cannot name the input inside it."
+      },
+      "content": {
+        "labelPattern": "Noun phrase, sentence case, no trailing colon: \"Card number\". Its neighbors spell out their names too: \"Expiration date\" and \"Security code\", never an acronym.",
+        "errorPattern": "What is wrong and how to fix it: \"Enter the card number.\" · \"Check the card number. It doesn't match a valid card.\" · \"This card type isn't accepted. Use Visa, Mastercard or American Express.\" (the accepted list, from the app).",
+        "emptyPattern": "The label plus an optional format example as the placeholder, \"1234 1234 1234 1234\", and the generic tile."
+      },
+      "docs": {
+        "usage": "Use for a payment card's number in a checkout or a saved-card form. The field nests FieldLabel above, the input box with the card network's tile at its trailing edge, and FieldMessage below. Set brand from the card-type detection, or from the payment provider's brand event, and brandName to the network's name, so the network is stated in text as well as shown. Ask for the expiration date and the security code in their own text fields, with autocomplete cc-exp and cc-csc. When the payment provider hosts the input, pass its mount point with renderInput and let the field draw everything around it.",
+        "do": [
+          "Let the leading digits set the network, and swap the tile in place",
+          "State the detected network in text with brandName, not by the tile alone",
+          "Group the digits as the user types, and keep the value digits only",
+          "Use the payment provider's hosted input in production, with renderInput",
+          "Warn, rather than block, when the number fails the checksum"
+        ],
+        "dont": [
+          "Recolor, dim or redraw the tile, at any state",
+          "Add a card-type select: the digits tell the network",
+          "Put the expiration date or the security code in this box",
+          "Use type=\"number\" or turn off autocomplete",
+          "Move focus to the next field when the number is complete"
+        ],
+        "contentGuidelines": "Label = \"Card number\", sentence case, no trailing colon. Placeholder = a format example only. Helper = \"The card type shows when you start typing.\" Error says what is wrong and how to fix it."
+      },
+      "ai": {
+        "primaryPurpose": "Capture a payment card's number, showing the detected card network's tile and stating the network in text.",
+        "whenToUse": "The card number in a checkout or a saved-card form, beside text fields for the expiration date and the security code.",
+        "avoidWhen": "The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (a wallet button, not built yet). Never for the expiration date or the security code (TextField with autocomplete cc-exp or cc-csc).",
+        "commonPartners": [
+          "text-field",
+          "brand-mark",
+          "field-label",
+          "field-message",
+          "button",
+          "wallet-button"
+        ],
+        "triggerKeywords": [
+          "card number",
+          "credit card field",
+          "payment card",
+          "card details",
+          "checkout card"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "none (present on mount)",
+        "exit": "none",
+        "reduceMotion": "The tile swaps in place with no animation when the network is detected, so it reads the same under prefers-reduced-motion. The field's own state transitions are TextField's."
+      },
+      "composition": {
+        "composesWith": [
+          "field-label",
+          "field-message",
+          "focus-ring"
+        ],
+        "alternativeTo": [
+          "text-field"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "payment-field"
+        ],
+        "replacesPatterns": [
+          "a card number in a plain text input with no card type",
+          "a manual card-type select",
+          "number, expiration and security code packed into one box",
+          "type=\"number\" on a card number"
         ]
       }
     },

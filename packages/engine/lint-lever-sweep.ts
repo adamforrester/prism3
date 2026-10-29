@@ -138,10 +138,14 @@ type Refusal = { brand: BrandId; lever: string; value: Value; message: RegExp; r
 const REFUSALS: Refusal[] = [
   { brand: 'harbor', lever: 'typography.titleFloor', value: 16, message: /titleFloor 16 is incompatible with typeScale 'compact'/,
     reason: 'harbor runs the compact type scale, which already places a title at 16px (the lever description says so)' },
+  // #3077: the seed's title ramp starts at a 20px title.2xs (titleFloor 16), so compact is refused for that pairing,
+  // and its pinned sizes leave expressive room to build, so expressive is no longer a refusal.
   { brand: 'nb-redesign', lever: 'typography.typeScale', value: 'compact', message: /titleFloor 16 is incompatible with typeScale 'compact'/,
-    reason: 'nb-redesign opens title.2xs (titleFloor 16, #3077), and compact already places a title at 16px (the lever description says so)' },
+    reason: 'nb-redesign sets titleFloor 16 (its 20px title.2xs), and compact already places a title at 16px' },
   { brand: 'nb-redesign', lever: 'typography.titleFloor', value: 18, message: /typography\.sizes\.title\.2xs: that rung is not in this brand's title set/,
-    reason: 'nb-redesign sets `sizes.title.2xs` (#3077), and titleFloor 18 removes that rung, so the override names nothing' },
+    reason: 'nb-redesign sets `sizes.title.2xs` (20px), and titleFloor 18 leaves that rung out, so the size names nothing' },
+  { brand: 'nb-redesign', lever: 'typography.captionFloor', value: 10, message: /caption\.md resolves to 10px, which is not larger than the previous rung \(10px\)/,
+    reason: 'nb-redesign sets caption.md to 10px (#3077), and captionFloor 10 adds a 10px caption.sm below it: two rungs on one px' },
   { brand: 'nb-redesign', lever: 'typography.displayCeiling', value: 'sm', message: /typography\.sizes\.display\.md: that rung is not in this brand's display set \(sm\)/,
     reason: 'nb-redesign sets `sizes.display.md`, and a ceiling of sm trims that rung, so the override names nothing' },
 ];

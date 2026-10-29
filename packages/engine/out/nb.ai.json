@@ -160,15 +160,15 @@
       ]
     },
     "scrim.default": {
-      "$description": "Scrim — black backdrop behind modals and drawers; opacity 40%",
+      "$description": "Scrim — black backdrop behind modals and drawers; opacity 80%",
       "meaning": "Background dimming / modal focus",
       "when_to_use": "The dimming layer behind a modal, dialog, or drawer. The modal itself uses `foreground.raised`.",
       "avoid_when": "Do not use as a solid surface or for any opaque element.",
       "mode_overrides": {
-        "light": "{nbds.core.palette.black-alpha.40}",
-        "dark": "{nbds.core.palette.black-alpha.60}",
-        "hc-light": "{nbds.core.palette.black-alpha.60}",
-        "hc-dark": "{nbds.core.palette.black-alpha.70}"
+        "light": "{nbds.core.palette.black-alpha.80}",
+        "dark": "{nbds.core.palette.black-alpha.80}",
+        "hc-light": "{nbds.core.palette.black-alpha.90}",
+        "hc-dark": "{nbds.core.palette.black-alpha.90}"
       },
       "tracks": [
         "foreground.raised"
@@ -1012,6 +1012,12 @@
           "min": "4.5:1",
           "ratio": 10.03,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.primary.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1040,6 +1046,12 @@
           "min": "4.5:1",
           "ratio": 10.03,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.primary.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1068,6 +1080,12 @@
           "min": "4.5:1",
           "ratio": 14.17,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.primary.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1096,6 +1114,12 @@
           "min": "4.5:1",
           "ratio": 14.17,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.primary.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1382,6 +1406,12 @@
           "min": "4.5:1",
           "ratio": 7.29,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+        },
+        {
+          "token": "interactive.destructive.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1410,6 +1440,12 @@
           "min": "4.5:1",
           "ratio": 7.29,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+        },
+        {
+          "token": "interactive.destructive.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1438,6 +1474,12 @@
           "min": "4.5:1",
           "ratio": 10.3,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+        },
+        {
+          "token": "interactive.destructive.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1466,6 +1508,12 @@
           "min": "4.5:1",
           "ratio": 10.3,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+        },
+        {
+          "token": "interactive.destructive.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1714,6 +1762,12 @@
           "min": "4.5:1",
           "ratio": 16,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.neutral.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 13.16,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1742,6 +1796,12 @@
           "min": "4.5:1",
           "ratio": 16,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.neutral.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 13.16,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1770,6 +1830,12 @@
           "min": "4.5:1",
           "ratio": 11.82,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.neutral.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 8.59,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1798,6 +1864,12 @@
           "min": "4.5:1",
           "ratio": 11.82,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "interactive.neutral.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 8.59,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -1954,6 +2026,12 @@
           "min": "4.5:1",
           "ratio": 6.97,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 5.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -1982,6 +2060,12 @@
           "min": "4.5:1",
           "ratio": 6.97,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 5.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -2010,6 +2094,12 @@
           "min": "4.5:1",
           "ratio": 9.42,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 6.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -2038,6 +2128,12 @@
           "min": "4.5:1",
           "ratio": 9.42,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 6.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -2324,6 +2420,12 @@
           "min": "4.5:1",
           "ratio": 6.68,
           "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 6.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -2352,6 +2454,12 @@
           "min": "4.5:1",
           "ratio": 6.68,
           "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 6.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -2380,6 +2488,12 @@
           "min": "4.5:1",
           "ratio": 8.91,
           "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 7.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -2408,6 +2522,12 @@
           "min": "4.5:1",
           "ratio": 8.91,
           "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 7.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -2696,6 +2816,12 @@
           "min": "4.5:1",
           "ratio": 14.13,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 11.63,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -2724,6 +2850,12 @@
           "min": "4.5:1",
           "ratio": 14.13,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.hover-fill.hover",
+          "min": "4.5:1",
+          "ratio": 11.63,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.hover` in every mode."
         }
       ]
     },
@@ -2752,6 +2884,12 @@
           "min": "4.5:1",
           "ratio": 10.75,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 7.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -2780,6 +2918,12 @@
           "min": "4.5:1",
           "ratio": 10.75,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.hover-fill.pressed",
+          "min": "4.5:1",
+          "ratio": 7.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.pressed` in every mode."
         }
       ]
     },
@@ -6598,6 +6742,366 @@
         "foreground.primary"
       ]
     },
+    "interactive.primary.hover-fill.hover": {
+      "$description": "primary outline/text hover fill — neutral.050, the brand's pick; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque hover background of an outline or text primary button, icon button or flush icon button. The label is `interactive.primary.text.hover` and the icon `interactive.primary.icon.hover`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.primary.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.primary.fill.*`). On an inverse band, use `inverse.interactive.primary.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.050}",
+        "dark": "{nbds.core.palette.neutral.850}",
+        "hc-light": "{nbds.core.palette.neutral.050}",
+        "hc-dark": "{nbds.core.palette.neutral.900}"
+      },
+      "tracks": [
+        "interactive.primary.text.hover",
+        "interactive.primary.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.primary.text.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.text.hover` in every mode."
+        },
+        {
+          "token": "interactive.primary.icon.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.icon.hover` in every mode."
+        }
+      ]
+    },
+    "interactive.primary.hover-fill.pressed": {
+      "$description": "primary outline/text pressed fill — neutral.100, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque pressed background of an outline or text primary button, icon button or flush icon button. The label is `interactive.primary.text.pressed` and the icon `interactive.primary.icon.pressed`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.primary.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.primary.fill.*`). On an inverse band, use `inverse.interactive.primary.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.100}",
+        "dark": "{nbds.core.palette.neutral.800}",
+        "hc-light": "{nbds.core.palette.neutral.100}",
+        "hc-dark": "{nbds.core.palette.neutral.850}"
+      },
+      "tracks": [
+        "interactive.primary.text.pressed",
+        "interactive.primary.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.primary.text.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.text.pressed` in every mode."
+        },
+        {
+          "token": "interactive.primary.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.icon.pressed` in every mode."
+        }
+      ]
+    },
+    "interactive.neutral.hover-fill.hover": {
+      "$description": "neutral outline/text hover fill — neutral.050, the brand's pick; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque hover background of an outline or text neutral button, icon button or flush icon button. The label is `interactive.neutral.text.hover` and the icon `interactive.neutral.icon.hover`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.neutral.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.neutral.fill.*`). On an inverse band, use `inverse.interactive.neutral.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.050}",
+        "dark": "{nbds.core.palette.neutral.850}",
+        "hc-light": "{nbds.core.palette.neutral.050}",
+        "hc-dark": "{nbds.core.palette.neutral.900}"
+      },
+      "tracks": [
+        "interactive.neutral.text.hover",
+        "interactive.neutral.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.neutral.text.hover",
+          "min": "4.5:1",
+          "ratio": 13.16,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.text.hover` in every mode."
+        },
+        {
+          "token": "interactive.neutral.icon.hover",
+          "min": "4.5:1",
+          "ratio": 13.16,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.icon.hover` in every mode."
+        }
+      ]
+    },
+    "interactive.neutral.hover-fill.pressed": {
+      "$description": "neutral outline/text pressed fill — neutral.100, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque pressed background of an outline or text neutral button, icon button or flush icon button. The label is `interactive.neutral.text.pressed` and the icon `interactive.neutral.icon.pressed`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.neutral.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.neutral.fill.*`). On an inverse band, use `inverse.interactive.neutral.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.100}",
+        "dark": "{nbds.core.palette.neutral.800}",
+        "hc-light": "{nbds.core.palette.neutral.100}",
+        "hc-dark": "{nbds.core.palette.neutral.850}"
+      },
+      "tracks": [
+        "interactive.neutral.text.pressed",
+        "interactive.neutral.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.neutral.text.pressed",
+          "min": "4.5:1",
+          "ratio": 8.59,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.text.pressed` in every mode."
+        },
+        {
+          "token": "interactive.neutral.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 8.59,
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.icon.pressed` in every mode."
+        }
+      ]
+    },
+    "interactive.destructive.hover-fill.hover": {
+      "$description": "destructive outline/text hover fill — neutral.050, the brand's pick; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque hover background of an outline or text destructive button, icon button or flush icon button. The label is `interactive.destructive.text.hover` and the icon `interactive.destructive.icon.hover`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.destructive.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.destructive.fill.*`). On an inverse band, use `inverse.interactive.destructive.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.050}",
+        "dark": "{nbds.core.palette.neutral.850}",
+        "hc-light": "{nbds.core.palette.neutral.050}",
+        "hc-dark": "{nbds.core.palette.neutral.900}"
+      },
+      "tracks": [
+        "interactive.destructive.text.hover",
+        "interactive.destructive.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.destructive.text.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.text.hover` in every mode."
+        },
+        {
+          "token": "interactive.destructive.icon.hover",
+          "min": "4.5:1",
+          "ratio": 8.25,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.icon.hover` in every mode."
+        }
+      ]
+    },
+    "interactive.destructive.hover-fill.pressed": {
+      "$description": "destructive outline/text pressed fill — neutral.100, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The opaque pressed background of an outline or text destructive button, icon button or flush icon button. The label is `interactive.destructive.text.pressed` and the icon `interactive.destructive.icon.pressed`, each measured on this fill.",
+      "avoid_when": "Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.destructive.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.destructive.fill.*`). On an inverse band, use `inverse.interactive.destructive.hover-fill.*`, which is picked and measured on the band.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.100}",
+        "dark": "{nbds.core.palette.neutral.800}",
+        "hc-light": "{nbds.core.palette.neutral.100}",
+        "hc-dark": "{nbds.core.palette.neutral.850}"
+      },
+      "tracks": [
+        "interactive.destructive.text.pressed",
+        "interactive.destructive.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.destructive.text.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.text.pressed` in every mode."
+        },
+        {
+          "token": "interactive.destructive.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 10.3,
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.icon.pressed` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.primary.hover-fill.hover": {
+      "$description": "primary outline/text hover fill on an inverse surface — neutral.850, the default step on the inverse band; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque hover background of an outline or text primary button, icon button or flush icon button. The label is `inverse.interactive.primary.text.hover` and the icon `inverse.interactive.primary.icon.hover`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.hover-fill.hover`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.primary.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.primary.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.850}",
+        "dark": "{nbds.core.palette.neutral.050}",
+        "hc-light": "{nbds.core.palette.neutral.900}",
+        "hc-dark": "{nbds.core.palette.neutral.050}"
+      },
+      "tracks": [
+        "inverse.interactive.primary.text.hover",
+        "inverse.interactive.primary.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.primary.text.hover",
+          "min": "4.5:1",
+          "ratio": 5.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.text.hover` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.icon.hover",
+          "min": "4.5:1",
+          "ratio": 5.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.icon.hover` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.primary.hover-fill.pressed": {
+      "$description": "primary outline/text pressed fill on an inverse surface — neutral.800, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque pressed background of an outline or text primary button, icon button or flush icon button. The label is `inverse.interactive.primary.text.pressed` and the icon `inverse.interactive.primary.icon.pressed`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.hover-fill.pressed`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.primary.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.primary.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.800}",
+        "dark": "{nbds.core.palette.neutral.100}",
+        "hc-light": "{nbds.core.palette.neutral.850}",
+        "hc-dark": "{nbds.core.palette.neutral.100}"
+      },
+      "tracks": [
+        "inverse.interactive.primary.text.pressed",
+        "inverse.interactive.primary.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.primary.text.pressed",
+          "min": "4.5:1",
+          "ratio": 6.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.text.pressed` in every mode."
+        },
+        {
+          "token": "inverse.interactive.primary.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 6.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.icon.pressed` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.neutral.hover-fill.hover": {
+      "$description": "neutral outline/text hover fill on an inverse surface — neutral.850, the default step on the inverse band; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque hover background of an outline or text neutral button, icon button or flush icon button. The label is `inverse.interactive.neutral.text.hover` and the icon `inverse.interactive.neutral.icon.hover`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.hover-fill.hover`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.neutral.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.neutral.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.850}",
+        "dark": "{nbds.core.palette.neutral.050}",
+        "hc-light": "{nbds.core.palette.neutral.900}",
+        "hc-dark": "{nbds.core.palette.neutral.050}"
+      },
+      "tracks": [
+        "inverse.interactive.neutral.text.hover",
+        "inverse.interactive.neutral.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.neutral.text.hover",
+          "min": "4.5:1",
+          "ratio": 11.63,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.text.hover` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.icon.hover",
+          "min": "4.5:1",
+          "ratio": 11.63,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.icon.hover` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.neutral.hover-fill.pressed": {
+      "$description": "neutral outline/text pressed fill on an inverse surface — neutral.800, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque pressed background of an outline or text neutral button, icon button or flush icon button. The label is `inverse.interactive.neutral.text.pressed` and the icon `inverse.interactive.neutral.icon.pressed`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.hover-fill.pressed`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.neutral.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.neutral.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.800}",
+        "dark": "{nbds.core.palette.neutral.100}",
+        "hc-light": "{nbds.core.palette.neutral.850}",
+        "hc-dark": "{nbds.core.palette.neutral.100}"
+      },
+      "tracks": [
+        "inverse.interactive.neutral.text.pressed",
+        "inverse.interactive.neutral.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.neutral.text.pressed",
+          "min": "4.5:1",
+          "ratio": 7.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.text.pressed` in every mode."
+        },
+        {
+          "token": "inverse.interactive.neutral.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 7.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.icon.pressed` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.destructive.hover-fill.hover": {
+      "$description": "destructive outline/text hover fill on an inverse surface — neutral.850, the default step on the inverse band; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque hover background of an outline or text destructive button, icon button or flush icon button. The label is `inverse.interactive.destructive.text.hover` and the icon `inverse.interactive.destructive.icon.hover`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.hover-fill.hover`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.destructive.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.destructive.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.850}",
+        "dark": "{nbds.core.palette.neutral.050}",
+        "hc-light": "{nbds.core.palette.neutral.900}",
+        "hc-dark": "{nbds.core.palette.neutral.050}"
+      },
+      "tracks": [
+        "inverse.interactive.destructive.text.hover",
+        "inverse.interactive.destructive.icon.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.destructive.text.hover",
+          "min": "4.5:1",
+          "ratio": 6.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.text.hover` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.icon.hover",
+          "min": "4.5:1",
+          "ratio": 6.68,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.icon.hover` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.destructive.hover-fill.pressed": {
+      "$description": "destructive outline/text pressed fill on an inverse surface — neutral.800, the next step past hover; opaque, the label and icon are measured on it",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The opaque pressed background of an outline or text destructive button, icon button or flush icon button. The label is `inverse.interactive.destructive.text.pressed` and the icon `inverse.interactive.destructive.icon.pressed`, each measured on this fill. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.hover-fill.pressed`. Do not use for a tag, segmented control or pagination item, which keep the translucent wash (`interactive.destructive.overlay.*`), over an image or gradient, where an opaque fill paints a block, or as a filled button (use `interactive.destructive.fill.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.neutral.800}",
+        "dark": "{nbds.core.palette.neutral.100}",
+        "hc-light": "{nbds.core.palette.neutral.850}",
+        "hc-dark": "{nbds.core.palette.neutral.100}"
+      },
+      "tracks": [
+        "inverse.interactive.destructive.text.pressed",
+        "inverse.interactive.destructive.icon.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.interactive.destructive.text.pressed",
+          "min": "4.5:1",
+          "ratio": 7.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.text.pressed` in every mode."
+        },
+        {
+          "token": "inverse.interactive.destructive.icon.pressed",
+          "min": "4.5:1",
+          "ratio": 7.73,
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.icon.pressed` in every mode."
+        }
+      ]
+    },
     "interactive.primary.subtle-fill.selected": {
       "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
       "meaning": "Interactivity / actions",
@@ -6638,7 +7142,7 @@
         "fontSize": "{nbds.core.font.size.48}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.tight}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.display.md.strong": {
@@ -6651,7 +7155,7 @@
         "fontSize": "{nbds.core.font.size.64}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.tight}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.tight}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.display.lg.strong": {
@@ -6664,7 +7168,7 @@
         "fontSize": "{nbds.core.font.size.80}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.tight}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.tight}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.display.xl.strong": {
@@ -6677,7 +7181,7 @@
         "fontSize": "{nbds.core.font.size.96}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.tight}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.tighter}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.display.2xl.strong": {
@@ -6690,7 +7194,7 @@
         "fontSize": "{nbds.core.font.size.128}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.tight}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.tighter}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.display.3xl.strong": {
@@ -6703,7 +7207,7 @@
         "fontSize": "{nbds.core.font.size.160}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.tight}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.tighter}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.title.xs.strong": {
@@ -6716,7 +7220,7 @@
         "fontSize": "{nbds.core.font.size.18}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.compact}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.title.sm.strong": {
@@ -6729,7 +7233,7 @@
         "fontSize": "{nbds.core.font.size.20}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.compact}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.title.md.strong": {
@@ -6742,7 +7246,7 @@
         "fontSize": "{nbds.core.font.size.24}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.compact}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.title.lg.strong": {
@@ -6755,7 +7259,7 @@
         "fontSize": "{nbds.core.font.size.28}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.title.xl.strong": {
@@ -6768,7 +7272,7 @@
         "fontSize": "{nbds.core.font.size.32}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.title.2xl.strong": {
@@ -6781,7 +7285,7 @@
         "fontSize": "{nbds.core.font.size.40}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.body.xs.default": {
@@ -6794,7 +7298,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -6813,7 +7317,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -6827,7 +7331,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -6846,7 +7350,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -6860,7 +7364,7 @@
         "fontSize": "{nbds.core.font.size.14}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -6879,7 +7383,7 @@
         "fontSize": "{nbds.core.font.size.14}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -6893,7 +7397,7 @@
         "fontSize": "{nbds.core.font.size.14}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -6912,7 +7416,7 @@
         "fontSize": "{nbds.core.font.size.14}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -6926,7 +7430,7 @@
         "fontSize": "{nbds.core.font.size.16}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -6945,7 +7449,7 @@
         "fontSize": "{nbds.core.font.size.16}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -6959,7 +7463,7 @@
         "fontSize": "{nbds.core.font.size.16}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -6978,7 +7482,7 @@
         "fontSize": "{nbds.core.font.size.16}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -6992,7 +7496,7 @@
         "fontSize": "{nbds.core.font.size.18}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -7011,7 +7515,7 @@
         "fontSize": "{nbds.core.font.size.18}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -7025,7 +7529,7 @@
         "fontSize": "{nbds.core.font.size.18}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -7044,7 +7548,7 @@
         "fontSize": "{nbds.core.font.size.18}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -7058,7 +7562,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.label.sm.default-link": {
@@ -7071,7 +7575,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -7085,7 +7589,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.emphasis}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.label.sm.emphasis-link": {
@@ -7098,7 +7602,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.emphasis}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -7112,7 +7616,7 @@
         "fontSize": "{nbds.core.font.size.14}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.label.md.default-link": {
@@ -7125,7 +7629,7 @@
         "fontSize": "{nbds.core.font.size.14}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -7139,7 +7643,7 @@
         "fontSize": "{nbds.core.font.size.14}",
         "fontWeight": "{nbds.core.font.weight-role.emphasis}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.label.md.emphasis-link": {
@@ -7152,7 +7656,7 @@
         "fontSize": "{nbds.core.font.size.14}",
         "fontWeight": "{nbds.core.font.weight-role.emphasis}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -7166,7 +7670,7 @@
         "fontSize": "{nbds.core.font.size.18}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.label.lg.default-link": {
@@ -7179,7 +7683,7 @@
         "fontSize": "{nbds.core.font.size.18}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -7193,7 +7697,7 @@
         "fontSize": "{nbds.core.font.size.18}",
         "fontWeight": "{nbds.core.font.weight-role.emphasis}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       }
     },
     "type.label.lg.emphasis-link": {
@@ -7206,21 +7710,21 @@
         "fontSize": "{nbds.core.font.size.18}",
         "fontWeight": "{nbds.core.font.weight-role.emphasis}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
     "type.caption.md.default": {
       "$description": "Caption / secondary small text.",
-      "meaning": "Type style — caption md default (11px, caption face)",
+      "meaning": "Type style — caption md default (10px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.caption}",
-        "fontSize": "{nbds.core.font.size.11}",
+        "fontSize": "{nbds.core.font.size.10}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -7231,29 +7735,29 @@
     },
     "type.caption.md.default-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
-      "meaning": "Type style — caption md default link (11px, caption face)",
+      "meaning": "Type style — caption md default link (10px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.caption.md.default`).",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.caption}",
-        "fontSize": "{nbds.core.font.size.11}",
+        "fontSize": "{nbds.core.font.size.10}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
     "type.caption.md.strong": {
       "$description": "Caption / secondary small text.",
-      "meaning": "Type style — caption md strong (11px, caption face)",
+      "meaning": "Type style — caption md strong (10px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.caption}",
-        "fontSize": "{nbds.core.font.size.11}",
+        "fontSize": "{nbds.core.font.size.10}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -7264,15 +7768,15 @@
     },
     "type.caption.md.strong-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
-      "meaning": "Type style — caption md strong link (11px, caption face)",
+      "meaning": "Type style — caption md strong link (10px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.caption.md.strong`).",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.caption}",
-        "fontSize": "{nbds.core.font.size.11}",
+        "fontSize": "{nbds.core.font.size.10}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -7286,7 +7790,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -7305,7 +7809,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -7319,7 +7823,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
       },
       "modifiers": {
         "strikethrough": {
@@ -7338,7 +7842,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
         "textDecoration": "underline"
       }
     },
@@ -7352,7 +7856,7 @@
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.emphasis}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.wider}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.wide}",
         "textCase": "uppercase"
       }
     },
@@ -7366,7 +7870,7 @@
         "fontSize": "{nbds.core.font.size.14}",
         "fontWeight": "{nbds.core.font.weight-role.emphasis}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.wider}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.wide}",
         "textCase": "uppercase"
       }
     },
@@ -7380,7 +7884,7 @@
         "fontSize": "{nbds.core.font.size.20}",
         "fontWeight": "{nbds.core.font.weight-role.emphasis}",
         "lineHeight": "{nbds.core.font.line-height-role.snug}",
-        "letterSpacing": "{nbds.core.font.letter-spacing-role.wider}",
+        "letterSpacing": "{nbds.core.font.letter-spacing-role.wide}",
         "textCase": "uppercase"
       }
     },
@@ -8068,10 +8572,10 @@
       "resolves_to": "{nbds.core.dimension.48}"
     },
     "control.size.sm.dot": {
-      "$description": "control.size.sm dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "$description": "control.size.sm dot — 12px inner mark for a radio's dot (0.7 × the 16px box edge by the brand's radio dot setting, snapped to 2px and inside the 2px ring, leaving a 2px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "meaning": "Selection-control geometry, sm step — dot",
       "when_to_use": "The dot of a checkbox, radio or switch at the sm step.",
-      "resolves_to": "{nbds.core.dimension.8}"
+      "resolves_to": "{nbds.core.dimension.12}"
     },
     "control.size.sm.inset": {
       "$description": "control.size.sm inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
@@ -8116,10 +8620,10 @@
       "resolves_to": "{nbds.core.dimension.64}"
     },
     "control.size.md.dot": {
-      "$description": "control.size.md dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "$description": "control.size.md dot — 14px inner mark for a radio's dot (0.7 × the 20px box edge by the brand's radio dot setting, snapped to 2px and inside the 2px ring, leaving a 3px gap to the boundary; a plain px, as no dimension step holds 14px). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "meaning": "Selection-control geometry, md step — dot",
       "when_to_use": "The dot of a checkbox, radio or switch at the md step.",
-      "resolves_to": "{nbds.core.dimension.10}"
+      "resolves_to": "14px"
     },
     "control.size.md.inset": {
       "$description": "control.size.md inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
@@ -8164,10 +8668,10 @@
       "resolves_to": "{nbds.core.dimension.80}"
     },
     "control.size.lg.dot": {
-      "$description": "control.size.lg dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "$description": "control.size.lg dot — 16px inner mark for a radio's dot (0.7 × the 24px box edge by the brand's radio dot setting, snapped to 2px and inside the 2px ring, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "meaning": "Selection-control geometry, lg step — dot",
       "when_to_use": "The dot of a checkbox, radio or switch at the lg step.",
-      "resolves_to": "{nbds.core.dimension.12}"
+      "resolves_to": "{nbds.core.dimension.16}"
     },
     "control.size.lg.inset": {
       "$description": "control.size.lg inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
@@ -9440,20 +9944,26 @@
         "color.background.tertiary",
         "color.border.primary",
         "color.foreground.secondary",
+        "color.interactive.destructive.hover-fill.pressed",
         "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.hover-fill.pressed",
         "color.interactive.neutral.icon.hover",
         "color.interactive.neutral.text.hover",
+        "color.interactive.primary.hover-fill.pressed",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary",
         "color.inverse.interactive.destructive.fill.focused",
         "color.inverse.interactive.destructive.fill.hover",
+        "color.inverse.interactive.destructive.hover-fill.pressed",
         "color.inverse.interactive.neutral.border.hover",
         "color.inverse.interactive.neutral.fill.focused",
         "color.inverse.interactive.neutral.fill.hover",
+        "color.inverse.interactive.neutral.hover-fill.pressed",
         "color.inverse.interactive.neutral.icon.hover",
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.primary.fill.focused",
-        "color.inverse.interactive.primary.fill.hover"
+        "color.inverse.interactive.primary.fill.hover",
+        "color.inverse.interactive.primary.hover-fill.pressed"
       ]
     },
     "core.palette.neutral.150": {
@@ -9693,16 +10203,22 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.foreground.tertiary",
+        "color.interactive.destructive.hover-fill.pressed",
+        "color.interactive.neutral.hover-fill.pressed",
+        "color.interactive.primary.hover-fill.pressed",
         "color.inverse.border.primary",
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.foreground.tertiary",
         "color.inverse.interactive.destructive.fill.pressed",
         "color.inverse.interactive.destructive.fill.selected",
+        "color.inverse.interactive.destructive.hover-fill.pressed",
         "color.inverse.interactive.neutral.fill.pressed",
         "color.inverse.interactive.neutral.fill.selected",
+        "color.inverse.interactive.neutral.hover-fill.pressed",
         "color.inverse.interactive.primary.fill.pressed",
-        "color.inverse.interactive.primary.fill.selected"
+        "color.inverse.interactive.primary.fill.selected",
+        "color.inverse.interactive.primary.hover-fill.pressed"
       ]
     },
     "core.palette.neutral.850": {
@@ -9714,17 +10230,29 @@
       "aliased_by": [
         "color.background.tertiary",
         "color.foreground.secondary",
+        "color.interactive.destructive.hover-fill.hover",
+        "color.interactive.destructive.hover-fill.pressed",
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.rest",
         "color.interactive.neutral.fill.selected",
+        "color.interactive.neutral.hover-fill.hover",
+        "color.interactive.neutral.hover-fill.pressed",
         "color.interactive.neutral.icon.hover",
         "color.interactive.neutral.text.hover",
+        "color.interactive.primary.hover-fill.hover",
+        "color.interactive.primary.hover-fill.pressed",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary",
+        "color.inverse.interactive.destructive.hover-fill.hover",
+        "color.inverse.interactive.destructive.hover-fill.pressed",
         "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.interactive.neutral.hover-fill.hover",
+        "color.inverse.interactive.neutral.hover-fill.pressed",
         "color.inverse.interactive.neutral.icon.hover",
-        "color.inverse.interactive.neutral.text.hover"
+        "color.inverse.interactive.neutral.text.hover",
+        "color.inverse.interactive.primary.hover-fill.hover",
+        "color.inverse.interactive.primary.hover-fill.pressed"
       ]
     },
     "core.palette.neutral.900": {
@@ -9737,14 +10265,20 @@
         "color.background.secondary",
         "color.foreground.primary",
         "color.foreground.raised",
+        "color.interactive.destructive.hover-fill.hover",
+        "color.interactive.neutral.hover-fill.hover",
+        "color.interactive.primary.hover-fill.hover",
         "color.inverse.background.secondary",
         "color.inverse.foreground.primary",
         "color.inverse.interactive.destructive.fill.focused",
         "color.inverse.interactive.destructive.fill.hover",
+        "color.inverse.interactive.destructive.hover-fill.hover",
         "color.inverse.interactive.neutral.fill.focused",
         "color.inverse.interactive.neutral.fill.hover",
+        "color.inverse.interactive.neutral.hover-fill.hover",
         "color.inverse.interactive.primary.fill.focused",
-        "color.inverse.interactive.primary.fill.hover"
+        "color.inverse.interactive.primary.fill.hover",
+        "color.inverse.interactive.primary.hover-fill.hover"
       ]
     },
     "core.palette.neutral.950": {
@@ -9811,8 +10345,14 @@
       "aliased_by": [
         "color.background.secondary",
         "color.foreground.primary",
+        "color.interactive.destructive.hover-fill.hover",
+        "color.interactive.neutral.hover-fill.hover",
+        "color.interactive.primary.hover-fill.hover",
         "color.inverse.background.secondary",
-        "color.inverse.foreground.primary"
+        "color.inverse.foreground.primary",
+        "color.inverse.interactive.destructive.hover-fill.hover",
+        "color.inverse.interactive.neutral.hover-fill.hover",
+        "color.inverse.interactive.primary.hover-fill.hover"
       ]
     },
     "core.palette.info.100": {
@@ -10070,10 +10610,7 @@
       "meaning": "Black at 40% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
-      "aliased_by": [
-        "color.scrim.default"
-      ]
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.black-alpha.50": {
       "$description": "Black alpha 50% — alpha, composites over any surface",
@@ -10092,7 +10629,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.scrim.default",
         "color.veil.dark.medium"
       ]
     },
@@ -10105,7 +10641,6 @@
       "aliased_by": [
         "color.glass.card",
         "color.glass.surface",
-        "color.scrim.default",
         "color.veil.dark.strong"
       ]
     },
@@ -10114,7 +10649,10 @@
       "meaning": "Black at 80% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.scrim.default"
+      ]
     },
     "core.palette.black-alpha.90": {
       "$description": "Black alpha 90% — alpha, composites over any surface",
@@ -10123,7 +10661,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.glass.surface"
+        "color.glass.surface",
+        "color.scrim.default"
       ]
     },
     "core.palette.white-alpha.0": {
@@ -10349,7 +10888,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.sm.dot",
         "radius.xl",
         "space.100"
       ]
@@ -10358,10 +10896,7 @@
       "$description": "10px — dimension primitive",
       "meaning": "10px grid primitive",
       "tier": "primitive",
-      "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
-      "aliased_by": [
-        "control.size.md.dot"
-      ]
+      "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.12": {
       "$description": "12px — dimension primitive",
@@ -10369,7 +10904,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.lg.dot",
+        "control.size.sm.dot",
         "radius.2xl",
         "space.150"
       ]
@@ -10380,6 +10915,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
+        "control.size.lg.dot",
         "control.size.sm.height",
         "grid.md.gutter",
         "grid.sm.gutter",
@@ -10730,12 +11266,6 @@
       "$description": "font size 10px (0.625rem) — curated ladder primitive",
       "meaning": "Font size primitive — 10px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight."
-    },
-    "core.font.size.11": {
-      "$description": "font size 11px (0.6875rem) — curated ladder primitive",
-      "meaning": "Font size primitive — 11px (rem)",
-      "tier": "primitive",
       "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
       "aliased_by": [
         "type.caption.md.default",
@@ -10743,6 +11273,12 @@
         "type.caption.md.strong",
         "type.caption.md.strong-link"
       ]
+    },
+    "core.font.size.11": {
+      "$description": "font size 11px (0.6875rem) — curated ladder primitive",
+      "meaning": "Font size primitive — 11px (rem)",
+      "tier": "primitive",
+      "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight."
     },
     "core.font.size.12": {
       "$description": "font size 12px (0.75rem) — curated ladder primitive",
@@ -11174,6 +11710,16 @@
       "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
       "aliased_by": [
         "core.font.letter-spacing-role.normal",
+        "type.code.inline.default"
+      ]
+    },
+    "core.font.letter-spacing.10": {
+      "$description": "letter spacing 0.01em (ladder step 10)",
+      "meaning": "Letter-spacing primitive — 10 (em)",
+      "tier": "primitive",
+      "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
+      "aliased_by": [
+        "core.font.letter-spacing-role.open",
         "type.body.lg.default",
         "type.body.lg.default-link",
         "type.body.lg.strong",
@@ -11198,7 +11744,12 @@
         "type.caption.md.default-link",
         "type.caption.md.strong",
         "type.caption.md.strong-link",
-        "type.code.inline.default",
+        "type.display.2xl.strong",
+        "type.display.3xl.strong",
+        "type.display.lg.strong",
+        "type.display.md.strong",
+        "type.display.sm.strong",
+        "type.display.xl.strong",
         "type.label.lg.default",
         "type.label.lg.default-link",
         "type.label.lg.emphasis",
@@ -11210,16 +11761,13 @@
         "type.label.sm.default",
         "type.label.sm.default-link",
         "type.label.sm.emphasis",
-        "type.label.sm.emphasis-link"
-      ]
-    },
-    "core.font.letter-spacing.10": {
-      "$description": "letter spacing 0.01em (ladder step 10)",
-      "meaning": "Letter-spacing primitive — 10 (em)",
-      "tier": "primitive",
-      "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
-      "aliased_by": [
-        "core.font.letter-spacing-role.open"
+        "type.label.sm.emphasis-link",
+        "type.title.2xl.strong",
+        "type.title.lg.strong",
+        "type.title.md.strong",
+        "type.title.sm.strong",
+        "type.title.xl.strong",
+        "type.title.xs.strong"
       ]
     },
     "core.font.letter-spacing.20": {
@@ -11228,7 +11776,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
       "aliased_by": [
-        "core.font.letter-spacing-role.wide"
+        "core.font.letter-spacing-role.wide",
+        "type.eyebrow.lg.emphasis",
+        "type.eyebrow.md.emphasis",
+        "type.eyebrow.sm.emphasis"
       ]
     },
     "core.font.letter-spacing.50": {
@@ -11237,10 +11788,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
       "aliased_by": [
-        "core.font.letter-spacing-role.wider",
-        "type.eyebrow.lg.emphasis",
-        "type.eyebrow.md.emphasis",
-        "type.eyebrow.sm.emphasis"
+        "core.font.letter-spacing-role.wider"
       ]
     },
     "core.font.letter-spacing.neg-40": {
@@ -11258,10 +11806,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
       "aliased_by": [
-        "core.font.letter-spacing-role.tighter",
-        "type.display.2xl.strong",
-        "type.display.3xl.strong",
-        "type.display.xl.strong"
+        "core.font.letter-spacing-role.tighter"
       ]
     },
     "core.font.letter-spacing.neg-20": {
@@ -11270,10 +11815,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
       "aliased_by": [
-        "core.font.letter-spacing-role.tight",
-        "type.display.lg.strong",
-        "type.display.md.strong",
-        "type.display.sm.strong"
+        "core.font.letter-spacing-role.tight"
       ]
     },
     "core.font.letter-spacing.neg-15": {
@@ -11291,13 +11833,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
       "aliased_by": [
-        "core.font.letter-spacing-role.snug",
-        "type.title.2xl.strong",
-        "type.title.lg.strong",
-        "type.title.md.strong",
-        "type.title.sm.strong",
-        "type.title.xl.strong",
-        "type.title.xs.strong"
+        "core.font.letter-spacing-role.snug"
       ]
     },
     "core.font.underline.thickness": {

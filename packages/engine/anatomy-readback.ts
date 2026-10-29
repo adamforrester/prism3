@@ -367,15 +367,18 @@ export const FIELDS: Record<string, FieldCheck> = {
       return Math.abs(ratio - (p as number)) < 1e-6 ? null : `${got.x}:${got.y}`;
     },
   },
-  // #2343 PR 2, first projected by WalletButton (PR 4): a slot or nest locked to its main component's own proportion.
-  // The plan states no number (the proportion is the main's, read when the instance is built), so this asks the host
-  // only that the instance IS locked, `{x, y}` as for `aspectRatio`; which ratio is the executors' tests' to measure.
+  // #2343 PR 2, first projected by WalletButton (PR 4) and the Card number field's tile (PR 4): a slot or nest locked to
+  // its main component's own proportion. The plan states no number (the proportion is the main's, read when the instance
+  // is built, and for a swap slot whatever the designer swaps in), so this asks the host only that the instance IS
+  // locked, to a real `{x, y}` ratio; which ratio is the executors' tests' to measure (`test-roundtrip.ts`'s tile block
+  // reads the main component's extent from the host).
   aspectLock: {
     show: () => 'locked to its main component\'s proportion',
     check: (_p, n) => {
-      const got = n.targetAspectRatio as { x?: unknown; y?: unknown } | null | undefined;
+      const got = n.targetAspectRatio as { x?: unknown; y?: unknown } | number | null | undefined;
       if (got === undefined || got === null) return 'NOT LOCKED (no targetAspectRatio)';
-      return typeof got === 'object' && typeof got.x === 'number' && typeof got.y === 'number' && got.y !== 0 ? null : `${str(got)} (not a {x, y} ratio)`;
+      if (typeof got !== 'object' || typeof got.x !== 'number' || typeof got.y !== 'number' || !(got.x > 0) || !(got.y > 0)) return `${str(got)} (not a {x, y} ratio)`;
+      return null;
     },
   },
   clipsContent: {

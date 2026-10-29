@@ -7,7 +7,9 @@
  * S4f, QA-B1: under "Default" Primary, Secondary, Tertiary and the contrast floor with its own info text, QA-B3,
  * QA-B6; under "Inverse" the inverse fill's palette select, then Inverse primary,
  * secondary and tertiary; each row names its token, Q41, and opens the step picker, Q45); **Scrim** (S4f, QA-B10:
- * the scrim's read-only row, out of Background fills); **Foreground** (the neutral ladder,
+ * the scrim's strength, Standard / Strong (#3050), and its read-only row, out of Background fills; then, #3093, the panel
+ * over it, `foreground.raised`, read-only, with a link that opens Dialog surface, its one home in Components › Dialog);
+ * **Foreground** (the neutral ladder,
  * page and inverse, Q44); **Foreground fills** (a row per fill: a small swatch, its name and role, and a button
  * that opens the step picker under the row, with the ratio on it; then the subtle fills, the on-color inks and
  * the inverse fills, Q49); **Text color** (the same rows for the text inks, page and inverse: the permanent,
@@ -43,15 +45,18 @@ import {
   BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoFollows, floorAutoLabel, floorAutoShortLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
   iconOverrideCount, iconsPaired, lockedTo, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
-  SCRIM_ROLE, SURFACE_TOKENS, clearFloorReset, floorResetNotice, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
+  SCRIM_ROLE, SURFACE_TOKENS, brandScrimStrength, setScrimStrength, clearFloorReset, floorResetNotice, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
   type FillRow, type InverseTier, type PageTier,
 } from '../state/fills-input';
 import { floorNoneText } from '../state/floor-refusal';
-import { GLASS_SOURCES, addGlassRole, readGlassRoles, removeGlassRole, renameGlassRole, setGlassAlpha, setGlassSource, sourceOf } from '../state/glass-input';
-import { DOMAINS, ICONS_DESC, type PageData, type Section } from '../shell/pages';
+import { GLASS_NAME_HINT, GLASS_SOURCES, addGlassRole, glassLabel, glassNameRefusal, readGlassRoles, removeGlassRole, setGlassAlpha, setGlassSource, sourceOf } from '../state/glass-input';
+import { DOMAINS, ICONS_DESC, pageOfTab, type PageData, type Section } from '../shell/pages';
+import { componentsPage, setComponentsPage } from '../state/components-page';
+import type { BlockKey } from '../state/component-groups';
+import { leverHook } from '../levers/controls';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { infoTip, inlineConfirm, jumpLabel, leverBlock, onCommitted, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, markRefused } from '../ui/lever-kit';
+import { choice, infoTip, inlineConfirm, jumpLabel, leverBlock, leverOf, onCommitted, promoteLever, selectField, setText, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, markRefused } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
@@ -63,6 +68,14 @@ const NEXT = { label: 'Interactive', page: 'interactive' } as const;
 const FLOOR_INFO = 'The background most text, icon and fill colors are checked against for contrast. Auto uses background.secondary.';
 /** The contrast floor row's `data-role`: it sets a setting, not a token, so it names the setting. */
 const FLOOR_ROW = 'surfaces.floorStep';
+
+/** #3093: the panel over the scrim, set by Dialog surface (`raisedSurface`), whose one home is Components › Dialog. */
+const RAISED_ROLE = 'foreground.raised';
+/** The read-only row's words. DRAFT for the owner (#3093). */
+const RAISED_COPY = {
+  label: 'Dialog panel',
+  link: (lever: string): string => `Set by ${lever}`,
+} as const;
 
 /** Something drawn that search can hide and a refusal can mark. */
 type Item = { el: HTMLElement; said: string; key: string; block?: LeverBlock; refmark?: HTMLElement };
@@ -83,6 +96,11 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   let items: Item[] = [];
   /** The open picker's focus, by role, from the last draw. */
   const pickers = new Map<string, () => void>();
+  /** A glass fill being named (#3106, Q827 A): null while there is none, else the name typed so far, kept across
+   *  redraws. Its refusal shows once Add was tried. `focusGlassName` puts focus in the field on the next draw. */
+  let glassDraft: string | null = null;
+  let glassTried = false;
+  let focusGlassName = false;
 
   const edit = (key: string, write: () => void): void => {
     lastEdited = key;
@@ -287,14 +305,59 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     return [{ el: b.el, said: `${b.said} default inverse background fills primary secondary tertiary contrast floor inverse fill palette ${Object.values(SURFACE_TOKENS).join(' ')}`, key: 'surfaces', block: b }];
   };
 
-  /** The Scrim section (S4f, QA-B10): the scrim's read-only row, out of Background fills into its own section, as the
-   *  preview's Scrim section is. */
+  /** The Scrim section (S4f, QA-B10): out of Background fills into its own section, as the preview's Scrim section is.
+   *  Since #3050 (owner Q825 B) it is the `scrimStrength` lever's block: Standard / Strong as chips (the label and
+   *  option names are DRAFTS), then the scrim's read-only row, which reads out the step the choice gives this mode. */
   const scrim = (): Item[] => {
+    const b = leverBlock('scrimStrength', { group: true });
+    const L = leverOf('scrimStrength');
+    const opts = (L?.options ?? []).map((o) => ({ v: String(o.value) as ReturnType<typeof brandScrimStrength>, l: o.label }));
+    const c = choice(L?.label ?? 'Scrim strength', 'scrim-strength-choice', opts, (v) => edit('scrimStrength', () => setScrimStrength(v)));
+    c.set(brandScrimStrength());
+    b.ctl.append(c.el);
     const r = scrimRow();
-    if (!r) return [];
+    if (r) {
+      const wrap = h('div', 'p3-fillrow-wrap');
+      wrap.append(r);
+      b.ctl.append(wrap);
+    }
+    // #3093: the panel over the scrim follows it. A section draws its first item, so the block and the row share one box.
+    const raised = raisedRow();
+    const item: Item = { el: b.el, said: `${b.said} scrim ${SCRIM_ROLE}`, key: 'scrimStrength', block: b };
+    if (!raised) return [item];
+    const box = hook(h('div', 'p3-fillrows'), 'scrim-rows');
+    box.append(b.el, raised.el);
+    return [{ el: box, said: '', key: 'scrim-rows' }, item, raised];
+  };
+
+  /** #3093: the panel over the scrim, `foreground.raised`, read-only: a fill row's swatch, name and role, and in place
+   *  of the picker a link to its control, Dialog surface (`raisedSurface`), whose one home is Components › Dialog. The
+   *  link opens that block and puts focus on the lever's checked chip, as Field options' way to Control shape does. */
+  const raisedRow = (): Item | null => {
+    const res = rolesIn(currentMode)[RAISED_ROLE];
+    if (!res) return null;
+    const L = leverOf('raisedSurface');
+    const lever = L?.label ?? 'Dialog surface';
+    const el = hook(h('div', 'p3-fillrow'), 'raised-row');
+    el.dataset.role = RAISED_ROLE;
+    const sw = h('span', 'p3-fill-sw');
+    sw.dataset.content = '';
+    sw.style.background = res.hex;
+    const go = hook(h('button', 'p3-btn p3-btn-ghost p3-deplink'), 'raised-surface-link');
+    go.type = 'button';
+    go.append(h('span', 'p3-btn-label', RAISED_COPY.link(lever)), glyph('chevr'));
+    go.onclick = () => {
+      const dialogs: BlockKey = 'dialogs';
+      setComponentsPage({ optsOpen: new Set([...componentsPage().optsOpen, dialogs]) });
+      setPage(pageOfTab('components'));
+      const home = document.querySelector<HTMLElement>(`[data-p3="${leverHook('raisedSurface')}"]`);
+      home?.scrollIntoView({ block: 'start' });
+      home?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus({ preventScroll: true });
+    };
+    el.append(sw, tokenLabel(RAISED_ROLE, RAISED_COPY.label), go);
     const wrap = h('div', 'p3-fillrow-wrap');
-    wrap.append(r);
-    return [{ el: wrap, said: `scrim ${SCRIM_ROLE}`, key: 'scrim' }];
+    wrap.append(el);
+    return { el: wrap, said: `${RAISED_COPY.label} ${RAISED_ROLE} ${lever} raisedSurface`.toLowerCase(), key: `row:${RAISED_ROLE}` };
   };
 
   /** The scrim, read-only (owner decision, 2026-10-02): a fill row's swatch, name and role, and in place of the
@@ -324,8 +387,16 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   };
 
   /** The Glass section (#3073, owner Q806, Q807 A; every string a DRAFT for the owner): the shipped white glass,
-   *  read-only as the scrim is, then each glass fill the brand adds (`glassRoles`) with its name, color and opacity,
-   *  and a button that adds one. The engine checks a name and a source, and a refusal marks the block. */
+   *  read-only as the scrim is, then each glass fill the brand adds (`glassRoles`), and a button that adds one. The
+   *  engine checks a source, and a refusal marks the block.
+   *
+   *  #3106: an added fill's row is the shipped glass's, its swatch, its readable name over its token and, on the right,
+   *  a small remove button (the gradient's), with its color and opacity on a line under the name. Its name is not a
+   *  field any more. That field was the cause of the picker reading "Page color" after Card color was chosen: a
+   *  rename commits a task after the field's `change`, so a click on the picker redrew the row under the open menu,
+   *  and the pick landed on the replaced select, whose handler named the fill's old name and wrote nothing. A name is
+   *  typed once, when the fill is added (Q827 A): a field that starts empty, with a hint, the token it will make, and
+   *  the reason a name can't be used, checked as it is typed and drawn in place, so typing never redraws the page. */
   const glass = (): Item[] => {
     const b = leverBlock('glassRoles', { label: 'Glass', group: true });
     const roles = rolesIn(currentMode);
@@ -335,8 +406,9 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const added = readGlassRoles();
     Object.entries(added).forEach(([name, g], i) => {
       const token = `glass.${name}`;
-      const r = hook(h('div', 'p3-fillrow p3-glassrow'), 'glass-role-row');
+      const r = hook(h('div', 'p3-glassrow'), 'glass-role-row');
       r.dataset.role = token;
+      const head = h('div', 'p3-glasshead');
       const sw = hook(h('span', 'p3-fill-sw p3-checker'), 'glass-role-swatch');
       const res = roles[token];
       if (res) {
@@ -346,41 +418,107 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
         wsh.style.background = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${res.alpha ?? 1})`;
         sw.append(wsh);
       }
-      const nm = hook(h('input', 'p3-hex-input'), 'glass-role-name');
-      nm.type = 'text';
-      nm.value = name;
-      nm.id = `p3-glass-name-${i}`;
-      nm.setAttribute('aria-label', `Glass fill ${i + 1} name, color.glass.${name}`);
-      onCommitted(nm, (v) => edit('glassRoles', () => renameGlassRole(name, v)));
-      const src = selectField(`p3-glass-src-${i}`, `Glass fill ${i + 1} color`, 'glass-role-source', (v) => edit('glassRoles', () => setGlassSource(name, v)));
+      const rm = hook(h('button', 'p3-btn p3-btn-page p3-btn-icon'), 'glass-role-remove');
+      rm.type = 'button';
+      rm.setAttribute('aria-label', `Remove glass fill ${name}`);
+      rm.append(glyph('x'));
+      rm.onclick = () => edit('glassRoles', () => removeGlassRole(name));
+      head.append(sw, hook(tokenLabel(token, glassLabel(name)), 'glass-role-name'), rm);
+      const ctl = h('div', 'p3-glassctl');
+      const src = selectField(`p3-glass-src-${i}`, `${glassLabel(name)} color`, 'glass-role-source', (v) => edit('glassRoles', () => setGlassSource(name, v)));
       const cur = sourceOf(g);
       src.set([...GLASS_SOURCES, ...(GLASS_SOURCES.some((o) => o.v === cur) ? [] : [{ v: cur, l: cur.slice(cur.indexOf(':') + 1) }])], cur);
       const pf = h('div', 'p3-colorfield p3-numfield');
       const al = hook(h('input', 'p3-hex-input p3-num-input'), 'glass-role-alpha');
       al.type = 'number'; al.min = '1'; al.max = '99'; al.step = '1';
       al.value = String(g.alpha);
-      al.setAttribute('aria-label', `Glass fill ${i + 1} opacity, percent`);
+      al.setAttribute('aria-label', `${glassLabel(name)} opacity, percent`);
       // An empty field puts its value back rather than writing nothing (#2487 A6).
       onCommitted(al, (v) => {
         if (!v.trim()) { al.value = String(g.alpha); return; }
         edit('glassRoles', () => setGlassAlpha(name, Number(v)));
       });
-      pf.append(al);
-      const rm = hook(h('button', 'p3-btn p3-btn-page p3-btn-icon'), 'glass-role-remove');
-      rm.type = 'button';
-      rm.setAttribute('aria-label', `Remove glass fill ${name}`);
-      rm.append(glyph('x'));
-      rm.onclick = () => edit('glassRoles', () => removeGlassRole(name));
-      r.append(sw, nm, src.el, pf, rm);
+      pf.append(al, h('span', 'p3-colorfield-meta', '%'));
+      ctl.append(src.el, pf);
+      r.append(head, ctl);
       list.append(r);
     });
-    const add = hook(h('button', 'p3-btn p3-addrow'), 'glass-role-add');
-    add.type = 'button';
-    add.append(glyph('plus'), h('span', 'p3-btn-label', 'Add glass fill'));
-    add.onclick = () => edit('glassRoles', () => addGlassRole());
-    list.append(add);
+    if (glassDraft === null) {
+      const add = hook(h('button', 'p3-btn p3-addrow'), 'glass-role-add');
+      add.type = 'button';
+      add.append(glyph('plus'), h('span', 'p3-btn-label', 'Add glass fill'));
+      add.onclick = () => { glassDraft = ''; glassTried = false; focusGlassName = true; render(); };
+      list.append(add);
+    } else list.append(glassNameRow(Object.keys(added)));
     b.ctl.append(list);
     return [{ el: b.el, said: `${b.said} glass surface ${Object.keys(added).map((n) => `glass.${n}`).join(' ')}`, key: 'glassRoles', block: b }];
+  };
+
+  /** The name of the glass fill being added (#3106, Q827 A): the field, empty at first and required, its hint, the token
+   *  the name makes (`color.glass.<name>`), Add and Cancel, and under them why the name can't be used. Each keystroke
+   *  updates the token and the reason in place; Add (or Enter) adds the fill only under a name `glassNameRefusal`
+   *  takes, and Escape or Cancel closes the row and writes nothing. */
+  const glassNameRow = (taken: readonly string[]): HTMLElement => {
+    const wrap = hook(h('div', 'p3-glassdraft'), 'glass-draft');
+    const lab = h('label', 'p3-field-label', 'Name');
+    lab.htmlFor = 'p3-glass-name';
+    const line = h('div', 'p3-faceadd-row');
+    const nf = h('div', 'p3-colorfield');
+    const input = hook(h('input', 'p3-hex-input p3-name-input'), 'glass-name-input');
+    input.type = 'text';
+    input.id = 'p3-glass-name';
+    input.spellcheck = false;
+    input.autocomplete = 'off';
+    input.required = true;
+    input.placeholder = GLASS_NAME_HINT;
+    input.value = glassDraft ?? '';
+    input.setAttribute('aria-describedby', 'p3-glass-name-tok p3-glass-name-why');
+    nf.append(input);
+    const add = hook(h('button', 'p3-btn p3-btn-page'), 'glass-name-add');
+    add.type = 'button';
+    add.append(glyph('plus'), h('span', 'p3-btn-label', 'Add'));
+    const cancel = hook(h('button', 'p3-btn p3-btn-page p3-btn-icon'), 'glass-name-cancel');
+    cancel.type = 'button';
+    cancel.setAttribute('aria-label', 'Cancel adding a glass fill');
+    cancel.append(glyph('x'));
+    const btns = h('div', 'p3-glassdraft-btns');
+    btns.append(add, cancel);
+    line.append(nf, btns);
+    const tok = hook(h('span', 'p3-fill-tok'), 'glass-name-token');
+    tok.id = 'p3-glass-name-tok';
+    const why = hook(h('p', 'p3-state p3-state-warn'), 'glass-name-refusal');
+    why.id = 'p3-glass-name-why';
+    why.setAttribute('aria-live', 'polite');
+    const paint = (): void => {
+      const v = input.value.trim();
+      setText(tok, `color.glass.${v || '<name>'}`);
+      const no = glassNameRefusal(input.value, taken);
+      // Empty is refused only once Add was tried: a field that has not been typed in yet is not an error.
+      const shown = no && (glassTried || v) ? no : null;
+      why.hidden = !shown;
+      why.replaceChildren(...(shown ? [glyph('warn'), h('span', undefined, shown)] : []));
+      if (shown) { input.setAttribute('aria-invalid', 'true'); nf.dataset.refused = 'true'; }
+      else { input.removeAttribute('aria-invalid'); delete nf.dataset.refused; }
+    };
+    const close = (): void => { glassDraft = null; glassTried = false; focusGlassName = false; render(); root.querySelector<HTMLElement>('[data-p3="glass-role-add"]')?.focus(); };
+    const submit = (): void => {
+      glassTried = true;
+      if (glassNameRefusal(input.value, taken)) { paint(); input.focus(); return; }
+      const name = input.value;
+      glassDraft = null;
+      glassTried = false;
+      edit('glassRoles', () => addGlassRole(name));
+    };
+    input.addEventListener('input', () => { glassDraft = input.value; paint(); });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); submit(); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+    });
+    add.onclick = submit;
+    cancel.onclick = close;
+    paint();
+    wrap.append(lab, line, tok, why);
+    return wrap;
   };
 
   /** A translucent role, read-only: the scrim row's swatch over the checkerboard, its name and token, and its
@@ -793,6 +931,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     root.replaceChildren(...parts);
     markRefused(items, lastEdited);   // the shared mark (#2487 B5)
     filter();
+    if (focusGlassName) { focusGlassName = false; root.querySelector<HTMLElement>('#p3-glass-name')?.focus({ preventScroll: true }); }
     if (focusKey) {
       again(focusStep ? (same) => same.find((n) => n.dataset.step === focusStep) : undefined)?.focus({ preventScroll: true });
       // A control that is disabled after the edit (Return to Auto, once there is nothing to return) cannot hold

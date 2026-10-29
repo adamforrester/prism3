@@ -641,6 +641,7 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `status.info` | value |  |
 | `surfaces` | value |  |
 | `raisedSurface` | value | one token's value moves: `color.foreground.raised`, which Dialog's panel binds, holds the card, the page or white in light |
+| `scrimStrength` | value | one token's value moves: `color.scrim.default`, the dialog's backdrop, aliases a heavier existing `black-alpha` step; no name changes |
 | `glassRoles` | value | adds brand-dependent `color.glass.<name>` fills; a def binds `glass.surface`, never a brand's own glass role |
 | `strictInteractiveContrast` | value | swaps the inverse label ink token |
 | `linkStateRungs` | value |  |
@@ -652,6 +653,7 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `tagStyle` | structural | pill outline or underline: two tag anatomies, with a 2px selected line |
 | `dialogTitleSize` | value | one text-style binding moves: the dialog title reads the large, medium or small label style |
 | `bannerStyle` | value | one fill binding per tone moves: the banner fills with the tone's tint or the page color |
+| `radioDot` | value | three tokens' values move: `control.size.{sm,md,lg}.dot`, which Radio's dot, List's bullet and Badge's dot bind, hold a share of the box edge |
 | `buttonIcons` | structural | icons beside the label, or pinned to the edges with the label centered between: two layouts |
 | `buttonContentSize` | value | a medium button reads the small label style and icon size |
 | `buttonLabelWeight` | value |  |
@@ -681,7 +683,8 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `iconContrast` | value |  |
 | `disabledStrategy` | value |  |
 | `disabledMin` | value |  |
-| `outlineInteraction` | value | rebinds the outline and text overlay tokens to another fill family, or drops them under none; no element or state is added |
+| `outlineInteraction` | value | rebinds the outline and text overlay tokens to another fill family, or drops them under none; no element or state is added. `opaque-fill` rebinds them on Button, Icon button and Flush icon button only (`OPAQUE_FILL_DEFS`); every other def keeps the wash |
+| `outlineHoverFill` | value | picks the step of the `opaque-fill` hover fill per mode; a def binds the outline overlay ref, never `hover-fill` by name |
 | `neutralEmphasis` | value |  |
 | `interactivePalettes` | value | adds token columns; a component offers them only through its own axis |
 | `gradients` | value |  |

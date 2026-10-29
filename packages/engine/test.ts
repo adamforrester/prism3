@@ -75,10 +75,13 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter, searchField, progress } from './components/index';
+import { heightExclusions } from './branded-button';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter, searchField, cardNumberField, progress } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
+import { BRAND_MARK_BOXES } from './brand-mark-glyphs';
+import { makeTextField } from './components/text-field';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -243,6 +246,12 @@ const exampleLoadFailed = new Set<string>();
 /** The color variables a brand adds through `glassRoles` (#3073), by brand, root stripped. Spelled from the owner's
  *  decision (Q807 A: the reference brand adds `card`), never read off the input, so a stray one anywhere fails. */
 const BRAND_ADDED_GLASS: Record<string, string[]> = { nb: ['color/glass/card'] };
+/** The color variables `outlineInteraction: opaque-fill` adds (#3071), by brand, root stripped: the opaque outline
+ *  hover fill, hover and pressed, on the page and the band, per built-in column. Spelled from the owner's decision
+ *  (Q824 A: the reference brand), never read off the input, so the family appearing on any other brand fails. */
+const BRAND_OPAQUE_FILL: Record<string, string[]> = {
+  nb: ['', 'inverse/'].flatMap((g) => ['primary', 'neutral', 'destructive'].flatMap((c) => ['hover', 'pressed'].map((st) => `color/${g}interactive/${c}/hover-fill/${st}`))),
+};
 const exampleTheme = <T = Theme,>(name: string, build: () => T): T | undefined => {
   try { return build(); } catch (e) {
     // LOAD-BEARING, and the one line here that looks tidiable. When a single row is dropped (one density
@@ -3603,8 +3612,10 @@ for (const b of brands) {
       .map((n) => (buildTree(t).tree as any)[Object.keys(buildTree(t).tree)[0]].control?.size?.[n]?.dot?.$extensions?.prism3?.px ?? 'x')
       .join('/');
     const dotLadders = { nb: dotLadder(nbTheme()), compact: dotLadder(compact), harbor: dotLadder(harbor), wendys: dotLadder(wendys) };
-    ok(dotLadders.compact === '6/8/10' && dotLadders.nb === '8/10/12' && dotLadders.harbor === dotLadders.nb && dotLadders.wendys === dotLadders.nb,
-      `#910 \`control.size.*.dot\` is a DENSITY signal, not a glyph artboard — the compact fixture's 6/8/10 sits a full rung below nb/harbor/wendys 8/10/12 (${Object.entries(dotLadders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
+    // nb is off this comparison since #3086: the reference brand sets a 70% radio dot (12/14/16), so its dot is no
+    // longer the density ladder's half. harbor and wendys, at the default, still are; #3086's own gates hold nb's.
+    ok(dotLadders.compact === '6/8/10' && dotLadders.harbor === '8/10/12' && dotLadders.wendys === dotLadders.harbor && dotLadders.nb === '12/14/16',
+      `#910 \`control.size.*.dot\` is a DENSITY signal, not a glyph artboard — the compact fixture's 6/8/10 sits a full rung below harbor/wendys 8/10/12, and nb's 70% radio dot is 12/14/16 (#3086) (${Object.entries(dotLadders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
 
     // ---- AND THE CONSUMER HALF (#910): a def must READ the varying family, not the invariant one ----
     // Everything above is about the token TIER — that `control.size.*` moves with brand density and that
@@ -3953,6 +3964,8 @@ for (const b of brands) {
       'password-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       // #2888: the Search field too.
       'search-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
+      // #2343 PR 4: the Card number field too.
+      'card-number-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       textarea: { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'] },
       select: { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       // #2894 (owner Q539, Q?4 A): the rows' block padding follows density too.
@@ -3983,6 +3996,7 @@ for (const b of brands) {
       'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'password-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'search-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
+      'card-number-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       textarea: { compact: 'small 12/4 · medium 12/6 · large 20/6', comfortable: 'small 16/6 · medium 16/8 · large 24/8', spacious: 'small 20/8 · medium 20/12 · large 32/12' },
       select: { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
@@ -4063,6 +4077,8 @@ for (const b of brands) {
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2888: the Search field, TextField's gap through the shared field factory.
       'search-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      // #2343 PR 4: the Card number field, TextField's gap through the shared field factory.
+      'card-number-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       link: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2666: the label-to-separator gap inside an item, and the same gap between items.
@@ -4110,6 +4126,7 @@ for (const b of brands) {
       'text-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       'password-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       'search-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      'card-number-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       select: { prefix: 'sized', lt: [['gap', 'pad-x']] },
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
@@ -4278,9 +4295,9 @@ for (const b of brands) {
 {
   const FIELD_DEFS_2926 = ['text-field', 'password-field', 'select', 'textarea', 'search-field', 'code-input-cell'];
   const FIELD_STYLES_2926 = ['outline', 'underline'] as const;
-  const METHODS_2926 = ['overlay-neutral', 'solid-tint', 'none'] as const;
-  const WASH_VAR = /(^|\/)interactive\/[^/]+\/(overlay|subtle-fill)\//;
-  const WASH_REF = /(^|\.)interactive\.[^.]+\.(overlay|subtle-fill)\./;
+  const METHODS_2926 = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'] as const;
+  const WASH_VAR = /(^|\/)interactive\/[^/]+\/(overlay|subtle-fill|hover-fill)\//;
+  const WASH_REF = /(^|\.)interactive\.[^.]+\.(overlay|subtle-fill|hover-fill)\./;
   const washHits: string[] = [];
   let hoverMembers = 0;
   for (const id of FIELD_DEFS_2926) {
@@ -5668,6 +5685,8 @@ arm: {
           // #3073: a brand's own glass roles (`glassRoles`) are brand-dependent by decision (Q807 A), so they are not
           // part of the shared set. Spelled per brand, so a stray glass role on any other brand still diverges.
           .filter((n: string) => !(BRAND_ADDED_GLASS[b] ?? []).includes(n))
+          // #3071: the opaque outline hover fill is emitted only for a brand that opts in, spelled per brand the same way.
+          .filter((n: string) => !(BRAND_OPAQUE_FILL[b] ?? []).includes(n))
           .sort().join('|'));
       // `roleSets[0]` only exists if the floor arm above passed. Guarded rather than indexed blind: an
       // empty `figmaBrands` used to CRASH here, so the floor arm's failure was reported and then buried
@@ -8506,6 +8525,89 @@ for (const scale of ['default', 'expressive'] as const) {
     ok(validateBrandInput({ ...inp, typography: { captionFloor: 10, sizeFloor: 8 } }).length === 0, '[#1360/#1363] captionFloor:10 + sizeFloor:8 accepted (both in enum)');
   }
 }
+// #3077 (owner decisions 2026-10-27): CAPTION A — `typography.sizes` takes caption, at the brand level only, one
+// static size per rung, on the ladder, at or above 10px, through the strict ramp check. Every expected size and
+// refusal is written here, never read from theme.ts, so each arm fails by name when its check goes (docs/34).
+{
+  const cap = (ty: any) => [...new Set(tBrand('cap3077-' + JSON.stringify(ty), ty).typography.composites
+    .filter((c) => c.group === 'caption').map((c) => `${c.variant}=${c.sizePx}/${c.sizeMinPx}`))].sort().join(',');
+  const refusal = (ty: any): string => { try { tBrand('cap3077r-' + JSON.stringify(ty), ty); return '(built)'; } catch (e) { return (e as Error).message; } };
+  // (a) ACCEPTED — md 10 on the ladder, above the floor, below lg 12: caption md/lg = 10/12, static (no mobile move).
+  ok(cap({ sizes: { caption: { md: 10 } } }) === 'lg=12/12,md=10/10', `#3077 caption A: sizes.caption.md 10 builds caption md 10 and lg 12, one size on desktop and mobile (got ${cap({ sizes: { caption: { md: 10 } } })})`);
+  ok(cap({ sizes: { caption: { lg: 14 } } }) === 'lg=14/14,md=11/11', `#3077 caption A: sizes.caption.lg 14 moves lg only (got ${cap({ sizes: { caption: { lg: 14 } } })})`);
+  // (b) ON THE LADDER — 13px is no ladder step.
+  ok(/^typography\.sizes\.caption\.md: 13px is not a step on the size ladder/.test(refusal({ sizes: { caption: { md: 13 } } })),
+    `#3077 caption A: an off-ladder caption size (13px) is refused by name (got: ${refusal({ sizes: { caption: { md: 13 } } }).slice(0, 120)})`);
+  // (c) AT OR ABOVE THE FLOOR — 8px is on the ladder under sizeFloor 8, and still refused: it is caption.xs's alone.
+  ok(/^typography\.sizes\.caption\.md: 8px is below the caption floor of 10px/.test(refusal({ sizeFloor: 8, sizes: { caption: { md: 8 } } })),
+    `#3077 caption A: caption md at 8px (on the sizeFloor 8 ladder) is refused by the 10px caption floor, by name (got: ${refusal({ sizeFloor: 8, sizes: { caption: { md: 8 } } }).slice(0, 120)})`);
+  // (d) RAMP ORDER — md 10 under captionFloor 10 ties caption.sm; md 14 passes lg 12. Both refused, strictly increasing.
+  ok(/^typography: caption\.md resolves to 10px, which is not larger than the previous rung \(10px\)/.test(refusal({ captionFloor: 10, sizes: { caption: { md: 10 } } })),
+    `#3077 caption A: caption md 10 beside captionFloor 10 (caption.sm 10) is refused by the ramp check (got: ${refusal({ captionFloor: 10, sizes: { caption: { md: 10 } } }).slice(0, 120)})`);
+  ok(/^typography: caption\.lg resolves to 12px, which is not larger than the previous rung \(14px\)/.test(refusal({ sizes: { caption: { md: 14 } } })),
+    `#3077 caption A: caption md 14 above lg 12 is refused by the ramp check (got: ${refusal({ sizes: { caption: { md: 14 } } }).slice(0, 120)})`);
+  // (e) xs/sm are their floors' — refused by name, not silently ignored.
+  ok(/^typography\.sizes\.caption\.sm: caption\.sm is pinned by captionFloor 10/.test(refusal({ captionFloor: 10, sizes: { caption: { sm: 11 } } })),
+    `#3077 caption A: sizes.caption.sm is refused, captionFloor pins it (got: ${refusal({ captionFloor: 10, sizes: { caption: { sm: 11 } } }).slice(0, 120)})`);
+  // (f) BRAND LEVEL ONLY — the per-viewport and per-mode size levers stay heading-only, and the rest of reading text stays out.
+  ok(/^typography\.sizeOverrides: 'caption' is not a heading group/.test(refusal({ sizeOverrides: { caption: { md: { desktop: 10 } } } })),
+    `#3077 caption A: sizeOverrides still refuses caption (got: ${refusal({ sizeOverrides: { caption: { md: { desktop: 10 } } } }).slice(0, 120)})`);
+  ok(/^typography\.sizes: 'body' is not a group a size can be set for/.test(refusal({ sizes: { body: { md: 15 } } })),
+    `#3077 caption A: sizes still refuses body (got: ${refusal({ sizes: { body: { md: 15 } } }).slice(0, 120)})`);
+  {
+    let msg = '(built)';
+    try { brandTheme({ id: 'cap3077-mode', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, modes: ['light', 'dark'], modeLevers: { dark: { typeSizes: { caption: { md: 10 } } } } } as any); }
+    catch (e) { msg = (e as Error).message; }
+    ok(/^modeLevers\.dark\.typeSizes: 'caption' is not a heading group/.test(msg), `#3077 caption A: a per-mode caption size is still refused (got: ${msg.slice(0, 120)})`);
+  }
+  // (g) the schema takes it, and holds its own floor.
+  const inp = { id: 'v', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } } as any;
+  ok(validateBrandInput({ ...inp, typography: { sizes: { caption: { md: 10 } } } }).length === 0, '#3077 caption A: the schema accepts sizes.caption.md 10');
+  ok(validateBrandInput({ ...inp, typography: { sizes: { caption: { md: 9 } } } }).length > 0, '#3077 caption A: the schema refuses sizes.caption.md 9 (floor 10)');
+  // (h) touches caption only.
+  const nonCap = (ty: any) => JSON.stringify(tBrand('nc3077-' + JSON.stringify(ty), ty).typography.composites.filter((c) => c.group !== 'caption'));
+  ok(nonCap({ sizes: { caption: { md: 10 } } }) === nonCap({}), '#3077 caption A: a caption size moves no other composite');
+}
+// #3077 (owner decisions 2026-10-27): TRACKING A — `typography.tracking` pins every composite in a category to one
+// named role and replaces the size-derived rung and its nudge, for that category only. Expected rungs are literals.
+{
+  const roles = (t: ReturnType<typeof tBrand>, g: string) => [...new Set(t.typography.composites.filter((c) => c.group === g).map((c) => `${c.sizePx}:${c.tracking}`))].join(' ');
+  // Display's derived rung splits at 96px (tight below, tighter at and above); the nudge -1 moves tight to tighter
+  // and holds tighter at the end of the nudge path.
+  const base = tBrand('tr3077-base', { trackingShift: { display: -1, title: 1 } });
+  ok(roles(base, 'display') === '48:tighter 64:tighter 80:tighter 96:tighter 128:tighter 160:tighter',
+    `#3077 tracking A: control — unpinned display follows its size and its nudge (got ${roles(base, 'display')})`);
+  const pinned = tBrand('tr3077-pin', { trackingShift: { display: -1, title: 1 }, tracking: { display: 'open' } });
+  // (a) the pin REPLACES the derived rung AND the nudge: every display size is open, the 96px split gone.
+  ok(roles(pinned, 'display') === '48:open 64:open 80:open 96:open 128:open 160:open',
+    `#3077 tracking A: a display pin puts every display size on open, over the size split and the -1 nudge (got ${roles(pinned, 'display')})`);
+  // (b) for the pinned category ONLY: title keeps snug + 1 = normal; every other composite matches the unpinned build.
+  ok(roles(pinned, 'title') === '18:normal 20:normal 24:normal 28:normal 32:normal 40:normal',
+    `#3077 tracking A: an unpinned title keeps its derive and nudge, snug + 1 = normal (got ${roles(pinned, 'title')})`);
+  const rest = (t: ReturnType<typeof tBrand>) => JSON.stringify(t.typography.composites.filter((c) => c.group !== 'display'));
+  ok(rest(pinned) === rest(base), '#3077 tracking A: a display pin leaves every non-display composite exactly as the unpinned build has it');
+  // (b2) the pin is not a new start for the nudge: a pin ON the nudge path (snug) with a +1 title nudge stays snug.
+  // (`open` alone can't show this: it is off the nudge path, so a nudge would leave it where it is either way.)
+  const onPath = tBrand('tr3077-onpath', { trackingShift: { title: 1 }, tracking: { title: 'snug' } });
+  ok(roles(onPath, 'title') === '18:snug 20:snug 24:snug 28:snug 32:snug 40:snug',
+    `#3077 tracking A: a title pin on snug ignores the +1 title nudge — the nudge is not applied to the pin (got ${roles(onPath, 'title')})`);
+  // (c) any of the nine roles, including the ones no nudge reaches.
+  const own = tBrand('tr3077-nine', { tracking: { body: 'snugger', eyebrow: 'tightest' } });
+  ok(roles(own, 'body') === '12:snugger 14:snugger 16:snugger 18:snugger' && roles(own, 'eyebrow') === '12:tightest 14:tightest 20:tightest',
+    `#3077 tracking A: a pin takes roles off the nudge path, snugger and tightest (got body ${roles(own, 'body')}; eyebrow ${roles(own, 'eyebrow')})`);
+  // (d) refused by name: a category that isn't one, a role that isn't one.
+  const refusal = (ty: any): string => { try { tBrand('tr3077r-' + JSON.stringify(ty), ty); return '(built)'; } catch (e) { return (e as Error).message; } };
+  ok(/^typography\.tracking: 'heading' is not a type category/.test(refusal({ tracking: { heading: 'open' } })),
+    `#3077 tracking A: an unknown category is refused by name (got: ${refusal({ tracking: { heading: 'open' } }).slice(0, 100)})`);
+  ok(/^typography\.tracking\.title: 'loose' is not a letter spacing role/.test(refusal({ tracking: { title: 'loose' } })),
+    `#3077 tracking A: an unknown role is refused by name (got: ${refusal({ tracking: { title: 'loose' } }).slice(0, 100)})`);
+  // (e) the schema takes the nine and refuses others.
+  const inp = { id: 'v', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } } as any;
+  ok(validateBrandInput({ ...inp, typography: { tracking: { display: 'open', code: 'tightest' } } }).length === 0, '#3077 tracking A: the schema accepts open and tightest pins');
+  ok(validateBrandInput({ ...inp, typography: { tracking: { display: 'loose' } } }).length > 0, '#3077 tracking A: the schema refuses a role outside the nine');
+  // (f) opt-in: an empty pin map builds the same theme as none.
+  ok(JSON.stringify(tBrand('tr3077-e', { tracking: {} }).typography) === JSON.stringify(tBrand('tr3077-e', {}).typography), '#3077 tracking A: an empty pin map changes nothing');
+}
 // C2 (#328): the ceiling names a RUNG, so the surviving rung COUNT is invariant under typeScale.
 // The old px ceiling was compared against already-shifted sizes, so `96` kept 4 rungs under
 // compact/default but only 3 under expressive — a brand lever silently changing the type SET.
@@ -8988,7 +9090,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       if (v.fontSize !== `{${root}.core.font.size.12}`) bad.push(`${where}: fontSize ${v.fontSize}, not the 12 step`);
       if (v.lineHeight !== `{${root}.core.font.line-height-role.normal}` || deref(deref(v.lineHeight).$value).$value !== 1.5)
         bad.push(`${where}: lineHeight ${v.lineHeight}, not the normal role at 1.5`);
-      if (v.letterSpacing !== `{${root}.core.font.letter-spacing-role.normal}`) bad.push(`${where}: letterSpacing ${v.letterSpacing}, not normal`);
+      // #3077: the reference brand pins body to the `open` letter spacing (owner decision 2026-10-27).
+      const ls = b === 'nb' ? 'open' : 'normal';
+      if (v.letterSpacing !== `{${root}.core.font.letter-spacing-role.${ls}}`) bad.push(`${where}: letterSpacing ${v.letterSpacing}, not ${ls}`);
       if (v.fontFamily !== `{${root}.core.font.family.body}`) bad.push(`${where}: fontFamily ${v.fontFamily}, not the body role`);
       // The weight, italic and underline match body.sm's same-named variant: only the size differs.
       for (const f of ['fontWeight', 'fontStyle', 'textDecoration']) if (v[f] !== ref[f]) bad.push(`${where}: ${f} ${v[f]} where body.sm.${k} has ${ref[f]}`);
@@ -11837,8 +11941,8 @@ arm: {
 // "both families absent" is a real claim worth pinning: if `none` ever started emitting a family,
 // the two working methods would keep working and only the bug's disguise would get better.
 {
-  const METHODS = ['overlay-neutral', 'solid-tint', 'none'] as const;
-  const FAMILIES = ['overlay', 'subtle-fill'] as const;
+  const METHODS = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'] as const;
+  const FAMILIES = ['overlay', 'subtle-fill', 'hover-fill'] as const;
   for (const { id, theme } of corpus()) {
     for (const method of METHODS) {
       const { family, opaque } = outlineFillFamily(method);
@@ -11851,15 +11955,20 @@ arm: {
               // THE ONE SANCTIONED EXTRA (owner, 2026-09-29): overlay-neutral also carries the SELECTED primary
               // subtle fill, the tint a selectable control binds. Written here as a literal, not read from the
               // emitter; `none` gets no such allowance, so a tint appearing there is still spurious.
-              const selectedTint = method === 'overlay-neutral' && fam === 'subtle-fill' && color === 'primary' && st === 'selected';
-              if ((fam === family || selectedTint) && !present) missing.push(`${m.mode} ${color}.${fam}.${st}`);
-              if (fam !== family && !selectedTint && present) spurious.push(`${m.mode} ${color}.${fam}.${st}`);
+              // `opaque-fill` (#3071) carries both: the wash stays for Tag, Segmented control and Pagination (owner
+              // Q3071.4 A), and the selected tint with it. Its opaque fill has no selected state.
+              const keepsWash = method === 'opaque-fill';
+              const selectedTint = (method === 'overlay-neutral' || keepsWash) && fam === 'subtle-fill' && color === 'primary' && st === 'selected';
+              const sanctioned = selectedTint || (keepsWash && fam === 'overlay');
+              const named = fam === family && !(fam === 'hover-fill' && st === 'selected');
+              if ((named || sanctioned) && !present) missing.push(`${m.mode} ${color}.${fam}.${st}`);
+              if (!named && !sanctioned && present) spurious.push(`${m.mode} ${color}.${fam}.${st}`);
             }
             // The role key the helper hands a consumer must be the one that resolves — the read the
             // dashboard performs, asserted directly rather than inferred from the two sets above.
             const key = outlineFillRole(method, color, st);
             if (key !== null && m.roles[key] === undefined) missing.push(`${m.mode} via helper: ${key}`);
-            if (key === null && family !== null) missing.push(`${m.mode} helper returned null for an emitting method`);
+            if (key === null && family !== null && !(family === 'hover-fill' && st === 'selected')) missing.push(`${m.mode} helper returned null for an emitting method`);
             // ...and it must resolve to the STATE THAT WAS ASKED FOR, which "it resolves" does not
             // imply: `subtle-fill.hover` resolves perfectly well when the caller asked for `pressed`.
             // Found by review mutation, not by writing this gate: a one-token slip inside the helper
@@ -12119,6 +12228,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Dark lands on 650 (~2.4:1), a full 100 from `border/primary`'s 750 (owner Q270.2), not 700.
   { mode: 'light', name: 'color/border/secondary', nb: 'palette/neutral/400', engine: 'palette/neutral/250' },
   { mode: 'dark', name: 'color/border/secondary', nb: 'palette/neutral/500', engine: 'palette/neutral/650' },
+  // NINTH group (#3050, owner Q825 B): the scrim. The frozen export carries the scrim at 40 / 60 / 60 / 70; the reference
+  // brand's own dialog designs put a heavy black backdrop behind the end drawer and the full-screen panel, so it sets
+  // `scrimStrength: strong`, which moves the alias to the existing 80 step in light and dark and 90 in high contrast.
+  // A value lever: the variable's name is unchanged, so this is a divergence of an EXISTING var, in all four modes.
+  { mode: 'light', name: 'color/scrim/default', nb: 'palette/black-alpha/40', engine: 'palette/black-alpha/80' },
+  { mode: 'dark', name: 'color/scrim/default', nb: 'palette/black-alpha/60', engine: 'palette/black-alpha/80' },
+  { mode: 'hc-light', name: 'color/scrim/default', nb: 'palette/black-alpha/60', engine: 'palette/black-alpha/90' },
+  { mode: 'hc-dark', name: 'color/scrim/default', nb: 'palette/black-alpha/70', engine: 'palette/black-alpha/90' },
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
@@ -12624,6 +12741,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const wrapped = ts.styles.filter((s) => s.name.startsWith('text/'));
   ok(wrapped.length === 0, 'figma text-styles: fix #1 — no emitted style name starts with `text/`');
 
+  // #3077 — the letter spacing, in percent, the owner decided for the reference brand's text types: +1% for
+  // display, title, body, label and caption, +2% for eyebrow. Literal, not derived from the pin.
+  const NB_TRACKING_PCT_3077: Record<string, number> = { display: 1, title: 1, body: 1, label: 1, caption: 1, eyebrow: 2 };
   const collBad: string[] = [], famBad: string[] = [], sizeBind: string[] = [], weightData: string[] = [];
   const lhWrong: string[] = [], lsWrong: string[] = [], styleWrong: string[] = [], styleBind: string[] = [];
   const upperMismatch: string[] = [], decoMismatch: string[] = [];
@@ -12646,7 +12766,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // The pre-fix fixture bound fontSize to the same collection the corrected
     // emit chooses (font-fluid for fluid composites, font for static) — that
     // structure survives the fixes. Verify same binding target.
-    if ((p.fontSize as any).variable !== nbFixName(fx.properties.fontSize.variable)) sizeBind.push(`${s.name}: ${(p.fontSize as any).variable} ≠ ${nbFixName(fx.properties.fontSize.variable)}`);
+    // #3077: the reference brand's caption.md is 10px by decision (owner, 2026-10-27), off the fixture's 11.
+    const fxSizeVar = s.name.startsWith('caption/md/') ? nbFixName(fx.properties.fontSize.variable).replace(/\/11$/, '/10') : nbFixName(fx.properties.fontSize.variable);
+    if ((p.fontSize as any).variable !== fxSizeVar) sizeBind.push(`${s.name}: ${(p.fontSize as any).variable} ≠ ${fxSizeVar}`);
     // #1485 — fontWeight is PARALLEL DATA on the style: unbound, numeric, matching the fixture's weight
     // value (the fixture bound it as a variable; the DATA it stood for is the numeric weight). The FLOAT
     // weight-role variable itself is still emitted (byte-repro above); it is just no longer bound here.
@@ -12675,8 +12797,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const ls = (p.letterSpacing as any).value;
     if (ls.unit !== 'PERCENT') lsWrong.push(`${s.name}:unit=${ls.unit}`);
     const fxLsPx = fx.properties.letterSpacing.value.value;
-    const expectedLsPct = Math.round((fxLsPx / fxDesktopSize) * 10000) / 100;
-    if (Math.abs(ls.value - expectedLsPct) > 0.01) lsWrong.push(`${s.name}:${ls.value}%≠${expectedLsPct}% (fixture ${fxLsPx}px/${fxDesktopSize}px)`);
+    // #3077 (owner decisions 2026-10-27): the reference brand's letter spacing moved off the frozen fixture by
+    // decision, so the moved text types are held to the decided percent, stated here rather than read from the
+    // lever. Code did not move and is still held to the fixture.
+    const decidedLsPct = NB_TRACKING_PCT_3077[s.name.split('/')[0]];
+    const expectedLsPct = decidedLsPct ?? Math.round((fxLsPx / fxDesktopSize) * 10000) / 100;
+    if (Math.abs(ls.value - expectedLsPct) > 0.01) lsWrong.push(`${s.name}:${ls.value}%≠${expectedLsPct}% (${decidedLsPct !== undefined ? '#3077 decision' : `fixture ${fxLsPx}px/${fxDesktopSize}px`})`);
 
     // fix #5 / #1485 — the cut value is checked via `styleBind` above (the bound cut variable's value
     // must equal the fixture's baked fontStyle). `styleWrong` is retained as a redundant direct compare
@@ -13899,6 +14025,170 @@ arm: {
     if (got !== want) g4.push(`${id}: ${got} (want ${want})`);
   }
   ok(g4.length === 0, `#3052 G4: every other brand's grid gutter/margin links are unchanged (space/* steps as shipped)${g4.length ? ` — ${g4.join('; ')}` : ''}`);
+}
+
+// (19h) #3086 — THE RADIO DOT SETTING (owner decision Q816 A, no new token, 2026-10-27). `radioDot` sets
+// `control.size.{sm,md,lg}.dot` to a share of the box edge (50 default = half, then 60/70/80), snapped to the 2px
+// sub-grid and capped at the box minus its ring. The reference brand sets 70%: 14px at medium.
+//
+// INDEPENDENCE (docs/34). Every expected number here is a HAND-PINNED literal or is read from a different emitted
+// node than the one under test, never from `radioDotPx` or `controlSizes`:
+//   G1 the reference brand's sm/md/lg dot px are the literals 12/14/16, read from the DTCG tree (its `$value`,
+//      resolved through the alias if it is one) and from the Figma `control` collection, for the legacy fixture
+//      (`nbThemeFrom`) and the redesign seed (`examples/nb-redesign.design.md`) alike.
+//   G2 every brand at the default: its dot is half its box (both px read off the tree), its dot leaf carries the
+//      #910 prose and no `share`/`offScale`, and a build with `radioDot: 50` written out is byte-identical to the
+//      unset build, tree and Figma control collection both. Corpus = the token-contract corpus less nb, plus every
+//      example brand that leaves the setting unset.
+//   G3 the share reaches EVERY size: synthetic brands at 60/70/80 × compact/comfortable/spacious, each rung's dot
+//      against a table worked by hand (nearest even px of edge × share, capped at edge − 4).
+//   G4 the dot never covers the ring: dot ≤ box − 2 × ring at every share, density and rung, the ring's px read
+//      from the emitted `border-width.thick` leaf and Radio.Control's own `border-width` binding, not from scale.ts.
+//   G5 a mode with its own density (`modeLevers.dark.density`) carries the share: dark's dots, read from the leaf's
+//      `modes.dark` entry, against the same hand table, and inside dark's own box minus the ring.
+//   G6 the Figma line names the share: the reference brand's three dot lines and a default brand's, hand-written,
+//      read from the emitted Figma control collection.
+//
+// MUTATION REGISTER (each applied to the SUBJECT from a `wip:` commit, the suite re-run, the named assertion
+// confirmed among the failures, then reverted):
+//   M1 (G1) `nbThemeFrom`'s `buildDims(…, [720], 70)` → `[720]`. G1 fails BY NAME (nb md 10).
+//   M2 (G1) `radioDot: 70` dropped from `examples/nb-redesign.design.md`. G1 fails BY NAME (nb-redesign md 10).
+//   M3 (G2) `brandTheme` carries `radioDot` even at the default (`...({ radioDot })`). G2 fails BY NAME on the
+//      #910 prose for every default brand.
+//   M4 (G3) `controlSizes` applies the share at md only (`i === 1 ? radioDotPx(…) : height * 0.5`). G3 fails BY
+//      NAME at sm and lg for every share and density.
+//   M5 (G4) `radioDotPx` loses its cap (`Math.min(…, edge − 2 × ring)`). G4 fails BY NAME (compact 80% sm 10 > 8),
+//      and G3 too.
+//   M6 (G5) `brandTheme`'s per-mode ladder drops the share (`controlsByMode[m] = controlSizes(lev.density)`). G5 fails
+//      BY NAME for all three mode brands (dark at the default half, e.g. 6/8/10 for compact).
+//   M7 (G6) `emit-figma-dims` stops passing `dotShare` to the Figma line. G6 fails BY NAME at sm/md/lg for the
+//      fixture and the seed ("half the 20px box" for a 14px dot).
+{
+  const rootOf = (tree: any) => tree[Object.keys(tree)[0]];
+  const pxOfValue = (tree: any, v: string): number => {
+    const m = /^\{(.+)\}$/.exec(v);
+    if (!m) return parseFloat(v);
+    const node = m[1].split('.').reduce((n: any, k) => n?.[k], tree);
+    return node ? pxOfValue(tree, node.$value) : NaN;
+  };
+  const RUNGS = ['sm', 'md', 'lg'] as const;
+  const dots = (theme: Theme) => {
+    const tree = buildTree(theme).tree as any; const cs = rootOf(tree).control.size;
+    return RUNGS.map((r) => ({ rung: r, height: pxOfValue(tree, cs[r].height.$value), dot: pxOfValue(tree, cs[r].dot.$value), leaf: cs[r].dot }));
+  };
+  const figmaDots = (theme: Theme): number[] => RUNGS.map((r) =>
+    buildFigmaDims(theme).control.variables.find((v: any) => v.name.endsWith(`control/size/${r}/dot`))?.value ?? NaN);
+  const seedInput = (): BrandInput => parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input as BrandInput;
+
+  // G1 — the reference brand: 12/14/16, the owner's 14 at medium.
+  const refs: [string, Theme | undefined][] = [
+    ['nb (legacy fixture)', exampleTheme('nb', nbTheme)],
+    ['nb-redesign (seed)', exampleTheme('nb-redesign', () => brandTheme(seedInput()))],
+  ];
+  for (const [id, theme] of refs) {
+    if (!theme) continue;
+    const got = dots(theme).map((d) => d.dot).join('/'); const fig = figmaDots(theme).join('/');
+    ok(got === '12/14/16' && fig === '12/14/16',
+      `#3086 G1: ${id}: the radio dot at sm/md/lg is 12/14/16 (70% of 16/20/24, md 14 the owner's), in DTCG and in the Figma control collection (DTCG ${got}, Figma ${fig})`);
+  }
+
+  // G2 — every brand at the default is byte-identical: half the box, the #910 line, and 50 written out = unset.
+  const examples = exampleBrands() as Record<string, BrandInput>;
+  const defaults: [string, BrandInput][] = [
+    ['minimal', MINIMAL_BRAND], ['minimal-compact', MINIMAL_COMPACT_BRAND],
+    ...Object.entries(examples).filter(([, b]) => b.radioDot === undefined),
+  ];
+  ok(defaults.length >= 5, `#3086 G2: the default population is the corpus, not a sample (${defaults.map(([id]) => id).join(', ')})`);
+  for (const { id, theme } of corpus().filter((c) => !c.id.startsWith('nb'))) {
+    for (const d of dots(theme)) {
+      const gap = (d.height - d.dot) / 2;
+      const p = d.leaf.$extensions?.prism3 ?? {};
+      ok(d.dot * 2 === d.height && d.leaf.$description.startsWith(`control.size.${d.rung} dot — ${d.dot}px inner mark for a radio's dot (half the ${d.height}px box edge, leaving a ${gap}px gap to the boundary).`)
+        && !('share' in p) && !('offScale' in p),
+        `#3086 G2: ${id.split(' ')[0]} ${d.rung}: at the default the radio dot is half the box, with the #910 line and no share (${d.dot} of ${d.height}; ${JSON.stringify(p)})`);
+    }
+  }
+  for (const [id, input] of defaults) {
+    const unset = exampleTheme(`${id} (radioDot unset)`, () => brandTheme(input));
+    const written = exampleTheme(`${id} (radioDot: 50)`, () => brandTheme({ ...input, radioDot: 50 } as BrandInput));
+    if (!unset || !written) continue;
+    ok(JSON.stringify(buildTree(unset).tree) === JSON.stringify(buildTree(written).tree)
+      && JSON.stringify(buildFigmaDims(unset).control) === JSON.stringify(buildFigmaDims(written).control),
+      `#3086 G2: ${id}: radioDot 50 written out is byte-identical to unset, DTCG tree and Figma control collection`);
+  }
+
+  // G3 — the share reaches every size. Worked by hand: nearest even px of edge × share, at most edge − 4.
+  //   compact 12/16/20 · comfortable 16/20/24 · spacious 20/24/28.
+  const HAND: Record<string, Record<number, string>> = {
+    compact: { 60: '8/10/12', 70: '8/12/14', 80: '8/12/16' },
+    comfortable: { 60: '10/12/14', 70: '12/14/16', 80: '12/16/20' },
+    spacious: { 60: '12/14/16', 70: '14/16/20', 80: '16/20/22' },
+  };
+  const BASE: BrandInput = { id: 'dotshare', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
+  const synth: { id: string; share: number; density: string; theme: Theme }[] = [];
+  for (const density of ['compact', 'comfortable', 'spacious'] as const) for (const share of [60, 70, 80] as const) {
+    const id = `dot-${density}-${share}`;
+    const theme = exampleTheme(id, () => brandTheme({ ...BASE, id, density, radioDot: share } as BrandInput));
+    if (!theme) continue;
+    synth.push({ id, share, density, theme });
+    const ds = dots(theme);
+    for (const [i, d] of ds.entries()) {
+      const want = Number(HAND[density][share].split('/')[i]);
+      ok(d.dot === want, `#3086 G3: ${density} ${share}% ${d.rung}: the dot follows the share at this size (${d.dot}, hand ${want}, of ${d.height})`);
+    }
+  }
+  ok(synth.length === 9, `#3086 G3: all nine share × density brands built (${synth.length})`);
+
+  // G4 — the dot never covers the ring. The ring's px from the emitted token Radio's ring binds.
+  const ringKey = radioControl.tokens['border-width'];
+  ok(ringKey === 'border-width.thick' && radioControl.anatomy.parts.control.strokeWidth === 'border-width',
+    `#3086 G4: Radio.Control's ring binds border-width.thick (${ringKey})`);
+  for (const { id, theme } of [...synth, ...refs.filter(([, t]) => t).map(([id, t]) => ({ id, theme: t as Theme }))]) {
+    const tree = buildTree(theme).tree as any;
+    const ring = pxOfValue(tree, ringKey.split('.').reduce((n: any, k) => n?.[k], rootOf(tree)).$value);
+    for (const d of dots(theme))
+      ok(ring > 0 && d.dot > 0 && d.dot <= d.height - 2 * ring,
+        `#3086 G4: ${id} ${d.rung}: the dot fits inside the ring (${d.dot} ≤ ${d.height} − 2 × ${ring})`);
+  }
+
+  // G5 — the per-mode control ladders carry the share too (review S1 on #3097). A brand whose dark mode sets its own
+  // density gets dark's dots from `controlsByMode`, a second call site G3 never reaches. Each dark dot is read from
+  // the leaf's `$extensions.prism3.modes.dark.$value` (resolved through its alias), each dark box from the height
+  // leaf's own mode entry, and both are held to the HAND table above, never to `controlSizes`. One brand per density
+  // as the mode's, each at a different share, so the whole table's three columns are crossed.
+  for (const [base, dark, share] of [['comfortable', 'compact', 70], ['compact', 'spacious', 80], ['spacious', 'comfortable', 60]] as const) {
+    const id = `dot-modes-${base}-${dark}-${share}`;
+    const theme = exampleTheme(id, () => brandTheme({ ...BASE, id, density: base, radioDot: share, modeLevers: { dark: { density: dark } } } as BrandInput));
+    if (!theme) continue;
+    const tree = buildTree(theme).tree as any; const cs = rootOf(tree).control.size;
+    const ring = pxOfValue(tree, ringKey.split('.').reduce((n: any, k) => n?.[k], rootOf(tree)).$value);
+    const modeDots = RUNGS.map((r) => pxOfValue(tree, cs[r].dot.$extensions?.prism3?.modes?.dark?.$value ?? 'NaN'));
+    const modeBoxes = RUNGS.map((r) => pxOfValue(tree, cs[r].height.$extensions?.prism3?.modes?.dark?.$value ?? 'NaN'));
+    const baseDots = dots(theme).map((d) => d.dot).join('/');
+    ok(modeDots.join('/') === HAND[dark][share] && baseDots === HAND[base][share],
+      `#3086 G5: ${id}: dark's own density carries the share, dark ${modeDots.join('/')} (hand ${HAND[dark][share]}) and the base ${baseDots} (hand ${HAND[base][share]})`);
+    for (const [i, r] of RUNGS.entries())
+      ok(modeDots[i] > 0 && modeDots[i] <= modeBoxes[i] - 2 * ring,
+        `#3086 G5: ${id} dark ${r}: the mode's dot fits inside the ring (${modeDots[i]} ≤ ${modeBoxes[i]} − 2 × ${ring})`);
+  }
+
+  // G6 — the Figma line names the share (review N1 on #3097). Before this, only the committed `figma/nb/control.json`
+  // held it, so `emit-figma-dims` dropping `dotShare` passed every live gate. Hand-written lines, read off the emitted
+  // Figma control collection: the reference brand's three, and a default brand's half-the-box line.
+  const figmaDotLines = (theme: Theme): string[] => RUNGS.map((r) =>
+    buildFigmaDims(theme).control.variables.find((v: any) => v.name.endsWith(`control/size/${r}/dot`))?.description ?? '');
+  for (const [id, theme] of refs) {
+    if (!theme) continue;
+    const got = figmaDotLines(theme);
+    const want = ['Radio dot — 12px (0.7 × the 16px box, on the 2px grid)', 'Radio dot — 14px (0.7 × the 20px box, on the 2px grid)', 'Radio dot — 16px (0.7 × the 24px box, on the 2px grid)'];
+    for (const [i, r] of RUNGS.entries())
+      ok(got[i].startsWith(want[i]), `#3086 G6: ${id} ${r}: the Figma line names the share (${JSON.stringify(got[i])})`);
+  }
+  {
+    const theme = exampleTheme('minimal (Figma dot line)', () => brandTheme(MINIMAL_BRAND));
+    const got = theme ? figmaDotLines(theme)[1] : '';
+    ok(got.startsWith('Radio dot — 10px (half the 20px box)'), `#3086 G6: minimal md: at the default the Figma line is half the box (${JSON.stringify(got)})`);
+  }
 }
 
 // (20) EMIT-FIGMA MODE OPT-OUT (post-#42 follow-up; #45 audit; reviewer flag on #46).
@@ -15678,7 +15968,7 @@ arm: {
       const all = (n: any): any[] => [n, ...(n.children ?? []).flatMap(all)];
       // The field family on main (Q332: Text field, Textarea, Select, Password field; Number and Code input are not built),
       // and the Search field (#2888), drawn here as `applyFieldStyle` draws it; which style it is given is `fieldStyleFor`'s.
-      const FIELDS = ['password-field', 'search-field', 'select', 'text-field', 'textarea'];
+      const FIELDS = ['card-number-field', 'password-field', 'search-field', 'select', 'text-field', 'textarea'];
       // Code input's cell (#2428; #2719, Q332 A and Q12 A): a field box per character, so the lever reaches it. Its own
       // arm is below: 28 members on a `state` grid with no `status` axis, so the 84-member loop over FIELDS does not fit it.
       const FIELD_CELLS = ['code-input-cell'];
@@ -18237,7 +18527,7 @@ arm: {
     //     `showMessage` boolean (Code input #2789, Search #2912) must join this list, and so take the same
     //     default. The expected `false` is the owner's answer, not a value read off any def (docs/34).
     {
-      const MESSAGE_OFF_FAMILY = ['code-input', 'counter', 'password-field', 'search-field', 'select', 'text-field', 'textarea'];
+      const MESSAGE_OFF_FAMILY = ['card-number-field', 'code-input', 'counter', 'password-field', 'search-field', 'select', 'text-field', 'textarea'];
       const withMsg = componentDefs.filter((d) => d.figmaProperties?.booleans?.showMessage).map((d) => d.id).sort();
       ok(JSON.stringify(withMsg) === JSON.stringify(MESSAGE_OFF_FAMILY),
         `#2926 the defs with a showMessage boolean are exactly the message-off family ${JSON.stringify(MESSAGE_OFF_FAMILY)} (got ${JSON.stringify(withMsg)}) — a new one joins the list and takes its default`);
@@ -18573,6 +18863,38 @@ arm: {
       && /provider's element names itself/.test(nameLine) && /component adds no label/.test(nameLine) && !/aria-label/.test(a11yText),
       `#2343 PR 4 provider rules NAME: the provider's element supplies the accessible name and the component adds no label (aria '${wb.accessibility.aria}'; codeOnly '${nameLine || 'missing'}')`);
   }
+  // #2343 BRANDED-BUTTON FACTORY (Q-W3 A, Q-S11 A) — every branded button carries the shared skeleton from
+  // `branded-button.ts`. The expected blocks are typed HERE as literals, never read off the helpers, so a helper that
+  // drifts fails this arm by name for every def built from it, and `lint-component-surface` names each def's digest
+  // (docs/34: the helper is the subject, not the oracle). BRANDED is a hand list: a branded button joins it.
+  {
+    const BRANDED = ['wallet-button'];
+    const RING = { kind: 'absolute', when: 'focus-visible', nests: 'focus-ring', inset: 'ring-offset', strokeInset: 'ring-width', nesting: { kind: 'nest-fixed', variant: { surface: 'default' } } };
+    const SHARED_TOKENS: Record<string, string> = {
+      'size.small.height': 'size.sm.height', 'size.medium.height': 'size.md.height', 'size.large.height': 'size.lg.height',
+      radius: 'radius.md', 'ring-width': 'focus.ring.width', 'ring-offset': 'focus.ring.offset',
+    };
+    const bad = BRANDED.flatMap((id) => {
+      const d = componentDefs.find((x) => x.id === id);
+      if (!d) return [`${id}: not registered`];
+      const parts = d.anatomy.parts as Record<string, Record<string, unknown>>;
+      const { note: _ringNote, ...ring } = parts.focusRing ?? {};
+      const mark = parts.mark ?? {};
+      const why: string[] = [];
+      if (JSON.stringify(ring) !== JSON.stringify(RING)) why.push(`focusRing ${JSON.stringify(ring)}`);
+      for (const [k, v] of Object.entries(SHARED_TOKENS)) if (d.tokens[k] !== v) why.push(`tokens.${k} = ${d.tokens[k]}, not ${v}`);
+      if (!(mark.kind === 'nest' && mark.nests === 'brand-mark' && mark.aspectLock === true && mark.fixedPaint === true
+        && (mark.nesting as { kind?: string } | undefined)?.kind === 'nest-fixed' && typeof mark.height === 'string' && !('width' in mark) && !('size' in mark)))
+        why.push(`mark ${JSON.stringify({ kind: mark.kind, nests: mark.nests, aspectLock: mark.aspectLock, fixedPaint: mark.fixedPaint })}`);
+      if (JSON.stringify(d.variants.size) !== JSON.stringify(['medium', 'small', 'large'])) why.push(`size ${JSON.stringify(d.variants.size)}`);
+      return why.map((w) => `${id}: ${w}`);
+    });
+    ok(bad.length === 0, `#2343 branded-button factory: every branded button carries the shared focus ring, height, radius and ring tokens, the fixed-paint aspect-locked mark and the medium-first size axis (${bad.slice(0, 4).join('; ') || 'clean'})`);
+    // The height exclusions, from a rule record the arm types itself: one entry per (rung, provider), rung order first.
+    const ex = heightExclusions({ a: { mark: 'x/a', minHeight: 40 }, b: { mark: 'x/b', maxHeight: 55 }, c: { mark: 'x/c', minHeight: 50 } }, { small: 36, medium: 44, large: 56 });
+    ok(JSON.stringify(ex) === JSON.stringify([{ provider: ['a'], size: ['small'] }, { provider: ['c'], size: ['small'] }, { provider: ['c'], size: ['medium'] }, { provider: ['b'], size: ['large'] }]),
+      `#2343 branded-button factory: heightExclusions rules out each rung under a floor or over a ceiling, in rung order (${JSON.stringify(ex)})`);
+  }
   // #2713 — `ai.generationPriority` follows the build-component skill's written scale. Before it, each def's
   // number was set alone, so parts an agent must never generate on their own ranked from 2 to 9 and the
   // focus ring sat level with Text field. The tier of each def is a HAND-WRITTEN literal here, not read
@@ -18585,7 +18907,7 @@ arm: {
     const TIER: Record<string, number> = {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
-      'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
+      'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
       'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
@@ -19212,7 +19534,7 @@ arm: {
     const SH_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
     const SH_GROUNDS = ['background.primary', 'background.secondary'];
     // #2709: Password field joins: the same field factory as Text field, so the same status borders.
-    const SH_DEFS = ['text-field', 'textarea', 'select', 'password-field', 'search-field'];
+    const SH_DEFS = ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field'];
     const CHOICE_ERR = 'a choice control (or the row or group that only follows it): status is [default, error] only (Q354), the danger edge is one flat `color.border.danger` at every state, so there is no status hover step to measure, and a row or group paints nothing by it';
     // Defs with a status axis that are NOT a framed field, with the reason. The converse below reads the axis off
     // every def, so a new status-bearing def fails by name until it is pinned or excused here.
@@ -19465,7 +19787,7 @@ arm: {
     const RO_GROUNDS = ['background.primary', 'background.secondary'];
     // Pinned by name, independent of the discovery below: the three field defs #1710 names (select's
     // read-only member landed with #1699/#1709), and Password field (#2709), which joined after.
-    const RO_PINNED = ['text-field', 'textarea', 'select', 'password-field', 'search-field'];
+    const RO_PINNED = ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field'];
     // The STATES swept. `read-only` is #1710's subject; `rest`, `hover` and `filled` are swept too because the
     // three defs' SC 1.4.11 line claims "the rest, hover and read-only borders are gated on
     // `background.secondary`" — and before this sweep nothing gated a def's HOVER binding at all (the review of
@@ -20403,7 +20725,7 @@ arm: {
   // independent sides (docs/34). No corpus brand sets `solid-tint` (#1112), so the brands are SYNTHETIC:
   // a corpus theme with the lever overridden, as (10h) does.
   {
-    const METHODS = ['overlay-neutral', 'solid-tint', 'none'] as const;
+    const METHODS = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'] as const;
     const bases: { id: string; theme: Theme }[] = loadedRows([
       { id: 'nb-measured', theme: nbTheme() },
       { id: 'harbor', theme: exampleTheme('harbor', () => brandTheme(readExampleBrand('./examples/harbor.design.md'))) },
@@ -20456,6 +20778,11 @@ arm: {
       `#1613 solid-tint: inverse-band button outline hover binds color/inverse/interactive/primary/subtle-fill/hover, and the brand emits it (${tintPaint(true)})`);
     ok(hoverFill('none') === undefined,
       `#1608 none: button outline hover binds NO container fill — the intended no-hover (${hoverFill('none')})`);
+    // #3071 — opaque-fill binds the opaque fill on the page and its band twin on the inverse band, hover and pressed.
+    const opaquePaint = (inverse: boolean, state: string) => member('opaque-fill', inverse, state)?.root.paints?.fills;
+    ok(opaquePaint(false, 'hover') === 'color/interactive/primary/hover-fill/hover' && opaquePaint(false, 'pressed') === 'color/interactive/primary/hover-fill/pressed'
+      && opaquePaint(true, 'hover') === 'color/inverse/interactive/primary/hover-fill/hover' && opaquePaint(true, 'pressed') === 'color/inverse/interactive/primary/hover-fill/pressed',
+      `#3071 opaque-fill: button outline hover/pressed bind color/(inverse/)interactive/primary/hover-fill/{hover,pressed} (${['hover', 'pressed'].flatMap((st) => [opaquePaint(false, st), opaquePaint(true, st)]).join(', ')})`);
 
     // IDENTITY at the default: `overlay-neutral` returns the SAME object for every def, so every default
     // projection (out/**, the plain component-surface rows) is byte-identical.
@@ -20478,6 +20805,14 @@ arm: {
     // with #2926: a field binds no wash, so the lever has nothing to reach on it.
     ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'pagination-item', 'segmented-control-segment', 'tag']),
       `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, pagination-item, segmented-control-segment, tag, and no field (${binders.join(', ')})`);
+    // #3071 (owner Q3071.4 A): the opaque fill reaches Button, Icon button and Flush icon button only. Tag, Segmented
+    // control and Pagination keep the neutral wash: a fill on an unselected item reads as selected.
+    const opaqueReach = componentDefs.filter((d) => applyOutlineInteraction(d, 'opaque-fill') !== d).map((d) => d.id).sort();
+    ok(JSON.stringify(opaqueReach) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral']),
+      `#3071 the opaque fill reaches button ×3, icon-button ×3 and flush-icon-button ×3, and no tag, segment or page (${opaqueReach.join(', ')})`);
+    const keptWash = ['tag', 'segmented-control-segment', 'pagination-item'].map((id) => componentDefs.find((d) => d.id === id)!)
+      .filter((d) => Object.values(applyOutlineInteraction(d, 'opaque-fill').tokens).some((r) => /^color\.interactive\.neutral\.overlay\.(hover|pressed)$/.test(r)));
+    ok(keptWash.length === 3, `#3071 tag, segmented-control-segment and pagination-item still bind the neutral wash under opaque-fill (${keptWash.map((d) => d.id).join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -20889,6 +21224,9 @@ arm: {
       // #2888: the Search field's are TextField's too.
       { def: componentDefs.find((d) => d.id === 'search-field')!, part: 'placeholder', axes: { size: 3 } },
       { def: componentDefs.find((d) => d.id === 'search-field')!, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      // #2343 PR 4: the Card number field's are TextField's too.
+      { def: componentDefs.find((d) => d.id === 'card-number-field')!, part: 'placeholder', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'card-number-field')!, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: select, part: 'placeholder', axes: { size: 3 } },
       { def: select, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: textarea, part: 'placeholder', axes: { size: 3 } },
@@ -22086,6 +22424,10 @@ arm: {
               createInstance: () => {
                 const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec];
                 Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
+                // #2343 PR 4 — the main component's own extent, which the paste executor reads for a slot under `aspectLock`:
+                // a brand mark is its artboard (a card tile 32×20), anything else the 24×24 icon artboard.
+                const box = name.startsWith('brand-mark/') ? BRAND_MARK_BOXES[name.slice('brand-mark/'.length) as keyof typeof BRAND_MARK_BOXES] : undefined;
+                inst.getMainComponentAsync = async () => ({ name, type: 'COMPONENT', width: box?.[0] ?? 24, height: box?.[1] ?? 24 });
                 // #2645 — THE INSTANCE'S OWN COMPONENT PROPERTIES, for a component `componentProps` declares: each at the
                 // value it was given or its default, keyed `name#id` as the host keys them. `setProperties` refuses a key
                 // that is no definition's full key and a swap value that is no component id this stub hands out — the
@@ -26671,6 +27013,7 @@ arm: {
       'icon:tone', 'focus-ring:offset', 'tag:read-only',
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
       'search-field:style', 'search-field:pending', 'search-field:empty',
+      'card-number-field:style', 'card-number-field:pending', 'card-number-field:empty',
       'textarea:style', 'textarea:pending', 'textarea:empty', 'select:pending', 'select:empty', 'code-input:pending',
       'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
     ];
@@ -29917,7 +30260,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -30053,7 +30396,7 @@ arm: {
   // variables: a fixed column one line tall.
   // Pagination.Item's balance (Q537) binds a zero width under its 2px height: the frame above the underlined number that
   // must not set the label box's width. Two different variables, so it joins on the rule's own terms.
-  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'search-field', 'code-input-cell', 'pagination-item'];
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'search-field', 'card-number-field', 'code-input-cell', 'pagination-item'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -31373,6 +31716,9 @@ arm: {
     // #2888: the Search field's entry row is TextField's too.
     'search-field.entry':
       "the Search field's entry row is text-field's, from the shared field factory: the single-line placeholder or query does not wrap, so the caret centred against its one line sits where a native caret sits (as text-field.entry).",
+    // #2343 PR 4: the Card number field's entry row is TextField's too.
+    'card-number-field.entry':
+      "the Card number field's entry row is text-field's, from the shared field factory: the single-line placeholder or grouped number does not wrap, so the caret centred against its one line sits where a native caret sits (as text-field.entry).",
     // `badge`'s surface (the type axis, 2026-09-27, first named `genre`) lists a text part and the sized `dot` box as children,
     // but `presentWhen` on `type` puts exactly one of them in any member: no member pairs the dot with a
     // label, so there is no line for the dot to float against. The status label is one or two words and the
@@ -31819,6 +32165,82 @@ arm: {
 // fixture, not a path, so the test does not move when that file does. Module scope since #1387's block
 // below reads it too.
 const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+
+// ---- #3077 (owner decisions 2026-10-27): THE REFERENCE BRAND'S TYPE TABLE ------------------------------------
+//
+// The reference brand's typography patch: titleFloor 16, sizes.title.2xs 20 (18 on mobile, Q802 A),
+// sizes.caption.md 10 (caption A), and display/title/body/caption/label pinned to `open` (+1%) with eyebrow on its
+// nudge (+2%) (tracking A, Q803 B). Every expected row is a LITERAL from the decided table (size desktop/mobile px,
+// letter spacing in percent), never read from the lever or the input, so a change to either fails by name.
+{
+  const table = (t: Theme): Map<string, string> => {
+    const em = new Map(t.typography.letterSpacings.map((l) => [l.key, l.em]));
+    const out = new Map<string, string>();
+    for (const c of t.typography.composites) {
+      const k = `${c.group}.${c.variant}`;
+      if (!out.has(k)) out.set(k, `${c.sizePx}/${c.sizeMinPx} ${Math.round((em.get(c.tracking) ?? NaN) * 1000) / 10}%`);
+    }
+    return out;
+  };
+  const REF_TABLE: Record<string, string> = {
+    'display.sm': '64/40 1%', 'display.md': '72/40 1%', 'display.lg': '80/40 1%', 'display.xl': '96/48 1%', 'display.2xl': '128/48 1%',
+    'title.2xs': '20/18 1%', 'title.xs': '24/20 1%', 'title.sm': '32/24 1%', 'title.md': '36/28 1%', 'title.lg': '40/32 1%', 'title.xl': '48/36 1%', 'title.2xl': '56/40 1%',
+    'body.xs': '12/12 1%', 'body.sm': '14/14 1%', 'body.md': '16/16 1%', 'body.lg': '18/18 1%',
+    'label.sm': '12/12 1%', 'label.md': '14/14 1%', 'label.lg': '18/18 1%',
+    'caption.md': '10/10 1%', 'caption.lg': '12/12 1%',
+    'eyebrow.sm': '12/12 2%', 'eyebrow.md': '14/14 2%', 'eyebrow.lg': '20/18 2%',
+    'code.inline': '14/14 0%',
+  };
+  const diff = (got: Map<string, string>, want: Record<string, string>): string[] => [
+    ...Object.entries(want).filter(([k, v]) => got.get(k) !== v).map(([k, v]) => `${k}: ${got.get(k) ?? 'missing'} ≠ ${v}`),
+    ...[...got.keys()].filter((k) => !(k in want)).map((k) => `${k}: not in the table`),
+  ];
+  // (a) The redesign seed. It also carries the stored input's sizeFloor 8, so caption.xs 8 ships.
+  const seed = exampleTheme('nb-redesign', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input));
+  if (seed) {
+    const bad = diff(table(seed), { ...REF_TABLE, 'caption.xs': '8/8 1%' });
+    ok(bad.length === 0, `#3077 the reference brand's redesign seed builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+  }
+  // (b) The stored brand input (the copy above) with the same patch: what Apply Theme writes into its Figma file.
+  const patched = structuredClone(NB_MASTER) as any;
+  Object.assign(patched.typography, {
+    titleFloor: 16,
+    sizes: { ...patched.typography.sizes, title: { ...patched.typography.sizes.title, '2xs': 20 }, caption: { md: 10 } },
+    sizeOverrides: { title: { ...patched.typography.sizeOverrides.title, '2xs': { mobile: 18 } } },
+    tracking: { display: 'open', title: 'open', body: 'open', caption: 'open', label: 'open' },
+    trackingShift: { eyebrow: -1 },
+  });
+  {
+    const bad = diff(table(brandTheme(patched)), REF_TABLE);
+    ok(bad.length === 0, `#3077 the reference brand's stored input, patched, builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+  }
+  // (c) The legacy fixture: engine-default sizes (no 20px title.2xs: its title.xs is 18), the decided caption md and
+  // the decided letter spacing per text type.
+  {
+    const nb = nbTheme();
+    const em = new Map(nb.typography.letterSpacings.map((l) => [l.key, l.em]));
+    const WANT: Record<string, string> = { display: 'open 1%', title: 'open 1%', body: 'open 1%', label: 'open 1%', caption: 'open 1%', eyebrow: 'wide 2%', code: 'normal 0%' };
+    const bad = nb.typography.composites.filter((c) => `${c.tracking} ${Math.round((em.get(c.tracking) ?? NaN) * 1000) / 10}%` !== WANT[c.group]).map((c) => `${c.path}: ${c.tracking}`);
+    const caps = [...new Set(nb.typography.composites.filter((c) => c.group === 'caption').map((c) => `${c.variant}=${c.sizePx}`))].join(',');
+    ok(bad.length === 0 && caps === 'md=10,lg=12', `#3077 the legacy fixture: caption md 10 / lg 12 and the decided letter spacing per text type (caption ${caps}; ${bad.slice(0, 3).join(' | ') || 'tracking as decided'})`);
+  }
+  // (d) Every other brand is as it was: the default letter spacing by text type and size, and caption md 11 / lg 12.
+  // The default rungs are written here (display tight below 96px and tighter from 96px, title snug, eyebrow wider,
+  // the rest normal), not read from the engine.
+  for (const [id, build] of [
+    ['prism3', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input)],
+    ['aurora', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
+    ['harbor', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input)],
+    ['wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
+  ] as const) {
+    const t = exampleTheme(id, build);
+    if (!t) continue;
+    const want = (g: string, px: number) => g === 'display' ? (px >= 96 ? 'tighter' : 'tight') : g === 'title' ? 'snug' : g === 'eyebrow' ? 'wider' : 'normal';
+    const bad = t.typography.composites.filter((c) => c.tracking !== want(c.group, c.sizePx)).map((c) => `${c.path}: ${c.tracking}`);
+    const caps = [...new Set(t.typography.composites.filter((c) => c.group === 'caption' && (c.variant === 'md' || c.variant === 'lg')).map((c) => `${c.variant}=${c.sizePx}`))].join(',');
+    ok(bad.length === 0 && caps === 'md=11,lg=12', `#3077 ${id} is unmoved: default letter spacing by text type and size, caption md 11 / lg 12 (caption ${caps}; ${bad.slice(0, 3).join(' | ') || 'tracking default'})`);
+  }
+}
 
 // ---- #1354 (owner, 2026-09-28): THE LIGHT OFF TRACK + THE `state icon` BOOLEAN ------------------------
 //
@@ -32292,11 +32714,12 @@ arm: {
 // still fails by name and is looked at, which is the "ideally they do" half.
 {
   const FAMILIES = [button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral];
-  const METHODS = ['overlay-neutral', 'solid-tint', 'none'] as const;
+  const METHODS = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'] as const;
   // What each method binds on a quiet hover/pressed container — hand-written, the #1608 table read as a rule.
   const BINDS: Record<typeof METHODS[number], RegExp | null> = {
     'overlay-neutral': /^color\/(inverse\/)?interactive\/[a-z0-9-]+\/overlay\/(hover|pressed)$/,
     'solid-tint': /^color\/(inverse\/)?interactive\/[a-z0-9-]+\/subtle-fill\/(hover|pressed)$/,
+    'opaque-fill': /^color\/(inverse\/)?interactive\/[a-z0-9-]+\/hover-fill\/(hover|pressed)$/,   // #3071
     'none': null,
   };
   const TEXT_FLOOR = 4.5;   // WCAG 1.4.3, the label
@@ -32304,14 +32727,14 @@ arm: {
   // The members per brand × method: button ×3 at 2 quiet appearances × 2 states × 2 surfaces × 3 sizes × 4
   // icon-slot fills (96), icon-button ×3 at 2 × 2 × 2 × 3 sizes × 2 shapes (48). Half on each surface.
   const MEMBERS = 3 * 96 + 3 * 48;
-  // The measured CELLS (member × mode × ink) per family × surface × ink kind × state, across the 2 methods
-  // that paint a fill. 41 brand-modes: 10 corpus brands × 4 modes, plus the NB master's 1. A button family
-  // has 24 quiet members per surface per state, each with one label (24 × 41 × 2 = 1,968 text cells) and,
-  // over its 4 icon-slot fills, 24 glyphs between them (1,968 glyph cells). An icon-button family has 12
-  // per surface per state, each one glyph and no label (984). Literal, so a family, a surface or an ink kind
-  // that stops projecting fails here by name rather than shrinking a total that is still above zero.
-  const BUTTON_CELLS = 1968;
-  const ICON_BUTTON_GLYPH_CELLS = 984;
+  // The measured CELLS (member × mode × ink) per family × surface × ink kind × state, across the 3 methods
+  // that paint a fill (`opaque-fill` joined with #3071). 41 brand-modes: 10 corpus brands × 4 modes, plus the NB
+  // master's 1. A button family has 24 quiet members per surface per state, each with one label (24 × 41 × 3 =
+  // 2,952 text cells) and, over its 4 icon-slot fills, 24 glyphs between them (2,952 glyph cells). An icon-button
+  // family has 12 per surface per state, each one glyph and no label (1,476). Literal, so a family, a surface or an
+  // ink kind that stops projecting fails here by name rather than shrinking a total that is still above zero.
+  const BUTTON_CELLS = 2952;
+  const ICON_BUTTON_GLYPH_CELLS = 1476;
   // Every held pressed cell: `brand method mode fill-role kind` → its exact ratio, 2 dp.
   const HELD_PRESSED: Record<string, number> = {
     'aurora solid-tint light inverse.interactive.destructive.subtle-fill.pressed glyph': 4.11,
@@ -32507,6 +32930,208 @@ arm: {
     `#1387 no quiet pressed label or glyph falls under ${TEXT_FLOOR}:1 outside the held register — a new cell is a regression or a new held case for the owner (${newPressed.length}${newPressed.length ? `: ${newPressed.slice(0, 4).join('; ')}` : ''})`);
   ok(stalePressed.length === 0,
     `#1387 every held quiet pressed cell still measures exactly as pinned — a moved or cleared entry means the register is stale (${stalePressed.length}${stalePressed.length ? `: ${stalePressed.slice(0, 4).join('; ')}` : ''})`);
+}
+
+// ---- #3071: THE OPAQUE OUTLINE HOVER FILL (owner Q824 A; the proposal's option B) --------------------------------
+// `outlineInteraction: 'opaque-fill'` adds `interactive.<c>.hover-fill.{hover,pressed}` and `inverse.` twins, an opaque
+// palette step under an outline or text control's own label and icon, and measures and clamps those inks on it.
+// ORACLES (docs/34), none read off the subject: every ratio below is WCAG contrast computed HERE from the emitted hexes;
+// each bar is the ink's own per-mode `min` (4.5:1, 7:1 in high contrast), the floor that ink already carries on the page;
+// the reference brand's steps are literals from the owner's decision; the twelve brand-dependent paths are spelled;
+// and "unchanged" is read off the committed emission and off the same brand under its own method.
+//   (A) EVERY PAIR ON ITS FILL — every corpus brand forced to the method, the reference brand as it ships and its
+//       redesign seed, in every mode, on the page and the band, every column, hover and pressed, label and icon.
+//       Represented, not counted: each brand × mode × ground cell is named in an expected set.
+//   (B) THE CLAMP — a pick dark enough that the derived ink fails on it moves the ink to the NEAREST step of its own
+//       ramp that clears (#1510's walk): the step one back toward the original fails, and the ink names the fill as
+//       its second pair. BY-NAME MUTATION: drop the clamp in `modes.ts` → (B) fails.
+//   (C) THE REFERENCE BRAND — hover `neutral.050` and pressed `neutral.100` on the light page, in the committed DTCG and
+//       Figma emission (its legacy fixture) and in its redesign seed.
+//   (D) UNCHANGED WITHOUT IT — no other emitted brand carries the family, or a second pair naming it; and the method
+//       only adds: every other role of a corpus brand is identical to its resolution at the neutral wash (which the
+//       method keeps), an ink differing only by its second pair, or by a clamp its wash-default value needed.
+//   (E) NOT GUARANTEED — the baseline's guaranteed set holds no `hover-fill` path; its brand-dependent set holds
+//       exactly the twelve the reference brand emits.
+//   (F) REFUSED, BY NAME — a generate-only mode, an unknown step, an override aimed at the fill; and the step setting
+//       under another method is ignored with a note, not refused.
+{
+  const GROUNDS_3071 = [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'band']] as const;
+  const STATES_3071 = ['hover', 'pressed'] as const;
+  const ratio3071 = (a: string, b: string) => contrast(hexToRgb(a), hexToRgb(b));
+  const seed3071 = exampleTheme('nb-redesign (#3071 seed)', () => brandTheme(readExampleBrand('./examples/nb-redesign.design.md')));
+  const rows3071: { id: string; theme: Theme }[] = [
+    ...corpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme: { ...theme, outlineInteraction: 'opaque-fill' as const } })),
+    ...(seed3071 ? [{ id: 'nb-redesign', theme: seed3071 }] : []),
+  ];
+  // (A)
+  const low: string[] = [];
+  const seen = new Set<string>();
+  const expected = new Set<string>();
+  let pairs = 0;
+  for (const { id, theme } of rows3071) {
+    const columns = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
+    for (const m of resolveAllModes(theme)) for (const [g, groundKey, groundName] of GROUNDS_3071) {
+      expected.add(`${id} ${m.mode} ${groundName}`);
+      const ground = m.roles[groundKey];
+      for (const c of columns) {
+        if (!m.roles[`${g}interactive.${c}.fill.rest`]) continue;
+        for (const st of STATES_3071) {
+          const fill = m.roles[`${g}interactive.${c}.hover-fill.${st}`];
+          if (!fill) { low.push(`${id} ${m.mode} ${g}${c}.${st}: no hover-fill role`); continue; }
+          if (fill.alpha !== undefined || fill.hex.toLowerCase() === ground.hex.toLowerCase())
+            low.push(`${id} ${m.mode} ${g}${c}.${st}: fill ${fill.hex}${fill.alpha !== undefined ? ` at alpha ${fill.alpha}` : ''} is not an opaque fill distinct from ${groundKey} ${ground.hex}`);
+          for (const part of ['text', 'icon']) {
+            const ink = m.roles[`${g}interactive.${c}.${part}.${st}`];
+            if (!ink) { low.push(`${id} ${m.mode} ${g}${c}.${part}.${st}: no ink`); continue; }
+            pairs++;
+            seen.add(`${id} ${m.mode} ${groundName}`);
+            const r = ratio3071(ink.hex, fill.hex);
+            if (r < ink.min - 0.01) low.push(`${id} ${m.mode} ${g}${c}.${part}.${st} ${r.toFixed(2)}:1 on ${fill.path.split('.').slice(-2).join('.')} < ${ink.min}:1`);
+          }
+        }
+      }
+    }
+  }
+  const unseen = [...expected].filter((k) => !seen.has(k));
+  ok(rows3071.length === 11 && unseen.length === 0 && low.length === 0,
+    `#3071 (A) every outline/text label and icon clears its own floor on its opaque hover and pressed fill — ${rows3071.length} brands (10 corpus + the redesign seed), every mode, page and band, ${pairs} pairs${unseen.length ? ` — NOT REPRESENTED: ${unseen.slice(0, 4).join('; ')}` : ''}${low.length ? ` — BELOW (${low.length}): ${low.slice(0, 4).join('; ')}` : ''}`);
+
+  // (B) A pick the derived ink cannot clear: the first neutral step, walking darker on the light page, on which the
+  // default resolution's primary hover label misses its floor. Found HERE from the default resolution.
+  {
+    const base = nbTheme();
+    const def = resolveAllModes({ ...base, outlineInteraction: 'overlay-neutral' }).find((m) => m.mode === 'light')!.roles;
+    const ink0 = def['interactive.primary.text.hover'];
+    const neutral = base.palettes.find((p) => p.palette === base.roleToPalette.neutral)!.steps;
+    const pick = neutral.find((s) => s.num > 50 && contrast(hexToRgb(ink0.hex), s.rgb) < ink0.min);
+    const clamped = pick ? resolveAllModes({ ...base, outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: `${base.roleToPalette.neutral}.${pick.key}` } } })
+      .find((m) => m.mode === 'light')!.roles : undefined;
+    const ink = clamped?.['interactive.primary.text.hover'];
+    const fill = clamped?.['interactive.primary.hover-fill.hover'];
+    const [pal, from] = ink0.path.split('.').slice(-2);
+    const ramp = base.palettes.find((p) => p.palette === pal)!.steps;
+    const at = ink ? ramp.findIndex((s) => s.key === ink.path.split('.').pop()) : -1;
+    const i0 = ramp.findIndex((s) => s.key === from);
+    const back = at >= 0 ? ramp[at + (at > i0 ? -1 : 1)] : undefined;
+    ok(!!pick && !!ink && !!fill && ink.path !== ink0.path && ratio3071(ink.hex, fill.hex) >= ink.min
+      && !!back && at !== i0 && contrast(back.rgb, hexToRgb(fill.hex)) < ink.min
+      && ink.alsoAgainst?.against === 'interactive.primary.hover-fill.hover' && ink.alsoAgainst.min === ink.min,
+      `#3071 (B) a fill the label misses on clamps the label to the nearest step of its own ramp that clears (pick ${pick?.key}: ${ink0.path.split('.').slice(-2).join('.')} → ${ink?.path.split('.').slice(-2).join('.')}, ${ink && fill ? ratio3071(ink.hex, fill.hex).toFixed(2) : '?'}:1 ≥ ${ink0.min}:1; one step back ${back ? contrast(back.rgb, hexToRgb(fill!.hex)).toFixed(2) : '?'}:1), and names the fill as its second pair`);
+  }
+
+  // (B2) A pick so far toward the ink that no step clears both pairs (a mid gray, chosen HERE as the neutral step nearest
+  // 4:1 on the page) never trades the page pair for the fill: every ink still clears its own floor on its own ground,
+  // and each miss on the fill is a warning naming the fill. BY-NAME MUTATION: drop `clears`' page half → (B2) fails.
+  {
+    const base = nbTheme();
+    const neutral = base.palettes.find((p) => p.palette === base.roleToPalette.neutral)!.steps;
+    const white = hexToRgb('#ffffff');
+    const mid = neutral.reduce((a, b) => (Math.abs(contrast(b.rgb, white) - 4) < Math.abs(contrast(a.rgb, white) - 4) ? b : a));
+    const modes = resolveAllModes({ ...base, outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: `${base.roleToPalette.neutral}.${mid.key}` }, dark: { hover: `${base.roleToPalette.neutral}.${mid.key}` } } });
+    const broke: string[] = [];
+    let misses = 0, unconfessed = 0;
+    for (const m of modes) for (const [k, r] of Object.entries(m.roles)) {
+      if (!/^(inverse\.)?interactive\.[^.]+\.(text|icon)\.(hover|pressed)$/.test(k)) continue;
+      const own = m.roles[r.against];
+      if (own && ratio3071(r.hex, own.hex) < r.min - 0.01) broke.push(`${m.mode} ${k} ${ratio3071(r.hex, own.hex).toFixed(2)}:1 on ${r.against}`);
+      const fill = r.alsoAgainst ? m.roles[r.alsoAgainst.against] : undefined;
+      if (fill && ratio3071(r.hex, fill.hex) < r.min - 0.01) {
+        misses++;
+        if (!(m.warnings ?? []).some((w) => w.role === k && w.against === r.alsoAgainst!.against)) unconfessed++;
+      }
+    }
+    ok(broke.length === 0 && misses > 0 && unconfessed === 0,
+      `#3071 (B2) a mid-gray pick (${mid.key}) keeps every outline ink on its own floor on its own ground, and names each of its ${misses} misses on the fill in a warning (${unconfessed} unnamed)${broke.length ? ` — PAGE PAIR BROKEN: ${broke.slice(0, 4).join('; ')}` : ''}`);
+  }
+
+  // (C) the owner's decision, as literals.
+  {
+    const want: Record<string, string> = { hover: '050', pressed: '100' };
+    const dtcg = JSON.parse(readFileSync(resolve(HERE, './out/nb.tokens.json'), 'utf8'));
+    const fig = JSON.parse(readFileSync(resolve(HERE, './out/figma/nb/color.light.json'), 'utf8')).variables as { name: string; alias?: { name: string } }[];
+    const seedLight = seed3071 ? resolveAllModes(seed3071).find((m) => m.mode === 'light')?.roles : undefined;
+    const wrong: string[] = [];
+    for (const c of ['primary', 'neutral', 'destructive']) for (const st of STATES_3071) {
+      const v = dtcg.nbds?.color?.interactive?.[c]?.['hover-fill']?.[st]?.$value;
+      if (v !== `{nbds.core.palette.neutral.${want[st]}}`) wrong.push(`DTCG ${c}.${st} ${v}`);
+      const a = fig.find((x) => x.name === `nbds/color/interactive/${c}/hover-fill/${st}`)?.alias?.name;
+      if (a !== `nbds/core/palette/neutral/${want[st]}`) wrong.push(`Figma ${c}/${st} ${a}`);
+      const sp = seedLight?.[`interactive.${c}.hover-fill.${st}`]?.path;
+      if (!sp?.endsWith(`.neutral.${want[st]}`)) wrong.push(`seed ${c}.${st} ${sp}`);
+    }
+    ok(wrong.length === 0, `#3071 (C) the reference brand's outline hover fill is neutral.050, pressed neutral.100, on the light page — committed DTCG, Figma light file, and the redesign seed${wrong.length ? ` — WRONG: ${wrong.slice(0, 4).join('; ')}` : ''}`);
+  }
+
+  // (D)
+  {
+    const leaks: string[] = [];
+    const brands = readdirSync(resolve(HERE, './out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', '')).filter((b) => b !== 'nb');
+    let files = 0;
+    for (const b of brands) {
+      const paths = [...readdirSync(resolve(HERE, './out')).filter((f) => f.startsWith(`${b}.`)).map((f) => `./out/${f}`),
+        ...(existsSync(resolve(HERE, `./out/figma/${b}`)) ? readdirSync(resolve(HERE, `./out/figma/${b}`)).map((f) => `./out/figma/${b}/${f}`) : [])];
+      for (const p of paths) { files++; if (readFileSync(resolve(HERE, p), 'utf8').includes('hover-fill')) leaks.push(p); }
+    }
+    ok(brands.length >= 4 && files >= 4 * 6 && leaks.length === 0,
+      `#3071 (D) no other emitted brand carries the opaque hover fill or a pair naming it — ${brands.length} brands, ${files} files${leaks.length ? ` — IN: ${leaks.join(', ')}` : ''}`);
+    const moved: string[] = [];
+    let compared = 0;
+    for (const { id, theme } of corpus()) {
+      // Against the brand at the neutral wash, which the method keeps: a `none` brand's semantic borders are measured
+      // over the washed ground only when a wash exists (`modes.ts`), so the wash, not this method, moves them.
+      const own = resolveAllModes({ ...theme, outlineInteraction: 'overlay-neutral' });
+      const opq = resolveAllModes({ ...theme, outlineInteraction: 'opaque-fill' });
+      own.forEach((m, mi) => {
+        const o = opq[mi].roles;
+        for (const [k, r] of Object.entries(m.roles)) {
+          compared++;
+          const q = o[k];
+          if (!q) { moved.push(`${id} ${m.mode} ${k} dropped`); continue; }
+          const ink = /^(inverse\.)?interactive\.([^.]+)\.(text|icon)\.(hover|pressed)$/.exec(k);
+          if (!ink) { if (JSON.stringify(q) !== JSON.stringify(r)) moved.push(`${id} ${m.mode} ${k}`); continue; }
+          const fillKey = `${ink[1] ?? ''}interactive.${ink[2]}.hover-fill.${ink[4]}`;
+          const { alsoAgainst, ...rest } = q;
+          if (alsoAgainst?.against !== fillKey) { moved.push(`${id} ${m.mode} ${k} names ${alsoAgainst?.against} as its second pair`); continue; }
+          if (JSON.stringify(rest) === JSON.stringify(r)) continue;
+          // A clamp its default value needed: the default ink misses its floor on the fill.
+          if (o[fillKey] && ratio3071(r.hex, o[fillKey].hex) < r.min) continue;
+          moved.push(`${id} ${m.mode} ${k} ${r.path} → ${q.path}`);
+        }
+        // What the method adds: its own family, and nothing else.
+        for (const k of Object.keys(o)) if (!(k in m.roles) && !/\.hover-fill\./.test(k)) moved.push(`${id} ${m.mode} ${k} added`);
+      });
+    }
+    ok(compared > 10000 && moved.length === 0,
+      `#3071 (D) the method only adds: every other role of every corpus brand is its resolution at the neutral wash — an ink differs only by its second pair, or by a clamp its wash-default value needed (${compared} roles compared${moved.length ? ` — MOVED: ${moved.slice(0, 4).join('; ')}` : ''})`);
+  }
+
+  // (E)
+  {
+    const base = readBaseline();
+    const spelled = ['', 'inverse.'].flatMap((g) => ['primary', 'neutral', 'destructive'].flatMap((c) => STATES_3071.map((st) => `color.${g}interactive.${c}.hover-fill.${st}`))).sort();
+    const guaranteed = Object.keys(base.guaranteed).filter((p) => p.includes('hover-fill'));
+    const dependent = base.brandDependent.filter((p) => p.includes('hover-fill')).sort();
+    ok(guaranteed.length === 0 && JSON.stringify(dependent) === JSON.stringify(spelled),
+      `#3071 (E) the opaque hover fill is brand-dependent: no guaranteed path, and exactly the twelve the reference brand emits (${guaranteed.length} guaranteed, ${dependent.length} brand-dependent)`);
+  }
+
+  // (F)
+  {
+    const input = readExampleBrand('./examples/harbor.design.md');
+    const refuses = (label: string, patch: Record<string, unknown>, re: RegExp, resolve = false): void => {
+      let msg = '';
+      try { const t = brandTheme({ ...input, ...patch } as BrandInput); if (resolve) resolveAllModes(t); } catch (e) { msg = (e as Error).message; }
+      ok(re.test(msg), `#3071 (F) refused: ${label} (${msg.slice(0, 120) || 'accepted'})`);
+    };
+    // Under another method the picks are kept and ignored, with a note, so every lever still varies on its own.
+    const ignored = brandTheme({ ...input, outlineHoverFill: { light: { hover: 'neutral.050' } } } as BrandInput);
+    ok(ignored.notes.some((n) => /^outlineHoverFill: set, and read only under outlineInteraction: opaque-fill/.test(n))
+      && !resolveAllModes(ignored).some((m) => Object.keys(m.roles).some((k) => k.includes('hover-fill'))),
+      '#3071 (F) outlineHoverFill under another method emits nothing and says so in a note');
+    refuses('a generate-only mode', { modes: ['light', 'hc-light'], outlineInteraction: 'opaque-fill', outlineHoverFill: { 'hc-light': { hover: 'neutral.050' } } }, /outlineHoverFill\.hc-light: .*generate-only/);
+    refuses('an unknown step', { outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: 'neutral.051' } } }, /outlineHoverFill\.light\.hover: 'neutral\.051' is not a palette step/, true);
+    refuses('an override on the fill', { outlineInteraction: 'opaque-fill', overrides: { light: { 'interactive.primary.hover-fill.hover': { palette: 'neutral', step: '100' } } } }, /'interactive\.primary\.hover-fill\.hover' is the opaque outline hover fill/, true);
+  }
 }
 
 // ---- #1348: THE RADIO DECOMPOSITION — five invariants, each pinned independently of the producer -----
@@ -33836,8 +34461,10 @@ arm: {
     ok(at('foreground.danger') < at('foreground.info') && at('foreground.info') < at('foreground.brand-subtle'),
       `#2860 ${brand}: foreground lists danger with the statuses, ahead of the subtle tints (#2836)`);
     const inkParts = def.filter((k) => k.startsWith('interactive.primary.')).map((k) => k.split('.')[2]).filter((p, i, a) => a.indexOf(p) === i);
-    ok(inkParts.join() === 'fill,on-fill,text,icon,border,overlay,subtle-fill',
-      `#2860 ${brand}: interactive runs fill, on-fill, text, icon, border, overlay, subtle-fill (got ${inkParts.join(', ')})`);
+    // #3071: an opaque-fill brand's `hover-fill` sits beside the wash it replaces.
+    const wantParts = ['fill', 'on-fill', 'text', 'icon', 'border', 'overlay', ...(BRAND_OPAQUE_FILL[brand] ? ['hover-fill'] : []), 'subtle-fill'];
+    ok(inkParts.join() === wantParts.join(),
+      `#2860 ${brand}: interactive runs ${wantParts.join(', ')} (got ${inkParts.join(', ')})`);
   }
 
   // The Figma creation order is the same sequence, in every mode file, and contiguous at every depth.
@@ -36607,6 +37234,95 @@ arm: {
   ok(emitBad.length === 0, `#3049 committed emission: the reference brand's raised surface is white in light and its card elsewhere; every other brand's equals its card in every mode${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
 }
 
+// ------------------------------------------------------------------- #3050: the scrim's strength
+// Owner decisions (2026-10-27, on #3050): a per-brand value lever, `scrimStrength: standard | strong` (Q3050.1 A,
+// Q3050.2 A). `standard`, the default, keeps the steps before the lever; `strong` is the EXISTING 80% step in light and
+// dark (Q825 B, replacing A's 75), with high contrast one step heavier where the ramp allows, so 90 in both. No step is
+// added, so no token name moves. EXPECTED is typed here, from the decision; ACTUAL is the resolved roles and the
+// committed emission, never `SCRIM_STEPS` (docs/34 shape 1: a gate built on the table it checks agrees with any bug).
+{
+  const EXPECTED: Record<'unset' | 'standard' | 'strong', Record<string, number>> = {
+    unset: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
+    standard: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
+    strong: { light: 80, dark: 80, 'hc-light': 90, 'hc-dark': 90 },
+  };
+  type V = keyof typeof EXPECTED;
+  const strip = (i: BrandInput): BrandInput => { const { scrimStrength: _drop, ...rest } = i as BrandInput & { scrimStrength?: string }; return rest as BrandInput; };
+  const withLever = (i: BrandInput, v: V): BrandInput => (v === 'unset' ? strip(i) : { ...strip(i), scrimStrength: v } as BrandInput);
+  const wendysIn = standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input;
+  const seedIn = readExampleBrand('./examples/nb-redesign.design.md');
+  const INPUTS: [string, BrandInput][] = [...EXAMPLE_IDS.map((ex) => [ex, exampleBrands()[ex] as BrandInput] as [string, BrandInput]), ['wendys', wendysIn], ['nb-redesign', seedIn]];
+  const themeFor = (name: string, v: V): Theme | undefined => name === 'nb'
+    ? (() => { const t = { ...nbTheme() } as Theme & { scrimStrength?: string }; if (v === 'unset') delete t.scrimStrength; else t.scrimStrength = v; return t as Theme; })()
+    : exampleTheme(`${name} (scrimStrength ${v})`, () => brandTheme(withLever(INPUTS.find(([n]) => n === name)![1], v)));
+  const NAMES = ['nb', ...INPUTS.map(([n]) => n)];
+  // THE STEP PER MODE, every brand × option × mode: the alias names `black-alpha.<step>`, the role is black, and its
+  // alpha is the step, so the swatch a UI renders and the token a consumer resolves say the same thing.
+  const bad: Record<V, string[]> = { unset: [], standard: [], strong: [] };
+  const cells: Record<V, number> = { unset: 0, standard: 0, strong: 0 };
+  for (const name of NAMES) for (const v of Object.keys(EXPECTED) as V[]) {
+    const th = themeFor(name, v);
+    if (!th) continue;
+    for (const M of resolveAllModes(th)) {
+      const want = EXPECTED[v][M.mode];
+      if (want === undefined) continue;   // a custom mode is not in the decision's table
+      const r = (M.roles as Record<string, { path: string; hex: string; alpha?: number } | undefined>)['scrim.default'];
+      cells[v]++;
+      const at = `${name}/${M.mode}`;
+      if (!r) { bad[v].push(`${at}: scrim.default UNRESOLVED`); continue; }
+      if (r.path !== `${th.namespace}.black-alpha.${want}` || r.hex.toLowerCase() !== '#000000' || r.alpha !== want / 100)
+        bad[v].push(`${at}: ${r.path} ${r.hex} alpha ${r.alpha}, want black-alpha.${want}`);
+    }
+  }
+  // Six brands carry the four modes; the redesign seed ships light alone, so it adds one cell per option.
+  const minCells = (NAMES.length - 1) * 4 + 1;
+  ok(cells.unset >= minCells && bad.unset.length === 0,
+    `#3050 scrim unset: scrim.default holds black-alpha 40 light / 60 dark / 60 hc-light / 70 hc-dark in every brand (${cells.unset} cells${bad.unset.length ? `; WRONG: ${bad.unset.slice(0, 4).join('; ')}` : ''})`);
+  ok(cells.standard >= minCells && bad.standard.length === 0,
+    `#3050 scrim standard: scrim.default holds black-alpha 40 / 60 / 60 / 70 in every brand (${cells.standard} cells${bad.standard.length ? `; WRONG: ${bad.standard.slice(0, 4).join('; ')}` : ''})`);
+  ok(cells.strong >= minCells && bad.strong.length === 0,
+    `#3050 scrim strong: scrim.default holds black-alpha 80 light / 80 dark / 90 hc-light / 90 hc-dark in every brand (${cells.strong} cells${bad.strong.length ? `; WRONG: ${bad.strong.slice(0, 4).join('; ')}` : ''})`);
+
+  // NO TOKEN NAME MOVES (Q825 B): `strong` aliases an existing step, so a brand's emitted names are the same set under
+  // either option, and the only leaf whose value differs is `color.scrim.default`.
+  {
+    const leaves = (o: any, pre = '', out: Map<string, string> = new Map()): Map<string, string> => {
+      for (const [k, v] of Object.entries(o ?? {})) {
+        if (k.startsWith('$')) continue;
+        const p = pre ? `${pre}.${k}` : k;
+        if (v && typeof v === 'object' && '$value' in (v as object)) out.set(p, JSON.stringify([(v as any).$value, (v as any).$extensions?.prism3?.modes]));
+        else if (v && typeof v === 'object') leaves(v, p, out);
+      }
+      return out;
+    };
+    const base = exampleBrands()['prism3'] as BrandInput;
+    const std = leaves(buildTree(brandTheme(withLever(base, 'standard'))).tree);
+    const str = leaves(buildTree(brandTheme(withLever(base, 'strong'))).tree);
+    const namesSame = std.size === str.size && [...std.keys()].every((k) => str.has(k));
+    const moved = [...std.keys()].filter((k) => str.get(k) !== std.get(k));
+    ok(std.size > 500 && namesSame && moved.length === 1 && moved[0].endsWith('.color.scrim.default'),
+      `#3050 no new token names: standard and strong emit the same ${std.size} names, and only color.scrim.default changes value (moved: ${moved.join(', ') || 'none'})`);
+  }
+
+  // THE REFERENCE BRAND IS STRONG in both inputs, and the committed emission shows it; every other committed brand
+  // leaves the lever unset, so its emission holds today's steps (byte-identical: `regen --check` holds the artifacts).
+  ok((nbTheme() as Theme & { scrimStrength?: string }).scrimStrength === 'strong' && (seedIn as BrandInput & { scrimStrength?: string }).scrimStrength === 'strong',
+    `#3050: the reference brand's legacy fixture and its redesign seed design.md both set scrimStrength: strong`);
+  const emitBad: string[] = [];
+  for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
+    const t = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const root = Object.keys(t)[0];
+    const sc = t[root]?.color?.scrim?.default;
+    const modeVal = (n: any, m: string): string | undefined => m === 'light' ? n?.$value : n?.$extensions?.prism3?.modes?.[m]?.$value ?? n?.$value;
+    for (const m of ['light', 'dark', 'hc-light', 'hc-dark']) {
+      const want = `{${root}.core.palette.black-alpha.${EXPECTED[b === 'nb' ? 'strong' : 'unset'][m]}}`;
+      const got = modeVal(sc, m);
+      if (got !== want) emitBad.push(`${b}/${m}: ${got} ≠ ${want}`);
+    }
+  }
+  ok(emitBad.length === 0, `#3050 committed emission: the reference brand's scrim is 80 / 80 / 90 / 90, every other brand's 40 / 60 / 60 / 70${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
+}
+
 // ------------------------------------------------------------------- #3073: brand glass roles
 // Owner decisions (2026-10-27, on #3073): Prism3 ships one glass role, `color.glass.surface` (white 70%), and a brand
 // adds its own as `color.glass.<name>` through the `glassRoles` lever (Q806, Q807 A). Each names a palette color, or a
@@ -37085,6 +37801,58 @@ arm: {
   });
   ok(underBad.length === 0,
     `#2888 search-field underline plan: under Underline every member binds none / none / hairline (thick at focus) / none and no inline padding, so the search glyph sits at the line's start${underBad.length ? ` — WRONG on ${underBad.length}: ${planComponentName(underBad[0])}` : ''}`);
+}
+
+// ------------------------------------------------------------------- #2343 PR 4: the Card number field
+// Each decision held against a literal (#2429's recommendations, taken as a block, Q-B10 A): 84 members, TextField's
+// token block plus exactly the tile's three height keys (20 / 20 / 24, #2429 §2), the tile at the box's trailing edge in
+// place of TextField's trailing glyph (Q7 a), built shown and starting at the generic tile (Q10 a; the owner's generic
+// artwork, 2026-10-27), and the panel. That the tile is never retinted is `lint-mark-colors.ts`'s; that the slot takes
+// card networks' tiles only is `lint-mark-slots.ts`'s. EXPECTED is typed here; ACTUAL is the def and its projected plans.
+{
+  const cf = cardNumberField;
+  const cfPlans = figmaAnatomySet(cf, { swapTarget: 'FPO-default-icon' });
+  type PN = { name: string; type: string; children: PN[]; visible?: boolean; visibleProp?: string; swapTarget?: string; fixedPaint?: true; aspectLock?: true; descendantFills?: string; bound?: Record<string, string> };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : (n.children ?? []).map((c) => find(c, name)).find(Boolean));
+  ok(cfPlans.length === 84, `#2343 PR 4 card-number-field: size(3) × status(4) × state(7) = 84 members, TextField's count (got ${cfPlans.length})`);
+  const own = Object.fromEntries(Object.entries(cf.tokens).filter(([k]) => !(k in textField.tokens)));
+  const lost = Object.keys(textField.tokens).filter((k) => cf.tokens[k] !== textField.tokens[k]);
+  ok(lost.length === 0 && JSON.stringify(own) === JSON.stringify({ 'size.small.mark-height': 'icon.size.sm', 'size.medium.mark-height': 'icon.size.sm', 'size.large.mark-height': 'icon.size.md' }),
+    `#2343 PR 4 field factory: the Card number field binds TextField's token block key for key, plus the tile's height at 20 / 20 / 24 and nothing else (added ${JSON.stringify(own)}; differs ${JSON.stringify(lost)})`);
+  // ON EVERY MEMBER: the box holds the value row, the tile and the ring, and no trailing glyph; the tile is built shown,
+  // starts at the generic tile, is a swap behind the card mark switch, and keeps its own paint under the aspect lock.
+  const memberBad = cfPlans.filter((p) => {
+    const r = p.root as PN, ctl = find(r, 'control'), tile = find(r, 'cardMark');
+    const focus = String((p.coord as Record<string, string>).state).startsWith('focus-visible');
+    return JSON.stringify((ctl?.children ?? []).map((c) => c.name)) !== JSON.stringify(focus ? ['content', 'cardMark', 'focusRing'] : ['content', 'cardMark'])
+      || find(r, 'trailingVisual') !== undefined
+      || tile?.type !== 'INSTANCE_SWAP' || tile.visible === false || tile.visibleProp !== 'card mark'
+      || !/^brand-mark\/[a-z]+\/generic$/.test(tile.swapTarget ?? '') || tile.fixedPaint !== true || tile.aspectLock !== true || tile.descendantFills !== undefined;
+  });
+  ok(memberBad.length === 0,
+    `#2343 PR 4 card-number-field members: the generic tile at the box's trailing edge, shown, behind the card mark switch, fixed-paint and aspect-locked, and no trailing glyph, on all 84${memberBad.length ? ` — WRONG on ${memberBad.length}: ${planComponentName(memberBad[0])}` : ''}`);
+  // THE PANEL, in order, each default typed here, the tile's swap starting at a generic tile.
+  const props = planSetProperties(cfPlans).map((p: any) => `${p.name}:${p.type}:${String(p.default ?? p.swapTarget).replace(/^brand-mark\/[a-z]+\//, 'brand-mark/<tiles>/')}`);
+  const WANT_PROPS = ['placeholder:TEXT:Placeholder', 'value:TEXT:1234 5678 9012 3456', 'leading icon:BOOLEAN:false', '↳ swap leading icon:INSTANCE_SWAP:FPO-default-icon',
+    'card mark:BOOLEAN:true', '↳ swap card mark:INSTANCE_SWAP:brand-mark/<tiles>/generic', 'message:BOOLEAN:false'];
+  ok(JSON.stringify(props) === JSON.stringify(WANT_PROPS),
+    `#2343 PR 4 card-number-field panel: the card mark switch on and its swap at the generic tile, under the value, the leading glyph hidden, the message off (got ${JSON.stringify(props)})`);
+  // THE CODE PROP: generic first, and the tile's presence on.
+  ok(cf.props.find((p) => p.name === 'brand')?.default === 'generic' && cf.props.find((p) => p.name === 'showCardMark')?.default === true
+    && !cf.props.some((p) => p.name === 'trailingIcon' || p.name === 'clearable'),
+    '#2343 PR 4 card-number-field props: brand defaults to generic, showCardMark to true, and there is no trailing glyph or clear action');
+  // THE FACTORY refuses a mark edge with no tile, and a tile on another edge.
+  const threw = (spec: Record<string, unknown>): boolean => { try { makeTextField({ ...(spec as any) }); return false; } catch (e) { return /'mark' is required with edge 'mark'/.test((e as Error).message); } };
+  ok(threw({ id: 'x', edge: 'mark', props: [], codeOnly: [] }) && threw({ id: 'x', edge: 'trailing-glyph', mark: { start: 'payment/generic' }, props: [], codeOnly: [] }),
+    '#2343 PR 4 field factory: edge mark without a start tile, and a start tile on another edge, are refused by name');
+  // A FIXED-PAINT SLOT'S DEFAULT IS A MARK: an icon name there throws at projection, naming the mark vocabulary.
+  const iconOnTile = JSON.parse(JSON.stringify(cf)) as ComponentDef; iconOnTile.anatomy!.parts.cardMark.swapDefault = 'check';
+  let tileThrew = '';
+  try { figmaAnatomySet(iconOnTile, { swapTarget: 'FPO-default-icon' }); } catch (e) { tileThrew = (e as Error).message; }
+  ok(/names mark 'check', which is not in the brand-mark vocabulary/.test(tileThrew),
+    `#2343 PR 4: a fixed-paint slot that starts at an icon throws at projection, naming the mark vocabulary (got ${tileThrew.slice(0, 120) || 'no throw'})`);
+  ok(!(textField.composition?.planned ?? []).includes('card-number-field') && (cf.composition?.alternativeTo ?? []).includes('text-field'),
+    '#2343 PR 4: the Card number field names TextField as its alternative');
 }
 
 // ------------------------------------------------------------------- #2738: the fields' nested label dims with them

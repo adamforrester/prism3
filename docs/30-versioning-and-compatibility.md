@@ -333,6 +333,19 @@ the baseline's `brandDependent`, and `token-contract --check` reads level `none`
 brand glass role binds a name only that brand emits, so an engine def binds `glass.surface` or nothing.
 `test.ts` holds the guaranteed set's glass group to `color.glass.surface` alone.
 
+#### Decided (2026-10-27, #3071): the opaque outline hover fill is brand-dependent
+
+`outlineInteraction: opaque-fill` (owner Q824 A, the proposal's option B) adds an opaque hover and pressed fill
+for outline and text controls, `color.interactive.<color>.hover-fill.{hover,pressed}` and the
+`color.inverse.interactive.<color>.hover-fill.*` twins, beside the wash, which stays emitted for the controls that
+keep it. The family exists only for a brand that sets the method, so it is `brandDependent`: setting or unsetting
+it never moves `CONTRACT_VERSION`. The reference brand sets it; its twelve paths are listed in the baseline's
+`brandDependent`, and `token-contract --check` reads level `none`. The method also moves VALUES on existing paths,
+which docs/30 does not version: the outline label and icon (`interactive.<color>.{text,icon}.{hover,pressed}`) are
+clamped along their own ramp where they miss their floor on the fill. An engine def binds the outline overlay ref;
+`applyOutlineInteraction` rebinds it on Button, Icon button and Flush icon button only, so no def binds a
+`hover-fill` name directly. `test.ts` ("#3071 (E)") holds the guaranteed set free of the family.
+
 ### The spacing tokens leave the size tier (14.0.0, the spacing model)
 
 The owner's spacing model (`docs/28` §5.4, 2026-09-29) removes the shared size scale's spacing:

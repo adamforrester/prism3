@@ -239,9 +239,22 @@
     },
     "outlineInteraction": {
       "type": "string",
-      "enum": ["overlay-neutral", "solid-tint", "none"],
+      "enum": ["overlay-neutral", "solid-tint", "opaque-fill", "none"],
       "default": "overlay-neutral",
-      "description": "OPTIONAL. How an outline/text interactive control expresses hover/pressed/selected (docs/20 §10). 'overlay-neutral' (default): generate translucent `interactive.<color>.overlay.*` washes that composite over any surface (each is contrast-verified on the composited result). 'solid-tint': use opaque `foreground.<color>-subtle` surfaces instead — no overlays. 'none': no hover expression, no overlays."
+      "description": "OPTIONAL. How an outline/text interactive control expresses hover/pressed/selected (docs/20 §10). 'overlay-neutral' (default): generate translucent `interactive.<color>.overlay.*` washes that composite over any surface (each is contrast-verified on the composited result). 'solid-tint': use opaque `foreground.<color>-subtle` surfaces instead — no overlays. 'opaque-fill' (#3071): an opaque palette step per state, `interactive.<color>.hover-fill.{hover,pressed}` and `inverse.` twins, picked by `outlineHoverFill` (or the default rule), on Button, Icon button and Flush icon button; the label and icon are measured and clamped on it; the washes are still emitted for Tag, Segmented control and Pagination. Brand-dependent roles. 'none': no hover expression, no overlays."
+    },
+    "outlineHoverFill": {
+      "type": "object",
+      "description": "OPTIONAL. The opaque outline hover fill's page step per editable mode (#3071): `{ light: { hover: neutral.050 } }`. Read only under `outlineInteraction: opaque-fill`, and ignored with a note under another method. The editable modes are light, dark and a custom mode. `hover` is a palette step; `pressed` defaults to the next step toward the ink. Unnamed modes, the generate-only modes and every inverse band take the default rule: the neutral step nearest 1.15:1 against the ground, pressed the next step.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["hover"],
+        "properties": {
+          "hover": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[0-9]+$" },
+          "pressed": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[0-9]+$" }
+        }
+      }
     },
     "neutralEmphasis": {
       "type": "string",
@@ -254,6 +267,12 @@
       "enum": ["card", "page", "white"],
       "default": "card",
       "description": "OPTIONAL. The raised surface (#3049): what `color.foreground.raised`, the panel a dialog or sheet draws over the scrim, holds in light and hc-light. 'card' (default): the card surface, `foreground.primary`. 'page': the page, `background.primary`. 'white': pure white. Dark and hc-dark always take the card surface, so a dialog keeps its lift there."
+    },
+    "scrimStrength": {
+      "type": "string",
+      "enum": ["standard", "strong"],
+      "default": "standard",
+      "description": "OPTIONAL. The scrim's strength (#3050): which `black-alpha` step `color.scrim.default`, the backdrop behind a dialog or sheet, aliases in each mode. 'standard' (default): 40% light, 60% dark, 60% hc-light, 70% hc-dark. 'strong': 80% light and dark, 90% hc-light and hc-dark. No token name changes."
     },
     "glassRoles": {
       "type": "object",
@@ -268,6 +287,12 @@
           "alpha": { "type": "integer", "minimum": 1, "maximum": 99 }
         }
       }
+    },
+    "radioDot": {
+      "type": "integer",
+      "enum": [50, 60, 70, 80],
+      "default": 50,
+      "description": "OPTIONAL. The radio dot (#3086): the checked radio's dot as a share of the radio's box edge, in percent, at sm, md and lg alike. 50 (default) is half the edge. Snapped to the 2px sub-grid and never wider than the box minus its 2px ring. It moves the value of `control.size.{sm,md,lg}.dot` only, which list bullets and the badge dot also bind; no token is added."
     },
     "strictInteractiveContrast": {
       "type": "boolean",
@@ -399,11 +424,12 @@
         "sizes": {
           "type": "object",
           "additionalProperties": false,
-          "description": "OPTIONAL. Per-size DESKTOP overrides for the heading groups — the baseline counterpart of modeLevers.<mode>.typeSizes, and the desktop-endpoint counterpart of typography.sizeOverrides. Heading groups ONLY; body/label/caption/code are REJECTED. Absolute px applied after the typeScale shift (a pin does not travel with the scale; a collision is rejected). Deep-validated by brandTheme() (rung exists; ladder step; clears the group floor; merged ramp strictly increasing). Omit for none.",
+          "description": "OPTIONAL. Per-size DESKTOP overrides for the heading groups, plus caption at the brand level (#3077). The baseline counterpart of modeLevers.<mode>.typeSizes, and the desktop-endpoint counterpart of typography.sizeOverrides. body/label/code are REJECTED. Absolute px applied after the typeScale shift (a pin does not travel with the scale; a collision is rejected). Deep-validated by brandTheme() (rung exists; ladder step; clears the group floor; merged ramp strictly increasing). Omit for none.",
           "properties": {
             "display": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 32 }, "description": "OPTIONAL. Display sizes by rung name (e.g. { \"3xl\": 144 }). Floor 32px." },
             "title": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 16 }, "description": "OPTIONAL. Title sizes by rung name (e.g. { \"2xl\": 56 }). Floor 16px." },
-            "eyebrow": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 11 }, "description": "OPTIONAL. Eyebrow sizes by rung name (e.g. { \"lg\": 24 }). Floor 11px." }
+            "eyebrow": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 11 }, "description": "OPTIONAL. Eyebrow sizes by rung name (e.g. { \"lg\": 24 }). Floor 11px." },
+            "caption": { "type": "object", "additionalProperties": false, "properties": { "md": { "type": "integer", "minimum": 10 }, "lg": { "type": "integer", "minimum": 10 } }, "description": "OPTIONAL. Caption sizes, md and lg (e.g. { \"md\": 10 }). Brand level only: one static size, the same in every mode and viewport (sizeOverrides and modeLevers typeSizes stay heading-only). On the size ladder, floor 10px, ramp strictly increasing. caption.xs and caption.sm are pinned by sizeFloor and captionFloor." }
           }
         },
         "sizeOverrides": {
@@ -488,6 +514,12 @@
           "additionalProperties": false,
           "properties": { "display": { "type": "integer", "minimum": -5, "maximum": 5 }, "title": { "type": "integer", "minimum": -5, "maximum": 5 }, "body": { "type": "integer", "minimum": -5, "maximum": 5 }, "label": { "type": "integer", "minimum": -5, "maximum": 5 }, "caption": { "type": "integer", "minimum": -5, "maximum": 5 }, "eyebrow": { "type": "integer", "minimum": -5, "maximum": 5 }, "code": { "type": "integer", "minimum": -5, "maximum": 5 } },
           "description": "Per-group TRACKING nudge, in rungs. Same contract as `leadingShift`; positive = wider. Default 0."
+        },
+        "tracking": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "display": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "title": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "body": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "label": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "caption": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "eyebrow": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "code": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] } },
+          "description": "OPTIONAL. Per-text-type letter spacing PIN (#3077): every style in the text type uses this one letter spacing role. It replaces the size-derived role and its trackingShift nudge; any of the nine roles, open included. Other text types keep the derive and nudge. The role still resolves through letterSpacings and each mode's re-points. Omit for none."
         }
       }
     },

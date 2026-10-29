@@ -64,6 +64,11 @@ import { ComponentDef, PartDef, PropDef } from '../component-schema';
  * The Search field (#2888) adds three more, each spreading nothing when absent: `leading` and `trailing` start the glyph
  * slots at a named glyph (and `leading` may build its glyph shown), and `labelSwitch` puts the nested label behind a
  * Figma-only `label` switch.
+ * The Card number field (#2343 PR 4, #2429) adds a third edge:
+ *   · `mark` — the box's trailing slot is a PAYMENT TILE, not a glyph: card-shaped (the tile's own proportion, through
+ *     `aspectLock`), as tall as the icon rung (`size.{size}.mark-height`, the field's only added keys), keeping the
+ *     mark's own colors (`fixedPaint`: no host ink, the provider's rule), and starting at the brand-mark the caller
+ *     names (`mark.start`, the generic tile). Its presence is the `card mark` switch, built shown.
  * Everything else a field says about itself (props, the code-only list, accessibility, docs, the agent fields)
  * is the caller's, because that is where two fields differ. `test.ts` pins that TextField is byte-identical to
  * the def it was before the factory, and that the two outputs share the token block exactly.
@@ -72,7 +77,9 @@ export type FieldSpec = Pick<ComponentDef, 'id' | 'name' | 'summary' | 'descript
   aliases: string[];
   props: PropDef[];
   /** The field's edge action — see the factory's header. */
-  edge: 'trailing-glyph' | 'toggle';
+  edge: 'trailing-glyph' | 'toggle' | 'mark';
+  /** `edge: 'mark'` only (#2343 PR 4): the brand-mark the tile slot starts at, by its name in the mark set. */
+  mark?: { start: string };
   /** The `value` text's Figma default, the copy the filled members show. */
   valueDefault: string;
   codeOnly: string[];
@@ -85,6 +92,8 @@ export type FieldSpec = Pick<ComponentDef, 'id' | 'name' | 'summary' | 'descript
 
 export const makeTextField = (spec: FieldSpec): ComponentDef => {
   const toggle = spec.edge === 'toggle';
+  const markEdge = spec.edge === 'mark';
+  if (markEdge !== (spec.mark !== undefined)) throw new Error(`makeTextField(${spec.id}): 'mark' is required with edge 'mark' and refused with any other edge`);
   // The Search field's switches (#2888). Each spreads nothing when absent, so TextField and the Password field are
   // byte-identical to the defs they were before (`test.ts`).
   const leadingStart = spec.leading ? { swapDefault: spec.leading.glyph } : {};
@@ -320,6 +329,13 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
     'size.large.gap': 'space.100',
     'size.large.type': 'type.body.lg.default',
     'size.large.caret-height': 'control.size.lg.line-box',
+    // THE TILE'S HEIGHT (`edge: 'mark'` only, #2429 §2): the icon rung, 20 at small and medium and 24 at large, so the
+    // tile is 32×20 or about 38×24 and never taller than the value line. The width follows the tile's proportion.
+    ...(markEdge ? {
+      'size.small.mark-height': 'icon.size.sm',
+      'size.medium.mark-height': 'icon.size.sm',
+      'size.large.mark-height': 'icon.size.md',
+    } : {}),
   },
 
   // ── ANATOMY (#1494) — a column composing the two nested field parts around the input control ─────
@@ -458,7 +474,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         // slot-aware asymmetry; both inline sides fall back to the label inset.
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
         gap: 'size.{size}.gap',
-        children: toggle ? ['content', 'focusRing'] : ['content', 'trailingVisual', 'focusRing'],
+        children: toggle ? ['content', 'focusRing'] : markEdge ? ['content', 'cardMark', 'focusRing'] : ['content', 'trailingVisual', 'focusRing'],
       },
       // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
       // and `layoutGrow` in Figma, `flex: 1` in code, so the trailing affix sits at the trailing edge.
@@ -542,7 +558,25 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
       // (see codeOnly).
       // The Password field has no trailing slot: its action sits outside the box (Q301.2 B), so nothing is left to
       // sit at the box's trailing edge, and a second reveal glyph has nowhere to go.
-      ...(toggle ? {} : {
+      // THE PAYMENT TILE (`edge: 'mark'` only, #2343 PR 4, #2429 Q6 and Q10 A): the box's trailing cell holds a brand
+      // mark instead of a glyph. A swap, so a designer sets the detected network in place; it starts at the generic tile
+      // (the owner's "no card type yet" artwork) and the plugin builds that mark first. Card-shaped: the slot binds the
+      // height alone and both executors lock the instance to its own component's proportion (`aspectLock`), so the
+      // tile is never squared. Never retinted: `fixedPaint` keeps the host's icon ink off every vector inside it, at
+      // every state, disabled included. The tile's corners and edge are the brand-mark component's own (Q720 A).
+      ...(markEdge ? {
+      cardMark: {
+        kind: 'slot',
+        optional: true,
+        height: 'size.{size}.mark-height',
+        aspectLock: true,
+        fixedPaint: true,
+        nesting: { kind: 'swap' },
+        swapDefault: spec.mark!.start,
+        note: 'The card network\'s tile at the trailing edge, in its own colors: the generic tile until the network is known, then that network\'s. As tall as an icon, with the tile\'s own proportion. Decorative; the network is stated in text.',
+      },
+      } satisfies Record<string, PartDef> : {}),
+      ...(toggle || markEdge ? {} : {
       trailingVisual: {
         kind: 'slot',
         optional: true,
@@ -614,7 +648,9 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
       // the label in the accessibility tree where the switch removes it from the member (the case is in `codeOnly`).
       ...(spec.labelSwitch ? { showLabel: { part: 'label', figmaName: 'label', default: true, figmaOnly: true } } : {}),
       leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: spec.leading?.shown ?? false },
-      ...(toggle ? {} : { trailingIcon: { part: 'trailingVisual', figmaName: 'trailing icon', default: false } }),
+      ...(toggle || markEdge ? {} : { trailingIcon: { part: 'trailingVisual', figmaName: 'trailing icon', default: false } }),
+      // The tile's presence (`edge: 'mark'`), built shown: the field shows the generic tile before it knows the network.
+      ...(markEdge ? { showCardMark: { part: 'cardMark', figmaName: 'card mark', default: true } } : {}),
       showMessage: { part: 'message', figmaName: 'message', default: false },
     },
     // The two glyphs' CONTENT — orthogonal to their presence booleans above. `figmaName` gives each the canon
@@ -622,7 +658,8 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
     // Figma properties each: a presence boolean and a content swap).
     swaps: {
       leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' },
-      ...(toggle ? {} : { trailingIcon: { part: 'trailingVisual', figmaName: '↳ swap trailing icon' } }),
+      ...(toggle || markEdge ? {} : { trailingIcon: { part: 'trailingVisual', figmaName: '↳ swap trailing icon' } }),
+      ...(markEdge ? { brand: { part: 'cardMark', figmaName: '↳ swap card mark' } } : {}),
     },
   },
 

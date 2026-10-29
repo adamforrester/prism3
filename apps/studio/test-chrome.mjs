@@ -266,6 +266,8 @@
  *     APPROVED sub-headings; the floor's APPROVED info text (QA-B6); the icon contrast block's info text, Interactive's
  *     Icons description (QA-I10). All literal.
  *   · SCRIM (QA-B10): its own lever section and preview section, its copy APPROVED, the scrim row not in Background fills.
+ *     Since #3050 the section is Scrim strength's block: Standard / Strong write `scrimStrength`, and the row reads
+ *     out the step each gives (the copy a DRAFT).
  *   · FIELDS (#2016, Q80): a preview section on the page, and an edit in the levers' Fields reveals it (QA-B9's rule).
  *   · #1971 (Q81): Background with no badge, every other section with its badges (Foreground's since GR2, the owner,
  *     2026-10-04: each bold fill's badge prints its emitted hex against the emitted floor); Q23 pairs for
@@ -815,7 +817,7 @@ const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-h
  *  controls, for the previewed mode (owner decision Q22). */
 const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor-pick"]',
   '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="surface-secondary-pick"]', '[data-p3="surface-tertiary-pick"]',
-  '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
+  '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="raised-surface-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
   '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="glass-role-add"]', '[data-p3="fills-continue"]'];
@@ -948,6 +950,11 @@ if (MODE === 'run') assertBundleFresh({ repo: REPO, bundle: 'apps/plugin/dist/ui
   effect: 'the figma host would test the old UI', build: 'npm run -w @prism3/plugin build' });
 if (MODE === 'run') assertBundleFresh({ repo: REPO, bundle: 'apps/studio/dist/main.js', roots: STUDIO_SOURCE_ROOTS, label: 'main.js freshness',
   effect: 'the web host would test the old UI', build: 'npm run -w @prism3/studio build' });
+/** The vendored icon set (#3083), read as text from `src/shell/icons/tabler.ts`: each icon's name and its path list, in
+ *  order. Parsed here, not imported, so the glyph arms hold the drawn DOM to the file and share no code with `dom.ts`. */
+const TABLER_SET = new Map([...readFileSync(join(STUDIO, 'src/shell/icons/tabler.ts'), 'utf8').matchAll(/^  '([a-z0-9-]+)': \[(.*)\],$/gm)]
+  .map(([, name, list]) => [name, [...list.matchAll(/'([^']*)'/g)].map((m) => m[1])]));
+if (MODE === 'run' && TABLER_SET.size < 20) { console.error(`✗ src/shell/icons/tabler.ts parsed to ${TABLER_SET.size} icons; the glyph arms need the vendored set`); process.exit(1); }
 const FIGMA = {
   light: { cls: 'figma-light', vars: { '--figma-color-bg': '#ffffff', '--figma-color-text': '#000000e5' } },
   dark: { cls: 'figma-dark', vars: { '--figma-color-bg': '#2c2c2c', '--figma-color-text': '#ffffff' } },
@@ -1757,39 +1764,101 @@ if (runs('1')) for (const host of ['web', 'figma']) {
         const want = Q2995_3_B.map(([, name, icon]) => ({ name: `Appearance: ${name}`, tip: `Appearance: ${name}`, icon }));
         ok(JSON.stringify(looks) === JSON.stringify(want),
           `rail ${where}: Appearance draws the current choice's glyph by name, its name and tooltip the choice (Q2995.3 B): ${Q2995_3_B.map(([, n, g], k) => `${n} wants ${g}, drew ${looks[k]?.icon} ("${looks[k]?.name}")`).join('; ')}`);
-        ok(rl.labels.length === ORDER.length && rl.labels.every(Boolean), `rail ${where}: every tile shows its label, at this width too (Q2909.16 A) (${JSON.stringify(rl.labels)})`);
-        // Q732 A (the owner, 2026-10-26): no manual hyphen in a rail label; "Components" and "Appearance" read whole. Any
-        // hyphen, dash or soft hyphen counts. MUTATION: `Compo-nents` back in `pages.ts` → this arm, by name, on both hosts.
-        const hyphened = rl.texts.filter((t) => t === null || /[-\u00ad\u2010\u2011]/.test(t));
-        ok(hyphened.length === 0 && rl.texts.includes('Components') && rl.texts.includes('Appearance'),
-          `rail ${where}: no rail label contains a hyphen, "Components" and "Appearance" whole (Q732 A) (${JSON.stringify(rl.texts)})`);
+        // #3083 (the owner, 2026-10-28): the foot's Minimize, Help and Appearance show no label, so the labeled tiles are the
+        // areas alone. Literal, from the decision: the foot's tiles by hook, never read from `dom.ts`'s bare class.
+        const BARE = web ? ['docs-open', 'theme-toggle'] : ['agent-minimize', 'docs-open', 'theme-toggle'];
+        const labeled = rl.order.map((o, i) => [o, i]).filter(([o]) => !BARE.includes(o)).map(([, i]) => i);
+        ok(labeled.length === ORDER.length - BARE.length && labeled.every((i) => rl.labels[i]), `rail ${where}: every area tile shows its label, at this width too (Q2909.16 A) (${JSON.stringify(labeled.map((i) => [rl.order[i], rl.labels[i]]))})`);
+        // Q732 A (the owner, 2026-10-26): no manual hyphen in a rail label; "Components" reads whole ("Appearance" shows no
+        // label since #3083). Any hyphen, dash or soft hyphen counts. MUTATION: `Compo-nents` back in `pages.ts` → this arm, by name, on both hosts.
+        const hyphened = labeled.map((i) => rl.texts[i]).filter((t) => t === null || /[-\u00ad\u2010\u2011]/.test(t));
+        ok(hyphened.length === 0 && rl.texts.includes('Components'),
+          `rail ${where}: no rail label contains a hyphen, "Components" whole (Q732 A) (${JSON.stringify(rl.texts)})`);
+        // #3083 (the owner, 2026-10-28): the rail's foot tiles, Minimize (plugin), Help and Appearance, draw their icon alone.
+        // Each shows no label and no other visible text, keeps its accessible name and a tooltip in the same words (shown on
+        // hover), stays a target of 24 × 24 or more (the floor, a literal), and centers its icon in the tile. The names are
+        // written here from the decision. Read as drawn: the tile's own visible text, its box and its icon's box, then the
+        // tooltip under a real hover. MUTATION: `tile('theme-toggle', null)` back to `tile('theme-toggle', label)` in
+        // `frame.ts` → this arm, by name, at every width and theme on both hosts.
+        const FOOT_NAMES = { 'agent-minimize': /^Minimize$/, 'docs-open': /^Help$/, 'theme-toggle': /^Appearance: / }, HIT_FLOOR = 24;
+        const bare = [];
+        for (const hk of BARE) {
+          const sel = `[data-p3="rail-foot"] [data-p3="${hk}"]`;
+          const read = () => page.evaluate((q) => {
+            const t = document.querySelector(q);
+            if (!t) return null;
+            const b = t.getBoundingClientRect(), ic = t.querySelector('.p3-tile-mark svg')?.getBoundingClientRect();
+            const tip = t.querySelector('.p3-tile-tip');
+            const shownText = [...t.querySelectorAll('*')].filter((n) => n !== tip && !tip?.contains(n) && n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden')
+              .map((n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join('')).join('').trim();
+            return { name: t.getAttribute('aria-label'), text: shownText, own: [...t.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join('').trim(),
+              w: b.width, h: b.height, dx: ic ? (ic.left + ic.width / 2) - (b.left + b.width / 2) : null, dy: ic ? (ic.top + ic.height / 2) - (b.top + b.height / 2) : null,
+              tip: tip?.textContent ?? null, tipShown: !!tip && tip.getClientRects().length > 0 && getComputedStyle(tip).display !== 'none' };
+          }, sel);
+          const at = await read();
+          await page.locator(sel).hover();
+          const hov = await read();
+          await page.mouse.move(w - 1, h - 1);
+          bare.push({ hk, ...at, tipOnHover: hov?.tipShown ?? false, tipHover: hov?.tip ?? null });
+        }
+        const badBare = bare.filter((b) => b.name === undefined || !FOOT_NAMES[b.hk].test(b.name ?? '') || b.text !== '' || b.own !== ''
+          || b.tip !== b.name || !b.tipOnHover || b.tipHover !== b.name || b.w < HIT_FLOOR || b.h < HIT_FLOOR
+          || b.dx === null || Math.abs(b.dx) > 0.5 || Math.abs(b.dy) > 0.5);
+        ok(bare.length === BARE.length && badBare.length === 0,
+          `#3083 rail ${where}: ${web ? 'Help and Appearance' : 'Minimize, Help and Appearance'} show no visible label, keep their accessible name and a tooltip in the same words, stay at least ${HIT_FLOOR} × ${HIT_FLOOR}, and center their icon (${JSON.stringify(badBare.length ? badBare : bare.map((b) => `${b.hk} ${b.w}×${b.h}`))})`);
         // The rail polish (the owner's hands-on look, 2026-10-26, #2909). Literals, from the owner's words, never read from
         // `chrome.css` or the token map. MUTATIONS, each failing its arm by name: the label rule's `font-size` back to
         // `--p3-fs-12` → `… every rail label renders at 9px …`; its `letter-spacing` dropped → `… at -0.01em …`; the icon rule
         // dropped → `… every rail icon renders 24 × 24 …`; the mark's `height` back to `min-height: ctl-h-xs` → `… inside a square mark …`.
         const RAIL_LABEL_PX = 9, RAIL_LABEL_EM = -0.01, RAIL_ICON = 24;
-        const badLabel = rl.geo.filter((g) => g.fs !== `${RAIL_LABEL_PX}px`);
-        ok(rl.geo.length === ORDER.length && badLabel.length === 0, `rail ${where}: every rail label renders at ${RAIL_LABEL_PX}px (${badLabel.map((g) => `${g.hook} ${g.fs}`).join(', ') || 'all'})`);
+        // The label arms read the labeled tiles (#3083: the foot's draw none); the icon and mark arms read every tile.
+        const geoL = rl.geo.filter((g) => !BARE.includes(g.hook));
+        const badLabel = geoL.filter((g) => g.fs !== `${RAIL_LABEL_PX}px`);
+        ok(geoL.length === ORDER.length - BARE.length && badLabel.length === 0, `rail ${where}: every rail label renders at ${RAIL_LABEL_PX}px (${badLabel.map((g) => `${g.hook} ${g.fs}`).join(', ') || 'all'})`);
         // A computed `normal` reads as NaN, which compares false: so a value that is not a number fails, rather than passes.
-        const badTrack = rl.geo.filter((g) => { const em = parseFloat(g.ls) / parseFloat(g.fs); return !Number.isFinite(em) || Math.abs(em - RAIL_LABEL_EM) > 0.0005; });
-        ok(rl.geo.length === ORDER.length && badTrack.length === 0, `rail ${where}: every rail label tracks at ${RAIL_LABEL_EM}em (${badTrack.map((g) => `${g.hook} ${g.ls}`).join(', ') || 'all'})`);
+        const badTrack = geoL.filter((g) => { const em = parseFloat(g.ls) / parseFloat(g.fs); return !Number.isFinite(em) || Math.abs(em - RAIL_LABEL_EM) > 0.0005; });
+        ok(geoL.length === ORDER.length - BARE.length && badTrack.length === 0, `rail ${where}: every rail label tracks at ${RAIL_LABEL_EM}em (${badTrack.map((g) => `${g.hook} ${g.ls}`).join(', ') || 'all'})`);
         const badIcon = rl.geo.filter((g) => !g.icon || Math.abs(g.icon.w - RAIL_ICON) > 0.5 || Math.abs(g.icon.h - RAIL_ICON) > 0.5);
         ok(rl.geo.length === ORDER.length && badIcon.length === 0, `rail ${where}: every rail icon renders ${RAIL_ICON} × ${RAIL_ICON} (${badIcon.map((g) => `${g.hook} ${g.icon?.w}×${g.icon?.h}`).join(', ') || 'all'})`);
         const badMark = rl.geo.filter((g) => !g.mark || !g.icon || Math.abs(g.mark.w - g.mark.h) > 0.5 || g.mark.w < RAIL_ICON
           || g.icon.l < g.mark.l - 0.5 || g.icon.r > g.mark.r + 0.5 || g.icon.t < g.mark.t - 0.5 || g.icon.b > g.mark.b + 0.5);
         ok(rl.geo.length === ORDER.length && badMark.length === 0, `rail ${where}: every rail icon sits inside a square mark, never a landscape one (${badMark.map((g) => `${g.hook} ${g.mark?.w}×${g.mark?.h}`).join(', ') || 'all'})`);
         // No label clips or wraps at 9px: one line (its box no taller than its line height), nothing scrolled, inside the rail.
-        const badFit = rl.geo.filter((g) => !g.label || g.label.h > g.lh + 0.5 || g.sw > g.cw || g.sh > g.ch + 0.5 || !rl.railBox || g.label.l < rl.railBox.l - 0.5 || g.label.r > rl.railBox.r + 0.5);
-        ok(rl.geo.length === ORDER.length && badFit.length === 0, `rail ${where}: every rail label fits on one line inside the rail, unclipped (${badFit.map((g) => `${g.hook} ${g.label?.w}×${g.label?.h} (line ${g.lh})`).join(', ') || 'all'})`);
+        const badFit = geoL.filter((g) => !g.label || g.label.h > g.lh + 0.5 || g.sw > g.cw || g.sh > g.ch + 0.5 || !rl.railBox || g.label.l < rl.railBox.l - 0.5 || g.label.r > rl.railBox.r + 0.5);
+        ok(geoL.length === ORDER.length - BARE.length && badFit.length === 0, `rail ${where}: every rail label fits on one line inside the rail, unclipped (${badFit.map((g) => `${g.hook} ${g.label?.w}×${g.label?.h} (line ${g.lh})`).join(', ') || 'all'})`);
+        // #3083, Q813 A (the owner picked Tabler, 2026-10-27): every glyph the chrome draws is a Tabler outline icon from the
+        // vendored set, and nothing else draws a glyph. THE ORACLE is `src/shell/icons/tabler.ts` read as text in Node
+        // (`TABLER_SET`), never `dom.ts`'s name map; THE SUBJECT is every <svg> in the document as drawn, its paths read
+        // back from the DOM. A glyph matches when its path list is one vendored icon's, exactly, in order. MUTATION: a hand
+        // path appended in `glyph()` (`dom.ts`) → `… every glyph is a vendored Tabler icon …`, by name.
+        const gl = await page.evaluate(() => [...document.querySelectorAll('svg')].map((s) => {
+          const ps = [...s.querySelectorAll('path')];
+          const cs = getComputedStyle(s), b = s.getBoundingClientRect();
+          return { cls: s.getAttribute('class'), glyph: s.dataset.glyph ?? null, icon: s.dataset.icon ?? null, vb: s.getAttribute('viewBox'),
+            other: s.querySelectorAll(':scope *:not(path)').length, ds: ps.map((n) => n.getAttribute('d')), w: b.width, shown: b.width > 0,
+            sw: ps.map((n) => getComputedStyle(n).strokeWidth), cap: cs.strokeLinecap, join: cs.strokeLinejoin, fill: cs.fill, stroke: cs.stroke, color: cs.color };
+        }));
+        const stray = gl.filter((g) => !(g.cls ?? '').split(/\s+/).includes('p3-ico') || g.vb !== '0 0 24 24' || g.other > 0 || !g.icon || !TABLER_SET.has(g.icon)
+          || JSON.stringify(TABLER_SET.get(g.icon)) !== JSON.stringify(g.ds));
+        ok(gl.length >= 5 && stray.length === 0, `glyphs ${where}: every glyph is a vendored Tabler icon, drawn as its paths and nothing else, on the 24 grid (#3083, Q813 A) (${gl.length} drawn${stray.length ? `; stray: ${stray.slice(0, 3).map((g) => `${g.glyph ?? g.cls} (${g.icon}) ${JSON.stringify(g.ds)}`).join(' | ')}` : ''})`);
+        // The line (Q813 A: "a lighter line, about 1.5px", Tabler at stroke 1.5): every glyph strokes 1.5 on its 24 grid in
+        // round caps and joins, its ink `currentColor`, no fill; so at the rail's 24px the line renders 1.5px. Literals from
+        // the decision. MUTATION: `stroke-width` back to Tabler's 2 in `glyph()` → both arms, by name.
+        const GLYPH_STROKE = 1.5;
+        const offLine = gl.filter((g) => g.sw.some((x) => x !== `${GLYPH_STROKE}px`) || g.cap !== 'round' || g.join !== 'round' || g.fill !== 'none' || g.stroke !== g.color);
+        ok(offLine.length === 0, `glyphs ${where}: every glyph strokes ${GLYPH_STROKE} on its 24 grid, round caps and joins, in currentColor, unfilled (${offLine.slice(0, 3).map((g) => `${g.glyph} ${g.sw.join('/')} ${g.cap}/${g.join} fill ${g.fill}`).join(' | ') || 'all'})`);
+        const railLine = gl.filter((g) => g.shown && Math.abs(g.w - RAIL_ICON) < 0.5).map((g) => ({ glyph: g.glyph, px: Math.round(parseFloat(g.sw[0]) * g.w / 24 * 1000) / 1000 }));
+        ok(railLine.length >= ORDER.length && railLine.every((x) => x.px === GLYPH_STROKE), `glyphs ${where}: at ${RAIL_ICON}px every glyph's line renders ${GLYPH_STROKE}px (${JSON.stringify(railLine)})`);
         // Theme's tab row (the owner, 2026-10-26): one step more on the spacing scale, `space.150` (12px) to `space.200`
         // (16px), wherever the row is drawn (wide; narrow it is a select). MUTATION: the gap back to `--p3-space-150` →
         // this arm, by name, at 1280 and 640 on both hosts.
         const tabGap = await page.evaluate(() => { const t = document.querySelector('[data-p3="frame"] .p3-nav .p3-tabs'); return t && t.getBoundingClientRect().width > 0 && getComputedStyle(t).display !== 'none' ? getComputedStyle(t).columnGap : null; });
         if (w > 560) ok(tabGap === '16px', `rail ${where}: the Theme tab row's gap is 16px, one step up from 12px (read ${tabGap})`);
         ok(rl.current === 'rail-theme' && hexOfRgb(rl.curBg) === RAIL_SELECTED[theme], `rail ${where}: Theme is the current area, its tile filled with the inset role (${RAIL_SELECTED[theme]}) (${rl.current}, ${rl.curBg})`);
-        // Q2995.2 A (#2909): at the plugin's least height (420) the logo hides so every tile keeps its label; elsewhere it shows.
-        // The web's rail (five tiles, Q2909.9 A) fits at 420 with its logo, so only the plugin's hides it there.
-        const logoWanted = h > 420 || web;
+        // Q2995.2 A (#2909): below the height the rail needs, the logo hides so every tile keeps its place; elsewhere it shows.
+        // The web's rail (five tiles, Q2909.9 A) fits at 420 with its logo, and since #3083's label-less foot (2026-10-28) the
+        // plugin's does too, so the logo shows at every size here. Its hide is held below 420 in section 2232.
+        const logoWanted = h >= 420 || web;
         ok(rl.mark.shown === logoWanted && rl.mark.role === 'img' && rl.mark.label === 'Prism3' && rl.mark.logoHidden && !rl.mark.control && rl.barMark === 0,
           `product mark ${where}: the rail's mark is the logo, named "Prism3", not a control, ${logoWanted ? 'drawn' : 'hidden at this height (Q2995.2 A)'}, and the top bar draws none (${JSON.stringify(rl.mark)}, ${rl.barMark} in the bar)`);
         // aria-current follows the area across clicks, and back.
@@ -2137,6 +2206,169 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
   await ctx.close();
 }
 } // 6
+
+// =============================================================================================
+// 6b. Search reaches every lever (#3093): its label, searched on its home, shows it there
+// =============================================================================================
+if (runs('6b')) console.log(`\nSearch reaches every lever (#3093)\n${'='.repeat(78)}`);
+/** #3093: a sample of the levers search must reach, typed here: each lever's key, its label as the issue names it,
+ *  and its home place (the owner's decisions, never read from `pages.ts`). Every Components settings block the issue
+ *  audits is here, Dialog surface first. The sweep below reads every lever from the manifest (`levers.ts`, committed
+ *  as `schema/lever-manifest.json`), so a new lever cannot be missed; this sample holds the labels themselves, so a
+ *  label the manifest renames, or a lever the manifest loses, fails by name here. */
+const SEARCH_SAMPLE = [
+  { key: 'raisedSurface', label: 'Dialog surface', place: 'components' },
+  { key: 'dialogTitleSize', label: 'Dialog title size', place: 'components' },
+  { key: 'fieldStyle', label: 'Field style', place: 'components' },
+  { key: 'searchFieldStyle', label: 'Search field style', place: 'components' },
+  { key: 'tagStyle', label: 'Tag style', place: 'components' },
+  { key: 'bannerStyle', label: 'Banner style', place: 'components' },
+  { key: 'controlShape', label: 'Control shape', place: 'components' },
+  { key: 'buttonIcons', label: 'Button icons', place: 'components' },
+  { key: 'density', label: 'Density', place: 'shape' },
+  { key: 'primary', label: 'Primary brand color', place: 'color-palettes' },
+  { key: 'motionPersonality.tempo', label: 'Motion tempo', place: 'depth' },
+];
+/** The hook rule, written here (read by section 12 too) (the `leverHook` contract: dots to dashes, camel case to kebab case). */
+const kebabHook = (k) => `lever-${k.replace(/\./g, '-').replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
+/** The issue's other words for Dialog surface: a word of its label, the label, a word of its description, its key. */
+const RAISED_QUERIES = ['dialog', 'dialog surface', 'white', 'raisedSurface'];
+/** The levers with no block of their own in the state the sweep opens on, each with the block that draws its control
+ *  and says its words (`alsoSays`, #2175): a search for the lever shows that block. Typed here, each by its reason. */
+const SEARCH_STANDS_IN = {
+  'neutral.anchor': 'neutral.hue',            // Pin a neutral: the Pinned choice in the neutral source, until pinned (#2175)
+  'typography.links': 'typography.weights',   // Underlined link styles: the weights table's Link column
+  'typography.italicDefault': 'typography.italics', // Italic-only text types: each text type's Only chip
+  'outlineHoverFill': 'outlineInteraction',   // Outline hover fill: drawn only under Opaque fill; Outline hover's description names it (#3071)
+};
+/** Every place a lever can live, in the tab row's order (`PLACE_CLICKS`, typed above). */
+const SEARCH_PLACES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
+if (runs('6b')) {
+const levers = manifest.levers.filter((l) => !l.deprecated);
+ok(levers.length >= 50 && SEARCH_SAMPLE.every((s) => levers.some((l) => l.key === s.key)), `#3093: the manifest lists the levers to sweep (${levers.length}) and every sampled key`);
+for (const s of SEARCH_SAMPLE) {
+  const got = levers.find((l) => l.key === s.key)?.label;
+  ok(got === s.label, `#3093: ${s.key}'s label is "${s.label}" (the manifest says "${got}")`);
+}
+ok(SEARCH_PLACES.every((p) => Object.hasOwn(PLACE_CLICKS, p)) && Object.keys(PLACE_CLICKS).every((p) => SEARCH_PLACES.includes(p)), `#3093: the sweep visits every place (${SEARCH_PLACES.join(', ')})`);
+const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+/** Search `q` on the page in view, and read whether each hook's lever block is shown in the levers pane. */
+const shows = async (q, hookIds) => {
+  await page.locator('[data-p3="search-input"]').fill(q);
+  return page.evaluate((hs) => Object.fromEntries(hs.map((hk) => {
+    const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${hk}"]`);
+    return [hk, !!n && n.getBoundingClientRect().height > 0];
+  })), hookIds);
+};
+/** Each lever's key → the places where searching its label shows its block. */
+const foundAt = new Map(levers.map((l) => [l.key, []]));
+for (const place of SEARCH_PLACES) {
+  await goPlace(page, place);
+  if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+  await hooks.need(page, '[data-p3="search-input"]');
+  for (const l of levers) {
+    const hk = kebabHook(SEARCH_STANDS_IN[l.key] ?? l.key);
+    if ((await shows(l.label, [hk]))[hk]) foundAt.get(l.key).push(place);
+  }
+  if (place === 'components') {
+    for (const q of RAISED_QUERIES) {
+      const r = await shows(q, ['lever-raised-surface']);
+      const status = await page.evaluate(() => document.querySelector('[data-p3="search-status"]')?.textContent ?? '');
+      ok(r['lever-raised-surface'] && /^\d+ settings? match/.test(status), `#3093: on Components, searching "${q}" shows Dialog surface (${JSON.stringify({ ...r, status })})`);
+    }
+  }
+  await page.locator('[data-p3="search-input"]').fill('');
+}
+for (const l of levers) {
+  const at = foundAt.get(l.key);
+  const via = SEARCH_STANDS_IN[l.key] ? ` (by ${SEARCH_STANDS_IN[l.key]}'s block, which draws its control)` : '';
+  ok(at.length === 1, `#3093: searching "${l.label}" shows ${l.key}'s lever${via} on one page, its home (shown on ${at.length ? at.join(', ') : 'no page'})`);
+}
+for (const s of SEARCH_SAMPLE) {
+  const at = foundAt.get(s.key) ?? [];
+  ok(at.length === 1 && at[0] === s.place, `#3093: searching "${s.label}" shows ${s.key} on ${s.place} (shown on ${at.length ? at.join(', ') : 'no page'})`);
+}
+// The re-filter (#3093 review): a block draws its levers anew after an edit or a mode change, and the page filters it
+// again (its `brand` and `mode` subscriptions). Searching "white" shows Dialog surface alone in Dialog options; an edit
+// to Dialog surface, then a mode change, must leave Dialog title size hidden.
+{
+  const DIALOG = ['lever-raised-surface', 'lever-dialog-title-size'];
+  await goPlace(page, 'components');
+  if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+  await hooks.need(page, '[data-p3="search-input"]');
+  const before = await shows('white', DIALOG);
+  const chip = page.locator('[data-p3="levers-pane"] [data-p3="lever-raised-surface"] [role="radio"][aria-checked="false"]').first();
+  const picked = await chip.getAttribute('data-value') ?? await chip.textContent();
+  await hooks.click(chip);
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="lever-raised-surface"]'));
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const read = () => page.evaluate((hs) => Object.fromEntries(hs.map((hk) => {
+    const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${hk}"]`);
+    return [hk, !!n && n.getBoundingClientRect().height > 0];
+  })), DIALOG);
+  const afterEdit = await read();
+  ok(before['lever-raised-surface'] && !before['lever-dialog-title-size'] && afterEdit['lever-raised-surface'] && !afterEdit['lever-dialog-title-size'],
+    `#3093: on Components, searching "white" then picking Dialog surface's "${String(picked).trim()}" keeps Dialog title size hidden (${JSON.stringify({ before, after: afterEdit })})`);
+  await pickMode(page, 'dark');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const afterMode = await read();
+  ok(afterMode['lever-raised-surface'] && !afterMode['lever-dialog-title-size'],
+    `#3093: on Components, searching "white" then changing the mode keeps Dialog title size hidden (${JSON.stringify({ before: afterEdit, after: afterMode })})`);
+  await page.locator('[data-p3="search-input"]').fill('');
+}
+ok(errors.length === 0, `#3093: the search sweep raised no page error (${errors.join(' | ')})`);
+await ctx.close();
+}
+
+// The Color row's link (#3093 part 2): Surfaces & fills draws the panel over the scrim, `foreground.raised`, read-only,
+// with a link to Dialog surface that opens its block in Components and focuses its checked chip.
+if (runs('6b')) {
+/** The link's words, typed (DRAFT on #3093): the lever's label after "Set by". */
+const RAISED_LINK = 'Set by Dialog surface';
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  await goPlace(page, 'color-fills');
+  const row = await page.evaluate(() => {
+    const r = document.querySelector('[data-p3="levers-pane"] [data-p3="raised-row"]');
+    const a = r?.querySelector('[data-p3="raised-surface-link"]');
+    return { role: r?.dataset.role ?? null, link: a?.textContent?.trim() ?? null, tag: a?.tagName ?? null, pickers: r ? r.querySelectorAll('[data-p3="fill-pick"]').length : null };
+  });
+  ok(row.role === 'foreground.raised' && row.link === RAISED_LINK && row.tag === 'BUTTON' && row.pickers === 0,
+    `#3093: ${host}: Color › Surfaces & fills draws foreground.raised read-only, its "${RAISED_LINK}" a link (${JSON.stringify(row)})`);
+  // The row's own search (#3094 review): it sits beside the Scrim block, not inside it, so a query that matches the row
+  // and not the block shows the row. Nested in the block, the hidden block hid it while the status still counted it.
+  if (host === 'web') {
+    if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
+    await hooks.need(page, '[data-p3="search-input"]');
+    const seen = async (q, hk) => {
+      await page.locator('[data-p3="search-input"]').fill(q);
+      return page.evaluate((k) => {
+        const n = document.querySelector(`[data-p3="levers-pane"] [data-p3="${k}"]`);
+        return { [k]: !!n && n.getBoundingClientRect().height > 0, status: document.querySelector('[data-p3="search-status"]')?.textContent ?? '' };
+      }, hk);
+    };
+    const dp = await seen('dialog panel', 'raised-row');
+    ok(dp['raised-row'] && /^1 setting match/.test(dp.status), `#3093: web: on Color › Surfaces & fills, searching "dialog panel" shows the Dialog panel row (${JSON.stringify(dp)})`);
+    const sc = await seen('scrim', 'scrim-strength-choice');
+    ok(sc['scrim-strength-choice'], `#3093: web: on Color › Surfaces & fills, searching "scrim" still shows the Scrim strength chips (${JSON.stringify(sc)})`);
+    await page.locator('[data-p3="search-input"]').fill('');
+  }
+  await hooks.click(page.locator('[data-p3="raised-surface-link"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
+  const home = await page.evaluate(() => {
+    const lv = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-raised-surface"]');
+    const f = document.activeElement;
+    const pane = document.querySelector('[data-p3="levers-pane"]')?.getBoundingClientRect();
+    const r = lv?.getBoundingClientRect();
+    return { shown: !!r && r.height > 0, inView: !!r && !!pane && r.top >= pane.top - 1 && r.top < pane.bottom,
+      focus: !!lv && lv.contains(f) && f.getAttribute('aria-checked') === 'true', toggle: document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]')?.getAttribute('aria-expanded') };
+  });
+  ok(home.shown && home.inView && home.focus && home.toggle === 'true',
+    `#3093: ${host}: the link opens Components › Dialog options, Dialog surface in view with its checked chip focused (${JSON.stringify(home)})`);
+  ok(errors.length === 0, `#3093: ${host}: the Color row's link raised no page error (${errors.join(' | ')})`);
+  await ctx.close();
+}
+} // 6b
 
 // =============================================================================================
 // 7. One home per page (V1): every place names its literal home, and nothing but a place change moves it
@@ -2740,14 +2972,20 @@ for (const host of ['web', 'figma']) {
         // to restore, never the same one. Read from the drawn SVG paths and measured here, not from `dom.ts`'s names: each
         // arrowhead is a three-point stroke whose corner is its tip; each shaft a two-point line. Inward: every tip lies
         // nearer the glyph's center than every shaft's far end reaches; outward: every tip lies at least as far out as the
-        // shafts reach. MUTATIONS: `glyph('restore')` for Minimize in `agent-link-ui.ts` → both arms, by name; the
-        // `collapse` path's heads moved to the outer corners in `dom.ts` → the direction arm, by name.
+        // shafts reach. Distances are from the glyph's own center, read from its viewBox (#3083: Tabler's 24 grid, center 12).
+        // MUTATIONS: `glyph('restore')` for Minimize in `agent-link-ui.ts` → both arms, by name; `collapse` mapped to
+        // `arrows-diagonal-2` in `dom.ts` (outward, on the other diagonal) → the direction arm, by name.
         const mirror = await page.evaluate(() => {
           const ds = (sel) => [...(document.querySelector(sel)?.querySelectorAll('svg.p3-ico path') ?? [])].map((n) => n.getAttribute('d') ?? '');
           const g = (sel) => [...(document.querySelector(sel)?.querySelectorAll('svg.p3-ico') ?? [])].map((n) => n.innerHTML).join('');
-          return { min: ds('[data-p3="agent-minimize"]'), restore: ds('[data-p3="agent-strip-restore"]'), minSvg: g('[data-p3="agent-minimize"]'), restoreSvg: g('[data-p3="agent-strip-restore"]') };
+          const vb = (sel) => document.querySelector(sel)?.querySelector('svg.p3-ico')?.getAttribute('viewBox') ?? '';
+          return { min: ds('[data-p3="agent-minimize"]'), restore: ds('[data-p3="agent-strip-restore"]'), minSvg: g('[data-p3="agent-minimize"]'), restoreSvg: g('[data-p3="agent-strip-restore"]'),
+            minVb: vb('[data-p3="agent-minimize"]'), restoreVb: vb('[data-p3="agent-strip-restore"]') };
         });
-        const reach = (paths) => {
+        const reach = (paths, viewBox) => {
+          const box = viewBox.split(/[\s,]+/).map(Number);
+          if (box.length !== 4 || box.some((n) => !Number.isFinite(n))) return null;
+          const cx = box[0] + box[2] / 2, cy = box[1] + box[3] / 2;
           // A path of absolute and relative M/L/H/V commands only, as the chrome's line glyphs are drawn; anything else
           // reads as unparsed (null), which fails.
           const subs = [];
@@ -2766,21 +3004,28 @@ for (const host of ['web', 'figma']) {
               cur?.push([x, y]);
             }
           }
-          const r = ([px, py]) => Math.hypot(px - 8, py - 8);
+          const r = ([px, py]) => Math.hypot(px - cx, py - cy);
           const tips = subs.filter((p) => p.length === 3).map((p) => r(p[1]));
           const shafts = subs.filter((p) => p.length === 2).map((p) => Math.max(r(p[0]), r(p[1])));
           const arms = subs.filter((p) => p.length === 3).flatMap((p) => [Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]), Math.hypot(p[2][0] - p[1][0], p[2][1] - p[1][1])]);
-          return tips.length >= 2 && shafts.length >= 2 ? { tips, shafts, arms } : null;
+          // Each shaft's diagonal: the sign of its run times its rise (negative: bottom-left to top-right on SVG's y-down grid).
+          const diag = subs.filter((p) => p.length === 2).map((p) => Math.sign((p[1][0] - p[0][0]) * (p[1][1] - p[0][1])));
+          return tips.length >= 2 && shafts.length >= 2 ? { tips, shafts, arms, diag } : null;
         };
-        const rm = reach(mirror.min), rr = reach(mirror.restore);
+        const rm = reach(mirror.min, mirror.minVb), rr = reach(mirror.restore, mirror.restoreVb);
         const inward = !!rm && Math.max(...rm.tips) < Math.min(...rm.shafts) - 1;
         const outward = !!rr && Math.min(...rr.tips) >= Math.max(...rr.shafts) - 0.5;
         // The review's nit (2026-10-27): an exact mirror, every arrowhead's arms on both glyphs the same length.
-        // MUTATION: Minimize's heads back to 3.5 long in `dom.ts` → this arm, by name.
+        // MUTATION: `arrows-diagonal-minimize-2`'s first head cut to 3.5 long in `icons/tabler.ts` → this arm, by name.
         const armsEq = !!rm && !!rr && [...rm.arms, ...rr.arms].every((a) => Math.abs(a - rr.arms[0]) < 0.01);
         ok(armsEq, `mirror ${where}: Minimize's and Restore's arrowheads have arms of one length, an exact mirror (Minimize ${JSON.stringify(rm?.arms)}, Restore ${JSON.stringify(rr?.arms)})`);
         ok(mirror.minSvg !== '' && mirror.restoreSvg !== '' && mirror.minSvg !== mirror.restoreSvg,
           `mirror ${where}: Minimize and the strip's Restore draw different glyphs, never the same one (the owner, 2026-10-26) (Minimize ${JSON.stringify(mirror.min)}, Restore ${JSON.stringify(mirror.restore)})`);
+        // #3083: Tabler draws Minimize on either diagonal (`arrows-diagonal-minimize`, `-2`); an exact mirror of Restore's
+        // `arrows-diagonal` keeps Restore's. MUTATION: `collapse` mapped to `arrows-diagonal-minimize` in `dom.ts` → this
+        // arm, by name.
+        const oneDiag = !!rm && !!rr && [...rm.diag, ...rr.diag].every((d) => d !== 0 && d === rr.diag[0]);
+        ok(oneDiag, `mirror ${where}: Minimize's arrows run on Restore's diagonal, an exact mirror (#3083) (Minimize ${JSON.stringify(rm?.diag)}, Restore ${JSON.stringify(rr?.diag)})`);
         ok(inward && outward,
           `mirror ${where}: Minimize's arrows point inward, to the center, and Restore's outward, to the corners (the owner, 2026-10-26) (Minimize tips ${JSON.stringify(rm?.tips)} vs shafts ${JSON.stringify(rm?.shafts)}; Restore tips ${JSON.stringify(rr?.tips)} vs shafts ${JSON.stringify(rr?.shafts)})`);
         await takeWrites(page);
@@ -2805,6 +3050,10 @@ for (const host of ['web', 'figma']) {
           return { drawn: !!st && !st.hidden && getComputedStyle(st).display !== 'none', rect: r ? [Math.round(r.width), Math.round(r.height)] : null,
             appDrawn: !!app && getComputedStyle(app).display !== 'none', text: t?.textContent ?? null, whole: !!t && t.scrollWidth <= t.clientWidth,
             restore: rs?.getAttribute('aria-label') ?? null, off: off?.textContent ?? null, focus: document.activeElement?.getAttribute('data-p3') ?? null,
+            // #3083: Restore, Minimize's counterpart, is its icon alone too: no text, its name as its tooltip, centered, over the floor.
+            restoreBare: (() => { if (!rs) return null; const b = rs.getBoundingClientRect(), ic = rs.querySelector('svg')?.getBoundingClientRect();
+              return { text: rs.textContent.trim(), tip: rs.getAttribute('title'), w: b.width, h: b.height,
+                dx: ic ? Math.abs((ic.left + ic.width / 2) - (b.left + b.width / 2)) : null, dy: ic ? Math.abs((ic.top + ic.height / 2) - (b.top + b.height / 2)) : null }; })(),
             inside: [box(t), box(rs), box(off)].every((b) => b && b[0] >= 0 && b[1] >= 0 && b[2] <= 480 && b[3] <= 40) };
         });
         const s1 = await stripState();
@@ -2814,6 +3063,9 @@ for (const host of ['web', 'figma']) {
           `#2949 ${where}: the strip reads "${LONGEST}", whole, every part inside the strip (${JSON.stringify({ text: s1.text, whole: s1.whole, inside: s1.inside })})`);
         ok(s1.restore === 'Restore' && s1.off === 'Turn off' && s1.focus === 'agent-strip-restore',
           `#2949 ${where}: the strip carries Restore and Turn off, and focus moves to Restore (${JSON.stringify({ restore: s1.restore, off: s1.off, focus: s1.focus })})`);
+        const rb = s1.restoreBare;
+        ok(!!rb && rb.text === '' && rb.tip === 'Restore' && rb.w >= 24 && rb.h >= 24 && rb.dx !== null && rb.dx <= 0.5 && rb.dy <= 0.5,
+          `#3083 ${where}: the strip's Restore, Minimize's counterpart, is its icon alone, centered, named and titled "Restore", at least 24 × 24 (${JSON.stringify(rb)})`);
         await shot('strip');
         await postMsg(page, { type: 'agent-started', id: 'm1', cmd: 'update-components' });
         await page.waitForFunction(() => /^Agent running/.test(document.querySelector('[data-p3="agent-strip-text"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
@@ -3006,6 +3258,29 @@ for (const host of ['web', 'figma']) {
           const landed = area === 'components' ? at.place === 'components' && at.levers && at.build === 0 : at.layout === 'page' && at.docs;
           ok(landed && px.length === 0, `${area} ${where}: the rail opens the ${area} area and writes nothing — ${JSON.stringify(at)}, posted ${JSON.stringify(px)}`);
         }
+        // #3128: a set the build queue posts that the host refuses (the plugin's run guard still held) gets no verdict.
+        // The run ends on the refusal: Update file is free again, the Build set row is not left running, and its result
+        // carries the host's words. Two sets ticked, the theme not; the first lands, the second is refused.
+        await openUpdate({ present: [], setUp: true });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+        await hooks.need(page, '[data-p3="update-set"]', WAIT);
+        await hooks.click(page.locator('[data-p3="update-set"]').nth(0), WAIT);
+        await hooks.click(page.locator('[data-p3="update-set"]').nth(1), WAIT);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+        const rfW1 = (await takeWrites(page)).map(keyOf);
+        await postMsg(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 1', summary: 'built', lines: ['built'] });
+        const rfW2 = (await takeWrites(page)).map(keyOf);
+        const REFUSED_WORDS = 'Build set is already running. Try again when it finishes.';
+        await postMsg(page, { type: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: REFUSED_WORDS });
+        await settle(page);
+        const rfU = await updBtn();
+        const rfC = (await drawerState(page)).ops['components'];
+        ok(JSON.stringify(rfW1) === '["build-components"]' && JSON.stringify(rfW2) === '["build-components"]' && !rfU.busy && rfC?.state !== 'running' && String(rfC?.summary ?? '').includes(REFUSED_WORDS),
+          `${where}: #3128: a set the host refuses ends the run: Update file is free and the Build set row stops, with the host's words (posted ${JSON.stringify(rfW1)} then ${JSON.stringify(rfW2)}, Update file ${JSON.stringify(rfU)}, row ${JSON.stringify(rfC ?? null)})`);
+        if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
         // #2830 Q2830.3 A: Documentation › Specs is a real control. Draw specs posts the panel's `draw-specs` (for the
         // current page; the host picks the page) and nothing else, reads as drawing until the host answers, and then shows
         // the host's verdict as its result line. The verdict is planted as the main thread posts one.
@@ -3293,8 +3568,6 @@ const PALETTES_LEVERS = [
   ['status.success', '[data-p3="lever-status-success"]', true], ['status.warning', '[data-p3="lever-status-warning"]', true],
   ['status.danger', '[data-p3="lever-status-danger"]', true], ['status.info', '[data-p3="lever-status-info"]', true],
 ];
-/** The hook rule, written here (the `leverHook` contract: dots to dashes, camel case to kebab case). */
-const kebabHook = (k) => `lever-${k.replace(/\./g, '-').replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
 if (runs('12')) {
 for (const [key, hook, adv] of PALETTES_LEVERS) {
   const lev = manifest.levers.find((l) => l.key === key);
@@ -4248,7 +4521,9 @@ const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', 
   // S4f (QA-I10): the Icon section's pairing control is the icon contrast lever's block, as Interactive drew it.
   ['iconContrast', '[data-p3="lever-icon-contrast"]'],
   // #3073: the Glass section is the glassRoles lever's block, holding the shipped glass read-only and the brand's own.
-  ['glassRoles', '[data-p3="lever-glass-roles"]']];
+  ['glassRoles', '[data-p3="lever-glass-roles"]'],
+  // #3050: the Scrim section is the scrimStrength lever's block, its chips above the scrim's read-only row.
+  ['scrimStrength', '[data-p3="lever-scrim-strength"]']];
 /** S4f (QA-B1): Background fills' rows, by the role each names: the three page tiers (Primary was "Page", QA-B3),
  *  the contrast floor (a setting, named by its input), and the inverse fill's three tiers. Literal. */
 const SURFACE_ROW_ROLES = ['background.primary', 'background.secondary', 'background.tertiary', 'surfaces.floorStep',
@@ -4296,8 +4571,9 @@ const ICON_ROW_ROLES = [...inks('icon'), ...SEM_INK.map((s) => `icon.on-${s}`), 
 /** The Fields rows (S4c, owner decision Q29): one per field role the default theme EMITS, page and inverse,
  *  read from the committed emission rather than from the page, so a role the engine adds needs a row too. The
  *  count is held to the eight Q29 names, so an empty read fails. */
-/** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick. */
-const READONLY_ROW_ROLES = ['scrim.default', 'glass.surface', 'border.focus', 'inverse.border.focus'];
+/** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick; and (#3093) the
+ *  panel over it, whose control is Dialog surface in Components, so its row links there. */
+const READONLY_ROW_ROLES = ['scrim.default', 'glass.surface', 'border.focus', 'inverse.border.focus', 'foreground.raised'];
 const FIELD_ROW_ROLES = (() => {
   const out = [];
   const walk = (n, path) => { if (!n || typeof n !== 'object') return; if ('$value' in n) { out.push(path.join('.')); return; } for (const [k, v] of Object.entries(n)) if (!k.startsWith('$')) walk(v, [...path, k]); };
@@ -4543,7 +4819,8 @@ for (const host of ['web', 'figma']) {
     Glass: 'The see-through fill behind a background blur. The white glass is fixed; add a glass fill to match a surface, such as a card.',
     // S4f (QA-B10): the scrim left Background fills, so its description is the owner's Q26 intro; Scrim's is APPROVED.
     'Background fills': 'The base page planes and their inverse counterparts.',
-    Scrim: "The overlay that dims the page behind a modal. It isn't editable.",
+    // #3050: the section now holds Scrim strength, so "It isn't editable." went; the sentence left is a DRAFT for the owner.
+    Scrim: 'The overlay that dims the page behind a modal.',
     // Q44: the APPROVED heading with the preview's Foreground description (Q23); Border and Icon take the preview's (Q23).
     // #1971 (APPROVED, owner 2026-10-05, superseding GR3): the preview's Foreground sits on the contrast floor, so its sentence (and the levers', Q23) says so.
     Foreground: "Content surfaces, shown on the contrast floor they're measured against.",
@@ -4581,9 +4858,62 @@ for (const host of ['web', 'figma']) {
 }
 } // 18-readonly
 // #3073 (owner Q806, Q807 A): Surfaces & fills › Glass. The shipped glass is read-only (its primitive and opacity, from
-// the emission), and the glassRoles lever's controls write the brand input: Add writes the card color at 70%, the
-// opacity field writes its percent, a name the engine refuses ('surface') marks the block and leaves the last valid
-// theme, and Remove of the last fill drops the key. EXPECTED is typed here; ACTUAL is the persisted brand and the DOM.
+// the emission), and the glassRoles lever's controls write the brand input. #3106 (owner Q827 A) adds, each by name:
+// (1) a fill's remove control is a small square icon button on its name's line, right of the name; (2) the row draws one
+// swatch, and nothing else sits left of the name; (3) the name is the shipped glass's row, a readable name over its
+// token in the same type, on the same left edge, with no field and no capitals; (4) the color picker reads the stored
+// role after a pick, after a pick made while a redraw is pending, after a reload, and on the plugin from the file's
+// input; (5) Add asks for a name in a field that starts empty, with the hint, previews color.glass.<name>, refuses an
+// empty name, a non-slug, surface and a duplicate in words, and writes only the name typed. EXPECTED is typed here;
+// ACTUAL is the persisted brand and the DOM, measured as rendered.
+const GLASS_REFUSE = {
+  empty: 'A glass fill needs a name, such as card.',
+  slug: 'A name is lowercase letters, digits and hyphens, starting with a letter, such as top-bar.',
+  surface: "surface is the shipped glass fill, so another fill can't use its name.",
+  dup: (n) => `This brand already has glass.${n}. Each glass fill needs its own name.`,
+};
+/** The two rows' geometry and type, read off the levers pane: the shipped glass's and the first added fill's. */
+const GLASS_PROBE = () => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  const ship = pane?.querySelector('[data-p3="glass-surface-row"]');
+  const row = pane?.querySelector('[data-p3="glass-role-row"]');
+  if (!ship || !row) return null;
+  const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+  const type = (n) => { if (!n) return null; const c = getComputedStyle(n); return { size: c.fontSize, weight: c.fontWeight, family: c.fontFamily, transform: c.textTransform, line: c.lineHeight, color: c.color }; };
+  const nm = row.querySelector('[data-p3="glass-role-name"]');
+  const rm = row.querySelector('[data-p3="glass-role-remove"]');
+  const sw = row.querySelector('[data-p3="glass-role-swatch"]');
+  // Every drawn control or leaf in the row (a field, a select, a button, a glyph, a text run; the containers that hold
+  // the name are neither) that starts left of the name and is not the swatch or inside it: the stray swatch's field.
+  const nameL = nm?.getBoundingClientRect().left ?? 0;
+  const drawn = (n) => n.matches('input, select, button, svg, .p3-colorfield, .p3-selwrap') || !n.children.length;
+  const strays = [...row.querySelectorAll('*')].filter((n) => drawn(n) && n.getClientRects().length && !sw?.contains(n) && n.getBoundingClientRect().left < nameL - 0.5)
+    .map((n) => `${n.tagName.toLowerCase()}.${[...n.classList].join('.')}`);
+  return {
+    role: row.dataset.role,
+    swatches: row.querySelectorAll('.p3-fill-sw').length,
+    strays,
+    fields: row.querySelectorAll('input[type="text"], input:not([type])').length,
+    shipLabel: { text: ship.querySelector('.p3-fill-label')?.textContent, box: box(ship.querySelector('.p3-fill-label')), type: type(ship.querySelector('.p3-fill-label')) },
+    shipTok: { text: ship.querySelector('.p3-fill-tok')?.textContent, box: box(ship.querySelector('.p3-fill-tok')), type: type(ship.querySelector('.p3-fill-tok')) },
+    shipSw: box(ship.querySelector('.p3-fill-sw')),
+    label: { text: nm?.querySelector('.p3-fill-label')?.textContent, box: box(nm?.querySelector('.p3-fill-label')), type: type(nm?.querySelector('.p3-fill-label')) },
+    tok: { text: nm?.querySelector('.p3-fill-tok')?.textContent, box: box(nm?.querySelector('.p3-fill-tok')), type: type(nm?.querySelector('.p3-fill-tok')) },
+    sw: box(sw), name: box(nm), rm: box(rm), rmIcon: !!rm?.querySelector('.p3-ico, svg'), rmText: rm?.textContent.trim() ?? null,
+    rmName: rm?.getAttribute('aria-label') ?? null,
+    pick: (() => { const s = row.querySelector('[data-p3="glass-role-source"]'); return s ? { v: s.value, l: s.selectedOptions[0]?.textContent ?? null } : null; })(),
+  };
+};
+const glassPick = (page) => page.evaluate(() => { const s = document.querySelector('[data-p3="levers-pane"] [data-p3="glass-role-source"]'); return s ? { v: s.value, l: s.selectedOptions[0]?.textContent ?? null } : null; });
+const draftState = (page) => page.evaluate(() => {
+  const d = document.querySelector('[data-p3="levers-pane"] [data-p3="glass-draft"]');
+  const i = d?.querySelector('[data-p3="glass-name-input"]');
+  const why = d?.querySelector('[data-p3="glass-name-refusal"]');
+  return d ? { value: i?.value ?? null, hint: i?.placeholder ?? null, required: !!i?.required, focused: document.activeElement === i,
+    label: i ? document.querySelector(`label[for="${i.id}"]`)?.textContent ?? null : null,
+    token: d.querySelector('[data-p3="glass-name-token"]')?.textContent ?? null,
+    why: why && !why.hidden && why.getClientRects().length ? why.textContent : null, invalid: i?.getAttribute('aria-invalid') === 'true' } : null;
+});
 if (runs('18')) {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
@@ -4598,30 +4928,95 @@ if (runs('18')) {
     }));
     ok(read0.read === `${gPal} ${gStep} · ${Math.round(gAlpha * 100)}%` && read0.section === 'Glass' && read0.added === 0,
       `#3073: Surfaces & fills › Glass shows the shipped glass read-only as "${gPal} ${gStep} · ${Math.round(gAlpha * 100)}%" and no added fill on a brand without the lever (${JSON.stringify(read0)})`);
+
+    // (5) Add asks for a name: an empty, required field with the hint, focused, previewing the token, nothing written yet.
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-role-add"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="glass-name-input"]'), null, { timeout: 5000 }).catch(() => {});
+    const d0 = await draftState(page);
+    ok(d0?.value === '' && d0.hint === 'e.g. card, header, overlay' && d0.required && d0.focused && d0.label === 'Name' && d0.token === 'color.glass.<name>' && d0.why === null,
+      `#3106 Q827 A: Add glass fill opens a Name field that starts empty and required, focused, with the hint "e.g. card, header, overlay", previewing color.glass.<name> and refusing nothing yet (${JSON.stringify(d0)})`);
+    ok(!('glassRoles' in ((await persisted(page)) ?? {})) && (await page.locator('[data-p3="levers-pane"] [data-p3="glass-role-row"]').count()) === 0,
+      '#3106 Q827 A: opening the name field writes nothing and names nothing (no card)');
+    // An empty Add is refused in words, and writes nothing.
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-name-add"]'));
+    const dEmpty = await draftState(page);
+    ok(dEmpty?.why === GLASS_REFUSE.empty && dEmpty.invalid && !('glassRoles' in ((await persisted(page)) ?? {})),
+      `#3106 Q827 A: Add with the field empty is refused inline, "${GLASS_REFUSE.empty}", and writes nothing (${JSON.stringify(dEmpty)})`);
+    // Typed names: the token previews as typed, and a non-slug and the shipped name are refused as they are typed.
+    const input = page.locator('[data-p3="levers-pane"] [data-p3="glass-name-input"]');
+    for (const [typed, want] of [['Card', GLASS_REFUSE.slug], ['top bar', GLASS_REFUSE.slug], ['surface', GLASS_REFUSE.surface]]) {
+      await input.fill(typed);
+      const d = await draftState(page);
+      ok(d?.why === want && d.invalid && d.token === `color.glass.${typed.trim()}`,
+        `#3106 Q827 A: typing ${JSON.stringify(typed)} previews color.glass.${typed.trim()} and is refused inline, "${want}" (${JSON.stringify(d)})`);
+    }
+    await input.press('Enter');
+    ok(!('glassRoles' in ((await persisted(page)) ?? {})), '#3106 Q827 A: Enter on a refused name writes nothing');
+    await input.fill('card');
+    const dOk = await draftState(page);
+    ok(dOk?.why === null && !dOk.invalid && dOk.token === 'color.glass.card', `#3106 Q827 A: "card" is taken, previewing color.glass.card (${JSON.stringify(dOk)})`);
+    await input.press('Enter');
     await page.waitForFunction(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="glass-role-row"]').length === 1, null, { timeout: 5000 }).catch(() => {});
     const added = await persisted(page);
     const row = await page.evaluate(() => { const r = document.querySelector('[data-p3="levers-pane"] [data-p3="glass-role-row"]'); return r ? { role: r.dataset.role, wash: !!r.querySelector('.p3-scrim-wash'), src: r.querySelector('[data-p3="glass-role-source"]')?.value ?? null } : null; });
     ok(JSON.stringify(added?.glassRoles) === JSON.stringify({ card: { role: 'foreground.primary', alpha: 70 } }) && row?.role === 'glass.card' && row.wash && row.src === 'role:foreground.primary',
-      `#3073: Add glass fill writes glassRoles.card = the card color at 70% and draws its row with a translucent swatch (${JSON.stringify(added?.glassRoles)}, ${JSON.stringify(row)})`);
-    const alpha = page.locator('[data-p3="levers-pane"] [data-p3="glass-role-alpha"]');
-    await alpha.fill('40');
-    await alpha.press('Enter');
-    await alpha.blur();
-    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.glassRoles?.card?.alpha === 40; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
-    ok((await persisted(page))?.glassRoles?.card?.alpha === 40, `#3073: the opacity field writes glassRoles.card.alpha (${JSON.stringify((await persisted(page))?.glassRoles)})`);
-    const name = page.locator('[data-p3="levers-pane"] [data-p3="glass-role-name"]');
-    await name.fill('surface');
-    await name.press('Enter');
-    await name.blur();
-    await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="lever-glass-roles"][data-refused="true"], [data-p3="levers-pane"] [data-p3="lever-glass-roles"] .p3-refmark:not([hidden])'), null, { timeout: 5000 }).catch(() => {});
-    const refused = await page.evaluate(() => { const b = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-glass-roles"]'); return !!b && (b.getAttribute('data-refused') === 'true' || !!b.querySelector('.p3-refmark:not([hidden])')); });
-    ok(refused, `#3073: renaming a glass fill to "surface", the shipped glass's name, is refused by the engine and marks the Glass block`);
-    // Back to a valid name, then Remove: the last fill gone drops the key, byte-identical to never having had it.
-    await name.fill('card');
-    await name.press('Enter');
-    await name.blur();
+      `#3073, #3106: the name typed is written as glassRoles.card = the card color at 70%, and its row drawn with a translucent swatch (${JSON.stringify(added?.glassRoles)}, ${JSON.stringify(row)})`);
+    ok((await page.locator('[data-p3="levers-pane"] [data-p3="glass-draft"]').count()) === 0, '#3106: adding closes the name field and brings back Add glass fill');
+    // A duplicate is refused; Escape closes the field and writes nothing.
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-role-add"]'));
+    await input.fill('card');
+    const dDup = await draftState(page);
+    ok(dDup?.why === GLASS_REFUSE.dup('card') && dDup.invalid, `#3106 Q827 A: a second "card" is refused inline, "${GLASS_REFUSE.dup('card')}" (${JSON.stringify(dDup)})`);
+    await input.press('Escape');
+    ok((await page.locator('[data-p3="levers-pane"] [data-p3="glass-draft"]').count()) === 0 && JSON.stringify((await persisted(page))?.glassRoles) === JSON.stringify({ card: { role: 'foreground.primary', alpha: 70 } }),
+      '#3106: Escape closes the name field and writes nothing');
+
+    // (1), (2), (3): the row as drawn.
+    const g = await page.evaluate(GLASS_PROBE);
+    const close = (a, b) => a != null && b != null && Math.abs(a - b) <= 0.5;
+    ok(!!g?.rm && g.rmIcon && g.rmText === '' && g.rmName === 'Remove glass fill card' && Math.abs(g.rm.w - g.rm.h) <= 1 && g.rm.w <= 48
+      && g.rm.l >= g.name.r && g.rm.t < g.name.b && g.rm.b > g.name.t,
+      `#3106 (1): a fill's remove control is a small square icon button named "Remove glass fill card", on its name's line and right of the name, not a full-width box (${JSON.stringify({ rm: g?.rm, name: g?.name, icon: g?.rmIcon, text: g?.rmText })})`);
+    ok(g?.swatches === 1 && g.strays.length === 0 && !!g.sw && g.sw.t < g.name.b && g.sw.b > g.name.t,
+      `#3106 (2): the row draws one swatch, on its name's line, and nothing else left of the name (strays ${JSON.stringify(g?.strays)}, swatches ${g?.swatches})`);
+    ok(g?.label.text === 'Glass card' && g.tok.text === 'glass.card' && g.fields === 0 && g.label.type?.transform === 'none'
+      && JSON.stringify(g.label.type) === JSON.stringify(g.shipLabel.type) && JSON.stringify(g.tok.type) === JSON.stringify(g.shipTok.type)
+      && close(g.label.box?.l, g.shipLabel.box?.l) && close(g.tok.box?.l, g.shipTok.box?.l) && close(g.sw?.l, g.shipSw?.l) && close(g.sw?.w, g.shipSw?.w)
+      && close(g.label.box?.t - g.sw.t, g.shipLabel.box?.t - g.shipSw.t),
+      `#3106 (3): the fill's name is the shipped glass's row: "Glass card" over glass.card, no field, no capitals, in Glass surface's type and on its left edges and baseline (${JSON.stringify({ label: g?.label, tok: g?.tok, ship: g?.shipLabel, shipTok: g?.shipTok, fields: g?.fields })})`);
+
+    // (4) The picker reads the stored role: after Page color, after Card color, after a pick made while an opacity
+    // commit is pending (the redraw replaces the select under the open menu, #3106's cause), and after a reload.
+    const src = () => page.locator('[data-p3="levers-pane"] [data-p3="glass-role-source"]');
+    await src().selectOption('role:background.primary');
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.glassRoles?.card?.role === 'background.primary'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const p1 = await glassPick(page);
+    ok(p1?.l === 'Page color' && (await persisted(page))?.glassRoles?.card?.role === 'background.primary', `#3106 (4): Page color is written and read back (${JSON.stringify(p1)})`);
+    await src().selectOption('role:foreground.primary');
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.glassRoles?.card?.role === 'foreground.primary'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const p2 = await glassPick(page);
+    ok(p2?.l === 'Card color' && p2.v === 'role:foreground.primary' && (await persisted(page))?.glassRoles?.card?.role === 'foreground.primary',
+      `#3106 (4): Card color, chosen after Page color, is what the picker reads and what is stored (${JSON.stringify(p2)}, ${JSON.stringify((await persisted(page))?.glassRoles)})`);
+    await src().selectOption('role:background.primary');
     await page.waitForTimeout(200);
+    const old = await src().elementHandle();
+    await page.locator('[data-p3="levers-pane"] [data-p3="glass-role-alpha"]').fill('40');
+    await old.focus();   // the mouse-down on the picker: the opacity field's change commits a task later and redraws
+    await page.waitForFunction((s) => !s.isConnected, old, { timeout: 5000 }).catch(() => {});
+    const replaced = await old.evaluate((s) => !s.isConnected);
+    await old.evaluate((s) => { s.value = 'role:foreground.primary'; s.dispatchEvent(new Event('change')); });   // the pick, in the menu it opened
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.glassRoles?.card?.role === 'foreground.primary'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const p3 = await glassPick(page);
+    const s3 = (await persisted(page))?.glassRoles?.card;
+    ok(replaced && p3?.l === 'Card color' && s3?.role === 'foreground.primary' && s3?.alpha === 40,
+      `#3106 (4): Card color picked while the opacity's commit redraws the row is stored and read back, with the opacity (replaced ${replaced}, ${JSON.stringify(p3)}, ${JSON.stringify(s3)})`);
+    await page.reload({ waitUntil: 'networkidle' });
+    await hooks.need(page, '[data-p3="frame"]');
+    await goPlace(page, 'color-fills');
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="glass-role-source"]');
+    const p4 = await glassPick(page);
+    ok(p4?.l === 'Card color' && p4.v === 'role:foreground.primary', `#3106 (4): after a reload the picker still reads Card color (${JSON.stringify(p4)})`);
+    // Remove of the last fill drops the key, byte-identical to never having had it.
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="glass-role-remove"]'));
     await page.waitForFunction(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="glass-role-row"]').length === 0, null, { timeout: 5000 }).catch(() => {});
     const gone = await persisted(page);
@@ -4630,7 +5025,58 @@ if (runs('18')) {
   } catch (e) {
     ok(false, `#3073 Glass: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
+
+  // (3), (4) on the plugin: the file's input holds the reference brand's glass fill (its `glassRoles`, typed here), and
+  // the row reads "Glass card" over glass.card with the picker on Card color, as stored.
+  const fig = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
+  try {
+    const REF_GLASS = { card: { role: 'foreground.primary', alpha: 70 } };
+    await fig.page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), { ...BOOT_INPUT, glassRoles: REF_GLASS });
+    await goPlace(fig.page, 'color-fills');
+    await hooks.need(fig.page, '[data-p3="levers-pane"] [data-p3="glass-role-row"]');
+    const f = await fig.page.evaluate(GLASS_PROBE);
+    ok(f?.role === 'glass.card' && f.label.text === 'Glass card' && f.tok.text === 'glass.card' && f.pick?.l === 'Card color' && f.pick.v === 'role:foreground.primary' && f.fields === 0,
+      `#3106 (3), (4): figma: a file whose input holds glassRoles.card (the reference brand's) shows "Glass card" over glass.card, its picker on Card color (${JSON.stringify({ role: f?.role, label: f?.label.text, tok: f?.tok.text, pick: f?.pick })})`);
+    ok(fig.errors.length === 0, `#3106 Glass figma: 0 console errors${fig.errors.length ? ` — ${fig.errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3106 Glass figma: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await fig.ctx.close(); }
 } // 18-glass
+// #3050 (owner Q825 B): Surfaces & fills › Scrim. Scrim strength's chips, Standard and Strong (DRAFT labels), sit above the
+// scrim's read-only row; Strong writes `scrimStrength: 'strong'` and the row reads out black-alpha 80 in Light, Standard
+// writes 'standard' and reads out 40. The steps are literals from the decision; ACTUAL is the persisted brand and the DOM.
+if (runs('18')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    const read = () => page.evaluate(() => {
+      const b = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-scrim-strength"]');
+      return {
+        section: b?.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent ?? null,
+        chips: [...(b?.querySelectorAll('[data-p3^="scrim-strength-choice-"]') ?? [])].map((n) => [n.textContent, n.getAttribute('aria-checked')]),
+        rowInBlock: !!b?.querySelector('[data-p3="scrim-row"]'),
+        read: b?.querySelector('[data-p3="scrim-readout"]')?.textContent ?? null,
+      };
+    });
+    const r0 = await read();
+    ok(r0.section === 'Scrim' && JSON.stringify(r0.chips) === JSON.stringify([['Standard', 'true'], ['Strong', 'false']]) && r0.rowInBlock && r0.read === 'black-alpha 40 · 40%',
+      `#3050: Surfaces & fills › Scrim holds Scrim strength's chips, Standard checked on a brand without the lever, above the row reading black-alpha 40 · 40% (${JSON.stringify(r0)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="scrim-strength-choice-strong"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent === 'black-alpha 80 · 80%', null, { timeout: 5000 }).catch(() => {});
+    const strong = await persisted(page);
+    const r1 = await read();
+    ok(strong?.scrimStrength === 'strong' && r1.read === 'black-alpha 80 · 80%' && r1.chips[1]?.[1] === 'true',
+      `#3050: Strong writes scrimStrength: strong and the row reads black-alpha 80 · 80% (${strong?.scrimStrength}, ${JSON.stringify(r1)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="scrim-strength-choice-standard"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent === 'black-alpha 40 · 40%', null, { timeout: 5000 }).catch(() => {});
+    const std = await persisted(page);
+    ok(std?.scrimStrength === 'standard' && (await read()).read === 'black-alpha 40 · 40%',
+      `#3050: Standard writes scrimStrength: standard and the row reads black-alpha 40 · 40% again (${std?.scrimStrength})`);
+    ok(errors.length === 0, `#3050 Scrim: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3050 Scrim: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 18-scrim
 // =============================================================================================
 // S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
 // fills read-only in a derived mode, the Unpair button included (Q56, Q59)
@@ -4664,6 +5110,8 @@ const fillsControls = (page) => page.evaluate(DERIVED_CONTROLS, [FILLS_SCOPE, DE
  *  controls, Unpair and the default theme's two gradient editors. Set below the measured count, 145 in each of
  *  hc-light, hc-dark and wireframe on both hosts (printed per mode), so a page that drew less fails. */
 const DERIVED_CONTROLS_FLOOR = 140;
+/** RX1 A's "way to" link on this page (#3093): it edits nothing, so a derived mode leaves it live. */
+const FILLS_STAYS_LIVE = ['raised-surface-link'];
 /** At least this many of them enabled in Light: all but the 31 icon rows locked while paired. 114 measured. */
 if (runs('18-s4d')) {
 const LIGHT_ENABLED_FLOOR = 110;
@@ -4703,7 +5151,9 @@ for (const host of ['web', 'figma']) {
     await showMode(page, mode);
     await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode && document.querySelector('[data-p3="levers-pane"] .p3-state')?.textContent?.includes('auto-derived'), mode, { timeout: 5000 }).catch(() => {});
     const cs = await fillsControls(page);
-    const live = cs.filter((c) => !c.disabled);
+    const live = cs.filter((c) => !c.disabled && !FILLS_STAYS_LIVE.includes(c.hook));
+    const ways = cs.filter((c) => FILLS_STAYS_LIVE.includes(c.hook));
+    ok(ways.length === FILLS_STAYS_LIVE.length && ways.every((c) => !c.disabled), `#3093: ${host} ${mode}: the Dialog panel row's link stays live (${JSON.stringify(ways)})`);
     const unpair = cs.find((c) => c.hook === 'icons-unpair');
     console.log(`  ${host} ${mode}: ${cs.length} controls on Surfaces & fills, ${live.length} enabled`);
     ok(cs.length >= DERIVED_CONTROLS_FLOOR && live.length === 0,
@@ -4974,9 +5424,10 @@ for (const host of ['web', 'figma']) {
 // =============================================================================================
 if (runs('18-s4f')) {
 {
-  /** The shut and the open shackle, as drawn (`lock` and `unlock` in `shell/dom.ts`), by their path data. Literal. */
-  const SHUT = 'M5.4 7.2V5.2a2.6 2.6 0 0 1 5.2 0v2';
-  const OPEN = 'M5.4 7.2V5.2a2.6 2.6 0 0 1 5.1-.7';
+  /** The shut and the open shackle, as drawn (`lock` and `unlock` in `shell/dom.ts`: Tabler's `lock` and `lock-open`, #3083),
+   *  by their path data. Literal. Tabler draws the body and the keyhole first, so the shackle is the glyph's last path. */
+  const SHUT = 'M8 11v-4a4 4 0 1 1 8 0v4';
+  const OPEN = 'M8 11v-5a4 4 0 0 1 8 0';
   for (const host of ['web', 'figma']) {
     const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
     await goPlace(page, 'color-fills');
@@ -4984,7 +5435,7 @@ if (runs('18-s4f')) {
       const b = document.querySelector('[data-p3="levers-pane"] :is([data-p3="icons-unpair"], [data-p3="icons-pair"])');
       const svg = b?.querySelector('svg');
       return { hook: b?.getAttribute('data-p3') ?? null, name: b?.textContent?.trim() ?? null, label: b?.getAttribute('aria-label'),
-        hidden: svg?.getAttribute('aria-hidden') ?? null, shackle: svg?.querySelectorAll('path')[0]?.getAttribute('d') ?? null,
+        hidden: svg?.getAttribute('aria-hidden') ?? null, shackle: [...(svg?.querySelectorAll('path') ?? [])].at(-1)?.getAttribute('d') ?? null,
         drawn: svg ? Math.round(svg.getBoundingClientRect().width) : 0, inBlock: !!b?.closest('[data-p3="lever-icon-contrast"]') };
     });
     const p0 = await lock();
@@ -6201,6 +6652,109 @@ for (const { w, h } of WIDTHS) {
   }
 }
 } // 19b
+// #3071 (owner Q824 A): Color › Interactive › Outline hover. The "Solid fill" chip writes `outlineInteraction:
+// opaque-fill` and draws Outline hover fill under it: Hover and Pressed selects for the mode the preview shows, Pressed
+// locked until Hover is picked. Picking writes `outlineHoverFill.light.hover`; leaving the method drops the key, so a
+// brand switched back is byte-identical. EXPECTED is typed here; ACTUAL is the persisted brand and the DOM.
+if (runs('19')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const lever = '[data-p3="levers-pane"] [data-p3="lever-outline-hover-fill"]';
+  try {
+    await goPlace(page, 'color-interactive');
+    ok(await page.locator(lever).count() === 0, `#3071: no Outline hover fill control under the default outline hover`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]'));
+    await hooks.need(page, lever);
+    const chip = await page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]').textContent();
+    const on = await persisted(page);
+    const sel = await page.evaluate((l) => {
+      const b = document.querySelector(l);
+      const one = (sel) => { const s = b?.querySelector(sel); return s ? { v: s.value, auto: s.options[0]?.textContent ?? null, off: s.disabled } : null; };
+      return { hover: one('[data-p3="outline-hover-fill-hover-select"]'), pressed: one('[data-p3="outline-hover-fill-pressed-select"]'),
+        ratio: b?.querySelector('[data-p3="outline-hover-fill-ratio"]')?.textContent ?? null };
+    }, lever);
+    ok(chip === 'Solid fill' && on?.outlineInteraction === 'opaque-fill' && !('outlineHoverFill' in (on ?? {}))
+      && sel.hover?.v === '' && /^Auto: [A-Z][a-z-]* \d{3}$/.test(sel.hover?.auto ?? '') && sel.pressed?.off === true && /hover, .* pressed/.test(sel.ratio ?? ''),
+      `#3071: "Solid fill" writes opaque-fill and draws Hover on Auto (the default step), Pressed locked, and the worst label ratio (${JSON.stringify({ chip, method: on?.outlineInteraction, sel })})`);
+    await page.locator(`${lever} [data-p3="outline-hover-fill-hover-select"]`).selectOption('neutral.050');
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.outlineHoverFill?.light?.hover === 'neutral.050'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const picked = await persisted(page);
+    const pressedOn = await page.evaluate((l) => document.querySelector(`${l} [data-p3="outline-hover-fill-pressed-select"]`)?.disabled === false, lever);
+    ok(JSON.stringify(picked?.outlineHoverFill) === JSON.stringify({ light: { hover: 'neutral.050' } }) && pressedOn,
+      `#3071: picking neutral 050 writes outlineHoverFill.light.hover and unlocks Pressed (${JSON.stringify(picked?.outlineHoverFill)}, pressed enabled ${pressedOn})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-overlay-neutral"]'));
+    await page.waitForFunction((l) => !document.querySelector(l), lever, { timeout: 5000 }).catch(() => {});
+    const back = await persisted(page);
+    ok(back?.outlineInteraction === 'overlay-neutral' && !('outlineHoverFill' in (back ?? {})) && await page.locator(lever).count() === 0,
+      `#3071: back to the neutral wash drops outlineHoverFill and the control (${JSON.stringify({ method: back?.outlineInteraction, fill: back?.outlineHoverFill })})`);
+    ok(errors.length === 0, `#3071 Outline hover fill: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3071 Outline hover fill: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 19-outline-hover
+// #3115: the Outline hover chips (four since #3105) keep their rows whatever is selected. The selected chip is bold, and
+// a chip is never narrower than its label (`.p3-choice`, #1975), so where the four only just fit on one row (the owner's
+// window, about 1650 wide) the bold "Neutral overlay wash" pushed "No hover fill" onto a second. Each option is picked in
+// turn on both hosts at 1280 and 380, where the four wrap whatever is picked (#1975's fallback), and at the chips' own
+// tightest one-row width: the group held at its `max-content` width read with "No hover fill" picked, so the edge does
+// not hang on a font's metrics. The chips' rows (distinct tops) are read after each pick. EXPECTED: one row count per
+// host and width whatever is picked, and one row at the tightest width (literal rules, typed here); ACTUAL: the drawn
+// chips.
+// Mutation, failing here by name: the reserved bold width removed → `#3115 web tightest: the Outline hover chips keep
+// their rows whatever is picked — none 1, overlay-neutral 2, solid-tint 1, opaque-fill 2` (and the same on figma).
+// The hidden copy shown and given no empty alternative text → `#3115 web 1280: each option is named by its label once
+// (… radio "Neutral overlay wash Neutral overlay wash" …)`, on every host and width.
+if (runs('3115')) {
+  const CHIPS_3115 = '[data-p3="levers-pane"] [data-p3="outline-interaction-chips"]';
+  // Each option's hook spelled whole, as the hook guard reads them; "No hover fill" first, the width read under it.
+  const OPTION_HOOKS_3115 = {
+    none: '[data-p3="outline-interaction-chips-none"]', 'overlay-neutral': '[data-p3="outline-interaction-chips-overlay-neutral"]',
+    'solid-tint': '[data-p3="outline-interaction-chips-solid-tint"]', 'opaque-fill': '[data-p3="outline-interaction-chips-opaque-fill"]',
+  };
+  const OPTIONS_3115 = Object.keys(OPTION_HOOKS_3115);
+  for (const host of ['web', 'figma']) {
+    for (const w of [1280, 380, 'tightest']) {
+      const where = `#3115 ${host} ${w}`;
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: w === 'tightest' ? 1280 : w, h: 900 });
+      try {
+        await goPlace(page, 'color-interactive');
+        const rows = {};
+        /** The group's width in px under `tightest`, read once under the first pick and held for every later one. */
+        let held = null;
+        for (const v of OPTIONS_3115) {
+          const opt = `${CHIPS_3115} ${OPTION_HOOKS_3115[v]}`;
+          await page.locator(opt).scrollIntoViewIfNeeded();
+          await hooks.click(page.locator(opt));
+          await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', opt, { timeout: 5000 }).catch(() => {});
+          await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+          const read = await page.evaluate(([s, tight, px]) => {
+            const g = document.querySelector(s);
+            if (!g) return null;
+            if (tight) {
+              if (px === null) { g.style.width = 'max-content'; px = g.getBoundingClientRect().width; }
+              g.style.width = `${px}px`;
+            }
+            const on = g.querySelector('[aria-checked="true"]')?.getAttribute('data-value');
+            return { on, px, rows: new Set([...g.querySelectorAll('.p3-seg-tab')].map((b) => Math.round(b.getBoundingClientRect().top))).size };
+          }, [CHIPS_3115, w === 'tightest', held]);
+          held = read?.px ?? held;
+          rows[v] = read;
+        }
+        const picked = OPTIONS_3115.every((v) => rows[v]?.on === v);
+        const counts = OPTIONS_3115.map((v) => rows[v]?.rows);
+        ok(picked && counts.every((n) => n && n === counts[0]),
+          `${where}: the Outline hover chips keep their rows whatever is picked — ${OPTIONS_3115.map((v, i) => `${v} ${counts[i]}${rows[v]?.on === v ? '' : ` (shows ${rows[v]?.on})`}`).join(', ')}`);
+        // The reserved width is a hidden copy of each label; the radios' names stay the label alone (literals typed here).
+        const named = await page.locator(CHIPS_3115).ariaSnapshot();
+        ok(['Neutral overlay wash', 'Tinted wash', 'Solid fill', 'No hover fill'].every((l) => named.includes(`radio "${l}"`)),
+          `${where}: each option is named by its label once (${JSON.stringify(named)})`);
+        if (w === 'tightest') ok(counts[0] === 1, `${where}: the four fit one row at their own max-content width (${counts[0]} rows at ${held}px)`);
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+} // 3115
 
 // =============================================================================================
 // 20. Type (S6.2, S6.3): Font families in the two panes, the type sample and the preview's sections
@@ -6539,7 +7093,9 @@ const TYPE_S63_COPY = {
 /** Every S6.3 lever, by its hook, drawn once each (represented, not counted). */
 const TYPE_S63_LEVERS = ['lever-typography-type-scale', 'lever-typography-sizes', 'lever-typography-responsive', 'lever-typography-display-ceiling',
   'lever-typography-title-floor', 'lever-typography-caption-floor', 'lever-typography-size-floor', 'lever-typography-weight-roles', 'lever-typography-weights',
-  'lever-typography-italics', 'lever-typography-faces', 'lever-typography-line-heights', 'lever-typography-letter-spacings', 'lever-typography-leading-shift'];
+  'lever-typography-italics', 'lever-typography-faces', 'lever-typography-line-heights', 'lever-typography-letter-spacings', 'lever-typography-leading-shift',
+  // #3077: Caption sizes and Letter spacing for each text type.
+  'lever-typography-sizes-caption', 'lever-typography-tracking'];
 /** Literal copy on the controls: the chips (the manifest's scale labels; Q6's italic chips), the floors, the
  *  owner's words for fluid sizing (Q70) and the way to Layout. */
 const TYPE_S63_WORDS = {
@@ -6585,7 +7141,9 @@ for (const host of ['web', 'figma']) {
       if (TYPE_S63_COPY[title]) ok(lev?.[1] === TYPE_S63_COPY[title], `${host}: "${title}" reads "${TYPE_S63_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
     }
     for (const [k, want] of Object.entries(TYPE_S63_WORDS)) ok(JSON.stringify(r.words[k]) === JSON.stringify(want), `${host}: the ${k} copy reads ${JSON.stringify(want)} (${JSON.stringify(r.words[k])})`);
-    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 13 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 13 advanced (#2942: Underline thickness and offset is the 13th) (${JSON.stringify(r.folds)})`);
+    // 15 since #3077: #2942's Underline thickness and offset is the 13th; #3077 adds Caption sizes (Scale limits) and
+    // Letter spacing for each text type (Line height and letter spacing).
+    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 15 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 15 advanced (${JSON.stringify(r.folds)})`);
     const WANT_NAMES = {
       weight: [['p3-fill-label', 'Strong'], ['p3-fill-tok', 'font.weight-role.strong']], lh: [['p3-fill-label', 'normal'], ['p3-fill-tok', 'font.line-height-role.normal']],
       matrix: [['p3-fill-label', 'Body'], ['p3-fill-tok', 'type.body']],
@@ -8339,6 +8897,55 @@ for (const host of ['web', 'figma']) {
     ok(false, `#2047: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+// #3092: the gutter and margin picker follows the engine's link order (Q785 A, #3052): the spacing steps, then the core
+// dimension steps no spacing step has, in their own group. Picking 44 for md's margin stores 44 and the export links
+// md's margin to core dimension 44. Independence (docs/34): every expected value is typed here; the stored input is read
+// back from the PERSISTED brand and the link from the export's own base file, the bytes Download writes.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    /** Typed from #3092 and the prism3 example (namespace pds3, md margin Auto 24 = space.300). */
+    const PICK_PX = '44', WANT_STORED = '{"md":44}', WANT_LABEL = '44px · core.dimension.44';
+    const WANT_FILE = 'prism3.base.tokens.json', WANT_LINK = '{pds3.core.dimension.44}';
+    const WANT_GROUPS = ['Spacing steps', 'Dimension steps'];
+    await goPlace(page, 'layout');
+    await hooks.click(page.locator('[data-p3="bp-margin-pick"][data-bp="md"]'));
+    await hooks.need(page, '[data-p3="value-picker"]');
+    const listed = await page.evaluate((v) => {
+      const groups = [...document.querySelectorAll('[data-p3="value-picker"] [data-p3="value-picker-group"]')]
+        .map((g) => ({ name: g.querySelector('.p3-vpick-cap')?.textContent ?? null, named: document.getElementById(g.getAttribute('aria-labelledby') ?? '')?.textContent ?? null,
+          values: [...g.querySelectorAll('[data-p3="value-picker-value"]')].map((b) => b.dataset.value) }));
+      const b = document.querySelector(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${v}"]`);
+      return { groups, label: b?.querySelector('.p3-vpick-key')?.textContent ?? null, in: b?.closest('[data-p3="value-picker-group"]')?.querySelector('.p3-vpick-cap')?.textContent ?? null };
+    }, PICK_PX);
+    const [sp, dm] = listed.groups;
+    ok(JSON.stringify(listed.groups.map((g) => g.name)) === JSON.stringify(WANT_GROUPS) && listed.groups.every((g) => g.named === g.name),
+      `#3092: md's margin picker lists two named groups, ${WANT_GROUPS.join(' then ')} — ${JSON.stringify(listed.groups.map((g) => [g.name, g.named]))}`);
+    ok(!!sp && !!dm && sp.values.includes('24') && !sp.values.includes(PICK_PX) && dm.values.includes(PICK_PX) && !dm.values.some((v) => sp.values.includes(v)),
+      `#3092: ${PICK_PX} is in the dimension group, not the spacing group, and no value is in both — ${JSON.stringify(listed.groups.map((g) => g.values))}`);
+    ok(listed.label === WANT_LABEL && listed.in === WANT_GROUPS[1], `#3092: the ${PICK_PX} entry reads "${WANT_LABEL}" under ${WANT_GROUPS[1]} — "${listed.label}" under ${listed.in}`);
+    await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${PICK_PX}"]`));
+    await page.waitForFunction(() => document.querySelector('[data-p3="bp-margin-pick"][data-bp="md"]')?.dataset.set === 'true', null, { timeout: 5000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="value-picker-close"]'));
+    const stored = (await layoutPersisted(page))?.marginOverrides;
+    ok(JSON.stringify(stored) === WANT_STORED, `#3092: picking ${PICK_PX} for md's margin stores layout.marginOverrides ${WANT_STORED} — ${JSON.stringify(stored)}`);
+    await hooks.click(page.locator('[data-p3="rail-export"]'));
+    await hooks.need(page, '[data-p3="export-page"]');
+    // The preview is a sample of tokens, so the link is read from the downloaded base file (the consumer set, #2552).
+    const pending = page.waitForEvent('download', { predicate: (d) => d.suggestedFilename() === WANT_FILE, timeout: 15000 });
+    await hooks.click(page.locator('[data-p3="export-page"] [data-p3="dialog-confirm"]'));
+    const dl = await pending.catch(() => null);
+    const link = { found: !!dl, value: null };
+    if (dl) {
+      const tree = JSON.parse(readFileSync(await dl.path(), 'utf8'));
+      link.value = tree[Object.keys(tree)[0]]?.grid?.md?.margin?.$value ?? null;
+    }
+    ok(link.found && link.value === WANT_LINK, `#3092: the export's ${WANT_FILE} links grid md margin to ${WANT_LINK} — ${JSON.stringify(link)}`);
+    ok(errors.length === 0, `#3092: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3092: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 // Q59: previewing a derived mode, every control on Layout is disabled under the derived line; the preview still draws.
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
@@ -8820,13 +9427,15 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
   // #3049: and Dialog surface below it, the same block, the same home.
   'lever-raised-surface',
   // #2924: Banner options draws Banner style the same way, its home Components › Banner.
-  'lever-banner-style'];
+  'lever-banner-style',
+  // #3086: Radio options draws Radio dot size the same way, its home Components › Radio.
+  'lever-radio-dot'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
  *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
  *  the move: the levers pane no longer has a section per preview section. */
 // #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
 // #2909 Q2909.4 A: the shared block is the list's first section.
-const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents'];
+const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
@@ -8982,6 +9591,7 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=search"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=banners"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=radios"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
     await openButtonOptions(page);
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
@@ -9000,8 +9610,8 @@ for (const host of ['web', 'figma']) {
           // options (below). The list is the rest.
           // #2909: the shared block holds Control shape's chips itself, as the options do.
           shared: [...document.querySelectorAll('[data-p3="shared-options"] [data-p3^="control-shape-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="shared-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
-          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="shared-options"]')).length,
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="radio-options"], [data-p3="shared-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="radio-options"], [data-p3="shared-options"]')).length,
           search: {
             line: document.querySelector('[data-p3="search-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="search-options"] [data-p3^="search-field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
@@ -9017,6 +9627,10 @@ for (const host of ['web', 'figma']) {
           banner: {
             line: document.querySelector('[data-p3="banner-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="banner-options"] [data-p3^="banner-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
+          },
+          radio: {
+            line: document.querySelector('[data-p3="radio-options-derived"]')?.textContent ?? null,
+            chips: [...document.querySelectorAll('[data-p3="radio-options"] [data-p3^="radio-dot-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           field: {
             line: document.querySelector('[data-p3="field-options-derived"]')?.textContent ?? null,
@@ -9039,6 +9653,8 @@ for (const host of ['web', 'figma']) {
         `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's and Dialog surface's chips (#3049) (${JSON.stringify(d.dialog)})`);
       ok(d.banner.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.banner.chips.length === 2 && d.banner.chips.every(Boolean),
         `#2924 Q59: previewing ${label}, Banner options carry the derived line and hold Banner style's chips (${JSON.stringify(d.banner)})`);
+      ok(d.radio.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.radio.chips.length === 4 && d.radio.chips.every(Boolean),
+        `#3086 Q59: previewing ${label}, Radio options carry the derived line and hold Radio dot size's chips (${JSON.stringify(d.radio)})`);
       ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
       ok(d.shared.length === 4 && d.shared.every(Boolean), `#2909 Q59: previewing ${label}, the shared block holds Control shape's four chips (${JSON.stringify(d.shared)})`);
       ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
@@ -9143,8 +9759,8 @@ for (const host of ['web', 'figma']) {
         };
       });
       const r0 = await read();
-      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
-        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options", one "Dialog options" (#2958), one "Banner options" (#2924) and one "Link options" line (#2942), in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options', 'Radio options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options", one "Dialog options" (#2958), one "Banner options" (#2924), one "Link options" (#2942) and one "Radio options" line (#3086), in the list, and not in the preview (${JSON.stringify(r0)})`);
       ok(r0.expanded === 'false' && !r0.shown,
         `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
       ok(r0.rows === 4 && r0.lineBelowSets,
@@ -9174,7 +9790,7 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
       await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
       const r3 = await read();
-      ok(r3.toggles.length === 7 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
+      ok(r3.toggles.length === 8 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
         `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
       // Opening the line focuses its section's first set (wireframe v2's rule, #2905): with Badge (Other components) in
       // the preview, close and reopen it, and the preview shows Buttons. (Buttons is the preview's default, so the check
@@ -9244,8 +9860,8 @@ for (const host of ['web', 'figma']) {
       await goPlace(page, 'components');
       await hooks.need(page, '[data-p3="components-levers"]');
       // Tag first (#2931 Q579 A): opening a block focuses its section's first set, and the Fields case reads Password field.
-      for (const k of ['tags', 'dialogs', 'banners', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
-      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section', 'dialog-options-section', 'banner-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
+      for (const k of ['tags', 'dialogs', 'banners', 'radios', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
+      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section', 'dialog-options-section', 'banner-options-section', 'radio-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
       const r = await page.evaluate(() => {
         const secs = [...document.querySelectorAll('[data-p3="cp-section"]')];
         const by = (name) => secs.find((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name === name);
@@ -9267,6 +9883,7 @@ for (const host of ['web', 'figma']) {
         const to = document.querySelector('[data-p3="tag-options-section"]');
         const dO = document.querySelector('[data-p3="dialog-options-section"]');
         const bO = document.querySelector('[data-p3="banner-options-section"]');
+        const rO = document.querySelector('[data-p3="radio-options-section"]');
         const so = document.querySelector('[data-p3="search-options-section"]');
         const soLine = document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=search"]');
         const ro = so?.querySelector('[data-p3="lever-search-field-style"] .p3-readout');
@@ -9275,6 +9892,7 @@ for (const host of ['web', 'figma']) {
           buttons: edges('Buttons', 'button-options-section'), fields: edges('Fields', 'field-options-section'), tags: edges('Tag', 'tag-options-section'),
           dialogs: edges('Dialog', 'dialog-options-section'),
           banners: edges('Banner', 'banner-options-section'),
+          radios: edges('Radio', 'radio-options-section'),
           other: [...(by('Other components')?.querySelectorAll('[data-p3="cp-name"]') ?? [])].map((n) => n.textContent),
           fo: fo ? {
             title: fo.querySelector('[data-p3="field-options-title"]')?.textContent ?? null, desc: fo.querySelector('[data-p3="field-options-desc"]')?.textContent ?? null,
@@ -9296,6 +9914,10 @@ for (const host of ['web', 'figma']) {
             title: bO.querySelector('[data-p3="banner-options-title"]')?.textContent ?? null, desc: bO.querySelector('[data-p3="banner-options-desc"]')?.textContent ?? null,
             chips: [...bO.querySelectorAll('[data-p3^="banner-style-choice-"]')].map((n) => n.textContent),
           } : null,
+          rO: rO ? {
+            title: rO.querySelector('[data-p3="radio-options-title"]')?.textContent ?? null, desc: rO.querySelector('[data-p3="radio-options-desc"]')?.textContent ?? null,
+            chips: [...rO.querySelectorAll('[data-p3^="radio-dot-choice-"]')].map((n) => n.textContent),
+          } : null,
           so: so ? {
             title: so.querySelector('[data-p3="search-options-title"]')?.textContent ?? null, desc: so.querySelector('[data-p3="search-options-desc"]')?.textContent ?? null,
             chips: [...so.querySelectorAll('[data-p3^="search-field-style-choice-"]')].map((n) => n.textContent),
@@ -9308,8 +9930,8 @@ for (const host of ['web', 'figma']) {
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
       });
-      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents']),
-        `#2905 Q548, #2931 Q579 A, #2958, #2924, #2942: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Link, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components', 'Subcomponents']),
+        `#2905 Q548, #2931 Q579 A, #2958, #2924, #2942, #3086: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Link, Radio, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
       const D = r.dialogs;
       ok(!!D && JSON.stringify(D.ids) === JSON.stringify(['dialog']) && D.folds + D.families === 0,
         `#2958: ${host} ${w}: the Dialog section lists Dialog as a row, with no family row and no fold (${JSON.stringify({ ids: D?.ids, folds: D?.folds, families: D?.families })})`);
@@ -9325,6 +9947,12 @@ for (const host of ['web', 'figma']) {
       // The copy is the DRAFT on #2924 (Q2, the wireframe's words; Bold held on #3038), held here as literals.
       ok(!!r.bO && r.bO.title === 'Banner options' && r.bO.desc === 'How banners draw their surface and edge.' && JSON.stringify(r.bO.chips) === JSON.stringify(['Tinted', 'Outlined']),
         `#2924: ${host} ${w}: Banner options: its drafted title and description, and Banner style's chips, Tinted and Outlined (${JSON.stringify(r.bO)})`);
+      const RD = r.radios;
+      ok(!!RD && JSON.stringify(RD.ids) === JSON.stringify(['radio-control', 'radio-group', 'radio-row']) && RD.folds + RD.families === 0,
+        `#3086: ${host} ${w}: the Radio section lists the Radio page's three sets in one row, with no family row and no fold (${JSON.stringify({ ids: RD?.ids, folds: RD?.folds, families: RD?.families })})`);
+      // The copy is the DRAFT on #3086, held here as literals so a change to it is a decision, not drift.
+      ok(!!r.rO && r.rO.title === 'Radio options' && r.rO.desc === 'How big the dot in a selected radio is.' && JSON.stringify(r.rO.chips) === JSON.stringify(['Default', '60%', '70%', '80%']),
+        `#3086: ${host} ${w}: Radio options: its drafted title and description, and Radio dot size's chips, Default to 80% (${JSON.stringify(r.rO)})`);
       const T = r.tags;
       ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag']) && T.folds + T.families === 0,
         `#2931 Q579 A: ${host} ${w}: the Tag section lists Tag as a row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
@@ -9332,11 +9960,11 @@ for (const host of ['web', 'figma']) {
         `#2931 Q579 A, #2905 Q10 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
       const B = r.buttons, F = r.fields;
       ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
-        && JSON.stringify(F.ids) === JSON.stringify(['code-input', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
-        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its seven sets (Code input since Q-2789.3 A, its cell beside it since #2989), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
-      ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog|Banner)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
+        && JSON.stringify(F.ids) === JSON.stringify(['card-number-field', 'code-input', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
+        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its eight sets (Code input since Q-2789.3 A, its cell beside it since #2989, Card number field since #2343 PR 4), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
+      ok(!r.other.some((t) => /^(Buttons|Button|Card number field|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog|Banner|Radio)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
         `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
-      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T], ['Dialog', D], ['Banner', BN]]) {
+      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T], ['Dialog', D], ['Banner', BN], ['Radio', RD]]) {
         const xs = e ? [e.head, ...e.rows, e.line, e.block] : [];
         const one = xs.length > 2 && xs.every((v) => v !== null && Math.abs(v - xs[0]) <= 0.5);
         ok(one && e.inBlock && e.after, `#2905 Q1 A: ${host} ${w}: ${name}: rows, line and block start at one edge, the section head's, and the block follows the sets (${JSON.stringify(e)})`);
@@ -9351,7 +9979,8 @@ for (const host of ['web', 'figma']) {
       ok(!!S && S.title === 'Search options' && S.desc === 'How Search field draws its edge, apart from the other fields.'
         && JSON.stringify(S.chips) === JSON.stringify(['Follow field style', 'Outline', 'Underline']) && S.readout === 'now Outline',
         `#2952, #2905 Q10 A: ${host} ${w}: Search options: its drafted title and description, Search field style's chips, and under Follow the readout "now Outline" (${JSON.stringify(S)})`);
-      ok(r.title === 'Code input', `#2905, Q-2789.3 A: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Code input (${r.title})`);
+      // #2343 PR 4: Card number field sorts first in Fields, so it is the set the preview opens on.
+      ok(r.title === 'Card number field', `#2905, Q-2789.3 A: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Card number field (${r.title})`);
       await hooks.click(page.locator('[data-p3="field-style-choice-underline"]'));
       await page.waitForFunction(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent !== 'Rounded', null, { timeout: 5000 }).catch(() => {});
       const u = await page.evaluate(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent ?? null);
@@ -9424,6 +10053,15 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="banner-options"] [data-p3="banner-style-choice-tinted"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="banner-options"] [data-p3="banner-style-choice-tinted"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         ok((await persisted(page))?.bannerStyle === 'tinted', `#2924: Banner options' Tinted writes bannerStyle: tinted (${(await persisted(page))?.bannerStyle})`);
+        // #3086: Radio dot size is brand-wide too: 70% from Dark writes the brand value as a number, Default restores 50.
+        await hooks.click(page.locator('[data-p3="radio-options"] [data-p3="radio-dot-choice-70"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="radio-options"] [data-p3="radio-dot-choice-70"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const rdO = await persisted(page);
+        ok(rdO?.radioDot === 70 && JSON.stringify(rdO?.modeLevers) === JSON.stringify(before?.modeLevers),
+          `#3086 Q54: previewing Dark, Radio options' 70% writes radioDot: 70 and no per-mode value (${rdO?.radioDot}, ${JSON.stringify(rdO?.modeLevers)})`);
+        await hooks.click(page.locator('[data-p3="radio-options"] [data-p3="radio-dot-choice-50"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="radio-options"] [data-p3="radio-dot-choice-50"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        ok((await persisted(page))?.radioDot === 50, `#3086: Radio options' Default writes radioDot: 50 (${(await persisted(page))?.radioDot})`);
       }
       ok(errors.length === 0, `#2905 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
@@ -9637,7 +10275,7 @@ const BAR_PROBE = () => {
     }
     if (((r.width <= 2 && r.height >= 8) || (r.height <= 2 && r.width >= 8)) && alpha(cs.backgroundColor) > 0) dividers.push(`${n.getAttribute('data-p3') ?? n.className} a ${Math.round(r.width)}×${Math.round(r.height)} bar`);
   }
-  const chev = (b) => { const g = [...b.querySelectorAll('svg.p3-ico')].filter(shown).at(-1); return !!g && /M4 6l4 4 4-4/.test(g.innerHTML); };
+  const chev = (b) => { const g = [...b.querySelectorAll('svg.p3-ico')].filter(shown).at(-1); return !!g && /d="M6 9l6 6l6 -6"/.test(g.innerHTML); };
   const white = ['brand-switcher', 'figma-open'].filter((k) => q(k)).map((k) => {
     const b = q(k), cs = getComputedStyle(b);
     return { k, bg: cs.backgroundColor === page, edge: parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle === 'solid' && alpha(cs.borderTopColor) > 0, chev: chev(b) };
@@ -9899,8 +10537,8 @@ if (runs('29b')) {
 const CONTRAST_PROBE = () => {
   const b = document.querySelector('[data-p3="verdict"]');
   const g = b.querySelector('.p3-tile-mark svg.p3-ico');
-  return { state: b.dataset.state, check: !!g && /M3 8\.5l3 3 7-7/.test(g.innerHTML) && g.classList.contains('p3-tile-ok'),
-    warn: !!g && /M8 1\.8l6\.6 11\.7H1\.4z/.test(g.innerHTML) && g.classList.contains('p3-tile-bad'),
+  return { state: b.dataset.state, check: !!g && /d="M5 12l5 5l10 -10"/.test(g.innerHTML) && g.classList.contains('p3-tile-ok'),
+    warn: !!g && /d="M10\.363 3\.591l-8\.106 13\.534/.test(g.innerHTML) && g.classList.contains('p3-tile-bad'),
     count: b.querySelector('[data-p3="verdict-count"]')?.textContent ?? null, tip: b.querySelector('[data-p3="verdict-tip"]')?.textContent ?? null, name: b.getAttribute('aria-label') };
 };
 for (const host of ['web', 'figma']) {
@@ -11545,11 +12183,12 @@ const EXPECT_HEADINGS = {
     // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
     // #2958: Dialog, its Dialog options (L2) and Dialog title size (L3), Tag options' way.
     // #2924: Banner, its Banner options (L2) and Banner style (L3), Dialog options' way.
+    // #3086: Radio, its Radio options (L2) and Radio dot size (L3), Banner options' way.
     // #2942: Link, its Link options (L2), holding one read-only line and no lever.
-    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components', 'Subcomponents'],
+    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components', 'Subcomponents'],
     // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
-    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options'],
-    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size', 'Banner style'],
+    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options', 'Radio options'],
+    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size', 'Banner style', 'Radio dot size'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
@@ -11568,7 +12207,7 @@ const HEADING_ADVANCED = {
   // #2844: a family's settings are closed behind their line; the audit reads them open.
   components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]',
     '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]', '[data-p3="cp-opts-toggle"][data-key="opts=banners"]',
-    '[data-p3="cp-opts-toggle"][data-key="opts=links"]'],
+    '[data-p3="cp-opts-toggle"][data-key="opts=links"]', '[data-p3="cp-opts-toggle"][data-key="opts=radios"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
@@ -11765,12 +12404,14 @@ const HEADING_PROBE = ({ strong, big, exempt, paneSel }) => {
   return { found, heads, tokenLabels, infos, swept: headingEls.length, unclassified, skips, sections, tokenLines };
 };
 /** The hint lines (`.p3-state-hint`) and every drawn ⓘ glyph outside a button, in the levers pane. The ⓘ glyph is known by
- *  its drawing, typed here: a ring of radius 6.2 and a dot of radius 0.9 (`glyph('info')`). */
+ *  its drawing, typed here: Tabler's `info-circle` ring, dot and stem (`glyph('info')`, #3083). Inside the probe, which
+ *  runs in the page. */
 const HINT_PROBE = () => {
+  const INFO_PATHS = ['M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0', 'M12 9h.01', 'M11 12h1v4h1'];
   const pane = document.querySelector('[data-p3="levers-pane"]');
   const vis = (n) => n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden' && !n.closest('[hidden]');
   const hints = [...pane.querySelectorAll('.p3-state-hint')].filter(vis).map((n) => ({ hook: n.getAttribute('data-p3'), text: n.textContent.trim().slice(0, 60), glyphs: n.querySelectorAll('svg').length }));
-  const stray = [...pane.querySelectorAll('svg')].filter(vis).filter((s) => s.querySelector('circle[r="6.2"]') && s.querySelector('circle[r="0.9"]') && !s.closest('button'))
+  const stray = [...pane.querySelectorAll('svg')].filter(vis).filter((s) => JSON.stringify([...s.querySelectorAll('path')].map((n) => n.getAttribute('d'))) === JSON.stringify(INFO_PATHS) && !s.closest('button'))
     .map((s) => `${s.parentElement?.getAttribute('data-p3') ?? s.parentElement?.className}: "${(s.parentElement?.textContent ?? '').trim().slice(0, 50)}"`);
   return { hints, stray };
 };
@@ -12682,12 +13323,15 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
 if (runs('2232')) {
 console.log('\n#2909 Q2995.2 A. The rail at the plugin\'s least height');
 // The owner's Q2995.2 A: at the plugin's least window height (420, `MIN_SIZE` in apps/plugin/src/main.ts), every rail
-// tile keeps its label and lies inside the window; the logo hides to make the room. EXPECTED is the window's own edge and
-// the labels this suite authors for the rail; MUTATION: the logo kept at every height (`rail.ts` `fit` removed) → the
-// `inside the window` arm, by name, at both widths.
-for (const theme of ['light', 'dark']) for (const w of [1280, 380]) {
-  const where = `figma ${theme} ${w}×420`;
-  const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: 420 });
+// tile lies inside the window and each area tile keeps its label; below the height the rail needs, the logo hides to make
+// the room. Since #3083 (2026-10-28) the foot's three tiles draw no label, the foot is shorter, and the rail fits at 420
+// with its logo, so the hide is held at 360 (measured: the rail first runs short of room just under 400). The fit is
+// measured, not a breakpoint, so it holds at any height. EXPECTED is the window's own edge and the labels this suite
+// authors for the rail; MUTATION: the logo kept at every height (`rail.ts` `fit` removed) → the `inside the window` arm
+// at 360, by name, at both widths.
+for (const theme of ['light', 'dark']) for (const w of [1280, 380]) for (const vh of [420, 360]) {
+  const where = `figma ${theme} ${w}×${vh}`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: vh });
   try {
     await hooks.need(page, '[data-p3="rail"]', WAIT);
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
@@ -12700,8 +13344,8 @@ for (const theme of ['light', 'dark']) for (const w of [1280, 380]) {
         logo: !!mark && mark.getClientRects().length > 0 };
     });
     ok(r.n === 7 && r.out.length === 0, `#2909 Q2995.2 A ${where}: every rail tile lies inside the window (${r.n} tiles; past the bottom edge: ${r.out.join(', ') || 'none'})`);
-    ok(JSON.stringify(r.labels) === JSON.stringify(['Theme', 'Components', 'Docs', 'Export', 'Minimize', 'Help', 'Appearance']), `#2909 Q2995.2 A ${where}: every rail tile keeps its label (${JSON.stringify(r.labels)})`);
-    ok(!r.logo, `#2909 Q2995.2 A ${where}: the rail's logo hides to make the room (logo drawn ${r.logo})`);
+    ok(JSON.stringify(r.labels) === JSON.stringify(['Theme', 'Components', 'Docs', 'Export', null, null, null]), `#2909 Q2995.2 A ${where}: every area tile keeps its label, and the foot's three draw none (#3083) (${JSON.stringify(r.labels)})`);
+    ok(r.logo === (vh >= 420), vh >= 420 ? `#2909 Q2995.2 A ${where}: the rail fits with its logo drawn (#3083) (logo drawn ${r.logo})` : `#2909 Q2995.2 A ${where}: the rail's logo hides to make the room (logo drawn ${r.logo})`);
     ok(errors.length === 0, `#2909 Q2995.2 A ${where}: 0 console errors${errors.length ? ` — ${errors[0]}` : ''}`);
   } finally { await ctx.close(); }
 }
@@ -13131,6 +13775,8 @@ const RO_EXCEPTIONS = [
   'shape-see-components', 'components-density-link', 'type-fluid-layout',
   // #2909 Q2909.3 A: Control shape's read-only line on Shape only opens its home.
   'shape-control-shape-link',
+  // #3093: the panel over the scrim's read-only row on Surfaces & fills only opens Dialog surface's home.
+  'raised-surface-link',
   'fills-continue', 'interactive-continue', 'type-continue', 'depth-continue', 'shape-continue', 'layout-continue',
 ];
 /** The studio's boxed note (RX2 A), by its classes. */
@@ -13217,9 +13863,10 @@ const RO_READ = ([q, exceptions, noteClasses]) => {
   const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
   const ratio = (a, b) => { const x = lum(a), y = lum(b); return Math.round(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100; };
   const glyph = line?.querySelector('svg') ?? null;
-  // RX3 A: the note's own warning glyph, known by its drawing (a triangle path, a stem and a dot of radius 0.9), typed
-  // here as HINT_PROBE types the ⓘ's; never the ⓘ (HP3: the ⓘ is only ever a button).
-  const warnGlyph = !!glyph && /^M8 1\.8l6\.6 11\.7H1\.4z$/.test(glyph.querySelector('path')?.getAttribute('d') ?? '') && !!glyph.querySelector('circle[r="0.9"]') && !glyph.querySelector('circle[r="6.2"]');
+  // RX3 A: the note's own warning glyph, known by its drawing (Tabler's `alert-triangle` stem, triangle and dot, #3083),
+  // typed here as HINT_PROBE types the ⓘ's; never the ⓘ (HP3: the ⓘ is only ever a button).
+  const WARN_PATHS = ['M12 9v4', 'M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0', 'M12 16h.01'];
+  const warnGlyph = !!glyph && JSON.stringify([...glyph.querySelectorAll('path')].map((n) => n.getAttribute('d'))) === JSON.stringify(WARN_PATHS);
   const ground = line ? rgb(getComputedStyle(line).backgroundColor) : null;
   const look = line ? {
     classes: noteClasses.every((c) => line.classList.contains(c)), glyph: !!glyph && glyph.getClientRects().length > 0 && warnGlyph,
@@ -14593,7 +15240,10 @@ for (const host of ['web', 'figma']) {
         await hooks.need(page, '[data-p3="value-picker"]');
         const on = '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="true"]';
         selected(await page.evaluate(FC_LOOK, on), await page.evaluate(FC_LOOK, '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="false"]'), what);
-        await drawn(on, what);
+        // The label is the value's key (`.p3-vpick-key`), read alone (#3083): the whole value's text box also spanned the key's
+        // check glyph and the weight's type sample, so on CI's rendering the glyph's ink was carrying the ratio, and Tabler's
+        // lighter check dropped it under the floor while the label itself was never the subject.
+        await drawn(`${on} .p3-vpick-key`, what);
         await controlsOptIn(`${place}, ${what} open`);
         await page.locator(on).scrollIntoViewIfNeeded();
         await shot(name);
@@ -14931,11 +15581,13 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //   · Title floor 16px under Compact (S63.titleFloorCompact): Type scale on Compact; lifted by Type scale Default.
 //   · Title floor 18px while title 2xs is set individually (S63.titleFloorPinned): Expressive, title floor 16px, then
 //     title 2xs's desktop size set to its first free value; lifted by resetting that size.
+//   · Caption floor 10px while caption md is set to 10px (S63.captionFloorPinned, #3084): caption md set to 10px through
+//     its picker; lifted by resetting that size.
 //   · Italic only on a text type that pins a font style (S63.italicPinned): body's default weight pinned to "Medium";
 //     lifted by clearing the pin.
 //
 // INDEPENDENCE (docs/34). EXPECTED is typed here: the three approved sentences, copied from the owner-approved strings
-// (S63.titleFloorCompact, S63.titleFloorPinned, S63.italicPinned), and which chip each case refuses, worked out by hand
+// (S63.titleFloorCompact, S63.titleFloorPinned, S63.italicPinned), plus #3084's DRAFT S63.captionFloorPinned, and which chip each case refuses, worked out by hand
 // from the issue. ACTUAL is the browser's: the drawn paragraphs and their boxes, the accessibility tree, and every live
 // region in the document. The line is found by its words inside the row, never through `aria-describedby` or an id, so
 // an unlinked line still reads as drawn and fails only the description arm. The live-region arm is read with the line
@@ -14952,10 +15604,14 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //     hint doesn't announce: the drawn reason is in no live region (drawn 1, 1 live region(s) carrying it)`, each case (12).
 // =============================================================================================
 if (runs('43')) {
-console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only (#2451)\n${'='.repeat(78)}`);
+console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor and Italic only (#2451, #3084)\n${'='.repeat(78)}`);
 {
   const COMPACT = 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.';
   const PINNED18 = 'Leaves out title 2xs, which you set individually.';
+  const CAPTION10 = 'Caption md is 10px, which you set individually, so the engine refuses a second 10px caption.';
+  const CFLOOR_ROW = '[data-p3="lever-typography-caption-floor"]';
+  const CFLOOR_GROUP = '[data-p3="caption-floor"]';
+  const CAPMD = '[data-p3="caption-size"][data-variant="md"]';
   const ITALIC = 'This text type pins a font style. Clear the pin first: Italic only sets the style from the weight.';
   const FLOOR_ROW = '[data-p3="lever-typography-title-floor"]';
   const FLOOR_GROUP = '[data-p3="title-floor"]';
@@ -15045,6 +15701,19 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only 
         await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
         await closePicker(page);
         await chipOff(page, '[data-p3="title-floor-18"]', false);
+      });
+      // Caption floor 10px while caption md is set to 10px (#3084).
+      step = 'set caption md to 10px';
+      await hooks.click(page.locator(CAPMD), BOUND);
+      await hooks.need(page, '[data-p3="value-picker"]', BOUND);
+      await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="10"]'), BOUND);
+      await closePicker(page);
+      await chipOff(page, '[data-p3="caption-floor-10"]', true);
+      await arms('Caption floor 10px with caption md at 10px', CFLOOR_ROW, CFLOOR_GROUP, CAPTION10, async () => {
+        await hooks.click(page.locator(CAPMD), BOUND);
+        await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
+        await closePicker(page);
+        await chipOff(page, '[data-p3="caption-floor-10"]', false);
       });
       // Italic only on a text type that pins a font style.
       step = 'pin body\'s font style';
@@ -16070,7 +16739,15 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
 //   · the run's re-check (`startStep`, no `previewHash`) sending `panelBrand(true)` → `IA2 figma … with Theme unticked,
 //     the run checks the fewer sets again against the file's stored brand …` (#3023);
 //   · the re-tick from a toggle's answer (`if (rechecking && ticks) …`) deleted → `IA2 figma … a Theme toggle ticks the
-//     due sets from its own answer …` (#3023).
+//     due sets from its own answer …` (#3023);
+//   · #3081 Q810 A, the badge, live: `recountDue` (`main.ts`) not debounced, asking at once → `IA2 figma … three quick
+//     changes ask for the count once …`; no recount on `brand` → the same arm; `DUE_AFTER` emptied → `IA2 figma … after a
+//     run, the panel asks for the count again …` and `… the badge drops after a run …`; the shell painting `dueCount`
+//     over the live recount → `IA2 figma … the badge rises on a setting change …`; Theme's item dropped from
+//     `badgeCount` → the same arm and `IA2 figma … Theme counts as one item …`; the checklist reading the live answer for
+//     its ticks → `IA2 figma … #3028 Q701 B: with Theme unticked, a live answer landing …`; `liveShown` (`main.ts`)
+//     reduced to `!restoreFailure` → `IA2 figma … before a brand is chosen …`; `!restoreFailure &&` dropped from `liveShown`
+//     → `IA2 figma … after a failed restore …` (#3096 review, MC).
 if (runs('ia2')) {
 console.log(`\nIA v2 phase 2 (#2909) — tiers, lever homes, engine warnings, what is due\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
@@ -16087,7 +16764,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       shared: document.querySelector('[data-p3="components-list"] > [data-p3="cp-shared"]') ? [...document.querySelector('[data-p3="components-list"]').children].indexOf(document.querySelector('[data-p3="cp-shared"]')) : -1,
     }));
     ok(JSON.stringify(tiers.caps.map((c) => c.tier)) === JSON.stringify(['components', 'subcomponents']) && tiers.caps.every((c) => c.role === 'group' && /^(Components|Subcomponents) · \d+ sets$/.test(c.named ?? ''))
-      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
+      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
       `${where}: Q2909.17 A: Components lists its sections under the tiers, each a group named by its caption, Components then Subcomponents (${JSON.stringify(tiers.caps)})`);
     ok(tiers.empty === 'Content components and Blocks: no component sets yet.', `${where}: Q2909.17 A: the two tiers no definition is in yet are named in one line ("${tiers.empty}")`);
     // The shared block, first in the list after the intro: Density's read-only line, then Control shape's chips.
@@ -16272,6 +16949,224 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
       await postMsg(page, FILE);
       await postMsg(page, { type: 'hand-edits', done: true });
+      // #3081 Q810 A: THE BADGE, LIVE. It counts everything Update file would change: the sets due against the brand the
+      // panel holds, recounted when a setting changes, plus one item for Theme changes the file does not hold. The host's
+      // answers (`file-due`) are planted as the main thread posts them; what is read is what the panel asks and draws.
+      step = 'the live badge';
+      await page.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(JSON.parse(JSON.stringify(m))); }); });
+      const badgeNow = () => page.evaluate(() => { const b = document.querySelector('[data-p3="update-badge"]');
+        return { text: b && !b.hidden ? b.textContent : null, name: document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-label') ?? null }; });
+      const nextAsk = async () => {
+        await page.waitForFunction(() => window.__due.length > 0, null, { timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(400);
+        return page.evaluate(() => window.__due.splice(0));
+      };
+      const CURRENT = Object.fromEntries(Object.keys(DUE).map((k) => [k, k === 'badge' ? DUE.badge : { state: 'current' }]));
+      const answer = (seq, theme, due) => postMsg(page, { type: 'file-due', seq, present: FILE.present, theme, due });
+      // The run above ended; the panel asks again after it. A calm answer: nothing due, and the file holds the panel's brand.
+      const settled = await nextAsk();
+      await answer(settled.at(-1)?.seq ?? 0, false, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+      const calm = await badgeNow();
+      ok(settled.length >= 1 && calm.text === null && calm.name === null,
+        `${where}: Q810 A: after a run, the panel asks for the count again, and with nothing to change the badge is gone and the name is the label alone (${settled.length} asked; ${JSON.stringify(calm)})`);
+      // A burst of three changes on the shared block, as a drag or quick clicks make: one ask, after the last, carrying the
+      // brand the panel then holds; never the file's sets read again, and never the full check.
+      await goPlace(page, 'components');
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await page.evaluate(() => { for (const sel of ['[data-p3="cp-shared"] [data-p3="control-shape-choice-rounded"]', '[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]', '[data-p3="cp-shared"] [data-p3="control-shape-choice-boxed"]']) { const n = document.querySelector(sel); if (n) HTMLElement.prototype.click.call(n); } });
+      const burst = await nextAsk();
+      const heavy = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'file-sets-request' || m.type === 'update-check-request').map((m) => m.type));
+      const BOXED = { ...BOOT_INPUT, controlShape: 'boxed' };
+      ok(burst.length === 1 && canon(burst[0].input) === canon(BOXED) && heavy.length === 0,
+        `${where}: Q810 A: three quick changes ask for the count once, after the last, with the brand the panel holds; the file is not read again and the full check is not run (${burst.length} asked${burst[0] ? `, ${wireDiff(burst[0].input, BOXED)}` : ''}; heavier reads ${JSON.stringify(heavy)})`);
+      // Each ask carries a newer number than the one before, so an answer to an older ask, landing late, is known as late.
+      const seqs = [settled.at(-1)?.seq ?? null, burst[0]?.seq ?? null];
+      ok(Number.isInteger(seqs[0]) && Number.isInteger(seqs[1]) && seqs[1] > seqs[0],
+        `${where}: Q810 A: two asks in a row carry a rising number, the later one higher (${JSON.stringify(seqs)})`);
+      // The answer: the two sets that change moves are due, and the file does not hold this brand: 2 + Theme's one item.
+      await answer(burst[0]?.seq ?? 0, true, DUE);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '3', null, { timeout: 5000 }).catch(() => {});
+      const risen = await badgeNow();
+      ok(risen.text === '3' && risen.name === 'Update file, 3 due',
+        `${where}: Q810 A: the badge rises on a setting change, before the checklist opens: 2 due sets and Theme as one item read 3, and the accessible name says the same count (${JSON.stringify(risen)})`);
+      // An answer to an older ask, landing late, never replaces the newer one.
+      await answer((burst[0]?.seq ?? 1) - 1, false, CURRENT);
+      await page.waitForTimeout(150);
+      ok((await badgeNow()).text === '3', `${where}: Q810 A: a late answer to an older ask does not move the badge (${JSON.stringify(await badgeNow())})`);
+      // Theme alone: nothing due, the brand not applied, reads 1 and says so.
+      await hooks.click(page.locator('[data-p3="cp-shared"] [data-p3="control-shape-choice-hairline"]'));
+      const one = await nextAsk();
+      await answer(one.at(-1)?.seq ?? 0, true, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '1', null, { timeout: 5000 }).catch(() => {});
+      const alone = await badgeNow();
+      ok(one.length === 1 && alone.text === '1' && alone.name === 'Update file, 1 due',
+        `${where}: Q810 A: Theme counts as one item: with no set due and the brand not applied, the badge reads 1, and so does the name (${JSON.stringify(alone)})`);
+      // A name typed on the Brand page, with no lever moved: `syncIdentity` writes it without a rebuild, so only the
+      // `identity` topic tells the badge. The file's stored brand compares by the whole input, the name included, so the
+      // panel asks once, after the debounce, carrying the new name. The name is put back after, so the steps below read
+      // the brand they did.
+      await goPlace(page, 'brand');
+      const nameField = page.locator('[data-p3="brand-name"]');
+      const nameWas = await nameField.inputValue();
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await nameField.fill('Renamed 3096');
+      const named = await nextAsk();
+      const namedHeavy = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'file-sets-request' || m.type === 'update-check-request').map((m) => m.type));
+      ok(named.length === 1 && named[0].input?.name === 'Renamed 3096' && named[0].input?.controlShape === 'hairline' && namedHeavy.length === 0,
+        `${where}: Q810 A: a brand name typed with no setting changed asks for the count once, after the debounce, carrying the new name; the file is not read again (${JSON.stringify({ asked: named.length, name: named[0]?.input?.name ?? null, heavy: namedHeavy })})`);
+      await answer(named.at(-1)?.seq ?? 0, true, CURRENT);
+      await nameField.fill(nameWas);
+      const unnamed = await nextAsk();
+      await answer(unnamed.at(-1)?.seq ?? 0, true, CURRENT);
+      const heldSeq = unnamed.at(-1)?.seq ?? 0;
+      await goPlace(page, 'components');
+      // #3028 (#3023 Q701 B) holds: the checklist, with Theme unticked, reads its own answers. A live answer landing while it
+      // is open changes neither its rows nor what it asks.
+      step = 'the live badge with Theme unticked';
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      const rowsOf = () => page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
+        rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => [b.dataset.id, b.getAttribute('aria-checked'), b.querySelector('[data-p3="update-set-due"]')?.textContent ?? null]),
+        go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null }));
+      const before = await rowsOf();
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      // The answer held (Theme alone, 1, the name put back) is answered again with another reading: nothing due, Theme applied.
+      await answer(heldSeq, false, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+      const liveLanded = (await badgeNow()).text === null;
+      const afterLive = await rowsOf();
+      const askedLive = await page.evaluate(() => window.__ia2.map((m) => m.type));
+      ok(liveLanded && before.theme === 'false' && canon(afterLive) === canon(before) && JSON.stringify(before.rows) === JSON.stringify([['button', 'true', 'Due · its settings changed'], ['select', 'true', 'Due · Prism3 changed']]) && askedLive.length === 0,
+        `${where}: #3028 Q701 B: with Theme unticked, a live answer landing while the checklist is open moves the badge (to none) but none of the checklist's rows or their Due tags, and asks nothing (${JSON.stringify({ landed: liveLanded, before, after: afterLive, asked: askedLive })})`);
+      await hooks.click(page.locator('[data-p3="update-cancel"]'));
+      // A run with Theme ticked: Apply Theme, then the update. The panel asks for the count after each verdict, and the
+      // host's answer after it (the file now holds the panel's brand, the sets written) takes the badge to nothing.
+      step = 'the live badge after a run';
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      await hooks.click(page.locator('[data-p3="update-go"]'));
+      await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
+      await page.waitForFunction(() => window.__ia2.filter((m) => m.type === 'file-sets-request').length >= 2, null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { ...FILE, due: CURRENT });
+      const ran = await nextAsk();
+      const HAIRLINE = { ...BOOT_INPUT, controlShape: 'hairline' };
+      await answer(ran.at(-1)?.seq ?? 0, false, CURRENT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+      const dropped = await badgeNow();
+      ok(ran.length >= 1 && ran.every((m) => canon(m.input) === canon(HAIRLINE)) && dropped.text === null && dropped.name === null,
+        `${where}: Q810 A: the badge drops after a run: the panel asks for the count after the run's verdicts, and the answer (the brand applied, the sets written) leaves no badge and the label alone as the name (${ran.length} asked; ${JSON.stringify(dropped)})`);
+      // No brand chosen yet: a fresh plugin page, the load's read landing before the host's restore answers (its library
+      // probe can be slow), then the start moment. The panel holds only the boot placeholder, so it asks nothing, and a
+      // live answer planted anyway is not shown: the badge keeps the load's read (2). Choosing a brand starts the asks.
+      step = 'the live badge before a brand is chosen';
+      const p2 = await ctx.newPage();
+      await hooks.watch(p2);
+      await p2.goto(`${ORIGIN}/plugin?figma=${theme}`, { waitUntil: 'load' });
+      await p2.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(m.seq); }); });
+      await postMsg(p2, FILE);
+      await p2.waitForTimeout(600);
+      const early = await p2.evaluate(() => window.__due.length);
+      await postMsg(p2, { type: 'restore-input-empty' });
+      await p2.waitForTimeout(600);
+      await postMsg(p2, { type: 'file-due', seq: 1, present: FILE.present, theme: true, due: DUE });
+      await p2.waitForTimeout(300);
+      const atStart = await p2.evaluate(() => ({ asked: window.__due.length, badge: document.querySelector('[data-p3="update-badge"]')?.textContent ?? null }));
+      await hooks.click(p2.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
+      await p2.waitForFunction(() => window.__due.length > 0, null, { timeout: 5000 }).catch(() => {});
+      const chosen = await p2.evaluate(() => window.__due.length);
+      ok(early === 0 && atStart.asked === 0 && (atStart.badge === null || atStart.badge === '2') && chosen >= 1,
+        `${where}: Q810 A: before a brand is chosen (the boot placeholder, then the start moment), the panel asks for no count and shows no live answer; choosing one starts the asks (${JSON.stringify({ early, atStart, chosen })})`);
+      await p2.close();
+      // A failed restore: the file's stored brand loads but the engine refuses it in resolution (`unresolved`), so the
+      // brand on screen is not one the panel can count against and Update file's writes are off. A setting change then
+      // asks for no count, and a live answer planted anyway is not shown: the badge keeps the load's read (2). The brand
+      // is typed here, not read from section 38's, so this section runs in a shard without it (#2898).
+      step = 'the live badge after a failed restore';
+      const REFUSED_3081 = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true }, id: 'refused-brand',
+        overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
+      const p3 = await ctx.newPage();
+      await hooks.watch(p3);
+      await p3.goto(`${ORIGIN}/plugin?figma=${theme}`, { waitUntil: 'load' });
+      await p3.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(m.seq); }); });
+      await postMsg(p3, FILE);
+      await postMsg(p3, { type: 'restore-input', input: REFUSED_3081 });
+      await p3.waitForFunction(() => /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+      await goPlace(p3, 'components');
+      await p3.evaluate(() => { const n = document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]'); if (n) HTMLElement.prototype.click.call(n); });
+      await p3.waitForTimeout(600);
+      const failedAt = await p3.evaluate(() => ({ asked: window.__due.length, unresolved: /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''),
+        changed: document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]')?.getAttribute('aria-checked') ?? null }));
+      await postMsg(p3, { type: 'file-due', seq: 1, present: FILE.present, theme: true, due: { ...DUE, tag: { state: 'due', reason: 'definition' } } });
+      await p3.waitForTimeout(300);
+      const failedBadge = await p3.evaluate(() => { const b = document.querySelector('[data-p3="update-badge"]'); return b && !b.hidden ? b.textContent : null; });
+      ok(failedAt.unresolved && failedAt.changed === 'true' && failedAt.asked === 0 && failedBadge === '2',
+        `${where}: Q810 A: after a failed restore (the stored brand does not resolve), a setting change asks for no count and a live answer is not shown: the badge keeps the load's read, 2 (${JSON.stringify({ ...failedAt, badge: failedBadge })})`);
+      await p3.close();
+      // #3082: the checklist repaints whole on a tick and on each host answer; neither moves the body's scroll, and a
+      // tick keeps focus on its box. Every set not in the file is listed, so the checklist is taller than the dialog.
+      // Twice: at 1280, and at the narrow tier, where `.p3-bardlg-col.p3-upd-body` keeps the body the scroller.
+      for (const [vw, vh] of [[1280, 900], [400, 700]]) {
+        const at = `IA2 ${host} ${theme} ${vw}`;
+        await page.setViewportSize({ width: vw, height: vh });
+        await page.waitForFunction((n) => (document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow') === n, vw < 560, { timeout: 5000 }).catch(() => {});
+        const tier = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w ?? null);
+        ok(tier === (vw < 560 ? 'narrow' : 'wide'), `${at}: #3082: the frame is at the ${vw < 560 ? 'narrow' : 'wide'} tier (${tier})`);
+        step = `the scroll across a repaint at ${vw}`;
+        await page.evaluate(() => { window.__ia2.length = 0; });
+        await hooks.click(page.locator('[data-p3="update-file"]'));
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, FILE);
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+        const fold = await page.evaluate(() => {
+          const b = document.querySelector('[data-p3="update-body"]');
+          const last = [...document.querySelectorAll('[data-p3="update-set"]')].at(-1);
+          if (!b || !last) return null;
+          const below = last.getBoundingClientRect().top >= b.getBoundingClientRect().bottom;
+          b.scrollTop = b.scrollHeight;
+          return { tall: b.scrollHeight > b.clientHeight + 1, below, top: b.scrollTop, id: last.dataset.id, on: last.getAttribute('aria-checked') };
+        });
+        ok(!!fold && fold.tall && fold.below && fold.top > 0 && fold.on === 'false', `${at}: #3082: the checklist is taller than the dialog, its last new set starts below the fold, unticked, and the body scrolls down to it (${JSON.stringify(fold)})`);
+        const scrollNow = () => page.evaluate(() => { const a = document.activeElement;
+          return { top: document.querySelector('[data-p3="update-body"]')?.scrollTop ?? null, focus: a?.closest('[data-p3="update-dialog"]') ? a.dataset.key ?? a.getAttribute('data-p3') : null }; });
+        if (fold) {
+          await hooks.click(page.locator(`[data-p3="update-set"][data-id="${fold.id}"]`));
+          await page.waitForFunction((id) => document.querySelector(`[data-p3="update-set"][data-id="${id}"]`)?.getAttribute('aria-checked') === 'true', fold.id, { timeout: 5000 }).catch(() => {});
+          const ticked = { ...(await scrollNow()), on: await page.evaluate((id) => document.querySelector(`[data-p3="update-set"][data-id="${id}"]`)?.getAttribute('aria-checked') ?? null, fold.id) };
+          ok(ticked.on === 'true' && ticked.top !== null && Math.abs(ticked.top - fold.top) <= 1 && ticked.focus === `set=${fold.id}`,
+            `${at}: #3082: ticking a set below the fold keeps the body's scroll (${fold.top} → ${ticked.top}) and focus on that box (${JSON.stringify(ticked)})`);
+          // A host answer repaints the dialog too (here the check again): the scroll stays where it was. Scrolled back to
+          // where the tick was first, so this reads the host's repaint alone.
+          await page.evaluate((top) => { document.querySelector('[data-p3="update-body"]').scrollTop = top; }, fold.top);
+          await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+          await settle(page);
+          const answered = await scrollNow();
+          ok(answered.top !== null && Math.abs(answered.top - fold.top) <= 1 && answered.focus === `set=${fold.id}`,
+            `${at}: #3082: a host answer's repaint keeps the body's scroll (${fold.top} → ${answered.top}) and focus (${JSON.stringify(answered)})`);
+        }
+        await page.keyboard.press('Escape');
+      }
+      await page.setViewportSize({ width: 1280, height: 900 });
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {

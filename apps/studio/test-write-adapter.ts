@@ -195,5 +195,12 @@ accepts('style-guide-result with a malformed stopped leaves it off', { type: 'st
     { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
 }
 
+// #3110: the flags the host sets on a read at open cross intact, so the panel can tell the ledger's answer and a read after
+// open from an answer it asked for; a flag that is not `true` is left off, the answer kept.
+accepts('file-sets at open, the ledger\'s alone, keeps partial and atOpen', { type: 'file-sets', present: ['button'], setUp: false, due: {}, partial: true, atOpen: true },
+  { kind: 'file-sets', present: ['button'], setUp: false, error: null, due: {}, partial: true, atOpen: true });
+accepts('file-sets with a malformed partial and atOpen leaves both off', { type: 'file-sets', present: ['button'], setUp: true, due: {}, partial: 'yes', atOpen: 1 },
+  { kind: 'file-sets', present: ['button'], setUp: true, error: null, due: {} });
+
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

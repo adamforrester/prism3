@@ -179,6 +179,25 @@
       "description": "The surface of every dialog and sheet in light mode: the card color, the page color, or white. Dark mode always uses the card color, so the panel stays lifted."
     },
     {
+      "key": "scrimStrength",
+      "group": "color",
+      "kind": "value",
+      "label": "Scrim strength",
+      "control": "enum",
+      "default": "standard",
+      "options": [
+        {
+          "value": "standard",
+          "label": "Standard"
+        },
+        {
+          "value": "strong",
+          "label": "Strong"
+        }
+      ],
+      "description": "How much the backdrop behind a dialog dims the page. Standard keeps the page readable behind it. Strong dims it further, so the page stops competing with the dialog."
+    },
+    {
       "key": "glassRoles",
       "group": "color",
       "kind": "value",
@@ -378,6 +397,33 @@
         }
       ],
       "description": "The surface of every banner. Tinted fills it with the tone’s tint; Outlined draws the edge in the tone on the page color. Either way the edge and glyph clear 3:1."
+    },
+    {
+      "key": "radioDot",
+      "group": "form",
+      "kind": "value",
+      "label": "Radio dot size",
+      "control": "enum",
+      "default": 50,
+      "options": [
+        {
+          "value": 50,
+          "label": "Default"
+        },
+        {
+          "value": 60,
+          "label": "60%"
+        },
+        {
+          "value": 70,
+          "label": "70%"
+        },
+        {
+          "value": 80,
+          "label": "80%"
+        }
+      ],
+      "description": "How big the dot in a selected radio is, as a share of the radio, at every size. Default is half. The dot rounds to a 2px step and never covers the ring. List bullets and badge dots follow it."
     },
     {
       "key": "buttonIcons",
@@ -871,11 +917,24 @@
           "label": "Tinted wash"
         },
         {
+          "value": "opaque-fill",
+          "label": "Solid fill"
+        },
+        {
           "value": "none",
           "label": "No hover fill"
         }
       ],
-      "description": "How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = the control's own fill at 20% opacity (30% pressed), stepped down the opacity scale where the label needs more contrast and up where the hover would not show, so a destructive outline hovers red-tinted rather than gray; none = omit."
+      "description": "How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = the control's own fill at 20% opacity (30% pressed), stepped down the opacity scale where the label needs more contrast and up where the hover would not show, so a destructive outline hovers red-tinted rather than gray; opaque-fill = a solid palette step you pick (Outline hover fill), with the label and icon kept legible on it, on buttons and icon buttons only, while tags, segmented controls and pagination keep the wash; none = omit."
+    },
+    {
+      "key": "outlineHoverFill",
+      "group": "advanced",
+      "kind": "value",
+      "label": "Outline hover fill",
+      "control": "object",
+      "advanced": true,
+      "description": "The solid hover fill of outline and text buttons, per mode: a palette step, such as neutral 050. Pressed takes the next step unless you pick one. The label and icon move along their own color where they need to, to stay legible on it. Modes you leave on Auto, and inverse surfaces, take the gray step closest to their ground."
     },
     {
       "key": "neutralEmphasis",

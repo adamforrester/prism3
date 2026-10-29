@@ -53,6 +53,8 @@ import { glyph, h, hook } from '../shell/dom';
 import { addRowButton, choice, jumpLabel, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, pageEdit, markRefused } from '../ui/lever-kit';
 import { scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, worstRatio, type PickerPalette } from '../ui/step-picker';
+import { readOutlineHoverFill, setOutlineHoverStep, setOutlineInteraction } from '../state/outline-hover-input';
+import { contrast, hexToRgb } from '@prism3/engine/color';
 
 /** The button sets lever's info text (owner-approved, 2026-10-02). */
 export const BUTTON_SET_TOOLTIP = 'Add a button set from any brand color on Palettes. Each set gets fill, text, border and state colors in every mode.';
@@ -131,10 +133,52 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const L = leverOf(key)!;
     const b = leverBlock(key, { group: true });
     const role = `${b.el.getAttribute('data-p3')!.slice('lever-'.length)}-chips`;
-    const c = choice(L.label, role, (L.options ?? []).map((o) => ({ v: String(o.value), l: o.label })), (v) => edit(key, () => setLever(key, v)));
+    // #3071: leaving the opaque fill drops its step picks, which the engine refuses under another method.
+    const write = key === 'outlineInteraction' ? setOutlineInteraction : (v: string) => setLever(key, v);
+    const c = choice(L.label, role, (L.options ?? []).map((o) => ({ v: String(o.value), l: o.label })), (v) => edit(key, () => write(v)));
     c.set(String(getPath(brandState, key) ?? L.default));
     b.ctl.append(c.el);
     return { el: b.el, said: b.said, key, block: b };
+  };
+
+  // ── Outline hover fill (#3071, owner Q824 A; every string a DRAFT for the owner) ─────────────────────
+  /** The hover and pressed step of the opaque outline hover fill, in the mode the preview shows. Drawn only under
+   *  `opaque-fill`. Auto names the step the engine's default rule lands on; the line under it is the worst label on
+   *  each fill across the button sets, read from the resolved roles. */
+  const outlineHoverFill = (): Item[] => {
+    if ((getPath(brandState, 'outlineInteraction') ?? theme.outlineInteraction) !== 'opaque-fill') return [];
+    const b = leverBlock('outlineHoverFill', { group: true });
+    const roles = rolesIn(currentMode);
+    const pick = readOutlineHoverFill()[currentMode];
+    const steps = theme.palettes.flatMap((p) => p.steps.map((st) => ({ v: `${p.palette}.${st.key}`, l: `${capWord(p.palette)} ${st.key}` })));
+    const shown = (st: string): string => (roles[`interactive.primary.hover-fill.${st}`]?.path ?? '').split('.').slice(-2).map((x, i) => (i ? x : capWord(x))).join(' ');
+    const said: string[] = [];
+    // One select to a line, as the link states are (the owner's QA-I9).
+    const grid = h('div', 'p3-fieldgrid p3-irungs');
+    for (const st of ['hover', 'pressed'] as const) {
+      const f = hook(h('div', 'p3-field'), `outline-hover-fill-${st}`);
+      const id = `p3-outline-hover-${st}`;
+      const lab = h('label', 'p3-field-label', capWord(st));
+      lab.htmlFor = id;
+      const s = selectField(id, `${capWord(st)} fill`, `outline-hover-fill-${st}-select`, (v) => edit('outlineHoverFill', () => setOutlineHoverStep(currentMode, st, v || undefined)));
+      const auto = `Auto: ${shown(st) || 'default'}`;
+      s.set([{ v: '', l: auto }, ...steps], (st === 'hover' ? pick?.hover : pick?.pressed) ?? '');
+      // Pressed follows hover until hover is picked: its Auto is the next step past it.
+      s.select.disabled = st === 'pressed' && !pick;
+      f.append(lab, s.el);
+      grid.append(f);
+      said.push(auto);
+    }
+    b.ctl.append(grid);
+    const worst = (st: string): number | undefined => {
+      const rs = columnsInOrder().flatMap(([c]) => ['text', 'icon'].map((part) => [roles[`interactive.${c}.hover-fill.${st}`], roles[`interactive.${c}.${part}.${st}`]] as const))
+        .filter(([f, ink]) => f && ink).map(([f, ink]) => contrast(hexToRgb(ink!.hex), hexToRgb(f!.hex)));
+      return rs.length ? Math.min(...rs) : undefined;
+    };
+    const wh = worst('hover'), wp = worst('pressed');
+    if (wh !== undefined && wp !== undefined) b.ctl.append(hook(subLine(`Labels and icons on it, at worst: ${fmtRatio(wh)} hover, ${fmtRatio(wp)} pressed. They shift where they need to, to stay legible.`), 'outline-hover-fill-ratio'));
+    if (editingLine()) b.ctl.append(editingLine()!);
+    return [{ el: b.el, said: `${b.said} ${said.join(' ')}`.toLowerCase(), key: 'outlineHoverFill', block: b }];
   };
 
   // ── Actions ────────────────────────────────────────────────────────────────────────────────────
@@ -506,6 +550,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   const ROWS: Record<string, (row: { keys?: readonly string[] }) => Item[]> = {
     palette: (row) => [row.keys?.[0] === 'linkPalette' ? linkPalette() : actionPalette()],
     enum: (row) => [enumLever(row.keys![0])],
+    outlineHoverFill,
     interactivePalettes: columns,
     toggle: one(strict),
     linkStateRungs: one(rungs),
@@ -596,6 +641,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const cols = root.querySelector<HTMLElement>('[data-p3="lever-interactive-palettes"]');
     const colsItem = items.find((it) => it.key === 'interactivePalettes');
     if (cols && colsItem?.block) cols.hidden = !!q && !colsItem.block.said.includes(q) && !cols.querySelector(':is(.p3-fillrow-wrap, .p3-lever):not([hidden])');
+    // #3093: a search that names the columns' own lever (Interactive palettes) shows them, so their section too.
+    if (q && cols && !cols.hidden) { const sec = cols.closest<HTMLElement>('.p3-lsec'); if (sec) sec.hidden = false; }
     for (const n of root.querySelectorAll<HTMLElement>('.p3-intro, .p3-nextrow, .p3-jump, .p3-icol-add')) n.hidden = !!q;
     setSearchHits(q ? shown.filter((it) => !it.el.hidden).length : null);
   };

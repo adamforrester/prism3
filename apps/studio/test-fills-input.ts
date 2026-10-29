@@ -209,6 +209,25 @@ for (const mode of ['light', 'dark', 'hc-light', 'hc-dark']) {
 }
 
 
+// #3050 (owner Q825 B): Scrim strength. Strong writes `scrimStrength: 'strong'` and nothing else, and the row reads out
+// the step it gives each mode; Standard writes 'standard' and reads out today's steps. The steps are literals typed
+// from the decision, not read off the engine's table.
+reset();
+F.setScrimStrength('strong');
+store.rebuild();
+ok(JSON.stringify(store.brandState) === JSON.stringify({ ...prism3, scrimStrength: 'strong' }) && F.brandScrimStrength() === 'strong',
+  `#3050: Strong writes scrimStrength "strong" and nothing else (${JSON.stringify(store.brandState.scrimStrength)})`);
+const scrimReads = (): string => ['light', 'dark', 'hc-light', 'hc-dark'].map((m) => { const r = F.rolesIn(m)[F.SCRIM_ROLE]; const w = r ? F.washReadOf(r) : null; return w ? `${w.primitive} ${w.opacity}` : 'none'; }).join(' / ');
+ok(scrimReads() === 'black-alpha 80 80 / black-alpha 80 80 / black-alpha 90 90 / black-alpha 90 90',
+  `#3050: under Strong the scrim row reads out black-alpha 80 / 80 / 90 / 90 (read ${scrimReads()})`);
+F.setScrimStrength('standard');
+store.rebuild();
+ok(store.brandState.scrimStrength === 'standard' && scrimReads() === 'black-alpha 40 40 / black-alpha 60 60 / black-alpha 60 60 / black-alpha 70 70',
+  `#3050: Standard writes "standard" and the row reads out black-alpha 40 / 60 / 60 / 70 (read ${scrimReads()})`);
+reset();
+ok(F.brandScrimStrength() === 'standard', `#3050: a brand without the lever reads as Standard (${F.brandScrimStrength()})`);
+
+
 // ── 4. S4d: every Surfaces & fills role has a home (owner decisions Q20, Q49, Q50) ─────────────────────
 console.log('\n4. Every Surfaces & fills role is a row, a lever, or read-only by a declared reason (oracle: the emission)');
 /** Every row the page draws, as the module lists them. */
@@ -241,8 +260,8 @@ const READ_ONLY: Record<string, string> = {
   'border.focus': 'the focus ring, customizable in #1966 (a read-only row)',
   'inverse.border.focus': 'the focus ring, customizable in #1966 (a read-only row)',
   // #3049: the panel over the scrim. Its control is Dialog surface (`raisedSurface`), whose one home is Components ›
-  // Dialog, so this page draws no row for it.
-  'foreground.raised': 'set by Dialog surface, in Components › Dialog',
+  // Dialog, so this page draws no picker for it: since #3093 a read-only row in Scrim whose link opens that lever.
+  'foreground.raised': 'set by Dialog surface, in Components › Dialog (a read-only row whose link opens it)',
 };
 ok(fillsRoles.length > 100 && fillsRoles.some((e) => e.role === 'icon.on-brand') && fillsRoles.some((e) => e.role === 'inverse.border.info'),
   `the emission gives Surfaces & fills' roles to classify (read ${fillsRoles.length})`);

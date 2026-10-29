@@ -820,6 +820,15 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
    than its label on one line while the row has room for it (`fit-content`), so the rows wrap where they did; one label
    longer than the whole row ("Strong (bold near-black/white)" at 640) wraps inside its option. */
 .p3-choice > .p3-seg-tab { min-width: fit-content; white-space: normal; }
+/* #3115: the selected option is bold, and an option is never narrower than its label, so a bold label wider than its
+   regular one moved the wrap ("No hover fill" dropped a row when "Neutral overlay wash" was picked). Every option
+   reserves its label's bold width: a copy of the label in the selected weight, hidden and no height, under the label
+   in a column. The selection then never changes the layout. The copy has empty alternative text, so it is not read. */
+.p3-choice > .p3-seg-tab[data-label] { flex-direction: column; }
+.p3-choice > .p3-seg-tab[data-label]::after {
+  content: attr(data-label); content: attr(data-label) / "";
+  display: block; height: 0; overflow: hidden; visibility: hidden; font-weight: var(--p3-fw-emphasis);
+}
 .p3-list { display: grid; gap: var(--p3-space-100); }
 /* L3: a field label over a list (Gradients' Stops) has its first row space-050 after it, as a control would. */
 .p3-list > .p3-field-label { margin-block-end: calc(var(--p3-space-050) - var(--p3-space-100)); }
@@ -1132,6 +1141,24 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-gstop { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, var(--p3-step-w)) auto; gap: var(--p3-space-100); align-items: center; }
 .p3-gstop > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
 .p3-num-input { min-width: 0; }
+/* #3106: an added glass fill. Its head is the shipped glass's row (the swatch, the name over its token, as tall as the
+   swatch) with the small remove button on the right, as a gradient's; its color and opacity sit on one line under the
+   name, starting where the name starts. Its own grid, not .p3-fillrow, so a snug pane keeps the remove button beside
+   the name instead of stretching it under the row. */
+.p3-glassrow { display: grid; gap: var(--p3-space-100); }
+.p3-glasshead { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--p3-space-200); align-items: center; }
+.p3-glasshead > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
+.p3-glassctl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-100); align-items: center; padding-inline-start: calc(var(--p3-swatch-h) + var(--p3-space-200)); }
+.p3-glassctl .p3-num-input { flex: none; width: var(--p3-step-w); }
+/* A snug pane gives the color its room: the line starts under the swatch, not under the name, and the opacity drops
+   its % (its name still says percent). */
+.p3-levers[data-fit="snug"] .p3-glassctl { padding-inline-start: 0; }
+.p3-levers[data-fit="snug"] .p3-glassctl .p3-colorfield-meta { display: none; }
+/* #3106 (Q827 A): the name of the glass fill being added, its Add and Cancel, the token it makes, and why it can't be used. */
+.p3-glassdraft { display: grid; gap: var(--p3-space-050); }
+.p3-glassdraft-btns { display: flex; gap: var(--p3-space-100); }
+.p3-glassdraft-btns > .p3-btn { min-height: var(--p3-ctl-h); }
+.p3-glassdraft-btns > .p3-btn-icon { min-width: var(--p3-ctl-h); }
 /* S4d: a group's sub-heading inside a section's rows (the preview's "Inverse"), the Icon section's pairing note,
    and the jump links to each section (Q49). Color › Interactive's jump links (S5.2) take these same rules, once,
    so the two pages draw one control. */
@@ -1244,6 +1271,9 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-vpick-sample { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text); line-height: var(--p3-lh-compact); }
 .p3-vpick-sample[data-wrap="true"] { white-space: normal; }
 .p3-vpick-why { grid-column: 1 / -1; color: var(--p3-text-2); }
+/* A named run of values (#3092: Layout's spacing steps, then the dimension steps). */
+.p3-vpick-grp { display: grid; gap: var(--p3-space-050); }
+.p3-vpick-cap { margin: 0; padding-top: var(--p3-space-050); color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-cozy); }
 /* Shape (S7): the way to Components under Density, and the base radius picker's sample, a square at the value's
    radius (its radius is the value, set inline inside the picker's [data-content] sample). */
 .p3-shape-pad { display: grid; gap: var(--p3-space-050); justify-items: start; margin-top: var(--p3-space-100); }
@@ -1640,6 +1670,9 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-rail-foot { margin-top: auto; }
 .p3-rail-div { width: var(--p3-space-400); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); margin: var(--p3-space-050) 0; }
 .p3-frame[data-shell="rail"] .p3-rail .p3-btn.p3-tile { min-height: var(--p3-ctl-h); padding: var(--p3-space-025) 0; }
+/* #3083 (the owner, 2026-10-28): the foot's Minimize, Help and Appearance draw their icon alone (`tile`'s null label),
+   so each tile is its square mark and no taller, the icon centered in it: a 32 × 32 target, over the 24px floor. */
+.p3-frame[data-shell="rail"] .p3-rail .p3-btn.p3-tile.p3-tile-bare { min-height: var(--p3-rail-tile); padding: 0; }
 /* The rail polish (owner, 2026-10-26, #2909): each icon 24px in a square mark, fixed on both axes, so neither the label
    nor a line height sizes it. It was `min-width: ctl-h` by `min-height: ctl-h-xs`, a 40 × 28 landscape. */
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile-mark {

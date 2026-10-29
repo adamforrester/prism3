@@ -33,7 +33,14 @@ export const STEP_ORDER: readonly StepKey[] = ['setup', 'theme', 'update', 'sets
 
 /** What the checklist reads when it opens: the file's sets, whether it is set up, and what the ledger says is due
  *  (`file-sets`). */
-export type FileSets = { readonly present: readonly string[]; readonly setUp: boolean; readonly error: string | null; readonly due: Readonly<Record<string, SetDueView>> };
+export type FileSets = { readonly present: readonly string[]; readonly setUp: boolean; readonly error: string | null; readonly due: Readonly<Record<string, SetDueView>>;
+  /** #3110: the host's answer at open, from the as-built ledger alone, before any page loaded: the sets the ledger names,
+   *  not every set the file holds. A set it does not name reads Checking until the full read lands, and the checklist
+   *  waits for that read. */
+  readonly partial?: boolean;
+  /** #3110: one of the host's own reads after open (the ledger's, then the file's against the stored brand), not an
+   *  answer to the panel's request. */
+  readonly atOpen?: boolean };
 
 export type HandEditChoice = 'keep' | 'overwrite' | 'accept';
 /** The checklist's ticks: each item, each set that is not in the file, each due set, and what the update does with hand
@@ -49,8 +56,27 @@ export const newSetsOf = (catalog: Catalog, f: FileSets): string[] => catalog.fi
 export const dueSetsOf = (catalog: Catalog, f: FileSets): string[] => catalog.filter((e) => f.present.includes(e.id) && f.due[e.id]?.state === 'due').map((e) => e.id);
 /** The sets the file holds that the ledger has no entry for, in catalog order: only the full check can tell. */
 export const unrecordedOf = (catalog: Catalog, f: FileSets): string[] => catalog.filter((e) => f.present.includes(e.id) && (f.due[e.id]?.state ?? 'unrecorded') === 'unrecorded').map((e) => e.id);
-/** How many things the badge on Update file counts (Q2909.8 A): the due sets. */
+/** Whether Update file's checklist is still waiting on the file (#3110): no answer since it asked (`asked`, the reading
+ *  from before it did), or only the host's own reads after open. Those are the ledger's, which can miss a set the file
+ *  holds, and the file's against the stored brand, which can land after the checklist asked (Q699 A: it measures
+ *  against the panel's). The checklist shows "Checking the file…" meanwhile. */
+export const awaitingRead = (f: FileSets | null, asked: FileSets | null | undefined): boolean =>
+  !!f?.partial || (asked !== undefined && (f === asked || !!f?.atOpen));
+/** How many due sets a ledger read finds (Q2909.8 A). */
 export const dueCount = (catalog: Catalog, f: FileSets | null): number => (f && !f.error ? dueSetsOf(catalog, f).length : 0);
+
+/** The badge's live recount (#3081 Q810 A, `file-due`): what is due against the brand the panel holds, and `theme`:
+ *  the file does not hold that brand, so Apply Theme would change it. */
+export type LiveDue = { readonly present: readonly string[]; readonly theme: boolean; readonly error: string | null; readonly due: FileSets['due'] };
+/** How many things the badge on Update file counts (#3081 Q810 A): everything Update file would change. That is each
+ *  due set, plus one item for unapplied Theme changes. It reads the live recount once one has answered, so a changed
+ *  setting moves it before the checklist opens. Before that, or when the recount could not read the file, it reads the
+ *  ledger read at load, with no Theme item, because only the recount compares the file's brand with the panel's. */
+export const badgeCount = (catalog: Catalog, f: FileSets | null, live: LiveDue | null): number =>
+  live && !live.error ? dueCount(catalog, { present: live.present, setUp: true, error: null, due: live.due }) + (live.theme ? 1 : 0) : dueCount(catalog, f);
+/** How long the panel waits after the last change before it asks for the recount (#3081): one ask for a burst of
+ *  edits, such as a slider drag or typing, never one a keystroke. */
+export const DUE_DEBOUNCE_MS = 250;
 
 /** The ticks the checklist opens with (Q2909.2 A, Q2909.5 A, Q2909.8 A): the theme always, and every due set, keeping
  *  hand edits; on a file that is not set up, the setup, every new set and the style guides too. */
@@ -73,12 +99,13 @@ export const updatableOf = (t: Ticks, check: { readonly sets: readonly CheckedSe
   [...t.update].filter((id) => check.sets.some((c) => c.def === id && !c.blocked));
 
 /** A set's statuses, as Components' list and the checklist show them (Q2909.8 A): Not in file; or Due; Hand-edited
- *  (first class, beside Due when both); Not checked yet; Checking while the background pass has not reached it; else Up to
- *  date. Empty before the host has said anything. */
+ *  (first class, beside Due when both); Not checked yet; Checking while the background pass has not reached it, or, for a
+ *  set the ledger does not name, while the file is still being read (#3110); else Up to date. Empty before the host has
+ *  said anything. */
 export type SetStatus = 'new' | 'due' | 'hand' | 'unchecked' | 'checking' | 'current';
 export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<string, { readonly edited: number }>, pass: 'idle' | 'running' | 'done'): SetStatus[] => {
   if (!f || f.error) return [];
-  if (!f.present.includes(id)) return ['new'];
+  if (!f.present.includes(id)) return f.partial ? ['checking'] : ['new'];
   const due = f.due[id]?.state ?? 'unrecorded';
   const h = hand.get(id);
   const out: SetStatus[] = [];

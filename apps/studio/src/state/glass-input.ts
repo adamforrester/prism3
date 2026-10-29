@@ -10,7 +10,7 @@
  * mode (the Q54 rule). Removing the last role removes the key, so a brand that adds none is byte-identical to one
  * that never had the lever.
  */
-import type { GlassRoleInput } from '@prism3/engine/theme';
+import { GLASS_ROLE_NAME, SHIPPED_GLASS_ROLE, type GlassRoleInput } from '@prism3/engine/theme';
 import { brandState, getPath, setPath } from './store';
 
 /** The sources the page offers, DRAFT labels for the owner (#3073). Each is `role:<path>` or `palette:<color>`. */
@@ -20,7 +20,7 @@ export const GLASS_SOURCES: readonly { v: string; l: string }[] = [
   { v: 'palette:white', l: 'White' },
   { v: 'palette:black', l: 'Black' },
 ];
-/** What an added fill starts as: the card color at the white glass's light-mode opacity. */
+/** What an added fill starts as: the card color at the white glass's light-mode opacity. Its name is the designer's (Q827 A). */
 export const NEW_GLASS: GlassRoleInput = { role: 'foreground.primary', alpha: 70 };
 
 /** The brand's added glass fills, in the order it declares them. */
@@ -33,22 +33,39 @@ const write = (roles: Record<string, GlassRoleInput>): void => {
   else delete (brandState as { glassRoles?: unknown }).glassRoles;
 };
 
-/** Add a fill under the first free name: `card`, then `card-2`, `card-3`. */
-export const addGlassRole = (): void => {
+/** The name field's hint, a DRAFT for the owner (#3106, Q827 A). The field starts empty: no name is chosen for the designer. */
+export const GLASS_NAME_HINT = 'e.g. card, header, overlay';
+
+/**
+ * Why a typed glass fill name can't be taken, or null when it can (#3106, Q827 A; each line a DRAFT for the owner). The
+ * name becomes a token segment, `color.glass.<name>`, so it is required, a lowercase slug (the engine's own rule,
+ * `GLASS_ROLE_NAME`, so the page and the engine refuse the same names), not the shipped `surface`, and not one the
+ * brand already has. Surrounding spaces are dropped; nothing else is changed for the designer, so what is added is
+ * what was typed.
+ */
+export const glassNameRefusal = (typed: string, taken: readonly string[]): string | null => {
+  const name = typed.trim();
+  if (!name) return 'A glass fill needs a name, such as card.';
+  if (name === SHIPPED_GLASS_ROLE) return 'surface is the shipped glass fill, so another fill can\'t use its name.';
+  if (!GLASS_ROLE_NAME.test(name)) return 'A name is lowercase letters, digits and hyphens, starting with a letter, such as top-bar.';
+  if (taken.includes(name)) return `This brand already has glass.${name}. Each glass fill needs its own name.`;
+  return null;
+};
+
+/** A fill's readable name for its row, as the shipped one reads "Glass surface": `top-bar` reads "Glass top bar". */
+export const glassLabel = (name: string): string => `Glass ${name.replace(/-/g, ' ')}`;
+
+/** Add a fill under the name the designer typed, at the end. The caller has checked it with `glassNameRefusal`; a name
+ *  it refuses writes nothing. */
+export const addGlassRole = (typed: string): boolean => {
   const roles = readGlassRoles();
-  let name = 'card';
-  for (let n = 2; name in roles; n++) name = `card-${n}`;
-  write({ ...roles, [name]: { ...NEW_GLASS } });
+  if (glassNameRefusal(typed, Object.keys(roles))) return false;
+  write({ ...roles, [typed.trim()]: { ...NEW_GLASS } });
+  return true;
 };
 export const removeGlassRole = (name: string): void => {
   const { [name]: _gone, ...rest } = readGlassRoles();
   write(rest);
-};
-/** Rename in place, keeping the declared order. The engine refuses a name it cannot take. */
-export const renameGlassRole = (from: string, to: string): void => {
-  const t = to.trim();
-  if (!t || t === from) return;
-  write(Object.fromEntries(Object.entries(readGlassRoles()).map(([k, v]) => [k === from ? t : k, v])));
 };
 export const setGlassSource = (name: string, source: string): void => {
   const roles = readGlassRoles();

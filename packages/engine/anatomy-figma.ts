@@ -914,6 +914,9 @@ const brandMarkGlyph = (defId: string, part: string, mark: string | undefined): 
   return { svg: doc, dims: [box[0], box[1]] };
 };
 
+/** The component a brand mark is (#2343): `brand-mark/<kind>/<name>`, the name `emitAsComponents` gives each member. */
+export const brandMarkComponentName = (mark: string): string => `${BRAND_MARK_DEF_ID}/${mark}`;
+
 /** The def whose emitted components ARE the icon set: `icon`, which is `emitAsComponents`, so each glyph is
  *  its own top-level component named `icon/<glyph>` (#1012). Every icon-set glyph inside another component is
  *  an instance of one of them (#2380). */
@@ -2088,9 +2091,18 @@ export const figmaAnatomyPlan = (
     // nominated target. Unlike an overlay's own target it keeps its property, which then defaults to this icon.
     // `glyphPath` throws first for a name outside the icon vocabulary.
     let slotDefault: string | undefined;
+    // A SLOT THAT KEEPS ITS CONTENT'S OWN PAINT (`fixedPaint`, #2343 PR 4) hosts a brand mark, never an icon, so its
+    // default is a name in the MARK vocabulary and the swap starts at `brand-mark/<name>`. `brandMarkGlyph` throws for a
+    // name the set does not hold, and an icon name on such a slot is refused the same way: a glyph there would be an
+    // icon the slot then refuses to ink.
     if (p.kind === 'slot' && p.swapDefault !== undefined) {
-      glyphPath(def.id, name, p.swapDefault);
-      slotDefault = iconComponentName(p.swapDefault);
+      if (p.fixedPaint) {
+        brandMarkGlyph(def.id, name, p.swapDefault);
+        slotDefault = brandMarkComponentName(p.swapDefault);
+      } else {
+        glyphPath(def.id, name, p.swapDefault);
+        slotDefault = iconComponentName(p.swapDefault);
+      }
     }
 
     // AN ICON-SET GLYPH IS AN INSTANCE OF ITS ICON COMPONENT (#2380, owner decision Q137 A). A `vector` part
@@ -2492,6 +2504,8 @@ export const FIELD_CORNER_REFS: Readonly<Record<string, readonly string[]>> = {
   textarea: ['radius.sm'],
   // #2888: the Search field's box is TextField's, from the shared field factory.
   'search-field': ['radius.sm'],
+  // #2343 PR 4: the Card number field's box is TextField's too.
+  'card-number-field': ['radius.sm'],
   'checkbox-control': ['control.size.sm.radius', 'control.size.md.radius', 'control.size.lg.radius'],
 };
 
@@ -2530,6 +2544,8 @@ export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
   'code-input-cell': 'container',
   // #2888: drawn in the Search field style, which may differ from the other fields' (`fieldStyleFor`).
   'search-field': 'control',
+  // #2343 PR 4: the Card number field's box is TextField's; under underline its tile sits at the line's end.
+  'card-number-field': 'control',
 };
 
 /**
@@ -3178,6 +3194,9 @@ const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/
  *   · `solid-tint`      → the ref is repointed to the tinted-wash variable (below). The
  *                         slot precedence (`paintSlots: ['overlay', 'fill', …]`) is unchanged, so the
  *                         tinted wash lands exactly where the neutral wash did.
+ *   · `opaque-fill`     → on `OPAQUE_FILL_DEFS` only, the wash ref is repointed to the opaque fill,
+ *                         `interactive.<color>.hover-fill.<state>` (#3071); every other def is IDENTITY, so a
+ *                         tag, segment or page keeps the wash, which the method still emits.
  *   · `none`            → the ENTRY IS DROPPED. `paintOf('overlay')` then resolves nothing and the box
  *                         falls through to its `fill` slot — none for outline/text (no hover wash, the
  *                         intended "no hover expression"). Dropping rather
@@ -3193,8 +3212,22 @@ const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/
  * bound paint's opacity whenever Apply Theme rewrites the variable it is bound to, so one re-apply turned every
  * tinted hover into the solid fill (288 paints on the owner's NB file, 2026-09-25).
  */
+/**
+ * The defs whose outline/text hover takes the OPAQUE fill under `opaque-fill` (#3071, owner Q3071.3 A, Q3071.4 A):
+ * Button (outline, and text under `buttonTextHover: fill`, which copies the outline's slots after this runs), Icon
+ * button (outline, ghost) and Flush icon button. Every other def keeps the neutral wash it binds: a fill on an
+ * unselected tag, segment or page reads as selected, the state those controls exist to show. Named by id, since
+ * which controls follow is the owner's decision, not a property of the ref.
+ */
+export const OPAQUE_FILL_DEFS: readonly string[] = [
+  'button', 'button-destructive', 'button-neutral',
+  'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+  'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
+];
+
 export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlineInteraction']): ComponentDef => {
   if (method === 'overlay-neutral') return def;
+  if (method === 'opaque-fill' && !OPAQUE_FILL_DEFS.includes(def.id)) return def;
   const touched = (ref: string) => OUTLINE_OVERLAY_REF.test(ref) || (method === 'none' && OUTLINE_SUBTLE_REF.test(ref));
   if (!Object.values(def.tokens).some(touched)) return def;
   const tokens: Record<string, string> = {};
@@ -5333,6 +5366,8 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', '_slider-thumb', 'slider',
   // #2428: Code input and its cell, each a set with headers like every field's.
   'code-input-cell', 'code-input',
+  // #2343 PR 4: the Card number field, a set with headers like every field's.
+  'card-number-field',
   // #2343 PR 4: WalletButton, a set with headers like Button's.
   'wallet-button',
 ]);

@@ -9,8 +9,10 @@
  * overlay closes and Activity shows each step as before. While a run is out the button is busy and, reopened, the
  * overlay shows the step running and Stop.
  *
- * WHAT IS DUE (phase 2, Q2909.8 A): the button carries a badge with the number of due sets, from the as-built ledger the
- * host reads at load. The checklist lists the due sets first, ticked, and as it opens asks for the full check over them
+ * WHAT IS DUE (phase 2, Q2909.8 A): the button carries a badge from the as-built ledger. Since #3081 (Q810 A) it counts
+ * everything Update file would change, live: the sets due against the brand the panel holds, and one item for Theme
+ * changes the file does not hold yet (`badgeCount`). The panel recounts after a setting changes and after each write's
+ * verdict (`main.ts`, debounced). The recount never runs the full check. The checklist lists the due sets first, ticked, and as it opens asks for the full check over them
  * alone; each set then says what changes, and the update waits on that answer. One choice covers the hand edits it finds
  * (Keep, the default). A set built before the ledger reads "Not checked yet", with a way to check it. Both reads measure
  * against the panel's brand while Theme is ticked, else the file's stored one (#3023 Q701 B, `brandFor`), so a Theme toggle
@@ -21,14 +23,15 @@
  * too, after a run that found some.
  *
  * DIALOG: modal (`aria-modal`), focus into it as it opens and back to the button as it closes, by any path; Escape and a
- * click on the scrim close it; Tab stays inside (`trapTab`). A repaint keeps focus on the same control (`data-key`).
+ * click on the scrim close it; Tab stays inside (`trapTab`). A repaint keeps focus on the same control (`data-key`) and
+ * the body's scroll position on the same tab (#3082).
  *
  * It names no legacy repaint tier (`test-shell-imports.ts`): it reads through `lend.read` and repaints on the host topics.
  * Every string is a DRAFT placeholder (Q2909.10 A), in `UPDATE_COPY`.
  */
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
-import { defaultTicks, dueCount, dueSetsOf, newSetsOf, stepOf, stepsOf, unrecordedOf, updatableOf, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { awaitingRead, badgeCount, defaultTicks, dueSetsOf, newSetsOf, stepOf, stepsOf, unrecordedOf, updatableOf, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import { focusables, glyph, h, hook, pendingLabel, setBusy, trapTab } from './dom';
 
@@ -36,6 +39,9 @@ export type UpdateFileLend = {
   readonly read: () => {
     /** The file's sets and setup state, as the host last answered; `null` before the first answer. */
     readonly fileSets: FileSets | null;
+    /** #3081 Q810 A: the badge's live recount against the panel's brand, or null before its first answer (and on the
+     *  web, and after a failed restore, where nothing is asked). */
+    readonly liveDue: LiveDue | null;
     readonly catalog: Catalog;
     /** The run that is out, or null. */
     readonly run: UpdateRun | null;
@@ -75,7 +81,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   button.type = 'button';
   button.setAttribute('aria-haspopup', 'dialog');
   button.append(pendingLabel(UPDATE_COPY.button, UPDATE_COPY.busy));
-  // Q2909.8 A: the number of due sets, beside the label; its words ride the button's name too.
+  // Q2909.8 A, #3081 Q810 A: the number of things Update file would change, beside the label; its words ride the
+  // button's name too, so the name says the same count.
   const badge = hook(h('span', 'p3-upd-badge'), 'update-badge');
   badge.setAttribute('aria-hidden', 'true');
   button.append(badge);
@@ -157,7 +164,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       return { body: [line], foot: [btn('p3-btn p3-btn-page', 'update-close', 'close', UPDATE_COPY.close, close), stop] };
     }
     const f = r.fileSets;
-    if (asked !== undefined && f === asked) return { body: [hook(h('p', 'p3-upd-line', UPDATE_COPY.checking), 'update-checking')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
+    if (awaitingRead(f, asked)) return { body: [hook(h('p', 'p3-upd-line', UPDATE_COPY.checking), 'update-checking')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
     if (!f || f.error) return { body: [hook(h('p', 'p3-sg-error', UPDATE_COPY.readError), 'update-read-error')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
     asked = undefined;
     if (rechecking && ticks) { rechecking = false; ticks = { ...ticks, update: new Set(dueSetsOf(r.catalog, f)) }; }
@@ -320,7 +327,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   const paint = (): void => {
     const r = lend.read();
     setBusy(button, !!r.run);
-    const n = dueCount(r.catalog, r.fileSets);
+    const n = badgeCount(r.catalog, r.fileSets, r.liveDue);
     badge.textContent = n ? String(n) : '';
     badge.hidden = !n;
     if (n) button.setAttribute('aria-label', `${UPDATE_COPY.button}, ${UPDATE_COPY.badge(n)}`); else button.removeAttribute('aria-label');
@@ -328,6 +335,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     button.removeAttribute('aria-disabled');
     if (!open) { if (layer.firstChild) layer.replaceChildren(); return; }
     const focused = document.activeElement instanceof HTMLElement && layer.contains(document.activeElement) ? document.activeElement.dataset.key ?? null : null;
+    // #3082: a repaint (a tick, a host answer) keeps where the body was scrolled, on the same tab; a new tab starts at the top.
+    const was = layer.querySelector<HTMLElement>('[data-p3="update-body"]');
+    const scrolled = was && was.dataset.tab === tab ? was.scrollTop : 0;
     const scrim = h('div', 'p3-bardlg-scrim');
     const dlg = hook(h('div', 'p3-bardlg p3-upd'), 'update-dialog');
     dlg.setAttribute('role', 'dialog');
@@ -371,6 +381,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const { body, foot } = tab === 'update' ? updateBody() : cleanBody();
     const bodyEl = hook(h('div', 'p3-bardlg-col p3-upd-body'), 'update-body');
     bodyEl.setAttribute('role', 'tabpanel');
+    bodyEl.dataset.tab = tab;
     bodyEl.append(...body);
     const footEl = h('div', 'p3-bardlg-foot');
     footEl.append(...foot);
@@ -378,6 +389,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     scrim.onmousedown = (e) => { if (e.target === scrim) { e.preventDefault(); close(); } };
     scrim.append(dlg);
     layer.replaceChildren(scrim);
+    bodyEl.scrollTop = scrolled;
     // A control gone from the repaint (Theme's box while its toggle checks the file again, #3023) leaves focus on the
     // dialog, never outside the modal.
     if (focused) (layer.querySelector<HTMLElement>(`[data-key="${CSS.escape(focused)}"]`) ?? dlg).focus({ preventScroll: true });
