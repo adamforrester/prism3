@@ -67,7 +67,7 @@ import { ComponentDef, PartDef, PropDef } from '../component-schema';
  * The Card number field (#2343 PR 4, #2429) adds a third edge:
  *   · `mark` — the box's trailing slot is a PAYMENT TILE, not a glyph: card-shaped (the tile's own proportion, through
  *     `aspectLock`), as tall as the icon rung (`size.{size}.mark-height`, the field's only added keys), keeping the
- *     mark's own colors (`fixedPaint`: no host ink, the provider's rule), and starting at the brand-mark the caller
+ *     mark's own colors (`fixedPaint`: no host ink, the provider's rule), and starting at the provider-logo the caller
  *     names (`mark.start`, the generic tile). Its presence is the `card mark` switch, built shown.
  * Everything else a field says about itself (props, the code-only list, accessibility, docs, the agent fields)
  * is the caller's, because that is where two fields differ. `test.ts` pins that TextField is byte-identical to
@@ -78,7 +78,7 @@ export type FieldSpec = Pick<ComponentDef, 'id' | 'name' | 'summary' | 'descript
   props: PropDef[];
   /** The field's edge action — see the factory's header. */
   edge: 'trailing-glyph' | 'toggle' | 'mark';
-  /** `edge: 'mark'` only (#2343 PR 4): the brand-mark the tile slot starts at, by its name in the mark set. */
+  /** `edge: 'mark'` only (#2343 PR 4): the provider-logo the tile slot starts at, by its name in the mark set. */
   mark?: { start: string };
   /** The `value` text's Figma default, the copy the filled members show. */
   valueDefault: string;
@@ -563,7 +563,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
       // (the owner's "no card type yet" artwork) and the plugin builds that mark first. Card-shaped: the slot binds the
       // height alone and both executors lock the instance to its own component's proportion (`aspectLock`), so the
       // tile is never squared. Never retinted: `fixedPaint` keeps the host's icon ink off every vector inside it, at
-      // every state, disabled included. The tile's corners and edge are the brand-mark component's own (Q720 A).
+      // every state, disabled included. The tile's corners and edge are the provider-logo component's own (Q720 A).
       ...(markEdge ? {
       cardMark: {
         kind: 'slot',

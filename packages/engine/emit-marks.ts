@@ -1,15 +1,15 @@
 /**
- * emit-marks.ts — generates `brand-mark-glyphs.ts` from the SVGs in `marks/` through `brand-mark-set.ts`
+ * emit-marks.ts — generates `provider-logo-glyphs.ts` from the SVGs in `marks/` through `provider-logo-set.ts`
  * (#2316, #2343 proposal §1.1).
  *
  *   npx tsx packages/engine/emit-marks.ts
  *
- * The brand-mark twin of `emit-icons.ts`, and a generated module for the same hard reason: the plugin
+ * The provider-logo twin of `emit-icons.ts`, and a generated module for the same hard reason: the plugin
  * bundles the engine into a sandbox with no filesystem, so the artwork has to arrive as code.
  *
  * ── THE TWO-DIRECTION CHECK, TWICE ──────────────────────────────────────────────────────────────────
  *
- * `BRAND_MARK_SOURCES` (authored) against the folder listing (read from disk), both ways: a name pointing at
+ * `PROVIDER_LOGO_SOURCES` (authored) against the folder listing (read from disk), both ways: a name pointing at
  * no file fails, and a file no name maps fails. Then `marks/provenance.json` is a BUILD INPUT, not a report:
  * a file with no record is refused here, so a mark cannot reach a component without one (proposal §1.1, "no
  * record, no build"). `lint-mark-provenance.ts` checks the records' contents, independently.
@@ -36,11 +36,11 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BRAND_MARK_ARTBOARDS, BRAND_MARK_KINDS, BRAND_MARK_SOURCES } from './brand-mark-set';
+import { PROVIDER_LOGO_ARTBOARDS, PROVIDER_LOGO_KINDS, PROVIDER_LOGO_SOURCES } from './provider-logo-set';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const marksDir = resolve(here, 'marks');
-const outFile = resolve(here, 'brand-mark-glyphs.ts');
+const outFile = resolve(here, 'provider-logo-glyphs.ts');
 
 const fail = (lines: string[]): never => {
   console.error('\n✗ emit-marks\n');
@@ -57,21 +57,21 @@ const listSvgs = (dir: string, rel = ''): string[] =>
     return f.endsWith('.svg') ? [`${rel}${f.slice(0, -4)}`] : [];
   });
 const onDisk = new Set(listSvgs(marksDir));
-const mapped = new Set(Object.values(BRAND_MARK_SOURCES));
+const mapped = new Set(Object.values(PROVIDER_LOGO_SOURCES));
 
 const errors: string[] = [];
-for (const [name, source] of Object.entries(BRAND_MARK_SOURCES)) {
+for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES)) {
   if (!onDisk.has(source)) errors.push(`'${name}' maps to '${source}.svg', which is not in marks/ — a stale mapping entry`);
   const kind = name.split('/')[0];
   if (!/^[a-z]+\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)) errors.push(`'${name}' is not <kind>/<provider>[-<style>] in lowercase kebab-case`);
-  else if (!BRAND_MARK_KINDS[kind]) errors.push(`'${name}' names kind '${kind}', which is not one of ${Object.keys(BRAND_MARK_KINDS).join(', ')} (BRAND_MARK_KINDS)`);
+  else if (!PROVIDER_LOGO_KINDS[kind]) errors.push(`'${name}' names kind '${kind}', which is not one of ${Object.keys(PROVIDER_LOGO_KINDS).join(', ')} (PROVIDER_LOGO_KINDS)`);
   else if (source.split('/')[0] !== kind) errors.push(`'${name}' is a ${kind} mark and maps to '${source}.svg', outside marks/${kind}/ — the folder is the kind, and the kind decides the artboard`);
 }
 for (const source of [...onDisk].sort()) {
-  if (!mapped.has(source)) errors.push(`'${source}.svg' is in marks/ and no entry in brand-mark-set.ts maps it — an unreachable mark`);
+  if (!mapped.has(source)) errors.push(`'${source}.svg' is in marks/ and no entry in provider-logo-set.ts maps it — an unreachable mark`);
 }
 const seen = new Map<string, string>();
-for (const [name, source] of Object.entries(BRAND_MARK_SOURCES)) {
+for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES)) {
   const prior = seen.get(source);
   if (prior) errors.push(`'${name}' and '${prior}' both map to '${source}.svg' — two names for one file is an alias, and needs to be a decision`);
   seen.set(source, name);
@@ -131,7 +131,7 @@ type Mark = { name: string; source: string; width: number; height: number; doc: 
 const marks: Mark[] = [];
 const shapeErrors: string[] = [];
 
-for (const [name, source] of Object.entries(BRAND_MARK_SOURCES).sort(([a], [b]) => a.localeCompare(b))) {
+for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES).sort(([a], [b]) => a.localeCompare(b))) {
   const where = `${source}.svg`;
   const errs: string[] = [];
   const raw = readFileSync(join(marksDir, `${source}.svg`), 'utf8')
@@ -167,7 +167,7 @@ for (const [name, source] of Object.entries(BRAND_MARK_SOURCES).sort(([a], [b]) 
   if (vb.length !== 4 || vb.some((v) => !Number.isFinite(v)) || vb[0] !== 0 || vb[1] !== 0) errs.push(`${where}: viewBox '${root.attrs.viewBox ?? ''}' is not '0 0 <width> <height>'`);
   else if (vb[2] !== w || vb[3] !== h) errs.push(`${where}: width/height ${root.attrs.width}×${root.attrs.height} disagree with the viewBox ${vb[2]}×${vb[3]} — the importer sizes the frame from width and height, so they must be the artboard`);
   const kind = name.split('/')[0];
-  const board = BRAND_MARK_ARTBOARDS[BRAND_MARK_KINDS[kind]];
+  const board = PROVIDER_LOGO_ARTBOARDS[PROVIDER_LOGO_KINDS[kind]];
   if (board.height !== h) errs.push(`${where}: ${kind} marks are ${board.height} high, and this one is ${h}`);
   if (typeof board.width === 'number' && board.width !== w) errs.push(`${where}: ${kind} marks are ${board.width} wide, and this one is ${w}`);
   if (board.width === 'per-mark') {
@@ -235,7 +235,7 @@ if (shapeErrors.length) fail(shapeErrors);
 // ── EMIT ────────────────────────────────────────────────────────────────────────────────────────────
 const out = `// GENERATED by \`npx tsx packages/engine/emit-marks.ts\` — do not edit.
 //
-// Source of truth is the pair \`marks/**/*.svg\` (the artwork) and \`brand-mark-set.ts\` (the names), with
+// Source of truth is the pair \`marks/**/*.svg\` (the artwork) and \`provider-logo-set.ts\` (the names), with
 // \`marks/provenance.json\` as a build input: a file with no record does not reach this module.
 //
 // Each document is the source re-serialized from the elements \`emit-marks.ts\` accepted, with every fill and
@@ -243,24 +243,24 @@ const out = `// GENERATED by \`npx tsx packages/engine/emit-marks.ts\` — do no
 //
 // Provenance, license and the trademark line: \`marks/NOTICE.md\` and \`marks/provenance.json\`.
 
-/** The literal mark vocabulary. \`brand-mark.name\` is typed against this, so an unknown name fails at
+/** The literal mark vocabulary. \`provider-logo.name\` is typed against this, so an unknown name fails at
  *  compile time. */
-export type BrandMarkName = ${marks.map((m) => `'${m.name}'`).join(' | ')};
+export type ProviderLogoName = ${marks.map((m) => `'${m.name}'`).join(' | ')};
 
 /** Mark name → its SVG document: the artboard as \`width\`/\`height\`/\`viewBox\`, gradients in \`<defs>\`,
  *  then one \`<path>\` per shape in drawing order. */
-export const BRAND_MARK_DOCUMENTS: Record<BrandMarkName, string> = {
+export const PROVIDER_LOGO_DOCUMENTS: Record<ProviderLogoName, string> = {
 ${marks.map((m) => `  '${m.name}': ${JSON.stringify(m.doc)},`).join('\n')}
 };
 
 /** Mark name → its artboard, \`[width, height]\`. */
-export const BRAND_MARK_BOXES: Record<BrandMarkName, readonly [number, number]> = {
+export const PROVIDER_LOGO_BOXES: Record<ProviderLogoName, readonly [number, number]> = {
 ${marks.map((m) => `  '${m.name}': [${m.width}, ${m.height}],`).join('\n')}
 };
 
 /** Every mark name, sorted — the one thing a projection should iterate. */
-export const BRAND_MARK_NAMES: readonly BrandMarkName[] = Object.keys(BRAND_MARK_DOCUMENTS) as BrandMarkName[];
+export const PROVIDER_LOGO_NAMES: readonly ProviderLogoName[] = Object.keys(PROVIDER_LOGO_DOCUMENTS) as ProviderLogoName[];
 `;
 
 writeFileSync(outFile, out);
-console.log(`  ✓ brand-mark-glyphs.ts — ${marks.length} marks from ${onDisk.size} source files`);
+console.log(`  ✓ provider-logo-glyphs.ts — ${marks.length} marks from ${onDisk.size} source files`);

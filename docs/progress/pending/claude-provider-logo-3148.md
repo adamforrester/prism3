@@ -1,0 +1,21 @@
+## (2026-10-29) — BrandMark is ProviderLogo, on the Icons & assets page beside Icon (#3148, owner decisions Q847 A and placement)
+
+**What moved.** The def `brand-mark` is `provider-logo` (code name `ProviderLogo`, display name "Provider logo"), and its components are `provider-logo/<kind>/<name>`. Every place that names it moved with it: the nests in WalletButton and CardNumberField, SignInButton's provider glyph, the gates' id-keyed lists, the plugin and Studio strings, the generated docs, `.ai.json` and reports. The vocabulary modules follow the def's file name, as every other def's do: `provider-logo-glyphs.ts` and `provider-logo-set.ts`, exports `PROVIDER_LOGO_*`. The `marks/` folder, `emit-marks.ts` and the `lint-mark-*` gates keep their names: they name the artwork, not the def. `brand-mark` is now one of the def's aliases. No skill named it.
+
+**The rename record.** `COMPONENT_RENAMES` gains `{ def: 'brand-mark', kind: 'def', to: 'provider-logo', issue: 3148 }`, and the #2343 value and drop entries name the new id, as entries after a def rename do (`danglingTargets` reads them against the tree's projection). `lint-component-renames.ts` compares the merge base's `brand-mark` against the tree's `provider-logo` under the entry.
+
+**Update file, for a single-component def.** #2759's def rename knew only sets: `locateSets` looks for a COMPONENT_SET. The marks are top-level components (`emitAsComponents`), so:
+- `readSingleView` looks under the current id, and when nothing carries it, under each id the ledger renames into it, nearest first, and says which (`from`). The dry run marks it `setRename`, as for a set, and its line ends "Renamed from brand-mark."
+- `applySet` renames each component Prism3 built (the dry run's own ownership reading; a designer's component under the old prefix stays theirs) before anything else reads them, so every id, key and placed instance stays.
+- A set that nests a mark counts it as present (`fileBlockers`), and its nested instances read as the renamed mark's, not the wrong component (`renamedSet`, `renamedComponent`).
+
+**The page.** `provider-logo` sits on Icons & assets after `icon`, Icon leading the page's usage panel (DRAFT, Q3148.1). "Brand marks" is a `FORMER_PAGES` entry. `page-moves.ts` moved only sets; it now moves a single-component def's stamped top-level components as one block, under the current id or an earlier one, keeping their grid, past what the page holds and level with its top component. The Brand marks page is never deleted: emptied, it is reported as safe to delete, as #2989's pages are. In Studio the two share the Icons & assets row, as every page's family does (DRAFT label, Q3148.2).
+
+**Contract.** No token name moves: the def binds existing roles only, and `token-contract.json` names no component. `CONTRACT_VERSION` stays. The component rename is breaking for the release notes, which classify a renamed set as breaking (`docs/30`); the change note declares `minor`, as every bump below 1.0 does.
+
+**Proof.**
+- `test-update-apply.ts`, "def rename, single": a file built by the real executor from the old plans, with the 75 marks under `brand-mark/…`, WalletButton nesting four and CardNumberField's tile starting at one (104 nested instances). With no ledger entry the dry run cannot find the marks. With the shipped ledger, one update renames the same 75 nodes, each keeping its id and key, adds none, and every one of the 104 instances is the same node pointing at the same mark. Both hosts verify clean. A second dry run reads everything under the new name.
+- `test-file-setup.ts`, section 8: three stamped `brand-mark/…` components on Brand marks move to Icons & assets as one block, the page stays, and is reported empty.
+- The shim's `mainComponent` now reads a main this run holds by its current name, as Figma's live node is. It was a snapshot, so no test could see an instance follow an in-place rename. #2759's entry said the instance check was argued from ids, not observed; it is observed now.
+
+**Trap.** The shim misreads 21 of the marks' outlines (it sizes a vector from the path's numbers), so the fixture test excuses exactly those members' geometry and no other field. Four of the nested logos are among them, so the file holds all 75.

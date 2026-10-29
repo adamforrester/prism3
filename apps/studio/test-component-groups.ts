@@ -87,9 +87,10 @@ const WIRE_COMPONENTS: [string, string[]][] = [
   ['Wallet button', ['WalletButton']],
 ];
 const WIRE_SUBS: [string, string[]][] = [
-  // #2989 (Q656 A): Breadcrumb item and Code cell left for their consumers' pages. #2343: Brand mark, on its own page.
-  ['Brand mark', ['BrandMark']], ['Field label', ['FieldLabel']], ['Field message', ['FieldMessage']], ['Flush icon button', ['FlushIconButton', 'FlushIconButton.Destructive', 'FlushIconButton.Neutral']],
-  ['Focus ring', ['FocusRing']], ['Icon', ['Icon']], ['Image placeholder', ['ImagePlaceholder']], ['Spinner', ['Spinner']],
+  // #2989 (Q656 A): Breadcrumb item and Code cell left for their consumers' pages. #3148: Provider logo joins Icon on the
+  // Icons & assets page, so the two share its row, as every page's family does (DRAFT row label, Q3148.2 on #3148).
+  ['Field label', ['FieldLabel']], ['Field message', ['FieldMessage']], ['Flush icon button', ['FlushIconButton', 'FlushIconButton.Destructive', 'FlushIconButton.Neutral']],
+  ['Focus ring', ['FocusRing']], ['Icons & assets', ['Icon', 'ProviderLogo']], ['Image placeholder', ['ImagePlaceholder']], ['Spinner', ['Spinner']],
 ];
 const groups = groupsOf(catalog);
 const drawn = (kind: string) => (groups.find((g) => g.kind === kind)?.rows ?? []).map((r) => [r.label, r.ids.map(name)] as [string, string[]]);
@@ -143,13 +144,13 @@ ok(new Set(allBlocks).size === allBlocks.length && groups.every((g) => !(SECTION
 ok(JSON.stringify(drawn('components').map((r) => r[0])) === JSON.stringify(WIRE_COMPONENTS.map((r) => r[0])),
   `notes 2, 3, #2905 Q6 A: Other components holds every other component row (Banner and Radio left for their own sections, #2924, #3086), Breadcrumbs (#2666), Pagination (#2665), Progress (#2670) and Slider (#2669) among them, alphabetical, families grouped by page (${drawn('components').map((r) => r[0]).join(', ')})`);
 ok(JSON.stringify(drawn('subcomponents').map((r) => r[0])) === JSON.stringify(WIRE_SUBS.map((r) => r[0])),
-  `note 4: the Subcomponents rows are the wireframe's 7 and Brand mark (#2343), alphabetical (Breadcrumb item and Code cell left for their consumers' pages, #2989) (${drawn('subcomponents').map((r) => r[0]).join(', ')})`);
+  `note 4: the Subcomponents rows are the wireframe's 7, Icon's now shared with Provider logo on Icons & assets (#3148), alphabetical (Breadcrumb item and Code cell left for their consumers' pages, #2989) (${drawn('subcomponents').map((r) => r[0]).join(', ')})`);
 ok(JSON.stringify(drawn('components')) === JSON.stringify(WIRE_COMPONENTS) && JSON.stringify(drawn('subcomponents')) === JSON.stringify(WIRE_SUBS),
   `note 2: a family's sets are alphabetical by component name, and call 12: a part set stays in its family (${JSON.stringify(drawn('components').filter((r) => r[1].length > 1).map((r) => r[1].join('/')))})`);
-ok(groups.find((g) => g.kind === 'subcomponents')?.rows.some((r) => r.label === 'Icon' && r.page === 'Icons & assets') === true,
+ok(groups.find((g) => g.kind === 'subcomponents')?.rows.some((r) => r.ids.includes('icon') && r.page === 'Icons & assets') === true,
   'call 11: Icon lists under Subcomponents, and still lands on ↳ Icons & assets');
 ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 60,
-  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Brand mark since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, and Sign-in button since #2343 PR 5)`);
+  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Provider logo since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, and Sign-in button since #2343 PR 5)`);
 ok(sentenceCase('Field Label') === 'Field label' && sentenceCase('Text field') === 'Text field' && sentenceCase('Icons & assets') === 'Icons & assets',
   'call 14: a page name reads in sentence case ("Field Label" → "Field label")');
 ok(GROUPS_COPY.sectionCount('components', 19, 32) === '19 families and sets · 32 sets' && GROUPS_COPY.sectionCount('subcomponents', 7, 9) === '7 entries · 9 sets'

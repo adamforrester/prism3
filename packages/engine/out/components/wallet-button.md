@@ -13,7 +13,7 @@ A payment button for a wallet: Apple Pay, Google Pay, PayPal or Shop Pay. The pr
 
 - **Purpose:** Offer an express checkout with a wallet, drawn by the wallet provider.
 - **Use when:** On a cart, checkout or product page, for each wallet the store accepts: Apple Pay, Google Pay, PayPal or Shop Pay.
-- **Avoid when:** For a store's own checkout or pay action, use Button. To show which cards and wallets are accepted, use Brand mark tiles in a row. For signing in with a provider, use a sign-in button, not a wallet button.
+- **Avoid when:** For a store's own checkout or pay action, use Button. To show which cards and wallets are accepted, use Provider logo tiles in a row. For signing in with a provider, use a sign-in button, not a wallet button.
 
 ## Anatomy
 
@@ -79,7 +79,7 @@ The provider's wording, in the provider's language handling. Nothing to write.
 
 ## Related components
 
-- **Built from:** `brand-mark`, `focus-ring`
+- **Built from:** `provider-logo`, `focus-ring`
 - **Often used with:** `button`, `button-group`, `sign-in-button`
 - **Replaces:**
   - a hand-drawn wallet button
@@ -141,7 +141,7 @@ Keyed by `provider`, `state`.
 
 ### Nesting and properties
 
-- `container/mark` nests `brand-mark` at `name=logo/apple-pay`; `provider=apple-pay` takes `name=logo/apple-pay`, `provider=google-pay` takes `name=logo/google-pay`, `provider=paypal` takes `name=logo/paypal-wordmark`, `provider=shop-pay` takes `name=logo/shop-pay`
+- `container/mark` nests `provider-logo` at `name=logo/apple-pay`; `provider=apple-pay` takes `name=logo/apple-pay`, `provider=google-pay` takes `name=logo/google-pay`, `provider=paypal` takes `name=logo/paypal-wordmark`, `provider=shop-pay` takes `name=logo/shop-pay`
 - `container/focusRing` nests `focus-ring` at `surface=default`
 
 ---

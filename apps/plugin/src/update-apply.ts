@@ -60,7 +60,7 @@ import { emptiedLine, pageMovesLine, relocateSets, type PageMove } from './page-
 import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furniture';
 import { docPanelReaches, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
-import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
 import { saveVersion } from './version-title';
@@ -387,6 +387,16 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   if (work.earlierRecord.length) out.earlierRecord = work.earlierRecord;
   out.kept = work.kept;
   const plans = new Map(t.plans.map((x) => [planComponentName(x), x] as const));
+
+  // ── A SINGLE-COMPONENT DEF'S OWN NAME (#3148), first: each component under the earlier id takes the current one, in
+  // place, so it keeps its id and key and every placed instance keeps pointing at it. Everything below reads the
+  // components by the current id, as the dry run did.
+  // Prism3's own only, as the dry run read them: a designer's component under the old prefix is theirs, and stays.
+  if (t.single && p.setRename) {
+    const theirs = new Set(p.unstamped);
+    const oldCoord = (h: string): string => { const n = namesFor(t); return n.coordOf(renamedComponent(h, p.setRename!)); };
+    for (const c of kidsOf(live)) if (!theirs.has(oldCoord(String(c.name ?? '')))) c.name = renamedComponent(String(c.name ?? ''), p.setRename);
+  }
 
   // ── LAYERS RENAMED IN PLACE (#2759), first, in every member this update configures: the dry run read them under
   // their new names, and the build's pass finds them by those names, so each keeps its id and every override on it.

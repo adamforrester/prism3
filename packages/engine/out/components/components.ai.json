@@ -258,12 +258,12 @@
         ]
       }
     },
-    "brand-mark": {
-      "id": "brand-mark",
-      "name": "BrandMark",
+    "provider-logo": {
+      "id": "provider-logo",
+      "name": "ProviderLogo",
       "aliases": [
+        "brand-mark",
         "logo-mark",
-        "provider-logo",
         "payment-mark",
         "social-mark"
       ],
@@ -274,7 +274,7 @@
       "props": [
         {
           "name": "name",
-          "type": "enum: BrandMarkName",
+          "type": "enum: ProviderLogoName",
           "required": true,
           "values": [
             "logo/affirm",
@@ -498,9 +498,9 @@
           "sign-in-button"
         ],
         "triggerKeywords": [
+          "provider logo",
           "brand mark",
           "logo",
-          "provider logo",
           "payment logo",
           "card network logo",
           "social icon",
@@ -1597,10 +1597,10 @@
       "ai": {
         "primaryPurpose": "Offer an express checkout with a wallet, drawn by the wallet provider.",
         "whenToUse": "On a cart, checkout or product page, for each wallet the store accepts: Apple Pay, Google Pay, PayPal or Shop Pay.",
-        "avoidWhen": "For a store's own checkout or pay action, use Button. To show which cards and wallets are accepted, use Brand mark tiles in a row. For signing in with a provider, use a sign-in button, not a wallet button.",
+        "avoidWhen": "For a store's own checkout or pay action, use Button. To show which cards and wallets are accepted, use Provider logo tiles in a row. For signing in with a provider, use a sign-in button, not a wallet button.",
         "commonPartners": [
           "button",
-          "brand-mark",
+          "provider-logo",
           "button-group",
           "sign-in-button"
         ],
@@ -1622,7 +1622,7 @@
       },
       "composition": {
         "composesWith": [
-          "brand-mark",
+          "provider-logo",
           "focus-ring"
         ],
         "alternativeTo": [],
@@ -1779,13 +1779,13 @@
       "ai": {
         "primaryPurpose": "Let a user sign in or sign up with their Apple, Google or Facebook account.",
         "whenToUse": "On a sign-in or sign-up screen, one button for each account provider the product supports, stacked at one size.",
-        "avoidWhen": "For signing in with an email and password, use Button. For paying with a wallet such as Apple Pay, use WalletButton. For a social link in a footer, use Link with a brand mark. For a provider outside Apple, Google and Facebook, use Button with the provider's name in the label.",
+        "avoidWhen": "For signing in with an email and password, use Button. For paying with a wallet such as Apple Pay, use WalletButton. For a social link in a footer, use Link with a provider logo. For a provider outside Apple, Google and Facebook, use Button with the provider's name in the label.",
         "commonPartners": [
           "button",
           "text-field",
           "password-field",
           "divider",
-          "brand-mark"
+          "provider-logo"
         ],
         "triggerKeywords": [
           "sign in with apple",
@@ -1805,7 +1805,7 @@
       },
       "composition": {
         "composesWith": [
-          "brand-mark",
+          "provider-logo",
           "focus-ring"
         ],
         "alternativeTo": [],
@@ -10916,7 +10916,7 @@
         "avoidWhen": "The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (a wallet button, not built yet). Never for the expiration date or the security code (TextField with autocomplete cc-exp or cc-csc).",
         "commonPartners": [
           "text-field",
-          "brand-mark",
+          "provider-logo",
           "field-label",
           "field-message",
           "button",

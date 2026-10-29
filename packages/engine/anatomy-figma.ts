@@ -38,7 +38,7 @@ import { outlineFillRole } from './modes';
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
 // plugin sandbox, which has no filesystem — see `emit-icons.ts`'s header.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
-import { BRAND_MARK_BOXES, BRAND_MARK_DOCUMENTS, BRAND_MARK_NAMES } from './brand-mark-glyphs';
+import { PROVIDER_LOGO_BOXES, PROVIDER_LOGO_DOCUMENTS, PROVIDER_LOGO_NAMES } from './provider-logo-glyphs';
 // Geometry a component owns and the icon set deliberately does not hold — the spinner (#1670).
 import { COMPONENT_GLYPHS } from './component-glyphs';
 // The catalogue, read only to name the member an overlay swaps in (`nestedSwapTarget`, #1670).
@@ -474,7 +474,7 @@ export type FigmaNodePlan = {
    *  part, so every other plan is byte-identical. */
   fixedPaint?: true;
   /** THE PROVIDER GLYPH'S TINT (owner decision Q846 A, `PartDef.literal: 'mark'`): an opaque `#rrggbb` the executors
-   *  paint on every VECTOR inside this nested brand mark, as a plain solid with no variable. Carried IN PLACE of
+   *  paint on every VECTOR inside this nested provider logo, as a plain solid with no variable. Carried IN PLACE of
    *  `fixedPaint`, never beside it, and only where the def's literal entry names a `markTint`: SignInButton's black
    *  provider glyph, painted white on a dark fill. `lint-mark-colors.ts` (d) holds which hosts and which marks. */
   literalTint?: string;
@@ -914,23 +914,23 @@ const glyphSvgFor = (defId: string, part: string, glyph: string | undefined): st
   return glyphDocument(glyphPath(defId, part, glyph), glyph ? ICON_FILL_RULES[glyph as keyof typeof ICON_PATHS] : undefined);
 };
 
-/** The def whose emitted components ARE the brand marks (#2343): `brand-mark`, `emitAsComponents` like `icon`, each
- *  mark its own `brand-mark/<kind>/<name>` component. Its glyph resolves against the MARK vocabulary, never the icon
+/** The def whose emitted components ARE the provider logos (#2343): `provider-logo`, `emitAsComponents` like `icon`, each
+ *  mark its own `provider-logo/<kind>/<name>` component. Its glyph resolves against the MARK vocabulary, never the icon
  *  set, and its document carries the provider's literal fills: the part takes no ink (`descendantFills`). */
-export const BRAND_MARK_DEF_ID = 'brand-mark';
+export const PROVIDER_LOGO_DEF_ID = 'provider-logo';
 
-/** A brand mark's document and artboard by name (#2343). THROWS on a name the mark vocabulary does not hold, for
+/** A provider logo's document and artboard by name (#2343). THROWS on a name the mark vocabulary does not hold, for
  *  `glyphPath`'s reason: a miss resolved to nothing would build an empty artboard. */
-const brandMarkGlyph = (defId: string, part: string, mark: string | undefined): { svg: string; dims: [number, number] } => {
-  const doc = mark ? BRAND_MARK_DOCUMENTS[mark as keyof typeof BRAND_MARK_DOCUMENTS] : undefined;
+const providerLogoGlyph = (defId: string, part: string, mark: string | undefined): { svg: string; dims: [number, number] } => {
+  const doc = mark ? PROVIDER_LOGO_DOCUMENTS[mark as keyof typeof PROVIDER_LOGO_DOCUMENTS] : undefined;
   if (!mark || !doc)
-    throw new Error(`${defId}: anatomy part '${part}' names mark '${String(mark)}', which is not in the brand-mark vocabulary — the vocabulary is BRAND_MARK_SOURCES in brand-mark-set.ts (${BRAND_MARK_NAMES.length} marks); a mark is added by dropping its .svg in marks/<kind>/, mapping it there and recording its provenance`);
-  const box = BRAND_MARK_BOXES[mark as keyof typeof BRAND_MARK_BOXES];
+    throw new Error(`${defId}: anatomy part '${part}' names mark '${String(mark)}', which is not in the provider-logo vocabulary — the vocabulary is PROVIDER_LOGO_SOURCES in provider-logo-set.ts (${PROVIDER_LOGO_NAMES.length} marks); a mark is added by dropping its .svg in marks/<kind>/, mapping it there and recording its provenance`);
+  const box = PROVIDER_LOGO_BOXES[mark as keyof typeof PROVIDER_LOGO_BOXES];
   return { svg: doc, dims: [box[0], box[1]] };
 };
 
-/** The component a brand mark is (#2343): `brand-mark/<kind>/<name>`, the name `emitAsComponents` gives each member. */
-export const brandMarkComponentName = (mark: string): string => `${BRAND_MARK_DEF_ID}/${mark}`;
+/** The component a provider logo is (#2343): `provider-logo/<kind>/<name>`, the name `emitAsComponents` gives each member. */
+export const providerLogoComponentName = (mark: string): string => `${PROVIDER_LOGO_DEF_ID}/${mark}`;
 
 /** The def whose emitted components ARE the icon set: `icon`, which is `emitAsComponents`, so each glyph is
  *  its own top-level component named `icon/<glyph>` (#1012). Every icon-set glyph inside another component is
@@ -2065,10 +2065,10 @@ export const figmaAnatomyPlan = (
       // from the other side. So the ink goes where the ink has always gone: on the VECTOR, found by
       // descendant search. One field, one meaning, whoever is pushing.
       // A vector may name its slot (#2670, Progress's ring track in `fill`); every other glyph takes `icon`.
-      // A BRAND MARK TAKES NO INK (#2343): its document carries the provider's colors, and a fill pushed onto its
+      // A PROVIDER LOGO TAKES NO INK (#2343): its document carries the provider's colors, and a fill pushed onto its
       // vectors would be the retint the provider forbids. Not merely unkeyed: skipped, so a token added to the def
       // later still cannot reach the artwork.
-      const ink = def.id === BRAND_MARK_DEF_ID ? undefined : paintOf(p.paintSlot ?? 'icon');
+      const ink = def.id === PROVIDER_LOGO_DEF_ID ? undefined : paintOf(p.paintSlot ?? 'icon');
       if (ink) descendantFills = ink;
       // THE TILE'S EDGE IS THE FRAME'S STROKE, never the artwork's: on the artboard, where a fill would be a square
       // behind the mark, a stroke drawn inside is the tile's border. It throws unpainted: a bound weight with no
@@ -2087,7 +2087,7 @@ export const figmaAnatomyPlan = (
       // spinner structurally but leaving it out of the paint branch produced a node in the right cell
       // with no colour — a pending button whose spinner is invisible against its own fill. It is a
       // glyph standing in a glyph's cell, so it takes a glyph's ink.
-      // A part that keeps its content's own paint (#2343 PR 2, `fixedPaint`) takes none: on a brand mark the host's
+      // A part that keeps its content's own paint (#2343 PR 2, `fixedPaint`) takes none: on a provider logo the host's
       // ink would be the retint the provider forbids.
       if (!p.fixedPaint) descendantFills = paintOf('icon');
     }
@@ -2135,14 +2135,14 @@ export const figmaAnatomyPlan = (
     // nominated target. Unlike an overlay's own target it keeps its property, which then defaults to this icon.
     // `glyphPath` throws first for a name outside the icon vocabulary.
     let slotDefault: string | undefined;
-    // A SLOT THAT KEEPS ITS CONTENT'S OWN PAINT (`fixedPaint`, #2343 PR 4) hosts a brand mark, never an icon, so its
-    // default is a name in the MARK vocabulary and the swap starts at `brand-mark/<name>`. `brandMarkGlyph` throws for a
+    // A SLOT THAT KEEPS ITS CONTENT'S OWN PAINT (`fixedPaint`, #2343 PR 4) hosts a provider logo, never an icon, so its
+    // default is a name in the MARK vocabulary and the swap starts at `provider-logo/<name>`. `providerLogoGlyph` throws for a
     // name the set does not hold, and an icon name on such a slot is refused the same way: a glyph there would be an
     // icon the slot then refuses to ink.
     if (p.kind === 'slot' && p.swapDefault !== undefined) {
       if (p.fixedPaint) {
-        brandMarkGlyph(def.id, name, p.swapDefault);
-        slotDefault = brandMarkComponentName(p.swapDefault);
+        providerLogoGlyph(def.id, name, p.swapDefault);
+        slotDefault = providerLogoComponentName(p.swapDefault);
       } else {
         glyphPath(def.id, name, p.swapDefault);
         slotDefault = iconComponentName(p.swapDefault);
@@ -2162,11 +2162,11 @@ export const figmaAnatomyPlan = (
     // is deliberately not in the icon set, and the `icon` def's own glyph, which IS the component instanced
     // here. `glyphPath` runs first so a name outside the vocabulary still throws with its own message.
     const glyphName = p.kind === 'vector' ? resolveGlyph(def.id, name, p.glyph, paintCoord) : undefined;
-    const iconTarget = glyphName !== undefined && !COMPONENT_GLYPHS[glyphName] && def.id !== ICON_DEF_ID && def.id !== BRAND_MARK_DEF_ID
+    const iconTarget = glyphName !== undefined && !COMPONENT_GLYPHS[glyphName] && def.id !== ICON_DEF_ID && def.id !== PROVIDER_LOGO_DEF_ID
       ? (glyphPath(def.id, name, glyphName), iconComponentName(glyphName))
       : undefined;
-    // The brand-mark def's own glyph is drawn inline from the MARK vocabulary, on the mark's own artboard (#2343).
-    const markGlyph = p.kind === 'vector' && def.id === BRAND_MARK_DEF_ID ? brandMarkGlyph(def.id, name, glyphName) : undefined;
+    // The provider-logo def's own glyph is drawn inline from the MARK vocabulary, on the mark's own artboard (#2343).
+    const markGlyph = p.kind === 'vector' && def.id === PROVIDER_LOGO_DEF_ID ? providerLogoGlyph(def.id, name, glyphName) : undefined;
     // THE INSET (#1346), on an instance. `glyphScale` sits the icon at that fraction of the part's box. The
     // part becomes a FRAME carrying the box binding, and the instance inside it is placed and sized at
     // `glyphInset` of the frame by the executor, with SCALE constraints so a re-themed box scales it along.
@@ -2301,7 +2301,7 @@ export const figmaAnatomyPlan = (
       // not a bound token. It replaces the `size` binding for a marker that must read at a proportion of a
       // large frame, past every icon rung and CONTRACT-free (no token minted).
       ...(p.kind === 'vector' && p.glyphPx !== undefined ? { glyphPx: p.glyphPx } : {}),
-      // A nest of a STANDALONE-COMPONENT def (#2343 PR 4: WalletButton's logo, a `brand-mark/logo/<name>`): that def
+      // A nest of a STANDALONE-COMPONENT def (#2343 PR 4: WalletButton's logo, a `provider-logo/logo/<name>`): that def
       // builds no set, so there is no coordinate to resolve inside one. The target is the member's own component,
       // `<id>/<value>` of its one axis, named exactly as `nestedSwapTarget` names a swap's; no `nestVariant` is written.
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nests ? { nestTarget: standaloneNest ? standaloneNest : p.nests } : {}),

@@ -1,12 +1,12 @@
 /**
- * Prism3 engine — THE BRAND-MARK VOCABULARY (#2316, #2343 proposal §1).
+ * Prism3 engine — THE PROVIDER-LOGO VOCABULARY (#2316, #2343 proposal §1).
  *
  * **AUTHORED, never generated.** The second icon type: provider marks (sign-in glyphs, payment tiles, standalone
  * payment logos, social marks), which the core icon set cannot carry. `emit-icons.ts` takes one `currentColor`
  * path on a 24×24 artboard and every host pushes its ink into an icon; a mark needs several paths, literal
  * fills, its own artboard, and no host ink at all. So marks have their own folder (`marks/`), their own
  * vocabulary (this file), their own provenance record (`marks/provenance.json`) and their own emitter
- * (`emit-marks.ts`, which writes `brand-mark-glyphs.ts`).
+ * (`emit-marks.ts`, which writes `provider-logo-glyphs.ts`).
  *
  * This file maps OUR mark names to the files in `marks/`, for the reason `icon-set.ts` maps glyph names: a
  * name is part of the versioned component surface (#823), so a swap of the artwork changes files, never
@@ -24,7 +24,7 @@
  *   1. the SVG in its kind's folder;
  *   2. its entry here;
  *   3. its record in `provenance.json`;
- *   4. its name in `lint-axis-values.ts`'s hand-typed register (`AXIS_VALUE_SETS`, the `brand-mark` row);
+ *   4. its name in `lint-axis-values.ts`'s hand-typed register (`AXIS_VALUE_SETS`, the `provider-logo` row);
  *   5. `--accept` on `lint-component-surface.ts` and `lint-component-renames.ts` (`component-axes.json`),
  *      after `regen.ts`;
  *   6. a change note for the surface drift (`packages/engine/changes/`).
@@ -36,7 +36,7 @@
  *
  * `<kind>/<provider>[-<style>]`, lowercase kebab-case after the slash (owner decision Q778 A): `payment/visa`,
  * `logo/apple-pay`, `provider/google`, `social/instagram-mono`. The kind is the name's first segment, and it decides the
- * artboard. The Figma component is `brand-mark/<name>`, so the slash folds into an assets-panel folder per
+ * artboard. The Figma component is `provider-logo/<name>`, so the slash folds into an assets-panel folder per
  * kind, the way `icon/<glyph>` does.
  *
  * Styles (owner decision Q-B2 A): a one-color form is its OWN file, drawn by the provider, and only where the
@@ -57,7 +57,7 @@
 
 /** The three artboards (proposal §1.1; owner decisions Q780 A, Q781 A). A logo's width is its artwork's, declared
  *  per mark in `provenance.json` (`width`) and checked against the file. */
-export const BRAND_MARK_ARTBOARDS = {
+export const PROVIDER_LOGO_ARTBOARDS = {
   /** Social and sign-in glyphs. */
   square: { width: 24, height: 24 },
   /** Payment tiles, 8:5, drawn full-bleed: the component draws the tile's corners and edge (Q720 A). */
@@ -66,10 +66,10 @@ export const BRAND_MARK_ARTBOARDS = {
   logo: { width: 'per-mark', height: 24 },
 } as const;
 
-export type BrandMarkArtboard = keyof typeof BRAND_MARK_ARTBOARDS;
+export type ProviderLogoArtboard = keyof typeof PROVIDER_LOGO_ARTBOARDS;
 
 /** Each kind (a folder under `marks/`, and a name's first segment) and the artboard it is drawn on. */
-export const BRAND_MARK_KINDS: Record<string, BrandMarkArtboard> = {
+export const PROVIDER_LOGO_KINDS: Record<string, ProviderLogoArtboard> = {
   social: 'square',
   provider: 'square',
   logo: 'logo',
@@ -77,7 +77,7 @@ export const BRAND_MARK_KINDS: Record<string, BrandMarkArtboard> = {
 };
 
 /** Our mark name → its file under `marks/`, without `.svg`. */
-export const BRAND_MARK_SOURCES: Record<string, string> = {
+export const PROVIDER_LOGO_SOURCES: Record<string, string> = {
   // Payment tiles: every logo in an "accepted payments" row, card networks, wallets and buy-now-pay-later, on one
   // full-bleed 32×20 tile (Q780 A). `payment/generic` is the owner's card a field shows before it can tell the brand.
   'payment/affirm': 'payment/affirm',

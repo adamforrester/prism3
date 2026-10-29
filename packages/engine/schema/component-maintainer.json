@@ -93,11 +93,11 @@
         }
       ]
     },
-    "brand-mark": {
+    "provider-logo": {
       "codeOnly": [
         "label routing — the accessibility contract is a DOM shape: with a label, role=\"img\" and aria-label; without one, aria-hidden=\"true\". Figma has no accessibility tree, and the two are pixel-identical, so the Figma leg cannot carry it.",
         "forced colors — under forced-colors mode the browser would repaint the mark in system colors, which is the retint the provider forbids. The mark sets forced-color-adjust: none on itself only, so the text and focus ring around it still follow the user's colors.",
-        "swapping the artwork in code — the package exports the marks as a name-to-SVG map, and an app may pass its own map with the same names to a BrandMarkProvider, so a brand's licensed artwork replaces these without forking a component (proposal §1.3, owner decision Q-B3 A).",
+        "swapping the artwork in code — the package exports the marks as a name-to-SVG map, and an app may pass its own map with the same names to a ProviderLogoProvider, so a brand's licensed artwork replaces these without forking a component (proposal §1.3, owner decision Q-B3 A).",
         "gradient ids — a mark with a gradient names it by id inside its own SVG. Two copies inline on one page share the id, and the second resolves to the first, so the code projection makes each instance's ids unique. Figma imports each mark once, where the collision cannot happen.",
         "width from the proportion — the host binds the height; the width is the height times the mark's artboard ratio. In code the SVG keeps its viewBox and width: auto. In Figma the host's slot is locked to the ratio (#2343 PR 2)."
       ],
@@ -116,7 +116,7 @@
           "Edges and glyph colors (#3134, 2026-10-28): a payment tile draws its edge only when its own fill is under 3:1 against a white page, so Amex, Shop Pay, Venmo and the generic card lose it. provider/apple and provider/facebook are drawn black, where they were white and vanished on the canvas."
         ],
         "projection": [
-          "In Figma each mark is a standalone brand-mark/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink. A payment tile's frame is the one exception, and it is the frame, not the artwork: its corner radii and stroke weight are bound variables, its stroke the border color, and it clips the artwork to its corners."
+          "In Figma each mark is a standalone provider-logo/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink. A payment tile's frame is the one exception, and it is the frame, not the artwork: its corner radii and stroke weight are bound variables, its stroke the border color, and it clips the artwork to its corners."
         ]
       },
       "docGaps": [
@@ -541,7 +541,7 @@
           "Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A, read here onto provider × size while style waits on Q-W1) and the provider's own element in code (Q-B8 A). Built in PR 4 on the owner's logo marks (PR 3)."
         ],
         "projection": [
-          "In Figma each member is the provider's area, a frame at the size and radius the rules allow, with the provider's logo nested as a brand-mark/logo instance whose height is bound and whose width follows its proportion, keeping its own paint."
+          "In Figma each member is the provider's area, a frame at the size and radius the rules allow, with the provider's logo nested as a provider-logo/logo instance whose height is bound and whose width follows its proportion, keeping its own paint."
         ]
       },
       "docGaps": [
@@ -597,8 +597,8 @@
         "the wording — a fixed key per provider × wording (continue, sign-in, sign-up for Apple and Google; continue, login for Facebook), translated by the app; the provider's name is never translated. The wording prop is typed per provider, so a wording the provider does not offer is a type error, not a fallback.",
         "the width — the button hugs its label with a 140px floor, Apple's minimum and the largest of the three, and fullWidth makes it fill its column.",
         "RTL — the row mirrors, so the glyph stays at the leading edge, now the right. The glyph itself is never flipped.",
-        "forced colors — under forced-colors mode the button follows the system colors like any button (its fill, edge and label become ButtonFace, ButtonText and the system border), while the glyph keeps forced-color-adjust: none, the brand mark's own rule, so the provider's artwork is never repainted.",
-        "the accessible name — the visible wording is the name (\"Continue with Google\"), so the label and the name match. No aria-label is added, and the glyph is decorative (aria-hidden, the brand mark with no label)."
+        "forced colors — under forced-colors mode the button follows the system colors like any button (its fill, edge and label become ButtonFace, ButtonText and the system border), while the glyph keeps forced-color-adjust: none, the provider logo's own rule, so the provider's artwork is never repainted.",
+        "the accessible name — the visible wording is the name (\"Continue with Google\"), so the label and the name match. No aria-label is added, and the glyph is decorative (aria-hidden, the provider logo with no label)."
       ],
       "notes": {
         "contested": [
@@ -618,7 +618,7 @@
           "Q846 A (2026-10-29): #3134 drew provider/apple and provider/facebook black, so each provider has one black glyph, painted white where the button's fill is dark (Apple black, Facebook blue). Every other mark is never retinted. The derived provider/apple-black, now a duplicate of provider/apple, was dropped; still 96 members."
         ],
         "projection": [
-          "In Figma the button's fill, edge and label color are plain colors with no variable, and the label has no text property; Google's label carries Google Sans Medium 14/20 directly, not a text style. The glyph is a brand-mark/provider instance, its height bound and its width from its proportion; on Apple black and Facebook blue its vectors are painted white as a plain color."
+          "In Figma the button's fill, edge and label color are plain colors with no variable, and the label has no text property; Google's label carries Google Sans Medium 14/20 directly, not a text style. The glyph is a provider-logo/provider instance, its height bound and its width from its proportion; on Apple black and Facebook blue its vectors are painted white as a plain color."
         ]
       },
       "docGaps": [
@@ -4319,7 +4319,7 @@
         "CARD-TYPE DETECTION and the TILE (#2429 §5, Q10 A) — detection reads the leading digits and sets `brand`; there is never a manual card-type select. The tile swaps in place, generic until the network is known. The tile is decorative (`aria-hidden=\"true\"` on the mark), and the network is stated in text: `brandName` goes in a visually hidden element linked by `aria-describedby`, NOT a live region, so typing never triggers speech. A network the merchant does not accept keeps its detected tile, and the field shows the error. In forced-colors mode the tile alone sets `forced-color-adjust: none`, so it keeps the provider's colors and the field around it follows the user's.",
         "the HOSTED INPUT (#2429 §6, Q12 b, hosted the documented default) — most checkouts take the number in the payment provider's hosted input, an iframe the provider serves, which keeps the merchant in the lightest card-data compliance scope (PCI DSS SAQ A). With `renderInput`, the field is a shell: it draws the label, box, tile, focus ring and message outside the frame, driven by the provider's state events (focus, invalid, complete, empty) and brand event, and the provider owns the input, its value, its caret, its formatting and its detection. A host `<label for>` cannot reach inside an iframe, so the visible label wraps the mount point, clicking it calls the provider's `focus()`, and the label text is passed into the provider's own label or `title` option. `aria-describedby` cannot cross the frame either, so the validation text is mirrored into the provider's message API where it has one. The typed text's font, size and ink are passed through the provider's styling API from the same tokens the shell binds. Without `renderInput` the field renders a native input, for prototypes and providers that tokenize page inputs; the docs say plainly that such a page is outside SAQ A.",
         "VALIDATION (#2429 §5, the pre-work §3.3) — empty (\"Enter the card number.\"), a number that fails the Luhn checksum (a warning, not an error, because some UnionPay numbers fail it: \"Check the card number. It doesn't match a valid card.\"), and a network the merchant does not accept (built from the accepted list). Validate on blur, then on input once the field shows an error, as TextField does; never mid-IME-composition. A decline from the processor belongs to the card group, not this field.",
-        "the TILE in Figma — a swap slot that starts at the generic tile and binds only its height (`size.{size}.mark-height`, the icon rung); both executors lock the instance to its own component's proportion, so a 32×20 tile is about 38×24 at large. It takes no ink from the field at any state, disabled included (`fixedPaint`). The tile's rounded corners and edge belong to the brand-mark component. The `card mark` switch shows or hides it; `↳ swap card mark` picks the card network's tile.",
+        "the TILE in Figma — a swap slot that starts at the generic tile and binds only its height (`size.{size}.mark-height`, the icon rung); both executors lock the instance to its own component's proportion, so a 32×20 tile is about 38×24 at large. It takes no ink from the field at any state, disabled included (`fixedPaint`). The tile's rounded corners and edge belong to the provider-logo component. The `card mark` switch shows or hides it; `↳ swap card mark` picks the card network's tile.",
         "RIGHT TO LEFT — the label, the box and the tile's position mirror, so the tile sits at the box's left end. The digits stay left to right (`dir=\"ltr\"` on the input), and the tile's artwork is never flipped. One provider turns off number grouping in right-to-left layouts; the hosted adapter states that limit rather than hiding it.",
         "the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage and the hidden network name into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).",
         "the KEYBOARD MODEL — native text editing and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry."
@@ -4331,12 +4331,12 @@
           "The tile's presence is a switch, on by default, backed by showCardMark (#2429 table, card mark on). The alternative is a tile that is always there."
         ],
         "unverified": [
-          "The tile slot binds its height alone and both executors lock the instance to the brand-mark component's proportion (`aspectLock`). Modeled on the offline host and in the paste executor's order; that a live host keeps the lock when a designer swaps a placed field's tile to another network is the standing nesting caveat.",
+          "The tile slot binds its height alone and both executors lock the instance to the provider-logo component's proportion (`aspectLock`). Modeled on the offline host and in the paste executor's order; that a live host keeps the lock when a designer swaps a placed field's tile to another network is the standing nesting caveat.",
           "No card network publishes a pixel minimum for a mark inside a field. The 20px tile is a judgment against Visa's \"clearly legible\" rule and an acquirer's roughly 5mm, not a verified compliance point (#2429 §7).",
           "The PCI DSS v4.0.1 SAQ A wording for pages that embed a provider's iframe was read only in secondary sources (#2429 §6)."
         ],
         "evolution": [
-          "Proposed on #2429 (2026-10-09, refreshed 2026-10-12) as TextField with a card-shaped trailing slot, then restated on #2343 (2026-10-25) once the brand-mark type existed. The owner took the 16 recommendations as a block (Q-B10 A), committed artwork for internal use (Q-B1 B), made card tiles full-bleed with the component drawing the edge (Q720 A), renamed the card kind to payment (Q780 A), and gave the generic tile the owner's own artwork (2026-10-27), which replaced the planned core card glyph."
+          "Proposed on #2429 (2026-10-09, refreshed 2026-10-12) as TextField with a card-shaped trailing slot, then restated on #2343 (2026-10-25) once the provider-logo type existed. The owner took the 16 recommendations as a block (Q-B10 A), committed artwork for internal use (Q-B1 B), made card tiles full-bleed with the component drawing the edge (Q720 A), renamed the card kind to payment (Q780 A), and gave the generic tile the owner's own artwork (2026-10-27), which replaced the planned core card glyph."
         ],
         "projection": [
           "In Figma the tile is a swap that starts at the generic payment tile; a designer picks the detected card network's tile with the swap card mark property. Its height is bound and its width follows the tile's proportion; it takes no ink from the field."

@@ -6,9 +6,9 @@
       "sha256": "10ad9afab46142d55db91c664d8f9806e9128069af18a4c8e68652ab71b0fc7a",
       "properties": []
     },
-    "brand-mark": {
+    "provider-logo": {
       "members": 75,
-      "sha256": "3b9af665d65f1146adf2533cbb168ce2cddee9471e39150e216e2d71379e4365",
+      "sha256": "800dfb71a445fe7a9d4bd179347f043342e3039aca3bda9c24226d576ba832c2",
       "properties": []
     },
     "focus-ring": {
@@ -228,12 +228,12 @@
     },
     "wallet-button": {
       "members": 20,
-      "sha256": "69d0924b7636dec97101e0fa55b14bc813b60a09d36d8fc34a3248082c93c7c2",
+      "sha256": "b253cfeaac64f0f713796691272880d39ab2beea631c0af2afec7218113fae08",
       "properties": []
     },
     "sign-in-button": {
       "members": 96,
-      "sha256": "7f9aa64abbc8eb73e406edfb264b242ebd8e6446a7a28628acda97b53bb8d629",
+      "sha256": "9d7d37cdf3bdea3318bfa66a26924a7131a4ce2f0303ad87a3c70ab1d5347e74",
       "properties": []
     },
     "icon-button": {
@@ -770,7 +770,7 @@
     },
     "card-number-field": {
       "members": 84,
-      "sha256": "778283cf9be742332b722c2d0d96fc6bee5d70370115cab74838fa23108e61fe",
+      "sha256": "1237f8df4dddfacae2695174d461845fe87cefd8e4fc053d2bafe86263696a8e",
       "properties": [
         "card mark:BOOLEAN",
         "leading icon:BOOLEAN",

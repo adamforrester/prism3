@@ -149,10 +149,10 @@ const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<Shi
   // the same file (`liveRoot`), so each nested instance has the properties its set really declared, `#id` suffixes and
   // all. Against a catalog name with nothing behind it there is no property to set, and the round-trip would be
   // measuring the harness.
-  // A SLOT THAT STARTS AT A BRAND MARK (#2343 PR 4, the Card number field's tile) is built the same way: the plugin builds
+  // A SLOT THAT STARTS AT A PROVIDER LOGO (#2343 PR 4, the Card number field's tile) is built the same way: the plugin builds
   // the mark first (`prebuildDependencies`), so the swap is an instance of the real mark, whose own extent the aspect lock
   // reads. Against the FPO catalog name alone there is no mark, and the instance would be measuring the harness.
-  const marks = plans.some((p) => JSON.stringify(p.root).includes('"swapTarget":"brand-mark/'));
+  const marks = plans.some((p) => JSON.stringify(p.root).includes('"swapTarget":"provider-logo/'));
   // So is a plan that LOCKS a nested instance to its main's proportion (#2343 PR 2, WalletButton's logo, PR 4): the
   // executor reads the proportion off the main component, and a bare catalog name has no size to read, so the built
   // standalone components answer as themselves (`liveComponents`), as Figma's do.
@@ -737,7 +737,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       const main = (tile as { mainComponent?: { name?: unknown } | null } | undefined)?.mainComponent;
       const h = r.ports.varName(String(((tile?.boundVariables as Record<string, { id?: unknown } | undefined> | undefined)?.height?.id) ?? ''));
       const want = HEIGHT[String(plan.size)];
-      if (got === undefined || Math.abs(got - TILE_RATIO) > 1e-6 || !/^brand-mark\/[a-z]+\/generic$/.test(String(main?.name)) || !want || !String(h ?? '').endsWith(want))
+      if (got === undefined || Math.abs(got - TILE_RATIO) > 1e-6 || !/^provider-logo\/[a-z]+\/generic$/.test(String(main?.name)) || !want || !String(h ?? '').endsWith(want))
         bad.push(`${planComponentName(plan)}: ratio ${got === undefined ? JSON.stringify(v) : got.toFixed(4)}, instance of ${String(main?.name)}, height ${String(h)}`);
     }
     ok(r.plans.length === 84 && bad.length === 0,

@@ -77,12 +77,12 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
 import { heightExclusions } from './branded-button';
 import { makeSignInButton } from './components/sign-in-button';
-import { BRAND_MARK_NAMES as SIGN_IN_MARK_NAMES } from './brand-mark-glyphs';
+import { PROVIDER_LOGO_NAMES as SIGN_IN_MARK_NAMES } from './provider-logo-glyphs';
 import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter, searchField, cardNumberField, progress } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
-import { BRAND_MARK_BOXES, BRAND_MARK_DOCUMENTS } from './brand-mark-glyphs';
+import { PROVIDER_LOGO_BOXES, PROVIDER_LOGO_DOCUMENTS } from './provider-logo-glyphs';
 import { makeTextField } from './components/text-field';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -18808,10 +18808,10 @@ arm: {
     const wb = componentDefs.find((d) => d.id === 'wallet-button')!;
     type Rule = { minH?: number; maxH?: number; minW?: number; halfHeightRadius?: true; logo: string };
     const RULES: Record<string, Rule> = {
-      'apple-pay': { minH: 30, minW: 100, logo: 'brand-mark/logo/apple-pay' },
-      'google-pay': { halfHeightRadius: true, logo: 'brand-mark/logo/google-pay' },
-      paypal: { minH: 25, maxH: 55, logo: 'brand-mark/logo/paypal-wordmark' },
-      'shop-pay': { minH: 40, minW: 120, logo: 'brand-mark/logo/shop-pay' },
+      'apple-pay': { minH: 30, minW: 100, logo: 'provider-logo/logo/apple-pay' },
+      'google-pay': { halfHeightRadius: true, logo: 'provider-logo/logo/google-pay' },
+      paypal: { minH: 25, maxH: 55, logo: 'provider-logo/logo/paypal-wordmark' },
+      'shop-pay': { minH: 40, minW: 120, logo: 'provider-logo/logo/shop-pay' },
     };
     const harbor = parseDesignMd(readFileSync(new URL('./examples/harbor.design.md', import.meta.url), 'utf8')).input;
     const builds = (['compact', 'comfortable', 'spacious'] as const).map((density) => {
@@ -18859,7 +18859,7 @@ arm: {
     type N = AnatomyPlan['root'];
     const nodes = (n: N): N[] => [n, ...(n.children ?? []).flatMap(nodes)];
     const painted = plans.flatMap((p) => nodes(p.root).filter((n) => n.paints?.fills || n.paints?.strokes || n.descendantFills || n.gradientFill).map((n) => `${planComponentName(p)}.${n.name}`));
-    const logoOf = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.nestTarget?.startsWith('brand-mark/'));
+    const logoOf = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.nestTarget?.startsWith('provider-logo/'));
     const unfixed = plans.filter((p) => !logoOf(p)?.fixedPaint).map(planComponentName);
     ok(painted.length === 0 && unfixed.length === 0, `#2343 PR 4 provider rules COLOR: no member paints over or under the provider's area, and its logo keeps its own paint (painted: ${painted.slice(0, 3).join(', ') || 'none'}; logo without fixedPaint: ${unfixed.slice(0, 3).join(', ') || 'none'})`);
     // The mark unaltered: the provider's own logo, nested whole, its height set and its width from its proportion.
@@ -18900,7 +18900,7 @@ arm: {
       const why: string[] = [];
       if (JSON.stringify(ring) !== JSON.stringify(RING)) why.push(`focusRing ${JSON.stringify(ring)}`);
       for (const [k, v] of Object.entries(SHARED_TOKENS)) if (d.tokens[k] !== v) why.push(`tokens.${k} = ${d.tokens[k]}, not ${v}`);
-      if (!(mark.kind === 'nest' && mark.nests === 'brand-mark' && mark.aspectLock === true && mark.fixedPaint === true
+      if (!(mark.kind === 'nest' && mark.nests === 'provider-logo' && mark.aspectLock === true && mark.fixedPaint === true
         && (mark.nesting as { kind?: string } | undefined)?.kind === 'nest-fixed' && typeof mark.height === 'string' && !('width' in mark) && !('size' in mark)))
         why.push(`mark ${JSON.stringify({ kind: mark.kind, nests: mark.nests, aspectLock: mark.aspectLock, fixedPaint: mark.fixedPaint })}`);
       if (JSON.stringify(d.variants.size) !== JSON.stringify(['medium', 'small', 'large'])) why.push(`size ${JSON.stringify(d.variants.size)}`);
@@ -18924,14 +18924,14 @@ arm: {
     const ON_LIGHT = { hover: '#0000001a', pressed: '#00000033' }, ON_DARK = { hover: '#ffffff1a', pressed: '#ffffff33' };
     type R = { fill: string; edge?: string; ink: string; mark: string; wash: { hover: string; pressed: string }; tint?: string };
     const RULES: Record<string, R> = {
-      'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'brand-mark/provider/apple', wash: ON_DARK, tint: '#ffffff' },
-      'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'brand-mark/provider/apple', wash: ON_LIGHT },
-      'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'brand-mark/provider/apple', wash: ON_LIGHT },
-      'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
-      'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google', wash: ON_DARK },
-      'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
-      'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook', wash: ON_DARK, tint: '#ffffff' },
-      'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'brand-mark/provider/facebook-blue', wash: ON_LIGHT },
+      'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'provider-logo/provider/apple', wash: ON_DARK, tint: '#ffffff' },
+      'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'provider-logo/provider/apple', wash: ON_LIGHT },
+      'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'provider-logo/provider/apple', wash: ON_LIGHT },
+      'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'provider-logo/provider/google', wash: ON_LIGHT },
+      'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'provider-logo/provider/google', wash: ON_DARK },
+      'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'provider-logo/provider/google', wash: ON_LIGHT },
+      'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'provider-logo/provider/facebook', wash: ON_DARK, tint: '#ffffff' },
+      'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'provider-logo/provider/facebook-blue', wash: ON_LIGHT },
     };
     // The glyph Q831 A derived (Q846 A dropped its Apple twin). The exclusion arm below drops it from the vocabulary to
     // prove a missing glyph still removes its pairs, for a future provider whose artwork is not in yet.
@@ -18944,7 +18944,7 @@ arm: {
     const plans = figmaAnatomySet(sb, {});
     const keyOf = (p: AnatomyPlan): string => `${p.coord.provider}.${p.coord.style}`;
     const label = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.type === 'TEXT');
-    const mark = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.nestTarget?.startsWith('brand-mark/'));
+    const mark = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.nestTarget?.startsWith('provider-logo/'));
     // ARTWORK: every rule pair is a member (Q831 A), 4 states × 3 sizes each, 96 in all.
     const present = [...new Set(plans.map(keyOf))].sort();
     ok(plans.length === 96 && JSON.stringify(present) === JSON.stringify(Object.keys(RULES).sort()) && DERIVED.every((g) => SIGN_IN_MARK_NAMES.includes(g as never)),
@@ -18956,7 +18956,7 @@ arm: {
     const shortPairs = (short.variants.provider ?? []).flatMap((pv) => (short.variants.style ?? []).map((st) => ({ provider: pv, style: st })))
       .filter((c) => !isExcludedCoordinate(short, c)).map((c) => `${c.provider}.${c.style}`).sort();
     const shortNest = (short.anatomy!.parts.mark.nesting as { variantWhere?: { when: Record<string, string>; set: Record<string, string> }[] }).variantWhere ?? [];
-    const shortMarks = shortNest.filter((w) => `brand-mark/${w.set.name}` !== RULES[`${w.when.provider}.${w.when.style}`]?.mark).map((w) => `${w.when.provider}.${w.when.style} → ${w.set.name}`);
+    const shortMarks = shortNest.filter((w) => `provider-logo/${w.set.name}` !== RULES[`${w.when.provider}.${w.when.style}`]?.mark).map((w) => `${w.when.provider}.${w.when.style} → ${w.set.name}`);
     const wantShort = Object.keys(RULES).filter((k) => !WAITS_ON_DERIVED.includes(k)).sort();
     ok(shortErrs.length === 0 && figmaVariantCount(short) === 84 && JSON.stringify(shortPairs) === JSON.stringify(wantShort) && shortNest.length === 7 && shortMarks.length === 0 && Object.keys(short.literal?.entries ?? {}).length === 7,
       `#2343 PR 5 provider rules ARTWORK (data-driven): without provider/facebook-blue in the mark set the def validates with the 7 pairs whose glyph exists, 84 members, each mapped to its own glyph (errors ${shortErrs.slice(0, 2).join('; ') || 'none'}; ${figmaVariantCount(short)} members: ${shortPairs.join(', ')}; glyphs off ${shortMarks.join(', ') || 'none'})`);
@@ -19106,8 +19106,8 @@ arm: {
       'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'pagination-item': 9, '_slider-thumb': 9,
       // Breadcrumbs (#2666): the trail is placed on its own; its step and separator are parts its host places.
       breadcrumbs: 2, 'breadcrumb-item': 9, '_breadcrumb-separator': 9,
-      // Brand mark (#2343): a glyph other components carry, placed alone only in a row of accepted cards.
-      'brand-mark': 3,
+      // Provider logo (#2343): a glyph other components carry, placed alone only in a row of accepted cards.
+      'provider-logo': 3,
     };
     const prio = (d: ComponentDef) => d.ai.generationPriority;
     const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
@@ -21072,7 +21072,7 @@ arm: {
   }
 
   // #2343 PR 2 — A HOSTED COMPONENT'S OWN PAINT AND PROPORTION (`fixedPaint`, `aspectLock`). No def carries either yet
-  // (the branded buttons and card fields will, nesting a brand mark), so the arms run on a Button clone whose leading
+  // (the branded buttons and card fields will, nesting a provider logo), so the arms run on a Button clone whose leading
   // slot is turned into a mark slot. Expected values are literals here, never read from the projector (docs/34).
   {
     const cloneOf = (d: ComponentDef) => JSON.parse(JSON.stringify(d)) as any;
@@ -21087,7 +21087,7 @@ arm: {
     ok(validateComponentDef(host).errors.length === 0,
       `#2343 PR 2: a slot that binds its height under aspectLock and keeps its content's paint validates clean (${validateComponentDef(host).errors.slice(0, 2).join('; ') || 'no errors'})`);
     // At a full coordinate (the set's), where Button's own slot does take its host's ink, so the control can fail.
-    const nodeAt = (d: ComponentDef) => figmaAnatomySet(d, { swapTarget: 'brand-mark/payment/visa' }).find((p) => p.slots?.leading)?.root.children?.find((c) => c.name === 'leadingVisual');
+    const nodeAt = (d: ComponentDef) => figmaAnatomySet(d, { swapTarget: 'provider-logo/payment/visa' }).find((p) => p.slots?.leading)?.root.children?.find((c) => c.name === 'leadingVisual');
     const slot = nodeAt(host);
     ok(!!slot && slot.descendantFills === undefined && slot.fixedPaint === true && !slot.paints,
       `#2343 PR 2 fixedPaint: the mark slot carries no descendantFills and states fixedPaint (descendantFills ${String(slot?.descendantFills)}, fixedPaint ${String(slot?.fixedPaint)})`);
@@ -21108,7 +21108,7 @@ arm: {
     ok(validateComponentDef(plainHeight).errors.some((e) => /kind 'slot' but binds 'height'/.test(e)),
       '#2343 PR 2: a slot that binds a height WITHOUT aspectLock is still refused — it would reach no node');
     // THE PASTE EXECUTOR reads the main's proportion and locks before the bind loop, in that order.
-    const js = planToPluginJs(figmaAnatomyPlan(host, 'medium', { leading: true, swapTarget: 'brand-mark/payment/visa' }));
+    const js = planToPluginJs(figmaAnatomyPlan(host, 'medium', { leading: true, swapTarget: 'provider-logo/payment/visa' }));
     const lockAt = js.indexOf('if(n.aspectLock)'), bindAt = js.indexOf('for(const [prop,varName] of Object.entries(n.bound))');
     ok(lockAt > 0 && bindAt > lockAt && /if\(n\.aspectLock\)\{const m=await node\.getMainComponentAsync\(\);if\(m&&m\.height\)\{node\.resize\(m\.width\/m\.height,1\);node\.lockAspectRatio\(\);\}/.test(js),
       `#2343 PR 2 paste executor: an aspect-locked instance is resized to its main's proportion and locked BEFORE the bind loop (lock at ${lockAt}, bind at ${bindAt})`);
@@ -22627,8 +22627,8 @@ arm: {
                 const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec];
                 Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
                 // #2343 PR 4 — the main component's own extent, which the paste executor reads for a slot under `aspectLock`:
-                // a brand mark is its artboard (a card tile 32×20), anything else the 24×24 icon artboard.
-                const box = name.startsWith('brand-mark/') ? BRAND_MARK_BOXES[name.slice('brand-mark/'.length) as keyof typeof BRAND_MARK_BOXES] : undefined;
+                // a provider logo is its artboard (a card tile 32×20), anything else the 24×24 icon artboard.
+                const box = name.startsWith('provider-logo/') ? PROVIDER_LOGO_BOXES[name.slice('provider-logo/'.length) as keyof typeof PROVIDER_LOGO_BOXES] : undefined;
                 inst.getMainComponentAsync = async () => ({ name, type: 'COMPONENT', width: box?.[0] ?? 24, height: box?.[1] ?? 24 });
                 // #2645 — THE INSTANCE'S OWN COMPONENT PROPERTIES, for a component `componentProps` declares: each at the
                 // value it was given or its default, keyed `name#id` as the host keys them. `setProperties` refuses a key
@@ -23132,11 +23132,11 @@ arm: {
     // Typed from the owner's direction ("a consumer tints them as needed"), read from the emitted module and from the
     // plan the importer is handed.
     {
-      const markDef = componentDefs.find((x) => x.id === 'brand-mark')!;
+      const markDef = componentDefs.find((x) => x.id === 'provider-logo')!;
       const fills = (svg: string): string[] => [...svg.matchAll(/<path\b[^>]*\sfill="(#[0-9A-Fa-f]{6})"/g)].map((m) => m[1].toUpperCase());
       const off: string[] = [];
       for (const name of ['provider/apple', 'provider/facebook'] as const) {
-        const doc = fills(BRAND_MARK_DOCUMENTS[name]);
+        const doc = fills(PROVIDER_LOGO_DOCUMENTS[name]);
         const plan = figmaAnatomyPlan(markDef, undefined, { name } as never);
         const planned = fills(JSON.stringify(plan.root).replace(/\\"/g, '"'));
         if (JSON.stringify(doc) !== '["#000000"]' || JSON.stringify(planned) !== '["#000000"]') off.push(`${name}: module ${JSON.stringify(doc)}, plan ${JSON.stringify(planned)}`);
@@ -23153,7 +23153,7 @@ arm: {
     // strongest one (Google's mark reads on white by its blue, not its yellow). WCAG 1.4.11's non-text floor, 3:1.
     // With no host on main it passes vacuously, so it states what it walked, and its fixtures must fail.
     {
-      const PROVIDER = 'brand-mark/provider/';
+      const PROVIDER = 'provider-logo/provider/';
       type Node = { name?: string; nestTarget?: string; swapTarget?: string; literalTint?: string; paints?: { fills?: string }; literalPaints?: { fills?: readonly string[] }; children?: Node[] };
       const HEX = /^#[0-9A-Fa-f]{6}/;
       const paintsOf = (svg: string): string[] => [...new Set([...svg.matchAll(/\sfill="(#[0-9A-Fa-f]{6})"/g)].map((m) => m[1].toUpperCase()))];
@@ -23164,7 +23164,7 @@ arm: {
           const lit = n.literalPaints?.fills?.[0] ?? (HEX.test(n.paints?.fills ?? '') ? n.paints!.fills : undefined);
           const here = lit ? { hex: lit.slice(0, 7), themed: false } : n.paints?.fills ? { themed: true } : fill;
           for (const t of [n.nestTarget, n.swapTarget]) if (typeof t === 'string' && t.startsWith(PROVIDER)) {
-            const glyph = t.slice('brand-mark/'.length);
+            const glyph = t.slice('provider-logo/'.length);
             // A TINT (Q846 A) is what the executors paint in place of the file's colors, so it is the glyph's paint.
             const own = paintsOf(docs[glyph] ?? '');
             out.push({ glyph, over: fill?.hex, themed: !!fill?.themed, paints: own.length && n.literalTint ? [n.literalTint.toUpperCase()] : own });
@@ -23176,12 +23176,12 @@ arm: {
       };
       /** What is wrong with a plan's provider glyphs, by name. Empty when clean. */
       const lowGlyphs = (root: Node, docs: Record<string, string>, at: string): string[] => glyphsOver(root, docs).flatMap((g) => {
-        if (!g.paints.length) return [`${at}: nests brand-mark/${g.glyph}, which the mark set does not draw`];
+        if (!g.paints.length) return [`${at}: nests provider-logo/${g.glyph}, which the mark set does not draw`];
         if (!g.over) return [];
         const best = Math.max(...g.paints.map((p) => contrast(hexToRgb(p), hexToRgb(g.over!))));
-        return best < 3 ? [`${at}: brand-mark/${g.glyph} (${g.paints.join(', ')}) over the literal fill ${g.over} is ${best.toFixed(2)}:1, under 3:1`] : [];
+        return best < 3 ? [`${at}: provider-logo/${g.glyph} (${g.paints.join(', ')}) over the literal fill ${g.over} is ${best.toFixed(2)}:1, under 3:1`] : [];
       });
-      const docs = BRAND_MARK_DOCUMENTS as Record<string, string>;
+      const docs = PROVIDER_LOGO_DOCUMENTS as Record<string, string>;
       const fixture = (fill: string, glyph: string): Node => ({ name: 'container', literalPaints: { fills: [fill] }, children: [{ name: 'mark', nestTarget: `${PROVIDER}${glyph}` }] });
       const self: string[] = [];
       if (lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture').length !== 1) self.push('a black glyph on a black literal fill is not caught');
@@ -23197,16 +23197,16 @@ arm: {
       if (lowGlyphs(tinted('#000000', 'apple', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on black is refused');
       if (lowGlyphs(tinted('#1877f2', 'facebook', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on #1877f2 is refused');
       if (lowGlyphs(tinted('#000000', 'apple', '#000000'), docs, 'fixture').length !== 1) self.push('a glyph tinted black on black is not caught');
-      if (!lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]?.includes(': brand-mark/provider/apple (')) self.push(`the failure line does not name brand-mark/provider/apple once (${lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]})`);
+      if (!lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]?.includes(': provider-logo/provider/apple (')) self.push(`the failure line does not name provider-logo/provider/apple once (${lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]})`);
       // The walk over every registered def: what it covered, so a vacuous pass says so.
       const bad: string[] = [];
       let defs = 0, plans = 0, marks = 0, glyphs = 0, overLiteral = 0;
       for (const def of componentDefs) {
-        if (def.id === 'brand-mark' || !def.figmaProperties) continue;
+        if (def.id === 'provider-logo' || !def.figmaProperties) continue;
         defs++;
         for (const plan of figmaAnatomySet(def)) {
           plans++;
-          const walkAll = (n: Node): void => { if ([n.nestTarget, n.swapTarget].some((t) => typeof t === 'string' && t.startsWith('brand-mark/'))) marks++; for (const c of n.children ?? []) walkAll(c); };
+          const walkAll = (n: Node): void => { if ([n.nestTarget, n.swapTarget].some((t) => typeof t === 'string' && t.startsWith('provider-logo/'))) marks++; for (const c of n.children ?? []) walkAll(c); };
           walkAll(plan.root as Node);
           const found = glyphsOver(plan.root as Node, docs);
           glyphs += found.length;
@@ -23216,7 +23216,7 @@ arm: {
       }
       ok(self.length === 0, `#3134 provider glyph contrast self-test: the arm catches a low glyph on a literal fill, reads a tint as the glyph's paint and passes a readable one (${self.join(' | ') || 'clean'})`);
       ok(defs > 0 && plans > 0 && marks > 0 && bad.length === 0,
-        `#3134 provider glyph contrast: every brand-mark/provider/* glyph nested over a literal fill is 3:1 or more against it — walked ${defs} def(s), ${plans} plan(s), ${marks} nested brand mark(s), ${glyphs} provider glyph(s), ${overLiteral} over a literal fill (${bad.slice(0, 6).join(' | ') || 'clean'})`);
+        `#3134 provider glyph contrast: every provider-logo/provider/* glyph nested over a literal fill is 3:1 or more against it — walked ${defs} def(s), ${plans} plan(s), ${marks} nested provider logo(s), ${glyphs} provider glyph(s), ${overLiteral} over a literal fill (${bad.slice(0, 6).join(' | ') || 'clean'})`);
     }
 
     // ---- #2343 Q720 A: a payment tile's frame draws its corners and edge through the PASTE executor ----
@@ -23226,7 +23226,7 @@ arm: {
     // Typed from the owner's direction and the computed result on that PR, not read from the def.
     {
       const EDGELESS = new Set(['payment/amex', 'payment/generic', 'payment/shop-pay', 'payment/venmo']);
-      const markDef = componentDefs.find((x) => x.id === 'brand-mark')!;
+      const markDef = componentDefs.find((x) => x.id === 'provider-logo')!;
       const CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
       const bad: string[] = [];
       let tiles = 0, pasted = 0;
@@ -23256,7 +23256,7 @@ arm: {
 
     // ---- #2343 PR 5: SignInButton's literal paint and font through the PASTE executor ----
     // The plugin leg is in test-write-components (`sign-in build/literal`). Values typed from the guidelines; misses
-    // read for the literal channels only. The stub file holds the provider brand marks, so the glyph is a
+    // read for the literal channels only. The stub file holds the provider provider logos, so the glyph is a
     // real instance and its VECTOR carries Q846 A's tint (`glyph`: white on the dark fills, none elsewhere).
     {
       const sb = componentDefs.find((x) => x.id === 'sign-in-button')!;
@@ -23270,7 +23270,7 @@ arm: {
         { coord: { provider: 'apple', style: 'white', state: 'rest' }, size: 'medium', fills: ['#ffffff'], edge: undefined, ink: '#000000', font: undefined, word: 'Continue with Apple', glyph: undefined },
         { coord: { provider: 'facebook', style: 'blue', state: 'pressed' }, size: 'small', fills: ['#1877f2', '#ffffff33'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Facebook', glyph: '#ffffff' },
       ];
-      const MARKS = ['apple', 'facebook', 'facebook-blue', 'google'].map((g) => `brand-mark/provider/${g}`);
+      const MARKS = ['apple', 'facebook', 'facebook-blue', 'google'].map((g) => `provider-logo/provider/${g}`);
       const bad: string[] = [];
       for (const c of CASES) {
         const plan = figmaAnatomyPlan(sb, c.size, c.coord as never);
@@ -23278,7 +23278,7 @@ arm: {
         const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: MARKS, page });
         const walk = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(walk)];
         const all = page.children.flatMap((x) => walk(x as Record<string, unknown>));
-        const glyphInst = all.find((n) => n.type === 'INSTANCE' && String((n.mainComponent as { name?: string } | undefined)?.name).startsWith('brand-mark/provider/'));
+        const glyphInst = all.find((n) => n.type === 'INSTANCE' && String((n.mainComponent as { name?: string } | undefined)?.name).startsWith('provider-logo/provider/'));
         const glyphVecs = typeof glyphInst?.findAll === 'function' ? (glyphInst.findAll as () => Record<string, unknown>[])() : [];
         const box = all.find((n) => n.name === 'container' || (Array.isArray(n.fills) && (n.children as unknown[] | undefined)?.length)) as Record<string, unknown> | undefined;
         const text = all.find((n) => n.type === 'TEXT');
@@ -23335,7 +23335,7 @@ arm: {
     // Then it sizes the frame to the ink: a square kind and a logo each still miss, named for their own box. Mutations:
     // the payload's compare back to `!==` → `#3127 paste at its own width`; it passing anything → `#3127 paste ink`.
     {
-      const markDef = componentDefs.find((x) => x.id === 'brand-mark')!;
+      const markDef = componentDefs.find((x) => x.id === 'provider-logo')!;
       const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<PayloadResult>;
       const paste = async (name: string, host: (n: Record<string, any>) => void): Promise<string[]> => {
         const plan = figmaAnatomyPlan(markDef, undefined, { name } as never);
@@ -36167,7 +36167,7 @@ arm: {
     'text-field', 'textarea', 'select', 'password-field', 'dialog', 'search-field', 'pagination-item', 'pagination',
   ];
   // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
-  const NO_SET = ['icon', 'brand-mark', 'spinner'];
+  const NO_SET = ['icon', 'provider-logo', 'spinner'];
   const read = new Map<string, Set<string>>();
   for (const def of componentDefs) {
     const fp = def.figmaProperties;
@@ -38232,14 +38232,14 @@ arm: {
     return JSON.stringify((ctl?.children ?? []).map((c) => c.name)) !== JSON.stringify(focus ? ['content', 'cardMark', 'focusRing'] : ['content', 'cardMark'])
       || find(r, 'trailingVisual') !== undefined
       || tile?.type !== 'INSTANCE_SWAP' || tile.visible === false || tile.visibleProp !== 'card mark'
-      || !/^brand-mark\/[a-z]+\/generic$/.test(tile.swapTarget ?? '') || tile.fixedPaint !== true || tile.aspectLock !== true || tile.descendantFills !== undefined;
+      || !/^provider-logo\/[a-z]+\/generic$/.test(tile.swapTarget ?? '') || tile.fixedPaint !== true || tile.aspectLock !== true || tile.descendantFills !== undefined;
   });
   ok(memberBad.length === 0,
     `#2343 PR 4 card-number-field members: the generic tile at the box's trailing edge, shown, behind the card mark switch, fixed-paint and aspect-locked, and no trailing glyph, on all 84${memberBad.length ? ` — WRONG on ${memberBad.length}: ${planComponentName(memberBad[0])}` : ''}`);
   // THE PANEL, in order, each default typed here, the tile's swap starting at a generic tile.
-  const props = planSetProperties(cfPlans).map((p: any) => `${p.name}:${p.type}:${String(p.default ?? p.swapTarget).replace(/^brand-mark\/[a-z]+\//, 'brand-mark/<tiles>/')}`);
+  const props = planSetProperties(cfPlans).map((p: any) => `${p.name}:${p.type}:${String(p.default ?? p.swapTarget).replace(/^provider-logo\/[a-z]+\//, 'provider-logo/<tiles>/')}`);
   const WANT_PROPS = ['placeholder:TEXT:Placeholder', 'value:TEXT:1234 5678 9012 3456', 'leading icon:BOOLEAN:false', '↳ swap leading icon:INSTANCE_SWAP:FPO-default-icon',
-    'card mark:BOOLEAN:true', '↳ swap card mark:INSTANCE_SWAP:brand-mark/<tiles>/generic', 'message:BOOLEAN:false'];
+    'card mark:BOOLEAN:true', '↳ swap card mark:INSTANCE_SWAP:provider-logo/<tiles>/generic', 'message:BOOLEAN:false'];
   ok(JSON.stringify(props) === JSON.stringify(WANT_PROPS),
     `#2343 PR 4 card-number-field panel: the card mark switch on and its swap at the generic tile, under the value, the leading glyph hidden, the message off (got ${JSON.stringify(props)})`);
   // THE CODE PROP: generic first, and the tile's presence on.
@@ -38254,7 +38254,7 @@ arm: {
   const iconOnTile = JSON.parse(JSON.stringify(cf)) as ComponentDef; iconOnTile.anatomy!.parts.cardMark.swapDefault = 'check';
   let tileThrew = '';
   try { figmaAnatomySet(iconOnTile, { swapTarget: 'FPO-default-icon' }); } catch (e) { tileThrew = (e as Error).message; }
-  ok(/names mark 'check', which is not in the brand-mark vocabulary/.test(tileThrew),
+  ok(/names mark 'check', which is not in the provider-logo vocabulary/.test(tileThrew),
     `#2343 PR 4: a fixed-paint slot that starts at an icon throws at projection, naming the mark vocabulary (got ${tileThrew.slice(0, 120) || 'no throw'})`);
   ok(!(textField.composition?.planned ?? []).includes('card-number-field') && (cf.composition?.alternativeTo ?? []).includes('text-field'),
     '#2343 PR 4: the Card number field names TextField as its alternative');

@@ -1,5 +1,5 @@
 /**
- * Prism3 engine — EVERY BRAND MARK HAS A PROVENANCE RECORD, AND EVERY RECORD A FILE (#2343 proposal §1.4).
+ * Prism3 engine — EVERY PROVIDER LOGO HAS A PROVENANCE RECORD, AND EVERY RECORD A FILE (#2343 proposal §1.4).
  *
  *   npx tsx packages/engine/lint-mark-provenance.ts
  *

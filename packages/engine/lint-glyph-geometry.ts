@@ -121,7 +121,7 @@ import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import type { ComponentDef } from './component-schema';
 import { readFileSync } from 'node:fs';
-import { BRAND_MARK_SOURCES } from './brand-mark-set';
+import { PROVIDER_LOGO_SOURCES } from './provider-logo-set';
 
 /**
  * The scope floor. `docs/34`: a gate with a scope asserts each promised surface is REPRESENTED, never
@@ -141,8 +141,8 @@ const MUST_COVER = [
   'banner.infoGlyph', 'banner.successGlyph', 'banner.warningGlyph', 'banner.dangerGlyph',
   'toast.checkCircleGlyph',
   '_breadcrumb-separator.chevronGlyph', '_breadcrumb-separator.slashGlyph', 'breadcrumbs.backGlyph',
-  // The brand marks (#2343), measured by the MARK arm against their own artboards.
-  'brand-mark.glyph',
+  // The provider logos (#2343), measured by the MARK arm against their own artboards.
+  'provider-logo.glyph',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -571,11 +571,11 @@ const inkBox = (d: string): Box => {
 };
 
 /**
- * THE BRAND-MARK ARM'S TABLES (#2343 proposal §1.4) — the second author of each kind's artboard. Typed here, not
- * imported from `brand-mark-set.ts`, which `emit-marks.ts` reads: the duplicated table is the check. `null` width
+ * THE PROVIDER-LOGO ARM'S TABLES (#2343 proposal §1.4) — the second author of each kind's artboard. Typed here, not
+ * imported from `provider-logo-set.ts`, which `emit-marks.ts` reads: the duplicated table is the check. `null` width
  * is a logo, which hugs its artwork, so its width is stated in its provenance record.
  */
-const MARK_DEF = 'brand-mark';
+const MARK_DEF = 'provider-logo';
 const MARK_ARTBOARD: Record<string, readonly [number | null, number]> = {
   social: [24, 24], provider: [24, 24], payment: [32, 20], logo: [null, 24],
 };
@@ -737,10 +737,10 @@ for (const def of componentDefs as ComponentDef[]) {
     // the end of the file, for a part removed entirely). `paddedArtboard` re-derives the box arm D wants.
     // A COMPOSED glyph (#1670) is measured by its own arm and skips the icon-set arms below.
     // PROGRESS'S GLYPHS (#2670), measured by their own arm against the numbers typed in `RING_GLYPH` above.
-    // ---- THE BRAND-MARK ARM (#2343) --------------------------------------------------------------------
+    // ---- THE PROVIDER-LOGO ARM (#2343) --------------------------------------------------------------------
     // A mark is not an icon-set glyph and none of the arms below apply to it: several paths, the provider's
     // colors, and an artboard its kind decides. What this arm asks is the aspect question the proposal put to it.
-    // Every listed mark projects one member (coverage, against `BRAND_MARK_SOURCES`, the authored list); each
+    // Every listed mark projects one member (coverage, against `PROVIDER_LOGO_SOURCES`, the authored list); each
     // member's document is drawn on its kind's artboard (`MARK_ARTBOARD`, typed here), a logo at the
     // width its provenance record states; the artboard is the SOURCE FILE's own (so the proportion survives the
     // emitter); the plan's `glyphViewBox` is that artboard (so the executors' read-back expects it); and the ink
@@ -750,10 +750,10 @@ for (const def of componentDefs as ComponentDef[]) {
       let records: Record<string, { width?: number; fullBleed?: boolean }> = {};
       try { records = (JSON.parse(readFileSync(new URL('provenance.json', MARKS_DIR), 'utf8')) as { marks: Record<string, { width?: number; fullBleed?: boolean }> }).marks; }
       catch (err) { failures.push(`${key}: marks/provenance.json is unreadable — ${(err as Error).message}`); }
-      const listed = new Set(Object.keys(BRAND_MARK_SOURCES));
+      const listed = new Set(Object.keys(PROVIDER_LOGO_SOURCES));
       const projected = new Set(set.map((pl) => String(pl.coord.name)));
-      for (const nm of listed) if (!projected.has(nm)) failures.push(`${key}: '${nm}' is listed in brand-mark-set.ts and no member projects it — a listed mark with no component`);
-      for (const nm of projected) if (!listed.has(nm)) failures.push(`${key}: member '${nm}' projects and brand-mark-set.ts does not list it`);
+      for (const nm of listed) if (!projected.has(nm)) failures.push(`${key}: '${nm}' is listed in provider-logo-set.ts and no member projects it — a listed mark with no component`);
+      for (const nm of projected) if (!listed.has(nm)) failures.push(`${key}: member '${nm}' projects and provider-logo-set.ts does not list it`);
       const dimsOf = (svg: string): { w: number; h: number; vb: number[] } => {
         const root = /<svg\b[^>]*>/.exec(svg)?.[0] ?? '';
         const at = (a: string) => new RegExp(`\\s${a}="([^"]*)"`).exec(root)?.[1];
@@ -768,7 +768,7 @@ for (const def of componentDefs as ComponentDef[]) {
         const node = nodes[0].node;
         if (!board) { failures.push(`${MARK_DEF}/${nm}: kind '${kind}' has no artboard in this gate's MARK_ARTBOARD table`); continue; }
         const doc = dimsOf(node.glyphSvg ?? '');
-        const source = BRAND_MARK_SOURCES[nm];
+        const source = PROVIDER_LOGO_SOURCES[nm];
         let src = { w: NaN, h: NaN, vb: [] as number[] };
         let srcText = '';
         try { srcText = readFileSync(new URL(`${source}.svg`, MARKS_DIR), 'utf8'); src = dimsOf(srcText); } catch { failures.push(`${MARK_DEF}/${nm}: marks/${source}.svg is unreadable`); continue; }
@@ -1394,7 +1394,7 @@ let derivedChecks = 0;
     const rec = recs[`${name}.svg`];
     if (!rec) { failures.push(`DERIVED ${name}: no record in marks/provenance.json`); continue; }
     if (rec.derivedFrom !== `${from}.svg`) { failures.push(`DERIVED ${name}: its record says derivedFrom ${rec.derivedFrom ?? '(nothing)'}, and DERIVED_MARK says ${from}.svg`); continue; }
-    if (!(name in BRAND_MARK_SOURCES)) failures.push(`DERIVED ${name}: is not in the mark set (brand-mark-set.ts), so no member carries it`);
+    if (!(name in PROVIDER_LOGO_SOURCES)) failures.push(`DERIVED ${name}: is not in the mark set (provider-logo-set.ts), so no member carries it`);
     let own: Box[], src: Box[], sib: Box[];
     try {
       const read = (n: string): Box[] => pathsOf(readFileSync(new URL(`${n}.svg`, MARKS_DIR), 'utf8')).map(markInkBox);
@@ -1420,7 +1420,7 @@ let derivedChecks = 0;
 }
 
 // The tile arm ran on something: a mark set with payment tiles and no file read as a tile is an arm that checked nothing.
-if (Object.keys(BRAND_MARK_SOURCES).some((nm) => nm.startsWith('payment/')) && tileFiles === 0)
+if (Object.keys(PROVIDER_LOGO_SOURCES).some((nm) => nm.startsWith('payment/')) && tileFiles === 0)
   failures.push(`${MARK_DEF}: the set lists payment tiles and the full-bleed arm read no tile file — the TILE BAKED check ran on nothing`);
 console.log(`Glyph geometry — ${glyphChecks} glyph(s) measured across ${covered.size} vector part(s): ${[...covered].join(', ') || 'NONE'}; ${tileFiles} payment file(s) read as tiles; ${derivedChecks} derived provider glyph(s) measured against their sibling's inset`);
 for (const n of notes) console.log(`    ${n}`);

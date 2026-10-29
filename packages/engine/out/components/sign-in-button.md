@@ -13,7 +13,7 @@ A button that signs the user in with their Apple, Google or Facebook account. Ea
 
 - **Purpose:** Let a user sign in or sign up with their Apple, Google or Facebook account.
 - **Use when:** On a sign-in or sign-up screen, one button for each account provider the product supports, stacked at one size.
-- **Avoid when:** For signing in with an email and password, use Button. For paying with a wallet such as Apple Pay, use WalletButton. For a social link in a footer, use Link with a brand mark. For a provider outside Apple, Google and Facebook, use Button with the provider's name in the label.
+- **Avoid when:** For signing in with an email and password, use Button. For paying with a wallet such as Apple Pay, use WalletButton. For a social link in a footer, use Link with a provider logo. For a provider outside Apple, Google and Facebook, use Button with the provider's name in the label.
 
 ## Anatomy
 
@@ -83,7 +83,7 @@ Pick one wording from the provider's list and use it on every button in the stac
 
 ## Related components
 
-- **Built from:** `brand-mark`, `focus-ring`
+- **Built from:** `provider-logo`, `focus-ring`
 - **Often used with:** `button`, `text-field`, `password-field`, `divider`
 - **Replaces:**
   - a hand-drawn social sign-in button
@@ -203,7 +203,7 @@ Keyed by `provider`, `style`, `state`.
 
 ### Nesting and properties
 
-- `container/mark` nests `brand-mark` at `name=provider/apple`; `provider=apple, style=black` takes `name=provider/apple`, `provider=apple, style=white` takes `name=provider/apple`, `provider=apple, style=outline` takes `name=provider/apple`, `provider=google, style=light` takes `name=provider/google`, `provider=google, style=dark` takes `name=provider/google`, `provider=google, style=neutral` takes `name=provider/google`, `provider=facebook, style=blue` takes `name=provider/facebook`, `provider=facebook, style=white` takes `name=provider/facebook-blue`
+- `container/mark` nests `provider-logo` at `name=provider/apple`; `provider=apple, style=black` takes `name=provider/apple`, `provider=apple, style=white` takes `name=provider/apple`, `provider=apple, style=outline` takes `name=provider/apple`, `provider=google, style=light` takes `name=provider/google`, `provider=google, style=dark` takes `name=provider/google`, `provider=google, style=neutral` takes `name=provider/google`, `provider=facebook, style=blue` takes `name=provider/facebook`, `provider=facebook, style=white` takes `name=provider/facebook-blue`
 - `container/focusRing` nests `focus-ring` at `surface=default`
 
 ---

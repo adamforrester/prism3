@@ -178,7 +178,6 @@ Generated from the component definitions and the emission by `packages/engine/em
 | accordion | navigation | rest, focus-visible | rest, focus-visible |
 | badge | foundations | — | — |
 | banner | feedback | — | — |
-| brand-mark | foundations | — | — |
 | breadcrumb-item | navigation | — | — |
 | breadcrumbs | navigation | — | — |
 | button | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
@@ -212,6 +211,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | pagination-item | navigation | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | password-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
 | progress | feedback | — | — |
+| provider-logo | foundations | — | — |
 | radio-control | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | radio-group | form | — | — |
 | radio-row | form | rest, hover, pressed, focus-visible, disabled, read-only | — |
@@ -542,7 +542,6 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | — | — |
 |  | tabs | — | — |
 | label | badge | — | — |
-|  | brand-mark | — | — |
 |  | breadcrumb-item | — | — |
 |  | breadcrumbs | Breadcrumb | — |
 |  | button | — | — |
@@ -561,6 +560,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | pagination-item | — | — |
 |  | password-field | — | — |
 |  | progress | — | — |
+|  | provider-logo | — | — |
 |  | radio-group | — | — |
 |  | radio-row | — | — |
 |  | search-field | — | — |
@@ -597,13 +597,13 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | min | counter | 0 | — |
 |  | progress | 0 | — |
 |  | slider | 0 | — |
-| name | brand-mark | — | 75 values |
-|  | card-number-field | — | — |
+| name | card-number-field | — | — |
 |  | checkbox-group | — | — |
 |  | code-input | — | — |
 |  | counter | — | — |
 |  | icon | — | 46 values |
 |  | password-field | — | — |
+|  | provider-logo | — | 75 values |
 |  | radio-group | — | — |
 |  | search-field | — | — |
 |  | segmented-control | — | — |
@@ -697,7 +697,6 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | _slider-thumb | medium | small, medium, large |
 |  | accordion | medium | small, medium, large |
 |  | badge | medium | small, medium |
-|  | brand-mark | medium | small, medium, large |
 |  | breadcrumb-item | medium | small, medium |
 |  | breadcrumbs | medium | small, medium |
 |  | button | medium | small, medium, large |
@@ -726,6 +725,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | pagination-item | medium | small, medium, large |
 |  | password-field | medium | small, medium, large |
 |  | progress | medium | small, medium |
+|  | provider-logo | medium | small, medium, large |
 |  | radio-control | medium | small, medium, large |
 |  | radio-group | medium | small, medium, large |
 |  | radio-row | medium | small, medium, large |

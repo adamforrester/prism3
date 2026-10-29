@@ -12,7 +12,7 @@
  * the size system, the nested FieldLabel, FieldMessage and focus ring come from `makeTextField`, so a fix there reaches
  * this field without a copy. What this file states is what differs:
  *
- *  · THE TRAILING CELL IS A PAYMENT TILE (`edge: 'mark'`, #2429 §2). A swap slot whose content is a brand mark, card-
+ *  · THE TRAILING CELL IS A PAYMENT TILE (`edge: 'mark'`, #2429 §2). A swap slot whose content is a provider logo, card-
  *    shaped (the mark's own proportion, `aspectLock`), as tall as the icon rung (20 at small and medium, 24 at large),
  *    and never retinted (`fixedPaint`). TextField's trailing glyph is gone: the tile takes its place.
  *  · IT STARTS AT THE GENERIC TILE (owner, 2026-10-27: the generic tile is the owner's "no card type yet" artwork, which
@@ -36,13 +36,13 @@
  * are DRAFT (#2429 §8, accepted as a block with Q16), as is the filled value "1234 5678 9012 3456".
  */
 import { ComponentDef } from '../component-schema';
-import { BRAND_MARK_NAMES } from '../brand-mark-glyphs';
-import { BRAND_MARK_KINDS } from '../brand-mark-set';
+import { PROVIDER_LOGO_NAMES } from '../provider-logo-glyphs';
+import { PROVIDER_LOGO_KINDS } from '../provider-logo-set';
 import { makeTextField } from './text-field';
 
 /** The payment tiles: every mark the set draws on the tile artboard, by kind, so a kind renamed in the set (`card/` →
  *  `payment/`, PR 3) reaches this field without an edit. */
-const TILES = BRAND_MARK_NAMES.filter((n) => BRAND_MARK_KINDS[n.split('/')[0]] === 'tile');
+const TILES = PROVIDER_LOGO_NAMES.filter((n) => PROVIDER_LOGO_KINDS[n.split('/')[0]] === 'tile');
 /** The tile kind, the first segment every tile shares. */
 const TILE_KIND = TILES[0]?.split('/')[0];
 if (!TILE_KIND || TILES.some((n) => !n.startsWith(`${TILE_KIND}/`)))
@@ -105,7 +105,7 @@ export const cardNumberField: ComponentDef = makeTextField({
     'CARD-TYPE DETECTION and the TILE (#2429 §5, Q10 A) — detection reads the leading digits and sets `brand`; there is never a manual card-type select. The tile swaps in place, generic until the network is known. The tile is decorative (`aria-hidden="true"` on the mark), and the network is stated in text: `brandName` goes in a visually hidden element linked by `aria-describedby`, NOT a live region, so typing never triggers speech. A network the merchant does not accept keeps its detected tile, and the field shows the error. In forced-colors mode the tile alone sets `forced-color-adjust: none`, so it keeps the provider\'s colors and the field around it follows the user\'s.',
     'the HOSTED INPUT (#2429 §6, Q12 b, hosted the documented default) — most checkouts take the number in the payment provider\'s hosted input, an iframe the provider serves, which keeps the merchant in the lightest card-data compliance scope (PCI DSS SAQ A). With `renderInput`, the field is a shell: it draws the label, box, tile, focus ring and message outside the frame, driven by the provider\'s state events (focus, invalid, complete, empty) and brand event, and the provider owns the input, its value, its caret, its formatting and its detection. A host `<label for>` cannot reach inside an iframe, so the visible label wraps the mount point, clicking it calls the provider\'s `focus()`, and the label text is passed into the provider\'s own label or `title` option. `aria-describedby` cannot cross the frame either, so the validation text is mirrored into the provider\'s message API where it has one. The typed text\'s font, size and ink are passed through the provider\'s styling API from the same tokens the shell binds. Without `renderInput` the field renders a native input, for prototypes and providers that tokenize page inputs; the docs say plainly that such a page is outside SAQ A.',
     'VALIDATION (#2429 §5, the pre-work §3.3) — empty ("Enter the card number."), a number that fails the Luhn checksum (a warning, not an error, because some UnionPay numbers fail it: "Check the card number. It doesn\'t match a valid card."), and a network the merchant does not accept (built from the accepted list). Validate on blur, then on input once the field shows an error, as TextField does; never mid-IME-composition. A decline from the processor belongs to the card group, not this field.',
-    'the TILE in Figma — a swap slot that starts at the generic tile and binds only its height (`size.{size}.mark-height`, the icon rung); both executors lock the instance to its own component\'s proportion, so a 32×20 tile is about 38×24 at large. It takes no ink from the field at any state, disabled included (`fixedPaint`). The tile\'s rounded corners and edge belong to the brand-mark component. The `card mark` switch shows or hides it; `↳ swap card mark` picks the card network\'s tile.',
+    'the TILE in Figma — a swap slot that starts at the generic tile and binds only its height (`size.{size}.mark-height`, the icon rung); both executors lock the instance to its own component\'s proportion, so a 32×20 tile is about 38×24 at large. It takes no ink from the field at any state, disabled included (`fixedPaint`). The tile\'s rounded corners and edge belong to the provider-logo component. The `card mark` switch shows or hides it; `↳ swap card mark` picks the card network\'s tile.',
     'RIGHT TO LEFT — the label, the box and the tile\'s position mirror, so the tile sits at the box\'s left end. The digits stay left to right (`dir="ltr"` on the input), and the tile\'s artwork is never flipped. One provider turns off number grouping in right-to-left layouts; the hosted adapter states that limit rather than hiding it.',
     'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage and the hidden network name into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
     'the KEYBOARD MODEL — native text editing and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
@@ -156,7 +156,7 @@ export const cardNumberField: ComponentDef = makeTextField({
     primaryPurpose: 'Capture a payment card\'s number, showing the detected card network\'s tile and stating the network in text.',
     whenToUse: 'The card number in a checkout or a saved-card form, beside text fields for the expiration date and the security code.',
     avoidWhen: 'The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (a wallet button, not built yet). Never for the expiration date or the security code (TextField with autocomplete cc-exp or cc-csc).',
-    commonPartners: ['text-field', 'brand-mark', 'field-label', 'field-message', 'button', 'wallet-button'],
+    commonPartners: ['text-field', 'provider-logo', 'field-label', 'field-message', 'button', 'wallet-button'],
     triggerKeywords: ['card number', 'credit card field', 'payment card', 'card details', 'checkout card'],
     generationPriority: 2,
   },
@@ -181,12 +181,12 @@ export const cardNumberField: ComponentDef = makeTextField({
       'The tile\'s presence is a switch, on by default, backed by showCardMark (#2429 table, card mark on). The alternative is a tile that is always there.',
     ],
     unverified: [
-      'The tile slot binds its height alone and both executors lock the instance to the brand-mark component\'s proportion (`aspectLock`). Modeled on the offline host and in the paste executor\'s order; that a live host keeps the lock when a designer swaps a placed field\'s tile to another network is the standing nesting caveat.',
+      'The tile slot binds its height alone and both executors lock the instance to the provider-logo component\'s proportion (`aspectLock`). Modeled on the offline host and in the paste executor\'s order; that a live host keeps the lock when a designer swaps a placed field\'s tile to another network is the standing nesting caveat.',
       'No card network publishes a pixel minimum for a mark inside a field. The 20px tile is a judgment against Visa\'s "clearly legible" rule and an acquirer\'s roughly 5mm, not a verified compliance point (#2429 §7).',
       'The PCI DSS v4.0.1 SAQ A wording for pages that embed a provider\'s iframe was read only in secondary sources (#2429 §6).',
     ],
     evolution: [
-      'Proposed on #2429 (2026-10-09, refreshed 2026-10-12) as TextField with a card-shaped trailing slot, then restated on #2343 (2026-10-25) once the brand-mark type existed. The owner took the 16 recommendations as a block (Q-B10 A), committed artwork for internal use (Q-B1 B), made card tiles full-bleed with the component drawing the edge (Q720 A), renamed the card kind to payment (Q780 A), and gave the generic tile the owner\'s own artwork (2026-10-27), which replaced the planned core card glyph.',
+      'Proposed on #2429 (2026-10-09, refreshed 2026-10-12) as TextField with a card-shaped trailing slot, then restated on #2343 (2026-10-25) once the provider-logo type existed. The owner took the 16 recommendations as a block (Q-B10 A), committed artwork for internal use (Q-B1 B), made card tiles full-bleed with the component drawing the edge (Q720 A), renamed the card kind to payment (Q780 A), and gave the generic tile the owner\'s own artwork (2026-10-27), which replaced the planned core card glyph.',
     ],
     projection: [
       'In Figma the tile is a swap that starts at the generic payment tile; a designer picks the detected card network\'s tile with the swap card mark property. Its height is bound and its width follows the tile\'s proportion; it takes no ink from the field.',

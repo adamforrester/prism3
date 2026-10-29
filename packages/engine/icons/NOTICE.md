@@ -72,10 +72,10 @@ for the need, and both are covered by this repository's own license, not by `LIC
   member of the icon set on 2026-10-22, with a standing rule: a glyph a component needs and the library lacks is
   added to the icon set when the component is built.
 
-## Brand marks are not in this set, and cannot be
+## Provider logos are not in this set, and cannot be
 
 Provider marks (sign-in glyphs, payment tiles and logos, social marks) live in `marks/`, a second
-icon type with its own vocabulary (`brand-mark-set.ts`), emitter (`emit-marks.ts`) and per-file
+icon type with its own vocabulary (`provider-logo-set.ts`), emitter (`emit-marks.ts`) and per-file
 provenance (`marks/provenance.json`). They are not Remix glyphs: §3.3 above prohibits Remix icons as a
 logo, trademark or brand identifier, so no mark is ever drawn from this set. Read `marks/NOTICE.md` for
 the marks' own terms.

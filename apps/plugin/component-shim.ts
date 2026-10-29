@@ -1624,7 +1624,14 @@ export const makeShim = (opts: ShimOpts = {}) => {
             // #2343 PR 2 — and the main's own SIZE where this run holds it (a live component): what an aspect-locked slot
             // reads its proportion from. A catalog name has no node behind it, so it carries none, as a library main
             // whose size the file cannot read would not.
-            Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner }, ...(opts.identities ? { key: `${opts.keyPrefix ?? 'K'}:${name}` } : {}), ...(main ? { width: main.width, height: main.height } : {}) } });
+            // #3148 — a main this run holds is read by its name NOW, as Figma's live node is: an update that renames the
+            // component (or its set) in place leaves the instance pointing at it under the new name. A catalog name has none.
+            const mainNow = { type: 'COMPONENT', ...(opts.identities ? { key: `${opts.keyPrefix ?? 'K'}:${name}` } : {}), ...(main ? { width: main.width, height: main.height } : {}) };
+            const ownerNode = main?.parent as Node | null | undefined;
+            Object.defineProperty(mainNow, 'name', { enumerable: true, get: () => (main ? String(main.name) : name) });
+            if (main) Object.defineProperty(mainNow, 'id', { enumerable: false, get: () => main.id });
+            Object.defineProperty(mainNow, 'parent', { enumerable: true, get: () => (ownerNode && ownerNode.type === 'COMPONENT_SET' ? { name: String(ownerNode.name), type: owner.type } : { ...owner }) });
+            Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: mainNow });
             // An instance measures what its MAIN measures (`layoutModel`, a member this run built).
             // A FILLED instance (#1751) measures the width its parent gives it, and is as tall as its main
             // laid out at that width — so a message that wraps in a narrower field reads taller here too.
@@ -1785,7 +1792,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       if (op !== undefined) vec.opacity = Number(op);
       const id = /\bid="([^"]*)"/.exec(el)?.[1];
       if (id !== undefined) vec.name = id;
-      // A LITERAL HEX FILL (#2343 PR 2) imports as that color, as Figma's importer does: a brand mark's document
+      // A LITERAL HEX FILL (#2343 PR 2) imports as that color, as Figma's importer does: a provider logo's document
       // carries the provider's colors. `currentColor` (every icon) is left at the shim's default, as before.
       const hex = /\sfill="#([0-9A-Fa-f]{6})"/.exec(el)?.[1];
       if (hex !== undefined) vec.fills = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: parseInt(hex.slice(0, 2), 16) / 255, g: parseInt(hex.slice(2, 4), 16) / 255, b: parseInt(hex.slice(4, 6), 16) / 255 } }];
