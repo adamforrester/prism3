@@ -22942,6 +22942,69 @@ arm: {
       ok(off.length === 0, `#3134 provider glyphs: provider/apple and provider/facebook are drawn in black (#000000) alone, in the module and in the plan (${off.join(' | ') || 'clean'})`);
     }
 
+    // ---- #3134 review: a provider glyph nested over a LITERAL fill stands off it, 3:1 or more ----
+    // Now that provider/apple and provider/facebook are black, a host that nests one over a black or dark provider fill
+    // (SignInButton, #3125) draws it invisible. A themed fill is the contrast contract's; a literal one is the def's own
+    // value and nothing else checks it. The glyph's paint is its file's colors, and a many-colored glyph passes on its
+    // strongest one (Google's mark reads on white by its blue, not its yellow). WCAG 1.4.11's non-text floor, 3:1.
+    // With no host on main it passes vacuously, so it states what it walked, and its fixtures must fail.
+    {
+      const PROVIDER = 'brand-mark/provider/';
+      type Node = { name?: string; nestTarget?: string; swapTarget?: string; paints?: { fills?: string }; literalPaints?: { fills?: readonly string[] }; children?: Node[] };
+      const HEX = /^#[0-9A-Fa-f]{6}/;
+      const paintsOf = (svg: string): string[] => [...new Set([...svg.matchAll(/\sfill="(#[0-9A-Fa-f]{6})"/g)].map((m) => m[1].toUpperCase()))];
+      /** Every provider glyph a plan nests, with the nearest painted ancestor's fill when that fill is a literal. */
+      const glyphsOver = (root: Node, docs: Record<string, string>): { glyph: string; over?: string; themed: boolean; paints: string[] }[] => {
+        const out: { glyph: string; over?: string; themed: boolean; paints: string[] }[] = [];
+        const visit = (n: Node, fill: { hex?: string; themed: boolean } | undefined): void => {
+          const lit = n.literalPaints?.fills?.[0] ?? (HEX.test(n.paints?.fills ?? '') ? n.paints!.fills : undefined);
+          const here = lit ? { hex: lit.slice(0, 7), themed: false } : n.paints?.fills ? { themed: true } : fill;
+          for (const t of [n.nestTarget, n.swapTarget]) if (typeof t === 'string' && t.startsWith(PROVIDER)) {
+            const glyph = t.slice('brand-mark/'.length);
+            out.push({ glyph, over: fill?.hex, themed: !!fill?.themed, paints: paintsOf(docs[glyph] ?? '') });
+          }
+          for (const c of n.children ?? []) visit(c, here);
+        };
+        visit(root, undefined);
+        return out;
+      };
+      /** What is wrong with a plan's provider glyphs, by name. Empty when clean. */
+      const lowGlyphs = (root: Node, docs: Record<string, string>, at: string): string[] => glyphsOver(root, docs).flatMap((g) => {
+        if (!g.paints.length) return [`${at}: nests ${PROVIDER}${g.glyph}, which the mark set does not draw`];
+        if (!g.over) return [];
+        const best = Math.max(...g.paints.map((p) => contrast(hexToRgb(p), hexToRgb(g.over!))));
+        return best < 3 ? [`${at}: ${PROVIDER}${g.glyph} (${g.paints.join(', ')}) over the literal fill ${g.over} is ${best.toFixed(2)}:1, under 3:1`] : [];
+      });
+      const docs = BRAND_MARK_DOCUMENTS as Record<string, string>;
+      const fixture = (fill: string, glyph: string): Node => ({ name: 'container', literalPaints: { fills: [fill] }, children: [{ name: 'mark', nestTarget: `${PROVIDER}${glyph}` }] });
+      const self: string[] = [];
+      if (lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture').length !== 1) self.push('a black glyph on a black literal fill is not caught');
+      if (lowGlyphs(fixture('#131314', 'facebook'), docs, 'fixture').length !== 1) self.push('a black glyph on a near-black literal fill is not caught');
+      if (lowGlyphs(fixture('#FFFFFF', 'apple'), docs, 'fixture').length) self.push('a black glyph on white is refused');
+      if (lowGlyphs(fixture('#FFFFFF', 'google'), docs, 'fixture').length) self.push('the many-colored Google glyph on white is refused');
+      if (lowGlyphs({ name: 'c', paints: { fills: 'color/surface/primary' }, children: [{ name: 'mark', nestTarget: `${PROVIDER}apple` }] }, docs, 'fixture').length) self.push('a themed fill is judged as a literal');
+      if (lowGlyphs({ ...fixture('#000000', 'apple'), children: [{ name: 'inner', children: [{ name: 'mark', swapTarget: `${PROVIDER}apple` }] }] }, docs, 'fixture').length !== 1) self.push('a swapped glyph two levels under the literal fill is not caught');
+      // The walk over every registered def: what it covered, so a vacuous pass says so.
+      const bad: string[] = [];
+      let defs = 0, plans = 0, marks = 0, glyphs = 0, overLiteral = 0;
+      for (const def of componentDefs) {
+        if (def.id === 'brand-mark' || !def.figmaProperties) continue;
+        defs++;
+        for (const plan of figmaAnatomySet(def)) {
+          plans++;
+          const walkAll = (n: Node): void => { if ([n.nestTarget, n.swapTarget].some((t) => typeof t === 'string' && t.startsWith('brand-mark/'))) marks++; for (const c of n.children ?? []) walkAll(c); };
+          walkAll(plan.root as Node);
+          const found = glyphsOver(plan.root as Node, docs);
+          glyphs += found.length;
+          overLiteral += found.filter((g) => g.over).length;
+          bad.push(...lowGlyphs(plan.root as Node, docs, `${def.id} ${JSON.stringify({ size: plan.size, ...plan.coord })}`));
+        }
+      }
+      ok(self.length === 0, `#3134 provider glyph contrast self-test: the arm catches a low glyph on a literal fill and passes a readable one (${self.join(' | ') || 'clean'})`);
+      ok(defs > 0 && plans > 0 && marks > 0 && bad.length === 0,
+        `#3134 provider glyph contrast: every brand-mark/provider/* glyph nested over a literal fill is 3:1 or more against it — walked ${defs} def(s), ${plans} plan(s), ${marks} nested brand mark(s), ${glyphs} provider glyph(s), ${overLiteral} over a literal fill (${bad.slice(0, 6).join(' | ') || 'clean'})`);
+    }
+
     // ---- #2343 Q720 A: a payment tile's frame draws its corners and edge through the PASTE executor ----
     // The plugin leg is in test-write-components. Names typed from the decision (the roles held as Q-T1 and Q-T2 on
     // the PR), not read from the plan; a bound weight counts on the scalar or on all four per-side keys (#1332).
