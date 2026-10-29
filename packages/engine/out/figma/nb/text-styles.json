@@ -38,7 +38,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -3
+            "value": 1
           }
         },
         "textCase": {
@@ -88,7 +88,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -3
+            "value": 1
           }
         },
         "textCase": {
@@ -138,7 +138,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -3
+            "value": 1
           }
         },
         "textCase": {
@@ -188,7 +188,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -2
+            "value": 1
           }
         },
         "textCase": {
@@ -238,7 +238,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -2
+            "value": 1
           }
         },
         "textCase": {
@@ -288,7 +288,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -2
+            "value": 1
           }
         },
         "textCase": {
@@ -338,7 +338,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -1
+            "value": 1
           }
         },
         "textCase": {
@@ -388,7 +388,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -1
+            "value": 1
           }
         },
         "textCase": {
@@ -438,7 +438,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -1
+            "value": 1
           }
         },
         "textCase": {
@@ -488,7 +488,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -1
+            "value": 1
           }
         },
         "textCase": {
@@ -538,7 +538,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -1
+            "value": 1
           }
         },
         "textCase": {
@@ -588,7 +588,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -1
+            "value": 1
           }
         },
         "textCase": {
@@ -638,7 +638,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -688,7 +688,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -752,7 +752,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -802,7 +802,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -866,7 +866,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -916,7 +916,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -980,7 +980,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1030,7 +1030,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1094,7 +1094,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1144,7 +1144,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1208,7 +1208,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1258,7 +1258,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1322,7 +1322,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1372,7 +1372,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1436,7 +1436,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1486,7 +1486,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1550,7 +1550,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1600,7 +1600,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1664,7 +1664,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1714,7 +1714,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1778,7 +1778,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1828,7 +1828,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1892,7 +1892,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -1942,7 +1942,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2006,7 +2006,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2056,7 +2056,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2120,7 +2120,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2170,7 +2170,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2234,7 +2234,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2284,7 +2284,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2348,7 +2348,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2398,7 +2398,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2427,7 +2427,7 @@
     },
     {
       "name": "caption/md/default",
-      "description": "caption md default — 11px Inter, cozy line-height, for captions and helper text.",
+      "description": "caption md default — 10px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -2443,7 +2443,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "nbds/core/font/size/11",
+          "variable": "nbds/core/font/size/10",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -2462,7 +2462,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2477,7 +2477,7 @@
     },
     {
       "name": "caption/md/default-link",
-      "description": "caption md default link — 11px Inter, cozy line-height, for captions and helper text.",
+      "description": "caption md default link — 10px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -2493,7 +2493,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "nbds/core/font/size/11",
+          "variable": "nbds/core/font/size/10",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -2512,7 +2512,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2541,7 +2541,7 @@
     },
     {
       "name": "caption/md/strong",
-      "description": "caption md strong — 11px Inter, cozy line-height, for captions and helper text.",
+      "description": "caption md strong — 10px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -2557,7 +2557,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "nbds/core/font/size/11",
+          "variable": "nbds/core/font/size/10",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -2576,7 +2576,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2591,7 +2591,7 @@
     },
     {
       "name": "caption/md/strong-link",
-      "description": "caption md strong link — 11px Inter, cozy line-height, for captions and helper text.",
+      "description": "caption md strong link — 10px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -2607,7 +2607,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "nbds/core/font/size/11",
+          "variable": "nbds/core/font/size/10",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -2626,7 +2626,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 0
+            "value": 1
           }
         },
         "textCase": {
@@ -2690,7 +2690,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 5
+            "value": 2
           }
         },
         "textCase": {
@@ -2740,7 +2740,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 5
+            "value": 2
           }
         },
         "textCase": {
@@ -2790,7 +2790,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": 5
+            "value": 2
           }
         },
         "textCase": {

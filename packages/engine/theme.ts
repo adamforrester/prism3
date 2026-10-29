@@ -14,7 +14,7 @@
  *                     / hex; primitives under palette). This is what makes the system white-label.
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
-import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
+import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, RADIO_DOT_SHARES, RADIO_DOT_DEFAULT, RadioDotShare, SPACE_BASE, GRID_BASE } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000, ACHROMATIC_C } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
@@ -419,6 +419,9 @@ export type Theme = {
   // Brand-added glass roles (#3073, owner Q806, Q807 A), `color.glass.<name>`, validated by `validGlassRoles`. Unset
   // adds none: the brand ships `color.glass.surface` alone.
   glassRoles?: Record<string, GlassRoleInput>;
+  // The radio dot (#3086, owner Q816 A): `control.size.*.dot` as a share of the box edge, in percent. Unset reads as 50,
+  // half the edge. Already applied to `dims.controls`; carried here so the token descriptions can name the share.
+  radioDot?: RadioDotShare;
   // Strict interactive contrast (#1389, B4a). false (default): the inverse PRIMARY filled button
   // carries the vivid brand `on-fill` ink (#1244), which clears AA at `rest` but may dip below it on
   // the TRANSIENT hover / pressed states now that the fill steps toward the ground. true: primary's and
@@ -656,6 +659,10 @@ export type BrandInput = {
   /** Brand-added glass roles (#3073): `color.glass.<name>`, each a semantic role's palette color (`role`, per mode)
    *  or one palette color (`palette`), at `alpha` percent. `surface` is the shipped glass and cannot be redefined. */
   glassRoles?: Record<string, GlassRoleInput>;
+  /** The radio dot (#3086, owner Q816 A): the checked radio's dot as a share of the radio's size, in percent, at sm, md and
+   *  lg alike. 50 (default) is half the box edge, today's dot. Snapped to the 2px sub-grid and never wider than the box
+   *  minus its 2px ring. It moves the value of `control.size.{sm,md,lg}.dot` only; no token is added. */
+  radioDot?: RadioDotShare;
   /** Strict interactive contrast (#1389, B4a). OPTIONAL, OPT-IN (off by default). The inverse filled
    *  button steps its fill per state; the primary and destructive labels' brand ink (#1244/#1384) clears AA at
    *  `rest` but dips on the transient hover/pressed steps. Off keeps the brand ink (rest AA held, later states
@@ -801,7 +808,7 @@ export type BrandInputAuthored =
  *  px is already fed in by the space extras at base 4, 6 and 8, so deleting either of those lines
  *  changes no committed output. A guard nothing can exercise is a guard nothing can notice the loss of,
  *  which is `docs/34`'s shape 14 — so the seam is opened here rather than the guard left unfalsifiable. */
-export const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = []): Dims => {
+export const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = [], radioDot: RadioDotShare = RADIO_DOT_DEFAULT): Dims => {
   // Space is `mult × spaceBase`; the dimension grid is `baseUnit`-stepped. At a non-default spaceBase the
   // half-steps (1.5×/0.25×/0.75×) land OFF the grid (e.g. spaceBase 12 → space.150 = 18px, absent from the
   // baseUnit-4 grid), so `space.<k> → {dimension.<px>}` would dangle (#274). Feed every space px into the
@@ -843,7 +850,13 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
   // 30 are on NEITHER the base-4 grid NOR the space extras — so this rescues two more px at the default
   // baseUnit, `md`'s 24 already a grid member. `width` moved from `2× height` to `2× track` (#1425); its
   // new values 32/48/64/80/96 are all multiples of 4, so the widened track still aliases by construction.
-  const controls = controlSizes(density);
+  //
+  // THE RADIO DOT SETTING (#3086, owner Q816 A, "no new token") is NOT fed here: the grid keeps the default half dot's
+  // px whatever the setting says. Feeding the brand's dot would mint a primitive its grid lacks (the reference brand's
+  // 70% lands on 14, which its comfortable grid does not hold), a new brand-dependent path that `token-contract --check`
+  // reports, and feeding it INSTEAD of the half dot would drop `core.dimension.10`, a guaranteed one. Unfed, a dot on
+  // the grid aliases its step and one off it is a literal px, the `controlLeaf` fallback (`tree.ts`).
+  const controls = controlSizes(density, radioDot);
   return {
     // Icon px join the grid extras for the same reason space does (#274): at a non-default baseUnit
     // (e.g. 6) the fixed icon ladder lands OFF the grid, and `icon.size.<k> -> {dimension.<px>}`
@@ -867,7 +880,8 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
       // construction, and feeding it would ADD `core.dimension.30` to that member, promoting the path to
       // guaranteed (a CONTRACT MINOR, measured).
       // Spacious is the one density outside the corpus; `lint-lever-sweep.ts` holds it to the contract.
-      ...[...controls, ...(density === 'spacious' ? controlSizes('comfortable') : [])]
+      // `controlSizes(density)`, not `controls`: the default ladder, so the radio dot setting moves no primitive (#3086).
+      ...[...controlSizes(density), ...(density === 'spacious' ? controlSizes('comfortable') : [])]
         .flatMap((c) => [c.height, c.width, c.dot, c.inset, c.track, c.thumb, (c.height - c.dot) / 2])]),
     space,
     radius: radiusScale(rScale, baseMd, 128, 999),
@@ -1356,8 +1370,15 @@ export type TypographyInput = {
    *  changes. That is deliberate and it is why changing `typeScale` with sizes pinned can collide —
    *  the ramp check rejects it rather than silently re-shifting the value the author fixed.
    *
-   *  Modes then override on top of the customized baseline, not the derived one. */
-  sizes?: Partial<Record<PerModeSizeGroup, Record<string, number>>>;
+   *  Modes then override on top of the customized baseline, not the derived one.
+   *
+   *  `caption` is the one reading/UI category it also takes (#3077, owner decision 2026-10-27: caption A), at the
+   *  BRAND level only: one static size per rung (`md`, `lg`), on the size ladder, at or above
+   *  `CAPTION_SIZE_FLOOR`, and through the same strict ramp check. `sizeOverrides` and the per-mode
+   *  `modeLevers.<mode>.typeSizes` stay heading-only, so caption keeps one size in every mode and viewport, as the
+   *  mode-invariance contract for reading text says. `caption.xs`/`caption.sm` are not settable here: their floors
+   *  (`sizeFloor`, `captionFloor`) pin them. */
+  sizes?: Partial<Record<BrandSizeGroup, Record<string, number>>>;
   /** OPT-IN per-rung DESKTOP/MOBILE size override on the viewport axis (#1587). Keyed group → rung →
    *  `{ desktop?, mobile? }`, heading groups only (display/title/eyebrow), so a "rung" is a
    *  (group, variant) pair exactly as `sizes` above. It is the escape hatch for the viewport axis the
@@ -1457,6 +1478,14 @@ export type TypographyInput = {
   /** Per-group TRACKING nudge, in rungs. Same contract as `leadingShift`;
    *  positive = wider. Default 0. */
   trackingShift?: Partial<Record<TypeGroup, number>>;
+  /** Per-category TRACKING PIN (#3077, owner decision 2026-10-27: tracking A). Binds every composite in a category
+   *  to one named letter-spacing role, any of the nine (`open` included, which no nudge reaches), and REPLACES the
+   *  size-derived rung and the `trackingShift` nudge for that category only. That is what lets a category read one
+   *  value across its whole ramp: display's derived rung splits at 96px (`tight` below, `tighter` at and above), and
+   *  a nudge moves both halves together, so no nudge can make display uniform. Unpinned categories keep the derive
+   *  plus nudge. The role still resolves through `letterSpacings` and each mode's re-points, so a pin names a role,
+   *  never a value. Opt-in: omit for none (byte-identical). */
+  tracking?: Partial<Record<TypeGroup, LetterSpacingKey>>;
 };
 
 // Semantic catalogue defaults (the 'default' typeScale, before levers). Family/
@@ -1644,6 +1673,13 @@ export const mobileEndpoint = (ladder: number[], group: TypeGroup, desktopPx: nu
 export const HEADING_SIZE_FLOOR = { display: 32, title: 16, eyebrow: 11 } as const;
 export type PerModeSizeGroup = keyof typeof HEADING_SIZE_FLOOR;
 export const PER_MODE_SIZE_GROUPS = Object.keys(HEADING_SIZE_FLOOR) as PerModeSizeGroup[];
+/** #3077 (caption A) — the smallest size `typography.sizes.caption` may set. 10px, the default ladder's floor, and
+ *  NOT the 8px `sizeFloor: 8` adds: 8px is below the range the contrast ratios were reasoned about, so it stays
+ *  `caption.xs`'s alone (the flagged escape hatch), never a size an ordinary caption rung can be moved to. */
+export const CAPTION_SIZE_FLOOR = 10;
+/** The groups `typography.sizes` takes: the heading groups, plus caption at the brand level only (#3077). */
+export type BrandSizeGroup = PerModeSizeGroup | 'caption';
+export const BRAND_SIZE_GROUPS: readonly BrandSizeGroup[] = [...PER_MODE_SIZE_GROUPS, 'caption'];
 // Bigger heading → tighter line-height (display tightest; small titles open up).
 /** Size-sensitive leading. Bigger type carries more visual presence and reads better with tighter
  *  leading, which is why `title` bands rather than taking one value — and why `display` now does too
@@ -1692,6 +1728,15 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
   const boundGroups = new Set(families.map((f) => f.group));
   const leadShift = t.leadingShift ?? {};
   const trackShift = t.trackingShift ?? {};
+  // #3077 (tracking A) — a per-category pin replaces the derived rung and its nudge. Refused by name: a category
+  // that isn't one, and a role that isn't one of the nine.
+  const trackPin: Partial<Record<TypeGroup, LetterSpacingKey>> = t.tracking ?? {};
+  for (const [g, role] of Object.entries(trackPin)) {
+    if (!(TYPE_GROUPS as readonly string[]).includes(g))
+      throw new Error(`typography.tracking: '${g}' is not a type category (${TYPE_GROUPS.join('/')}).`);
+    if (!(LETTER_SPACING_KEYS as readonly string[]).includes(role as string))
+      throw new Error(`typography.tracking.${g}: '${role}' is not a letter spacing role (${LETTER_SPACING_KEYS.join('/')}).`);
+  }
   const shift = TYPE_SCALE_SHIFT[t.typeScale ?? 'default'];
   const ceilingIdx = DISPLAY_VARIANTS.indexOf(t.displayCeiling ?? '3xl');
   const titleFloor = t.titleFloor ?? 18;
@@ -1708,7 +1753,7 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
   // so a single-mode brand — the common case — could not tune its ramp at all while a multi-mode one
   // could. The shape checks run here; ORDERING is enforced by the ramp check below, which sees the
   // merged result and so catches an override colliding with a rung the author never touched.
-  const brandSizes: Partial<Record<PerModeSizeGroup, Record<string, number>>> = t.sizes ?? {};
+  const brandSizes: Partial<Record<BrandSizeGroup, Record<string, number>>> = t.sizes ?? {};
   const consumedSizes = new Set<string>();
   // `group` below is a TypeGroup (all seven); the override map is heading-only by contract. A lookup
   // for body/label/caption/code is legitimately undefined rather than a type error, so narrow here
@@ -1717,12 +1762,16 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     (brandSizes as Record<string, Record<string, number> | undefined>)[g]?.[v];
   const ladderSet = new Set(ladder);
   for (const [g, rungs] of Object.entries(brandSizes)) {
-    if (!PER_MODE_SIZE_GROUPS.includes(g as PerModeSizeGroup))
-      throw new Error(`typography.sizes: '${g}' is not a heading group — per-size overrides cover ${PER_MODE_SIZE_GROUPS.join('/')} only. Reading and UI text takes its size from the category, not from a lever.`);
+    if (!BRAND_SIZE_GROUPS.includes(g as BrandSizeGroup))
+      throw new Error(`typography.sizes: '${g}' is not a group a size can be set for — per-size overrides cover ${PER_MODE_SIZE_GROUPS.join('/')}, and caption at the brand level. Other reading and UI text takes its size from the category, not from a lever.`);
     for (const [variant, px] of Object.entries(rungs ?? {})) {
+      // #3077 — caption's opt-in fine-print rungs are pinned by their floors: the floor decides that the rung
+      // exists AND what it is worth, so a size here would be a second way to say the same thing.
+      if (g === 'caption' && (variant === 'xs' || variant === 'sm'))
+        throw new Error(`typography.sizes.caption.${variant}: caption.${variant} is pinned by ${variant === 'xs' ? 'sizeFloor 8 (8px)' : 'captionFloor 10 (10px)'}, so it can't be set here. A caption size covers md and lg.`);
       if (!ladderSet.has(px))
         throw new Error(`typography.sizes.${g}.${variant}: ${px}px is not a step on the size ladder (${ladder.join(', ')}).`);
-      const floor = HEADING_SIZE_FLOOR[g as PerModeSizeGroup];
+      const floor = g === 'caption' ? CAPTION_SIZE_FLOOR : HEADING_SIZE_FLOOR[g as PerModeSizeGroup];
       if (px < floor)
         throw new Error(`typography.sizes.${g}.${variant}: ${px}px is below the ${g} floor of ${floor}px — the smallest size this system emits for ${g} anywhere.`);
     }
@@ -1837,9 +1886,9 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
         ...(italicDefaultGroups.has(group) ? { italicDefault: true as const } : {}),
         ...(facePin ? { facePin } : {}),
         // The derived rung is size-sensitive; the per-group nudge shifts that curve
-        // rather than replacing it, so `title` keeps tightening as it grows.
+        // rather than replacing it, so `title` keeps tightening as it grows. A tracking pin (#3077) replaces both.
         lineHeight: shiftRung(LINE_HEIGHT_KEYS, lineHeightFor(group, sizePx), leadShift[group] ?? 0),
-        tracking: shiftRung(TRACKING_SHIFT_KEYS, trackingFor(group, sizePx), trackShift[group] ?? 0),
+        tracking: trackPin[group] ?? shiftRung(TRACKING_SHIFT_KEYS, trackingFor(group, sizePx), trackShift[group] ?? 0),
         textCase: group === 'eyebrow' ? 'uppercase' : 'none',
       });
     };
@@ -1879,7 +1928,7 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     // pure SET MEMBERSHIP on steps already ON the ladder — `sizeFloor:8` also puts 8 on the ladder via
     // `fontSizeLadder` — and both are OFF by default, so absent them caption is exactly [md, lg] and no
     // corpus brand moves. Caption is reading/UI text, so it is exempt from the typeScale shift (like the
-    // TYPE_VARIANTS caption rungs) and from `sizes` overrides (heading-only, rejected above).
+    // TYPE_VARIANTS caption rungs) and from `sizes` overrides (which take caption md/lg only, #3077: xs/sm are refused above).
     if (group === 'caption') {
       if (sizeFloor === 8) { push('caption', 'xs', 8); prev = 8; }
       if (captionFloor === 10) { push('caption', 'sm', 10); prev = 10; }
@@ -1917,7 +1966,7 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     for (const variant of Object.keys(rungs ?? {}))
       if (!consumedSizes.has(`${g}.${variant}`)) {
         const shipped = [...new Set(out.filter((c) => c.group === g).map((c) => c.variant))];
-        throw new Error(`typography.sizes.${g}.${variant}: that rung is not in this brand's ${g} set${shipped.length ? ` (${shipped.join('/')})` : ''} — it is trimmed by displayCeiling or not enabled by titleFloor. A size override re-sizes a rung that exists; it never adds one.`);
+        throw new Error(`typography.sizes.${g}.${variant}: that rung is not in this brand's ${g} set${shipped.length ? ` (${shipped.join('/')})` : ''} — ${g === 'caption' ? 'caption sizes cover md and lg' : 'it is trimmed by displayCeiling or not enabled by titleFloor'}. A size override re-sizes a rung that exists; it never adds one.`);
       }
   // #1587 — a per-viewport override rung that never landed (trimmed by displayCeiling, or not enabled by
   // titleFloor) is a typo, not a silent no-op. `consumedOverrides` records the (group, variant) pairs the
@@ -2739,6 +2788,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'neutralEmphasis', value: input.neutralEmphasis, options: ['subtle', 'strong'] },
     { path: 'raisedSurface', value: input.raisedSurface, options: RAISED_SURFACE_VALUES },
     { path: 'scrimStrength', value: input.scrimStrength, options: SCRIM_STRENGTH_VALUES },
+    { path: 'radioDot', value: input.radioDot, options: RADIO_DOT_SHARES },
   ];
   for (const { path, value, options } of enumLevers) {
     if (value !== undefined && !(options as readonly unknown[]).includes(value))
@@ -2992,6 +3042,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const baseUnit = GRID_BASE;
   const spaceBase = SPACE_BASE;
   const density = input.density ?? 'comfortable';
+  const radioDot: RadioDotShare = input.radioDot ?? RADIO_DOT_DEFAULT;
   const rScale = input.radiusScale ?? 1;
   const baseMd = input.baseMd ?? 4;
   // The 1px hairline sentinel (#1362) is ALWAYS emitted since #2053 (owner, 2026-10-04): `radiusScale` pushes
@@ -3020,7 +3071,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       // The control ladder rides the same lever (#900). Same no-diff suppression by construction:
       // `controlSizes` is a pure function of the density, so a mode at the baseline density is
       // filtered out by the condition above rather than by a JSON compare.
-      controlsByMode[m] = controlSizes(lev.density);
+      controlsByMode[m] = controlSizes(lev.density, radioDot);
     }
   }
   notes.push(`dimensions: ${baseUnit}px grid, ${spaceBase}px spacing rhythm, '${density}' density (sets component sizes), radius scale ${n2(rScale)} (base radius ${n2(baseMd)}px).`);
@@ -3109,7 +3160,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const layout = buildLayout(input.layout);
   // #3052 — a gutter/margin off the spacing scale is named, never silent. The dims are the same call the
   // theme's own `dims` makes below, so the note and the emitted link read one grid.
-  const gapNotes = gridGapNotes(layout, buildDims(baseUnit, spaceBase, density, rScale, baseMd, []));
+  const gapNotes = gridGapNotes(layout, buildDims(baseUnit, spaceBase, density, rScale, baseMd, [], radioDot));
   notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${n2(b.px)}`).join(', ')}); ${layout.baseColumns}-column grid (${layout.grid.map((g) => g.columns).join('/')} by breakpoint); gutters ${layout.grid.map((g) => g.gutterPx).join('/')}px and margins ${layout.grid.map((g) => g.marginPx).join('/')}px, ${gapNotes.length ? 'from the spacing scale except as noted below' : 'from the spacing scale'}; containers max ${n2(layout.containerMax)}px, narrow ${n2(layout.containerNarrow)}px.`);
   notes.push(...gapNotes);
   // The label category always carries the `default` role (Q225 A, Q226 A: Tabs binds it unselected), before the
@@ -3278,6 +3329,12 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // source); the line-height ratio and its Figma px materialization are format facts, not decisions,
   // so the note leaves them out.
   notes.push(`typography: ${typography.sizesPx.length}-step size ladder (${n2(typography.sizesPx[0])}–${n2(typography.sizesPx[typography.sizesPx.length - 1])}px), a fixed set rather than a ratio; weights ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group} ${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; '${typography.typeScale}' type scale. ${typography.composites.length} text styles: title and display sizes follow the type scale, display tops out at '${reqCeiling}' (${n2(effCap)}px), title.2xs is ${(input.typography?.titleFloor ?? 18) === 16 ? 'included' : 'left out'}${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `, caption adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' and ')}` : ''}${capNote}. ${typography.fluid ? `${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from ${n2(typography.minViewport)} to ${n2(typography.maxViewport)}px and in desktop and mobile modes.` : 'Sizes are fixed at every viewport.'}`);
+  // #3077 — the two opt-in levers say what they set, so a reader of the notes knows the caption and tracking
+  // values are the brand's choice rather than the derived ones.
+  const capSizes = Object.entries(input.typography?.sizes?.caption ?? {});
+  if (capSizes.length) notes.push(`typography: caption sizes set by the brand: ${capSizes.map(([v, px]) => `caption.${v} ${px}px`).join(', ')}, one size in every mode.`);
+  const trackPins = TYPE_GROUPS.filter((g) => input.typography?.tracking?.[g]).map((g) => `${g} ${input.typography!.tracking![g]}`);
+  if (trackPins.length) notes.push(`typography: letter spacing pinned per text type: ${trackPins.join(', ')}. Every size in a pinned text type uses that letter spacing, in place of the size-based one and its nudge.`);
   // Sub-10px flag (#1363). 8px is below every practical legibility floor and below the size range
   // this system's contrast ratios were reasoned about, so an opted-in sub-10px rung is flagged here the
   // way `actionPalette` flags a decoupled action colour — a deliberate, recorded exception rather than a
@@ -3444,9 +3501,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     ...(input.raisedSurface ? { raisedSurface: input.raisedSurface } : {}),
     ...(input.scrimStrength ? { scrimStrength: input.scrimStrength } : {}),
     ...(glassRoles ? { glassRoles } : {}),
+    ...(radioDot !== RADIO_DOT_DEFAULT ? { radioDot } : {}),
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
     linkStateRungs: input.linkStateRungs,
-    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, []), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
+    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, [], radioDot), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
     motion,
     typography,
     shadow,
@@ -3491,7 +3549,8 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
   // Engine taxonomy (not NB's): 8px space rhythm reproducing Prism2's numbered
   // scale; NB's 4px grid still backs radius/borders. NB ships radius scale=1 and
   // a 720px layout outlier.
-  const dims = buildDims(baseUnit, 8, 'comfortable', 1, baseMd, [720]);
+  // The reference brand's radio dot is 70% of the box (#3086, owner Q816 A): 14px at medium, its master's hand edit.
+  const dims = buildDims(baseUnit, 8, 'comfortable', 1, baseMd, [720], 70);
   return {
     id: 'nb', root: 'nbds', namespace: `nbds.${CORE_TIER}.palette`, colorFormat: 'rgb', modes: ALL_MODES, palettes,
     roleToPalette: { brand: 'red', neutral: 'neutral', success: 'green', warning: 'amber', danger: 'red', info: 'info', action: 'red' },
@@ -3509,10 +3568,20 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     // The reference brand's card glass (#3073, owner Q807 A; 70%, the owner's correction of 2026-10-27): the card
     // ground, `foreground.primary`'s palette color in each mode, at 70%.
     glassRoles: { card: { role: 'foreground.primary', alpha: 70 } },
+    radioDot: 70,
     dims, motion: buildMotion(),
     // The label category always ships the `default` role (Q225 A, Q226 A), here as in every brand.
+    // #3077 (owner decisions 2026-10-27): caption.md is 10px, and display, title, body, caption and label are pinned
+    // to the `open` letter spacing (+1%) at every size; eyebrow keeps its nudge, one step in from `wider` (+2%).
+    // The rest of the fixture's type is the engine default, so its title ramp starts at xs 18 and the brand's
+    // 20px title.2xs has no room under it: that part lives in the redesign seed only.
     // #2942 (owner, 2026-10-27): the reference brand's link underline is 5% thick, 25% below the baseline.
-    typography: buildTypography(withLabelDefault({ underline: { thickness: 0.05, offset: 0.25 } })),
+    typography: buildTypography(withLabelDefault({
+      sizes: { caption: { md: 10 } },
+      tracking: { display: 'open', title: 'open', body: 'open', caption: 'open', label: 'open' },
+      trackingShift: { eyebrow: -1 },
+      underline: { thickness: 0.05, offset: 0.25 },
+    })),
     shadow: buildShadow(s.neutralHue.hue, { tint: { amount: 0 } }),  // NB ships pure-black shadows
     // NB caps at 1920 + narrow 720. Its md margin is 44 (#3052, Q785 A). The 41px figure behind it is the
     // brand's desktop spec in its own two-mode layout, where md carries the 24-column, 16px-gutter grid:
@@ -3526,7 +3595,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
       // heavier inverse shadows: lift-primary is the field's common choice.
       'reference brand: anchors measured from the shipped system; the brand red also serves as danger, since the brand hue is its danger hue.',
       `dimensions: ${baseUnit}px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius ${baseMd}px).`,
-      'typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900; link underline 5% thick, 25% offset, as the reference sets it.',
+      'typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900; caption.md 10px; letter spacing open (+1%) for display, title, body, caption and label, wide (+2%) for eyebrow; link underline 5% thick, 25% offset, as the reference sets it.',
       'shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference\'s heavier dark shadows.',
       'layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale, except the md margin: 44px, as the reference sets it, which is not a spacing step, so it links to core dimension 44.',
     ],

@@ -40,15 +40,22 @@ export const writes = (cmd: WriteCmd, confirm?: boolean): boolean => cmd !== 'pr
 export const busyMessage = (cmd: WriteCmd): string => `${TITLE[cmd]} is already running. Try again when it finishes.`;
 
 export const createRunGuard = () => {
-  const running = new Set<WriteCmd>();
+  /** Each held operation, by the hold that holds it, so a run's own end never releases a later run's hold. */
+  const running = new Map<WriteCmd, object>();
   return {
     busy: (cmd: WriteCmd): boolean => running.has(cmd),
     /** Run `fn` holding `cmd`, released however it ends. The caller checks `busy` first, with no await
      *  between, so the check and the hold are one step on the main thread. */
     async run(cmd: WriteCmd, fn: () => Promise<void>): Promise<void> {
-      running.add(cmd);
-      try { await fn(); } finally { running.delete(cmd); }
+      const hold = {};
+      running.set(cmd, hold);
+      try { await fn(); } finally { if (running.get(cmd) === hold) running.delete(cmd); }
     },
+    /** #3128: release `cmd` before its run returns, once the run has written its last and posted its verdict. Called
+     *  only by the run that holds it. A build's settle probe (#908) runs after its verdict and writes nothing, and the
+     *  panel posts its next set the moment that verdict lands: held through the probe, the next set was refused and
+     *  the panel waited on a verdict that had already been sent. */
+    release(cmd: WriteCmd): void { running.delete(cmd); },
   };
 };
 export type RunGuard = ReturnType<typeof createRunGuard>;

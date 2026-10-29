@@ -3612,8 +3612,10 @@ for (const b of brands) {
       .map((n) => (buildTree(t).tree as any)[Object.keys(buildTree(t).tree)[0]].control?.size?.[n]?.dot?.$extensions?.prism3?.px ?? 'x')
       .join('/');
     const dotLadders = { nb: dotLadder(nbTheme()), compact: dotLadder(compact), harbor: dotLadder(harbor), wendys: dotLadder(wendys) };
-    ok(dotLadders.compact === '6/8/10' && dotLadders.nb === '8/10/12' && dotLadders.harbor === dotLadders.nb && dotLadders.wendys === dotLadders.nb,
-      `#910 \`control.size.*.dot\` is a DENSITY signal, not a glyph artboard — the compact fixture's 6/8/10 sits a full rung below nb/harbor/wendys 8/10/12 (${Object.entries(dotLadders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
+    // nb is off this comparison since #3086: the reference brand sets a 70% radio dot (12/14/16), so its dot is no
+    // longer the density ladder's half. harbor and wendys, at the default, still are; #3086's own gates hold nb's.
+    ok(dotLadders.compact === '6/8/10' && dotLadders.harbor === '8/10/12' && dotLadders.wendys === dotLadders.harbor && dotLadders.nb === '12/14/16',
+      `#910 \`control.size.*.dot\` is a DENSITY signal, not a glyph artboard — the compact fixture's 6/8/10 sits a full rung below harbor/wendys 8/10/12, and nb's 70% radio dot is 12/14/16 (#3086) (${Object.entries(dotLadders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
 
     // ---- AND THE CONSUMER HALF (#910): a def must READ the varying family, not the invariant one ----
     // Everything above is about the token TIER — that `control.size.*` moves with brand density and that
@@ -8523,6 +8525,89 @@ for (const scale of ['default', 'expressive'] as const) {
     ok(validateBrandInput({ ...inp, typography: { captionFloor: 10, sizeFloor: 8 } }).length === 0, '[#1360/#1363] captionFloor:10 + sizeFloor:8 accepted (both in enum)');
   }
 }
+// #3077 (owner decisions 2026-10-27): CAPTION A — `typography.sizes` takes caption, at the brand level only, one
+// static size per rung, on the ladder, at or above 10px, through the strict ramp check. Every expected size and
+// refusal is written here, never read from theme.ts, so each arm fails by name when its check goes (docs/34).
+{
+  const cap = (ty: any) => [...new Set(tBrand('cap3077-' + JSON.stringify(ty), ty).typography.composites
+    .filter((c) => c.group === 'caption').map((c) => `${c.variant}=${c.sizePx}/${c.sizeMinPx}`))].sort().join(',');
+  const refusal = (ty: any): string => { try { tBrand('cap3077r-' + JSON.stringify(ty), ty); return '(built)'; } catch (e) { return (e as Error).message; } };
+  // (a) ACCEPTED — md 10 on the ladder, above the floor, below lg 12: caption md/lg = 10/12, static (no mobile move).
+  ok(cap({ sizes: { caption: { md: 10 } } }) === 'lg=12/12,md=10/10', `#3077 caption A: sizes.caption.md 10 builds caption md 10 and lg 12, one size on desktop and mobile (got ${cap({ sizes: { caption: { md: 10 } } })})`);
+  ok(cap({ sizes: { caption: { lg: 14 } } }) === 'lg=14/14,md=11/11', `#3077 caption A: sizes.caption.lg 14 moves lg only (got ${cap({ sizes: { caption: { lg: 14 } } })})`);
+  // (b) ON THE LADDER — 13px is no ladder step.
+  ok(/^typography\.sizes\.caption\.md: 13px is not a step on the size ladder/.test(refusal({ sizes: { caption: { md: 13 } } })),
+    `#3077 caption A: an off-ladder caption size (13px) is refused by name (got: ${refusal({ sizes: { caption: { md: 13 } } }).slice(0, 120)})`);
+  // (c) AT OR ABOVE THE FLOOR — 8px is on the ladder under sizeFloor 8, and still refused: it is caption.xs's alone.
+  ok(/^typography\.sizes\.caption\.md: 8px is below the caption floor of 10px/.test(refusal({ sizeFloor: 8, sizes: { caption: { md: 8 } } })),
+    `#3077 caption A: caption md at 8px (on the sizeFloor 8 ladder) is refused by the 10px caption floor, by name (got: ${refusal({ sizeFloor: 8, sizes: { caption: { md: 8 } } }).slice(0, 120)})`);
+  // (d) RAMP ORDER — md 10 under captionFloor 10 ties caption.sm; md 14 passes lg 12. Both refused, strictly increasing.
+  ok(/^typography: caption\.md resolves to 10px, which is not larger than the previous rung \(10px\)/.test(refusal({ captionFloor: 10, sizes: { caption: { md: 10 } } })),
+    `#3077 caption A: caption md 10 beside captionFloor 10 (caption.sm 10) is refused by the ramp check (got: ${refusal({ captionFloor: 10, sizes: { caption: { md: 10 } } }).slice(0, 120)})`);
+  ok(/^typography: caption\.lg resolves to 12px, which is not larger than the previous rung \(14px\)/.test(refusal({ sizes: { caption: { md: 14 } } })),
+    `#3077 caption A: caption md 14 above lg 12 is refused by the ramp check (got: ${refusal({ sizes: { caption: { md: 14 } } }).slice(0, 120)})`);
+  // (e) xs/sm are their floors' — refused by name, not silently ignored.
+  ok(/^typography\.sizes\.caption\.sm: caption\.sm is pinned by captionFloor 10/.test(refusal({ captionFloor: 10, sizes: { caption: { sm: 11 } } })),
+    `#3077 caption A: sizes.caption.sm is refused, captionFloor pins it (got: ${refusal({ captionFloor: 10, sizes: { caption: { sm: 11 } } }).slice(0, 120)})`);
+  // (f) BRAND LEVEL ONLY — the per-viewport and per-mode size levers stay heading-only, and the rest of reading text stays out.
+  ok(/^typography\.sizeOverrides: 'caption' is not a heading group/.test(refusal({ sizeOverrides: { caption: { md: { desktop: 10 } } } })),
+    `#3077 caption A: sizeOverrides still refuses caption (got: ${refusal({ sizeOverrides: { caption: { md: { desktop: 10 } } } }).slice(0, 120)})`);
+  ok(/^typography\.sizes: 'body' is not a group a size can be set for/.test(refusal({ sizes: { body: { md: 15 } } })),
+    `#3077 caption A: sizes still refuses body (got: ${refusal({ sizes: { body: { md: 15 } } }).slice(0, 120)})`);
+  {
+    let msg = '(built)';
+    try { brandTheme({ id: 'cap3077-mode', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, modes: ['light', 'dark'], modeLevers: { dark: { typeSizes: { caption: { md: 10 } } } } } as any); }
+    catch (e) { msg = (e as Error).message; }
+    ok(/^modeLevers\.dark\.typeSizes: 'caption' is not a heading group/.test(msg), `#3077 caption A: a per-mode caption size is still refused (got: ${msg.slice(0, 120)})`);
+  }
+  // (g) the schema takes it, and holds its own floor.
+  const inp = { id: 'v', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } } as any;
+  ok(validateBrandInput({ ...inp, typography: { sizes: { caption: { md: 10 } } } }).length === 0, '#3077 caption A: the schema accepts sizes.caption.md 10');
+  ok(validateBrandInput({ ...inp, typography: { sizes: { caption: { md: 9 } } } }).length > 0, '#3077 caption A: the schema refuses sizes.caption.md 9 (floor 10)');
+  // (h) touches caption only.
+  const nonCap = (ty: any) => JSON.stringify(tBrand('nc3077-' + JSON.stringify(ty), ty).typography.composites.filter((c) => c.group !== 'caption'));
+  ok(nonCap({ sizes: { caption: { md: 10 } } }) === nonCap({}), '#3077 caption A: a caption size moves no other composite');
+}
+// #3077 (owner decisions 2026-10-27): TRACKING A — `typography.tracking` pins every composite in a category to one
+// named role and replaces the size-derived rung and its nudge, for that category only. Expected rungs are literals.
+{
+  const roles = (t: ReturnType<typeof tBrand>, g: string) => [...new Set(t.typography.composites.filter((c) => c.group === g).map((c) => `${c.sizePx}:${c.tracking}`))].join(' ');
+  // Display's derived rung splits at 96px (tight below, tighter at and above); the nudge -1 moves tight to tighter
+  // and holds tighter at the end of the nudge path.
+  const base = tBrand('tr3077-base', { trackingShift: { display: -1, title: 1 } });
+  ok(roles(base, 'display') === '48:tighter 64:tighter 80:tighter 96:tighter 128:tighter 160:tighter',
+    `#3077 tracking A: control — unpinned display follows its size and its nudge (got ${roles(base, 'display')})`);
+  const pinned = tBrand('tr3077-pin', { trackingShift: { display: -1, title: 1 }, tracking: { display: 'open' } });
+  // (a) the pin REPLACES the derived rung AND the nudge: every display size is open, the 96px split gone.
+  ok(roles(pinned, 'display') === '48:open 64:open 80:open 96:open 128:open 160:open',
+    `#3077 tracking A: a display pin puts every display size on open, over the size split and the -1 nudge (got ${roles(pinned, 'display')})`);
+  // (b) for the pinned category ONLY: title keeps snug + 1 = normal; every other composite matches the unpinned build.
+  ok(roles(pinned, 'title') === '18:normal 20:normal 24:normal 28:normal 32:normal 40:normal',
+    `#3077 tracking A: an unpinned title keeps its derive and nudge, snug + 1 = normal (got ${roles(pinned, 'title')})`);
+  const rest = (t: ReturnType<typeof tBrand>) => JSON.stringify(t.typography.composites.filter((c) => c.group !== 'display'));
+  ok(rest(pinned) === rest(base), '#3077 tracking A: a display pin leaves every non-display composite exactly as the unpinned build has it');
+  // (b2) the pin is not a new start for the nudge: a pin ON the nudge path (snug) with a +1 title nudge stays snug.
+  // (`open` alone can't show this: it is off the nudge path, so a nudge would leave it where it is either way.)
+  const onPath = tBrand('tr3077-onpath', { trackingShift: { title: 1 }, tracking: { title: 'snug' } });
+  ok(roles(onPath, 'title') === '18:snug 20:snug 24:snug 28:snug 32:snug 40:snug',
+    `#3077 tracking A: a title pin on snug ignores the +1 title nudge — the nudge is not applied to the pin (got ${roles(onPath, 'title')})`);
+  // (c) any of the nine roles, including the ones no nudge reaches.
+  const own = tBrand('tr3077-nine', { tracking: { body: 'snugger', eyebrow: 'tightest' } });
+  ok(roles(own, 'body') === '12:snugger 14:snugger 16:snugger 18:snugger' && roles(own, 'eyebrow') === '12:tightest 14:tightest 20:tightest',
+    `#3077 tracking A: a pin takes roles off the nudge path, snugger and tightest (got body ${roles(own, 'body')}; eyebrow ${roles(own, 'eyebrow')})`);
+  // (d) refused by name: a category that isn't one, a role that isn't one.
+  const refusal = (ty: any): string => { try { tBrand('tr3077r-' + JSON.stringify(ty), ty); return '(built)'; } catch (e) { return (e as Error).message; } };
+  ok(/^typography\.tracking: 'heading' is not a type category/.test(refusal({ tracking: { heading: 'open' } })),
+    `#3077 tracking A: an unknown category is refused by name (got: ${refusal({ tracking: { heading: 'open' } }).slice(0, 100)})`);
+  ok(/^typography\.tracking\.title: 'loose' is not a letter spacing role/.test(refusal({ tracking: { title: 'loose' } })),
+    `#3077 tracking A: an unknown role is refused by name (got: ${refusal({ tracking: { title: 'loose' } }).slice(0, 100)})`);
+  // (e) the schema takes the nine and refuses others.
+  const inp = { id: 'v', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } } as any;
+  ok(validateBrandInput({ ...inp, typography: { tracking: { display: 'open', code: 'tightest' } } }).length === 0, '#3077 tracking A: the schema accepts open and tightest pins');
+  ok(validateBrandInput({ ...inp, typography: { tracking: { display: 'loose' } } }).length > 0, '#3077 tracking A: the schema refuses a role outside the nine');
+  // (f) opt-in: an empty pin map builds the same theme as none.
+  ok(JSON.stringify(tBrand('tr3077-e', { tracking: {} }).typography) === JSON.stringify(tBrand('tr3077-e', {}).typography), '#3077 tracking A: an empty pin map changes nothing');
+}
 // C2 (#328): the ceiling names a RUNG, so the surviving rung COUNT is invariant under typeScale.
 // The old px ceiling was compared against already-shifted sizes, so `96` kept 4 rungs under
 // compact/default but only 3 under expressive — a brand lever silently changing the type SET.
@@ -9005,7 +9090,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       if (v.fontSize !== `{${root}.core.font.size.12}`) bad.push(`${where}: fontSize ${v.fontSize}, not the 12 step`);
       if (v.lineHeight !== `{${root}.core.font.line-height-role.normal}` || deref(deref(v.lineHeight).$value).$value !== 1.5)
         bad.push(`${where}: lineHeight ${v.lineHeight}, not the normal role at 1.5`);
-      if (v.letterSpacing !== `{${root}.core.font.letter-spacing-role.normal}`) bad.push(`${where}: letterSpacing ${v.letterSpacing}, not normal`);
+      // #3077: the reference brand pins body to the `open` letter spacing (owner decision 2026-10-27).
+      const ls = b === 'nb' ? 'open' : 'normal';
+      if (v.letterSpacing !== `{${root}.core.font.letter-spacing-role.${ls}}`) bad.push(`${where}: letterSpacing ${v.letterSpacing}, not ${ls}`);
       if (v.fontFamily !== `{${root}.core.font.family.body}`) bad.push(`${where}: fontFamily ${v.fontFamily}, not the body role`);
       // The weight, italic and underline match body.sm's same-named variant: only the size differs.
       for (const f of ['fontWeight', 'fontStyle', 'textDecoration']) if (v[f] !== ref[f]) bad.push(`${where}: ${f} ${v[f]} where body.sm.${k} has ${ref[f]}`);
@@ -12654,6 +12741,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const wrapped = ts.styles.filter((s) => s.name.startsWith('text/'));
   ok(wrapped.length === 0, 'figma text-styles: fix #1 — no emitted style name starts with `text/`');
 
+  // #3077 — the letter spacing, in percent, the owner decided for the reference brand's text types: +1% for
+  // display, title, body, label and caption, +2% for eyebrow. Literal, not derived from the pin.
+  const NB_TRACKING_PCT_3077: Record<string, number> = { display: 1, title: 1, body: 1, label: 1, caption: 1, eyebrow: 2 };
   const collBad: string[] = [], famBad: string[] = [], sizeBind: string[] = [], weightData: string[] = [];
   const lhWrong: string[] = [], lsWrong: string[] = [], styleWrong: string[] = [], styleBind: string[] = [];
   const upperMismatch: string[] = [], decoMismatch: string[] = [];
@@ -12676,7 +12766,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // The pre-fix fixture bound fontSize to the same collection the corrected
     // emit chooses (font-fluid for fluid composites, font for static) — that
     // structure survives the fixes. Verify same binding target.
-    if ((p.fontSize as any).variable !== nbFixName(fx.properties.fontSize.variable)) sizeBind.push(`${s.name}: ${(p.fontSize as any).variable} ≠ ${nbFixName(fx.properties.fontSize.variable)}`);
+    // #3077: the reference brand's caption.md is 10px by decision (owner, 2026-10-27), off the fixture's 11.
+    const fxSizeVar = s.name.startsWith('caption/md/') ? nbFixName(fx.properties.fontSize.variable).replace(/\/11$/, '/10') : nbFixName(fx.properties.fontSize.variable);
+    if ((p.fontSize as any).variable !== fxSizeVar) sizeBind.push(`${s.name}: ${(p.fontSize as any).variable} ≠ ${fxSizeVar}`);
     // #1485 — fontWeight is PARALLEL DATA on the style: unbound, numeric, matching the fixture's weight
     // value (the fixture bound it as a variable; the DATA it stood for is the numeric weight). The FLOAT
     // weight-role variable itself is still emitted (byte-repro above); it is just no longer bound here.
@@ -12705,8 +12797,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const ls = (p.letterSpacing as any).value;
     if (ls.unit !== 'PERCENT') lsWrong.push(`${s.name}:unit=${ls.unit}`);
     const fxLsPx = fx.properties.letterSpacing.value.value;
-    const expectedLsPct = Math.round((fxLsPx / fxDesktopSize) * 10000) / 100;
-    if (Math.abs(ls.value - expectedLsPct) > 0.01) lsWrong.push(`${s.name}:${ls.value}%≠${expectedLsPct}% (fixture ${fxLsPx}px/${fxDesktopSize}px)`);
+    // #3077 (owner decisions 2026-10-27): the reference brand's letter spacing moved off the frozen fixture by
+    // decision, so the moved text types are held to the decided percent, stated here rather than read from the
+    // lever. Code did not move and is still held to the fixture.
+    const decidedLsPct = NB_TRACKING_PCT_3077[s.name.split('/')[0]];
+    const expectedLsPct = decidedLsPct ?? Math.round((fxLsPx / fxDesktopSize) * 10000) / 100;
+    if (Math.abs(ls.value - expectedLsPct) > 0.01) lsWrong.push(`${s.name}:${ls.value}%≠${expectedLsPct}% (${decidedLsPct !== undefined ? '#3077 decision' : `fixture ${fxLsPx}px/${fxDesktopSize}px`})`);
 
     // fix #5 / #1485 — the cut value is checked via `styleBind` above (the bound cut variable's value
     // must equal the fixture's baked fontStyle). `styleWrong` is retained as a redundant direct compare
@@ -13929,6 +14025,170 @@ arm: {
     if (got !== want) g4.push(`${id}: ${got} (want ${want})`);
   }
   ok(g4.length === 0, `#3052 G4: every other brand's grid gutter/margin links are unchanged (space/* steps as shipped)${g4.length ? ` — ${g4.join('; ')}` : ''}`);
+}
+
+// (19h) #3086 — THE RADIO DOT SETTING (owner decision Q816 A, no new token, 2026-10-27). `radioDot` sets
+// `control.size.{sm,md,lg}.dot` to a share of the box edge (50 default = half, then 60/70/80), snapped to the 2px
+// sub-grid and capped at the box minus its ring. The reference brand sets 70%: 14px at medium.
+//
+// INDEPENDENCE (docs/34). Every expected number here is a HAND-PINNED literal or is read from a different emitted
+// node than the one under test, never from `radioDotPx` or `controlSizes`:
+//   G1 the reference brand's sm/md/lg dot px are the literals 12/14/16, read from the DTCG tree (its `$value`,
+//      resolved through the alias if it is one) and from the Figma `control` collection, for the legacy fixture
+//      (`nbThemeFrom`) and the redesign seed (`examples/nb-redesign.design.md`) alike.
+//   G2 every brand at the default: its dot is half its box (both px read off the tree), its dot leaf carries the
+//      #910 prose and no `share`/`offScale`, and a build with `radioDot: 50` written out is byte-identical to the
+//      unset build, tree and Figma control collection both. Corpus = the token-contract corpus less nb, plus every
+//      example brand that leaves the setting unset.
+//   G3 the share reaches EVERY size: synthetic brands at 60/70/80 × compact/comfortable/spacious, each rung's dot
+//      against a table worked by hand (nearest even px of edge × share, capped at edge − 4).
+//   G4 the dot never covers the ring: dot ≤ box − 2 × ring at every share, density and rung, the ring's px read
+//      from the emitted `border-width.thick` leaf and Radio.Control's own `border-width` binding, not from scale.ts.
+//   G5 a mode with its own density (`modeLevers.dark.density`) carries the share: dark's dots, read from the leaf's
+//      `modes.dark` entry, against the same hand table, and inside dark's own box minus the ring.
+//   G6 the Figma line names the share: the reference brand's three dot lines and a default brand's, hand-written,
+//      read from the emitted Figma control collection.
+//
+// MUTATION REGISTER (each applied to the SUBJECT from a `wip:` commit, the suite re-run, the named assertion
+// confirmed among the failures, then reverted):
+//   M1 (G1) `nbThemeFrom`'s `buildDims(…, [720], 70)` → `[720]`. G1 fails BY NAME (nb md 10).
+//   M2 (G1) `radioDot: 70` dropped from `examples/nb-redesign.design.md`. G1 fails BY NAME (nb-redesign md 10).
+//   M3 (G2) `brandTheme` carries `radioDot` even at the default (`...({ radioDot })`). G2 fails BY NAME on the
+//      #910 prose for every default brand.
+//   M4 (G3) `controlSizes` applies the share at md only (`i === 1 ? radioDotPx(…) : height * 0.5`). G3 fails BY
+//      NAME at sm and lg for every share and density.
+//   M5 (G4) `radioDotPx` loses its cap (`Math.min(…, edge − 2 × ring)`). G4 fails BY NAME (compact 80% sm 10 > 8),
+//      and G3 too.
+//   M6 (G5) `brandTheme`'s per-mode ladder drops the share (`controlsByMode[m] = controlSizes(lev.density)`). G5 fails
+//      BY NAME for all three mode brands (dark at the default half, e.g. 6/8/10 for compact).
+//   M7 (G6) `emit-figma-dims` stops passing `dotShare` to the Figma line. G6 fails BY NAME at sm/md/lg for the
+//      fixture and the seed ("half the 20px box" for a 14px dot).
+{
+  const rootOf = (tree: any) => tree[Object.keys(tree)[0]];
+  const pxOfValue = (tree: any, v: string): number => {
+    const m = /^\{(.+)\}$/.exec(v);
+    if (!m) return parseFloat(v);
+    const node = m[1].split('.').reduce((n: any, k) => n?.[k], tree);
+    return node ? pxOfValue(tree, node.$value) : NaN;
+  };
+  const RUNGS = ['sm', 'md', 'lg'] as const;
+  const dots = (theme: Theme) => {
+    const tree = buildTree(theme).tree as any; const cs = rootOf(tree).control.size;
+    return RUNGS.map((r) => ({ rung: r, height: pxOfValue(tree, cs[r].height.$value), dot: pxOfValue(tree, cs[r].dot.$value), leaf: cs[r].dot }));
+  };
+  const figmaDots = (theme: Theme): number[] => RUNGS.map((r) =>
+    buildFigmaDims(theme).control.variables.find((v: any) => v.name.endsWith(`control/size/${r}/dot`))?.value ?? NaN);
+  const seedInput = (): BrandInput => parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input as BrandInput;
+
+  // G1 — the reference brand: 12/14/16, the owner's 14 at medium.
+  const refs: [string, Theme | undefined][] = [
+    ['nb (legacy fixture)', exampleTheme('nb', nbTheme)],
+    ['nb-redesign (seed)', exampleTheme('nb-redesign', () => brandTheme(seedInput()))],
+  ];
+  for (const [id, theme] of refs) {
+    if (!theme) continue;
+    const got = dots(theme).map((d) => d.dot).join('/'); const fig = figmaDots(theme).join('/');
+    ok(got === '12/14/16' && fig === '12/14/16',
+      `#3086 G1: ${id}: the radio dot at sm/md/lg is 12/14/16 (70% of 16/20/24, md 14 the owner's), in DTCG and in the Figma control collection (DTCG ${got}, Figma ${fig})`);
+  }
+
+  // G2 — every brand at the default is byte-identical: half the box, the #910 line, and 50 written out = unset.
+  const examples = exampleBrands() as Record<string, BrandInput>;
+  const defaults: [string, BrandInput][] = [
+    ['minimal', MINIMAL_BRAND], ['minimal-compact', MINIMAL_COMPACT_BRAND],
+    ...Object.entries(examples).filter(([, b]) => b.radioDot === undefined),
+  ];
+  ok(defaults.length >= 5, `#3086 G2: the default population is the corpus, not a sample (${defaults.map(([id]) => id).join(', ')})`);
+  for (const { id, theme } of corpus().filter((c) => !c.id.startsWith('nb'))) {
+    for (const d of dots(theme)) {
+      const gap = (d.height - d.dot) / 2;
+      const p = d.leaf.$extensions?.prism3 ?? {};
+      ok(d.dot * 2 === d.height && d.leaf.$description.startsWith(`control.size.${d.rung} dot — ${d.dot}px inner mark for a radio's dot (half the ${d.height}px box edge, leaving a ${gap}px gap to the boundary).`)
+        && !('share' in p) && !('offScale' in p),
+        `#3086 G2: ${id.split(' ')[0]} ${d.rung}: at the default the radio dot is half the box, with the #910 line and no share (${d.dot} of ${d.height}; ${JSON.stringify(p)})`);
+    }
+  }
+  for (const [id, input] of defaults) {
+    const unset = exampleTheme(`${id} (radioDot unset)`, () => brandTheme(input));
+    const written = exampleTheme(`${id} (radioDot: 50)`, () => brandTheme({ ...input, radioDot: 50 } as BrandInput));
+    if (!unset || !written) continue;
+    ok(JSON.stringify(buildTree(unset).tree) === JSON.stringify(buildTree(written).tree)
+      && JSON.stringify(buildFigmaDims(unset).control) === JSON.stringify(buildFigmaDims(written).control),
+      `#3086 G2: ${id}: radioDot 50 written out is byte-identical to unset, DTCG tree and Figma control collection`);
+  }
+
+  // G3 — the share reaches every size. Worked by hand: nearest even px of edge × share, at most edge − 4.
+  //   compact 12/16/20 · comfortable 16/20/24 · spacious 20/24/28.
+  const HAND: Record<string, Record<number, string>> = {
+    compact: { 60: '8/10/12', 70: '8/12/14', 80: '8/12/16' },
+    comfortable: { 60: '10/12/14', 70: '12/14/16', 80: '12/16/20' },
+    spacious: { 60: '12/14/16', 70: '14/16/20', 80: '16/20/22' },
+  };
+  const BASE: BrandInput = { id: 'dotshare', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
+  const synth: { id: string; share: number; density: string; theme: Theme }[] = [];
+  for (const density of ['compact', 'comfortable', 'spacious'] as const) for (const share of [60, 70, 80] as const) {
+    const id = `dot-${density}-${share}`;
+    const theme = exampleTheme(id, () => brandTheme({ ...BASE, id, density, radioDot: share } as BrandInput));
+    if (!theme) continue;
+    synth.push({ id, share, density, theme });
+    const ds = dots(theme);
+    for (const [i, d] of ds.entries()) {
+      const want = Number(HAND[density][share].split('/')[i]);
+      ok(d.dot === want, `#3086 G3: ${density} ${share}% ${d.rung}: the dot follows the share at this size (${d.dot}, hand ${want}, of ${d.height})`);
+    }
+  }
+  ok(synth.length === 9, `#3086 G3: all nine share × density brands built (${synth.length})`);
+
+  // G4 — the dot never covers the ring. The ring's px from the emitted token Radio's ring binds.
+  const ringKey = radioControl.tokens['border-width'];
+  ok(ringKey === 'border-width.thick' && radioControl.anatomy.parts.control.strokeWidth === 'border-width',
+    `#3086 G4: Radio.Control's ring binds border-width.thick (${ringKey})`);
+  for (const { id, theme } of [...synth, ...refs.filter(([, t]) => t).map(([id, t]) => ({ id, theme: t as Theme }))]) {
+    const tree = buildTree(theme).tree as any;
+    const ring = pxOfValue(tree, ringKey.split('.').reduce((n: any, k) => n?.[k], rootOf(tree)).$value);
+    for (const d of dots(theme))
+      ok(ring > 0 && d.dot > 0 && d.dot <= d.height - 2 * ring,
+        `#3086 G4: ${id} ${d.rung}: the dot fits inside the ring (${d.dot} ≤ ${d.height} − 2 × ${ring})`);
+  }
+
+  // G5 — the per-mode control ladders carry the share too (review S1 on #3097). A brand whose dark mode sets its own
+  // density gets dark's dots from `controlsByMode`, a second call site G3 never reaches. Each dark dot is read from
+  // the leaf's `$extensions.prism3.modes.dark.$value` (resolved through its alias), each dark box from the height
+  // leaf's own mode entry, and both are held to the HAND table above, never to `controlSizes`. One brand per density
+  // as the mode's, each at a different share, so the whole table's three columns are crossed.
+  for (const [base, dark, share] of [['comfortable', 'compact', 70], ['compact', 'spacious', 80], ['spacious', 'comfortable', 60]] as const) {
+    const id = `dot-modes-${base}-${dark}-${share}`;
+    const theme = exampleTheme(id, () => brandTheme({ ...BASE, id, density: base, radioDot: share, modeLevers: { dark: { density: dark } } } as BrandInput));
+    if (!theme) continue;
+    const tree = buildTree(theme).tree as any; const cs = rootOf(tree).control.size;
+    const ring = pxOfValue(tree, ringKey.split('.').reduce((n: any, k) => n?.[k], rootOf(tree)).$value);
+    const modeDots = RUNGS.map((r) => pxOfValue(tree, cs[r].dot.$extensions?.prism3?.modes?.dark?.$value ?? 'NaN'));
+    const modeBoxes = RUNGS.map((r) => pxOfValue(tree, cs[r].height.$extensions?.prism3?.modes?.dark?.$value ?? 'NaN'));
+    const baseDots = dots(theme).map((d) => d.dot).join('/');
+    ok(modeDots.join('/') === HAND[dark][share] && baseDots === HAND[base][share],
+      `#3086 G5: ${id}: dark's own density carries the share, dark ${modeDots.join('/')} (hand ${HAND[dark][share]}) and the base ${baseDots} (hand ${HAND[base][share]})`);
+    for (const [i, r] of RUNGS.entries())
+      ok(modeDots[i] > 0 && modeDots[i] <= modeBoxes[i] - 2 * ring,
+        `#3086 G5: ${id} dark ${r}: the mode's dot fits inside the ring (${modeDots[i]} ≤ ${modeBoxes[i]} − 2 × ${ring})`);
+  }
+
+  // G6 — the Figma line names the share (review N1 on #3097). Before this, only the committed `figma/nb/control.json`
+  // held it, so `emit-figma-dims` dropping `dotShare` passed every live gate. Hand-written lines, read off the emitted
+  // Figma control collection: the reference brand's three, and a default brand's half-the-box line.
+  const figmaDotLines = (theme: Theme): string[] => RUNGS.map((r) =>
+    buildFigmaDims(theme).control.variables.find((v: any) => v.name.endsWith(`control/size/${r}/dot`))?.description ?? '');
+  for (const [id, theme] of refs) {
+    if (!theme) continue;
+    const got = figmaDotLines(theme);
+    const want = ['Radio dot — 12px (0.7 × the 16px box, on the 2px grid)', 'Radio dot — 14px (0.7 × the 20px box, on the 2px grid)', 'Radio dot — 16px (0.7 × the 24px box, on the 2px grid)'];
+    for (const [i, r] of RUNGS.entries())
+      ok(got[i].startsWith(want[i]), `#3086 G6: ${id} ${r}: the Figma line names the share (${JSON.stringify(got[i])})`);
+  }
+  {
+    const theme = exampleTheme('minimal (Figma dot line)', () => brandTheme(MINIMAL_BRAND));
+    const got = theme ? figmaDotLines(theme)[1] : '';
+    ok(got.startsWith('Radio dot — 10px (half the 20px box)'), `#3086 G6: minimal md: at the default the Figma line is half the box (${JSON.stringify(got)})`);
+  }
 }
 
 // (20) EMIT-FIGMA MODE OPT-OUT (post-#42 follow-up; #45 audit; reviewer flag on #46).
@@ -31931,6 +32191,82 @@ arm: {
 // fixture, not a path, so the test does not move when that file does. Module scope since #1387's block
 // below reads it too.
 const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+
+// ---- #3077 (owner decisions 2026-10-27): THE REFERENCE BRAND'S TYPE TABLE ------------------------------------
+//
+// The reference brand's typography patch: titleFloor 16, sizes.title.2xs 20 (18 on mobile, Q802 A),
+// sizes.caption.md 10 (caption A), and display/title/body/caption/label pinned to `open` (+1%) with eyebrow on its
+// nudge (+2%) (tracking A, Q803 B). Every expected row is a LITERAL from the decided table (size desktop/mobile px,
+// letter spacing in percent), never read from the lever or the input, so a change to either fails by name.
+{
+  const table = (t: Theme): Map<string, string> => {
+    const em = new Map(t.typography.letterSpacings.map((l) => [l.key, l.em]));
+    const out = new Map<string, string>();
+    for (const c of t.typography.composites) {
+      const k = `${c.group}.${c.variant}`;
+      if (!out.has(k)) out.set(k, `${c.sizePx}/${c.sizeMinPx} ${Math.round((em.get(c.tracking) ?? NaN) * 1000) / 10}%`);
+    }
+    return out;
+  };
+  const REF_TABLE: Record<string, string> = {
+    'display.sm': '64/40 1%', 'display.md': '72/40 1%', 'display.lg': '80/40 1%', 'display.xl': '96/48 1%', 'display.2xl': '128/48 1%',
+    'title.2xs': '20/18 1%', 'title.xs': '24/20 1%', 'title.sm': '32/24 1%', 'title.md': '36/28 1%', 'title.lg': '40/32 1%', 'title.xl': '48/36 1%', 'title.2xl': '56/40 1%',
+    'body.xs': '12/12 1%', 'body.sm': '14/14 1%', 'body.md': '16/16 1%', 'body.lg': '18/18 1%',
+    'label.sm': '12/12 1%', 'label.md': '14/14 1%', 'label.lg': '18/18 1%',
+    'caption.md': '10/10 1%', 'caption.lg': '12/12 1%',
+    'eyebrow.sm': '12/12 2%', 'eyebrow.md': '14/14 2%', 'eyebrow.lg': '20/18 2%',
+    'code.inline': '14/14 0%',
+  };
+  const diff = (got: Map<string, string>, want: Record<string, string>): string[] => [
+    ...Object.entries(want).filter(([k, v]) => got.get(k) !== v).map(([k, v]) => `${k}: ${got.get(k) ?? 'missing'} ≠ ${v}`),
+    ...[...got.keys()].filter((k) => !(k in want)).map((k) => `${k}: not in the table`),
+  ];
+  // (a) The redesign seed. It also carries the stored input's sizeFloor 8, so caption.xs 8 ships.
+  const seed = exampleTheme('nb-redesign', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input));
+  if (seed) {
+    const bad = diff(table(seed), { ...REF_TABLE, 'caption.xs': '8/8 1%' });
+    ok(bad.length === 0, `#3077 the reference brand's redesign seed builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+  }
+  // (b) The stored brand input (the copy above) with the same patch: what Apply Theme writes into its Figma file.
+  const patched = structuredClone(NB_MASTER) as any;
+  Object.assign(patched.typography, {
+    titleFloor: 16,
+    sizes: { ...patched.typography.sizes, title: { ...patched.typography.sizes.title, '2xs': 20 }, caption: { md: 10 } },
+    sizeOverrides: { title: { ...patched.typography.sizeOverrides.title, '2xs': { mobile: 18 } } },
+    tracking: { display: 'open', title: 'open', body: 'open', caption: 'open', label: 'open' },
+    trackingShift: { eyebrow: -1 },
+  });
+  {
+    const bad = diff(table(brandTheme(patched)), REF_TABLE);
+    ok(bad.length === 0, `#3077 the reference brand's stored input, patched, builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+  }
+  // (c) The legacy fixture: engine-default sizes (no 20px title.2xs: its title.xs is 18), the decided caption md and
+  // the decided letter spacing per text type.
+  {
+    const nb = nbTheme();
+    const em = new Map(nb.typography.letterSpacings.map((l) => [l.key, l.em]));
+    const WANT: Record<string, string> = { display: 'open 1%', title: 'open 1%', body: 'open 1%', label: 'open 1%', caption: 'open 1%', eyebrow: 'wide 2%', code: 'normal 0%' };
+    const bad = nb.typography.composites.filter((c) => `${c.tracking} ${Math.round((em.get(c.tracking) ?? NaN) * 1000) / 10}%` !== WANT[c.group]).map((c) => `${c.path}: ${c.tracking}`);
+    const caps = [...new Set(nb.typography.composites.filter((c) => c.group === 'caption').map((c) => `${c.variant}=${c.sizePx}`))].join(',');
+    ok(bad.length === 0 && caps === 'md=10,lg=12', `#3077 the legacy fixture: caption md 10 / lg 12 and the decided letter spacing per text type (caption ${caps}; ${bad.slice(0, 3).join(' | ') || 'tracking as decided'})`);
+  }
+  // (d) Every other brand is as it was: the default letter spacing by text type and size, and caption md 11 / lg 12.
+  // The default rungs are written here (display tight below 96px and tighter from 96px, title snug, eyebrow wider,
+  // the rest normal), not read from the engine.
+  for (const [id, build] of [
+    ['prism3', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input)],
+    ['aurora', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
+    ['harbor', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input)],
+    ['wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
+  ] as const) {
+    const t = exampleTheme(id, build);
+    if (!t) continue;
+    const want = (g: string, px: number) => g === 'display' ? (px >= 96 ? 'tighter' : 'tight') : g === 'title' ? 'snug' : g === 'eyebrow' ? 'wider' : 'normal';
+    const bad = t.typography.composites.filter((c) => c.tracking !== want(c.group, c.sizePx)).map((c) => `${c.path}: ${c.tracking}`);
+    const caps = [...new Set(t.typography.composites.filter((c) => c.group === 'caption' && (c.variant === 'md' || c.variant === 'lg')).map((c) => `${c.variant}=${c.sizePx}`))].join(',');
+    ok(bad.length === 0 && caps === 'md=11,lg=12', `#3077 ${id} is unmoved: default letter spacing by text type and size, caption md 11 / lg 12 (caption ${caps}; ${bad.slice(0, 3).join(' | ') || 'tracking default'})`);
+  }
+}
 
 // ---- #1354 (owner, 2026-09-28): THE LIGHT OFF TRACK + THE `state icon` BOOLEAN ------------------------
 //
