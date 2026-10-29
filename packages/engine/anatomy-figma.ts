@@ -1833,6 +1833,8 @@ export const figmaAnatomyPlan = (
     // THE TILE EDGE (#2343, Q720 A), at the coordinates its gate names: `PartDef.tileEdge`.
     const tileEdge = p.kind === 'vector' && p.tileEdge && Object.entries(p.tileEdge.when).every(([ax, vs]) => vs.includes(String(axisValue(ax))))
       ? p.tileEdge : undefined;
+    // THE EDGE ALONE (#3134): a tile `edgeWhen` does not name keeps its corners and crop, and draws no stroke.
+    const tileStroke = !!tileEdge && Object.entries(tileEdge.edgeWhen ?? {}).every(([ax, vs]) => vs.includes(String(axisValue(ax))));
     if (p.kind === 'box') {
       if (p.gap) bound.itemSpacing = varOf(p.gap);
       if (p.height) bound.height = varOf(p.height);
@@ -1947,7 +1949,7 @@ export const figmaAnatomyPlan = (
       // A FULL-BLEED TILE'S EDGE (#2343, Q720 A), on the glyph's own frame: its corners and its stroke weight, bound.
       if (tileEdge) {
         for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(tileEdge.radius);
-        bound.strokeWeight = varOf(tileEdge.strokeWidth);
+        if (tileStroke) bound.strokeWeight = varOf(tileEdge.strokeWidth);
       }
     }
 
@@ -2065,7 +2067,7 @@ export const figmaAnatomyPlan = (
       // THE TILE'S EDGE IS THE FRAME'S STROKE, never the artwork's: on the artboard, where a fill would be a square
       // behind the mark, a stroke drawn inside is the tile's border. It throws unpainted: a bound weight with no
       // stroke is an edge that draws nothing, the silent-loss shape.
-      if (tileEdge) {
+      if (tileEdge && tileStroke) {
         const edge = paintOf('border');
         if (!edge) throw new Error(`${def.id}: anatomy part '${name}' draws a tileEdge at ${JSON.stringify(paintCoord)} and the def resolves no 'border' paint there — the edge would bind its weight and draw nothing`);
         paints.strokes = edge;

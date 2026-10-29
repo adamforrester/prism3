@@ -2525,9 +2525,12 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       if (spec.kind === 'effect' || spec.kind === 'gradient') {
         // A STYLE'S SPECIMEN (#2353 batch 2a) is the swatches set's type=default member with the style applied, so it
         // stays bound to the style and follows an edit to it. Its own layers are hidden, as a fill swatch's are.
-        //   • effect: a card at the member's own size, painted the cell's white, in a padded cell of its own; the padding
-        //     is the style's reach (offset, blur and spread, the widest layer), so the shadow is drawn whole, never cut
-        //     at the cell's edge, and never less than the cell's usual 12 × 16;
+        //   • effect: a card at the member's own size, painted the cell's white, in a padded cell of its own. The top,
+        //     right and bottom padding is the style's reach (offset, blur and spread, the widest layer), never less than
+        //     the cell's usual 12 × 16, so the row grows to hold the shadow. The LEFT padding stays the usual 16, so
+        //     every card sits at the same x as the column's header, whatever its shadow (#3135: a reach-wide left padding
+        //     indented each larger shadow's card further right). The cell does not clip, so the shadow's left side
+        //     overflows it instead of pushing the card;
         //   • gradient: the member fills its cell edge to edge, as a color's fill swatch does (#2268, #2331), its fill
         //     the style.
         const v = variantOf(swatches, { type: 'default' }, 'type=default');
@@ -2552,7 +2555,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
           Math.max(Math.abs(e.offset?.x ?? 0), Math.abs(e.offset?.y ?? 0)) + (e.radius ?? 0) + Math.max(0, e.spread ?? 0))));
         const box = cellBox(true);
         box.paddingTop = Math.max(12, reach); box.paddingBottom = Math.max(12, reach);
-        box.paddingLeft = Math.max(16, reach); box.paddingRight = Math.max(16, reach);
+        box.paddingRight = Math.max(16, reach);
+        box.clipsContent = false;
         box.appendChild?.(inst);
         keepSize({ inst, w: num(v.width), h: num(v.height) });
         place(box, r, c);

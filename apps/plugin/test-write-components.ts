@@ -5540,7 +5540,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // and Q-T2 on the PR), not read from the plan. The paste executor's twin is in packages/engine/test.ts.
 // Which marks are tiles comes from the `.svg` files in `marks/payment/`, not from the plan or a typed count (Q-B7 amended:
 // no hard-coded provider count): every file there must build as a tile, and the folder must not be empty.
+// #3134: the tiles whose own fill stands apart from a white page (3:1) keep corners and crop and draw no edge. Typed from
+// the owner's direction and the computed result on that PR, not read from the def; every other tile file draws the edge.
 {
+  const EDGELESS = new Set(['brand-mark/payment/amex', 'brand-mark/payment/generic', 'brand-mark/payment/shop-pay', 'brand-mark/payment/venmo']);
   const cardFiles = readdirSync(new URL('../../packages/engine/marks/payment/', import.meta.url)).filter((f) => f.endsWith('.svg')).map((f) => `brand-mark/payment/${f.slice(0, -4)}`).sort();
   const markDef = componentDefs.find((d) => d.id === 'brand-mark')!;
   const plans = figmaAnatomySet(markDef, { swapTarget: SWAP });
@@ -5560,14 +5563,28 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const got = [...CORNERS.map((k) => id(bv[k])), weight, id(strokes[0]?.boundVariables?.color), String(c.clipsContent)];
     if (String(c.name).startsWith('brand-mark/payment/')) {
       tiles.push(String(c.name));
-      const want = [...CORNERS.map(() => 'radius/sm'), 'border-width/hairline', 'color/border/primary', 'true'];
+      const want = [...CORNERS.map(() => 'radius/sm'), ...(EDGELESS.has(String(c.name)) ? [null, null] : ['border-width/hairline', 'color/border/primary']), 'true'];
       if (JSON.stringify(got) !== JSON.stringify(want)) off.push(`${c.name}: ${got.join(' / ')}`);
     } else if (strokes.length || c.clipsContent || CORNERS.some((k) => bv[k]) || weight) off.push(`${c.name} (not a tile): ${got.join(' / ')}`);
   }
   const edgeMisses = (r.misses ?? []).filter((m: string) => /Radius|stroke|clips/i.test(m));
+  // #3134: THE CANVAS GRID IS LAID OUT FROM THE MEMBERS' REAL SIZES. Every pair of built marks is checked for overlap on
+  // the page, by its own x, y, width and height; a mark wider than the old fixed 48px pitch must exist, or the arm
+  // proves nothing.
+  const marks = comps.filter((n) => String(n.name).startsWith('brand-mark/'));
+  const boxOf = (n: Node) => ({ name: String(n.name), x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
+  const boxes = marks.map(boxOf);
+  const overlaps: string[] = [];
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+    const a = boxes[i], b = boxes[j];
+    if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) overlaps.push(`${a.name} over ${b.name}`);
+  }
+  const widest = Math.max(...boxes.map((b) => b.w));
+  ok(boxes.length === plans.length && widest > 48 && boxes.every((b) => Number.isFinite(b.x + b.y + b.w + b.h)) && overlaps.length === 0,
+    `#3134 brand-mark canvas: no two of the ${boxes.length} built marks overlap on the page, the widest ${widest}px wide (overlaps: ${overlaps.length}${overlaps.length ? `, e.g. ${overlaps.slice(0, 3).join(' | ')}` : ''})`);
   const untiled = cardFiles.filter((n) => !tiles.includes(n)), unfiled = tiles.filter((n) => !cardFiles.includes(n));
-  ok(cardFiles.length > 0 && untiled.length === 0 && unfiled.length === 0 && comps.length === plans.length && off.length === 0 && edgeMisses.length === 0,
-    `#2343 Q720 A plugin executor: all ${cardFiles.length} tile files in marks/payment/ build as tiles (${tiles.length} of ${comps.length} built marks) reading back with radius/sm corners, a border-width/hairline edge in color/border/primary, clipped; no other mark has an edge (off: ${[...off, ...edgeMisses, ...untiled.map((n) => `${n}: no tile`), ...unfiled.map((n) => `${n}: no tile file`)].slice(0, 4).join(' | ') || 'none'})`);
+  ok(cardFiles.length > 0 && untiled.length === 0 && unfiled.length === 0 && comps.length === plans.length && off.length === 0 && edgeMisses.length === 0 && [...EDGELESS].every((n) => tiles.includes(n)),
+    `#2343 Q720 A plugin executor: all ${cardFiles.length} tile files in marks/payment/ build as tiles (${tiles.length} of ${comps.length} built marks) reading back with radius/sm corners, clipped, and a border-width/hairline edge in color/border/primary on every tile but amex, generic, shop-pay and venmo (#3134); no other mark has an edge (off: ${[...off, ...edgeMisses, ...untiled.map((n) => `${n}: no tile`), ...unfiled.map((n) => `${n}: no tile file`)].slice(0, 4).join(' | ') || 'none'})`);
 }
 
 // ── #3127: THE ARTBOARD READ-BACK, AT FIGMA'S PRECISION, PER KIND ─────────────────────────────────────────────────────

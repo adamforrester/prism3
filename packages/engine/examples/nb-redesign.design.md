@@ -118,9 +118,9 @@ typography:
   # `open` (+1%) at every size; eyebrow keeps its nudge, one step in from `wider`, so `wide` (+2%).
   tracking: { display: open, title: open, body: open, caption: open, label: open }
   trackingShift: { eyebrow: -1 }
-  # Per-role weight sets. Display/title run on the LIGHT (`subtle`, 300) Garamond cut; body and
-  # caption ship default + emphasis. From the brand type spec.
-  weights: { display: [subtle], title: [subtle], body: [default, emphasis], caption: [default, emphasis] }
+  # Per-role weight sets. Display/title run on the LIGHT (`subtle`, 300) Garamond cut; body,
+  # caption and label ship default + emphasis. From the brand's stored typography (Q821 A).
+  weights: { display: [subtle], title: [subtle], body: [default, emphasis], caption: [default, emphasis], label: [default, emphasis] }
   # NB's Medium is 500, not the engine's default 600 — remap the `emphasis` weight-role numeric.
   weightRoles: { emphasis: 500 }
   # CONDENSED FACE (#1368) — NB's display/title headings are set in ITC Garamond Std *Light
@@ -133,12 +133,13 @@ typography:
   faces:
     display: { subtle: { family: ITC Garamond Std, style: Light Condensed } }
     title: { subtle: { family: ITC Garamond Std, style: Light Condensed } }
-  # Line heights: PRISM DEFAULTS (owner decision 2026-09-09 — "stay with prism line heights").
-  # The pasted source truncated this line; rather than reconstruct an NB-specific ramp, this seed
-  # OMITS `lineHeights` entirely so the engine's curated default leading applies. Adjust in the
-  # plugin during the manual pass if the finished NB needs a bespoke heading leading.
-  # Fluid heading sizes on, clamped between NB's mobile (402) and desktop (1440) viewports.
-  responsive: { fluid: true, minViewport: 402, maxViewport: 1440 }
+  # Leading from the brand's stored typography (owner decision Q821 A, 2026-10-27, replacing the
+  # earlier prism-default decision): the compact rung at 1.25 and snug at 1.20, and display, title
+  # and body one rung more open than their size-derived leading.
+  lineHeights: { compact: 1.25, snug: 1.2 }
+  leadingShift: { display: 1, title: 1, body: 1 }
+  # Fluid heading sizes on, clamped between the 375 and 1440 viewports (the stored input's).
+  responsive: { fluid: true, minViewport: 375, maxViewport: 1440 }
   # Link underline (#2942): 5% of the font size thick, 25% below the baseline, on every -link style.
   underline: { thickness: 0.05, offset: 0.25 }
 ---
@@ -158,8 +159,8 @@ grotesque.
 
 ## Owner finishing checklist (what this seed deliberately leaves for the manual pass)
 
-1. **Heading leading.** Uses the engine's default (prism) line heights — owner decision, no
-   NB-specific override. Set a bespoke heading leading in the plugin if the finished NB wants one.
+1. **Heading leading.** Now the stored leading from the finished file (`lineHeights`,
+   `leadingShift`; owner decision Q821 A), replacing the earlier prism-default decision.
 2. **1px hairline corners.** NB uses 1px corners in places. The engine reaches 1px only via
    the opt-in `radiusHairline: true` lever (#1362), left OFF here on purpose. Flip it on if
    the finished NB wants the 1px rung engine-side.

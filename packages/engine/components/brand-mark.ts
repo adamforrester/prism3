@@ -25,17 +25,36 @@
  * edge. Two gates hold the two halves: `lint-mark-colors.ts` the edge bound on every payment tile (TILE EDGE), and
  * `lint-glyph-geometry.ts` no tile file baking one (TILE BAKED, TILE BORDER BAKED).
  *
+ * ONLY A TILE THAT NEEDS IT DRAWS THE EDGE (owner direction on #3134). The edge exists so a white tile reads as a card
+ * on a white page. A tile whose own fill already stands apart from that page, 3:1 or more (WCAG's non-text floor), keeps
+ * its corners and its crop and draws no edge: Amex, Shop Pay, Venmo and the generic card today. Read from each file's
+ * first fill (`EDGED_TILES`), never listed by hand, and judged again from the raw file by `lint-mark-colors.ts`.
+ *
  * NO COUNT IN THE PROSE. The provider list is data (Q-B7 amended), so nothing here states how many marks there are. `lint-icon-count.ts` holds this def's prose to that.
  */
 import { ComponentDef } from '../component-schema';
 // The vocabulary, imported rather than restated: `emit-marks.ts` proves it matches the authored mapping and
 // the folder in both directions, and that every file has a provenance record.
-import { BRAND_MARK_NAMES } from '../brand-mark-glyphs';
+import { BRAND_MARK_DOCUMENTS, BRAND_MARK_NAMES } from '../brand-mark-glyphs';
 import { BRAND_MARK_KINDS } from '../brand-mark-set';
+import { contrast, hexToRgb } from '../color';
 
 /** The marks drawn on the tile artboard, read from the vocabulary by kind, so a payment provider added to the set is a
  *  tile the day it lands: the tile edge below names these members and no other. */
 const TILE_MARKS = BRAND_MARK_NAMES.filter((n) => BRAND_MARK_KINDS[n.split('/')[0]] === 'tile');
+
+/** The page a tile is judged against (#3134): the light page ground, white, where a white tile needs its edge to read
+ *  as a card at all. */
+const PAGE_GROUND = '#FFFFFF';
+/** WCAG's non-text contrast floor (SC 1.4.11): a tile whose own fill meets it against the page needs no edge. */
+const SEPARATES = 3;
+/** A tile's own fill: the first hex fill its document paints, which is the full-bleed ground on a full-bleed tile and
+ *  the card's own body on `payment/generic`, a silhouette with no ground. */
+const tileFill = (name: string): string | undefined => /<path\b[^>]*\sfill="(#[0-9A-Fa-f]{6})"/.exec(BRAND_MARK_DOCUMENTS[name as keyof typeof BRAND_MARK_DOCUMENTS] ?? '')?.[1];
+/** The tiles that draw the 1px edge (owner direction on #3134): only those whose own fill would not separate them from
+ *  the page, under 3:1. Read from each file's fill, so a provider added to the set is judged the day it lands. A tile
+ *  whose fill cannot be read keeps its edge. */
+const EDGED_TILES = TILE_MARKS.filter((n) => { const f = tileFill(n); return !f || contrast(hexToRgb(f), hexToRgb(PAGE_GROUND)) < SEPARATES; });
 
 export const brandMark: ComponentDef = {
   id: 'brand-mark',
@@ -83,8 +102,8 @@ export const brandMark: ComponentDef = {
         role: 'target',
         // Resolved against the mark vocabulary, by the member's own name.
         glyph: '{name}',
-        tileEdge: { when: { name: TILE_MARKS }, radius: 'tile.radius', strokeWidth: 'tile.border-width' },
-        note: 'The mark itself, on its kind\'s artboard, in the provider\'s colors. It takes no ink from the component around it. On a payment tile the frame rounds the corners and draws a 1px edge from the theme, over artwork drawn full-bleed.',
+        tileEdge: { when: { name: TILE_MARKS }, radius: 'tile.radius', strokeWidth: 'tile.border-width', edgeWhen: { name: EDGED_TILES } },
+        note: 'The mark itself, on its kind\'s artboard, in the provider\'s colors. It takes no ink from the component around it. On a payment tile the frame rounds the corners over artwork drawn full-bleed, and draws a 1px edge from the theme when the tile\'s own fill does not stand apart from a white page.',
       },
     },
     codeOnly: [
@@ -173,6 +192,7 @@ export const brandMark: ComponentDef = {
       'Proposed on #2343 (2026-10-25) as a second icon type, after #2316 asked for provider marks the core set could not carry. The owner chose two swap routes, by name (Q-B3 A), separate one-color files only where the provider publishes them (Q-B2 A), and committed artwork for internal use (Q-B1 B).',
       'Payment tiles (Q720 A, 2026-10-26): the tile files are full-bleed, square corners and no border, and the component draws the corner radius and the edge from tokens, so every tile has the same edge at every size and mode. The placeholders were re-exported full-bleed before the provider files arrive.',
       'The owner\'s artwork (PR 3 of #2343, 2026-10-27) replaced the placeholders, with four kinds: payment (32 by 20 tiles, renamed from card, Q780 A), logo (24 high, hugging the artwork, renamed from wallet, Q783 A), social (the full set, each with a one-color form, Q782) and provider (the sign-in glyphs). payment/generic is the owner\'s own card, a silhouette with no ground, so its record says it is not full-bleed.',
+      'Edges and glyph colors (#3134, 2026-10-28): a payment tile draws its edge only when its own fill is under 3:1 against a white page, so Amex, Shop Pay, Venmo and the generic card lose it. provider/apple and provider/facebook are drawn black, where they were white and vanished on the canvas.',
     ],
     projection: [
       'In Figma each mark is a standalone brand-mark/<kind>/<name> component, built from its SVG document by the importer, with every fill literal: no variable, no style and no host ink. A payment tile\'s frame is the one exception, and it is the frame, not the artwork: its corner radii and stroke weight are bound variables, its stroke the border color, and it clips the artwork to its corners.',

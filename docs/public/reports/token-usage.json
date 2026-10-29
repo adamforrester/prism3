@@ -47,23 +47,19 @@
           ],
           "parts": {
             "glyph": {
-              "members": 15,
+              "members": 11,
               "where": {
                 "name": [
                   "payment/affirm",
                   "payment/amazon-pay",
-                  "payment/amex",
                   "payment/apple-pay",
                   "payment/diners-club",
                   "payment/discover",
-                  "payment/generic",
                   "payment/google-pay",
                   "payment/klarna",
                   "payment/maestro",
                   "payment/mastercard",
                   "payment/paypal",
-                  "payment/shop-pay",
-                  "payment/venmo",
                   "payment/visa"
                 ]
               }
@@ -1557,23 +1553,19 @@
           ],
           "parts": {
             "glyph": {
-              "members": 15,
+              "members": 11,
               "where": {
                 "name": [
                   "payment/affirm",
                   "payment/amazon-pay",
-                  "payment/amex",
                   "payment/apple-pay",
                   "payment/diners-club",
                   "payment/discover",
-                  "payment/generic",
                   "payment/google-pay",
                   "payment/klarna",
                   "payment/maestro",
                   "payment/mastercard",
                   "payment/paypal",
-                  "payment/shop-pay",
-                  "payment/venmo",
                   "payment/visa"
                 ]
               }

@@ -303,7 +303,7 @@
  *     no partial push-down → "23: a height change moves the group below…"; the push-down moving a group drawn in the
  *     same run → "33: a mixed run whose group got shorter starts a new group…"; a grouped guide always read as moved →
  *     "11: an unedited replaced table is deleted…"; ungrouped guides not below the groups → "37: Effect styles stands
- *     alone below the last group…"; a Medium or described group title → "23: its title is a Size=Large header…"; a new
+ *     alone below the last group…" (since #3135, "37: Effect styles and Gradient styles each sit in a group frame…"); a Medium or described group title → "23: its title is a Size=Large header…"; a new
  *     default ignoring its inverse's column → "37: a new default joins above its inverse…"; a hand-made group removed
  *     when empty → "37: a hand-made group with no guides left is never removed"; 160 top padding → "23: a group is a
  *     transparent vertical auto layout…".
@@ -3948,8 +3948,17 @@ const main = async (): Promise<void> => {
       `36: every Effect styles row's card is the type=default member with its effect style applied (not: ${unboundCards.map((n) => `${n}→${card(n)?.mainComponent?.name}/${String(card(n)?.effectStyleId)}`).join(', ') || 'none'})`);
     const c2xl = card('shadow/2xl');
     ok(!!c2xl && JSON.stringify((c2xl.fills as { color?: unknown }[]).map((p) => p.color)) === JSON.stringify([{ r: 1, g: 1, b: 1 }]) && c2xl.children.every((k) => k.visible === false)
-      && c2xl.parent?.paddingTop === 74 && c2xl.parent?.paddingLeft === 74 && card('shadow/xs')?.parent?.paddingTop === 12 && card('shadow/xs')?.parent?.paddingLeft === 16,
-      `36: the card is white, its own layers hidden, in a cell padded by the style's reach: 74 for shadow/2xl (22 + 52), the usual 12 × 16 for shadow/xs (${JSON.stringify(c2xl?.fills)}; ${c2xl?.parent?.paddingTop}/${c2xl?.parent?.paddingLeft}; ${card('shadow/xs')?.parent?.paddingTop}/${card('shadow/xs')?.parent?.paddingLeft})`);
+      && c2xl.parent?.paddingTop === 74 && c2xl.parent?.paddingBottom === 74 && c2xl.parent?.paddingRight === 74 && card('shadow/xs')?.parent?.paddingTop === 12 && card('shadow/xs')?.parent?.paddingRight === 16,
+      `36: the card is white, its own layers hidden, in a cell whose top, right and bottom are padded by the style's reach: 74 for shadow/2xl (22 + 52), the usual 12 × 16 for shadow/xs (${JSON.stringify(c2xl?.fills)}; ${c2xl?.parent?.paddingTop}/${c2xl?.parent?.paddingRight}/${c2xl?.parent?.paddingBottom}; ${card('shadow/xs')?.parent?.paddingTop}/${card('shadow/xs')?.parent?.paddingRight})`);
+    // #3135: EVERY SPECIMEN AT THE SAME X, THE HEADER'S. Each card's x inside its column, measured by the shim's layout, is
+    // the Specimen header's text x inside its cell, in every row; the shadow overflows the cell (no clip) instead of
+    // pushing the card right. Typed against the header, not against the padding the code writes.
+    const xIn = (n: N | undefined, top: N | undefined): number => { let x = 0; for (let k = n; k && k !== top; k = k.parent ?? undefined) x += Number(k.x ?? 0); return x; };
+    const head = cellAt(fxG, 0, 1);
+    const headX = xIn(head?.findOne((k) => k.type === 'TEXT') ?? undefined, head);
+    const drift = EFFECT_ROWS.map((n) => ({ n, x: xIn(card(n), card(n)?.parent), clips: card(n)?.parent?.clipsContent })).filter((r) => r.x !== headX || r.clips !== false);
+    ok(EFFECT_ROWS.length > 2 && headX > 0 && drift.length === 0,
+      `36: every Effect styles specimen sits at the Specimen header's x (${headX}) in its column, in all ${EFFECT_ROWS.length} rows, its shadow overflowing an unclipped cell (off: ${drift.map((r) => `${r.n} at ${r.x}${r.clips !== false ? ', clipped' : ''}`).join(', ') || 'none'})`);
     const at = (g: N, name: string, col: number): string => textIn(cellAt(g, rowOf(g, name), col));
     ok(at(fxG, 'shadow/2xl', 2) === 'Drop shadow\nDrop shadow' && at(fxG, 'shadow/2xl', 4) === '6px\n22px' && at(fxG, 'shadow/2xl', 5) === '12px\n52px' && at(fxG, 'shadow/2xl', 6) === '-6px\n-12px'
       && at(fxG, 'shadow/2xl', 7) === '#0A1228 · 14%\n#0A1228 · 12%' && at(fxG, 'shadow/2xl', 8) === 'Elevation 6 of 6 — light mode',
@@ -3991,11 +4000,11 @@ const main = async (): Promise<void> => {
       && styleGuideGroupOf({ type: 'dimension', tier: 'semantic' }) === 'space-size' && styleGuideGroupOf({ type: 'dimension', tier: 'semantic', allRadius: true }) === 'borders'
       && styleGuideGroupOf({ type: 'borderWidth', tier: 'semantic' }) === 'borders' && styleGuideGroupOf({ type: 'fontSize', tier: 'primitive' }) === 'primitive-fonts'
       && styleGuideGroupOf({ type: 'fontWeight', tier: 'semantic' }) === 'semantic-fonts' && styleGuideGroupOf({ type: 'typography', tier: 'semantic' }) === 'semantic-fonts'
-      && styleGuideGroupOf({ type: 'shadow', tier: 'semantic' }) === null && styleGuideGroupOf({ type: 'gradient', tier: 'semantic' }) === null
-      && styleGuideGroupOf({ type: 'color', tier: 'semantic', inverse: true }) === 'inverse-colors',
-      '37: the engine table groups by type and tier: palettes, dimensions, fonts; semantic colors, inverse colors, space & size, borders, fonts; effect and gradient styles stand alone');
-    ok(JSON.stringify(STYLE_GUIDE_GROUPS.map((g) => `${g.tier[0]}:${g.title}${g.under ? ` under ${g.under}` : ''}`)) === JSON.stringify(['p:Palettes', 'p:Dimensions', 'p:Fonts', 's:Semantic colors', 's:Inverse colors under semantic-colors', 's:Space & size', 's:Borders', 's:Fonts']),
-      `37: eight groups in the order they stack, titled as decided, Inverse colors under Semantic colors (${STYLE_GUIDE_GROUPS.map((g) => g.title).join(', ')})`);
+      && styleGuideGroupOf({ type: 'shadow', tier: 'semantic' }) === 'effect-styles' && styleGuideGroupOf({ type: 'gradient', tier: 'semantic' }) === 'gradient-styles'
+      && styleGuideGroupOf({ type: 'color', tier: 'semantic', inverse: true }) === 'inverse-colors' && styleGuideGroupOf({ type: 'later-type', tier: 'semantic' }) === null,
+      '37: the engine table groups by type and tier: palettes, dimensions, fonts; semantic colors, inverse colors, space & size, borders, fonts, effect styles, gradient styles (#3135); a later type stands alone');
+    ok(JSON.stringify(STYLE_GUIDE_GROUPS.map((g) => `${g.tier[0]}:${g.title}${g.under ? ` under ${g.under}` : ''}`)) === JSON.stringify(['p:Palettes', 'p:Dimensions', 'p:Fonts', 's:Semantic colors', 's:Inverse colors under semantic-colors', 's:Space & size', 's:Borders', 's:Fonts', 's:Effect styles', 's:Gradient styles']),
+      `37: ten groups in the order they stack, titled as decided, Inverse colors under Semantic colors, Effect styles and Gradient styles last (#3135) (${STYLE_GUIDE_GROUPS.map((g) => g.title).join(', ')})`);
     // Through the plan, on a file with another brand's families: an `accent` ramp under a foreign root, a semantic `link`
     // family, an icon-size collection and a border-width collection the prism3 emission does not have.
     const gf = await phase2File();
@@ -4129,14 +4138,23 @@ const main = async (): Promise<void> => {
       && tableFrame(iv.sem, 'Inverse glow')!.parent === invGrid(),
       `37: a new default joins the end, and its inverse moves under it; a new pair takes a new column, inverse under default (Link ${cellOf(tableFrame(iv.sem, 'Link'))}, Inverse link ${cellOf(tableFrame(iv.sem, 'Inverse link'))}, Glow ${cellOf(tableFrame(iv.sem, 'Glow'))}, Inverse glow ${cellOf(tableFrame(iv.sem, 'Inverse glow'))})`);
 
-    // (7) UNGROUPED GUIDES (Q6 A, Q8 A): effect styles stand alone, below the last group, left-aligned with the groups.
+    // (7) THE EFFECT AND GRADIENT STYLES IN FRAMES OF THEIR OWN (#3135, superseding Q6 A for them): each guide sits in its
+    // own group frame, the frame the other groups use, stacked last down the semantic page, left-aligned with the groups,
+    // 320 apart.
     const ef = await phase2File();
     ef.effectStyles.push({ id: 'S:effect:37,', name: 'elevation/1', description: '', effects: [{ type: 'DROP_SHADOW', visible: true, color: { r: 0, g: 0, b: 0, a: 0.2 }, offset: { x: 0, y: 2 }, radius: 4, spread: 0 }] });
+    ef.paintStyles.push({ id: 'S:paint:37,', name: 'glow/1', description: '', paints: [{ type: 'GRADIENT_LINEAR', gradientTransform: [[1, 0, 0], [0, 1, 0]], gradientStops: [{ position: 0, color: { r: 1, g: 0, b: 0, a: 1 } }, { position: 1, color: { r: 0, g: 0, b: 1, a: 1 } }] }] });
     await draw(ef.api, contract);
-    const eff = tableFrame(ef.sem, 'Effect styles')!;
-    const lastGroup = pageFrames(ef.sem).filter((n) => n !== eff).sort((a, b) => b.y - a.y)[0];
-    ok(eff.parent === ef.sem && eff.x === groupFrame(ef.sem, 'Space & size')!.x && eff.y === lastGroup.y + lastGroup.height + 320 && !eff.pluginData['prism3-style-guide-in-group'],
-      `37: Effect styles stands alone below the last group, left-aligned, 320 below it (${eff.x},${eff.y}; ${lastGroup.name} ends at ${lastGroup.y + lastGroup.height})`);
+    const eff = tableFrame(ef.sem, 'Effect styles')!, grd = tableFrame(ef.sem, 'Gradient styles')!;
+    const effG = groupFrame(ef.sem, 'Effect styles'), grdG = groupFrame(ef.sem, 'Gradient styles');
+    const inside = (n: N | undefined, g: N | undefined): boolean => { for (let k = n?.parent; k; k = k.parent ?? undefined) if (k === g) return true; return false; };
+    const semGroups = pageFrames(ef.sem).filter((n) => n.pluginData['prism3-style-guide-group']).sort((a, b) => a.y - b.y);
+    const beforeEff = semGroups[semGroups.indexOf(effG!) - 1];
+    ok(!!effG && !!grdG && inside(eff, effG) && inside(grd, grdG) && !!eff.pluginData['prism3-style-guide-in-group'] && !!grd.pluginData['prism3-style-guide-in-group']
+      && semGroups.slice(-2).map((g) => g.name).join(',') === 'Style guides — Effect styles,Style guides — Gradient styles'
+      && effG.x === groupFrame(ef.sem, 'Space & size')!.x && grdG.x === effG.x
+      && !!beforeEff && effG.y === beforeEff.y + beforeEff.height + 320 && grdG.y === effG.y + effG.height + 320,
+      `37: Effect styles and Gradient styles each sit in a group frame of their own, the last two on the page, left-aligned with the groups, 320 apart (${semGroups.map((g) => `${g.name.replace('Style guides — ', '')}@${g.x},${g.y}`).join('; ')}; Effect styles in its frame: ${inside(eff, effG)}; Gradient styles in its frame: ${inside(grd, grdG)})`);
 
     // (8) A HEADER SET WITHOUT Size=Large (the owner's own set has Medium only): the group title uses Medium, named.
     const md = page(FC), mp = page(PRIM), ms = page(SEM);
@@ -4522,7 +4540,7 @@ const main = async (): Promise<void> => {
     ok(threw === 'no version' && tablesOn(refused.sem).length + tablesOn(refused.prim).length === 0, `41: a version that cannot be saved ends the run with nothing drawn (${threw})`);
   }
 
-  console.log('42. group paints (#2953): every group Prism3 draws is filled and stroked by role, a standalone guide is not, a designer\'s paints are kept');
+  console.log('42. group paints (#2953): every group Prism3 draws is filled and stroked by role, a guide inside one is not, a designer\'s paints are kept');
   {
     // Typed from the issue (the owner's reference file), never read off style-guide.ts.
     const FILL_ROLE = 'color/foreground/primary', STROKE_ROLE = 'color/border/secondary';
@@ -4538,14 +4556,15 @@ const main = async (): Promise<void> => {
     // (1) A FIRST RUN paints every group frame, on both pages.
     const first = await draw(pf.api, contract);
     const groups = groupsOf();
-    ok(JSON.stringify(groups.map((g) => g.name)) === JSON.stringify(['Style guides — Palettes', 'Style guides — Semantic colors', 'Style guides — Inverse colors']) && groups.every(painted),
-      `42: a first run paints all 3 group frames (Palettes, Semantic colors, Inverse colors): fill bound to ${FILL_ROLE}, a 1px inside stroke bound to ${STROKE_ROLE}, radius 2 (not: ${groups.filter((g) => !painted(g)).map((g) => `${g.name} ${paintsOf(g)}`).join('; ') || 'none'})`);
+    ok(JSON.stringify(groups.map((g) => g.name)) === JSON.stringify(['Style guides — Palettes', 'Style guides — Semantic colors', 'Style guides — Inverse colors', 'Style guides — Effect styles']) && groups.every(painted),
+      `42: a first run paints all 4 group frames (Palettes, Semantic colors, Inverse colors, Effect styles): fill bound to ${FILL_ROLE}, a 1px inside stroke bound to ${STROKE_ROLE}, radius 2 (not: ${groups.filter((g) => !painted(g)).map((g) => `${g.name} ${paintsOf(g)}`).join('; ') || 'none'})`);
     ok(!first.misses.some((m) => m.includes('Style guide groups')), `42: with both roles in the file, no note about group paints (${first.misses.join('; ')})`);
 
-    // (2) A STANDALONE GUIDE (Effect styles, in no group) is not painted as a group.
+    // (2) THE GUIDE INSIDE A GROUP is not painted as one: the Effect styles guide, in its own group since #3135, stays
+    // unstyled while the group frame around it is painted (1).
     const eff = tableFrame(pf.sem, 'Effect styles')!;
-    ok(eff.parent === pf.sem && boundId(eff.fills) !== idOf(FILL_ROLE) && !(eff.strokes as unknown[]).length && eff.cornerRadius !== 2,
-      `42: the standalone Effect styles guide stays unstyled (${paintsOf(eff)})`);
+    ok(eff.parent !== pf.sem && boundId(eff.fills) !== idOf(FILL_ROLE) && !(eff.strokes as unknown[]).length && eff.cornerRadius !== 2,
+      `42: the Effect styles guide inside its group stays unstyled (${paintsOf(eff)})`);
 
     // (3) A SECOND RUN keeps what it painted, and never touches a designer's paints: a fill alone, a stroke alone.
     const [byFill, byStroke, kept] = [groupFrame(pf.prim, 'Palettes')!, groupFrame(pf.sem, 'Inverse colors')!, groupFrame(pf.sem, 'Semantic colors')!];

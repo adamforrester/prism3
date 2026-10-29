@@ -19,7 +19,7 @@ A provider's mark, drawn as the provider supplies it: the glyph a sign-in button
 
 Shown on the default member: name `logo/affirm`.
 
-1. **Glyph** — The mark itself, on its kind's artboard, in the provider's colors. It takes no ink from the component around it. On a payment tile the frame rounds the corners and draws a 1px edge from the theme, over artwork drawn full-bleed.
+1. **Glyph** — The mark itself, on its kind's artboard, in the provider's colors. It takes no ink from the component around it. On a payment tile the frame rounds the corners over artwork drawn full-bleed, and draws a 1px edge from the theme when the tile's own fill does not stand apart from a white page.
 
 ## Styles
 
@@ -119,12 +119,6 @@ Keyed by `name`.
 | --- | --- | --- | --- | --- |
 | `glyph` | — | `color.border.primary` | — | — |
 
-**name=payment/amex**
-
-| Part | Fill | Stroke | Ink | Icon |
-| --- | --- | --- | --- | --- |
-| `glyph` | — | `color.border.primary` | — | — |
-
 **name=payment/apple-pay**
 
 | Part | Fill | Stroke | Ink | Icon |
@@ -138,12 +132,6 @@ Keyed by `name`.
 | `glyph` | — | `color.border.primary` | — | — |
 
 **name=payment/discover**
-
-| Part | Fill | Stroke | Ink | Icon |
-| --- | --- | --- | --- | --- |
-| `glyph` | — | `color.border.primary` | — | — |
-
-**name=payment/generic**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -174,18 +162,6 @@ Keyed by `name`.
 | `glyph` | — | `color.border.primary` | — | — |
 
 **name=payment/paypal**
-
-| Part | Fill | Stroke | Ink | Icon |
-| --- | --- | --- | --- | --- |
-| `glyph` | — | `color.border.primary` | — | — |
-
-**name=payment/shop-pay**
-
-| Part | Fill | Stroke | Ink | Icon |
-| --- | --- | --- | --- | --- |
-| `glyph` | — | `color.border.primary` | — | — |
-
-**name=payment/venmo**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
