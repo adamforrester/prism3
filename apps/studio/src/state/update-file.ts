@@ -179,13 +179,13 @@ export const UPDATE_COPY = {
   setupSub: 'The pages, the templates and the style-guide cells. The cover too, while Documentation has it on.',
   theme: 'Theme',
   themeSub: 'The brand’s variables and styles. Layers bound to them restyle at once.',
-  /** #3129 (Q832 A, Q3129.7–11 A): the add queue's group and the due sets' group. DRAFT, the wireframe's own words. */
+  /** #3129 (Q832 A, Q3129.7–11 A): the add queue's group and the due sets' group. DRAFT, the wireframe's own words.
+   *  R6 (the owner, 2026-10-28): both sit under one section, Components, at Theme's level, as its two subtitles. */
+  components: 'Components',
   toAdd: 'To add',
   toAddSub: (n: number): string => `${plural(n)} chosen on Components. Each is added with its usage panel while Documentation has panels on.`,
   removeSet: (name: string): string => `Remove ${name} from To add`,
   removeAll: 'Remove all',
-  queueEmpty: 'Nothing to add. Tick sets on Components to add them here.',
-  goComponents: 'Go to Components',
   queueFresh: (n: number): string => `Nothing chosen yet. This file holds none of the ${n} component sets.`,
   addAll: (n: number): string => `Add all ${n}`,
   due: 'Due',

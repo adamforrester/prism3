@@ -2028,6 +2028,21 @@ const gotoInteractive = async (page) => {
 };
 /** Choose a mode in the preview header's mode control, and wait for it to be the checked one. */
 const chooseMode = async (page, mode) => {
+  // #3129 R4: Components shows no mode control, and its preview follows the mode Theme shows: from Components, the mode
+  // is chosen on Brand and the page visited again.
+  const onComponents = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
+  if (onComponents) {
+    // Brand's header also holds Contrast, so its radios can give way to the select of the same modes.
+    await goPlace(page, 'brand');
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
+    if (await radio.count() && await radio.first().isVisible()) await hooks.click(radio.first());
+    else await page.locator('[data-p3="mode-select"]').selectOption(mode);
+    await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
+      || document.querySelector('[data-p3="mode-select"]')?.value === m, mode);
+    await goPlace(page, 'components');
+    return;
+  }
   await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
 };

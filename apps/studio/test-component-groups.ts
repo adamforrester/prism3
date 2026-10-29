@@ -16,6 +16,8 @@
  *   · a box queuing a set that can't be built (`buildableOf` bypassed) → `G4 under call 8…`.
  *   · #3129: `addableOf` keeping the sets the file holds → `Q3129.6 A: a box acts on the sets the file could add …`; a
  *     mixed box re-queuing its queued sets (`toggleSets` without its filter) → `a mixed box queues the rest, and only the rest …`.
+ *   · #3129 R5: `familyBox` returning `boxOfSets`' state (three-state again) → `R5: a family's box is on only while …`;
+ *     R1: `selectAllOf` without its queued filter → `R1: Select all queues the sets the file could add …`.
  *   · search keeping a family only on its own label → `search: a family stays while any of its sets matches`.
  *   · Stop ending the run at once (before the current set's result) → `call 16: Stop waits for the set being built…`.
  *   · "Also builds" by component name again (`displayNameOf` bypassed) → `idea 7: the sets a build makes first…`.
@@ -38,7 +40,7 @@
  */
 import { COMPONENT_CATALOG_DATA as catalog } from './src/state/component-catalog-data';
 import type { Catalog, CatalogEntry } from './src/state/component-catalog';
-import { addableOf, alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, rowOfFocus, sentenceCase, setFocusKey, tiersOf, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
+import { addableOf, alsoBuilds, boxOfSets, costOf, deselectAllOf, displayNameOf, familiesToOpen, familyBox, groupsOf, inListOrder, rowMatches, rowOfFocus, selectAllOf, sentenceCase, setFocusKey, tiersOf, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
 import { TAXONOMY } from '../plugin/src/file-taxonomy';
 import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS, DIALOG_TITLE_TYPE_KEYS, BANNER_STYLE_FILL_KEYS } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -190,8 +192,26 @@ const withOff: Catalog = [...catalog, off];
 const picked = toggleSets(withOff, ['badge', 'planted-off'], new Set(), []);
 ok(picked.ids.join() === 'badge' && boxOfSets(withOff, ['planted-off'], new Set(), []) === 'off',
   `G4 under call 8: a box over a set that can't be built never queues it (${JSON.stringify(picked)})`);
-ok(GROUPS_COPY.addSet('Badge') === 'Add Badge to file' && GROUPS_COPY.addAllOf('Radio') === 'Add all of Radio to file' && GROUPS_COPY.addAll('Fields') === 'Add all Fields to file'
-  && GROUPS_COPY.addCount(7, 41) === '7 of 41 to add', 'Q3129.4 A, Q3129.5 A: the boxes\' names and the page control\'s count, as the wireframe words them (DRAFT)');
+ok(GROUPS_COPY.addSet('Badge') === 'Add Badge to file' && GROUPS_COPY.addAllOf('Radio') === 'Add all of Radio to file' && GROUPS_COPY.addAll('Fields') === 'Add all Fields to file',
+  'Q3129.4 A: the boxes\' names, as the wireframe words them (DRAFT)');
+// R5 (the owner, 2026-10-28): a row's box is two-state. Planted: Radio's control in the file, its group queued, its row
+// not, so the family is partly in the file and partly queued.
+const radio = ['radio-control', 'radio-group', 'radio-row'];
+ok(familyBox(catalog, radio, new Set(['radio-group']), ['radio-control']) === 'off' && boxOfSets(catalog, radio, new Set(['radio-group']), ['radio-control']) === 'mixed'
+  && familyBox(catalog, radio, new Set(['radio-group', 'radio-row']), ['radio-control']) === 'on',
+  'R5: a family\'s box is on only while every part the file lacks is queued; partly queued it reads off, where a section\'s reads mixed');
+const rw = toggleSets(catalog, radio, new Set(['radio-group']), ['radio-control']);
+ok(rw.on && JSON.stringify(rw.ids) === JSON.stringify(['radio-row']),
+  `R5: a family partly in the file and partly queued: its tick queues the missing part left, never one the file holds (${JSON.stringify(rw)})`);
+// R1: a tier's Select all and Deselect all, over the planted ids.
+const tierIds = ['badge', 'counter', 'divider', 'planted-off'];
+ok(JSON.stringify(selectAllOf(withOff, tierIds, new Set(['counter']), ['divider'])) === JSON.stringify(['badge'])
+  && JSON.stringify(deselectAllOf(withOff, tierIds, new Set(['counter', 'divider']), ['divider'])) === JSON.stringify(['counter']),
+  'R1: Select all queues the sets the file could add that are not queued; Deselect all takes out the queued ones; neither touches a set the file holds or one that can\'t be built');
+ok(selectAllOf(catalog, ['badge'], new Set(['badge']), []).length === 0 && deselectAllOf(catalog, ['badge'], new Set(), []).length === 0,
+  'R1: each action is empty when it would change nothing');
+ok(GROUPS_COPY.selectAll === 'Select all' && GROUPS_COPY.deselectAll === 'Deselect all' && GROUPS_COPY.settingsTier === 'Component settings',
+  'R1, R2: the tier actions and the settings tier\'s caption, in the owner\'s words');
 
 console.log('\n3. Search (the Studio\'s search, #2700\'s edge state)');
 const checkbox = groups.flatMap((g) => g.rows).find((r) => r.label === 'Checkbox')!;

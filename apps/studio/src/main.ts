@@ -2009,7 +2009,6 @@ const updateFileLend: UpdateFileLend = {
     handEdits: host.handEdits, updateCheck: host.updateCheck, queue: host.addQueue,
   }),
   queueSets,
-  goComponents: () => setPage(pageOfTab('components')),
   check: (theme) => commit.requestFileSets(panelBrand(theme)),
   checkSets: (defs, theme) => { setHost({ updateCheck: 'pending' }); updateChanged(); commit.requestUpdateCheck(defs, panelBrand(theme)); },
   run: (steps, sets, update) => {

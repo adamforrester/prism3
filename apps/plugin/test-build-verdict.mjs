@@ -424,7 +424,7 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
 //
 // The zeroth terminating condition is "nothing has terminated yet", and it needs its own assertion: a control that
 // mounted blank or busy would sail past every check below, which read the control only after a build. Since #2909 the
-// control is Update file, and on a set-up file with nothing queued its To add offers Go to Components (#3129). The proving
+// control is Update file, and on a set-up file with nothing queued it shows no To add at all (#3129 R7). The proving
 // build after it shows this probe CAN see a busy label and a result, so the fresh reading is a measurement.
 {
   const { page, errors } = await openPanel();
@@ -434,13 +434,12 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
   await openUpdate(page);
   const list = await page.evaluate(() => ({
     rows: document.querySelectorAll('[data-p3="update-add-row"]').length,
-    line: document.querySelector('[data-p3="update-add-line"]')?.textContent ?? null,
-    go: !!document.querySelector('[data-p3="update-go-components"]'),
+    group: !!document.querySelector('[data-p3="update-group-add"], [data-p3="update-add-line"]'),
     theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
   }));
-  ok(list.rows === 0 && list.line === 'Nothing to add. Tick sets on Components to add them here.' && list.go,
-    `#3129 Q832 A: on a set-up file with nothing queued, To add says so and offers Go to Components; no set is listed to tick — ${JSON.stringify(list)}`);
   ok(list.theme === 'true', `Q2909.2 A: the checklist always shows the theme, ticked — read ${list.theme}`);
+  hooks.absent(ok, { seen: list.theme === 'true', state: 'the checklist drawn, its Theme item ticked' }, list.rows === 0 && !list.group,
+    `#3129 Q832 A, R7: on a set-up file with nothing queued there is no To add at all; no set is listed to tick — ${JSON.stringify(list)}`);
   await hooks.click(page.locator('[data-p3="update-cancel"]'));
   await startBuild(page, undefined, 'the fresh panel\'s proving build');
   const during = await readSurfaces(page);

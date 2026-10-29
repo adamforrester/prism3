@@ -20,11 +20,12 @@
  * against the panel's brand while Theme is ticked, else the file's stored one (#3023 Q701 B, `brandFor`), so a Theme toggle
  * checks the file again.
  *
- * TO ADD (#3129, Q832 A, Q3129.7–10 A): the file's add queue, above Due, in Components' order and with its names
- * (`queuedOf`, `displayNameOf`). Each row has Remove (×), and from two rows up the group's head has Remove all; there is
- * no tick, so a queued set runs. Each removal is a queue write, as Components' boxes are, so a teammate sees it. An empty
- * queue says so and offers Go to Components; a file that is not set up starts empty and offers Add all, which writes every
- * set it lacks into the queue. A file that lacks no set shows no To add.
+ * TO ADD (#3129, Q832 A, Q3129.7–10 A; the owner's revisions R6 and R7): the file's add queue, in Components' order and
+ * with its names (`queuedOf`, `displayNameOf`). To add and Due are the two subtitles of one section, Components, at
+ * Theme's level (R6). Each To add row has Remove (×), and from two rows up the subtitle's line has Remove all; there is
+ * no tick, so a queued set runs. Each removal is a queue write, as Components' boxes are, so a teammate sees it. An
+ * empty queue shows no To add at all (R7); a file that is not set up starts empty and still offers Add all, which
+ * writes every set it lacks into the queue (Q3129.9 A, Q3129.10 A, kept). With neither group, no Components section.
  *
  * CLEAN UP: Prune stale, moved here with its own preview (Q668 A): the preview runs as the tab opens and writes nothing;
  * its Delete is the confirmed prune. It never rides Update. The style guide's retired tables (Q412 A) are offered here
@@ -75,8 +76,6 @@ export type UpdateFileLend = {
   };
   /** #3129: queue `ids` in the file (`on`), or take them out (`add-queue`). */
   readonly queueSets: (ids: readonly string[], on: boolean) => void;
-  /** #3129: open Components, where sets are chosen to add. */
-  readonly goComponents: () => void;
   /** Ask the host which sets the file holds (`file-sets-request`). `theme`: whether Theme is ticked, which decides the
    *  brand what is due is measured against (#3023 Q701 B: the panel's, else the file's stored one). */
   readonly check: (theme: boolean) => void;
@@ -222,12 +221,20 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       const add = unrec.filter((id) => { const c = checkOf(id); return c && !c.blocked && !c.upToDate && !t.update.has(id); });
       if (add.length) { ticks = { ...t, update: new Set([...t.update, ...add]) }; return updateBody(); }
     }
-    if (queue.length || addable.length) {
-      const grp = hook(h('div', 'p3-upd-item'), 'update-item-add');
+    const updating = [...new Set([...due, ...t.update])];
+    // #3129 R6: To add and Due are the two subtitles of one section, Components, at Theme's level. Where a removal takes
+    // the last of To add away, focus goes on to the next control: Due's first tick, else Style guides'.
+    const after = updating.length ? `due=${updating[0]}` : 'item=guides';
+    const comps = hook(h('div', 'p3-upd-item'), 'update-item-components');
+    comps.append(hook(h('b', 'p3-upd-title', UPDATE_COPY.components), 'update-components-title'));
+    // R7: an empty queue shows no To add at all, except on a file that is not set up, which offers Add all (Q3129.9 A,
+    // Q3129.10 A, both kept by the revision).
+    if (queue.length || (fresh && addable.length)) {
+      const grp = hook(h('div', 'p3-upd-group'), 'update-group-add');
       const head = h('div', 'p3-upd-grouphead');
-      head.append(h('b', 'p3-upd-title', UPDATE_COPY.toAdd));
+      head.append(h('span', 'p3-upd-subtitle', UPDATE_COPY.toAdd));
       // Q3129.8 A: Remove all, a ghost button in the group's head, from two rows up.
-      if (queue.length >= 2) head.append(btn('p3-btn p3-btn-ghost p3-upd-removeall', 'update-remove-all', 'remove-all', UPDATE_COPY.removeAll, () => { refocus = 'go-components'; lend.queueSets(queue, false); }));
+      if (queue.length >= 2) head.append(btn('p3-btn p3-btn-ghost p3-upd-removeall', 'update-remove-all', 'remove-all', UPDATE_COPY.removeAll, () => { refocus = after; lend.queueSets(queue, false); }));
       grp.append(head);
       if (queue.length) {
         grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.toAddSub(queue.length)), 'update-add-line'));
@@ -246,26 +253,22 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
           x.dataset.key = `remove=${id}`;
           x.setAttribute('aria-label', UPDATE_COPY.removeSet(name));
           x.append(glyph('x'));
-          // Focus goes to the next row's Remove, else the one before, else Go to Components.
-          x.onclick = () => { const to = queue[i + 1] ?? queue[i - 1]; refocus = to ? `remove=${to}` : 'go-components'; lend.queueSets([id], false); };
+          // Focus goes to the next row's Remove, else the one before, else past To add.
+          x.onclick = () => { const to = queue[i + 1] ?? queue[i - 1]; refocus = to ? `remove=${to}` : after; lend.queueSets([id], false); };
           row.append(x);
           list.append(row);
         });
         grp.append(list);
-      } else if (fresh) {
+      } else {
         // Q3129.9 A, Q3129.10 A: a file that is not set up starts with nothing queued; Add all writes every set it lacks
-        // into the queue, as Components' page box does.
+        // into the queue, as Components' Select all does.
         grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.queueFresh(addable.length)), 'update-add-line'),
           btn('p3-btn p3-btn-page p3-upd-addall', 'update-add-all', 'add-all', UPDATE_COPY.addAll(addable.length), () => { refocus = `remove=${addable[0]}`; lend.queueSets(addable, true); }));
-      } else {
-        grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.queueEmpty), 'update-add-line'),
-          btn('p3-btn p3-btn-ghost p3-upd-gocomp', 'update-go-components', 'go-components', UPDATE_COPY.goComponents, () => { close(); lend.goComponents(); }));
       }
-      body.push(grp);
+      comps.append(grp);
     }
-    const updating = [...new Set([...due, ...t.update])];
-    const sets = hook(h('div', 'p3-upd-item'), 'update-item-due');
-    sets.append(h('b', 'p3-upd-title', UPDATE_COPY.due));
+    const sets = hook(h('div', 'p3-upd-group'), 'update-group-due');
+    sets.append(h('span', 'p3-upd-subtitle', UPDATE_COPY.due));
     if (updating.length) {
       sets.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.dueSub(updating.length)), 'update-due-line'));
       const list = hook(h('div', 'p3-upd-sets'), 'update-due-sets');
@@ -320,8 +323,10 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         }));
       sets.append(line);
     }
-    // Due is drawn while a set is due or unchecked (the check offered below); a file with neither has no Due group.
-    if (updating.length || unrec.length) body.push(sets);
+    // Due is drawn while a set is due or unchecked (the check offered below); a file with neither has no Due group, and
+    // with neither group there is no Components section.
+    if (updating.length || unrec.length) comps.append(sets);
+    if (comps.children.length > 1) body.push(comps);
     body.push(item('guides', t.guides, UPDATE_COPY.guides, UPDATE_COPY.guidesSub, () => { ticks = { ...t, guides: !t.guides }; }));
     const t2 = ticks ?? t;
     // The update waits on the check's answer: its counts are what the person reviews, and its hash what the update echoes.

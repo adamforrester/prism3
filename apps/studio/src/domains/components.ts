@@ -7,14 +7,18 @@
  *     Subcomponents (note 4, call 11 A; #2905). Outside the sections with settings, each row is a family (several sets on one Figma page,
  *     closed until one of its sets is selected or the row is focused, call 15 A) or a set of its own, alphabetical
  *     (note 2), labeled by page or by component name (call 14 A), with its members and the page it lands on (idea 12).
- *   · In the plugin, THE ADD QUEUE (#3129, owner decisions Q832 A, Q833 A, Q3129.4–6 A): a box on every set the file
- *     could add (buildable, not in the file), and a three-state box on each family and section over those sets (note 5,
- *     call 8 A), and one on the page under the intro, "Add every set not in this file", with how many of them are
- *     queued. A box queues its sets in the file (`add-queue`), and a queued set's tag reads To add; Update file builds
- *     the queue. A set the file holds has no box, and its cell stays empty so the names align; a family or section with
- *     nothing to add has none either. In a section with settings, a set's box takes the empty fold cell. Under a search
- *     the section and page boxes act on the rows shown (Q391 A). The boxes wait for the host's full read of the file.
- *     There is no Build bar: building is Update file's (Q2909.5 A).
+ *   · In the plugin, THE ADD QUEUE (#3129, owner decisions Q832 A, Q833 A, Q3129.4–6 A, and the owner's revisions R1,
+ *     R2 and R5 of 2026-10-28): ONE BOX PER FAMILY (R5), on each row the file could add a set of (buildable, not in the
+ *     file): a family's row, or a set's that is a row of its own. A family's parts are listed with no box of their own;
+ *     a part is updated alone through Update file's Due. The box is on while every set of its row the file could add is
+ *     queued, and a tick queues the rest, so a family partly in the file queues its missing parts. A section's box is
+ *     three-state over its rows (call 8 A); in a section with settings whose rows are one family, the section's box is
+ *     that family's, and in one with several rows, each row's box takes the fold cell of its first set. A tier's caption
+ *     line carries Select all and Deselect all, right-aligned (R1), and the shared settings sit under a tier of their
+ *     own, captioned Component settings (R2). A box queues its sets in the file (`add-queue`), and a queued set's tag
+ *     reads To add; Update file builds the queue. A row with nothing to add has no box, and its cell stays empty so the
+ *     names align. Under a search the section boxes and the tier actions act on the rows shown (Q391 A). The boxes wait
+ *     for the host's full read of the file. There is no Build bar: building is Update file's (Q2909.5 A).
  *   · On the web the list is read-only: no boxes, no queue (Q3129.12 A), and one line saying building needs the plugin.
  *
  * A NAME FOCUSES, A BOX QUEUES: focusing does not queue, and the preview pane shows the focused family. At the narrow
@@ -54,8 +58,8 @@ import { searchQuery, setSearchHits, subscribe } from '../state/store';
 import { componentCatalog, type Catalog } from '../state/component-catalog';
 import { componentsPage, setComponentsPage, watchComponentsPage } from '../state/components-page';
 import {
-  addableOf, boxOfSets, buildableOf, costOf, entryOf, familiesToOpen, fmt, GROUPS_COPY, tiersOf, rowMatches, rowOfFocus,
-  SECTION_BLOCKS, setFocusKey, toggleSets, type BlockKey, type BoxState, type GroupRow, type GroupSection,
+  addableOf, boxOfSets, buildableOf, costOf, deselectAllOf, entryOf, familiesToOpen, familyBox, fmt, GROUPS_COPY, tiersOf, rowMatches,
+  rowOfFocus, SECTION_BLOCKS, selectAllOf, setFocusKey, toggleSets, type BlockKey, type BoxState, type GroupRow, type GroupSection,
 } from '../state/component-groups';
 import { glyph, h, hook } from '../shell/dom';
 import { saidOf, stateLine } from '../ui/lever-kit';
@@ -155,12 +159,17 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     // Call 15 A: a family opens when one of its sets is queued from its box.
     if (open && w.on && !componentsPage().open.has(open)) setComponentsPage({ open: new Set([...componentsPage().open, open]) });
   };
-  /** A box over `ids` when the file could add any of them, else the empty cell that keeps the names aligned (Q3129.6 A). */
-  const boxOrCell = (key: string, ids: readonly string[], label: string, open: string | undefined, empty: 'p3-cp-nobox' | 'p3-cp-fold-space'): HTMLElement => {
+  /** A box over `ids` when the file could add any of them, else the empty cell that keeps the names aligned (Q3129.6 A).
+   *  `three`: a section's box, three-state over its rows (call 8 A); a row's is two-state (R5, `familyBox`). */
+  const boxOrCell = (key: string, ids: readonly string[], label: string, open: string | undefined, empty: 'p3-cp-nobox' | 'p3-cp-fold-space', three = false): HTMLElement => {
     const p = present()!;
     const catalog = componentCatalog();
-    return addableOf(catalog, ids, p).length ? box(key, boxOfSets(catalog, ids, queued(), p), label, () => toggle(ids, open)) : h('span', empty);
+    if (!addableOf(catalog, ids, p).length) return h('span', empty);
+    return box(key, three ? boxOfSets(catalog, ids, queued(), p) : familyBox(catalog, ids, queued(), p), label, () => toggle(ids, open));
   };
+  /** A row's box: "Add {set} to file" on a set alone on its row, "Add all of {family} to file" on a family (Q3129.4 A). */
+  const rowBox = (row: GroupRow, empty: 'p3-cp-nobox' | 'p3-cp-fold-space'): HTMLElement =>
+    boxOrCell(`row=${row.key}`, row.ids, row.family ? GROUPS_COPY.addAllOf(row.label) : GROUPS_COPY.addSet(row.label), row.family ? row.key : undefined, empty);
 
   /** #2909 Q2909.8 A: a set's statuses in this file, as tags (plugin only; the web has no file). A family shows what its
    *  sets show, each status once, in the statuses' own order. */
@@ -178,8 +187,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
 
   /** One set row inside a family, or a set on its own (`single` is its row). `flat`: a family's set listed at a section's
    *  edge (#2905, Q8 A), which focuses as itself, since its family has no row. `edge`: any row in a section with
-   *  settings, whose box takes the fold cell (#3129). */
-  const setRow = (catalog: Catalog, id: string, row: GroupRow, member: boolean, flat = false, edge = flat): HTMLElement => {
+   *  settings, whose box takes the fold cell (#3129). `boxed`: the row whose box this line carries (R5: a set alone on
+   *  its row, or the first set of a family listed at a section's edge); a part carries none. */
+  const setRow = (catalog: Catalog, id: string, row: GroupRow, member: boolean, flat = false, edge = flat, boxed: GroupRow | null = null): HTMLElement => {
     const e = entryOf(catalog, id)!;
     const r = hook(h('div', member ? 'p3-cp-row p3-cp-member' : 'p3-cp-row'), member ? 'cp-member' : 'cp-row');
     r.dataset.set = id;
@@ -187,10 +197,10 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     if (!e.buildable) r.dataset.off = 'true';
     const label = member ? e.name : row.label;
     // #3129: the box sits in the row's leading cell; in a section with settings it takes the empty fold cell (flat rows
-    // have no leading cell).
+    // have no leading cell). R5: only a row's own line carries a box; a family's part keeps the empty cell.
     const boxes = !!present();
-    if (boxes && !edge) r.append(boxOrCell(`set=${id}`, [id], GROUPS_COPY.addSet(label), row.family ? row.key : undefined, 'p3-cp-nobox'));
-    if (boxes && edge) r.append(boxOrCell(`set=${id}`, [id], GROUPS_COPY.addSet(label), undefined, 'p3-cp-fold-space'));
+    if (boxes && !edge) r.append(boxed ? rowBox(boxed, 'p3-cp-nobox') : h('span', 'p3-cp-nobox'));
+    if (boxes && edge) r.append(boxed ? rowBox(boxed, 'p3-cp-fold-space') : h('span', 'p3-cp-fold-space'));
     else r.append(h('span', 'p3-cp-fold-space'));
     r.append(nameButton(row, label, member, flat ? setFocusKey(id) : undefined));
     const meta = hook(h('span', 'p3-cp-meta'), 'cp-meta');
@@ -230,7 +240,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     const open = s.open.has(row.key);
     const r = hook(h('div', 'p3-cp-row p3-cp-family'), 'cp-row');
     r.dataset.row = row.key;
-    if (present()) r.append(boxOrCell(`row=${row.key}`, row.ids, GROUPS_COPY.addAllOf(row.label), row.key, 'p3-cp-nobox'));
+    if (present()) r.append(rowBox(row, 'p3-cp-nobox'));
     const fold = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-cp-fold'), 'cp-fold');
     fold.type = 'button';
     fold.dataset.key = `fold=${row.key}`;
@@ -288,7 +298,10 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     // #2825: the box sits in a cell one title line high, centered on it, so it centers on the title's first line as a
     // row's box centers on its name, however the count wraps. With nothing to add the cell stays, empty (Q3129.6 A).
     const line1 = (n: HTMLElement): HTMLElement => { const c = h('span', 'p3-cp-line1'); c.append(n); return c; };
-    if (present()) head.append(line1(boxOrCell(`sec=${sec.kind}`, shown, GROUPS_COPY.addAll(sec.title), undefined, 'p3-cp-nobox')));
+    // R5: a section with settings whose rows are one family stands in for that family's row (Q8 A), so its box is the
+    // family's, two-state; any other section's is three-state over its rows.
+    const one = sec.flat && sec.rows.length === 1;
+    if (present()) head.append(line1(boxOrCell(`sec=${sec.kind}`, shown, GROUPS_COPY.addAll(sec.title), undefined, 'p3-cp-nobox', !one)));
     // The count sits inside the title (TY2 A): at 380 it wraps under the name inside the heading, so the space after the
     // section title stays the level's space-300 rather than the gap to a wrapped count.
     const t = hook(h('h2', 'p3-lsec-title p3-cp-title'), 'cp-section-title');
@@ -301,15 +314,17 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     for (const row of rows) {
       if (sec.flat) {
         // Q8 A: the section title stands in for the family row, so each set is a row at the section's edge.
-        for (const id of row.ids) {
+        // R5: in a section of several rows, each row's box is on its first set's line; in a section of one, the
+        // section's box is the row's.
+        row.ids.forEach((id, i) => {
           const li = hook(h('li', 'p3-cp-li'), 'cp-item');
-          li.append(setRow(catalog, id, row, row.family, row.family, true));
+          li.append(setRow(catalog, id, row, row.family, row.family, true, !one && i === 0 ? row : null));
           ul.append(li);
-        }
+        });
         continue;
       }
       const li = hook(h('li', 'p3-cp-li'), 'cp-item');
-      li.append(row.family ? familyRow(catalog, row) : setRow(catalog, row.ids[0], row, false));
+      li.append(row.family ? familyRow(catalog, row) : setRow(catalog, row.ids[0], row, false, false, false, row));
       if (row.family && s.open.has(row.key)) {
         const sub = h('ul', 'p3-cp-sub');
         sub.setAttribute('role', 'group');
@@ -348,6 +363,18 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     cleanups.push(() => { for (const fn of own) fn(); });
     shared.append(head, body);
   }
+  /** #3129 R2: the shared block's tier, captioned Component settings, as the component tiers are captioned. */
+  const settingsTier = hook(h('div', 'p3-cp-tier'), 'cp-settings-tier');
+  {
+    settingsTier.dataset.tier = 'settings';
+    settingsTier.setAttribute('role', 'group');
+    const cap = hook(h('p', 'p3-cp-tier-cap', GROUPS_COPY.settingsTier), 'cp-settings-caption');
+    cap.id = 'p3-cp-tier-settings';
+    settingsTier.setAttribute('aria-labelledby', cap.id);
+    const line = h('div', 'p3-cp-tier-head');
+    line.append(cap);
+    settingsTier.append(line, shared);
+  }
   /** Under a search the shared block stays only while its words, or a lever's in it (#3093: a key is never drawn),
    *  hold the query. */
   const sharedMatches = (q: string): boolean => !q || (shared.textContent ?? '').toLowerCase().includes(q.toLowerCase())
@@ -371,9 +398,12 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
 
   /** The blocks this draw placed (a search can hide a section's rows, and its blocks with them). */
   const shownHere = new Set<BlockKey>();
+  /** The control the next draw focuses, set by an action whose own button that draw turns off. */
+  let nextFocus: string | null = null;
   const paintList = (): void => {
     const had = document.activeElement as HTMLElement | null;
-    const key = had && root.contains(had) ? had.dataset.key ?? null : null;
+    const key = nextFocus ?? (had && root.contains(had) ? had.dataset.key ?? null : null);
+    nextFocus = null;
     // A control inside the settings block is the same node after the redraw: it gets its focus back as itself.
     const inSettings = had && [...settings.values()].some((x) => x.el.contains(had)) ? had : null;
     const scrollTop = hostEl.scrollTop;
@@ -385,24 +415,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       parts.push(hook(h('p', 'p3-sub p3-cp-empty', GROUPS_COPY.noCatalog), 'components-no-catalog'));
     } else {
       parts.push(hook(h('p', 'p3-intro', present() ? GROUPS_COPY.introPlugin(catalog.length) : GROUPS_COPY.intro(catalog.length)), 'components-intro'));
-      // #3129 Q3129.5 A: the page's own box, under the intro, over the sets the rows shown could add.
-      const p = present();
-      if (p) {
-        const shownIds = tiersOf(catalog).flatMap((tier) => tier.sections).flatMap((sec) => sec.rows.filter((r) => rowMatches(catalog, r, q)).flatMap((r) => r.ids));
-        const can = addableOf(catalog, shownIds, p);
-        if (can.length) {
-          const q2 = queued();
-          const st = boxOfSets(catalog, shownIds, q2, p);
-          const b = box('all', st, '', () => toggle(shownIds));
-          b.removeAttribute('aria-label');
-          b.classList.add('p3-cp-all');
-          hook(b, 'cp-add-every');
-          b.append(h('span', 'p3-btn-label', GROUPS_COPY.addEvery), hook(h('span', 'p3-cp-count', GROUPS_COPY.addCount(can.filter((id) => q2.has(id)).length, can.length)), 'cp-add-count'));
-          parts.push(b);
-        }
-      }
       let hits = 0;
-      if (sharedMatches(q)) { parts.push(shared); if (q) hits++; }
+      // #3129 R2: the shared settings are a tier of their own, above the components', captioned as the tiers are.
+      if (sharedMatches(q)) { parts.push(settingsTier); if (q) hits++; }
       // Q2909.17 A: the sections under their tiers, each tier a group named by its caption. The caption is not a heading:
       // the list's three heading levels are its sections, their settings and those settings' levers (TY2 A).
       const empty: string[] = [];
@@ -414,13 +429,37 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
         const cap = hook(h('p', 'p3-cp-tier-cap', GROUPS_COPY.tier(tier.title, tier.sections.reduce((n, sec) => n + sec.rows.reduce((m, r) => m + r.ids.length, 0), 0))), 'cp-tier-caption');
         cap.id = `p3-cp-tier-${tier.id}`;
         group.setAttribute('aria-labelledby', cap.id);
-        group.append(cap);
+        const capLine = hook(h('div', 'p3-cp-tier-head'), 'cp-tier-head');
+        capLine.append(cap);
+        group.append(capLine);
+        const tierShown: string[] = [];
         for (const sec of tier.sections) {
           const rows = sec.rows.filter((r) => rowMatches(catalog, r, q));
+          tierShown.push(...rows.flatMap((r) => r.ids));
           // #3093: a section whose settings hold a match shows, whether or not one of its sets matches.
           const levers = (SECTION_BLOCKS[sec.kind] ?? []).reduce((n, k) => n + matchesIn(k, q).length, 0);
           hits += rows.length + levers;
           if (rows.length || levers) group.append(sectionEl(catalog, sec, rows));
+        }
+        // #3129 R1 (replacing Q3129.5 A's page control): Select all and Deselect all, two text actions at the right of
+        // the caption's line, over the sets of the rows shown (Q391 A). Drawn while the tier holds a set the file could
+        // add; each is off while it would change nothing.
+        const p = present();
+        if (p && addableOf(catalog, tierShown, p).length) {
+          const acts = hook(h('span', 'p3-cp-tier-acts'), 'cp-tier-actions');
+          const act = (role: string, label: string, ids: string[], on: boolean): HTMLButtonElement => {
+            const b = hook(h('button', 'p3-btn p3-btn-ghost p3-cp-tier-act', label), role);
+            b.type = 'button';
+            b.dataset.key = `${role}=${tier.id}`;
+            b.disabled = !ids.length;
+            // The action turns off once it has acted, so focus moves to its sibling, which it has just turned on.
+            b.onclick = () => { if (!ids.length) return; nextFocus = `${on ? 'cp-deselect-all' : 'cp-select-all'}=${tier.id}`; lend.sets.queueSets(ids, on); };
+            return b;
+          };
+          const q2 = queued();
+          acts.append(act('cp-select-all', GROUPS_COPY.selectAll, selectAllOf(catalog, tierShown, q2, p), true),
+            act('cp-deselect-all', GROUPS_COPY.deselectAll, deselectAllOf(catalog, tierShown, q2, p), false));
+          capLine.append(acts);
         }
         if (group.children.length > 1) parts.push(group);
       }

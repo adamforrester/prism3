@@ -721,6 +721,11 @@ export const mountFrame = (app: HTMLElement, opts: {
     // V1: the preview names the page's one home view. Nothing but a place change moves it.
     const home = place ? homeOf(place) : null;
     previewTitle.textContent = home ? viewLabel(home) : '';
+    // #3129 R3 (the owner, 2026-10-28): on Components the page's title sits at the left of the levers header, where the
+    // search sat, and the search goes flush right in that row, where Theme's tab row keeps it (Q835 A). The same node
+    // moves, so the preview body keeps its name and Inspect's close still finds it.
+    const titleHome = root.dataset.place === 'components' ? nav : previewHead;
+    if (previewTitle.parentElement !== titleHome) titleHome.prepend(previewTitle);
     const tabOf = place ? TABS.find((t) => t.id === place!.tab) : undefined;
     const pageName = (place?.sub ? tabOf?.subs?.find((x) => x.id === place!.sub)?.label : tabOf?.label) ?? '';
     pageHeading.textContent = pageName;

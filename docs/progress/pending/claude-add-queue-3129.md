@@ -1,7 +1,7 @@
 ## (2026-10-28) — Components chooses what to add; Update file shows To add and Due (#3129)
 
-Builds the owner-approved wireframe on #3129 (Q832 A, Q833 A; Q3129.1–13 all A). Engine `{{ENGINE_VERSION}}` (patch: no
-emitted artifact moves).
+Builds the owner-approved wireframe on #3129 (Q832 A, Q833 A; Q3129.1–13 all A), with the owner's revisions R1–R7 and
+Q835 A of 2026-10-28. Engine `{{ENGINE_VERSION}}` (patch: no emitted artifact moves).
 
 ### What changed
 
@@ -13,12 +13,18 @@ emitted artifact moves).
   defs the engine cannot build. The keys are cleared where the ledger records a set that landed whole (beside
   `recordSets`), and by a queue write, which also clears stale keys; every Update file run ends with one carrying no ids.
 - **Components (plugin):** boxes come back from #2700's markup, acting on the file's queue through `add-queue` instead of
-  the session's selection (`sel` is retired, and with it the dead Build bar and Build all). A set the file holds has no
-  box and keeps an empty cell, so names align; in a section with settings the box takes the fold cell. The page control
-  sits under the intro. The boxes wait for the host's full read (#3110's ledger-only answer draws none).
-- **Update file:** Theme, To add, Due, Style guides. To add has Remove (focus moves to the next row's Remove) and Remove
-  all from two rows up; an empty queue offers Go to Components; a fresh file starts with nothing queued and offers Add
-  all. Due uses Components' display names. The badge adds the queue, and its name is split (`badgeParts`, `badgeName`).
+  the session's selection (`sel` is retired, and with it the dead Build bar and Build all). One box per family (R5): a
+  family's row, or a set alone on its row, two-state (`familyBox`); a family's parts have none, and a family partly in
+  the file queues its missing parts. Section boxes stay three-state; a section of one family carries that family's box.
+  A row with nothing to add keeps an empty cell, so names align. Each tier's caption line carries Select all and
+  Deselect all (R1, replacing the page control); the shared settings sit under a Component settings tier (R2). The page
+  title moves to the left of the levers header with the search flush right (R3, Q835 A), and Components shows no mode
+  control (R4; its preview follows Theme's mode). The boxes wait for the host's full read (#3110's ledger-only answer
+  draws none).
+- **Update file:** Theme, Components (To add and Due as its subtitles, R6), Style guides. To add has Remove (focus moves
+  to the next row's Remove) and Remove all from two rows up; an empty queue on a set-up file shows no To add (R7); a
+  fresh file starts with nothing queued and offers Add all. Due uses Components' display names. The badge adds the
+  queue, and its name is split (`badgeParts`, `badgeName`).
 - **The web studio is unchanged** (Q3129.12 A).
 
 ### Traps

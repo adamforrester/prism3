@@ -1474,7 +1474,7 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Components: a box on every set the file lacks, with select-alls on families, sections and the page, kept in the file as a queue that Update file lists under To add and builds",
+          "via": "Components: one box per family the file lacks a set of, with section boxes and each tier's Select all and Deselect all, kept in the file as a queue that Update file lists under Components › To add and builds",
           "sources": [
             "apps/plugin/src/add-queue.ts",
             "apps/studio/src/domains/components.ts",

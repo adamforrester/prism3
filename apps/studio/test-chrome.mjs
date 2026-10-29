@@ -861,9 +861,10 @@ const PANE_TOGGLE = ['[data-p3="pane-toggle-settings"]', '[data-p3="pane-toggle-
 const expectFor = (column, place, state = 'page') => {
   const narrow = column.endsWith('narrow');
   // #2909: on the rail (both hosts since Q2909.9 A), Components has no tab and, at 380, no domain select (its tab row
-  // keeps the search alone), and Contrast sits in the preview header of Theme's pages, never on Components.
+  // keeps the page's title and the search, #3129 R3), and Contrast sits in the preview header of Theme's pages, never on Components.
   const base = EXPECT_CONTROLS[column].filter((h) => (place.startsWith('color-') || !COLOR_SUBS.includes(h)) && !(place === 'components' && (FIGMA_TABS.includes(h) || h === '[data-p3="tab-select"]')));
-  const PREVIEW_HEAD = place !== 'components' ? [...PREVIEW_HEAD_ALL, '[data-p3="verdict"]'] : PREVIEW_HEAD_ALL;
+  // #3129 R4 (the owner, 2026-10-28): Components shows no mode control, so its preview header holds Inspect alone.
+  const PREVIEW_HEAD = place !== 'components' ? [...PREVIEW_HEAD_ALL, '[data-p3="verdict"]'] : ['[data-p3="inspect-open"]'];
   const levers = LEVERS_CONTROLS[place];
   if (!levers) return base;
   // A moved place. Narrow, on the Preview pane (Inspect opens there), the tab row and the levers are hidden.
@@ -2309,11 +2310,14 @@ for (const s of SEARCH_SAMPLE) {
   const afterEdit = await read();
   ok(before['lever-raised-surface'] && !before['lever-dialog-title-size'] && afterEdit['lever-raised-surface'] && !afterEdit['lever-dialog-title-size'],
     `#3093: on Components, searching "white" then picking Dialog surface's "${String(picked).trim()}" keeps Dialog title size hidden (${JSON.stringify({ before, after: afterEdit })})`);
+  // #3129 R4: Components shows no mode control, so the mode changes on Theme, and the search holds across the visit.
+  await goPlace(page, 'brand');
   await pickMode(page, 'dark');
+  await goPlace(page, 'components');
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const afterMode = await read();
   ok(afterMode['lever-raised-surface'] && !afterMode['lever-dialog-title-size'],
-    `#3093: on Components, searching "white" then changing the mode keeps Dialog title size hidden (${JSON.stringify({ before: afterEdit, after: afterMode })})`);
+    `#3093: on Components, searching "white" then changing the mode (on Theme, #3129 R4) keeps Dialog title size hidden (${JSON.stringify({ before: afterEdit, after: afterMode })})`);
   await page.locator('[data-p3="search-input"]').fill('');
 }
 ok(errors.length === 0, `#3093: the search sweep raised no page error (${errors.join(' | ')})`);
@@ -2639,13 +2643,13 @@ for (const theme of ['light', 'dark']) {
   // The legacy mode strip's sync check is RETIRED (S8.2 moved the last legacy page with a strip), and the hold S8.2 left
   // here is RETIRED in S8.3: `test:smoke` section 1 walks every place in every mode and asserts no legacy page (and so no
   // legacy strip) is drawn, and that every place's header marks the one mode chosen (mode agreement).
-  // The mode chosen on one page is the mode every page that previews modes draws in: HC light, chosen on Components,
-  // holds on Surfaces & fills. (Palettes always shows Light, PM1 B; section 36.)
-  await goPlace(page, 'components');
+  // The mode chosen on one page is the mode every page that previews modes draws in: HC light, chosen on Brand, holds on
+  // Surfaces & fills. (Palettes always shows Light, PM1 B; section 36. Components shows none, #3129 R4.)
+  await goPlace(page, 'brand');
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="hc-light"]'));
   await goPlace(page, 'color-fills');
   const b = await modeState(page);
-  ok(b.radios.find((r) => r.mode === 'hc-light')?.checked === 'true', `${where}: HC light, chosen on Components, is the mode Surfaces & fills shows (${b.radios.filter((r) => r.checked === 'true').map((r) => r.mode)})`);
+  ok(b.radios.find((r) => r.mode === 'hc-light')?.checked === 'true', `${where}: HC light, chosen on Brand, is the mode Surfaces & fills shows (${b.radios.filter((r) => r.checked === 'true').map((r) => r.mode)})`);
   // Arrow keys move along the radios and choose as they go.
   await page.locator('[data-p3="mode-option"][data-mode="hc-light"]').focus();
   await page.keyboard.press('ArrowRight');
@@ -5925,7 +5929,12 @@ const groundsIn = (page, hostHook) => page.evaluate((hk) => {
   return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })) };
 }, hostHook);
 const chooseMode = async (page, mode) => {
+  // #3129 R4: Components shows no mode control, and its preview follows the mode Theme shows: from Components, the mode
+  // is chosen on Brand and the page visited again (its open blocks and focus are the session's, so they hold).
+  const onComponents = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
+  if (onComponents) await goPlace(page, 'brand');
   await pickMode(page, mode);
+  if (onComponents) await goPlace(page, 'components');
 };
 // Specimen grounds: both hosts, both chrome themes, every mode.
 if (runs('19')) {
@@ -9593,7 +9602,11 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
     await openButtonOptions(page);
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
+      // #3129 R4: Components shows no mode control, and its preview follows the mode Theme shows, so the mode is chosen
+      // on Theme and the page visited again (its open blocks are the session's, so they stay open).
+      await goPlace(page, 'brand');
       await chooseAnyMode(page, mode);
+      await goPlace(page, 'components');
       await page.waitForFunction((l) => document.querySelector('[data-p3="button-options-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
       const d = await page.evaluate(() => {
         const opts = document.querySelector('[data-p3="button-options"]');
@@ -12565,8 +12578,11 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
           if (place === 'color-palettes') { await showLevers(page, w); const hp = await page.evaluate(HINT_PROBE); tally.hints += hp.hints.length;
             for (const hl of hp.hints) ok(hl.glyphs === 0, `HP3 ${at} (${mode}): hint line ${hl.hook ?? '(no hook)'} draws a glyph — "${hl.text}"`);
             ok(hp.stray.length === 0, `HP3 ${at} (${mode}): a non-button ⓘ glyph is drawn — ${hp.stray.join(' | ')}`); continue; }
+          // #3129 R4: Components shows no mode control; its preview follows Theme's mode, so the mode is chosen on Brand.
+          if (place === 'components') await goPlace(page, 'brand');
           if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
           await showMode(page, mode);
+          if (place === 'components') { await showLevers(page, w); await goPlace(page, 'components'); }
           await showLevers(page, w);
           const hp = await page.evaluate(HINT_PROBE);
           tally.hints += hp.hints.length;
@@ -12574,8 +12590,10 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
           ok(hp.stray.length === 0, `HP3 ${at} (${mode}): a non-button ⓘ glyph is drawn — ${hp.stray.join(' | ')}`);
         }
         if (place !== 'color-palettes') {
+          if (place === 'components') await goPlace(page, 'brand');
           if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
           await showMode(page, 'light');
+          if (place === 'components') { await showLevers(page, w); await goPlace(page, 'components'); }
         }
         await showLevers(page, w);   // the narrow tab select is drawn only over the levers
       }
@@ -14228,7 +14246,8 @@ for (const host of ['web', 'figma']) {
 // the person had not put back on the way out.
 if (runs('36')) {
 const PM_FROM = ['dark', 'hc-light', 'hc-dark'];
-const PM_LIVE_PLACES = ['brand', 'color-fills', 'color-interactive', 'type', 'depth', 'shape', 'layout', 'components'];
+// #3129 R4: Components shows no mode control, so it is not a place the control is live on (section 3129 holds its absence).
+const PM_LIVE_PLACES = ['brand', 'color-fills', 'color-interactive', 'type', 'depth', 'shape', 'layout'];
 const PM_LINE = 'Palettes always show Light. Ramps are the same in every mode.';
 const PM_LABEL = 'Light';
 /** The mode control as drawn, and every element whose own text is the line. Runs in the page. */
@@ -14554,8 +14573,12 @@ for (const host of ['web', 'figma']) {
         const modes = await csAx(page, CS_MODES);
         const modeCur = csCurrent(modes).map(csModeLabel);
         if (modes.some((n) => n.role === 'combobox')) selects++;
-        ok(modes.length > 0, `${at}: the preview's mode control is exposed (read ${JSON.stringify(modes.map((n) => n.role))})`);
-        ok(JSON.stringify(modeCur) === JSON.stringify([want]), `${at}: the mode control reports ${want} checked, and only it (read ${JSON.stringify(csCurrent(modes))})`);
+        // #3129 R4: Components shows no mode control, so none is exposed there; every other place exposes one.
+        if (place === 'components') ok(modes.length === 0, `${at}: #3129 R4: no mode control is exposed on Components (read ${JSON.stringify(modes.map((n) => n.role))})`);
+        else {
+          ok(modes.length > 0, `${at}: the preview's mode control is exposed (read ${JSON.stringify(modes.map((n) => n.role))})`);
+          ok(JSON.stringify(modeCur) === JSON.stringify([want]), `${at}: the mode control reports ${want} checked, and only it (read ${JSON.stringify(csCurrent(modes))})`);
+        }
         if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
         cases++;
       }
@@ -16367,8 +16390,9 @@ if (runs('47')) {
 const PR5_NAMED = new Set([...RO_AX_CONTROLS, 'tablist', 'radiogroup', 'menu', 'dialog']);
 /** Left out by hook: the lent legacy views. Brand content (`[data-content]`) is left out too. */
 const PR5_SKIP = new Set(INSPECT_LEGACY.map((s) => hooks.role(s)));
-/** The fewest named nodes one sweep must read (shape 9): under the fewest measured when this landed (12, web at 380). */
-const PR5_NAME_FLOOR = 10;
+/** The fewest named nodes one sweep must read (shape 9): under the fewest measured when this landed (12, web at 380).
+ *  #3129 R4 took the mode control off Components, whose Preview pane at 380 then read 9: under that. */
+const PR5_NAME_FLOOR = 8;
 /** Every named node under the frame the tree exposes, and the ones whose computed name is empty. */
 const pr5Names = async (page) => {
   const cdp = await page.context().newCDPSession(page);
@@ -16761,13 +16785,14 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       caps: [...document.querySelectorAll('[data-p3="cp-tier"]')].map((t) => ({ tier: t.dataset.tier, role: t.getAttribute('role'), named: document.getElementById(t.getAttribute('aria-labelledby') ?? '')?.textContent ?? null,
         sections: [...t.querySelectorAll('[data-p3="cp-section-title"]')].map((x) => x.dataset.name) })),
       empty: document.querySelector('[data-p3="cp-tiers-empty"]')?.textContent ?? null,
-      shared: document.querySelector('[data-p3="components-list"] > [data-p3="cp-shared"]') ? [...document.querySelector('[data-p3="components-list"]').children].indexOf(document.querySelector('[data-p3="cp-shared"]')) : -1,
+      // #3129 R2: the shared block sits in its own tier, Component settings, and that tier is first in the list after the intro.
+      shared: document.querySelector('[data-p3="components-list"] > [data-p3="cp-settings-tier"] > [data-p3="cp-shared"]') ? [...document.querySelector('[data-p3="components-list"]').children].indexOf(document.querySelector('[data-p3="cp-settings-tier"]')) : -1,
     }));
     ok(JSON.stringify(tiers.caps.map((c) => c.tier)) === JSON.stringify(['components', 'subcomponents']) && tiers.caps.every((c) => c.role === 'group' && /^(Components|Subcomponents) · \d+ sets$/.test(c.named ?? ''))
       && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
       `${where}: Q2909.17 A: Components lists its sections under the tiers, each a group named by its caption, Components then Subcomponents (${JSON.stringify(tiers.caps)})`);
     ok(tiers.empty === 'Content components and Blocks: no component sets yet.', `${where}: Q2909.17 A: the two tiers no definition is in yet are named in one line ("${tiers.empty}")`);
-    // The shared block, first in the list after the intro: Density's read-only line, then Control shape's chips.
+    // The shared block, first in the list after the intro (in its own tier since #3129 R2): Density's read-only line, then Control shape's chips.
     step = 'the shared block';
     const sh = await page.evaluate(() => ({ chips: document.querySelectorAll('[data-p3="cp-shared"] [data-p3^="control-shape-choice-"]').length,
       density: document.querySelector('[data-p3="cp-shared"] [data-p3="shared-density"] .p3-readout')?.textContent ?? null }));
@@ -17194,29 +17219,37 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 } // ia2
 
 // =============================================================================================
-// #3129 — CHOOSE COMPONENTS TO ADD ON COMPONENTS; UPDATE FILE SHOWS TO ADD AND DUE (Q832 A, Q833 A, Q3129.1–13 A)
+// #3129 — CHOOSE COMPONENTS TO ADD ON COMPONENTS; UPDATE FILE SHOWS TO ADD AND DUE (Q832 A, Q833 A, Q3129.1–13 A, and
+// the owner's revisions R1–R7 and Q835 A of 2026-10-28)
 // =============================================================================================
-// The plugin's Components page draws a box on every set the file could add, three-state boxes on families and sections,
-// and one page control under the intro; each acts on the FILE's add queue through one `add-queue` write. Update file
-// lists the queue under To add (Remove, Remove all), the due sets under Due, an empty queue with Go to Components, and a
-// fresh file with Add all; its badge counts the queue and splits its name. The web draws none of it (Q3129.12 A).
-// INDEPENDENCE (docs/34): the sample file, the queue's list order and display names, the counts, the box names and the
-// posts are literals typed here from the approved wireframe; the host's answers are planted as the main thread posts
-// them, and what the panel posts back is read off the message channel.
+// The plugin's Components page draws one box per family (R5): on each row the file could add a set of, never on a
+// family's part; a section's box is three-state over its rows, and in a section of one family it is that family's. Each
+// tier's caption line carries Select all and Deselect all, right-aligned (R1), and the shared settings sit under their
+// own tier, Component settings (R2). The page's title is at the left of the levers header and the search flush right in
+// it (R3, Q835 A), and Components shows no mode control (R4). Every box and action acts on the FILE's add queue through
+// one `add-queue` write. Update file draws one Components section at Theme's level with To add and Due as its subtitles
+// (R6); an empty queue on a set-up file has no To add (R7), and a fresh file still offers Add all (Q3129.9–10 A). Its
+// badge counts the queue and splits its name. The web draws no box (Q3129.12 A).
+// INDEPENDENCE (docs/34): the sample file, the rows that carry a box, the queue's list order and display names, the
+// counts, the box names and the posts are literals typed here from the approved wireframe and the revisions; the host's
+// answers are planted as the main thread posts them, and what the panel posts back is read off the message channel.
 //
-// Mutations, each after a `wip:` commit, each failing by name (run on this section's three cases):
-//   · the boxes off again (`plugin = false` in `domains/components.ts`) → `3129 figma … a box on every set the file lacks …`;
-//   · a box on a set the file holds (`addableOf` keeping present sets) → the same arm, `… none on a set it holds …`;
-//   · a flat row's box in a leading cell of its own (`setRow`'s `edge` false) → `3129 figma … a set's box takes the fold
-//     cell …`;
-//   · the page control never drawn → `3129 figma … Q3129.5 A: the page control sits under the intro …`;
-//   · the page control acting on every row under a search → `3129 figma … Q391 A, Q3129.5 A: under a search …`;
-//   · Due named by code name again (`nameOf` the catalog name) → `3129 figma … P5: Due names its sets as Components does …`;
-//   · Remove all shown from one row → `3129 figma … Q3129.8 A: Remove all from two rows up …`;
-//   · Add all on a set-up file (the `fresh` test dropped) → `3129 figma … Q3129.9 A: an empty queue on a set-up file …`.
+// Mutations, each after a `wip:` commit, each failing by name (run on this section's cases). The revisions':
+//   · R1: the tier actions never drawn → `3129 figma … R1: Select all and Deselect all sit on the tier caption's line …`;
+//   · R2: the settings tier's caption dropped → `3129 figma … R2: the shared settings sit under their own tier …`;
+//   · R3: the title left in the preview header (`titleHome` always `previewHead`) → `3129 figma … R3: the title sits at …`;
+//   · R4: the mode control shown on Components (its CSS rule dropped) → `3129 figma … R4: Components shows no mode control`;
+//   · R5: a family's parts given its box (`setRow` passed the row) → `3129 figma … R5: one box per family …`; the family
+//     box three-state again (`familyBox` returning `boxOfSets`' state) → `3129 figma … R5: a family's box is two-state …`;
+//   · R6: Due drawn as an item of its own again → `3129 figma … R6: one Components section …`;
+//   · R7: To add drawn on a set-up file with nothing queued (the `fresh` test dropped) → `3129 figma … R7: Remove all
+//     leaves no To add …`.
+// The first build's, kept: Due named by code name again (`nameOf` the catalog name) → `3129 figma … P5: Due names its
+// sets as Components does …`; Remove all shown from one row → `3129 figma … Q3129.8 A: Remove all from two rows up …`;
+// Add all on a set-up file → `3129 figma … Q3129.9 A: an empty queue on a set-up file …`.
 // And in IA2: Remove's refocus dropped → `IA2 figma … #3129 Q3129.7 A: Remove takes the set out …` (focus left on the
-// dialog). The model's rules (list order, the badge's parts and name, the To add status, the ticks) fail in
-// `test-update-file.ts` by name.
+// dialog). The model's rules (list order, the badge's parts and name, the To add status, the ticks, the two-state family
+// box, the tier actions' sets) fail in `test-update-file.ts` and `test-component-groups.ts` by name.
 if (runs('3129')) {
 console.log(`\n#3129 — the add queue: Components' boxes, Update file's To add and Due\n${'='.repeat(78)}`);
 const S_PRESENT = ['icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'button-group', 'field-label', 'field-message', 'text-field', 'select',
@@ -17229,15 +17262,42 @@ const S_QUEUED = ['radio-control', 'banner', '_accordion-indicator', 'search-fie
 const S_ORDER = [['password-field', 'Password field'], ['search-field', 'Search field'], ['dialog', 'Dialog'], ['banner', 'Banner'], ['radio-control', 'Radio Control'],
   ['accordion', 'Accordion'], ['_accordion-indicator', 'Accordion Indicator']];
 const S_FILE = { type: 'file-sets', present: S_PRESENT, setUp: true, due: S_DUE, queued: S_QUEUED };
-const S_ADDABLE = ENGINE_SETS.length - S_PRESENT.length;
+// R5, typed from the list: the set lines that carry their row's box (a set alone on its row, or the first set of a
+// family listed at a section's edge), and the parts that carry none.
+const S_BOXED_SETS = ['password-field', 'search-field', 'card-number-field', 'code-input', 'textarea', 'counter'];
+const S_UNBOXED_PARTS = ['code-input-cell', 'accordion', '_accordion-indicator', 'radio-control', 'radio-group', 'radio-row', 'select', 'text-field', 'badge'];
 const S_CHECK = { type: 'update-check', previewHash: 'H-3129', missing: [], refused: [], sets: [
   { def: 'button', hash: 'a', members: 576, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: true },
   { def: 'text-field', hash: 'b', members: 96, update: 24, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false },
   { def: 'tag', hash: 'c', members: 12, update: 12, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false }] };
+/** The levers header's title and search, and the preview header's mode control, read where they are drawn (R3, R4). At
+ *  the narrow tier the mode control is on the Preview pane, so it is read there, and the Settings pane shown again. */
+const pageBar = async (page) => {
+  const bar = await pageBarNow(page);
+  if (!(await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow'))) return bar;
+  await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+  await settle(page);
+  const modes = (await pageBarNow(page)).modes;
+  await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+  await settle(page);
+  return { ...bar, modes };
+};
+const pageBarNow = (page) => page.evaluate(() => {
+  const r = (n) => (n ? n.getBoundingClientRect() : null);
+  const nav = document.querySelector('[data-p3="tab-row"]');
+  const title = document.querySelector('[data-p3="preview-title"]');
+  const search = document.querySelector('[data-p3="search-open"]');
+  const vis = (s) => [...document.querySelectorAll(s)].some((n) => n.checkVisibility());
+  const pad = nav ? parseFloat(getComputedStyle(nav).paddingLeft) : 0;
+  return { inNav: !!title && !!nav && nav.contains(title), text: title?.textContent ?? null, titleLeft: Math.round((r(title)?.left ?? -1) - (r(nav)?.left ?? 0) - pad),
+    titleShown: !!title?.checkVisibility(), searchRight: Math.round(r(search)?.right ?? -1), navRight: Math.round((r(nav)?.right ?? 0) - (nav ? parseFloat(getComputedStyle(nav).paddingRight) : 0)),
+    sameRow: !!title && !!search && Math.abs((r(title).top + r(title).bottom) / 2 - (r(search).top + r(search).bottom) / 2) <= 2,
+    modes: vis('[data-p3="mode-option"], [data-p3="mode-select"]') };
+});
 for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
   const where = `3129 figma ${theme} ${w}`;
   const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: w === 380 ? 760 : 900 });
-  let step = 'Components before the read';
+  let step = 'Theme\'s page bar';
   try {
     await page.evaluate(() => { window.__q = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && ['add-queue', 'file-sets-request', 'update-check-request'].includes(m.type)) window.__q.push(JSON.parse(JSON.stringify(m))); }); });
     // The newest queue write, once one newer than the last read has been posted (bounded).
@@ -17248,8 +17308,17 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
       seenQ = all.length;
       return all.at(-1) ?? null;
     };
+    // R3's oracle is Theme's own row: its search, flush right, and its mode control, shown (the proof R4's absence reads against).
+    const themeBar = await pageBar(page);
     await goPlace(page, 'components');
     await hooks.need(page, '[data-p3="components-levers"]');
+    step = 'Components\' page bar';
+    const bar = await pageBar(page);
+    ok(bar.inNav && bar.text === 'Components' && bar.titleShown && Math.abs(bar.titleLeft) <= 1 && bar.sameRow,
+      `${where}: R3: the title sits at the left of the levers header, on the search's row (${JSON.stringify({ inNav: bar.inNav, text: bar.text, left: bar.titleLeft, sameRow: bar.sameRow })})`);
+    ok(themeBar.searchRight > 0 && bar.searchRight === themeBar.searchRight && Math.abs(bar.searchRight - bar.navRight) <= 1,
+      `${where}: R3, Q835 A: Components keeps its search, flush right in the same row, where Theme's row keeps it (${bar.searchRight} against Theme's ${themeBar.searchRight}, row end ${bar.navRight})`);
+    hooks.absent(ok, { seen: themeBar.modes, state: 'Theme\'s mode control, shown' }, !bar.modes, `${where}: R4: Components shows no mode control`);
     const pre = await page.evaluate(() => document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]').length);
     ok(pre === 0, `${where}: the boxes wait for the host's full read of the file (${pre} drawn before it)`);
     step = 'the boxes';
@@ -17263,56 +17332,70 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
       await hooks.click(closed.first());
     }
     const st = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('[data-p3="components-list"] :is([data-p3="cp-row"], [data-p3="cp-member"])[data-set]')];
+      const sets = [...document.querySelectorAll('[data-p3="components-list"] :is([data-p3="cp-row"], [data-p3="cp-member"])[data-set]')];
       const boxOf = (r) => r.querySelector(':scope > [role="checkbox"]');
       const r = (n) => Math.round(n);
+      const fam = (key) => document.querySelector(`[data-p3="cp-row"].p3-cp-family[data-row="${key}"] > [role="checkbox"]`);
+      const sec = (k) => document.querySelector(`[data-p3="cp-section"][data-kind="${k}"] [data-p3="cp-section-head"] [role="checkbox"]`);
+      const caps = [...document.querySelectorAll('[data-p3="components-list"] :is([data-p3="cp-settings-caption"], [data-p3="cp-tier-caption"])')];
+      const compTier = document.querySelector('[data-p3="cp-tier"][data-tier="components"]');
+      const head = compTier?.querySelector('[data-p3="cp-tier-head"]');
+      const acts = [...(head?.querySelectorAll('[data-p3="cp-select-all"], [data-p3="cp-deselect-all"]') ?? [])];
+      const mid = (n) => { const x = n.getBoundingClientRect(); return (x.top + x.bottom) / 2; };
+      const settings = document.querySelector('[data-p3="cp-settings-tier"]');
       return {
         intro: document.querySelector('[data-p3="components-intro"]')?.textContent ?? null,
-        every: { on: document.querySelector('[data-p3="cp-add-every"]')?.getAttribute('aria-checked') ?? null, text: document.querySelector('[data-p3="cp-add-every"] .p3-btn-label')?.textContent ?? null,
-          count: document.querySelector('[data-p3="cp-add-count"]')?.textContent ?? null,
-          afterIntro: document.querySelector('[data-p3="components-intro"]')?.nextElementSibling?.getAttribute('data-p3') ?? null },
-        boxed: rows.filter((x) => boxOf(x)).map((x) => x.dataset.set),
-        named: rows.filter((x) => boxOf(x)).map((x) => [x.dataset.set, boxOf(x).getAttribute('aria-label')]),
-        queuedTags: rows.filter((x) => [...x.querySelectorAll('[data-p3="cp-status-tag"]')].some((t) => t.dataset.status === 'queued')).map((x) => x.dataset.set),
-        on: rows.filter((x) => boxOf(x)?.getAttribute('aria-checked') === 'true').map((x) => x.dataset.set),
-        fam: Object.fromEntries([...document.querySelectorAll('[data-p3="cp-row"].p3-cp-family')].map((x) => [x.dataset.row, boxOf(x)?.getAttribute('aria-checked') ?? 'none'])),
-        sec: Object.fromEntries([...document.querySelectorAll('[data-p3="cp-section"]')].map((x) => [x.dataset.kind, x.querySelector('[data-p3="cp-section-head"] [role="checkbox"]')?.getAttribute('aria-checked') ?? 'none'])),
+        // R1 retires Q3129.5 A's page control: the intro is followed by the settings tier, and no box sits outside a row or a section head.
+        pageControl: document.querySelector('[data-p3="components-intro"]')?.nextElementSibling?.getAttribute('data-p3') !== 'cp-settings-tier'
+          || [...document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]')].some((b) => !b.closest('[data-p3="cp-row"], [data-p3="cp-member"], [data-p3="cp-section-head"]')),
+        boxedSets: sets.filter((x) => boxOf(x)).map((x) => x.dataset.set),
+        families: { accordion: fam('components|Accordion')?.getAttribute('aria-checked') ?? 'none', breadcrumbs: fam('components|Breadcrumbs')?.getAttribute('aria-checked') ?? 'none',
+          checkbox: fam('components|Checkbox')?.getAttribute('aria-checked') ?? 'none' },
+        named: { accordion: fam('components|Accordion')?.getAttribute('aria-label') ?? null, counter: boxOf(document.querySelector('[data-set="counter"]') ?? document.body)?.getAttribute('aria-label') ?? null,
+          password: boxOf(document.querySelector('[data-set="password-field"]') ?? document.body)?.getAttribute('aria-label') ?? null, radio: sec('radios')?.getAttribute('aria-label') ?? null },
+        queuedTags: sets.filter((x) => [...x.querySelectorAll('[data-p3="cp-status-tag"]')].some((t) => t.dataset.status === 'queued')).map((x) => x.dataset.set),
+        sec: Object.fromEntries(['buttons', 'tags', 'fields', 'dialogs', 'radios', 'components', 'subcomponents'].map((k) => [k, sec(k)?.getAttribute('aria-checked') ?? 'none'])),
         names: Object.fromEntries(['password-field', 'select', 'counter', 'badge'].map((id) => [id, r(document.querySelector(`[data-set="${id}"] [data-p3="cp-name"] .p3-btn-label`)?.getBoundingClientRect().left ?? -1)])),
         // The Fields title's text start, and its box's left edge, against the rows under it (the box takes the fold cell).
         fieldsTitle: r((() => { const t = document.querySelector('[data-p3="cp-section"][data-kind="fields"] [data-p3="cp-section-title"]'); const rg = document.createRange(); if (t?.firstChild) rg.selectNodeContents(t.firstChild); return t ? rg.getBoundingClientRect().left : -1; })()),
-        fieldsBoxes: [document.querySelector('[data-p3="cp-section"][data-kind="fields"] [data-p3="cp-section-head"] [role="checkbox"]'), document.querySelector('[data-set="password-field"] [role="checkbox"]')].map((b) => r(b?.getBoundingClientRect().left ?? -1)),
-        targets: [...document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]')].map((b) => { const x = b.getBoundingClientRect(); return [r(x.width), r(x.height)]; }),
+        fieldsBoxes: [sec('fields'), document.querySelector('[data-set="password-field"] [role="checkbox"]')].map((b) => r(b?.getBoundingClientRect().left ?? -1)),
+        targets: [...document.querySelectorAll('[data-p3="components-list"] :is([role="checkbox"], [data-p3="cp-select-all"], [data-p3="cp-deselect-all"])')].map((b) => { const x = b.getBoundingClientRect(); return [r(x.width), r(x.height)]; }),
+        tierHead: { caption: head?.querySelector('[data-p3="cp-tier-caption"]')?.textContent ?? null, acts: acts.map((b) => b.textContent),
+          sameLine: acts.length === 2 && acts.every((b) => Math.abs(mid(b) - mid(head.querySelector('[data-p3="cp-tier-caption"]'))) <= 2),
+          rightAligned: acts.length === 2 && Math.abs(acts[1].getBoundingClientRect().right - head.getBoundingClientRect().right) <= 1 && acts[0].getBoundingClientRect().left > head.querySelector('[data-p3="cp-tier-caption"]').getBoundingClientRect().right },
+        captions: caps.map((c) => c.textContent),
+        settingsHolds: !!settings?.querySelector('[data-p3="cp-shared"]') && settings.getAttribute('aria-labelledby') === settings.querySelector('[data-p3="cp-settings-caption"]')?.id,
         badge: { text: document.querySelector('[data-p3="update-badge"]')?.textContent ?? null, name: document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-label') ?? null },
       };
     });
-    const wantBoxed = ENGINE_SETS.filter((id) => !S_PRESENT.includes(id)).sort();
-    ok(JSON.stringify([...st.boxed].sort()) === JSON.stringify(wantBoxed),
-      `${where}: Q832 A, Q3129.6 A: a box on every set the file lacks (${wantBoxed.length}) and none on a set it holds (${st.boxed.length} boxed; held ${JSON.stringify(st.boxed.filter((id) => S_PRESENT.includes(id)))}, missing ${JSON.stringify(wantBoxed.filter((id) => !st.boxed.includes(id)))})`);
-    ok(JSON.stringify([...st.on].sort()) === JSON.stringify([...S_QUEUED].sort()) && JSON.stringify([...st.queuedTags].sort()) === JSON.stringify([...S_QUEUED].sort()),
-      `${where}: Q3129.4 A: the queued sets' boxes are ticked and their tag reads To add (${JSON.stringify({ on: st.on, tags: st.queuedTags })})`);
-    const nm = Object.fromEntries(st.named);
-    ok(nm['password-field'] === 'Add Password field to file' && nm.counter === 'Add Counter to file' && nm['radio-group'] === 'Add Radio.Group to file',
-      `${where}: Q3129.4 A: a set's box is named "Add {set} to file" (${JSON.stringify([nm['password-field'], nm.counter, nm['radio-group']])})`);
-    ok(st.fam['components|Accordion'] === 'true' && st.fam['components|Checkbox'] === 'none' && st.fam['components|Breadcrumbs'] === 'false',
-      `${where}: call 8, Q3129.6 A: family boxes are three-state over the sets the file lacks: Accordion on, Breadcrumbs off, Checkbox (in the file) none (${JSON.stringify(st.fam)})`);
-    ok(st.sec.buttons === 'none' && st.sec.tags === 'none' && st.sec.fields === 'mixed' && st.sec.dialogs === 'true' && st.sec.radios === 'mixed' && st.sec.components === 'mixed' && st.sec.subcomponents === 'false',
-      `${where}: Q3129.6 A: section boxes: Buttons and Tag (all in the file) none, Fields and Radio mixed, Dialog on, Other components mixed, Subcomponents off (${JSON.stringify(st.sec)})`);
+    ok(S_BOXED_SETS.every((id) => st.boxedSets.includes(id)) && !S_UNBOXED_PARTS.some((id) => st.boxedSets.includes(id)) && st.families.accordion !== 'none' && st.families.breadcrumbs !== 'none',
+      `${where}: R5: one box per family: on each row the file could add a set of, a family's row or a set alone on its row, and none on a part or a set the file holds (${JSON.stringify({ boxed: st.boxedSets, wrong: S_UNBOXED_PARTS.filter((id) => st.boxedSets.includes(id)), missing: S_BOXED_SETS.filter((id) => !st.boxedSets.includes(id)) })})`);
+    ok(st.families.accordion === 'true' && st.families.breadcrumbs === 'false' && st.families.checkbox === 'none' && st.sec.radios === 'false',
+      `${where}: R5: a family's box is two-state: Accordion (all queued) on, Breadcrumbs off, Checkbox (in the file) none, Radio (one of three queued) off (${JSON.stringify({ ...st.families, radio: st.sec.radios })})`);
+    ok(st.sec.buttons === 'none' && st.sec.tags === 'none' && st.sec.fields === 'mixed' && st.sec.dialogs === 'true' && st.sec.components === 'mixed' && st.sec.subcomponents === 'false',
+      `${where}: call 8, Q3129.6 A: section boxes: Buttons and Tag (all in the file) none, Fields and Other components mixed, Dialog on, Subcomponents off (${JSON.stringify(st.sec)})`);
+    ok(JSON.stringify([...st.queuedTags].sort()) === JSON.stringify([...S_QUEUED].sort()), `${where}: Q3129.4 A: the queued sets' tag reads To add (${JSON.stringify(st.queuedTags)})`);
+    ok(st.named.accordion === 'Add all of Accordion to file' && st.named.counter === 'Add Counter to file' && st.named.password === 'Add Password field to file' && st.named.radio === 'Add all Radio to file',
+      `${where}: Q3129.4 A: a family's box is named "Add all of {family} to file", a set's alone "Add {set} to file" (${JSON.stringify(st.named)})`);
     ok(st.names['password-field'] === st.names.select && st.names.counter === st.names.badge && st.names.select > 0,
       `${where}: Q3129.6 A: names align whether or not a row has a box, in a section with settings and outside one (${JSON.stringify(st.names)})`);
     ok(st.fieldsBoxes[0] > 0 && st.fieldsBoxes[0] === st.fieldsBoxes[1] && Math.abs(st.names['password-field'] - st.fieldsTitle) <= 4,
-      `${where}: #3129: in a section with settings a set's box takes the fold cell, under the section's box, so its name starts under the title (boxes ${JSON.stringify(st.fieldsBoxes)}, name ${st.names['password-field']}, title ${st.fieldsTitle})`);
-    ok(st.targets.length > 0 && st.targets.every(([tw, th]) => tw >= 24 && th >= 24), `${where}: every box is a target of at least 24 × 24 (smallest ${JSON.stringify(st.targets.reduce((a, b) => (b[0] * b[1] < a[0] * a[1] ? b : a), [99, 99]))})`);
-    ok(st.intro === `The ${ENGINE_SETS.length} component sets the engine defines, in families. Tick a set to add it to this file; Update file adds it.`,
-      `${where}: the plugin's intro says how to add a set (DRAFT): "${st.intro}"`);
-    ok(st.every.afterIntro === 'cp-add-every' && st.every.on === 'mixed' && st.every.text === 'Add every set not in this file' && st.every.count === `7 of ${S_ADDABLE} to add`,
-      `${where}: Q3129.5 A: the page control sits under the intro, mixed, "Add every set not in this file", "7 of ${S_ADDABLE} to add" (${JSON.stringify(st.every)})`);
+      `${where}: #3129: in a section with settings a row's box takes the fold cell, under the section's box, so its name starts under the title (boxes ${JSON.stringify(st.fieldsBoxes)}, name ${st.names['password-field']}, title ${st.fieldsTitle})`);
+    ok(st.targets.length > 0 && st.targets.every(([tw, th]) => tw >= 24 && th >= 24), `${where}: every box and tier action is a target of at least 24 × 24 (smallest ${JSON.stringify(st.targets.reduce((a, b) => (b[0] * b[1] < a[0] * a[1] ? b : a), [99, 99]))})`);
+    ok(st.intro === `The ${ENGINE_SETS.length} component sets the engine defines, in families. Tick a family to add its sets to this file; Update file adds them.`,
+      `${where}: the plugin's intro says how to add a family (DRAFT): "${st.intro}"`);
+    ok(!st.pageControl && /^Components · \d+ sets$/.test(st.tierHead.caption ?? '')
+      && JSON.stringify(st.tierHead.acts) === JSON.stringify(['Select all', 'Deselect all']) && st.tierHead.sameLine && st.tierHead.rightAligned,
+      `${where}: R1: Select all and Deselect all sit on the tier caption's line, right-aligned, and the page control under the intro is gone (${JSON.stringify({ pageControl: st.pageControl, ...st.tierHead })})`);
+    ok(st.captions[0] === 'Component settings' && /^Components · /.test(st.captions[1] ?? '') && st.settingsHolds,
+      `${where}: R2: the shared settings sit under their own tier, captioned Component settings, above the Components tier (${JSON.stringify(st.captions)})`);
     ok(st.badge.text === '10' && st.badge.name === 'Update file, 7 to add, 3 due', `${where}: Q3129.11 A: the badge counts the queue and splits its name (${JSON.stringify(st.badge)})`);
-    step = 'a set box, a section box';
-    await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=textarea"]'));
-    const one = { post: await lastQ(), on: await page.evaluate(() => document.querySelector('[data-p3="cp-box"][data-key="set=textarea"]')?.getAttribute('aria-checked') ?? null),
+    step = 'a set\'s box, a section box';
+    await hooks.click(page.locator('[data-set="textarea"] > [data-p3="cp-box"]'));
+    const one = { post: await lastQ(), on: await page.evaluate(() => document.querySelector('[data-set="textarea"] > [data-p3="cp-box"]')?.getAttribute('aria-checked') ?? null),
       badge: await page.evaluate(() => document.querySelector('[data-p3="update-badge"]')?.textContent ?? null) };
     ok(canon(one.post) === canon({ type: 'add-queue', ids: ['textarea'], on: true }) && one.on === 'true' && one.badge === '11',
-      `${where}: Q833 A: a set's box queues it in the file with one add-queue write, ticks, and the badge counts it (${JSON.stringify(one)})`);
+      `${where}: Q833 A: a row's box queues its set in the file with one add-queue write, ticks, and the badge counts it (${JSON.stringify(one)})`);
     await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=fields"]'));
     const rest = await lastQ();
     ok(canon(rest) === canon({ type: 'add-queue', ids: ['card-number-field', 'code-input', 'code-input-cell'], on: true }),
@@ -17321,21 +17404,47 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     const off = await lastQ();
     ok(canon(off) === canon({ type: 'add-queue', ids: ['card-number-field', 'code-input', 'code-input-cell', 'password-field', 'search-field', 'textarea'], on: false }),
       `${where}: call 8: an all-on section box takes every set it could add out of the queue, never one the file holds (${JSON.stringify(off)})`);
-    step = 'the page control under a search';
+    step = 'a family partly in the file';
+    // R5: Radio's control in the file and nothing of Radio queued: the family's box queues its two missing parts.
+    await postMsg(page, { ...S_FILE, present: [...S_PRESENT, 'radio-control'], queued: S_QUEUED.filter((id) => id !== 'radio-control') });
+    await page.waitForFunction(() => document.querySelector('[data-p3="cp-box"][data-key="sec=radios"]')?.getAttribute('aria-checked') === 'false', null, { timeout: 5000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=radios"]'));
+    const part = await lastQ();
+    ok(canon(part) === canon({ type: 'add-queue', ids: ['radio-group', 'radio-row'], on: true }),
+      `${where}: R5: a family partly in the file: its box queues the missing parts, never the one the file holds (${JSON.stringify(part)})`);
+    step = 'the tier actions';
+    await postMsg(page, S_FILE);
+    await page.waitForFunction(() => !document.querySelector('[data-p3="cp-deselect-all"][data-key="cp-deselect-all=components"]')?.disabled, null, { timeout: 5000 }).catch(() => {});
+    const compSets = await page.evaluate(() => [...document.querySelectorAll('[data-p3="cp-tier"][data-tier="components"] [data-set]')].map((n) => n.dataset.set));
+    await hooks.click(page.locator('[data-p3="cp-deselect-all"][data-key="cp-deselect-all=components"]'));
+    const desel = { post: await lastQ() };
+    await settle(page);
+    Object.assign(desel, await page.evaluate(() => ({ focus: document.activeElement?.dataset.key ?? null, off: document.querySelector('[data-key="cp-deselect-all=components"]')?.disabled ?? null })));
+    const wantDesel = S_QUEUED.filter((id) => compSets.includes(id));
+    ok(wantDesel.length === S_QUEUED.length && desel.post?.on === false && JSON.stringify([...(desel.post?.ids ?? [])].sort()) === JSON.stringify([...wantDesel].sort()) && desel.off === true && desel.focus === 'cp-select-all=components',
+      `${where}: R1: Deselect all takes the tier's queued sets out in one write, then turns off, and focus moves to Select all (${JSON.stringify(desel)})`);
     await postMsg(page, S_FILE);
     await hooks.click(page.locator('[data-p3="search-open"]'));
     await hooks.need(page, '[data-p3="search-input"]');
     await page.locator('[data-p3="search-input"]').fill('progress');
     await page.waitForFunction(() => !document.querySelector('[data-set="counter"]'), null, { timeout: 5000 }).catch(() => {});
-    const shown = await page.evaluate(() => [...document.querySelectorAll('[data-p3="components-list"] [data-p3="cp-box"][data-key^="set="]')].map((b) => b.dataset.key.slice(4)));
-    await hooks.click(page.locator('[data-p3="cp-add-every"]'));
+    const shown = await page.evaluate(() => [...document.querySelectorAll('[data-p3="cp-tier"][data-tier="components"] [data-set]')].map((n) => n.dataset.set));
+    const wantSel = shown.filter((id) => !S_PRESENT.includes(id) && !S_QUEUED.includes(id));
+    await hooks.click(page.locator('[data-p3="cp-select-all"][data-key="cp-select-all=components"]'));
     const srch = await lastQ();
-    ok(shown.length > 0 && !shown.includes('counter') && canon(srch) === canon({ type: 'add-queue', ids: srch?.ids ?? [], on: true }) && (srch?.ids ?? []).length === shown.length && srch.ids.every((id) => shown.includes(id)),
-      `${where}: Q391 A, Q3129.5 A: under a search, the page control acts on the rows shown alone (${JSON.stringify({ shown, posted: srch })})`);
+    ok(wantSel.length > 0 && !shown.includes('counter') && srch?.on === true && JSON.stringify([...(srch?.ids ?? [])].sort()) === JSON.stringify([...wantSel].sort()),
+      `${where}: R1, Q391 A: under a search, Select all queues the sets of the rows shown that the file lacks and has not queued, alone (${JSON.stringify({ want: wantSel, posted: srch })})`);
     await page.locator('[data-p3="search-input"]').fill('');
     await page.keyboard.press('Escape');
+    step = 'a file that lacks no set';
+    await postMsg(page, { ...S_FILE, present: ENGINE_SETS, queued: [] });
+    await page.waitForFunction(() => !document.querySelector('[data-p3="components-list"] [role="checkbox"]'), null, { timeout: 5000 }).catch(() => {});
+    const full = await page.evaluate(() => ({ boxes: document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]').length,
+      acts: document.querySelectorAll('[data-p3="cp-tier-actions"]').length, caps: document.querySelectorAll('[data-p3="cp-tier-caption"]').length }));
+    hooks.absent(ok, { seen: st.tierHead.acts.length === 2 && full.caps > 0, state: 'a tier\'s actions on its caption line, and the captions drawn' }, full.boxes === 0 && full.acts === 0,
+      `${where}: R1 (DRAFT): a tier with nothing the file could add carries no Select all or Deselect all, and no row a box (${JSON.stringify(full)})`);
     // ── Update file ─────────────────────────────────────────────────────────────────────────
-    step = 'Update file: To add and Due';
+    step = 'Update file: Components, To add and Due';
     await postMsg(page, S_FILE);
     await hooks.click(page.locator('[data-p3="update-file"]'));
     await page.waitForFunction(() => window.__q.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
@@ -17343,24 +17452,33 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await page.waitForFunction(() => window.__q.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
     await postMsg(page, S_CHECK);
     await hooks.need(page, '[data-p3="update-add-row"]');
-    const u = await page.evaluate(() => ({
-      groups: [...document.querySelectorAll('[data-p3="update-body"] > [data-p3^="update-item-"]')].map((n) => n.getAttribute('data-p3')),
-      titles: [...document.querySelectorAll('[data-p3="update-body"] .p3-upd-title')].map((n) => n.textContent),
-      rows: [...document.querySelectorAll('[data-p3="update-add-row"]')].map((r) => [r.dataset.id, r.querySelector('.p3-upd-setname')?.textContent ?? null]),
-      removes: [...document.querySelectorAll('[data-p3="update-remove"]')].map((b) => b.getAttribute('aria-label')),
-      ticks: document.querySelectorAll('[data-p3="update-item-add"] [role="checkbox"]').length,
-      removeAll: document.querySelector('[data-p3="update-remove-all"]')?.textContent ?? null,
-      line: document.querySelector('[data-p3="update-add-line"]')?.textContent ?? null,
-      due: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => [b.dataset.id, b.querySelector('.p3-upd-setname')?.textContent ?? null, b.getAttribute('aria-checked')]),
-      dueLine: document.querySelector('[data-p3="update-due-line"]')?.textContent ?? null,
-      overflow: [...document.querySelectorAll('[data-p3="update-add-row"]')].filter((r) => r.scrollWidth > r.clientWidth + 1).length,
-      targets: [...document.querySelectorAll('[data-p3="update-remove"], [data-p3="update-remove-all"]')].map((b) => { const x = b.getBoundingClientRect(); return Math.min(x.width, x.height); }),
-    }));
-    ok(JSON.stringify(u.groups) === JSON.stringify(['update-item-theme', 'update-item-add', 'update-item-due', 'update-item-guides']) && JSON.stringify(u.titles) === JSON.stringify(['To add', 'Due']),
-      `${where}: Q832 A: the order is Theme, To add, Due, Style guides (${JSON.stringify(u.groups)}, titles ${JSON.stringify(u.titles)})`);
+    const u = await page.evaluate(() => {
+      const comps = document.querySelector('[data-p3="update-item-components"]');
+      const theme = document.querySelector('[data-p3="update-check-theme"] b');
+      const ct = comps?.querySelector('[data-p3="update-components-title"]');
+      const font = (n) => (n ? [getComputedStyle(n).fontSize, getComputedStyle(n).fontWeight].join(' ') : null);
+      return {
+        groups: [...document.querySelectorAll('[data-p3="update-body"] > [data-p3^="update-item-"]')].map((n) => n.getAttribute('data-p3')),
+        title: ct?.textContent ?? null, level: [font(ct), font(theme)],
+        subgroups: [...(comps?.querySelectorAll(':scope > [data-p3^="update-group-"]') ?? [])].map((n) => n.getAttribute('data-p3')),
+        subtitles: [...(comps?.querySelectorAll('.p3-upd-subtitle') ?? [])].map((n) => n.textContent),
+        rows: [...document.querySelectorAll('[data-p3="update-add-row"]')].map((r) => [r.dataset.id, r.querySelector('.p3-upd-setname')?.textContent ?? null]),
+        removes: [...document.querySelectorAll('[data-p3="update-remove"]')].map((b) => b.getAttribute('aria-label')),
+        ticks: document.querySelectorAll('[data-p3="update-group-add"] [role="checkbox"]').length,
+        removeAll: document.querySelector('[data-p3="update-remove-all"]')?.textContent ?? null,
+        line: document.querySelector('[data-p3="update-add-line"]')?.textContent ?? null,
+        due: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => [b.dataset.id, b.querySelector('.p3-upd-setname')?.textContent ?? null, b.getAttribute('aria-checked')]),
+        dueLine: document.querySelector('[data-p3="update-due-line"]')?.textContent ?? null,
+        overflow: [...document.querySelectorAll('[data-p3="update-add-row"]')].filter((r) => r.scrollWidth > r.clientWidth + 1).length,
+        targets: [...document.querySelectorAll('[data-p3="update-remove"], [data-p3="update-remove-all"]')].map((b) => { const x = b.getBoundingClientRect(); return Math.min(x.width, x.height); }),
+      };
+    });
+    ok(JSON.stringify(u.groups) === JSON.stringify(['update-item-theme', 'update-item-components', 'update-item-guides']) && u.title === 'Components' && u.level[0] !== null && u.level[0] === u.level[1]
+      && JSON.stringify(u.subgroups) === JSON.stringify(['update-group-add', 'update-group-due']) && JSON.stringify(u.subtitles) === JSON.stringify(['To add', 'Due']),
+      `${where}: R6: one Components section at Theme's level, between Theme and Style guides, with To add and Due as its subtitles (${JSON.stringify({ groups: u.groups, title: u.title, level: u.level, subgroups: u.subgroups, subtitles: u.subtitles })})`);
     ok(JSON.stringify(u.rows) === JSON.stringify(S_ORDER), `${where}: Q833 A: To add lists the queue in Components' order, with its names (${JSON.stringify(u.rows)})`);
     ok(u.ticks === 0 && JSON.stringify(u.removes) === JSON.stringify(S_ORDER.map(([, n]) => `Remove ${n} from To add`)) && u.removeAll === 'Remove all',
-      `${where}: Q3129.7 A, Q3129.8 A: a queued set has no tick, only Remove, named "Remove {set} from To add", and the head has Remove all (${JSON.stringify({ ticks: u.ticks, removes: u.removes.length, removeAll: u.removeAll })})`);
+      `${where}: Q3129.7 A, Q3129.8 A: a queued set has no tick, only Remove, named "Remove {set} from To add", and the subtitle's line has Remove all (${JSON.stringify({ ticks: u.ticks, removes: u.removes.length, removeAll: u.removeAll })})`);
     ok(u.line === '7 sets chosen on Components. Each is added with its usage panel while Documentation has panels on.' && u.dueLine === '3 sets to update in place. Ticked by default.',
       `${where}: the groups' lines, DRAFT (${JSON.stringify([u.line, u.dueLine])})`);
     ok(JSON.stringify(u.due) === JSON.stringify([['button', 'Button', 'true'], ['text-field', 'Text field', 'true'], ['tag', 'Tag', 'true']]),
@@ -17375,15 +17493,26 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await hooks.need(page, '[data-p3="update-remove-all"]');
     await hooks.click(page.locator('[data-p3="update-remove-all"]'));
     await settle(page);
-    const ra = { post: await lastQ(), line: await page.evaluate(() => document.querySelector('[data-p3="update-add-line"]')?.textContent ?? null),
-      focus: await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null) };
-    ok(canon(ra.post) === canon({ type: 'add-queue', ids: S_ORDER.map(([id]) => id), on: false }) && ra.line === 'Nothing to add. Tick sets on Components to add them here.' && ra.focus === 'update-go-components',
-      `${where}: Remove all takes the queue out of the file in one write; an empty queue on a set-up file says so, and focus lands on Go to Components (${JSON.stringify(ra)})`);
+    const ra = { post: await lastQ() };
+    await postMsg(page, { ...S_FILE, queued: [] });
+    await settle(page);
+    Object.assign(ra, await page.evaluate(() => ({ add: !!document.querySelector('[data-p3="update-group-add"], [data-p3="update-add-line"]')
+        || [...document.querySelectorAll('[data-p3="update-dialog"] button')].some((b) => b.textContent === 'Go to Components'),
+      comps: !!document.querySelector('[data-p3="update-item-components"] [data-p3="update-group-due"]'), focus: document.activeElement?.dataset.key ?? null })));
+    ok(canon(ra.post) === canon({ type: 'add-queue', ids: S_ORDER.map(([id]) => id), on: false }), `${where}: Remove all takes the queue out of the file in one write (${JSON.stringify(ra.post)})`);
+    hooks.absent(ok, { seen: u.subgroups.includes('update-group-add') && ra.comps, state: 'To add drawn, and the Components section still drawn for Due' }, !ra.add && ra.focus === 'due=button',
+      `${where}: R7: Remove all leaves no To add at all, no line and no Go to Components, and focus moves on to Due's first set (${JSON.stringify(ra)})`);
     ok(!(await page.evaluate(() => !!document.querySelector('[data-p3="update-add-all"]'))), `${where}: Q3129.9 A: an empty queue on a set-up file offers no Add all`);
-    await hooks.click(page.locator('[data-p3="update-go-components"]'));
-    await page.waitForFunction(() => !document.querySelector('[data-p3="update-dialog"]'), null, { timeout: 5000 }).catch(() => {});
-    const gone = await page.evaluate(() => ({ dialog: !!document.querySelector('[data-p3="update-dialog"]'), place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null }));
-    ok(!gone.dialog && gone.place === 'components', `${where}: Go to Components closes Update file on Components (${JSON.stringify(gone)})`);
+    // Reopened, so the opening's own ticks (the due sets ticked as it opened) start afresh from a file with nothing due.
+    await page.keyboard.press('Escape');
+    await hooks.click(page.locator('[data-p3="update-file"]'));
+    await postMsg(page, { ...S_FILE, queued: [], due: Object.fromEntries(S_PRESENT.map((id) => [id, { state: 'current' }])) });
+    await hooks.need(page, '[data-p3="update-item-theme"]');
+    await settle(page);
+    const none = await page.evaluate(() => ({ comps: !!document.querySelector('[data-p3="update-item-components"]'), theme: !!document.querySelector('[data-p3="update-item-theme"]') }));
+    hooks.absent(ok, { seen: ra.comps && none.theme, state: 'the Components section drawn, and the checklist still drawn' }, !none.comps,
+      `${where}: R7: with nothing to add and nothing due there is no Components section (${JSON.stringify(none)})`);
+    await page.keyboard.press('Escape');
     step = 'a fresh file';
     const FRESH_3129 = { type: 'file-sets', present: [], setUp: false, due: {}, queued: [] };
     await hooks.click(page.locator('[data-p3="update-file"]'));
@@ -17391,11 +17520,12 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await postMsg(page, FRESH_3129);
     await hooks.need(page, '[data-p3="update-add-all"]');
     const fr = await page.evaluate(() => ({ line: document.querySelector('[data-p3="update-add-line"]')?.textContent ?? null, all: document.querySelector('[data-p3="update-add-all"]')?.textContent ?? null,
+      under: !!document.querySelector('[data-p3="update-item-components"] [data-p3="update-group-add"] [data-p3="update-add-all"]'),
       items: [...document.querySelectorAll('[data-p3="update-dialog"] [data-p3^="update-check-"]')].map((n) => [n.getAttribute('data-p3'), n.getAttribute('aria-checked')]),
       rows: document.querySelectorAll('[data-p3="update-add-row"]').length }));
-    ok(fr.rows === 0 && fr.line === `Nothing chosen yet. This file holds none of the ${ENGINE_SETS.length} component sets.` && fr.all === `Add all ${ENGINE_SETS.length}`
+    ok(fr.rows === 0 && fr.under && fr.line === `Nothing chosen yet. This file holds none of the ${ENGINE_SETS.length} component sets.` && fr.all === `Add all ${ENGINE_SETS.length}`
       && JSON.stringify(fr.items) === JSON.stringify([['update-check-setup', 'true'], ['update-check-theme', 'true'], ['update-check-guides', 'true']]),
-      `${where}: Q3129.10 A: a fresh file starts with nothing queued, offers Add all ${ENGINE_SETS.length}, and ticks Set up file, Theme and Style guides (${JSON.stringify(fr)})`);
+      `${where}: Q3129.10 A, kept by R7 (DRAFT): a fresh file starts with nothing queued, offers Add all ${ENGINE_SETS.length} under Components › To add, and ticks Set up file, Theme and Style guides (${JSON.stringify(fr)})`);
     await hooks.click(page.locator('[data-p3="update-add-all"]'));
     await settle(page);
     const aa = { post: await lastQ(), rows: await page.evaluate(() => document.querySelectorAll('[data-p3="update-add-row"]').length) };
@@ -17405,6 +17535,30 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// R3 and R4 on the web, where Components is a rail area too (Q2909.9 A) and draws no box (Q3129.12 A).
+{
+  const where = '3129 web light 1280';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    const themeBar = await pageBar(page);
+    await goPlace(page, 'components');
+    await hooks.need(page, '[data-p3="components-levers"]');
+    const bar = await pageBar(page);
+    ok(bar.inNav && bar.text === 'Components' && Math.abs(bar.titleLeft) <= 1 && bar.sameRow && bar.searchRight === themeBar.searchRight,
+      `${where}: R3, Q835 A: the title at the left of the levers header, the search flush right where Theme keeps it (${JSON.stringify({ ...bar, themeSearch: themeBar.searchRight })})`);
+    hooks.absent(ok, { seen: themeBar.modes, state: 'Theme\'s mode control, shown' }, !bar.modes, `${where}: R4: Components shows no mode control`);
+    const web = await page.evaluate(() => ({ boxes: document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]').length, acts: document.querySelectorAll('[data-p3="cp-tier-actions"]').length,
+      settings: document.querySelector('[data-p3="cp-settings-caption"]')?.textContent ?? null }));
+    ok(web.boxes === 0 && web.acts === 0 && web.settings === 'Component settings', `${where}: Q3129.12 A: the web draws no box and no tier action; R2's caption is drawn there too (${JSON.stringify(web)})`);
+    // Back on Theme, the title is the preview header's again (R3 moves it on Components only).
+    await goPlace(page, 'brand');
+    const back = await pageBar(page);
+    ok(!back.inNav && back.titleShown && back.modes, `${where}: R3: back on Theme the title is the preview header's again, beside its mode control (${JSON.stringify(back)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 } // 3129

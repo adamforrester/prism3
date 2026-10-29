@@ -29,10 +29,12 @@
  * a build places is Subcomponents, Icon included (call 11 A above). No definition is placed in Content components or
  * Blocks yet, so those two hold nothing; no tier is guessed for a definition that does not name one.
  *
- * THE BOXES (#3129, Q832 A, Q3129.4–6 A) act on the file's add queue, a set of def ids, not on a selection of the
- * session's: a set's box queues it, and a family's and a section's box is three-state over the sets it holds that the
- * file could add, buildable and not in the file (call 8 A, `addableOf`). A set the file holds, or one that can't be
- * built (listed with its reason, G4), has no box, and a family or section with none to add has none either.
+ * THE BOXES (#3129, Q832 A, Q3129.4–6 A; the owner's revision R5) act on the file's add queue, a set of def ids, not on
+ * a selection of the session's. One box per row (`GroupRow`: a family, or a set of its own), never one per part: it is
+ * on while every set of the row the file could add (buildable and not in the file, `addableOf`) is queued, else off,
+ * and a tick queues the rest, so a family partly in the file queues its missing parts (`familyBox`, `toggleSets`). A
+ * section's box is three-state over its rows (call 8 A, `boxOfSets`). A row or section with nothing to add has no box.
+ * A tier's Select all and Deselect all (R1) queue, or take out, the sets of its rows shown (`selectAllOf`).
  *
  * Copy here is the wireframe's, which the owner approved as DRAFT (#2700): every string is DRAFT until the owner signs
  * the copy off. US English, `docs/voice-standard.md`.
@@ -113,10 +115,14 @@ export const SECTION_BLOCKS: Readonly<Partial<Record<SectionKind, readonly Block
 /** The page's copy. DRAFT: the approved wireframe's own words (#2700), pending the owner's copy sign-off. */
 export const GROUPS_COPY = {
   intro: (n: number): string => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
-  /** #3129 (Q3129.4–5 A): the plugin's intro, its page control and its boxes' names. DRAFT, the wireframe's words. */
-  introPlugin: (n: number): string => `The ${n} component sets the engine defines, in families. Tick a set to add it to this file; Update file adds it.`,
-  addEvery: 'Add every set not in this file',
-  addCount: (n: number, of: number): string => `${fmt(n)} of ${fmt(of)} to add`,
+  /** #3129 (Q3129.4 A; R5): the plugin's intro, and its boxes' names. DRAFT, the wireframe's words, the intro's
+   *  object moved from a set to a family by R5. */
+  introPlugin: (n: number): string => `The ${n} component sets the engine defines, in families. Tick a family to add its sets to this file; Update file adds them.`,
+  /** #3129 R1: a tier's two text actions, on its caption's line (the owner's words). */
+  selectAll: 'Select all',
+  deselectAll: 'Deselect all',
+  /** #3129 R2: the caption over the shared settings, the tier above Components (the owner's words). */
+  settingsTier: 'Component settings',
   addSet: (name: string): string => `Add ${name} to file`,
   addAllOf: (label: string): string => `Add all of ${label} to file`,
   addAll: (title: string): string => `Add all ${title} to file`,
@@ -225,6 +231,18 @@ export const boxOfSets = (catalog: Catalog, ids: readonly string[], queue: Reado
   const on = ok.filter((id) => queue.has(id)).length;
   return on === 0 ? 'off' : on === ok.length ? 'on' : 'mixed';
 };
+
+/** #3129 R5: a row's box is two-state. On while every set it could add is queued, off otherwise (a family partly
+ *  queued, from Update file's Remove, reads off, and its tick queues the rest). */
+export const familyBox = (catalog: Catalog, ids: readonly string[], queue: ReadonlySet<string>, present: readonly string[]): 'on' | 'off' =>
+  boxOfSets(catalog, ids, queue, present) === 'on' ? 'on' : 'off';
+
+/** #3129 R1: a tier's two actions, as the sets each would write: Select all queues the sets of `ids` the file could add
+ *  that are not queued yet; Deselect all takes out the ones that are. Each is empty when it would change nothing. */
+export const selectAllOf = (catalog: Catalog, ids: readonly string[], queue: ReadonlySet<string>, present: readonly string[]): string[] =>
+  addableOf(catalog, ids, present).filter((id) => !queue.has(id));
+export const deselectAllOf = (catalog: Catalog, ids: readonly string[], queue: ReadonlySet<string>, present: readonly string[]): string[] =>
+  addableOf(catalog, ids, present).filter((id) => queue.has(id));
 
 /** A box's toggle, as the queue write it posts (`add-queue`): an all-on box takes its sets out of the queue, any other
  *  queues the ones it could add that are not queued yet. */
