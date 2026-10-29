@@ -424,11 +424,12 @@
         "sizes": {
           "type": "object",
           "additionalProperties": false,
-          "description": "OPTIONAL. Per-size DESKTOP overrides for the heading groups — the baseline counterpart of modeLevers.<mode>.typeSizes, and the desktop-endpoint counterpart of typography.sizeOverrides. Heading groups ONLY; body/label/caption/code are REJECTED. Absolute px applied after the typeScale shift (a pin does not travel with the scale; a collision is rejected). Deep-validated by brandTheme() (rung exists; ladder step; clears the group floor; merged ramp strictly increasing). Omit for none.",
+          "description": "OPTIONAL. Per-size DESKTOP overrides for the heading groups, plus caption at the brand level (#3077). The baseline counterpart of modeLevers.<mode>.typeSizes, and the desktop-endpoint counterpart of typography.sizeOverrides. body/label/code are REJECTED. Absolute px applied after the typeScale shift (a pin does not travel with the scale; a collision is rejected). Deep-validated by brandTheme() (rung exists; ladder step; clears the group floor; merged ramp strictly increasing). Omit for none.",
           "properties": {
             "display": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 32 }, "description": "OPTIONAL. Display sizes by rung name (e.g. { \"3xl\": 144 }). Floor 32px." },
             "title": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 16 }, "description": "OPTIONAL. Title sizes by rung name (e.g. { \"2xl\": 56 }). Floor 16px." },
-            "eyebrow": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 11 }, "description": "OPTIONAL. Eyebrow sizes by rung name (e.g. { \"lg\": 24 }). Floor 11px." }
+            "eyebrow": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 11 }, "description": "OPTIONAL. Eyebrow sizes by rung name (e.g. { \"lg\": 24 }). Floor 11px." },
+            "caption": { "type": "object", "additionalProperties": false, "properties": { "md": { "type": "integer", "minimum": 10 }, "lg": { "type": "integer", "minimum": 10 } }, "description": "OPTIONAL. Caption sizes, md and lg (e.g. { \"md\": 10 }). Brand level only: one static size, the same in every mode and viewport (sizeOverrides and modeLevers typeSizes stay heading-only). On the size ladder, floor 10px, ramp strictly increasing. caption.xs and caption.sm are pinned by sizeFloor and captionFloor." }
           }
         },
         "sizeOverrides": {
@@ -513,6 +514,12 @@
           "additionalProperties": false,
           "properties": { "display": { "type": "integer", "minimum": -5, "maximum": 5 }, "title": { "type": "integer", "minimum": -5, "maximum": 5 }, "body": { "type": "integer", "minimum": -5, "maximum": 5 }, "label": { "type": "integer", "minimum": -5, "maximum": 5 }, "caption": { "type": "integer", "minimum": -5, "maximum": 5 }, "eyebrow": { "type": "integer", "minimum": -5, "maximum": 5 }, "code": { "type": "integer", "minimum": -5, "maximum": 5 } },
           "description": "Per-group TRACKING nudge, in rungs. Same contract as `leadingShift`; positive = wider. Default 0."
+        },
+        "tracking": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "display": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "title": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "body": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "label": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "caption": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "eyebrow": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] }, "code": { "type": "string", "enum": ["tightest", "tighter", "tight", "snugger", "snug", "normal", "open", "wide", "wider"] } },
+          "description": "OPTIONAL. Per-text-type letter spacing PIN (#3077): every style in the text type uses this one letter spacing role. It replaces the size-derived role and its trackingShift nudge; any of the nine roles, open included. Other text types keep the derive and nudge. The role still resolves through letterSpacings and each mode's re-points. Omit for none."
         }
       }
     },

@@ -425,16 +425,23 @@ export const setSizePin = (mode: string | null, group: PerModeSizeGroup, variant
 export const setMobileSize = (group: PerModeSizeGroup, variant: string, px: number | undefined): void => {
   setViewportSize(group, variant, 'mobile', px);
 };
-/** "Release pinned sizes": drop every brand-wide size, every viewport pin and every mode's sizes. */
+/** "Release pinned sizes": drop every brand-wide heading size, every viewport pin and every mode's sizes. A caption
+ *  size (#3077) stays: it never moves with the type scale, so it is never the clash this button resolves. */
 export const releasePinnedSizes = (): void => {
-  if (brandState.typography) { delete brandState.typography.sizes; delete brandState.typography.sizeOverrides; }
+  const ty = brandState.typography;
+  if (ty) {
+    const caption = ty.sizes?.caption;
+    delete ty.sizes; delete ty.sizeOverrides;
+    if (caption) ty.sizes = { caption };
+  }
   for (const m of Object.keys(brandState.modeLevers ?? {})) setModeLever(m, 'typeSizes', undefined);
 };
-/** How many sizes are pinned anywhere: brand-wide, per mode, and viewport endpoints. */
+/** How many heading sizes are pinned anywhere: brand-wide, per mode, and viewport endpoints. Caption sizes (#3077)
+ *  are not counted: the line says the count keeps its size when the scale moves, which caption always does. */
 export const pinnedSizeCount = (): number => {
   let n = 0;
   const bs = brandState.typography?.sizes ?? {};
-  for (const g of Object.keys(bs) as PerModeSizeGroup[]) n += Object.keys(bs[g] ?? {}).length;
+  for (const g of PER_MODE_SIZE_GROUPS) n += Object.keys(bs[g] ?? {}).length;
   for (const m of Object.keys(brandState.modeLevers ?? {})) {
     const ms = brandState.modeLevers?.[m]?.typeSizes ?? {};
     for (const g of Object.keys(ms) as PerModeSizeGroup[]) n += Object.keys(ms[g] ?? {}).length;
@@ -444,4 +451,45 @@ export const pinnedSizeCount = (): number => {
     for (const variant of Object.keys(vo[g] ?? {}))
       n += Object.keys(vo[g]![variant] ?? {}).length;
   return n;
+};
+
+// ── caption sizes and the letter spacing pin (#3077, owner decisions 2026-10-27: caption A, tracking A) ──────
+
+/** The rungs `typography.sizes.caption` may set: md and lg (xs and sm are pinned by their floors). Declared as a bare
+ *  `const` and exported below, because `packages/engine/lint-ramp-steps.ts` reads this array literal by the
+ *  `const NAME = [` shape and holds it to the caption sizes every brand emits. */
+const CAPTION_SIZE_RUNGS = ['md', 'lg'] as const;
+export { CAPTION_SIZE_RUNGS };
+export type CaptionSizeRung = typeof CAPTION_SIZE_RUNGS[number];
+/** The caption size set for one rung, if any. */
+export const captionSizePin = (variant: CaptionSizeRung): number | undefined => brandState.typography?.sizes?.caption?.[variant];
+/** Whether the 10px caption floor is refused because caption md is set to 10px (#3084). The 10px floor adds caption sm
+ *  at 10px below md, and the engine refuses a caption ramp that is not strictly increasing. Caption md is set only in
+ *  `typography.sizes.caption` (`sizeOverrides` and `modeLevers` refuse caption), and never below 10px, so this is the
+ *  one clash. The engine's own rule, no trial build. */
+export const captionFloorBlocked = (): boolean => (captionSizePin('md') ?? Infinity) <= 10;
+/** Set or clear a caption size. Brand-wide: caption has one size in every mode, so any editable mode writes the same
+ *  bytes. `undefined` clears it, pruning the caption map and then `sizes`, so a cleared brand stays byte-identical. */
+export const setCaptionSize = (variant: CaptionSizeRung, px: number | undefined): void => {
+  const ty = (brandState.typography ??= {});
+  if (px === undefined) {
+    const c = ty.sizes?.caption;
+    if (!c || !ty.sizes) return;
+    delete c[variant];
+    if (!Object.keys(c).length) delete ty.sizes.caption;
+    if (!Object.keys(ty.sizes).length) delete ty.sizes;
+    return;
+  }
+  ((ty.sizes ??= {}).caption ??= {})[variant] = px;
+};
+/** The letter spacing role a text type is pinned to, if any. */
+export const trackingPinOf = (g: string): string | undefined => (brandState.typography?.tracking as Record<string, string> | undefined)?.[g];
+/** Pin a text type's letter spacing to a role, or `undefined` to follow its size and nudge again, pruning an emptied
+ *  `tracking` so a cleared brand stays byte-identical. Brand-wide. */
+export const setTrackingPin = (g: string, role: string | undefined): void => {
+  if (role !== undefined) { setPath(brandState, `typography.tracking.${g}`, role); return; }
+  const ty = brandState.typography, t = ty?.tracking as Record<string, string> | undefined;
+  if (!ty || !t) return;
+  delete t[g];
+  if (!Object.keys(t).length) delete ty.tracking;
 };

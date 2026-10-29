@@ -18086,9 +18086,9 @@
               "fontSize": "{nbds.core.font.size.48}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.tight}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "display sm strong — 36→48px fluid Inter, snug line-height, strong weight, tight tracking",
+            "$description": "display sm strong — 36→48px fluid Inter, snug line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18143,9 +18143,9 @@
               "fontSize": "{nbds.core.font.size.64}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.tight}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.tight}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "display md strong — 40→64px fluid Inter, tight line-height, strong weight, tight tracking",
+            "$description": "display md strong — 40→64px fluid Inter, tight line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18200,9 +18200,9 @@
               "fontSize": "{nbds.core.font.size.80}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.tight}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.tight}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "display lg strong — 40→80px fluid Inter, tight line-height, strong weight, tight tracking",
+            "$description": "display lg strong — 40→80px fluid Inter, tight line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18257,9 +18257,9 @@
               "fontSize": "{nbds.core.font.size.96}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.tight}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.tighter}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "display xl strong — 48→96px fluid Inter, tight line-height, strong weight, tighter tracking",
+            "$description": "display xl strong — 48→96px fluid Inter, tight line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18314,9 +18314,9 @@
               "fontSize": "{nbds.core.font.size.128}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.tight}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.tighter}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "display 2xl strong — 48→128px fluid Inter, tight line-height, strong weight, tighter tracking",
+            "$description": "display 2xl strong — 48→128px fluid Inter, tight line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18371,9 +18371,9 @@
               "fontSize": "{nbds.core.font.size.160}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.tight}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.tighter}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "display 3xl strong — 48→160px fluid Inter, tight line-height, strong weight, tighter tracking",
+            "$description": "display 3xl strong — 48→160px fluid Inter, tight line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18430,9 +18430,9 @@
               "fontSize": "{nbds.core.font.size.18}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.compact}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "title xs strong — 18px Inter, compact line-height, strong weight, snug tracking",
+            "$description": "title xs strong — 18px Inter, compact line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18469,9 +18469,9 @@
               "fontSize": "{nbds.core.font.size.20}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.compact}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "title sm strong — 20px Inter, compact line-height, strong weight, snug tracking",
+            "$description": "title sm strong — 20px Inter, compact line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18508,9 +18508,9 @@
               "fontSize": "{nbds.core.font.size.24}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.compact}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "title md strong — 20→24px fluid Inter, compact line-height, strong weight, snug tracking",
+            "$description": "title md strong — 20→24px fluid Inter, compact line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18565,9 +18565,9 @@
               "fontSize": "{nbds.core.font.size.28}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "title lg strong — 24→28px fluid Inter, snug line-height, strong weight, snug tracking",
+            "$description": "title lg strong — 24→28px fluid Inter, snug line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18622,9 +18622,9 @@
               "fontSize": "{nbds.core.font.size.32}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "title xl strong — 28→32px fluid Inter, snug line-height, strong weight, snug tracking",
+            "$description": "title xl strong — 28→32px fluid Inter, snug line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18679,9 +18679,9 @@
               "fontSize": "{nbds.core.font.size.40}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "title 2xl strong — 36→40px fluid Inter, snug line-height, strong weight, snug tracking",
+            "$description": "title 2xl strong — 36→40px fluid Inter, snug line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18738,7 +18738,7 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
             "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
             "$extensions": {
@@ -18775,7 +18775,7 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
             "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
@@ -18817,7 +18817,7 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
             "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
             "$extensions": {
@@ -18854,7 +18854,7 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
             "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
@@ -18898,9 +18898,9 @@
               "fontSize": "{nbds.core.font.size.14}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "body sm default — 14px Inter, normal line-height, default weight, normal tracking",
+            "$description": "body sm default — 14px Inter, normal line-height, default weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18935,10 +18935,10 @@
               "fontSize": "{nbds.core.font.size.14}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "body sm default link — 14px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body sm default link — 14px Inter, normal line-height, default weight, open tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18977,9 +18977,9 @@
               "fontSize": "{nbds.core.font.size.14}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "body sm strong — 14px Inter, normal line-height, strong weight, normal tracking",
+            "$description": "body sm strong — 14px Inter, normal line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19014,10 +19014,10 @@
               "fontSize": "{nbds.core.font.size.14}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "body sm strong link — 14px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body sm strong link — 14px Inter, normal line-height, strong weight, open tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19058,9 +19058,9 @@
               "fontSize": "{nbds.core.font.size.16}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "body md default — 16px Inter, normal line-height, default weight, normal tracking",
+            "$description": "body md default — 16px Inter, normal line-height, default weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19095,10 +19095,10 @@
               "fontSize": "{nbds.core.font.size.16}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "body md default link — 16px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body md default link — 16px Inter, normal line-height, default weight, open tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19137,9 +19137,9 @@
               "fontSize": "{nbds.core.font.size.16}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "body md strong — 16px Inter, normal line-height, strong weight, normal tracking",
+            "$description": "body md strong — 16px Inter, normal line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19174,10 +19174,10 @@
               "fontSize": "{nbds.core.font.size.16}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "body md strong link — 16px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body md strong link — 16px Inter, normal line-height, strong weight, open tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19218,9 +19218,9 @@
               "fontSize": "{nbds.core.font.size.18}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "body lg default — 18px Inter, normal line-height, default weight, normal tracking",
+            "$description": "body lg default — 18px Inter, normal line-height, default weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19255,10 +19255,10 @@
               "fontSize": "{nbds.core.font.size.18}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "body lg default link — 18px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body lg default link — 18px Inter, normal line-height, default weight, open tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19297,9 +19297,9 @@
               "fontSize": "{nbds.core.font.size.18}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "body lg strong — 18px Inter, normal line-height, strong weight, normal tracking",
+            "$description": "body lg strong — 18px Inter, normal line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19334,10 +19334,10 @@
               "fontSize": "{nbds.core.font.size.18}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.normal}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "body lg strong link — 18px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body lg strong link — 18px Inter, normal line-height, strong weight, open tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19380,9 +19380,9 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "label sm default — 12px Inter, snug line-height, default weight, normal tracking",
+            "$description": "label sm default — 12px Inter, snug line-height, default weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19417,10 +19417,10 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "label sm default link — 12px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)",
+            "$description": "label sm default link — 12px Inter, snug line-height, default weight, open tracking, underlined (a text button's label)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19459,9 +19459,9 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.emphasis}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "label sm emphasis — 12px Inter, snug line-height, emphasis weight, normal tracking",
+            "$description": "label sm emphasis — 12px Inter, snug line-height, emphasis weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19496,10 +19496,10 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.emphasis}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "label sm emphasis link — 12px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)",
+            "$description": "label sm emphasis link — 12px Inter, snug line-height, emphasis weight, open tracking, underlined (a text button's label)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19551,9 +19551,9 @@
               "fontSize": "{nbds.core.font.size.14}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "label md default — 14px Inter, snug line-height, default weight, normal tracking",
+            "$description": "label md default — 14px Inter, snug line-height, default weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19588,10 +19588,10 @@
               "fontSize": "{nbds.core.font.size.14}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "label md default link — 14px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)",
+            "$description": "label md default link — 14px Inter, snug line-height, default weight, open tracking, underlined (a text button's label)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19630,9 +19630,9 @@
               "fontSize": "{nbds.core.font.size.14}",
               "fontWeight": "{nbds.core.font.weight-role.emphasis}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "label md emphasis — 14px Inter, snug line-height, emphasis weight, normal tracking",
+            "$description": "label md emphasis — 14px Inter, snug line-height, emphasis weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19667,10 +19667,10 @@
               "fontSize": "{nbds.core.font.size.14}",
               "fontWeight": "{nbds.core.font.weight-role.emphasis}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "label md emphasis link — 14px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)",
+            "$description": "label md emphasis link — 14px Inter, snug line-height, emphasis weight, open tracking, underlined (a text button's label)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19722,9 +19722,9 @@
               "fontSize": "{nbds.core.font.size.18}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "label lg default — 18px Inter, snug line-height, default weight, normal tracking",
+            "$description": "label lg default — 18px Inter, snug line-height, default weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19759,10 +19759,10 @@
               "fontSize": "{nbds.core.font.size.18}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "label lg default link — 18px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)",
+            "$description": "label lg default link — 18px Inter, snug line-height, default weight, open tracking, underlined (a text button's label)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19801,9 +19801,9 @@
               "fontSize": "{nbds.core.font.size.18}",
               "fontWeight": "{nbds.core.font.weight-role.emphasis}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "label lg emphasis — 18px Inter, snug line-height, emphasis weight, normal tracking",
+            "$description": "label lg emphasis — 18px Inter, snug line-height, emphasis weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19838,10 +19838,10 @@
               "fontSize": "{nbds.core.font.size.18}",
               "fontWeight": "{nbds.core.font.weight-role.emphasis}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "label lg emphasis link — 18px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)",
+            "$description": "label lg emphasis link — 18px Inter, snug line-height, emphasis weight, open tracking, underlined (a text button's label)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -19892,22 +19892,22 @@
             "$type": "typography",
             "$value": {
               "fontFamily": "{nbds.core.font.family.caption}",
-              "fontSize": "{nbds.core.font.size.11}",
+              "fontSize": "{nbds.core.font.size.10}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "caption md default — 11px Inter, cozy line-height, default weight, normal tracking",
+            "$description": "caption md default — 10px Inter, cozy line-height, default weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
                 "group": "caption",
                 "variant": "md",
                 "weightRole": "default",
-                "sizePx": 11,
+                "sizePx": 10,
                 "responsive": {
                   "fluid": false,
-                  "px": 11
+                  "px": 10
                 },
                 "figma": {
                   "kind": "text-style",
@@ -19929,24 +19929,24 @@
             "$type": "typography",
             "$value": {
               "fontFamily": "{nbds.core.font.family.caption}",
-              "fontSize": "{nbds.core.font.size.11}",
+              "fontSize": "{nbds.core.font.size.10}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "caption md default link — 11px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "caption md default link — 10px Inter, cozy line-height, default weight, open tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
                 "group": "caption",
                 "variant": "md",
                 "weightRole": "default",
-                "sizePx": 11,
+                "sizePx": 10,
                 "link": true,
                 "responsive": {
                   "fluid": false,
-                  "px": 11
+                  "px": 10
                 },
                 "figma": {
                   "kind": "text-style",
@@ -19971,22 +19971,22 @@
             "$type": "typography",
             "$value": {
               "fontFamily": "{nbds.core.font.family.caption}",
-              "fontSize": "{nbds.core.font.size.11}",
+              "fontSize": "{nbds.core.font.size.10}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "caption md strong — 11px Inter, cozy line-height, strong weight, normal tracking",
+            "$description": "caption md strong — 10px Inter, cozy line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
                 "group": "caption",
                 "variant": "md",
                 "weightRole": "strong",
-                "sizePx": 11,
+                "sizePx": 10,
                 "responsive": {
                   "fluid": false,
-                  "px": 11
+                  "px": 10
                 },
                 "figma": {
                   "kind": "text-style",
@@ -20008,24 +20008,24 @@
             "$type": "typography",
             "$value": {
               "fontFamily": "{nbds.core.font.family.caption}",
-              "fontSize": "{nbds.core.font.size.11}",
+              "fontSize": "{nbds.core.font.size.10}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "caption md strong link — 11px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "caption md strong link — 10px Inter, cozy line-height, strong weight, open tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
                 "group": "caption",
                 "variant": "md",
                 "weightRole": "strong",
-                "sizePx": 11,
+                "sizePx": 10,
                 "link": true,
                 "responsive": {
                   "fluid": false,
-                  "px": 11
+                  "px": 10
                 },
                 "figma": {
                   "kind": "text-style",
@@ -20055,9 +20055,9 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "caption lg default — 12px Inter, cozy line-height, default weight, normal tracking",
+            "$description": "caption lg default — 12px Inter, cozy line-height, default weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20092,10 +20092,10 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.default}",
               "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg default link — 12px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "caption lg default link — 12px Inter, cozy line-height, default weight, open tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20134,9 +20134,9 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}"
             },
-            "$description": "caption lg strong — 12px Inter, cozy line-height, strong weight, normal tracking",
+            "$description": "caption lg strong — 12px Inter, cozy line-height, strong weight, open tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20171,10 +20171,10 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.strong}",
               "lineHeight": "{nbds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.open}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg strong link — 12px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "caption lg strong link — 12px Inter, cozy line-height, strong weight, open tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20217,10 +20217,10 @@
               "fontSize": "{nbds.core.font.size.12}",
               "fontWeight": "{nbds.core.font.weight-role.emphasis}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.wider}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.wide}",
               "textCase": "uppercase"
             },
-            "$description": "eyebrow sm emphasis — 12px Inter, snug line-height, emphasis weight, wider tracking, uppercase",
+            "$description": "eyebrow sm emphasis — 12px Inter, snug line-height, emphasis weight, wide tracking, uppercase",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20259,10 +20259,10 @@
               "fontSize": "{nbds.core.font.size.14}",
               "fontWeight": "{nbds.core.font.weight-role.emphasis}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.wider}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.wide}",
               "textCase": "uppercase"
             },
-            "$description": "eyebrow md emphasis — 14px Inter, snug line-height, emphasis weight, wider tracking, uppercase",
+            "$description": "eyebrow md emphasis — 14px Inter, snug line-height, emphasis weight, wide tracking, uppercase",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20301,10 +20301,10 @@
               "fontSize": "{nbds.core.font.size.20}",
               "fontWeight": "{nbds.core.font.weight-role.emphasis}",
               "lineHeight": "{nbds.core.font.line-height-role.snug}",
-              "letterSpacing": "{nbds.core.font.letter-spacing-role.wider}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.wide}",
               "textCase": "uppercase"
             },
-            "$description": "eyebrow lg emphasis — 18→20px fluid Inter, snug line-height, emphasis weight, wider tracking, uppercase",
+            "$description": "eyebrow lg emphasis — 18→20px fluid Inter, snug line-height, emphasis weight, wide tracking, uppercase",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -22128,7 +22128,7 @@
       "decisions": [
         "reference brand: anchors measured from the shipped system; the brand red also serves as danger, since the brand hue is its danger hue.",
         "dimensions: 4px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius 4px).",
-        "typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900; link underline 5% thick, 25% offset, as the reference sets it.",
+        "typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900; caption.md 10px; letter spacing open (+1%) for display, title, body, caption and label, wide (+2%) for eyebrow; link underline 5% thick, 25% offset, as the reference sets it.",
         "shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference's heavier dark shadows.",
         "layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale, except the md margin: 44px, as the reference sets it, which is not a spacing step, so it links to core dimension 44."
       ]
