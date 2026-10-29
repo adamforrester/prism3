@@ -1,7 +1,7 @@
 ## (2026-10-28) — Components chooses what to add; Update file shows To add and Due (#3129)
 
 Builds the owner-approved wireframe on #3129 (Q832 A, Q833 A; Q3129.1–13 all A), with the owner's revisions R1–R7 and
-Q835 A of 2026-10-28. Engine `{{ENGINE_VERSION}}` (patch: no emitted artifact moves).
+Q835 A of 2026-10-28, and Q3129.14 B, Q3129.15 A and Q3129.16 A of 2026-10-29. Engine `{{ENGINE_VERSION}}` (patch: no emitted artifact moves).
 
 ### What changed
 
@@ -19,7 +19,9 @@ Q835 A of 2026-10-28. Engine `{{ENGINE_VERSION}}` (patch: no emitted artifact mo
   A row with nothing to add keeps an empty cell, so names align. Each tier's caption line carries Select all and
   Deselect all (R1, replacing the page control); the shared settings sit under a Component settings tier (R2). The page
   title moves to the left of the levers header with the search flush right (R3, Q835 A), and Components shows no mode
-  control (R4; its preview follows Theme's mode). The boxes wait for the host's full read (#3110's ledger-only answer
+  control (R4). Its preview always shows Light (Q3129.14 B, replacing the first build's A), by Palettes' own pin
+  (#2321's `pinsLight` row in `shell/frame.ts`): the mode Theme had comes back on the way out, and dark components are
+  checked on Theme's pages. The component settings' derived-mode hold stays as a guard, now unreachable from the UI there. The boxes wait for the host's full read (#3110's ledger-only answer
   draws none).
 - **Update file:** Theme, Components (To add and Due as its subtitles, R6), Style guides. To add has Remove (focus moves
   to the next row's Remove) and Remove all from two rows up; an empty queue on a set-up file shows no To add (R7); a

@@ -1142,8 +1142,9 @@ for (const brand of BRANDS) {
       // No legacy frame anywhere (H12, #2289): the frame draws the two panes, and no legacy page or legacy mode strip.
       ok(dom.panesMounted && !dom.legacyMounted, `${where}: the frame draws the two panes and no legacy frame (panes ${dom.panesMounted}, legacy frame ${dom.legacyMounted})`);
       // Palettes always shows Light, its mode control held (owner decision PM1 B, #2321), and the next place shows the
-      // chosen mode again: so the walk reads Light there, and the chosen mode everywhere else.
-      const shows = place === 'color-palettes' ? 'light' : mode;
+      // chosen mode again: so the walk reads Light there, and the chosen mode everywhere else. Components pins Light the
+      // same way (#3129 Q3129.14 B), its control hidden (R4) but still drawn, so it reads Light too.
+      const shows = place === 'color-palettes' || place === 'components' ? 'light' : mode;
       ok(dom.modeOn.length === 1 && dom.modeOn[0] === shows && dom.modeSelect === shows,
         `${where}: mode agreement — the preview header marks exactly ${shows}, in its radios and its select (radios ${JSON.stringify(dom.modeOn)}, select ${JSON.stringify(dom.modeSelect)})`);
 
@@ -2028,7 +2029,7 @@ const gotoInteractive = async (page) => {
 };
 /** Choose a mode in the preview header's mode control, and wait for it to be the checked one. */
 const chooseMode = async (page, mode) => {
-  // #3129 R4: Components shows no mode control, and its preview follows the mode Theme shows: from Components, the mode
+  // #3129 R4: Components shows no mode control, and it always previews Light (Q3129.14 B): from Components, the mode
   // is chosen on Brand and the page visited again.
   const onComponents = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
   if (onComponents) {

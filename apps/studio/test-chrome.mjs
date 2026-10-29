@@ -2329,7 +2329,8 @@ for (const s of SEARCH_SAMPLE) {
   const afterEdit = await read();
   ok(before['lever-raised-surface'] && !before['lever-dialog-title-size'] && afterEdit['lever-raised-surface'] && !afterEdit['lever-dialog-title-size'],
     `#3093: on Components, searching "white" then picking Dialog surface's "${String(picked).trim()}" keeps Dialog title size hidden (${JSON.stringify({ before, after: afterEdit })})`);
-  // #3129 R4: Components shows no mode control, so the mode changes on Theme, and the search holds across the visit.
+  // #3129 R4: Components shows no mode control, so the mode changes on Theme (Components previews Light, Q3129.14 B), and
+  // the search holds across the visit.
   await goPlace(page, 'brand');
   await pickMode(page, 'dark');
   await goPlace(page, 'components');
@@ -5950,7 +5951,7 @@ const groundsIn = (page, hostHook) => page.evaluate((hk) => {
   return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })) };
 }, hostHook);
 const chooseMode = async (page, mode) => {
-  // #3129 R4: Components shows no mode control, and its preview follows the mode Theme shows: from Components, the mode
+  // #3129 R4: Components shows no mode control, and it always previews Light (Q3129.14 B): from Components, the mode
   // is chosen on Brand and the page visited again (its open blocks and focus are the session's, so they hold).
   const onComponents = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
   if (onComponents) await goPlace(page, 'brand');
@@ -9501,16 +9502,18 @@ for (const host of ['web', 'figma']) {
       for (const [mode] of EXPECT_MODES) {
         if (host === 'figma' && mode.startsWith('hc')) continue;
         await chooseMode(page, mode);
-        const where = `${host} ${theme} 1280, previewing ${mode}`;
+        // #3129 Q3129.14 B: Components always previews Light, whichever mode Theme shows, so every mode chosen on Theme
+        // reads Light's ground and actions here.
+        const where = `${host} ${theme} 1280, ${mode} chosen on Theme, previewing light`;
         const g = await sectionGrounds(page, 'components-style-guide');
-        const want = EMITTED[mode];
+        const want = EMITTED.light;
         for (const name of COMPONENTS_PREVIEW_SECTIONS) {
           const r = g.roots.find((x) => x.name === name);
           ok(!!r && r.root && r.ground === want, `specimen ground: components ${where}: ${name} is a specimen root on background.primary ${want}${!r ? ' — not drawn' : !r.root ? ' — not a specimen root' : r.ground !== want ? ` — is ${r.ground}` : ''}`);
         }
         const offGray = g.sections.filter((x) => x.bg !== LEVERS_GRAY).map((x) => `${x.name} on ${x.bg}`);
         ok(g.sections.length >= 2 && offGray.length === 0, `Q24 section containers: components ${where}: every section container is the levers panel's gray ${LEVERS_GRAY}${offGray.length ? ` — ${offGray.join(', ')}` : ''}`);
-        const fill = shapeRgb(EMITTED_ROLE('interactive.primary.fill.rest', mode)), ink = shapeRgb(EMITTED_ROLE('interactive.primary.on-fill', mode));
+        const fill = shapeRgb(EMITTED_ROLE('interactive.primary.fill.rest', 'light')), ink = shapeRgb(EMITTED_ROLE('interactive.primary.on-fill', 'light'));
         const b = await page.evaluate(() => [...document.querySelectorAll('[data-p3="components-style-guide"] .btnl-btn')]
           .map((n) => ({ bg: getComputedStyle(n).backgroundColor, ink: getComputedStyle(n.querySelector('.btnl-label')).color })));
         const off = b.filter((x) => x.bg !== fill || x.ink !== ink);
@@ -9606,8 +9609,12 @@ for (const host of ['web', 'figma']) {
     ok(false, `S8.2 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
-// Q59: in each derived mode every control on Components is disabled but the info toggletips and the way to Shape (it only
-// navigates; RX1 A, #1984), under the panel's line; the preview is still drawn, the button specimen included.
+// Q59, since #3129 Q3129.14 B: Components always previews Light, so a derived mode chosen on Theme never reaches it. In each
+// one, back on Components, no settings block carries the derived line, every control is live, the list is unheld and the
+// preview is drawn, and a scripted input on the minimum-width slider writes (the first build held them all, Q3129.14 A).
+// The blocks' own hold and the write's refusal (#2096) stay as the guard for a mode written while the pin is up.
+/** The derived line's words, typed (N-3 A): the blocks and the frame say the same. */
+const Q59_WORDS = "is auto-derived and can't be edited here.";
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
@@ -9624,20 +9631,26 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
     await openButtonOptions(page);
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
-      // #3129 R4: Components shows no mode control, and its preview follows the mode Theme shows, so the mode is chosen
-      // on Theme and the page visited again (its open blocks are the session's, so they stay open).
+      // #3129 R4: Components shows no mode control, so the mode is chosen on Theme and the page visited again (its open
+      // blocks are the session's, so they stay open); Q3129.14 B: it previews Light there.
       await goPlace(page, 'brand');
       await chooseAnyMode(page, mode);
+      // The proof that the words are read: on Type, which edits the previewed mode, the frame's line says them.
+      await goPlace(page, 'type');
+      await settle(page);
+      const proof = await page.evaluate((words) => [...document.querySelectorAll('body *')].filter((n) => n.children.length === 0 && n.textContent.includes(words)).length, Q59_WORDS);
       await goPlace(page, 'components');
-      await page.waitForFunction((l) => document.querySelector('[data-p3="button-options-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
-      const d = await page.evaluate(() => {
+      await settle(page);
+      const d = await page.evaluate((words) => {
+        // #3129 Q3129.14 B: a block's derived line, found by its words (the line no longer renders, so not by its hook).
+        const lineIn = (hk) => [...(document.querySelector(`[data-p3="${hk}"]`)?.querySelectorAll('*') ?? [])].find((n) => n.children.length === 0 && n.textContent.includes(words))?.textContent ?? null;
         const opts = document.querySelector('[data-p3="button-options"]');
         // #2909: the weights' and Outline hover's lines only navigate too, as the way to Shape does (RX1 A).
         const ctls = [...(opts?.querySelectorAll(':is(button, select, input)') ?? [])].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="components-density-link"], [data-p3="components-weights-link"], [data-p3="components-outline-hover-link"]'));
         const list = document.querySelector('[data-p3="components-list"]');
         return { n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled')).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
           link: !document.querySelector('[data-p3="components-density-link"]')?.matches(':disabled'),
-          line: document.querySelector('[data-p3="button-options-derived"]')?.textContent ?? null,
+          line: lineIn('button-options'),
           frameLine: !!document.querySelector('[data-p3="levers-derived-note"]'),
           // #2815 step 1: the Button options sit in the list now, and hold themselves (above); #2905: so do the Field
           // options (below). The list is the rest.
@@ -9646,70 +9659,58 @@ for (const host of ['web', 'figma']) {
           listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="radio-options"], [data-p3="shared-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
           listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="radio-options"], [data-p3="shared-options"]')).length,
           search: {
-            line: document.querySelector('[data-p3="search-options-derived"]')?.textContent ?? null,
+            line: lineIn('search-options'),
             chips: [...document.querySelectorAll('[data-p3="search-options"] [data-p3^="search-field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           tag: {
-            line: document.querySelector('[data-p3="tag-options-derived"]')?.textContent ?? null,
+            line: lineIn('tag-options'),
             chips: [...document.querySelectorAll('[data-p3="tag-options"] [data-p3^="tag-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           dialog: {
-            line: document.querySelector('[data-p3="dialog-options-derived"]')?.textContent ?? null,
+            line: lineIn('dialog-options'),
             chips: [...document.querySelectorAll('[data-p3="dialog-options"] [data-p3^="dialog-title-size-choice-"], [data-p3="dialog-options"] [data-p3^="dialog-surface-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           banner: {
-            line: document.querySelector('[data-p3="banner-options-derived"]')?.textContent ?? null,
+            line: lineIn('banner-options'),
             chips: [...document.querySelectorAll('[data-p3="banner-options"] [data-p3^="banner-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           radio: {
-            line: document.querySelector('[data-p3="radio-options-derived"]')?.textContent ?? null,
+            line: lineIn('radio-options'),
             chips: [...document.querySelectorAll('[data-p3="radio-options"] [data-p3^="radio-dot-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           field: {
-            line: document.querySelector('[data-p3="field-options-derived"]')?.textContent ?? null,
+            line: lineIn('field-options'),
             chips: [...document.querySelectorAll('[data-p3="field-options"] [data-p3^="field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
             link: !!document.querySelector('[data-p3="components-control-shape-link"]') && !document.querySelector('[data-p3="components-control-shape-link"]').matches(':disabled'),
           },
           preview: [...document.querySelectorAll('[data-p3="components-style-guide"] .psec-t')].map((t) => t.textContent),
           buttons: document.querySelectorAll('[data-p3="components-style-guide"] .btnl-btn').length };
-      });
-      ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, Button options carry the derived line, in the frame's words (N-3 A) ("${d.line}")`);
-      ok(d.n >= 7 && d.enabled.length === 0 && d.link, `Q59: previewing ${label}, every Button option is held (${d.n - d.enabled.length}/${d.n}), the way to Shape left live (RX1 A: ${d.link})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['button-icons-choice-edges', 'button-content-size-choice-smaller', 'button-label-weight-choice-default', 'button-min-width-slider']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control is among the Button options held`);
-      ok(d.field.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.field.chips.length === 2 && d.field.chips.every(Boolean) && d.field.link,
-        `#2905 Q59: previewing ${label}, Field options carry the derived line and hold Field style's chips, the way to Control shape left live (${JSON.stringify(d.field)})`);
-      ok(d.tag.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.tag.chips.length === 2 && d.tag.chips.every(Boolean),
-        `#2931 Q59: previewing ${label}, Tag options carry the derived line and hold Tag style's chips (${JSON.stringify(d.tag)})`);
-      ok(d.search.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.search.chips.length === 3 && d.search.chips.every(Boolean),
-        `#2952 Q59: previewing ${label}, Search options carry the derived line and hold Search field style's chips (${JSON.stringify(d.search)})`);
-      ok(d.dialog.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.dialog.chips.length === 6 && d.dialog.chips.every(Boolean),
-        `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's and Dialog surface's chips (#3049) (${JSON.stringify(d.dialog)})`);
-      ok(d.banner.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.banner.chips.length === 2 && d.banner.chips.every(Boolean),
-        `#2924 Q59: previewing ${label}, Banner options carry the derived line and hold Banner style's chips (${JSON.stringify(d.banner)})`);
-      ok(d.radio.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.radio.chips.length === 4 && d.radio.chips.every(Boolean),
-        `#3086 Q59: previewing ${label}, Radio options carry the derived line and hold Radio dot size's chips (${JSON.stringify(d.radio)})`);
-      ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
-      ok(d.shared.length === 4 && d.shared.every(Boolean), `#2909 Q59: previewing ${label}, the shared block holds Control shape's four chips (${JSON.stringify(d.shared)})`);
-      ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
-      // #2096: the write itself is refused, not only the DOM's disabled flag. A scripted `input` on the disabled
-      // minimum-width slider (which a disabled flag does not stop) leaves the persisted brand byte-identical. The value
-      // is one the slider's range holds and the brand does not, so a write that got through would show.
-      const before = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+      }, Q59_WORDS);
+      const at = `Q59, #3129 Q3129.14 B: ${label} chosen on Theme, Components previews Light`;
+      const lines = { button: d.line, field: d.field.line, tag: d.tag.line, search: d.search.line, dialog: d.dialog.line, banner: d.banner.line, radio: d.radio.line };
+      ok(proof > 0 && Object.values(lines).every((x) => x === null), `${at}: no settings block carries the derived line, whose words Type shows in this mode (${proof} on Type; ${JSON.stringify(lines)})`);
+      ok(d.n >= 7 && d.enabled.length === d.n && d.link, `${at}: every Button option is live (${d.enabled.length}/${d.n}), the way to Shape too (${d.link})`);
+      for (const hk of ['button-icons-choice-edges', 'button-content-size-choice-smaller', 'button-label-weight-choice-default', 'button-min-width-slider']) ok(d.hooks.includes(hk), `${at}: the ${hk} control is among the Button options`);
+      const chips = { field: d.field.chips, tag: d.tag.chips, search: d.search.chips, dialog: d.dialog.chips, banner: d.banner.chips, radio: d.radio.chips, shared: d.shared };
+      const counts = { field: 2, tag: 2, search: 3, dialog: 6, banner: 2, radio: 4, shared: 4 };
+      ok(Object.entries(counts).every(([k, n]) => chips[k].length === n && chips[k].every((x) => !x)) && d.field.link,
+        `${at}: every family's settings chips are live (Field, Tag, Search, Dialog, Banner, Radio, Control shape), the way to Control shape too (${JSON.stringify(chips)})`);
+      ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `${at}: the list is usable, with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
+      ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS) && d.buttons === 9, `${at}: the Components preview is drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
+      // The write goes through: a scripted `input` and its release on the minimum-width slider, to a value the brand does
+      // not hold, reach the persisted brand (#2096's refusal does not fire in Light).
       const slid = await page.evaluate(() => {
         const n = document.querySelector('[data-p3="button-min-width-slider"]');
         if (!n) return null;
         const v = Number(n.value) === 3.75 ? 3.5 : 3.75;
         n.value = String(v);
         n.dispatchEvent(new Event('input', { bubbles: true }));
-        // The release too (#2487 PR 2): a drag stores on it, so without it a write that got through would land after
-        // this arm had already read the brand, and the arm would pass on nothing.
         n.dispatchEvent(new Event('change', { bubbles: true }));
         return v;
       });
       await page.waitForTimeout(150);
-      const after = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
-      ok(slid !== null && before !== null && after === before,
-        `#2096: previewing ${label}, a scripted input on the minimum-width slider writes nothing (prism3:brandInput byte-identical${slid === null ? ', slider not found' : after === before ? '' : `, buttonMinWidthMultiplier now ${JSON.parse(after ?? '{}')?.input?.buttonMinWidthMultiplier}`})`);
+      const after = await page.evaluate(() => JSON.parse(localStorage.getItem('prism3:brandInput') ?? '{}')?.input?.buttonMinWidthMultiplier ?? null);
+      ok(slid !== null && after === slid, `${at}: a scripted input on the minimum-width slider writes it (buttonMinWidthMultiplier ${after}, slid to ${slid})`);
     }
     ok(errors.length === 0, `components derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -9731,7 +9732,8 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="button-label-weight-choice-default"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="button-label-weight-choice-default"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
     const pd = await persisted(page);
-    ok(pd?.buttonLabelWeight === 'default' && !pd?.modeLevers, `Q54: previewing Dark, Default writes buttonLabelWeight: default and no per-mode value (${JSON.stringify({ w: pd?.buttonLabelWeight, modeLevers: pd?.modeLevers ?? null })})`);
+    // #3129 Q3129.14 B: Dark is chosen on Theme, and Components previews Light.
+    ok(pd?.buttonLabelWeight === 'default' && !pd?.modeLevers, `Q54: with Dark chosen on Theme, Default writes buttonLabelWeight: default and no per-mode value (${JSON.stringify({ w: pd?.buttonLabelWeight, modeLevers: pd?.modeLevers ?? null })})`);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     ok(errors.length === 0, `components Q54: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -12631,7 +12633,8 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
           if (place === 'color-palettes') { await showLevers(page, w); const hp = await page.evaluate(HINT_PROBE); tally.hints += hp.hints.length;
             for (const hl of hp.hints) ok(hl.glyphs === 0, `HP3 ${at} (${mode}): hint line ${hl.hook ?? '(no hook)'} draws a glyph — "${hl.text}"`);
             ok(hp.stray.length === 0, `HP3 ${at} (${mode}): a non-button ⓘ glyph is drawn — ${hp.stray.join(' | ')}`); continue; }
-          // #3129 R4: Components shows no mode control; its preview follows Theme's mode, so the mode is chosen on Brand.
+          // #3129 R4: Components shows no mode control, so the mode is chosen on Brand (Components itself previews Light,
+          // Q3129.14 B, so the derived-mode line never shows there).
           if (place === 'components') await goPlace(page, 'brand');
           if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
           await showMode(page, mode);
@@ -14301,6 +14304,7 @@ for (const host of ['web', 'figma']) {
 if (runs('36')) {
 const PM_FROM = ['dark', 'hc-light', 'hc-dark'];
 // #3129 R4: Components shows no mode control, so it is not a place the control is live on (section 3129 holds its absence).
+// Q3129.14 B pins it to Light by this same mechanism, with no control or line to read; section 3129 holds that pin.
 const PM_LIVE_PLACES = ['brand', 'color-fills', 'color-interactive', 'type', 'depth', 'shape', 'layout'];
 const PM_LINE = 'Palettes always show Light. Ramps are the same in every mode.';
 const PM_LABEL = 'Light';
@@ -17310,7 +17314,8 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 // family's part; a section's box is three-state over its rows, and in a section of one family it is that family's. Each
 // tier's caption line carries Select all and Deselect all, right-aligned (R1), and the shared settings sit under their
 // own tier, Component settings (R2). The page's title is at the left of the levers header and the search flush right in
-// it (R3, Q835 A), and Components shows no mode control (R4). Every box and action acts on the FILE's add queue through
+// it (R3, Q835 A), and Components shows no mode control (R4) and always previews Light, putting back Theme's mode on the
+// way out (Q3129.14 B, 2026-10-29, replacing the first build's A: the preview followed Theme's mode). Every box and action acts on the FILE's add queue through
 // one `add-queue` write. Update file draws one Components section at Theme's level with To add and Due as its subtitles
 // (R6); an empty queue on a set-up file has no To add (R7), and a fresh file still offers Add all (Q3129.9–10 A). Its
 // badge counts the queue and splits its name. The web draws no box (Q3129.12 A).
@@ -17323,6 +17328,8 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 //   · R2: the settings tier's caption dropped → `3129 figma … R2: the shared settings sit under their own tier …`;
 //   · R3: the title left in the preview header (`titleHome` always `previewHead`) → `3129 figma … R3: the title sits at …`;
 //   · R4: the mode control shown on Components (its CSS rule dropped) → `3129 figma … R4: Components shows no mode control`;
+//   · Q3129.14 B: the pin dropped (Components' `pinsLight` row removed) → `3129 figma … Q3129.14 B: arriving from Theme in
+//     Dark, Components previews Light …`;
 //   · R5: a family's parts given its box (`setRow` passed the row) → `3129 figma … R5: one box per family …`; the family
 //     box three-state again (`familyBox` returning `boxOfSets`' state) → `3129 figma … R5: a family's box is two-state …`;
 //   · R6: Due drawn as an item of its own again → `3129 figma … R6: one Components section …`;
@@ -17403,6 +17410,32 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     ok(themeBar.searchRight > 0 && bar.searchRight === themeBar.searchRight && Math.abs(bar.searchRight - bar.navRight) <= 1,
       `${where}: R3, Q835 A: Components keeps its search, flush right in the same row, where Theme's row keeps it (${bar.searchRight} against Theme's ${themeBar.searchRight}, row end ${bar.navRight})`);
     hooks.absent(ok, { seen: themeBar.modes, state: 'Theme\'s mode control, shown' }, !bar.modes, `${where}: R4: Components shows no mode control`);
+    // Q3129.14 B (the owner, 2026-10-29): Components always previews Light, as Palettes does (PM1 B), and the mode Theme
+    // had comes back on the way out. Dark is chosen on Brand; Components' specimen grounds are read against the emission's
+    // Light and Dark `background.primary` (EMITTED, resolved in Node), and Brand's control is read again on return.
+    step = 'Q3129.14 B: arrive from Theme in Dark';
+    await goPlace(page, 'brand');
+    await roShowMode(page, 'dark');
+    await goPlace(page, 'components');
+    // At the narrow tier the preview is its own pane.
+    const narrowPin = w <= 560;
+    if (narrowPin) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    await hooks.need(page, '[data-p3="components-style-guide"]');
+    await settle(page);
+    const pinG = await sectionGrounds(page, 'components-style-guide');
+    if (narrowPin) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+    const offLight = pinG.roots.filter((x) => x.ground !== EMITTED.light);
+    ok(EMITTED.light !== EMITTED.dark && pinG.roots.length >= 2 && offLight.length === 0,
+      `${where}: Q3129.14 B: arriving from Theme in Dark, Components previews Light: every specimen ground is Light's background.primary ${EMITTED.light}, not Dark's ${EMITTED.dark} (${pinG.roots.length} read${offLight.length ? `; ${offLight.map((x) => `${x.name} on ${x.ground}`).join(', ')}` : ''})`);
+    step = 'Q3129.14 B: return to Theme';
+    await goPlace(page, 'brand');
+    await settle(page);
+    const back = await page.evaluate(() => ({ checked: [...document.querySelectorAll('[data-p3="mode-option"]')].filter((b) => b.getAttribute('aria-checked') === 'true').map((b) => b.dataset.mode),
+      value: document.querySelector('[data-p3="mode-select"]')?.value ?? null }));
+    ok(JSON.stringify(back.checked) === '["dark"]' && back.value === 'dark',
+      `${where}: Q3129.14 B: returning to Theme from Components puts back Dark (checked ${JSON.stringify(back.checked)}, select ${back.value})`);
+    await goPlace(page, 'components');
+    await hooks.need(page, '[data-p3="components-levers"]');
     const pre = await page.evaluate(() => document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]').length);
     ok(pre === 0, `${where}: the boxes wait for the host's full read of the file (${pre} drawn before it)`);
     step = 'the boxes';

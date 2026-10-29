@@ -14,6 +14,9 @@
  * bytes from any editable mode (Q54). A derived mode (HC light, HC dark, wireframe) is read-only (Q59): the writes refuse
  * (`edit` below, #2096), and since these controls are no longer in the levers pane the frame holds, the block holds its
  * own controls and says why, in the frame's own words (N-3 A); the Components page is not held by the frame (#2700).
+ * Since #3129 Q3129.14 B Components always previews Light (the frame's pin, as on Palettes), so a person never reaches a
+ * derived mode there and the line does not show; the hold and the write's refusal stay as the guard for a mode written
+ * while the pin is up (a brand loaded starts at its first mode). The line's words stay DRAFT.
  *
  * BEHAVIOR-NEUTRAL (the S2 rule). Every write goes through `state/button-input.ts`, which writes what the legacy Size &
  * radius page wrote, byte for byte, its traps included.

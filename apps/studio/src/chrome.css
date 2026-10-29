@@ -1729,8 +1729,8 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-min-slot:empty { display: none; }
 /* On the rail the tab row holds Theme's pages alone: Components' page has no tab, so its row holds the page's title and
    the search. #3129 R3 and Q835 A (the owner, 2026-10-28): the title at the left, where the tabs start on Theme, and the
-   search flush right, where Theme's row keeps it. R4: Components shows no mode control; its preview follows the mode
-   Theme shows. */
+   search flush right, where Theme's row keeps it. R4: Components shows no mode control; its preview is always Light
+   (Q3129.14 B, the pin in `shell/frame.ts`). */
 .p3-frame[data-shell="rail"][data-place="components"] .p3-nav .p3-tabs { display: none; }
 .p3-frame[data-place="components"] .p3-nav > .p3-search { margin-left: auto; }
 .p3-frame[data-place="components"] .p3-preview-head > .p3-modes-wrap { display: none; }
