@@ -300,7 +300,8 @@ section('hand — a reaction removed by hand is a hand edit, with the usual choi
 section('converge — a set built before reactions existed is updated once, then reads up to date');
 {
   const w = await world(TAG);
-  // As an earlier plugin left it: no reactions, records that never held them, and the revision before this one.
+  // As an earlier plugin left it: no reactions, records that never held them, and the revision before reactions (14;
+  // #2466 raised it to 15). Not `EXECUTOR_REVISION - 1`: since #3101 a revision that did not redraw Tag leaves it current.
   for (const m of membersOf(w)) {
     await (m.setReactionsAsync as (r: unknown[]) => Promise<void>)([]);
     const pd = m.getSharedPluginData as (a: string, b: string) => string;
@@ -308,7 +309,7 @@ section('converge — a set built before reactions existed is updated once, then
     const rec = JSON.parse(pd(NS, BASELINE_KEY));
     delete rec.reactions;
     set(NS, BASELINE_KEY, JSON.stringify(rec));
-    set(NS, STAMP_KEY, pd(NS, STAMP_KEY).replace(/\|\d+$/, `|${EXECUTOR_REVISION - 1}`));
+    set(NS, STAMP_KEY, pd(NS, STAMP_KEY).replace(/\|\d+$/, '|14'));
   }
   ok(membersOf(w).every((m) => reactionsOf(m).length === 0), 'premise: no member carries a reaction');
   const { pre, res } = await confirm(w, TAG);

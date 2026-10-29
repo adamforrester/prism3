@@ -1078,15 +1078,19 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "gap",
+        "key": "horizontal.gap",
         "ref": "space.300"
+      },
+      {
+        "key": "vertical.gap",
+        "ref": "space.150"
       }
     ],
     "page": "Divider",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 6,
+    "members": 7,
     "nests": []
   },
   {

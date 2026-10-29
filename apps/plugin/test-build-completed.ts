@@ -48,7 +48,7 @@
  * recording nothing (`main.ts`, its `recordSets` after `applyComponentPlan`) → `ledger/build`; the Update recording
  * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. #3082 Q811 A
  * (section 1a'): `fileSets` calling `restampQuiet` → `q811/load: the read records nothing`; `restampQuiet` a no-op →
- * `q811/restamp`; the update's record without its print AND `restampQuiet` a no-op → `ledger/print` (either alone is
+ * `q811/restamp`; `restampQuiet`'s stale filter without the revision (#3101) → `reach/restamp`; the update's record without its print AND `restampQuiet` a no-op → `ledger/print` (either alone is
  * covered by the other: the quiet re-record gives a no-print entry its print); `dueOf` reading a print-less entry under a
  * moved engine `unrecorded` → `q811/unprinted` (#3090 finding 1); `fileSets` printing against the stored brand,
  * `printNow()` → `q811/panel brand` (#3090 M6, section 6); `restampQuiet`'s stale filter losing `!ledger[id].print`, so a
@@ -68,6 +68,7 @@
  * `dueOf` without `printNow(input)`, so an engine-moved set reads `unrecorded` → `q810/engine`; `ledgerSets` the same → `q810/engine at open`; `printNow` projecting on every call (`printMemo` unused) → `q810/memo`
  * (#3096 into #3090).
  */
+import { EXECUTOR_REACH } from './src/executor-reach';
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
@@ -332,6 +333,21 @@ ok(JSON.stringify(fsT?.due?.badge) === JSON.stringify({ state: 'current' }) && !
 await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
 ok(ledger().badge?.engine === asRecorded.engine && ledger().badge?.print?.plan === asRecorded.print!.plan,
   `q811/migrate: the next write gives a print-less entry under today's engine its print (${JSON.stringify({ engine: ledger().badge?.engine, plan: ledger().badge?.print?.plan ?? null })})`);
+// #3101: an entry recorded under revision 42. Revision 43 redrew the sign-in button alone (`executor-reach.json`), so
+// Badge reads current, the read records nothing, and the next write records it under today's revision. Recorded below
+// the record's floor it is due for the executor, as every set was before #3101.
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, rev: 42 } } }));
+const fsR = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsR?.due?.badge) === JSON.stringify({ state: 'current' }) && ledger().badge?.rev === 42,
+  `reach/load: recorded under 42, Badge reads current under 43, which did not redraw it, and the read records nothing (${JSON.stringify({ due: fsR?.due?.badge, rev: ledger().badge?.rev })})`);
+await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
+ok(ledger().badge?.rev === asRecorded.rev && ledger().badge?.print?.plan === asRecorded.print!.plan,
+  `reach/restamp: the next write records it under today's revision, its print kept (${JSON.stringify({ rev: ledger().badge?.rev, plan: ledger().badge?.print?.plan })})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, rev: EXECUTOR_REACH.floor - 1 } } }));
+const fsF = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsF?.due?.badge) === JSON.stringify({ state: 'due', reason: 'executor' }),
+  `reach/floor: recorded below the record's floor, Badge is due for the executor (${JSON.stringify(fsF?.due?.badge)})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: asRecorded } }));
 // #3090 finding 1: an entry from before Q811 A (no print) under an older engine. It reads due for the engine, naming
 // nothing, never "not checked yet"; a write does not record it quietly, nor does the check; the update's apply does,
 // with its print, and the next read finds it current.

@@ -1122,8 +1122,8 @@ const printYielding = async (print: Printer, ids: readonly string[]): Promise<vo
 const printMemo = new Map<string, PlanPrint | null>();
 const PRINT_MEMO_MAX = 256;
 /**
- * THE QUIET RE-RECORD (#3082 Q811 A), after a write: each set whose entry names another engine (or carries no print, an
- * entry from before Q811 A) and whose plans print now as they did when it was drawn is recorded again under today's
+ * THE QUIET RE-RECORD (#3082 Q811 A), after a write: each set whose entry names another engine or (#3101) another
+ * revision (or carries no print, an entry from before Q811 A) and whose plans print now as they did when it was drawn is recorded again under today's
  * engine, against the file's stored brand, which the write has just left. Never at load: a read that wrote the file's
  * root would make opening the plugin an edit of the document, refused on a file the person can only view, and the
  * panel's read carries a brand not yet applied. Until a write records it, the read prints the set and calls it current.
@@ -1134,7 +1134,7 @@ const restampQuiet = (): void => {
   try {
     const ledger = readLedger(figma.root);
     const now = ledgerNow();
-    const stale = Object.keys(ledger).filter((id) => { const e = now(id); return !!e && (e.engine !== ledger[id].engine || !ledger[id].print); });
+    const stale = Object.keys(ledger).filter((id) => { const e = now(id); return !!e && (e.engine !== ledger[id].engine || e.rev !== ledger[id].rev || !ledger[id].print); });
     if (!stale.length) return;
     const print = printNow();
     recordSets(figma.root, quietOf(ledger, dueOf(ledger, stale, now, print), (id) => { const e = now(id); const p = print(id); return e && p ? { ...e, print: p } : null; }));
