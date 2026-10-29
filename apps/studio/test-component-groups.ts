@@ -13,7 +13,9 @@
  *   · Icon listed under its own section again (`kindOf` keying on 'Subcomponents' only) → `call 11: Icon lists under Subcomponents`.
  *   · rows in catalog order (the sort dropped) → `notes 2, 3: the Components rows…`.
  *   · a family's sets in catalog order → `note 2: a family's sets are alphabetical…`.
- *   · a box selecting a set that can't be built (`buildableOf` bypassed) → `G4 under call 8…`.
+ *   · a box queuing a set that can't be built (`buildableOf` bypassed) → `G4 under call 8…`.
+ *   · #3129: `addableOf` keeping the sets the file holds → `Q3129.6 A: a box acts on the sets the file could add …`; a
+ *     mixed box re-queuing its queued sets (`toggleSets` without its filter) → `a mixed box queues the rest, and only the rest …`.
  *   · search keeping a family only on its own label → `search: a family stays while any of its sets matches`.
  *   · Stop ending the run at once (before the current set's result) → `call 16: Stop waits for the set being built…`.
  *   · "Also builds" by component name again (`displayNameOf` bypassed) → `idea 7: the sets a build makes first…`.
@@ -36,7 +38,7 @@
  */
 import { COMPONENT_CATALOG_DATA as catalog } from './src/state/component-catalog-data';
 import type { Catalog, CatalogEntry } from './src/state/component-catalog';
-import { alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, rowOfFocus, sentenceCase, setFocusKey, tiersOf, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
+import { addableOf, alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, rowOfFocus, sentenceCase, setFocusKey, tiersOf, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
 import { TAXONOMY } from '../plugin/src/file-taxonomy';
 import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS, DIALOG_TITLE_TYPE_KEYS, BANNER_STYLE_FILL_KEYS } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -156,22 +158,40 @@ const btnRow = groups.find((g) => g.kind === 'buttons')?.rows[0];
 ok(!!btnRow && rowOfFocus(catalog, setFocusKey('button-neutral'))?.key === btnRow.key && rowOfFocus(catalog, btnRow.key)?.key === btnRow.key && rowOfFocus(catalog, 'set=nothing') === undefined,
   `#2905 Q8 A: a set in a flat section focuses as itself, and its focus names its family's row, so the preview shows the family (${rowOfFocus(catalog, setFocusKey('button-neutral'))?.label})`);
 
-console.log('\n2. Boxes and selection (note 5, call 8)');
+console.log('\n2. Boxes over the add queue (note 5, call 8; #3129 Q3129.4–6 A)');
+// #3129: a box acts on the file's add queue, over the sets of its ids the file could add (buildable, not in the file).
 const buttons = ['button', 'button-destructive', 'button-neutral'];
-let sel = toggleSets(catalog, buttons, new Set());
-ok(boxOfSets(catalog, buttons, sel) === 'on' && sel.size === 3, 'call 8: a family box selects all of its sets');
-sel = toggleSets(catalog, ['button-neutral'], sel);
-ok(boxOfSets(catalog, buttons, sel) === 'mixed', 'call 8: a family with some of its sets selected reads mixed');
-sel = toggleSets(catalog, buttons, sel);
-ok(boxOfSets(catalog, buttons, sel) === 'on', 'a mixed box selects the rest when it is toggled');
-sel = toggleSets(catalog, buttons, sel);
-ok(sel.size === 0 && boxOfSets(catalog, buttons, sel) === 'off', 'an all-on box clears its sets');
-// G4: a planted set that can't be built is never selected by any box.
+const apply = (q: ReadonlySet<string>, w: { ids: readonly string[]; on: boolean }): Set<string> => {
+  const n = new Set(q);
+  for (const id of w.ids) if (w.on) n.add(id); else n.delete(id);
+  return n;
+};
+let q: Set<string> = new Set();
+let w = toggleSets(catalog, buttons, q, []);
+ok(w.on && JSON.stringify(w.ids) === JSON.stringify(buttons), `call 8: a family box queues all of its sets, as one write (${JSON.stringify(w)})`);
+q = apply(q, w);
+ok(boxOfSets(catalog, buttons, q, []) === 'on', 'call 8: a family with every set queued reads on');
+q = apply(q, toggleSets(catalog, ['button-neutral'], q, []));
+ok(boxOfSets(catalog, buttons, q, []) === 'mixed', 'call 8: a family with some of its sets queued reads mixed');
+w = toggleSets(catalog, buttons, q, []);
+ok(w.on && JSON.stringify(w.ids) === JSON.stringify(['button-neutral']), `a mixed box queues the rest, and only the rest, when it is toggled (${JSON.stringify(w)})`);
+q = apply(q, w);
+w = toggleSets(catalog, buttons, q, []);
+q = apply(q, w);
+ok(!w.on && q.size === 0 && boxOfSets(catalog, buttons, q, []) === 'off', 'an all-on box takes its sets out of the queue');
+// Q3129.6 A: the file holds Button, so the family's box is over the other two, and a set the file holds is never queued.
+w = toggleSets(catalog, buttons, new Set(), ['button']);
+ok(w.on && JSON.stringify(w.ids) === JSON.stringify(['button-destructive', 'button-neutral']) && boxOfSets(catalog, buttons, new Set(['button-destructive', 'button-neutral']), ['button']) === 'on',
+  `Q3129.6 A: a box acts on the sets the file could add; a set the file holds is never queued, and does not hold the box mixed (${JSON.stringify(w)})`);
+ok(JSON.stringify(addableOf(catalog, buttons, buttons)) === '[]', 'Q3129.6 A: a family the file holds whole has no set to add, so no box');
+// G4: a planted set that can't be built is never queued by any box.
 const off: CatalogEntry = { ...catalog.find((e) => e.id === 'badge')!, id: 'planted-off', name: 'Planted', buildable: false, reason: 'planted-off: no geometry.', members: null, nests: [] };
 const withOff: Catalog = [...catalog, off];
-const picked = toggleSets(withOff, ['badge', 'planted-off'], new Set());
-ok([...picked].join() === 'badge' && boxOfSets(withOff, ['planted-off'], new Set()) === 'off',
-  `G4 under call 8: a box over a set that can't be built never selects it (${JSON.stringify([...picked])})`);
+const picked = toggleSets(withOff, ['badge', 'planted-off'], new Set(), []);
+ok(picked.ids.join() === 'badge' && boxOfSets(withOff, ['planted-off'], new Set(), []) === 'off',
+  `G4 under call 8: a box over a set that can't be built never queues it (${JSON.stringify(picked)})`);
+ok(GROUPS_COPY.addSet('Badge') === 'Add Badge to file' && GROUPS_COPY.addAllOf('Radio') === 'Add all of Radio to file' && GROUPS_COPY.addAll('Fields') === 'Add all Fields to file'
+  && GROUPS_COPY.addCount(7, 41) === '7 of 41 to add', 'Q3129.4 A, Q3129.5 A: the boxes\' names and the page control\'s count, as the wireframe words them (DRAFT)');
 
 console.log('\n3. Search (the Studio\'s search, #2700\'s edge state)');
 const checkbox = groups.flatMap((g) => g.rows).find((r) => r.label === 'Checkbox')!;

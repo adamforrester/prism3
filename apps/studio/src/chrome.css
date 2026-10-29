@@ -943,7 +943,11 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-cp-li { min-width: 0; }
 .p3-cp-sub { padding-left: var(--p3-space-400); }
 .p3-cp-row { display: flex; align-items: center; gap: var(--p3-space-025); min-height: var(--p3-ctl-h-xs); min-width: 0; }
-.p3-btn.p3-check.p3-cp-check { flex: none; width: auto; padding: var(--p3-space-050); }
+/* #3129: a row's box is one cell wide, the width of the empty cell a set the file holds keeps, so names align; its target
+   is that cell, 28 × 28, over the 24px floor. */
+.p3-btn.p3-check.p3-cp-check { flex: none; width: var(--p3-ctl-h-xs); min-width: var(--p3-ctl-h-xs); min-height: var(--p3-ctl-h-xs); padding: 0; justify-content: center; }
+/* #3129 Q3129.5 A: the page's box under the intro, its words beside it, the count in the secondary ink. */
+.p3-btn.p3-check.p3-cp-check.p3-cp-all { width: auto; max-width: 100%; justify-self: start; justify-content: flex-start; gap: var(--p3-space-100); padding-inline: var(--p3-space-050) var(--p3-space-100); flex-wrap: wrap; text-align: left; }
 .p3-cp-nobox, .p3-cp-fold-space { flex: none; width: var(--p3-ctl-h-xs); }
 .p3-cp-fold { flex: none; min-height: var(--p3-ctl-h-xs); min-width: var(--p3-ctl-h-xs); }
 .p3-cp-fold[aria-expanded="true"] > .p3-ico { transform: rotate(90deg); }
@@ -1745,6 +1749,13 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-title { padding-left: var(--p3-space-100); }
 .p3-upd-sets { display: grid; gap: var(--p3-space-025); padding-left: var(--p3-space-300); }
 .p3-upd-setname { flex: 1 1 auto; min-width: 0; }
+/* #3129: To add, its head (the title, and Remove all from two rows up) and its rows (a name, where it lands, Remove). */
+.p3-upd-grouphead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--p3-space-100); }
+.p3-upd-grouphead > .p3-upd-removeall { min-height: var(--p3-ctl-h-xs); }
+.p3-upd-addrow { display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-xs); padding-left: var(--p3-space-100); }
+.p3-upd-where { flex: none; font-size: var(--p3-fs-12); }
+.p3-btn.p3-btn-icon.p3-upd-remove { flex: none; min-width: var(--p3-ctl-h-xs); min-height: var(--p3-ctl-h-xs); }
+.p3-upd-addall, .p3-upd-gocomp { justify-self: start; margin-left: var(--p3-space-300); }
 .p3-upd-line, .p3-upd-summary { color: var(--p3-text); }
 .p3-btn.p3-upd-btn { flex: none; }
 /* #2909 Q2909.8 A: the number of due sets on Update file, in the button's own inverse ink with a ring of it, so it needs

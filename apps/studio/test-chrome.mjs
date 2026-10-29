@@ -3260,13 +3260,12 @@ for (const host of ['web', 'figma']) {
         }
         // #3128: a set the build queue posts that the host refuses (the plugin's run guard still held) gets no verdict.
         // The run ends on the refusal: Update file is free again, the Build set row is not left running, and its result
-        // carries the host's words. Two sets ticked, the theme not; the first lands, the second is refused.
-        await openUpdate({ present: [], setUp: true });
+        // carries the host's words. Two sets queued (#3129, the file's add queue), the theme not; the first lands, the
+        // second is refused.
+        await openUpdate({ present: [], setUp: true, queued: ['badge', 'tag'] });
         await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
-        await postMsg(page, { type: 'file-sets', present: [], setUp: true });
-        await hooks.need(page, '[data-p3="update-set"]', WAIT);
-        await hooks.click(page.locator('[data-p3="update-set"]').nth(0), WAIT);
-        await hooks.click(page.locator('[data-p3="update-set"]').nth(1), WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: true, queued: ['badge', 'tag'] });
+        await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
         await takeWrites(page);
         await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
         const rfW1 = (await takeWrites(page)).map(keyOf);
@@ -3309,22 +3308,21 @@ for (const host of ['web', 'figma']) {
           `${where}: #2830 Q713 A: while Draw specs is out, the Build set row does not run it (row ${JSON.stringify(spC ?? null)})`);
         // The review of #3034 (C3): the verdict is a `component-update-result`, which any components write sends, so no
         // other may start while the specs draw. The plugin builds through Update file's sets step (Q2909.5 A): with one set
-        // ticked and the theme not, its run posts no build and ends on the step's refusal.
-        await openUpdate({ present: [], setUp: true });
+        // queued (#3129, the file's add queue) and the theme unticked, its run posts no build and ends on the step's refusal.
+        await openUpdate({ present: [], setUp: true, queued: ['badge'] });
         await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
         // #3028 (#3023 Q701 B): a Theme toggle asks the file again, so answer it before the sets step is drawn.
-        await postMsg(page, { type: 'file-sets', present: [], setUp: true });
-        await hooks.need(page, '[data-p3="update-set"]', WAIT);
-        await hooks.click(page.locator('[data-p3="update-set"]').first(), WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: true, queued: ['badge'] });
+        await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
         const spT = await page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
-          sets: [...document.querySelectorAll('[data-p3="update-set"]')].filter((n) => n.getAttribute('aria-checked') === 'true').length }));
+          sets: document.querySelectorAll('[data-p3="update-add-row"]').length }));
         await takeWrites(page);
         await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
         await settle(page);
         const spBW = await takeWrites(page);
         const spBU = await updBtn();
         ok(spT.theme === 'false' && spT.sets === 1 && spBW.length === 0 && !spBU.busy,
-          `${where}: #3034 review C3: while Draw specs is out, Update file's sets step builds nothing, and its run ends (ticked ${JSON.stringify(spT)}, posted ${JSON.stringify(spBW.map(keyOf))}, Update file ${JSON.stringify(spBU)})`);
+          `${where}: #3034 review C3: while Draw specs is out, Update file's sets step builds nothing, and its run ends (queued ${JSON.stringify(spT)}, posted ${JSON.stringify(spBW.map(keyOf))}, Update file ${JSON.stringify(spBU)})`);
         if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
         await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
         if (narrow) await page.locator('[data-p3="docs-select"]').selectOption('specs');
@@ -16725,6 +16723,8 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
 //     its ticks → `IA2 figma … #3028 Q701 B: with Theme unticked, a live answer landing …`; `liveShown` (`main.ts`)
 //     reduced to `!restoreFailure` → `IA2 figma … before a brand is chosen …`; `!restoreFailure &&` dropped from `liveShown`
 //     → `IA2 figma … after a failed restore …` (#3096 review, MC).
+/** The sets the engine documents, read here for #3082's and #3129's arms (section 9267's own copy is scoped to its block). */
+const ENGINE_SETS = readdirSync(join(REPO, 'packages/engine/out/components')).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3)).sort();
 if (runs('ia2')) {
 console.log(`\nIA v2 phase 2 (#2909) — tiers, lever homes, engine warnings, what is due\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
@@ -16794,7 +16794,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     } else {
       // What is due (Q2909.8 A), planted as the main thread answers: two sets due, one hand-edited, one not recorded.
       step = 'what is due';
-      await page.evaluate(() => { window.__ia2 = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && ['update-check-request', 'update-sets', 'file-sets-request'].includes(m.type)) window.__ia2.push(JSON.parse(JSON.stringify(m))); }); });
+      await page.evaluate(() => { window.__ia2 = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && ['update-check-request', 'update-sets', 'file-sets-request', 'add-queue'].includes(m.type)) window.__ia2.push(JSON.parse(JSON.stringify(m))); }); });
       const DUE = { button: { state: 'due', reason: 'definition' }, select: { state: 'due', reason: 'engine' }, tag: { state: 'current' }, badge: { state: 'unrecorded' } };
       const FILE = { type: 'file-sets', present: ['button', 'select', 'tag', 'badge'], setUp: true, due: DUE };
       await postMsg(page, FILE);
@@ -16965,8 +16965,8 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await answer(burst[0]?.seq ?? 0, true, DUE);
       await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '3', null, { timeout: 5000 }).catch(() => {});
       const risen = await badgeNow();
-      ok(risen.text === '3' && risen.name === 'Update file, 3 due',
-        `${where}: Q810 A: the badge rises on a setting change, before the checklist opens: 2 due sets and Theme as one item read 3, and the accessible name says the same count (${JSON.stringify(risen)})`);
+      ok(risen.text === '3' && risen.name === 'Update file, 2 due, theme',
+        `${where}: Q810 A: the badge rises on a setting change, before the checklist opens: 2 due sets and Theme as one item read 3, and the accessible name splits the count (Q3129.11 A) (${JSON.stringify(risen)})`);
       // An answer to an older ask, landing late, never replaces the newer one.
       await answer((burst[0]?.seq ?? 1) - 1, false, CURRENT);
       await page.waitForTimeout(150);
@@ -16977,8 +16977,8 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await answer(one.at(-1)?.seq ?? 0, true, CURRENT);
       await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '1', null, { timeout: 5000 }).catch(() => {});
       const alone = await badgeNow();
-      ok(one.length === 1 && alone.text === '1' && alone.name === 'Update file, 1 due',
-        `${where}: Q810 A: Theme counts as one item: with no set due and the brand not applied, the badge reads 1, and so does the name (${JSON.stringify(alone)})`);
+      ok(one.length === 1 && alone.text === '1' && alone.name === 'Update file, theme',
+        `${where}: Q810 A: Theme counts as one item: with no set due and the brand not applied, the badge reads 1, and the name says theme (Q3129.11 A) (${JSON.stringify(alone)})`);
       // A name typed on the Brand page, with no lever moved: `syncIdentity` writes it without a rebuild, so only the
       // `identity` topic tells the badge. The file's stored brand compares by the whole input, the name included, so the
       // panel asks once, after the debounce, carrying the new name. The name is put back after, so the steps below read
@@ -17099,8 +17099,12 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         `${where}: Q810 A: after a failed restore (the stored brand does not resolve), a setting change asks for no count and a live answer is not shown: the badge keeps the load's read, 2 (${JSON.stringify({ ...failedAt, badge: failedBadge })})`);
       await p3.close();
       // #3082: the checklist repaints whole on a tick and on each host answer; neither moves the body's scroll, and a
-      // tick keeps focus on its box. Every set not in the file is listed, so the checklist is taller than the dialog.
-      // Twice: at 1280, and at the narrow tier, where `.p3-bardlg-col.p3-upd-body` keeps the body the scroller.
+      // tick keeps focus on its box. #3129: every set the file lacks is queued, so To add makes the checklist taller than
+      // the dialog, and Style guides, its last item, starts below the fold. Twice: at 1280, and at the narrow tier, where
+      // `.p3-bardlg-col.p3-upd-body` keeps the body the scroller. A Remove keeps the scroll too, and hands focus to the
+      // next row's Remove (#3129: its own button is gone from the repaint).
+      const QUEUE_ALL = ENGINE_SETS.filter((id) => !FILE.present.includes(id));
+      const FILE_Q = { ...FILE, queued: QUEUE_ALL };
       for (const [vw, vh] of [[1280, 900], [400, 700]]) {
         const at = `IA2 ${host} ${theme} ${vw}`;
         await page.setViewportSize({ width: vw, height: vh });
@@ -17111,35 +17115,49 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         await page.evaluate(() => { window.__ia2.length = 0; });
         await hooks.click(page.locator('[data-p3="update-file"]'));
         await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
-        await postMsg(page, FILE);
+        await postMsg(page, FILE_Q);
         await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
         await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
         await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
         const fold = await page.evaluate(() => {
           const b = document.querySelector('[data-p3="update-body"]');
-          const last = [...document.querySelectorAll('[data-p3="update-set"]')].at(-1);
+          const last = document.querySelector('[data-p3="update-check-guides"]');
           if (!b || !last) return null;
           const below = last.getBoundingClientRect().top >= b.getBoundingClientRect().bottom;
           b.scrollTop = b.scrollHeight;
-          return { tall: b.scrollHeight > b.clientHeight + 1, below, top: b.scrollTop, id: last.dataset.id, on: last.getAttribute('aria-checked') };
+          return { tall: b.scrollHeight > b.clientHeight + 1, below, top: b.scrollTop, on: last.getAttribute('aria-checked'), rows: document.querySelectorAll('[data-p3="update-add-row"]').length };
         });
-        ok(!!fold && fold.tall && fold.below && fold.top > 0 && fold.on === 'false', `${at}: #3082: the checklist is taller than the dialog, its last new set starts below the fold, unticked, and the body scrolls down to it (${JSON.stringify(fold)})`);
+        ok(!!fold && fold.tall && fold.below && fold.top > 0 && fold.on === 'false' && fold.rows === QUEUE_ALL.length,
+          `${at}: #3082, #3129: with ${QUEUE_ALL.length} sets to add the checklist is taller than the dialog, Style guides starts below the fold, unticked, and the body scrolls down to it (${JSON.stringify(fold)})`);
         const scrollNow = () => page.evaluate(() => { const a = document.activeElement;
           return { top: document.querySelector('[data-p3="update-body"]')?.scrollTop ?? null, focus: a?.closest('[data-p3="update-dialog"]') ? a.dataset.key ?? a.getAttribute('data-p3') : null }; });
         if (fold) {
-          await hooks.click(page.locator(`[data-p3="update-set"][data-id="${fold.id}"]`));
-          await page.waitForFunction((id) => document.querySelector(`[data-p3="update-set"][data-id="${id}"]`)?.getAttribute('aria-checked') === 'true', fold.id, { timeout: 5000 }).catch(() => {});
-          const ticked = { ...(await scrollNow()), on: await page.evaluate((id) => document.querySelector(`[data-p3="update-set"][data-id="${id}"]`)?.getAttribute('aria-checked') ?? null, fold.id) };
-          ok(ticked.on === 'true' && ticked.top !== null && Math.abs(ticked.top - fold.top) <= 1 && ticked.focus === `set=${fold.id}`,
-            `${at}: #3082: ticking a set below the fold keeps the body's scroll (${fold.top} → ${ticked.top}) and focus on that box (${JSON.stringify(ticked)})`);
+          await hooks.click(page.locator('[data-p3="update-check-guides"]'));
+          await page.waitForFunction(() => document.querySelector('[data-p3="update-check-guides"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+          const ticked = { ...(await scrollNow()), on: await page.evaluate(() => document.querySelector('[data-p3="update-check-guides"]')?.getAttribute('aria-checked') ?? null) };
+          ok(ticked.on === 'true' && ticked.top !== null && Math.abs(ticked.top - fold.top) <= 1 && ticked.focus === 'item=guides',
+            `${at}: #3082: ticking an item below the fold keeps the body's scroll (${fold.top} → ${ticked.top}) and focus on that box (${JSON.stringify(ticked)})`);
           // A host answer repaints the dialog too (here the check again): the scroll stays where it was. Scrolled back to
           // where the tick was first, so this reads the host's repaint alone.
           await page.evaluate((top) => { document.querySelector('[data-p3="update-body"]').scrollTop = top; }, fold.top);
           await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
           await settle(page);
           const answered = await scrollNow();
-          ok(answered.top !== null && Math.abs(answered.top - fold.top) <= 1 && answered.focus === `set=${fold.id}`,
+          ok(answered.top !== null && Math.abs(answered.top - fold.top) <= 1 && answered.focus === 'item=guides',
             `${at}: #3082: a host answer's repaint keeps the body's scroll (${fold.top} → ${answered.top}) and focus (${JSON.stringify(answered)})`);
+          // #3129: Remove on a row mid-list: the row leaves, the scroll stays, and focus goes to the next row's Remove.
+          step = `Remove at ${vw}`;
+          const mid = await page.evaluate(() => { const rows = [...document.querySelectorAll('[data-p3="update-add-row"]')]; const r = rows[Math.floor(rows.length / 2)];
+            r?.scrollIntoView({ block: 'center' }); return r ? { id: r.dataset.id, next: rows[Math.floor(rows.length / 2) + 1]?.dataset.id ?? null, top: document.querySelector('[data-p3="update-body"]').scrollTop } : null; });
+          if (mid) {
+            await hooks.click(page.locator(`[data-p3="update-remove"][data-key="remove=${mid.id}"]`));
+            await settle(page);
+            const gone = { ...(await scrollNow()), still: await page.evaluate((id) => !!document.querySelector(`[data-p3="update-add-row"][data-id="${id}"]`), mid.id),
+              posted: await page.evaluate(() => window.__ia2.filter((m) => m.type === 'add-queue').slice(-1)[0] ?? null) };
+            ok(!gone.still && gone.focus === `remove=${mid.next}` && gone.top !== null && Math.abs(gone.top - mid.top) <= 1
+              && canon(gone.posted) === canon({ type: 'add-queue', ids: [mid.id], on: false }),
+              `${at}: #3129 Q3129.7 A: Remove takes the set out of the file's queue (one add-queue off), the row leaves, the body keeps its scroll and focus goes to the next row's Remove (${JSON.stringify({ ...gone, want: mid })})`);
+          }
         }
         await page.keyboard.press('Escape');
       }
@@ -17151,6 +17169,222 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
   } finally { await ctx.close(); }
 }
 } // ia2
+
+// =============================================================================================
+// #3129 — CHOOSE COMPONENTS TO ADD ON COMPONENTS; UPDATE FILE SHOWS TO ADD AND DUE (Q832 A, Q833 A, Q3129.1–13 A)
+// =============================================================================================
+// The plugin's Components page draws a box on every set the file could add, three-state boxes on families and sections,
+// and one page control under the intro; each acts on the FILE's add queue through one `add-queue` write. Update file
+// lists the queue under To add (Remove, Remove all), the due sets under Due, an empty queue with Go to Components, and a
+// fresh file with Add all; its badge counts the queue and splits its name. The web draws none of it (Q3129.12 A).
+// INDEPENDENCE (docs/34): the sample file, the queue's list order and display names, the counts, the box names and the
+// posts are literals typed here from the approved wireframe; the host's answers are planted as the main thread posts
+// them, and what the panel posts back is read off the message channel.
+//
+// Mutations, each after a `wip:` commit, each failing by name (run on this section's three cases):
+//   · the boxes off again (`plugin = false` in `domains/components.ts`) → `3129 figma … a box on every set the file lacks …`;
+//   · a box on a set the file holds (`addableOf` keeping present sets) → the same arm, `… none on a set it holds …`;
+//   · a flat row's box in a leading cell of its own (`setRow`'s `edge` false) → `3129 figma … a set's box takes the fold
+//     cell …`;
+//   · the page control never drawn → `3129 figma … Q3129.5 A: the page control sits under the intro …`;
+//   · the page control acting on every row under a search → `3129 figma … Q391 A, Q3129.5 A: under a search …`;
+//   · Due named by code name again (`nameOf` the catalog name) → `3129 figma … P5: Due names its sets as Components does …`;
+//   · Remove all shown from one row → `3129 figma … Q3129.8 A: Remove all from two rows up …`;
+//   · Add all on a set-up file (the `fresh` test dropped) → `3129 figma … Q3129.9 A: an empty queue on a set-up file …`.
+// And in IA2: Remove's refocus dropped → `IA2 figma … #3129 Q3129.7 A: Remove takes the set out …` (focus left on the
+// dialog). The model's rules (list order, the badge's parts and name, the To add status, the ticks) fail in
+// `test-update-file.ts` by name.
+if (runs('3129')) {
+console.log(`\n#3129 — the add queue: Components' boxes, Update file's To add and Due\n${'='.repeat(78)}`);
+const S_PRESENT = ['icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'button-group', 'field-label', 'field-message', 'text-field', 'select',
+  'checkbox-control', 'checkbox-row', 'checkbox-group', 'badge', 'tag', 'divider', 'spinner', 'veil'];
+const S_DUE = { ...Object.fromEntries(S_PRESENT.map((id) => [id, { state: 'current' }])), button: { state: 'due', reason: 'engine' }, 'text-field': { state: 'due', reason: 'definition' }, tag: { state: 'due', reason: 'definition' } };
+// Queued in an order that is not the list's, so the list order is read, not echoed.
+const S_QUEUED = ['radio-control', 'banner', '_accordion-indicator', 'search-field', 'accordion', 'dialog', 'password-field'];
+// Components' list order and names (the wireframe's To add, typed): Fields, then Dialog, Banner and Radio (a section of
+// its own since its settings landed), then Other components.
+const S_ORDER = [['password-field', 'Password field'], ['search-field', 'Search field'], ['dialog', 'Dialog'], ['banner', 'Banner'], ['radio-control', 'Radio Control'],
+  ['accordion', 'Accordion'], ['_accordion-indicator', 'Accordion Indicator']];
+const S_FILE = { type: 'file-sets', present: S_PRESENT, setUp: true, due: S_DUE, queued: S_QUEUED };
+const S_ADDABLE = ENGINE_SETS.length - S_PRESENT.length;
+const S_CHECK = { type: 'update-check', previewHash: 'H-3129', missing: [], refused: [], sets: [
+  { def: 'button', hash: 'a', members: 576, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: true },
+  { def: 'text-field', hash: 'b', members: 96, update: 24, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false },
+  { def: 'tag', hash: 'c', members: 12, update: 12, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false }] };
+for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
+  const where = `3129 figma ${theme} ${w}`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: w === 380 ? 760 : 900 });
+  let step = 'Components before the read';
+  try {
+    await page.evaluate(() => { window.__q = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && ['add-queue', 'file-sets-request', 'update-check-request'].includes(m.type)) window.__q.push(JSON.parse(JSON.stringify(m))); }); });
+    // The newest queue write, once one newer than the last read has been posted (bounded).
+    let seenQ = 0;
+    const lastQ = async () => {
+      await page.waitForFunction((n) => window.__q.filter((m) => m.type === 'add-queue').length > n, seenQ, { timeout: 5000 }).catch(() => {});
+      const all = await page.evaluate(() => window.__q.filter((m) => m.type === 'add-queue'));
+      seenQ = all.length;
+      return all.at(-1) ?? null;
+    };
+    await goPlace(page, 'components');
+    await hooks.need(page, '[data-p3="components-levers"]');
+    const pre = await page.evaluate(() => document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]').length);
+    ok(pre === 0, `${where}: the boxes wait for the host's full read of the file (${pre} drawn before it)`);
+    step = 'the boxes';
+    await postMsg(page, S_FILE);
+    // Bounded, not `need()`: with no box drawn the arms below fail by their own names.
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="components-list"] [role="checkbox"]'), null, { timeout: 5000 }).catch(() => {});
+    // Every family open, so each set's row is drawn.
+    for (let i = 0; i < 40; i++) {
+      const closed = page.locator('[data-p3="cp-fold"][aria-expanded="false"]');
+      if (!(await closed.count())) break;
+      await hooks.click(closed.first());
+    }
+    const st = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('[data-p3="components-list"] :is([data-p3="cp-row"], [data-p3="cp-member"])[data-set]')];
+      const boxOf = (r) => r.querySelector(':scope > [role="checkbox"]');
+      const r = (n) => Math.round(n);
+      return {
+        intro: document.querySelector('[data-p3="components-intro"]')?.textContent ?? null,
+        every: { on: document.querySelector('[data-p3="cp-add-every"]')?.getAttribute('aria-checked') ?? null, text: document.querySelector('[data-p3="cp-add-every"] .p3-btn-label')?.textContent ?? null,
+          count: document.querySelector('[data-p3="cp-add-count"]')?.textContent ?? null,
+          afterIntro: document.querySelector('[data-p3="components-intro"]')?.nextElementSibling?.getAttribute('data-p3') ?? null },
+        boxed: rows.filter((x) => boxOf(x)).map((x) => x.dataset.set),
+        named: rows.filter((x) => boxOf(x)).map((x) => [x.dataset.set, boxOf(x).getAttribute('aria-label')]),
+        queuedTags: rows.filter((x) => [...x.querySelectorAll('[data-p3="cp-status-tag"]')].some((t) => t.dataset.status === 'queued')).map((x) => x.dataset.set),
+        on: rows.filter((x) => boxOf(x)?.getAttribute('aria-checked') === 'true').map((x) => x.dataset.set),
+        fam: Object.fromEntries([...document.querySelectorAll('[data-p3="cp-row"].p3-cp-family')].map((x) => [x.dataset.row, boxOf(x)?.getAttribute('aria-checked') ?? 'none'])),
+        sec: Object.fromEntries([...document.querySelectorAll('[data-p3="cp-section"]')].map((x) => [x.dataset.kind, x.querySelector('[data-p3="cp-section-head"] [role="checkbox"]')?.getAttribute('aria-checked') ?? 'none'])),
+        names: Object.fromEntries(['password-field', 'select', 'counter', 'badge'].map((id) => [id, r(document.querySelector(`[data-set="${id}"] [data-p3="cp-name"] .p3-btn-label`)?.getBoundingClientRect().left ?? -1)])),
+        // The Fields title's text start, and its box's left edge, against the rows under it (the box takes the fold cell).
+        fieldsTitle: r((() => { const t = document.querySelector('[data-p3="cp-section"][data-kind="fields"] [data-p3="cp-section-title"]'); const rg = document.createRange(); if (t?.firstChild) rg.selectNodeContents(t.firstChild); return t ? rg.getBoundingClientRect().left : -1; })()),
+        fieldsBoxes: [document.querySelector('[data-p3="cp-section"][data-kind="fields"] [data-p3="cp-section-head"] [role="checkbox"]'), document.querySelector('[data-set="password-field"] [role="checkbox"]')].map((b) => r(b?.getBoundingClientRect().left ?? -1)),
+        targets: [...document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]')].map((b) => { const x = b.getBoundingClientRect(); return [r(x.width), r(x.height)]; }),
+        badge: { text: document.querySelector('[data-p3="update-badge"]')?.textContent ?? null, name: document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-label') ?? null },
+      };
+    });
+    const wantBoxed = ENGINE_SETS.filter((id) => !S_PRESENT.includes(id)).sort();
+    ok(JSON.stringify([...st.boxed].sort()) === JSON.stringify(wantBoxed),
+      `${where}: Q832 A, Q3129.6 A: a box on every set the file lacks (${wantBoxed.length}) and none on a set it holds (${st.boxed.length} boxed; held ${JSON.stringify(st.boxed.filter((id) => S_PRESENT.includes(id)))}, missing ${JSON.stringify(wantBoxed.filter((id) => !st.boxed.includes(id)))})`);
+    ok(JSON.stringify([...st.on].sort()) === JSON.stringify([...S_QUEUED].sort()) && JSON.stringify([...st.queuedTags].sort()) === JSON.stringify([...S_QUEUED].sort()),
+      `${where}: Q3129.4 A: the queued sets' boxes are ticked and their tag reads To add (${JSON.stringify({ on: st.on, tags: st.queuedTags })})`);
+    const nm = Object.fromEntries(st.named);
+    ok(nm['password-field'] === 'Add Password field to file' && nm.counter === 'Add Counter to file' && nm['radio-group'] === 'Add Radio.Group to file',
+      `${where}: Q3129.4 A: a set's box is named "Add {set} to file" (${JSON.stringify([nm['password-field'], nm.counter, nm['radio-group']])})`);
+    ok(st.fam['components|Accordion'] === 'true' && st.fam['components|Checkbox'] === 'none' && st.fam['components|Breadcrumbs'] === 'false',
+      `${where}: call 8, Q3129.6 A: family boxes are three-state over the sets the file lacks: Accordion on, Breadcrumbs off, Checkbox (in the file) none (${JSON.stringify(st.fam)})`);
+    ok(st.sec.buttons === 'none' && st.sec.tags === 'none' && st.sec.fields === 'mixed' && st.sec.dialogs === 'true' && st.sec.radios === 'mixed' && st.sec.components === 'mixed' && st.sec.subcomponents === 'false',
+      `${where}: Q3129.6 A: section boxes: Buttons and Tag (all in the file) none, Fields and Radio mixed, Dialog on, Other components mixed, Subcomponents off (${JSON.stringify(st.sec)})`);
+    ok(st.names['password-field'] === st.names.select && st.names.counter === st.names.badge && st.names.select > 0,
+      `${where}: Q3129.6 A: names align whether or not a row has a box, in a section with settings and outside one (${JSON.stringify(st.names)})`);
+    ok(st.fieldsBoxes[0] > 0 && st.fieldsBoxes[0] === st.fieldsBoxes[1] && Math.abs(st.names['password-field'] - st.fieldsTitle) <= 4,
+      `${where}: #3129: in a section with settings a set's box takes the fold cell, under the section's box, so its name starts under the title (boxes ${JSON.stringify(st.fieldsBoxes)}, name ${st.names['password-field']}, title ${st.fieldsTitle})`);
+    ok(st.targets.length > 0 && st.targets.every(([tw, th]) => tw >= 24 && th >= 24), `${where}: every box is a target of at least 24 × 24 (smallest ${JSON.stringify(st.targets.reduce((a, b) => (b[0] * b[1] < a[0] * a[1] ? b : a), [99, 99]))})`);
+    ok(st.intro === `The ${ENGINE_SETS.length} component sets the engine defines, in families. Tick a set to add it to this file; Update file adds it.`,
+      `${where}: the plugin's intro says how to add a set (DRAFT): "${st.intro}"`);
+    ok(st.every.afterIntro === 'cp-add-every' && st.every.on === 'mixed' && st.every.text === 'Add every set not in this file' && st.every.count === `7 of ${S_ADDABLE} to add`,
+      `${where}: Q3129.5 A: the page control sits under the intro, mixed, "Add every set not in this file", "7 of ${S_ADDABLE} to add" (${JSON.stringify(st.every)})`);
+    ok(st.badge.text === '10' && st.badge.name === 'Update file, 7 to add, 3 due', `${where}: Q3129.11 A: the badge counts the queue and splits its name (${JSON.stringify(st.badge)})`);
+    step = 'a set box, a section box';
+    await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=textarea"]'));
+    const one = { post: await lastQ(), on: await page.evaluate(() => document.querySelector('[data-p3="cp-box"][data-key="set=textarea"]')?.getAttribute('aria-checked') ?? null),
+      badge: await page.evaluate(() => document.querySelector('[data-p3="update-badge"]')?.textContent ?? null) };
+    ok(canon(one.post) === canon({ type: 'add-queue', ids: ['textarea'], on: true }) && one.on === 'true' && one.badge === '11',
+      `${where}: Q833 A: a set's box queues it in the file with one add-queue write, ticks, and the badge counts it (${JSON.stringify(one)})`);
+    await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=fields"]'));
+    const rest = await lastQ();
+    ok(canon(rest) === canon({ type: 'add-queue', ids: ['card-number-field', 'code-input', 'code-input-cell'], on: true }),
+      `${where}: call 8: a mixed section box queues the rest, and only the rest (${JSON.stringify(rest)})`);
+    await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=fields"]'));
+    const off = await lastQ();
+    ok(canon(off) === canon({ type: 'add-queue', ids: ['card-number-field', 'code-input', 'code-input-cell', 'password-field', 'search-field', 'textarea'], on: false }),
+      `${where}: call 8: an all-on section box takes every set it could add out of the queue, never one the file holds (${JSON.stringify(off)})`);
+    step = 'the page control under a search';
+    await postMsg(page, S_FILE);
+    await hooks.click(page.locator('[data-p3="search-open"]'));
+    await hooks.need(page, '[data-p3="search-input"]');
+    await page.locator('[data-p3="search-input"]').fill('progress');
+    await page.waitForFunction(() => !document.querySelector('[data-set="counter"]'), null, { timeout: 5000 }).catch(() => {});
+    const shown = await page.evaluate(() => [...document.querySelectorAll('[data-p3="components-list"] [data-p3="cp-box"][data-key^="set="]')].map((b) => b.dataset.key.slice(4)));
+    await hooks.click(page.locator('[data-p3="cp-add-every"]'));
+    const srch = await lastQ();
+    ok(shown.length > 0 && !shown.includes('counter') && canon(srch) === canon({ type: 'add-queue', ids: srch?.ids ?? [], on: true }) && (srch?.ids ?? []).length === shown.length && srch.ids.every((id) => shown.includes(id)),
+      `${where}: Q391 A, Q3129.5 A: under a search, the page control acts on the rows shown alone (${JSON.stringify({ shown, posted: srch })})`);
+    await page.locator('[data-p3="search-input"]').fill('');
+    await page.keyboard.press('Escape');
+    // ── Update file ─────────────────────────────────────────────────────────────────────────
+    step = 'Update file: To add and Due';
+    await postMsg(page, S_FILE);
+    await hooks.click(page.locator('[data-p3="update-file"]'));
+    await page.waitForFunction(() => window.__q.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+    await postMsg(page, S_FILE);
+    await page.waitForFunction(() => window.__q.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+    await postMsg(page, S_CHECK);
+    await hooks.need(page, '[data-p3="update-add-row"]');
+    const u = await page.evaluate(() => ({
+      groups: [...document.querySelectorAll('[data-p3="update-body"] > [data-p3^="update-item-"]')].map((n) => n.getAttribute('data-p3')),
+      titles: [...document.querySelectorAll('[data-p3="update-body"] .p3-upd-title')].map((n) => n.textContent),
+      rows: [...document.querySelectorAll('[data-p3="update-add-row"]')].map((r) => [r.dataset.id, r.querySelector('.p3-upd-setname')?.textContent ?? null]),
+      removes: [...document.querySelectorAll('[data-p3="update-remove"]')].map((b) => b.getAttribute('aria-label')),
+      ticks: document.querySelectorAll('[data-p3="update-item-add"] [role="checkbox"]').length,
+      removeAll: document.querySelector('[data-p3="update-remove-all"]')?.textContent ?? null,
+      line: document.querySelector('[data-p3="update-add-line"]')?.textContent ?? null,
+      due: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => [b.dataset.id, b.querySelector('.p3-upd-setname')?.textContent ?? null, b.getAttribute('aria-checked')]),
+      dueLine: document.querySelector('[data-p3="update-due-line"]')?.textContent ?? null,
+      overflow: [...document.querySelectorAll('[data-p3="update-add-row"]')].filter((r) => r.scrollWidth > r.clientWidth + 1).length,
+      targets: [...document.querySelectorAll('[data-p3="update-remove"], [data-p3="update-remove-all"]')].map((b) => { const x = b.getBoundingClientRect(); return Math.min(x.width, x.height); }),
+    }));
+    ok(JSON.stringify(u.groups) === JSON.stringify(['update-item-theme', 'update-item-add', 'update-item-due', 'update-item-guides']) && JSON.stringify(u.titles) === JSON.stringify(['To add', 'Due']),
+      `${where}: Q832 A: the order is Theme, To add, Due, Style guides (${JSON.stringify(u.groups)}, titles ${JSON.stringify(u.titles)})`);
+    ok(JSON.stringify(u.rows) === JSON.stringify(S_ORDER), `${where}: Q833 A: To add lists the queue in Components' order, with its names (${JSON.stringify(u.rows)})`);
+    ok(u.ticks === 0 && JSON.stringify(u.removes) === JSON.stringify(S_ORDER.map(([, n]) => `Remove ${n} from To add`)) && u.removeAll === 'Remove all',
+      `${where}: Q3129.7 A, Q3129.8 A: a queued set has no tick, only Remove, named "Remove {set} from To add", and the head has Remove all (${JSON.stringify({ ticks: u.ticks, removes: u.removes.length, removeAll: u.removeAll })})`);
+    ok(u.line === '7 sets chosen on Components. Each is added with its usage panel while Documentation has panels on.' && u.dueLine === '3 sets to update in place. Ticked by default.',
+      `${where}: the groups' lines, DRAFT (${JSON.stringify([u.line, u.dueLine])})`);
+    ok(JSON.stringify(u.due) === JSON.stringify([['button', 'Button', 'true'], ['text-field', 'Text field', 'true'], ['tag', 'Tag', 'true']]),
+      `${where}: P5: Due names its sets as Components does, ticked (${JSON.stringify(u.due)})`);
+    ok(u.overflow === 0 && u.targets.every((t) => t >= 24), `${where}: no To add row overflows, and every Remove is a target of at least 24px (${u.overflow} overflowing, smallest ${Math.min(...u.targets)})`);
+    step = 'Remove all, one row';
+    await postMsg(page, { ...S_FILE, queued: ['counter'] });
+    await page.waitForFunction(() => document.querySelectorAll('[data-p3="update-add-row"]').length === 1, null, { timeout: 5000 }).catch(() => {});
+    const single = await page.evaluate(() => ({ rows: document.querySelectorAll('[data-p3="update-add-row"]').length, all: !!document.querySelector('[data-p3="update-remove-all"]') }));
+    ok(single.rows === 1 && !single.all, `${where}: Q3129.8 A: Remove all from two rows up, not on one (${JSON.stringify(single)})`);
+    await postMsg(page, S_FILE);
+    await hooks.need(page, '[data-p3="update-remove-all"]');
+    await hooks.click(page.locator('[data-p3="update-remove-all"]'));
+    await settle(page);
+    const ra = { post: await lastQ(), line: await page.evaluate(() => document.querySelector('[data-p3="update-add-line"]')?.textContent ?? null),
+      focus: await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null) };
+    ok(canon(ra.post) === canon({ type: 'add-queue', ids: S_ORDER.map(([id]) => id), on: false }) && ra.line === 'Nothing to add. Tick sets on Components to add them here.' && ra.focus === 'update-go-components',
+      `${where}: Remove all takes the queue out of the file in one write; an empty queue on a set-up file says so, and focus lands on Go to Components (${JSON.stringify(ra)})`);
+    ok(!(await page.evaluate(() => !!document.querySelector('[data-p3="update-add-all"]'))), `${where}: Q3129.9 A: an empty queue on a set-up file offers no Add all`);
+    await hooks.click(page.locator('[data-p3="update-go-components"]'));
+    await page.waitForFunction(() => !document.querySelector('[data-p3="update-dialog"]'), null, { timeout: 5000 }).catch(() => {});
+    const gone = await page.evaluate(() => ({ dialog: !!document.querySelector('[data-p3="update-dialog"]'), place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null }));
+    ok(!gone.dialog && gone.place === 'components', `${where}: Go to Components closes Update file on Components (${JSON.stringify(gone)})`);
+    step = 'a fresh file';
+    const FRESH_3129 = { type: 'file-sets', present: [], setUp: false, due: {}, queued: [] };
+    await hooks.click(page.locator('[data-p3="update-file"]'));
+    await page.waitForFunction(() => window.__q.filter((m) => m.type === 'file-sets-request').length >= 2, null, { timeout: 5000 }).catch(() => {});
+    await postMsg(page, FRESH_3129);
+    await hooks.need(page, '[data-p3="update-add-all"]');
+    const fr = await page.evaluate(() => ({ line: document.querySelector('[data-p3="update-add-line"]')?.textContent ?? null, all: document.querySelector('[data-p3="update-add-all"]')?.textContent ?? null,
+      items: [...document.querySelectorAll('[data-p3="update-dialog"] [data-p3^="update-check-"]')].map((n) => [n.getAttribute('data-p3'), n.getAttribute('aria-checked')]),
+      rows: document.querySelectorAll('[data-p3="update-add-row"]').length }));
+    ok(fr.rows === 0 && fr.line === `Nothing chosen yet. This file holds none of the ${ENGINE_SETS.length} component sets.` && fr.all === `Add all ${ENGINE_SETS.length}`
+      && JSON.stringify(fr.items) === JSON.stringify([['update-check-setup', 'true'], ['update-check-theme', 'true'], ['update-check-guides', 'true']]),
+      `${where}: Q3129.10 A: a fresh file starts with nothing queued, offers Add all ${ENGINE_SETS.length}, and ticks Set up file, Theme and Style guides (${JSON.stringify(fr)})`);
+    await hooks.click(page.locator('[data-p3="update-add-all"]'));
+    await settle(page);
+    const aa = { post: await lastQ(), rows: await page.evaluate(() => document.querySelectorAll('[data-p3="update-add-row"]').length) };
+    ok(aa.post?.on === true && JSON.stringify([...(aa.post?.ids ?? [])].sort()) === JSON.stringify(ENGINE_SETS) && aa.rows === ENGINE_SETS.length,
+      `${where}: Q3129.9 A: Add all writes every set into the file's queue, one write, and To add lists them (${aa.post?.ids?.length} posted, ${aa.rows} rows)`);
+    await page.keyboard.press('Escape');
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3129
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

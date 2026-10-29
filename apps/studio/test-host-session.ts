@@ -49,7 +49,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 const KINDS = [
   'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-reading', 'restore-input-library', 'restore-input-error', 'font-list', 'doc-settings', 'file-sets',
-  'hand-edits', 'hand-edits-done', 'update-check', 'file-due',
+  'hand-edits', 'hand-edits-done', 'update-check', 'file-due', 'add-queue',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
   'style-guide-catalog', 'style-guide-tables', 'style-guide-table', 'style-guide-cleanup-result',
 ] as const;
@@ -70,7 +70,7 @@ const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
-  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null,
+  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, addQueue: null,
   handEdits: [], handPass: 'idle', updateCheck: null,
 }), 'initial session: every slot empty');
 
@@ -401,35 +401,47 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
 {
   // #2909: Update file's checklist read lands in its own slot and moves only the overlay's topic.
   const due = { button: { state: 'due', reason: 'definition' } } as const;
-  const f = step(init, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due });
+  const f = step(init, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due, queued: [] });
   ok(same(f.next.fileSets, { present: ['button'], setUp: true, error: null, due }), 'file-sets: the sets present, the setup state and the ledger\'s due land in the slot');
   // #2909 Q2909.8 A: the statuses on Components' list follow it too.
   ok(same(f.topics, ['host:update', 'host:components']), 'file-sets: only host:update and host:components are invalidated');
   // The main thread starts the hand-edit pass after its first answer at load; the pass is out from here, once.
   ok(f.next.handPass === 'running', 'Q2909.8 A: the first file-sets starts the hand-edit pass (handPass running)');
-  const done = step({ ...f.next, handPass: 'done' }, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due });
+  const done = step({ ...f.next, handPass: 'done' }, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due, queued: [] });
   ok(done.next.handPass === 'done', 'Q2909.8 A: a later file-sets leaves a finished pass finished');
   // #3081 Q810 A: the badge's live recount lands in its own slot, moves only the overlay's topic, and leaves the
   // checklist's read alone; an answer older than the one held changes nothing and moves nothing.
-  const l1 = step(f.next, { kind: 'file-due', seq: 4, present: ['button'], theme: true, error: null, due: {} });
+  const l1 = step(f.next, { kind: 'file-due', seq: 4, present: ['button'], theme: true, error: null, due: {}, queued: [] });
   ok(same(l1.next.liveDue, { seq: 4, present: ['button'], theme: true, error: null, due: {} }) && same(l1.next.fileSets, f.next.fileSets) && same(l1.topics, ['host:update']),
     '#3081 file-due: the recount lands in liveDue, leaves fileSets as it was, and invalidates host:update alone');
-  const l0 = step(l1.next, { kind: 'file-due', seq: 3, present: [], theme: false, error: null, due: {} });
+  const l0 = step(l1.next, { kind: 'file-due', seq: 3, present: [], theme: false, error: null, due: {}, queued: [] });
   ok(l0.next === l1.next && l0.topics.length === 0, '#3081 file-due: an answer older than the one held changes nothing and invalidates nothing');
   // #3110: the answer at open, from the ledger alone, lands as partial, starts the pass, and never replaces a full read.
-  const part = step(init, { kind: 'file-sets', present: ['button'], setUp: false, error: null, due, partial: true, atOpen: true });
+  const part = step(init, { kind: 'file-sets', present: ['button'], setUp: false, error: null, due, queued: [], partial: true, atOpen: true });
   ok(part.next.fileSets?.partial === true && part.next.handPass === 'running', '#3110: the answer at open lands marked partial and starts the hand-edit pass');
-  const late = step(f.next, { kind: 'file-sets', present: [], setUp: false, error: null, due: {}, partial: true, atOpen: true });
+  const late = step(f.next, { kind: 'file-sets', present: [], setUp: false, error: null, due: {}, queued: [], partial: true, atOpen: true });
   ok(same(late.next.fileSets, f.next.fileSets), '#3110: an answer at open arriving after a full read leaves the full read in place');
-  const full = step(part.next, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due });
+  const full = step(part.next, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due, queued: [] });
   ok(full.next.fileSets?.partial === undefined && full.next.fileSets?.setUp === true, '#3110: the full read replaces the answer at open');
   // The host's full read after open yields, so the checklist's own answer (under the panel's brand) can land first. The
   // later read after open, under the stored brand, must not replace it.
-  const openFull = step(f.next, { kind: 'file-sets', present: [], setUp: true, error: null, due: {}, atOpen: true });
+  const openFull = step(f.next, { kind: 'file-sets', present: [], setUp: true, error: null, due: {}, queued: [], atOpen: true });
   ok(same(openFull.next.fileSets, f.next.fileSets), '#3110: the host\'s read after open, landing after an answer the panel asked for, leaves that answer in place');
-  const atOpenFull = step(part.next, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due, atOpen: true });
+  const atOpenFull = step(part.next, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due, queued: [], atOpen: true });
   ok(atOpenFull.next.fileSets?.partial === undefined && atOpenFull.next.fileSets?.atOpen === true, '#3110: the host\'s full read after open replaces its ledger answer');
-  const bad = step(init, { kind: 'file-sets', present: [], setUp: false, error: 'boom', due: {} });
+  // #3129 Q833 A: the add queue rides each read and each queue write's answer, into one slot; a read that failed keeps
+  // the queue held, and an answer to a write moves both the overlay and Components (their boxes and To add tags).
+  const fq = step(init, { kind: 'file-sets', present: ['button'], setUp: true, error: null, due, queued: ['tag'] });
+  ok(same(fq.next.addQueue, ['tag']), `#3129: file-sets carries the add queue into its slot (${JSON.stringify(fq.next.addQueue)})`);
+  const aq = step(fq.next, { kind: 'add-queue', queued: ['tag', 'badge'], error: null });
+  ok(same(aq.next.addQueue, ['tag', 'badge']) && same(aq.topics, ['host:update', 'host:components']), `#3129: a queue write's answer replaces the queue and invalidates host:update and host:components (${JSON.stringify(aq.topics)})`);
+  const lq = step(aq.next, { kind: 'file-due', seq: 9, present: ['button'], theme: false, error: null, due: {}, queued: ['badge'] });
+  ok(same(lq.next.addQueue, ['badge']) && same(lq.topics, ['host:update', 'host:components']), '#3129: the live recount carries the queue too, and a queue it moves repaints Components');
+  const lq2 = step(lq.next, { kind: 'file-due', seq: 10, present: ['button'], theme: false, error: null, due: {}, queued: ['badge'] });
+  ok(same(lq2.topics, ['host:update']), '#3129 control: a recount that leaves the queue as it was moves only the overlay');
+  const eq = step(aq.next, { kind: 'file-sets', present: [], setUp: false, error: 'boom', due: {}, queued: [] });
+  ok(same(eq.next.addQueue, ['tag', 'badge']), '#3129: a read that could not read the file keeps the queue held');
+  const bad = step(init, { kind: 'file-sets', present: [], setUp: false, error: 'boom', due: {}, queued: [] });
   ok(bad.next.handPass === 'idle', 'Q2909.8 A: a file-sets that could not read the file starts no pass');
   // Each set's hand edits land as they come, one by one, and the pass's end marks it done.
   const h1 = step(f.next, { kind: 'hand-edits', def: 'button', members: 648, edited: 2 });

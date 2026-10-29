@@ -26,6 +26,10 @@
  * decision Q284.3 A): `ok: false` and a `⚠` headline. Then Set up file's template builder makes the templates, and the
  * same build and Update read `✓`. The host holds the variables and styles Badge binds, so only the template can warn.
  *
+ * #3129 Q833 A: a set queued to add (`add-queue.ts`) has its key cleared by the build that lands it whole, where the
+ * ledger records it (`queue/build`), and keeps it when the executor refuses the set (`queue/refused`). Mutation failing
+ * by name: the clear beside `recordSets` dropped → `queue/build`.
+ *
  * INDEPENDENCE (docs/34): the expected values are literals typed here, from the owner's definition of the
  * two results; the actual side is what `main.ts` posted. The refusal is reached by editing the HOST's file
  * (the member names, which are what a set's axes are), never by stubbing the executor.
@@ -195,6 +199,8 @@ const build = async (def: string): Promise<any> => {
 console.log('component-result.completed, through main.ts (C1)');
 
 // 1. A fresh build: the set is made.
+// #3129 Q833 A: Badge is queued to add (`add-queue.ts`, the root's shared data); the build that lands it clears its key.
+sharedData.set('prism3:addQueue.badge', '2026-10-28T09:00:00.000Z');
 const first = await build('badge');
 ok(first !== null, `the build posts a component-result (${first ? first.headline : 'none in 6 s'})`);
 const badgePage = pages.find((p) => p.children.some((c) => c.type === 'COMPONENT_SET'));
@@ -218,6 +224,7 @@ const ask = async (msg: Record<string, unknown>, type: string, until: (m: any) =
 };
 const ledger = (): Record<string, { def: string; rev: number; engine: string }> => { try { return JSON.parse(pluginData.get('prism3:asBuilt') ?? '{}').sets ?? {}; } catch { return {}; } };
 ok(typeof ledger().badge?.def === 'string', `ledger/build: the build records the set it landed (${JSON.stringify(ledger().badge)})`);
+ok(sharedData.get('prism3:addQueue.badge') === '', `queue/build: the build that lands Badge whole clears its add-queue key, where the ledger records it (${JSON.stringify(sharedData.get('prism3:addQueue.badge'))})`);
 const fs1 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
 ok(fs1?.present?.includes('badge') && fs1?.due?.badge?.state === 'current', `ledger/due: file-sets reads the set just built as current (${JSON.stringify(fs1?.due)})`);
 pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...ledger().badge, def: 'another-def' } } }));
@@ -339,7 +346,11 @@ const axis = dropAxis.split('=')[0];
 for (const m of members) m.name = String(m.name).split(', ').filter((pair) => !pair.startsWith(`${axis}=`)).join(', ');
 ok(firstName.includes(', ') && !String(members[0]?.name).includes(`${axis}=`),
   `fixture: the existing set's members no longer vary by "${axis}" (was "${firstName}", now "${members[0]?.name}")`);
+// #3129 Q833 A: queued again, so the refusal is read against it: a set that did not land stays queued.
+sharedData.set('prism3:addQueue.badge', '2026-10-28T10:00:00.000Z');
 const second = await build('badge');
+ok(sharedData.get('prism3:addQueue.badge') === '2026-10-28T10:00:00.000Z', `queue/refused: a build the executor refused leaves the set queued (${JSON.stringify(sharedData.get('prism3:addQueue.badge'))})`);
+sharedData.delete('prism3:addQueue.badge');
 ok(second !== null && /AXES CHANGED|left as it is/.test(second.summary ?? ''),
   `the rebuild is refused by the executor, through the success-path post (${String(second?.summary ?? 'none').slice(0, 100)})`);
 ok(second?.completed === false && second?.ok === false,

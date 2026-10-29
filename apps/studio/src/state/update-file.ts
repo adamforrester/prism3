@@ -6,10 +6,12 @@
  * opens the checklist, even when only the theme is to be written (Q2909.2 A). Its items, in the order they run:
  *   · Set up file, only on a file that is not set up: the first checklist on such a file is the setup (Q668 A);
  *   · Theme: the brand's variables and styles (today's Apply Theme), ticked;
- *   · Component sets: each set the as-built ledger reads as due, ticked, updated in place (phase 2, Q2909.8 A), with the
- *     one choice for hand edits (Keep, the default; Overwrite; Accept as the new baseline); then each buildable set the
- *     file does not hold, unticked ("Not in file · add"), ticked on a file that is not set up (Q2909.5 A). Building
- *     stays add-only underneath: a set the file holds is only ever updated in place, never rebuilt;
+ *   · To add (#3129, Q832 A, Q3129.7–10 A): the file's add queue, the sets chosen on Components, in Components' order
+ *     and with its names (`queuedOf`). A queued set runs: its row has no tick, only Remove, and Remove all from two
+ *     rows up. A file that is not set up starts with nothing queued and offers Add all, which writes every set it lacks
+ *     into the queue. Building stays add-only underneath: a set the file holds is only ever updated in place;
+ *   · Due: each set the as-built ledger reads as due, ticked, updated in place (phase 2, Q2909.8 A), with the one choice
+ *     for hand edits (Keep, the default; Overwrite; Accept as the new baseline);
  *   · Style guides: drawn with Documentation's saved settings (Q2909.23 A), ticked on a file that is not set up.
  * Usage panels and the cover are not items of their own: they follow Documentation's switches, drawn with the sets and
  * by Set up file.
@@ -24,9 +26,10 @@
  * `ok`), or after the step running when Stop is asked for. `main.ts` starts each step and reports its verdict here.
  */
 import type { Catalog } from './component-catalog';
+import { inListOrder } from './component-groups';
 import type { CheckedSetView, SetDueView } from '../write-adapter';
 
-/** `update` is the in-place update of the due sets (Q2909.8 A); `sets` adds the sets the file lacks. */
+/** `update` is the in-place update of the due sets (Q2909.8 A); `sets` builds the add queue (#3129). */
 export type StepKey = 'setup' | 'theme' | 'update' | 'sets' | 'guides';
 /** Run order. */
 export const STEP_ORDER: readonly StepKey[] = ['setup', 'theme', 'update', 'sets', 'guides'];
@@ -43,15 +46,20 @@ export type FileSets = { readonly present: readonly string[]; readonly setUp: bo
   readonly atOpen?: boolean };
 
 export type HandEditChoice = 'keep' | 'overwrite' | 'accept';
-/** The checklist's ticks: each item, each set that is not in the file, each due set, and what the update does with hand
- *  edits. */
+/** The checklist's ticks: each item, each due set, and what the update does with hand edits. The add queue has no tick
+ *  (Q3129.7 A): a queued set runs. */
 export type Ticks = {
-  readonly setup: boolean; readonly theme: boolean; readonly guides: boolean; readonly sets: ReadonlySet<string>;
+  readonly setup: boolean; readonly theme: boolean; readonly guides: boolean;
   readonly update: ReadonlySet<string>; readonly handEdits: HandEditChoice;
 };
 
-/** The sets Update file can add: buildable, and not in the file, in catalog order. */
-export const newSetsOf = (catalog: Catalog, f: FileSets): string[] => catalog.filter((e) => e.buildable && !f.present.includes(e.id)).map((e) => e.id);
+/** The sets the file could add: buildable, and not in the file, in catalog order. Components' boxes and Add all act on
+ *  them (#3129). */
+export const newSetsOf = (catalog: Catalog, f: Pick<FileSets, 'present'>): string[] => catalog.filter((e) => e.buildable && !f.present.includes(e.id)).map((e) => e.id);
+/** The add queue as Update file shows it and the `sets` step builds it (#3129 Q833 A, Q3129.2 A, Q3129.3 A): the queued
+ *  sets the file lacks and the engine can build, in Components' list order. */
+export const queuedOf = (catalog: Catalog, f: Pick<FileSets, 'present'> | null, queue: readonly string[] | null): string[] =>
+  f && queue ? inListOrder(catalog, queue.filter((id, i) => queue.indexOf(id) === i && !f.present.includes(id) && catalog.some((e) => e.id === id && e.buildable))) : [];
 /** The sets the ledger reads as due (Q2909.8 A), in catalog order. */
 export const dueSetsOf = (catalog: Catalog, f: FileSets): string[] => catalog.filter((e) => f.present.includes(e.id) && f.due[e.id]?.state === 'due').map((e) => e.id);
 /** The sets the file holds that the ledger has no entry for, in catalog order: only the full check can tell. */
@@ -68,26 +76,36 @@ export const dueCount = (catalog: Catalog, f: FileSets | null): number => (f && 
 /** The badge's live recount (#3081 Q810 A, `file-due`): what is due against the brand the panel holds, and `theme`:
  *  the file does not hold that brand, so Apply Theme would change it. */
 export type LiveDue = { readonly present: readonly string[]; readonly theme: boolean; readonly error: string | null; readonly due: FileSets['due'] };
-/** How many things the badge on Update file counts (#3081 Q810 A): everything Update file would change. That is each
- *  due set, plus one item for unapplied Theme changes. It reads the live recount once one has answered, so a changed
- *  setting moves it before the checklist opens. Before that, or when the recount could not read the file, it reads the
- *  ledger read at load, with no Theme item, because only the recount compares the file's brand with the panel's. */
-export const badgeCount = (catalog: Catalog, f: FileSets | null, live: LiveDue | null): number =>
-  live && !live.error ? dueCount(catalog, { present: live.present, setUp: true, error: null, due: live.due }) + (live.theme ? 1 : 0) : dueCount(catalog, f);
+/** What the badge on Update file counts (#3081 Q810 A, #3129): everything Update file would change. That is the add
+ *  queue (the queued sets the file lacks), each due set, and one item for unapplied Theme changes. It reads the live
+ *  recount once one has answered, so a changed setting moves it before the checklist opens. Before that, or when the
+ *  recount could not read the file, it reads the ledger read at load, with no Theme item, because only the recount
+ *  compares the file's brand with the panel's. */
+export type BadgeParts = { readonly add: number; readonly due: number; readonly theme: boolean };
+export const badgeParts = (catalog: Catalog, f: FileSets | null, live: LiveDue | null, queue: readonly string[] | null): BadgeParts => {
+  if (live && !live.error) return { add: queuedOf(catalog, live, queue).length, due: dueCount(catalog, { present: live.present, setUp: true, error: null, due: live.due }), theme: live.theme };
+  return { add: f && !f.error ? queuedOf(catalog, f, queue).length : 0, due: dueCount(catalog, f), theme: false };
+};
+export const badgeCount = (catalog: Catalog, f: FileSets | null, live: LiveDue | null, queue: readonly string[] | null = null): number => {
+  const p = badgeParts(catalog, f, live, queue);
+  return p.add + p.due + (p.theme ? 1 : 0);
+};
 /** How long the panel waits after the last change before it asks for the recount (#3081): one ask for a burst of
  *  edits, such as a slider drag or typing, never one a keystroke. */
 export const DUE_DEBOUNCE_MS = 250;
 
-/** The ticks the checklist opens with (Q2909.2 A, Q2909.5 A, Q2909.8 A): the theme always, and every due set, keeping
- *  hand edits; on a file that is not set up, the setup, every new set and the style guides too. */
+/** The ticks the checklist opens with (Q2909.2 A, Q2909.8 A, Q3129.10 A): the theme always, and every due set, keeping
+ *  hand edits; on a file that is not set up, the setup and the style guides too. No set is queued for it: the queue is
+ *  the file's (#3129), so a fresh file starts with nothing to add until Add all or Components. */
 export const defaultTicks = (catalog: Catalog, f: FileSets): Ticks => {
   const fresh = !f.setUp;
-  return { setup: fresh, theme: true, guides: fresh, sets: new Set(fresh ? newSetsOf(catalog, f) : []), update: new Set(dueSetsOf(catalog, f)), handEdits: 'keep' };
+  return { setup: fresh, theme: true, guides: fresh, update: new Set(dueSetsOf(catalog, f)), handEdits: 'keep' };
 };
 
-/** The steps a set of ticks runs, in order. Set up file is a step only on a file that is not set up. */
-export const stepsOf = (t: Ticks, f: FileSets): StepKey[] =>
-  STEP_ORDER.filter((k) => (k === 'setup' ? !f.setUp && t.setup : k === 'sets' ? t.sets.size > 0 : k === 'update' ? t.update.size > 0 : t[k]));
+/** The steps a set of ticks runs, in order. Set up file is a step only on a file that is not set up; `sets` only while
+ *  the add queue holds a set (`queuedOf`). */
+export const stepsOf = (t: Ticks, f: FileSets, queued: readonly string[]): StepKey[] =>
+  STEP_ORDER.filter((k) => (k === 'setup' ? !f.setUp && t.setup : k === 'sets' ? queued.length > 0 : k === 'update' ? t.update.size > 0 : t[k]));
 
 /** The brand Update file's due read, its check and its update measure against (Q699 A, #3023 Q701 B): the panel's when
  *  the run's steps include Theme, which stores it before the update; else nothing, and the host reads the file's stored
@@ -98,14 +116,14 @@ export const brandFor = <B>(theme: boolean, panel: B): B | undefined => (theme ?
 export const updatableOf = (t: Ticks, check: { readonly sets: readonly CheckedSetView[] }): string[] =>
   [...t.update].filter((id) => check.sets.some((c) => c.def === id && !c.blocked));
 
-/** A set's statuses, as Components' list and the checklist show them (Q2909.8 A): Not in file; or Due; Hand-edited
- *  (first class, beside Due when both); Not checked yet; Checking while the background pass has not reached it, or, for a
- *  set the ledger does not name, while the file is still being read (#3110); else Up to date. Empty before the host has
- *  said anything. */
-export type SetStatus = 'new' | 'due' | 'hand' | 'unchecked' | 'checking' | 'current';
-export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<string, { readonly edited: number }>, pass: 'idle' | 'running' | 'done'): SetStatus[] => {
+/** A set's statuses, as Components' list and the checklist show them (Q2909.8 A): Not in file, or To add once it is in
+ *  the add queue (#3129 Q3129.4 A); or Due; Hand-edited (first class, beside Due when both); Not checked yet; Checking
+ *  while the background pass has not reached it, or, for a set the ledger does not name, while the file is still being
+ *  read (#3110); else Up to date. Empty before the host has said anything. */
+export type SetStatus = 'queued' | 'new' | 'due' | 'hand' | 'unchecked' | 'checking' | 'current';
+export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<string, { readonly edited: number }>, pass: 'idle' | 'running' | 'done', queue: readonly string[] | null = null): SetStatus[] => {
   if (!f || f.error) return [];
-  if (!f.present.includes(id)) return f.partial ? ['checking'] : ['new'];
+  if (!f.present.includes(id)) return f.partial ? ['checking'] : queue?.includes(id) ? ['queued'] : ['new'];
   const due = f.due[id]?.state ?? 'unrecorded';
   const h = hand.get(id);
   const out: SetStatus[] = [];
@@ -119,7 +137,7 @@ export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<str
 export type StepResult = { readonly step: StepKey; readonly ok: boolean; readonly headline: string };
 export type UpdateRun = {
   readonly steps: readonly StepKey[];
-  /** The sets the `sets` step builds, in catalog order. */
+  /** The sets the `sets` step builds: the add queue, in Components' order (#3129). */
   readonly sets: readonly string[];
   /** The sets the `update` step updates in place, the check's hash it echoes, and the hand-edit choice. */
   readonly update: { readonly defs: readonly string[]; readonly previewHash: string; readonly handEdits: HandEditChoice } | null;
@@ -145,6 +163,7 @@ export const stepDone = (r: UpdateRun, ok: boolean, headline: string): UpdateRun
 /** Stop after the step running. */
 export const stopUpdate = (r: UpdateRun): UpdateRun => (r.done ? r : { ...r, stopping: true });
 
+const plural = (n: number): string => `${n} set${n === 1 ? '' : 's'}`;
 /** The checklist's words, DRAFT placeholders until the owner words them (Q2909.10 A). */
 export const UPDATE_COPY = {
   button: 'Update file',
@@ -160,12 +179,18 @@ export const UPDATE_COPY = {
   setupSub: 'The pages, the templates and the style-guide cells. The cover too, while Documentation has it on.',
   theme: 'Theme',
   themeSub: 'The brand’s variables and styles. Layers bound to them restyle at once.',
-  sets: 'Component sets',
-  setsSub: (n: number): string => (n ? `${n} not in this file. A set is added with its usage panel while Documentation has panels on.` : 'Every component set is in this file.'),
-  setNew: 'Not in file · add',
+  /** #3129 (Q832 A, Q3129.7–11 A): the add queue's group and the due sets' group. DRAFT, the wireframe's own words. */
+  toAdd: 'To add',
+  toAddSub: (n: number): string => `${plural(n)} chosen on Components. Each is added with its usage panel while Documentation has panels on.`,
+  removeSet: (name: string): string => `Remove ${name} from To add`,
+  removeAll: 'Remove all',
+  queueEmpty: 'Nothing to add. Tick sets on Components to add them here.',
+  goComponents: 'Go to Components',
+  queueFresh: (n: number): string => `Nothing chosen yet. This file holds none of the ${n} component sets.`,
+  addAll: (n: number): string => `Add all ${n}`,
+  due: 'Due',
+  dueSub: (n: number): string => `${plural(n)} to update in place. Ticked by default.`,
   updateStep: 'Update sets in place',
-  /** Q2909.8 A: the due sets and the hand-edit choice. DRAFT placeholders (Q2909.10 A). */
-  setsDueSub: (due: number, fresh: number): string => [due ? `${due} to update in place.` : '', fresh ? `${fresh} not in this file.` : ''].filter(Boolean).join(' ') || 'Every component set is in this file and up to date.',
   dueWhy: (reason: 'definition' | 'engine'): string => (reason === 'engine' ? 'Due · Prism3 changed' : 'Due · its settings changed'),
   checkingSets: 'Checking what changes…',
   checkError: 'Couldn’t check the sets. Close this and try again.',
@@ -176,8 +201,9 @@ export const UPDATE_COPY = {
   unrecorded: (n: number): string => `${n} set${n === 1 ? '' : 's'} not checked yet: built before Prism3 kept a record.`,
   checkUnrecorded: (n: number): string => `Check ${n} set${n === 1 ? '' : 's'}`,
   saves: 'Saves a version first. If Figma refuses the save, nothing is written.',
-  status: { new: 'Not in file', due: 'Due', hand: 'Hand-edited', unchecked: 'Not checked yet', checking: 'Checking…', current: 'Up to date' } as Record<SetStatus, string>,
-  badge: (n: number): string => `${n} due`,
+  status: { queued: 'To add', new: 'Not in file', due: 'Due', hand: 'Hand-edited', unchecked: 'Not checked yet', checking: 'Checking…', current: 'Up to date' } as Record<SetStatus, string>,
+  /** Q3129.11 A: the badge's name, split: "Update file, 7 to add, 3 due", with ", theme" when the Theme item counts. */
+  badgeName: (p: BadgeParts): string => ['Update file', p.add ? `${p.add} to add` : '', p.due ? `${p.due} due` : '', p.theme ? 'theme' : ''].filter(Boolean).join(', '),
   guides: 'Style guides',
   guidesSub: 'Drawn with the settings in Documentation. A rerun updates each table in place.',
   go: 'Update file',
@@ -195,4 +221,4 @@ export const UPDATE_COPY = {
 } as const;
 
 /** Each step's name in the checklist and in the run line. */
-export const STEP_TITLE: Readonly<Record<StepKey, string>> = { setup: UPDATE_COPY.setup, theme: UPDATE_COPY.theme, update: UPDATE_COPY.updateStep, sets: UPDATE_COPY.sets, guides: UPDATE_COPY.guides };
+export const STEP_TITLE: Readonly<Record<StepKey, string>> = { setup: UPDATE_COPY.setup, theme: UPDATE_COPY.theme, update: UPDATE_COPY.updateStep, sets: UPDATE_COPY.toAdd, guides: UPDATE_COPY.guides };

@@ -36,6 +36,11 @@
  * `entry/check`, `entry/prune`, `entry/style-guide`, `entry/style-guide-cleanup`; the read after open's error answer
  * posted untagged → `open/error`.
  *
+ * #3129 Q833 A, THE ADD QUEUE through the same `main.ts`: `queue/read` (every read reports the queue without the sets the
+ * file holds and without a def the engine does not define), `queue/read-only` (reads clear no key), `queue/write`,
+ * `queue/tidy` (a queue write clears the stale keys) and `queue/remove`. Mutations failing by name: `queuedFor` reading the
+ * raw keys → `queue/read`; the stale clear dropped from `addQueue` → `queue/tidy`.
+ *
  * Also held: `open/race`, the checklist's own request asked while the read after open is still going, is answered
  * without `atOpen`, so the panel keeps it over the read after open (`host-session.ts`, `awaitingRead`).
  */
@@ -114,12 +119,20 @@ const ledger = Object.fromEntries(setIds.slice(0, RECORDED).map((id, i) => {
   return [id, i < DUE ? { ...e, def: 'moved000moved000' } : e];
 }));
 pluginData.set(LEDGER_KEY, JSON.stringify({ v: LEDGER_V, sets: ledger }));
+// #3129 Q833 A, the add queue at the root (`add-queue.ts`): a set the file holds and the ledger records, a set it does
+// not hold, and a def the engine does not define. Only the second is the queue a read reports (Q3129.2 A, Q3129.3 A).
+const ABSENT = buildable[SETS].id;
+const LATER = buildable[SETS + 1].id;
+sharedData.set(`prism3:addQueue.${setIds[0]}`, '2026-10-28T09:00:00.000Z');
+sharedData.set(`prism3:addQueue.${ABSENT}`, '2026-10-28T09:00:00.000Z');
+sharedData.set('prism3:addQueue.retired-def', '2026-10-28T09:00:00.000Z');
 Object.defineProperty(root, 'children', { get: () => pages });
 Object.assign(root, {
   name: 'large-file stand-in',
   type: 'DOCUMENT',
   getSharedPluginData: (ns: string, k: string) => sharedData.get(`${ns}:${k}`) ?? '',
   setSharedPluginData: (ns: string, k: string, v: string) => { sharedData.set(`${ns}:${k}`, v); },
+  getSharedPluginDataKeys: (ns: string) => [...sharedData.keys()].filter((k) => k.startsWith(`${ns}:`)).map((k) => k.slice(ns.length + 1)),
   getPluginData: (k: string) => pluginData.get(k) ?? '',
   setPluginData: (k: string, v: string) => { pluginData.set(k, v); },
   // Under `dynamic-page`, a document-wide search refuses until `loadAllPagesAsync` was called.
@@ -206,6 +219,32 @@ console.log(`    full read                   ${full?.at ?? '—'} ms`);
 console.log(`    hand-edit pass done         ${done()?.at ?? '—'} ms`);
 console.log(`    most pages in one turn      ${worstTurn} (${worstTurn * PAGE_MS} ms held)`);
 for (const t of timings) console.log(`    stage ${t.stage.padEnd(22)}${t.ms} ms`);
+
+/* ── the add queue (#3129 Q833 A) ──────────────────────────────────────────────────────────────────── */
+
+// Every read reports the queue without the sets the file holds and without a def the engine cannot build, and never
+// writes; a queue write sets its keys, clears the ones a read leaves out, and answers with the queue. Literals typed here.
+console.log('\n  the add queue (#3129)');
+ok(JSON.stringify(first?.msg?.queued) === JSON.stringify([ABSENT]) && JSON.stringify(full?.msg?.queued) === JSON.stringify([ABSENT]),
+  `queue/read: the ledger's answer and the full read report the queue minus the set the file holds and the retired def (${JSON.stringify([first?.msg?.queued, full?.msg?.queued])})`);
+ok(sharedData.get(`prism3:addQueue.${setIds[0]}`) !== '' && sharedData.get('prism3:addQueue.retired-def') !== '',
+  'queue/read-only: the reads cleared no key (Q3129.2 A: reads never write)');
+{
+  const from = posted.length;
+  send({ type: 'add-queue', ids: [LATER], on: true });
+  const got = () => posted.slice(from).find((p) => p.msg?.type === 'add-queue');
+  for (let i = 0; i < 2000 && !got(); i++) await new Promise((res) => realTimeout(res, 5));
+  ok(JSON.stringify(got()?.msg?.queued) === JSON.stringify([ABSENT, LATER]) && !!sharedData.get(`prism3:addQueue.${LATER}`),
+    `queue/write: add-queue on queues the set in its own key and answers with the queue (${JSON.stringify(got()?.msg ?? null)})`);
+  ok(sharedData.get(`prism3:addQueue.${setIds[0]}`) === '' && sharedData.get('prism3:addQueue.retired-def') === '',
+    `queue/tidy: the write clears the key of the set the file holds and of the retired def (${JSON.stringify([sharedData.get(`prism3:addQueue.${setIds[0]}`), sharedData.get('prism3:addQueue.retired-def')])})`);
+  const from2 = posted.length;
+  send({ type: 'add-queue', ids: [ABSENT, LATER], on: false });
+  const got2 = () => posted.slice(from2).find((p) => p.msg?.type === 'add-queue');
+  for (let i = 0; i < 2000 && !got2(); i++) await new Promise((res) => realTimeout(res, 5));
+  ok(JSON.stringify(got2()?.msg?.queued) === JSON.stringify([]) && sharedData.get(`prism3:addQueue.${ABSENT}`) === '',
+    `queue/remove: add-queue off empties the keys and answers with an empty queue (${JSON.stringify(got2()?.msg ?? null)})`);
+}
 
 /* ── every other entry that needs every page, each on a file not yet read ──────────────────────────── */
 

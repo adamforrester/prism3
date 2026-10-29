@@ -10,13 +10,21 @@
  * overlay shows the step running and Stop.
  *
  * WHAT IS DUE (phase 2, Q2909.8 A): the button carries a badge from the as-built ledger. Since #3081 (Q810 A) it counts
- * everything Update file would change, live: the sets due against the brand the panel holds, and one item for Theme
- * changes the file does not hold yet (`badgeCount`). The panel recounts after a setting changes and after each write's
- * verdict (`main.ts`, debounced). The recount never runs the full check. The checklist lists the due sets first, ticked, and as it opens asks for the full check over them
+ * everything Update file would change, live: the add queue (#3129), the sets due against the brand the panel holds, and
+ * one item for Theme changes the file does not hold yet (`badgeParts`). Its name splits the count (Q3129.11 A): "Update
+ * file, 7 to add, 3 due", and ", theme" when the Theme item counts. The panel recounts after a setting changes and after
+ * each write's verdict (`main.ts`, debounced). The recount never runs the full check. The checklist lists the due sets,
+ * ticked, under Due, and as it opens asks for the full check over them
  * alone; each set then says what changes, and the update waits on that answer. One choice covers the hand edits it finds
  * (Keep, the default). A set built before the ledger reads "Not checked yet", with a way to check it. Both reads measure
  * against the panel's brand while Theme is ticked, else the file's stored one (#3023 Q701 B, `brandFor`), so a Theme toggle
  * checks the file again.
+ *
+ * TO ADD (#3129, Q832 A, Q3129.7–10 A): the file's add queue, above Due, in Components' order and with its names
+ * (`queuedOf`, `displayNameOf`). Each row has Remove (×), and from two rows up the group's head has Remove all; there is
+ * no tick, so a queued set runs. Each removal is a queue write, as Components' boxes are, so a teammate sees it. An empty
+ * queue says so and offers Go to Components; a file that is not set up starts empty and offers Add all, which writes every
+ * set it lacks into the queue. A file that lacks no set shows no To add.
  *
  * CLEAN UP: Prune stale, moved here with its own preview (Q668 A): the preview runs as the tab opens and writes nothing;
  * its Delete is the confirmed prune. It never rides Update. The style guide's retired tables (Q412 A) are offered here
@@ -31,7 +39,8 @@
  */
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
-import { awaitingRead, badgeCount, defaultTicks, dueSetsOf, newSetsOf, stepOf, stepsOf, unrecordedOf, updatableOf, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
+import { awaitingRead, badgeParts, defaultTicks, dueSetsOf, newSetsOf, queuedOf, stepOf, stepsOf, unrecordedOf, updatableOf, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import { focusables, glyph, h, hook, pendingLabel, setBusy, trapTab } from './dom';
 
@@ -60,7 +69,14 @@ export type UpdateFileLend = {
     /** Q2909.8 A: the background pass's hand edits by set, and the scoped check's last answer (`pending` while out). */
     readonly handEdits: ReadonlyMap<string, { readonly members: number; readonly edited: number }>;
     readonly updateCheck: { readonly previewHash: string; readonly sets: readonly CheckedSetView[]; readonly error: string | null } | 'pending' | null;
+    /** #3129 Q833 A: the file's add queue, as the host last read it or the panel last wrote it; null before the host has
+     *  said. */
+    readonly queue: readonly string[] | null;
   };
+  /** #3129: queue `ids` in the file (`on`), or take them out (`add-queue`). */
+  readonly queueSets: (ids: readonly string[], on: boolean) => void;
+  /** #3129: open Components, where sets are chosen to add. */
+  readonly goComponents: () => void;
   /** Ask the host which sets the file holds (`file-sets-request`). `theme`: whether Theme is ticked, which decides the
    *  brand what is due is measured against (#3023 Q701 B: the panel's, else the file's stored one). */
   readonly check: (theme: boolean) => void;
@@ -101,6 +117,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   let rechecking = false;
   /** The not-yet-recorded sets a check has already ticked or left, so an untick by hand sticks. */
   const seen = new Set<string>();
+  /** #3129: the control the next repaint focuses, set by a removal whose own button the repaint drops. */
+  let refocus: string | null = null;
 
   const show = (): void => {
     if (open) return;
@@ -147,7 +165,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   };
 
   /** An item: its box, title and count on one row, its line under them, and what it holds. */
-  const item = (key: Exclude<StepKey, 'sets'>, on: boolean, title: string, sub: string, toggle: () => void): HTMLElement => {
+  const item = (key: Exclude<StepKey, 'sets' | 'update'>, on: boolean, title: string, sub: string, toggle: () => void): HTMLElement => {
     const row = hook(h('div', 'p3-upd-item'), `update-item-${key}`);
     row.append(check(`update-check-${key}`, `item=${key}`, on, [h('b', undefined, title)], toggle), h('p', 'p3-sub p3-upd-sub', sub));
     return row;
@@ -186,8 +204,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       seen.clear();
       lend.check(!t.theme);
     }));
-    // The sets (Q2909.8 A): the due ones first, updated in place, then the ones not in the file; each is its own box.
-    const fresh2 = newSetsOf(r.catalog, f);
+    // #3129: the add queue, then the due sets (Q2909.8 A), each group under its own title.
+    const queue = queuedOf(r.catalog, f, r.queue);
+    const addable = newSetsOf(r.catalog, f);
     const due = dueSetsOf(r.catalog, f);
     const unrec = unrecordedOf(r.catalog, f);
     // The full check, over the due sets alone, once per opening, as soon as the ledger's answer is in.
@@ -195,17 +214,60 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const chk = r.updateCheck;
     const answered = chk && chk !== 'pending' && checkedFor !== null ? chk : null;
     const checkOf = (id: string): CheckedSetView | undefined => answered?.sets.find((c) => c.def === id);
-    const nameOf = (id: string): string => r.catalog.find((e) => e.id === id)?.name ?? id;
+    // Q392 A on #2812: a set named as Components names it.
+    const nameOf = (id: string): string => displayNameOf(r.catalog, id);
     // A check that read the not-yet-recorded sets ticks each one an update would change, once, before anything is drawn.
     if (answered && checkedFor && unrec.some((id) => checkedFor!.includes(id) && !t.update.has(id) && !seen.has(id))) {
       for (const id of unrec) if (checkOf(id)) seen.add(id);
       const add = unrec.filter((id) => { const c = checkOf(id); return c && !c.blocked && !c.upToDate && !t.update.has(id); });
       if (add.length) { ticks = { ...t, update: new Set([...t.update, ...add]) }; return updateBody(); }
     }
-    const sets = hook(h('div', 'p3-upd-item'), 'update-item-sets');
-    sets.append(h('b', 'p3-upd-title', UPDATE_COPY.sets), h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.setsDueSub(due.length + [...t.update].filter((id) => !due.includes(id)).length, fresh2.length)));
+    if (queue.length || addable.length) {
+      const grp = hook(h('div', 'p3-upd-item'), 'update-item-add');
+      const head = h('div', 'p3-upd-grouphead');
+      head.append(h('b', 'p3-upd-title', UPDATE_COPY.toAdd));
+      // Q3129.8 A: Remove all, a ghost button in the group's head, from two rows up.
+      if (queue.length >= 2) head.append(btn('p3-btn p3-btn-ghost p3-upd-removeall', 'update-remove-all', 'remove-all', UPDATE_COPY.removeAll, () => { refocus = 'go-components'; lend.queueSets(queue, false); }));
+      grp.append(head);
+      if (queue.length) {
+        grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.toAddSub(queue.length)), 'update-add-line'));
+        const rows = groupsOf(r.catalog).flatMap((sec) => sec.rows);
+        const list = hook(h('div', 'p3-upd-sets'), 'update-add-sets');
+        queue.forEach((id, i) => {
+          const name = nameOf(id);
+          const row = hook(h('div', 'p3-upd-addrow'), 'update-add-row');
+          row.dataset.id = id;
+          row.append(h('span', 'p3-upd-setname', name));
+          // Where it lands, when its name is not its page's (a part set, or a set on a shared page).
+          const page = rows.find((x) => x.ids.includes(id))?.page ?? null;
+          if (page && sentenceCase(page) !== name) row.append(hook(h('span', 'p3-cp-where p3-upd-where', GROUPS_COPY.page(page)), 'update-add-page'));
+          const x = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-upd-remove'), 'update-remove');
+          x.type = 'button';
+          x.dataset.key = `remove=${id}`;
+          x.setAttribute('aria-label', UPDATE_COPY.removeSet(name));
+          x.append(glyph('x'));
+          // Focus goes to the next row's Remove, else the one before, else Go to Components.
+          x.onclick = () => { const to = queue[i + 1] ?? queue[i - 1]; refocus = to ? `remove=${to}` : 'go-components'; lend.queueSets([id], false); };
+          row.append(x);
+          list.append(row);
+        });
+        grp.append(list);
+      } else if (fresh) {
+        // Q3129.9 A, Q3129.10 A: a file that is not set up starts with nothing queued; Add all writes every set it lacks
+        // into the queue, as Components' page box does.
+        grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.queueFresh(addable.length)), 'update-add-line'),
+          btn('p3-btn p3-btn-page p3-upd-addall', 'update-add-all', 'add-all', UPDATE_COPY.addAll(addable.length), () => { refocus = `remove=${addable[0]}`; lend.queueSets(addable, true); }));
+      } else {
+        grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.queueEmpty), 'update-add-line'),
+          btn('p3-btn p3-btn-ghost p3-upd-gocomp', 'update-go-components', 'go-components', UPDATE_COPY.goComponents, () => { close(); lend.goComponents(); }));
+      }
+      body.push(grp);
+    }
     const updating = [...new Set([...due, ...t.update])];
+    const sets = hook(h('div', 'p3-upd-item'), 'update-item-due');
+    sets.append(h('b', 'p3-upd-title', UPDATE_COPY.due));
     if (updating.length) {
+      sets.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.dueSub(updating.length)), 'update-due-line'));
       const list = hook(h('div', 'p3-upd-sets'), 'update-due-sets');
       for (const id of updating) {
         const on = t.update.has(id);
@@ -258,25 +320,13 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         }));
       sets.append(line);
     }
-    if (fresh2.length) {
-      const list = hook(h('div', 'p3-upd-sets'), 'update-sets');
-      for (const id of fresh2) {
-        const on = t.sets.has(id);
-        const box = check('update-set', `set=${id}`, on, [h('span', 'p3-upd-setname', nameOf(id)), hook(h('span', 'p3-sg-tag', UPDATE_COPY.setNew), 'update-set-new')], () => {
-          const next = new Set(t.sets);
-          if (on) next.delete(id); else next.add(id);
-          ticks = { ...t, sets: next };
-        });
-        box.dataset.id = id;
-        list.append(box);
-      }
-      sets.append(list);
-    }
-    body.push(sets, item('guides', t.guides, UPDATE_COPY.guides, UPDATE_COPY.guidesSub, () => { ticks = { ...t, guides: !t.guides }; }));
+    // Due is drawn while a set is due or unchecked (the check offered below); a file with neither has no Due group.
+    if (updating.length || unrec.length) body.push(sets);
+    body.push(item('guides', t.guides, UPDATE_COPY.guides, UPDATE_COPY.guidesSub, () => { ticks = { ...t, guides: !t.guides }; }));
     const t2 = ticks ?? t;
     // The update waits on the check's answer: its counts are what the person reviews, and its hash what the update echoes.
     const updatable = answered ? updatableOf(t2, answered) : [];
-    const steps = stepsOf({ ...t2, update: new Set(updatable) }, f);
+    const steps = stepsOf({ ...t2, update: new Set(updatable) }, f, queue);
     const waiting = t2.update.size > 0 && !answered;
     const go = hook(h('button', 'p3-btn p3-btn-primary'), 'update-go');
     go.type = 'button';
@@ -287,7 +337,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     go.onclick = () => {
       if (go.disabled || !answered && t2.update.size) return;
       const exact = !!answered && checkedFor !== null && updatable.length === checkedFor.length && updatable.every((id) => checkedFor!.includes(id));
-      lend.run(steps, steps.includes('sets') ? fresh2.filter((id) => t2.sets.has(id)) : [],
+      lend.run(steps, steps.includes('sets') ? queue : [],
         updatable.length && answered ? { defs: updatable, previewHash: exact ? answered.previewHash : '', checked: answered.sets, handEdits: t2.handEdits } : null);
       close();
     };
@@ -327,14 +377,16 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   const paint = (): void => {
     const r = lend.read();
     setBusy(button, !!r.run);
-    const n = badgeCount(r.catalog, r.fileSets, r.liveDue);
+    const parts = badgeParts(r.catalog, r.fileSets, r.liveDue, r.queue);
+    const n = parts.add + parts.due + (parts.theme ? 1 : 0);
     badge.textContent = n ? String(n) : '';
     badge.hidden = !n;
-    if (n) button.setAttribute('aria-label', `${UPDATE_COPY.button}, ${UPDATE_COPY.badge(n)}`); else button.removeAttribute('aria-label');
+    if (n) button.setAttribute('aria-label', UPDATE_COPY.badgeName(parts)); else button.removeAttribute('aria-label');
     // Busy, it still opens the overlay (the step running, and Stop), so it is not announced as unavailable.
     button.removeAttribute('aria-disabled');
     if (!open) { if (layer.firstChild) layer.replaceChildren(); return; }
-    const focused = document.activeElement instanceof HTMLElement && layer.contains(document.activeElement) ? document.activeElement.dataset.key ?? null : null;
+    const focused = refocus ?? (document.activeElement instanceof HTMLElement && layer.contains(document.activeElement) ? document.activeElement.dataset.key ?? null : null);
+    refocus = null;
     // #3082: a repaint (a tick, a host answer) keeps where the body was scrolled, on the same tab; a new tab starts at the top.
     const was = layer.querySelector<HTMLElement>('[data-p3="update-body"]');
     const scrolled = was && was.dataset.tab === tab ? was.scrollTop : 0;

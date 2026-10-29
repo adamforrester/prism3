@@ -29,8 +29,10 @@
  * a build places is Subcomponents, Icon included (call 11 A above). No definition is placed in Content components or
  * Blocks yet, so those two hold nothing; no tier is guessed for a definition that does not name one.
  *
- * SELECTION is a set of def ids. A family's and a section's box is three-state over the sets it holds that can be built
- * (call 8 A); a set that can't be built is listed with its reason and never selected (G4).
+ * THE BOXES (#3129, Q832 A, Q3129.4–6 A) act on the file's add queue, a set of def ids, not on a selection of the
+ * session's: a set's box queues it, and a family's and a section's box is three-state over the sets it holds that the
+ * file could add, buildable and not in the file (call 8 A, `addableOf`). A set the file holds, or one that can't be
+ * built (listed with its reason, G4), has no box, and a family or section with none to add has none either.
  *
  * Copy here is the wireframe's, which the owner approved as DRAFT (#2700): every string is DRAFT until the owner signs
  * the copy off. US English, `docs/voice-standard.md`.
@@ -111,6 +113,13 @@ export const SECTION_BLOCKS: Readonly<Partial<Record<SectionKind, readonly Block
 /** The page's copy. DRAFT: the approved wireframe's own words (#2700), pending the owner's copy sign-off. */
 export const GROUPS_COPY = {
   intro: (n: number): string => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
+  /** #3129 (Q3129.4–5 A): the plugin's intro, its page control and its boxes' names. DRAFT, the wireframe's words. */
+  introPlugin: (n: number): string => `The ${n} component sets the engine defines, in families. Tick a set to add it to this file; Update file adds it.`,
+  addEvery: 'Add every set not in this file',
+  addCount: (n: number, of: number): string => `${fmt(n)} of ${fmt(of)} to add`,
+  addSet: (name: string): string => `Add ${name} to file`,
+  addAllOf: (label: string): string => `Add all of ${label} to file`,
+  addAll: (title: string): string => `Add all ${title} to file`,
   /** Q10 A on #2905: the section titles as drafted in wireframe v2, Tag's included (placed by #2931 Q579 A). */
   sections: { buttons: 'Buttons', fields: 'Fields', tags: 'Tag', dialogs: 'Dialog', banners: 'Banner', links: 'Link', radios: 'Radio', components: 'Other components', subcomponents: 'Subcomponents' } as Record<SectionKind, string>,
   sectionCount: (kind: SectionKind, rows: number, sets: number): string =>
@@ -119,13 +128,8 @@ export const GROUPS_COPY = {
   sets: (n: number): string => plural(n, 'set'),
   page: (page: string): string => `↳ ${page}`,
   members: (n: number, unit: CatalogEntry['unit']): string => `${fmt(n)} ${unit === 'components' ? (n === 1 ? 'component' : 'components') : (n === 1 ? 'variant' : 'variants')}`,
-  selectSet: (name: string): string => `Select ${name}`,
-  selectAllOf: (label: string): string => `Select all of ${label}`,
-  selectAll: (title: string): string => `Select all ${title}`,
   open: (label: string): string => `Open ${label}`,
   close: (label: string): string => `Close ${label}`,
-  buildAll: (n: number): string => `Build all ${n}`,
-  buildingAll: (at: number, n: number): string => `Building ${at} of ${n}…`,
   noMatch: 'No set matches your search.',
   /** Q2909.17 A: a tier's caption, and the line for the tiers no definition is in yet (after the round-4 wireframe's). */
   tier: (title: string, sets: number): string => `${title} · ${plural(sets, 'set')}`,
@@ -209,22 +213,24 @@ export const entryOf = (catalog: Catalog, id: string): CatalogEntry | undefined 
 /** The sets of `ids` a build is offered for (G4). */
 export const buildableOf = (catalog: Catalog, ids: readonly string[]): string[] => ids.filter((id) => entryOf(catalog, id)?.buildable === true);
 
+/** The sets of `ids` the file could add (#3129): buildable, and not in the file. A box acts on these alone. */
+export const addableOf = (catalog: Catalog, ids: readonly string[], present: readonly string[]): string[] =>
+  buildableOf(catalog, ids).filter((id) => !present.includes(id));
+
 export type BoxState = 'on' | 'mixed' | 'off';
-/** A box over several sets (call 8 A): on when every buildable set is selected, off when none is, mixed between. A box
- *  over no buildable set is off. */
-export const boxOfSets = (catalog: Catalog, ids: readonly string[], sel: ReadonlySet<string>): BoxState => {
-  const ok = buildableOf(catalog, ids);
-  const on = ok.filter((id) => sel.has(id)).length;
+/** A box over several sets (call 8 A, #3129): on when every set it could add is queued, off when none is, mixed
+ *  between. A box over no set to add is off, and is not drawn (Q3129.6 A). */
+export const boxOfSets = (catalog: Catalog, ids: readonly string[], queue: ReadonlySet<string>, present: readonly string[]): BoxState => {
+  const ok = addableOf(catalog, ids, present);
+  const on = ok.filter((id) => queue.has(id)).length;
   return on === 0 ? 'off' : on === ok.length ? 'on' : 'mixed';
 };
 
-/** A box's toggle: an all-on box clears its sets, any other selects every buildable one. Returns a new selection. */
-export const toggleSets = (catalog: Catalog, ids: readonly string[], sel: ReadonlySet<string>): Set<string> => {
-  const ok = buildableOf(catalog, ids);
-  const next = new Set(sel);
-  if (boxOfSets(catalog, ids, sel) === 'on') for (const id of ok) next.delete(id);
-  else for (const id of ok) next.add(id);
-  return next;
+/** A box's toggle, as the queue write it posts (`add-queue`): an all-on box takes its sets out of the queue, any other
+ *  queues the ones it could add that are not queued yet. */
+export const toggleSets = (catalog: Catalog, ids: readonly string[], queue: ReadonlySet<string>, present: readonly string[]): { readonly ids: string[]; readonly on: boolean } => {
+  const ok = addableOf(catalog, ids, present);
+  return boxOfSets(catalog, ids, queue, present) === 'on' ? { ids: ok, on: false } : { ids: ok.filter((id) => !queue.has(id)), on: true };
 };
 
 /** Whether a set's own name or summary holds a search, case-insensitively. An empty search matches nothing here. */

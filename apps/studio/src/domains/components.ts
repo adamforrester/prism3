@@ -1,22 +1,23 @@
 /**
  * Components, the levers panel (UI redesign S8.2; redesigned by #2700, the owner's approved wireframe, every call A).
  *
- * WHAT IT DRAWS: the list of component sets, the shown family's settings under its row, and the one action bar (call 9 A:
- * the list and the action where the choosing happens; the focused family's preview is the preview pane's,
- * `preview/components.ts`).
+ * WHAT IT DRAWS: the list of component sets and the shown family's settings under its row (the focused family's preview
+ * is the preview pane's, `preview/components.ts`).
  *   · Its sections (see SECTIONS WITH SETTINGS below for the first three): Buttons, Fields, Tag, Other components and
  *     Subcomponents (note 4, call 11 A; #2905). Outside the sections with settings, each row is a family (several sets on one Figma page,
  *     closed until one of its sets is selected or the row is focused, call 15 A) or a set of its own, alphabetical
  *     (note 2), labeled by page or by component name (call 14 A), with its members and the page it lands on (idea 12).
- *   · In the plugin, a box on every set, family and section (note 5, call 8 A: three-state, as Build style guides'), and
- *     Subcomponents' own "Build all" (call 10 A), which runs at once and leaves the selection alone.
- *   · The action bar at the foot of the pane (idea 9 A, as Draw is on Build style guides): "Build N sets" (call 17 A)
- *     and what it costs, the sets a build makes first when the file lacks them (idea 7 A), and, while it runs, its place
- *     and Stop (call 16 A); after a run of several sets, its summary and the way to Activity (idea 13 A).
- *   · On the web the list is read-only: no boxes, no bar, and one line saying building needs the plugin.
- * Nothing is selected when the page opens (call 13 A).
+ *   · In the plugin, THE ADD QUEUE (#3129, owner decisions Q832 A, Q833 A, Q3129.4–6 A): a box on every set the file
+ *     could add (buildable, not in the file), and a three-state box on each family and section over those sets (note 5,
+ *     call 8 A), and one on the page under the intro, "Add every set not in this file", with how many of them are
+ *     queued. A box queues its sets in the file (`add-queue`), and a queued set's tag reads To add; Update file builds
+ *     the queue. A set the file holds has no box, and its cell stays empty so the names align; a family or section with
+ *     nothing to add has none either. In a section with settings, a set's box takes the empty fold cell. Under a search
+ *     the section and page boxes act on the rows shown (Q391 A). The boxes wait for the host's full read of the file.
+ *     There is no Build bar: building is Update file's (Q2909.5 A).
+ *   · On the web the list is read-only: no boxes, no queue (Q3129.12 A), and one line saying building needs the plugin.
  *
- * A NAME FOCUSES, A BOX SELECTS: focusing does not select, and the preview pane shows the focused family. At the narrow
+ * A NAME FOCUSES, A BOX QUEUES: focusing does not queue, and the preview pane shows the focused family. At the narrow
  * tier (one column) a row's meta drops to its count, and the preview is the frame's Preview, as on every page.
  *
  * SECTIONS WITH SETTINGS (#2905 phase 1, owner decisions Q538 and Q548 on wireframe v2, every call A). The components
@@ -33,20 +34,19 @@
  * is for, so they come first. Opening the line also focuses the section's first set, unless one of its sets already has
  * focus, so the preview shows what the settings change; the open state lasts the session (`state/components-page.ts`).
  * Each block is mounted once and moved, not rebuilt, when the list redraws (hidden while closed), so a
- * selection or a verdict never resets it.
+ * queue write or a verdict never resets it.
  *
  * SEARCH (the Studio's search, Q3) filters the rows: a family stays while any of its sets matches (#2700's edge state).
  * It also reaches the settings (#3093): a lever in a settings block matches by its label, its description or its key
  * (`leverBlock`'s words, `saidOf`), so its section shows even when none of its sets matches, the search opens its block
  * as it opens a family (call 7), and the block shows only the levers that match. Each matching lever is a hit.
  *
- * A DERIVED MODE holds nothing here: the list and the bar edit no brand setting, so building stays available, as it was
- * when the build bar sat in the preview pane, and the frame does not hold this page (#2700). The Button options, which do
+ * A DERIVED MODE holds nothing here: the list and its boxes edit no brand setting, so queuing stays available, and the
+ * frame does not hold this page (#2700). The Button options, which do
  * edit, hold themselves (`domains/button-options.ts`), and repaint themselves on `brand` and `mode`.
  *
- * HOW IT REPAINTS: by store subscription only (plan §5): `host` and `host:components` for the bar and the last-build
- * lines, `search` for the filter, the page state (`state/components-page.ts`) for selection, open and focus, and the
- * frame's width tier. It never imports `main.ts` (`test-shell-imports.ts`), and
+ * HOW IT REPAINTS: by store subscription only (plan §5): `host` and `host:components` for the statuses and the queue,
+ * `search` for the filter, the page state (`state/components-page.ts`) for open and focus, and the frame's width tier. It never imports `main.ts` (`test-shell-imports.ts`), and
  * no component definition: the catalog is `state/component-catalog.ts`'s (`check:ignore` fails by name if a definition
  * reaches the web bundle).
  */
@@ -54,11 +54,10 @@ import { searchQuery, setSearchHits, subscribe } from '../state/store';
 import { componentCatalog, type Catalog } from '../state/component-catalog';
 import { componentsPage, setComponentsPage, watchComponentsPage } from '../state/components-page';
 import {
-  alsoBuilds, boxOfSets, buildableOf, costOf, entryOf, familiesToOpen, fmt, GROUPS_COPY, tiersOf, inListOrder, rowMatches, rowOfFocus,
+  addableOf, boxOfSets, buildableOf, costOf, entryOf, familiesToOpen, fmt, GROUPS_COPY, tiersOf, rowMatches, rowOfFocus,
   SECTION_BLOCKS, setFocusKey, toggleSets, type BlockKey, type BoxState, type GroupRow, type GroupSection,
 } from '../state/component-groups';
-import { currentOf, positionOf, RUN_COPY } from '../state/build-queue';
-import { glyph, h, hook, pendingLabel, setBusy } from '../shell/dom';
+import { glyph, h, hook } from '../shell/dom';
 import { saidOf, stateLine } from '../ui/lever-kit';
 import { SETS_COPY } from '../preview/sections/component-sets';
 import { UPDATE_COPY, type SetStatus } from '../state/update-file';
@@ -93,14 +92,12 @@ const SECTION_SETTINGS: Record<BlockKey, {
 
 /** Mount the Components list into `hostEl`. Subscriptions are released through `cleanups`. */
 export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void)[], lend: PageLends): void => {
-  // #2909 IA v2 phase 1 (Q2909.5 A): the plugin's one write is Update file, whose checklist adds the sets the file
-  // lacks. So this page draws no boxes and no Build bar on either host: the list, its sections and their settings.
-  const plugin = false;
+  // #3129 (Q832 A): the plugin's boxes queue sets in the file; Update file builds them (Q2909.5 A), so no host draws a
+  // Build bar. The web has no file, so no boxes (Q3129.12 A).
+  const plugin = PRISM3_HOST === 'figma';
   const root = hook(h('div', 'p3-levers-body p3-cp'), 'components-levers');
   const list = hook(h('div', 'p3-cp-list'), 'components-list');
-  const bar = plugin ? hook(h('div', 'p3-cp-bar'), 'components-bar') : null;
   root.append(list);
-  if (bar) root.append(bar);
   hostEl.replaceChildren(root);
   /** Each settings block (see the header), by block: the block, and the subscriptions its controls hold. */
   const settings = new Map<BlockKey, { el: HTMLElement; own: (() => void)[] }>();
@@ -145,17 +142,29 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     b.onclick = onToggle;
     return b;
   };
-  const select = (ids: readonly string[], open?: string): void => {
-    const s = componentsPage();
-    const sel = toggleSets(componentCatalog(), ids, s.sel);
-    // Call 15 A: a family opens when one of its sets is selected.
-    const nextOpen = open && [...sel].some((id) => ids.includes(id)) ? new Set([...s.open, open]) : s.open;
-    setComponentsPage({ sel, open: nextOpen });
+  /** #3129: the sets the file holds, once the host's full read has landed (else no box is drawn), and the queue. */
+  const present = (): readonly string[] | null => (plugin ? lend.sets.present() : null);
+  const queued = (): ReadonlySet<string> => new Set(lend.sets.queue() ?? []);
+  /** A box's click: one queue write for the sets it could add (`toggleSets`). */
+  const toggle = (ids: readonly string[], open?: string): void => {
+    const p = present();
+    if (!p) return;
+    const w = toggleSets(componentCatalog(), ids, queued(), p);
+    if (!w.ids.length) return;
+    lend.sets.queueSets(w.ids, w.on);
+    // Call 15 A: a family opens when one of its sets is queued from its box.
+    if (open && w.on && !componentsPage().open.has(open)) setComponentsPage({ open: new Set([...componentsPage().open, open]) });
+  };
+  /** A box over `ids` when the file could add any of them, else the empty cell that keeps the names aligned (Q3129.6 A). */
+  const boxOrCell = (key: string, ids: readonly string[], label: string, open: string | undefined, empty: 'p3-cp-nobox' | 'p3-cp-fold-space'): HTMLElement => {
+    const p = present()!;
+    const catalog = componentCatalog();
+    return addableOf(catalog, ids, p).length ? box(key, boxOfSets(catalog, ids, queued(), p), label, () => toggle(ids, open)) : h('span', empty);
   };
 
   /** #2909 Q2909.8 A: a set's statuses in this file, as tags (plugin only; the web has no file). A family shows what its
    *  sets show, each status once, in the statuses' own order. */
-  const STATUS_ORDER: readonly SetStatus[] = ['due', 'hand', 'unchecked', 'checking', 'new', 'current'];
+  const STATUS_ORDER: readonly SetStatus[] = ['due', 'hand', 'unchecked', 'checking', 'queued', 'new', 'current'];
   const statusTags = (ids: readonly string[]): HTMLElement | null => {
     const has = new Set(ids.flatMap((id) => lend.sets.status(id)));
     // A family whose sets are partly in the file and partly not reads by the ones it holds.
@@ -168,24 +177,28 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   };
 
   /** One set row inside a family, or a set on its own (`single` is its row). `flat`: a family's set listed at a section's
-   *  edge (#2905, Q8 A), which focuses as itself, since its family has no row. */
-  const setRow = (catalog: Catalog, id: string, row: GroupRow, member: boolean, flat = false): HTMLElement => {
+   *  edge (#2905, Q8 A), which focuses as itself, since its family has no row. `edge`: any row in a section with
+   *  settings, whose box takes the fold cell (#3129). */
+  const setRow = (catalog: Catalog, id: string, row: GroupRow, member: boolean, flat = false, edge = flat): HTMLElement => {
     const e = entryOf(catalog, id)!;
     const r = hook(h('div', member ? 'p3-cp-row p3-cp-member' : 'p3-cp-row'), member ? 'cp-member' : 'cp-row');
     r.dataset.set = id;
     if (!member) r.dataset.row = row.key;
     if (!e.buildable) r.dataset.off = 'true';
     const label = member ? e.name : row.label;
-    if (plugin && e.buildable) r.append(box(`set=${id}`, componentsPage().sel.has(id) ? 'on' : 'off', GROUPS_COPY.selectSet(label), () => select([id], row.family && !flat ? row.key : undefined)));
-    else if (plugin) r.append(h('span', 'p3-cp-nobox'));
-    r.append(h('span', 'p3-cp-fold-space'));
+    // #3129: the box sits in the row's leading cell; in a section with settings it takes the empty fold cell (flat rows
+    // have no leading cell).
+    const boxes = !!present();
+    if (boxes && !edge) r.append(boxOrCell(`set=${id}`, [id], GROUPS_COPY.addSet(label), row.family ? row.key : undefined, 'p3-cp-nobox'));
+    if (boxes && edge) r.append(boxOrCell(`set=${id}`, [id], GROUPS_COPY.addSet(label), undefined, 'p3-cp-fold-space'));
+    else r.append(h('span', 'p3-cp-fold-space'));
     r.append(nameButton(row, label, member, flat ? setFocusKey(id) : undefined));
     const meta = hook(h('span', 'p3-cp-meta'), 'cp-meta');
     if (!e.buildable) meta.append(hook(h('span', 'p3-cp-reason', SETS_COPY.cannot(e.reason ? e.reason.replace(/^\S+:\s*/, '') : SETS_COPY.noProjection)), 'cp-reason'));
     else if (e.members !== null) {
       meta.append(narrow() ? fmt(e.members) : GROUPS_COPY.members(e.members, e.unit));
       if (!member && row.page && !narrow()) meta.append(' ', hook(h('span', 'p3-cp-where', GROUPS_COPY.page(row.page)), 'cp-page'));
-      const last = plugin ? lend.sets.lastOf(id) : undefined;
+      const last = present() ? lend.sets.lastOf(id) : undefined;
       if (last) meta.append(' ', hook(h('span', 'p3-cp-last', last === 'ok' ? SETS_COPY.built : last === 'issues' ? SETS_COPY.problems : SETS_COPY.failed), 'cp-last'));
     }
     r.append(meta);
@@ -217,7 +230,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     const open = s.open.has(row.key);
     const r = hook(h('div', 'p3-cp-row p3-cp-family'), 'cp-row');
     r.dataset.row = row.key;
-    if (plugin) r.append(box(`row=${row.key}`, boxOfSets(catalog, row.ids, s.sel), GROUPS_COPY.selectAllOf(row.label), () => select(row.ids, row.key)));
+    if (present()) r.append(boxOrCell(`row=${row.key}`, row.ids, GROUPS_COPY.addAllOf(row.label), row.key, 'p3-cp-nobox'));
     const fold = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-cp-fold'), 'cp-fold');
     fold.type = 'button';
     fold.dataset.key = `fold=${row.key}`;
@@ -272,32 +285,16 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     const ids = sec.rows.flatMap((r) => r.ids);
     // Q391 A on #2812: under a search the section's box acts on the rows shown, and reads over them.
     const shown = rows.flatMap((r) => r.ids);
-    // #2825: the box and Build all each sit in a cell one title line high, centered on it, so they center on the title's
-    // first line as a row's box centers on its name, however the count wraps.
+    // #2825: the box sits in a cell one title line high, centered on it, so it centers on the title's first line as a
+    // row's box centers on its name, however the count wraps. With nothing to add the cell stays, empty (Q3129.6 A).
     const line1 = (n: HTMLElement): HTMLElement => { const c = h('span', 'p3-cp-line1'); c.append(n); return c; };
-    if (plugin) head.append(line1(box(`sec=${sec.kind}`, boxOfSets(catalog, shown, componentsPage().sel), GROUPS_COPY.selectAll(sec.title), () => select(shown))));
+    if (present()) head.append(line1(boxOrCell(`sec=${sec.kind}`, shown, GROUPS_COPY.addAll(sec.title), undefined, 'p3-cp-nobox')));
     // The count sits inside the title (TY2 A): at 380 it wraps under the name inside the heading, so the space after the
     // section title stays the level's space-300 rather than the gap to a wrapped count.
     const t = hook(h('h2', 'p3-lsec-title p3-cp-title'), 'cp-section-title');
     t.dataset.name = sec.title;
     t.append(sec.title, ' ', hook(h('span', 'p3-cp-count', GROUPS_COPY.sectionCount(sec.kind, sec.rows.length, ids.length)), 'cp-section-count'));
     head.append(t);
-    if (plugin && sec.kind === 'subcomponents') {
-      // Call 10 A: Subcomponents' own action, which runs at once and leaves the selection alone.
-      const all = buildableOf(catalog, ids);
-      const b = hook(h('button', 'p3-btn p3-btn-secondary p3-cp-buildall'), 'cp-build-all');
-      b.type = 'button';
-      b.dataset.key = 'run-all';
-      // A build that is out, any build, makes it busy (owner decision #4 on #1956): focusable, aria-busy, its click
-      // refused by the run itself (`runSets`). Its busy label names its place while its own run is out.
-      const r = lend.sets.current();
-      const at = r?.kind === 'subcomponents' ? positionOf(r) : { at: 1, of: all.length };
-      b.append(pendingLabel(GROUPS_COPY.buildAll(all.length), GROUPS_COPY.buildingAll(at.at, at.of)));
-      b.disabled = all.length === 0;
-      setBusy(b, lend.sets.busy());
-      b.onclick = () => { if (!lend.sets.busy()) lend.sets.run('subcomponents', all); };
-      head.append(line1(b));
-    }
     el.append(head);
     const ul = h('ul', 'p3-cp-rows');
     const s = componentsPage();
@@ -306,7 +303,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
         // Q8 A: the section title stands in for the family row, so each set is a row at the section's edge.
         for (const id of row.ids) {
           const li = hook(h('li', 'p3-cp-li'), 'cp-item');
-          li.append(setRow(catalog, id, row, row.family, row.family));
+          li.append(setRow(catalog, id, row, row.family, row.family, true));
           ul.append(li);
         }
         continue;
@@ -387,7 +384,23 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     if (!catalog.length) {
       parts.push(hook(h('p', 'p3-sub p3-cp-empty', GROUPS_COPY.noCatalog), 'components-no-catalog'));
     } else {
-      parts.push(hook(h('p', 'p3-intro', GROUPS_COPY.intro(catalog.length)), 'components-intro'));
+      parts.push(hook(h('p', 'p3-intro', present() ? GROUPS_COPY.introPlugin(catalog.length) : GROUPS_COPY.intro(catalog.length)), 'components-intro'));
+      // #3129 Q3129.5 A: the page's own box, under the intro, over the sets the rows shown could add.
+      const p = present();
+      if (p) {
+        const shownIds = tiersOf(catalog).flatMap((tier) => tier.sections).flatMap((sec) => sec.rows.filter((r) => rowMatches(catalog, r, q)).flatMap((r) => r.ids));
+        const can = addableOf(catalog, shownIds, p);
+        if (can.length) {
+          const q2 = queued();
+          const st = boxOfSets(catalog, shownIds, q2, p);
+          const b = box('all', st, '', () => toggle(shownIds));
+          b.removeAttribute('aria-label');
+          b.classList.add('p3-cp-all');
+          hook(b, 'cp-add-every');
+          b.append(h('span', 'p3-btn-label', GROUPS_COPY.addEvery), hook(h('span', 'p3-cp-count', GROUPS_COPY.addCount(can.filter((id) => q2.has(id)).length, can.length)), 'cp-add-count'));
+          parts.push(b);
+        }
+      }
       let hits = 0;
       if (sharedMatches(q)) { parts.push(shared); if (q) hits++; }
       // Q2909.17 A: the sections under their tiers, each tier a group named by its caption. The caption is not a heading:
@@ -414,8 +427,8 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       if (empty.length && !q) parts.push(hook(h('p', 'p3-sub p3-cp-tiers-empty', GROUPS_COPY.tiersEmpty(empty)), 'cp-tiers-empty'));
       if (q && !hits) parts.push(hook(h('p', 'p3-sub p3-cp-empty', GROUPS_COPY.noMatch), 'components-no-match'));
       setSearchHits(q ? hits : null);
-      // The web's one line, a hint line as it always was (the Studio's `stateLine`).
-      if (!plugin) parts.push(hook(stateLine(PRISM3_HOST === 'figma' ? SETS_COPY.plugin : SETS_COPY.web), 'components-web-line'));
+      // The host's one line, a hint line as it always was (the Studio's `stateLine`).
+      parts.push(hook(stateLine(plugin ? SETS_COPY.plugin : SETS_COPY.web), 'components-web-line'));
     }
     list.replaceChildren(...parts);
     dropSettings(shownHere);
@@ -425,76 +438,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     if (hostEl.scrollTop !== scrollTop) hostEl.scrollTop = scrollTop;
   };
 
-  /** The action bar (idea 9 A): before, during and after a run. Drawn in place, so a verdict never takes the focus. */
-  const paintBar = (): void => {
-    if (!bar) return;
-    const had = document.activeElement as HTMLElement | null;
-    const key = had && bar.contains(had) ? had.dataset.key ?? null : null;
-    const catalog = componentCatalog();
-    // Review N1 on #2812: the run builds in the list's order, not the order the boxes were ticked in.
-    const sel = inListOrder(catalog, componentsPage().sel).filter((id) => entryOf(catalog, id)?.buildable);
-    const run = lend.sets.current();
-    const last = lend.sets.last();
-    const rowEl = h('div', 'p3-cp-bar-row');
-    const lines: HTMLElement[] = [];
-    const btn = hook(h('button', 'p3-btn p3-btn-primary p3-cp-build'), 'components-build');
-    btn.type = 'button';
-    btn.dataset.key = 'run-sets';
-    // One control in every state (the engine Button's `isPending`, #1957): "Build N sets", and while a run of the
-    // selection is out "Building 2 of 4…" in the same cell, so it keeps its width; busy for any build that is out.
-    const mine = run?.kind === 'selection' ? run : null;
-    const at = mine ? positionOf(mine) : { at: 1, of: sel.length };
-    btn.append(pendingLabel(RUN_COPY.runLabel(mine ? mine.ids.length : sel.length), RUN_COPY.building(at.at, at.of)));
-    btn.disabled = !mine && sel.length === 0;
-    setBusy(btn, lend.sets.busy());
-    btn.onclick = () => { if (!lend.sets.busy() && sel.length) lend.sets.run('selection', sel); };
-    rowEl.append(btn);
-    if (mine) {
-      const stop = hook(h('button', 'p3-btn p3-btn-secondary p3-cp-stop'), 'components-stop');
-      stop.type = 'button';
-      stop.dataset.key = 'stop';
-      stop.append(pendingLabel(RUN_COPY.stop, RUN_COPY.stopping));
-      setBusy(stop, mine.stopping);
-      stop.onclick = () => { if (!mine.stopping) lend.sets.stop(); };
-      rowEl.append(stop);
-      const cur = currentOf(mine);
-      const e = cur ? entryOf(catalog, cur) : undefined;
-      if (e && e.members !== null) lines.push(hook(h('p', 'p3-sub p3-cp-sum', RUN_COPY.current(e.name, GROUPS_COPY.members(e.members, e.unit))), 'components-run-line'));
-    } else {
-      const sum = hook(h('span', 'p3-cp-sum'), 'components-summary');
-      if (lend.sets.agentBusy()) sum.textContent = RUN_COPY.agent;
-      else if (last && last.run.kind === 'selection' && !run) {
-        sum.append(h('b', undefined, last.verdict.headline), ` ${RUN_COPY.justNow}`);
-      } else if (sel.length) {
-        const c = costOf(catalog, sel);
-        sum.append(h('b', undefined, GROUPS_COPY.sets(c.sets)));
-        if (c.variants) sum.append(` · ${GROUPS_COPY.members(c.variants, 'variants')}`);
-        if (c.components) sum.append(` · ${GROUPS_COPY.members(c.components, 'components')}`);
-      } else sum.textContent = RUN_COPY.nothing;
-      rowEl.append(sum);
-      if (last && !run && !lend.sets.agentBusy()) {
-        // Idea 13 A: the run's summary, under the bar, and the way to its one Activity entry.
-        if (last.run.ids.length > 1) {
-          const ul = hook(h('ul', 'p3-cp-lines'), 'components-run-summary');
-          for (const l of last.verdict.lines) ul.append(h('li', 'p3-sub', l));
-          lines.push(ul);
-        }
-        const go = hook(h('button', 'p3-btn p3-btn-ghost p3-cp-show'), 'components-show-activity');
-        go.type = 'button';
-        go.dataset.key = 'show';
-        go.append(h('span', 'p3-btn-label', RUN_COPY.showActivity), glyph('chevr'));
-        go.onclick = () => lend.sets.showResult();
-        lines.push(go);
-      }
-      const also = sel.length ? alsoBuilds(catalog, sel) : [];
-      if (also.length) lines.push(hook(h('p', 'p3-sub', RUN_COPY.also(also)), 'components-also-builds'));
-    }
-    lines.push(hook(h('p', 'p3-sub', RUN_COPY.order), 'components-order-hint'));
-    bar.replaceChildren(rowEl, ...lines);
-    if (key) bar.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
-  };
-
-  const paint = (): void => { paintList(); paintBar(); };
+  const paint = (): void => { paintList(); };
   // Call 7 on #2812: a search opens each family one of whose sets matches, so the match is shown. The families stay open
   // once the search is cleared, as one opened by hand would.
   // #3093: and each settings block one of whose levers matches, the same way.
