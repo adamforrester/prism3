@@ -361,6 +361,8 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
             const coord = Object.fromEntries(String(h.name).split(', ').map((kv) => kv.split('=')));
             const v: Record<string, string> = { ...entry.variant };
             for (const [axis, byValue] of Object.entries(entry.when ?? {})) if (byValue[coord[axis]]) Object.assign(v, byValue[coord[axis]]);
+            // A joint `where` rule (#2343 PR 5) moves it by the member's whole coordinate, after `when`.
+            for (const w of entry.where ?? []) if (Object.entries(w.when).every(([a, x]) => coord[a] === x)) Object.assign(v, w.set);
             const want = `${entry.component}/${Object.values(v)[0]}`;
             if (Object.keys(v).length !== 1 || owner !== want) miss(h.name, path, 'nesting', `an instance of ${want}`, `host instance of ${owner}`);
           }
@@ -375,6 +377,7 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
               // A `when` rule moves it with the member's own value on another axis (Counter's ghost nests round).
               const expect: Record<string, string> = { ...entry.variant };
               for (const [axis, byValue] of Object.entries(entry.when ?? {})) Object.assign(expect, byValue[h.coord[axis]] ?? {});
+              for (const w of entry.where ?? []) if (Object.entries(w.when).every(([a, x]) => h.coord[a] === x)) Object.assign(expect, w.set);
               facts.variants++;
               if (fixedOf(pinned) !== fixedOf(expect)) miss(h.name, path, 'variant', `{${fixedOf(expect)}}`, `host instance of ${String(main.name)}`);
             }

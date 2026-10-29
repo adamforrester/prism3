@@ -113,6 +113,7 @@ export const BRAND_MARK_SOURCES: Record<string, string> = {
   // The glyph a sign-in button carries.
   'provider/apple': 'provider/apple',
   'provider/facebook': 'provider/facebook',
+  'provider/facebook-blue': 'provider/facebook-blue',
   'provider/google': 'provider/google',
   // Footer follow links and other social uses: the full set, each in full color and as a one-color `-mono` (Q782).
   'social/apple': 'social/apple',

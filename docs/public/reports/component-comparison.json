@@ -439,6 +439,7 @@
           "payment/visa",
           "provider/apple",
           "provider/facebook",
+          "provider/facebook-blue",
           "provider/google",
           "social/apple",
           "social/apple-mono",
@@ -519,6 +520,7 @@
             "payment/visa",
             "provider/apple",
             "provider/facebook",
+            "provider/facebook-blue",
             "provider/google",
             "social/apple",
             "social/apple-mono",
@@ -4102,6 +4104,92 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "sign-in-button",
+      "name": "SignInButton",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible"
+      ],
+      "axes": {
+        "provider": [
+          "apple",
+          "google",
+          "facebook"
+        ],
+        "style": [
+          "black",
+          "white",
+          "outline",
+          "light",
+          "dark",
+          "neutral",
+          "blue"
+        ],
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "provider",
+          "values": [
+            "apple",
+            "google",
+            "facebook"
+          ]
+        },
+        {
+          "name": "style",
+          "values": [
+            "black",
+            "white",
+            "outline",
+            "light",
+            "dark",
+            "neutral",
+            "blue"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "wording",
+          "default": "continue"
+        },
+        {
+          "name": "fullWidth",
+          "default": false
+        },
+        {
+          "name": "onClick"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "slider",
       "name": "Slider",
       "category": "form",
@@ -5319,6 +5407,7 @@
       "search-field",
       "segmented-control-segment",
       "select",
+      "sign-in-button",
       "slider",
       "switch-control",
       "switch-row",
@@ -5362,6 +5451,7 @@
       "search-field",
       "segmented-control-segment",
       "select",
+      "sign-in-button",
       "slider",
       "switch-control",
       "switch-row",
@@ -5412,6 +5502,7 @@
       "radio-control",
       "radio-row",
       "segmented-control-segment",
+      "sign-in-button",
       "slider",
       "switch-control",
       "switch-row",
@@ -5457,6 +5548,7 @@
       "search-field",
       "segmented-control-segment",
       "select",
+      "sign-in-button",
       "slider",
       "switch-control",
       "switch-row",
@@ -5728,6 +5820,16 @@
     "provider": [
       {
         "values": [
+          "apple",
+          "facebook",
+          "google"
+        ],
+        "components": [
+          "sign-in-button"
+        ]
+      },
+      {
+        "values": [
           "apple-pay",
           "google-pay",
           "paypal",
@@ -5882,6 +5984,7 @@
           "segmented-control",
           "segmented-control-segment",
           "select",
+          "sign-in-button",
           "slider",
           "tab-item",
           "tabs",
@@ -5996,6 +6099,20 @@
         "components": [
           "pagination",
           "pagination-item"
+        ]
+      },
+      {
+        "values": [
+          "black",
+          "blue",
+          "dark",
+          "light",
+          "neutral",
+          "outline",
+          "white"
+        ],
+        "components": [
+          "sign-in-button"
         ]
       },
       {
@@ -6794,6 +6911,10 @@
       {
         "id": "button-neutral",
         "default": false
+      },
+      {
+        "id": "sign-in-button",
+        "default": false
       }
     ],
     "getHref": [
@@ -7515,6 +7636,7 @@
           "payment/visa",
           "provider/apple",
           "provider/facebook",
+          "provider/facebook-blue",
           "provider/google",
           "social/apple",
           "social/apple-mono",
@@ -7747,6 +7869,9 @@
         "id": "icon-button-neutral"
       },
       {
+        "id": "sign-in-button"
+      },
+      {
         "id": "tag"
       }
     ],
@@ -7861,6 +7986,14 @@
       }
     ],
     "provider": [
+      {
+        "id": "sign-in-button",
+        "values": [
+          "apple",
+          "google",
+          "facebook"
+        ]
+      },
       {
         "id": "wallet-button",
         "values": [
@@ -8581,6 +8714,15 @@
         ]
       },
       {
+        "id": "sign-in-button",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
         "id": "slider",
         "default": "medium",
         "values": [
@@ -8735,6 +8877,18 @@
         "values": [
           "border",
           "underline"
+        ]
+      },
+      {
+        "id": "sign-in-button",
+        "values": [
+          "black",
+          "white",
+          "outline",
+          "light",
+          "dark",
+          "neutral",
+          "blue"
         ]
       }
     ],
@@ -9387,6 +9541,12 @@
           "full"
         ]
       }
+    ],
+    "wording": [
+      {
+        "id": "sign-in-button",
+        "default": "continue"
+      }
     ]
   },
   "findings": [
@@ -9615,6 +9775,15 @@
     },
     {
       "kind": "axis values",
+      "subject": "axis provider",
+      "components": [
+        "sign-in-button",
+        "wallet-button"
+      ],
+      "detail": "the provider axis takes 2 value sets — [apple, facebook, google] in sign-in-button; [apple-pay, google-pay, paypal, shop-pay] in wallet-button"
+    },
+    {
+      "kind": "axis values",
       "subject": "axis selection",
       "components": [
         "checkbox-control",
@@ -9684,6 +9853,7 @@
         "segmented-control",
         "segmented-control-segment",
         "select",
+        "sign-in-button",
         "slider",
         "spinner",
         "switch-control",
@@ -9695,7 +9865,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -9731,10 +9901,11 @@
         "pagination-item",
         "password-field",
         "search-field",
+        "sign-in-button",
         "text-field",
         "textarea"
       ],
-      "detail": "the style axis takes 3 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [inline, standalone] in link"
+      "detail": "the style axis takes 4 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [inline, standalone] in link"
     },
     {
       "kind": "axis values",
@@ -10080,6 +10251,14 @@
     },
     {
       "kind": "size order",
+      "subject": "sign-in-button",
+      "components": [
+        "sign-in-button"
+      ],
+      "detail": "sign-in-button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "slider",
       "components": [
         "slider"
@@ -10156,7 +10335,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 47 of 48 sized components default to medium"
+      "detail": "field-label defaults size to small; 48 of 49 sized components default to medium"
     },
     {
       "kind": "prop default",

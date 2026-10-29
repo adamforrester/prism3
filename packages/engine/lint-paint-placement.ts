@@ -71,8 +71,8 @@ import { validateComponentDef, variantsOf, type ComponentDef, type PartDef } fro
 
 /** `gradientFill` (#1318) is a third property because it is a third plan field: a box's fill in its
  *  GRADIENT form, carried instead of `paints.fills` at the coordinates its `gradient` names. */
-type Prop = 'fills' | 'strokes' | 'gradientFill';
-const PROPS: Prop[] = ['fills', 'strokes', 'gradientFill'];
+type Prop = 'fills' | 'strokes' | 'gradientFill' | 'literal';
+const PROPS: Prop[] = ['fills', 'strokes', 'gradientFill', 'literal'];
 
 const fails: string[] = [];
 const notes: string[] = [];
@@ -92,14 +92,17 @@ const notes: string[] = [];
  *          square behind the glyph (#864). An `absolute` part binds no paint at all.
  */
 const allowed = (p: PartDef): Record<Prop, boolean> => {
+  // A part that reads the def's LITERAL record (#2343 PR 5) carries literal paint and no bound paint at all: a
+  // surface box or a label, never a vector or a slot.
+  if (p.literal) return { fills: false, strokes: false, gradientFill: false, literal: p.kind === 'box' || p.kind === 'text' };
   if (p.kind === 'box') {
     const declared = p.paintSlots ?? [];
-    return { fills: declared.some((s) => s !== 'border'), strokes: declared.includes('border'), gradientFill: !!p.gradient && declared.includes('fill') };
+    return { fills: declared.some((s) => s !== 'border'), strokes: declared.includes('border'), gradientFill: !!p.gradient && declared.includes('fill'), literal: false };
   }
-  if (p.kind === 'text') return { fills: true, strokes: false, gradientFill: false };
+  if (p.kind === 'text') return { fills: true, strokes: false, gradientFill: false, literal: false };
   // A full-bleed tile's edge (#2343, Q720 A) is the one stroke a vector declares: on its own frame, never a fill.
-  if (p.kind === 'vector' && p.tileEdge) return { fills: false, strokes: true, gradientFill: false };
-  return { fills: false, strokes: false, gradientFill: false };
+  if (p.kind === 'vector' && p.tileEdge) return { fills: false, strokes: true, gradientFill: false, literal: false };
+  return { fills: false, strokes: false, gradientFill: false, literal: false };
 };
 
 /** Every coordinate the def can be projected at — the FULL declared grid, never `figmaAnatomySet`.
@@ -118,6 +121,9 @@ const placements = (def: ComponentDef): { byPart: Map<string, Set<Prop>>; coords
     const got = byPart.get(n.name) ?? new Set<Prop>();
     for (const prop of ['fills', 'strokes'] as const) if (n.paints?.[prop]) got.add(prop);
     if (n.gradientFill) got.add('gradientFill');
+    if (n.literalPaints?.fills?.length || n.literalPaints?.strokes) got.add('literal');
+    // Literal and bound paint on one channel of one node is two paints fighting for one array (#2343 PR 5).
+    if ((n.literalPaints?.fills && (n.paints?.fills || n.gradientFill)) || (n.literalPaints?.strokes && n.paints?.strokes)) fails.push(`L/${def.id}.${n.name}: carries BOTH a literal and a bound paint on one channel at one coordinate`);
     // A gradient REPLACES the fill at its coordinate (#1318) — both on one node is two fills fighting for
     // one array, and whichever executor writes second wins. Checked per node, per coordinate, because the
     // per-part union above cannot see it.
@@ -172,12 +178,12 @@ const compare = (label: string, parts: Record<string, PartDef>, byPart: Map<stri
     const want = allowed(p);
     const got = byPart.get(name);
     checkedParts++;
-    const declares = p.kind === 'box' ? `paintSlots ${p.paintSlots ? `[${p.paintSlots.join(', ')}]` : 'ABSENT'}` : `kind '${p.kind}'${p.tileEdge ? ' with a tileEdge' : ''}`;
+    const declares = p.literal ? `literal '${p.literal}'` : p.kind === 'box' ? `paintSlots ${p.paintSlots ? `[${p.paintSlots.join(', ')}]` : 'ABSENT'}` : `kind '${p.kind}'${p.tileEdge ? ' with a tileEdge' : ''}`;
     if (!got) {
       // Represented-in-what-was-actually-projected. A part the grid never produced is a part this gate
       // reports on without having looked at, which is the shape `typecheck-components.ts` had to add its
       // own representation arm for.
-      if (want.fills || want.strokes)
+      if (want.fills || want.strokes || want.literal)
         fails.push(`A/${label}.${name}: declares paint (${declares}) but the part appears at NO coordinate of the declared grid — nothing was checked`);
       continue;
     }
@@ -292,7 +298,7 @@ else {
 // purpose — deriving them from `componentDefs` would compare the corpus with itself (docs/34 shape 1).
 // History, as history: five defs had an anatomy and three painted at #933; seven and four at #910.
 const EXPECT_ANATOMY = [
-  'icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'wallet-button', 'icon-button', 'icon-button-destructive',
+  'icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'wallet-button', 'sign-in-button', 'icon-button', 'icon-button-destructive',
   'icon-button-neutral', 'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row',
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
   'image-placeholder', 'spinner', 'badge', 'tag', 'tab-item', 'tabs', 'divider', '_accordion-indicator', 'accordion',

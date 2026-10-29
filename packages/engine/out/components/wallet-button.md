@@ -80,7 +80,7 @@ The provider's wording, in the provider's language handling. Nothing to write.
 ## Related components
 
 - **Built from:** `brand-mark`, `focus-ring`
-- **Often used with:** `button`, `button-group`
+- **Often used with:** `button`, `button-group`, `sign-in-button`
 - **Replaces:**
   - a hand-drawn wallet button
   - a wallet logo pasted into a Button

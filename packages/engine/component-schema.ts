@@ -229,10 +229,68 @@ export type PaddingDef = {
  * REAL child member is checked against the child's own projected members by `lint-nesting.ts`. */
 export type NestVariantWhen = Readonly<Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>>;
 
+/** `variantWhere` — A NESTED VALUE PICKED BY SEVERAL HOST AXES AT ONCE (#2343 PR 5). `variantWhen` maps one host axis
+ * at a time and refuses a child axis set from two of them, because both could apply at one member and the answer
+ * would be declaration order. SignInButton's glyph depends on provider AND style together (Apple's white and
+ * Facebook's white carry different glyphs), which no single-axis map can say. So each entry names a full partial
+ * host coordinate (`when`) and the child coordinate it sets (`set`), applied after `variantWhen` and before `follow`.
+ *
+ * Refused by `anatomyErrors`: an entry whose `when` names an axis the def does not project or a value the axis does
+ * not have; entries whose `when` name different axis sets (so two could match one member and order would decide);
+ * two entries with the same `when`; an empty `set`; a `set` axis `variant` does not name, `follow` also names, or
+ * `variantWhen` also sets. That each mapped coordinate is a real child member is `lint-nesting.ts`'s check, read off
+ * the plans, as for `variantWhen`. */
+export type NestVariantWhere = ReadonlyArray<{ when: Readonly<Record<string, string>>; set: Readonly<Record<string, string>> }>;
+
+/** A LITERAL FONT (#2343 PR 5, owner decision Q-S7 A): a provider that fixes its own typeface (Google Sans Medium
+ *  14/20) takes it as a literal, not the brand's text style. `fallback` is the face an executor loads when the first
+ *  is not installed, so the label still draws. */
+export type LiteralFont = {
+  family: string;
+  style: string;
+  /** px. */
+  size: number;
+  /** px. */
+  lineHeight: number;
+  fallback: { family: string; style: string };
+};
+
+/** One coordinate's literals (#2343 PR 5, Q-S2 A): what a third party fixes and the brand may not theme. Colors are
+ *  `#rrggbb`, or `#rrggbbaa` for a wash. A `literal: 'surface'` box reads `fill`, `edge` and `wash[state]`; a
+ *  `literal: 'label'` text part reads `ink`, `text` and `font`; a `literal: 'mark'` nest reads `markTint`. */
+export type LiteralEntry = {
+  fill?: string;
+  edge?: string;
+  ink?: string;
+  /** A translucent paint laid OVER `fill` at a state, never in place of it: the provider's fill never changes. */
+  wash?: Readonly<Partial<Record<string, string>>>;
+  /** The label's fixed copy. No TEXT property is declared for it, so nobody types free text. */
+  text?: string;
+  /** Replaces the part's `type` binding where present. */
+  font?: LiteralFont;
+  /** THE PROVIDER GLYPH'S TINT (owner decision Q846 A): the opaque `#rrggbb` a `literal: 'mark'` nest paints every
+   *  vector of its `brand-mark/provider/*` glyph, in place of the file's own colors. One black glyph per provider,
+   *  painted white on a dark fill. Absent, the glyph keeps its own colors. Every other mark is never retinted, and
+   *  `lint-mark-colors.ts` (d) holds that by name. */
+  markTint?: string;
+};
+
+/** THE LITERAL RECORD (#2343 PR 5, owner decision Q-S2 A). Everywhere else a def binds token NAMES, never values,
+ *  which is what makes it brand- and mode-invariant. A provider's own button colors, font and wording are the one
+ *  case where that is wrong: the provider fixes them, so a brand theming them is the misuse its guidelines forbid.
+ *  So the def carries them as values, from ONE authored record keyed per projected coordinate (`key`, a template
+ *  over the def's projected axes, `{provider}.{style}`), and a part opts in with `PartDef.literal`. Every projected
+ *  member must resolve an entry, and the projector throws on one that does not (the silent-loss shape). A def
+ *  carrying this is listed by name in `test.ts` (`#2343 PR 5 literal paint`), so it never spreads by accident. */
+export type LiteralRecord = {
+  key: string;
+  entries: Readonly<Record<string, LiteralEntry>>;
+};
+
 export type NestingRelation =
   | { kind: 'swap' }
-  | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[]; variantWhen?: NestVariantWhen }
-  | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[]; variantWhen?: NestVariantWhen };
+  | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[]; variantWhen?: NestVariantWhen; variantWhere?: NestVariantWhere }
+  | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[]; variantWhen?: NestVariantWhen; variantWhere?: NestVariantWhere };
 
 export type PartDef = {
   kind: PartKind;
@@ -821,6 +879,14 @@ export type PartDef = {
    *
    *  Refused on any other kind and beside `paintSlot` (a part cannot both keep its own paint and name an ink). */
   fixedPaint?: true;
+  /** READS THE DEF'S LITERAL RECORD (#2343 PR 5, `ComponentDef.literal`). `surface` on a `box`: its fills are the
+   *  entry's `fill` with the entry's `wash` for the member's state laid over it, and its stroke is `edge`, drawn
+   *  inside. `label` on a `text` part: its fill is `ink`, its copy `text` (no TEXT property claims it) and its font
+   *  `font` where the entry has one, else the part's `type`. `mark` on a `nest` of a brand mark that states
+   *  `fixedPaint` (owner decision Q846 A): where the entry has a `markTint`, the plan carries it as `literalTint` in
+   *  place of `fixedPaint`, and every vector of the nested glyph is painted that color. Refused beside
+   *  `paintSlots`/`paintSlot`, and on a def with no `literal`. */
+  literal?: 'surface' | 'label' | 'mark';
   /** For a `vector` drawn inline: the TILE EDGE ITS OWN FRAME DRAWS around artwork exported full-bleed (#2343, owner
    *  decision Q720 A). A payment mark is a tile, and its files arrive with square corners and no
    *  border, so the component draws both: at the coordinates `when` names, the GLYPH's frame (the artboard the importer
@@ -1792,6 +1858,8 @@ export type ComponentDef = {
    *  CONSTRUCTION rather than by a test that happens to agree — the point of doing this as a
    *  declaration instead of a rewrite. */
   paintKeys?: string[];
+  /** Third-party literals: a provider's own colors, font and wording (#2343 PR 5). See `LiteralRecord`. */
+  literal?: LiteralRecord;
 
   /** The STRUCTURAL layer (#327). Optional while the catalogue is mid-migration — a def without
    *  it is semantically complete but not materializable. */
@@ -2163,6 +2231,7 @@ export const validateComponentDef = (
 
   // anatomy — the structural layer (#327). Optional; when present it must be COMPLETE.
   if (def.anatomy) errors.push(...anatomyErrors(def));
+  if (def.literal) errors.push(...literalErrors(def));
 
   // Figma component properties (#487 §5). Optional; when present, every cross-reference must land.
   if (def.figmaProperties) errors.push(...figmaPropertyErrors(def));
@@ -2769,6 +2838,8 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     if (inSlot(t.part)) e.push(`figmaProperties.texts.${prop} claims '${t.part}', which sits inside a native slot — Figma refuses a component-property reference on a slot sublayer, so the reference would throw at build. Give the part literal \`characters\` instead`);
   for (const [name, p] of Object.entries(def.anatomy?.parts ?? {})) {
     if (p.kind === 'text' && p.characters !== undefined) continue;
+    // A literal label (#2343 PR 5) carries its copy from the def's literal record, and declares no TEXT property on purpose.
+    if (p.kind === 'text' && p.literal === 'label') continue;
     if (p.kind === 'text' && !textClaimed.has(name)) {
       e.push(`anatomy part '${name}' is a 'text' part with no TEXT property claiming it — \`characters\` is written only where \`figmaProperties.texts\` names the part, so this node projects with its ink and type style and NO content: an empty, zero-width text node in Figma. Add \`texts: { <prop>: { part: '${name}', default: '<placeholder>' } }\`. This is #510's blank-button defect at one-node scale`);
     }
@@ -4140,6 +4211,37 @@ const densitySpacingErrors = (def: ComponentDef): string[] => {
   return e;
 };
 
+/** The literal record's own shape (#2343 PR 5). Whether each projected member resolves an entry is the projector's
+ *  check (it throws), because only it knows the member set after `excludeCoordinates`. */
+const LITERAL_COLOR = /^#[0-9a-f]{6}([0-9a-f]{2})?$/;
+const literalErrors = (def: ComponentDef): string[] => {
+  const e: string[] = [];
+  const lit = def.literal!;
+  const projected = def.figmaProperties?.variantAxes ?? [];
+  const holes = [...lit.key.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]);
+  if (!holes.length) e.push(`literal.key '${lit.key}' names no axis — one entry would paint every member, which is a token's job, not a literal's`);
+  for (const h of holes) if (!projected.includes(h)) e.push(`literal.key '${lit.key}' names '{${h}}', which is not a projected variant axis [${projected.join(', ') || 'none'}]`);
+  if (!Object.keys(lit.entries).length) e.push('literal.entries is empty');
+  if (!Object.values(def.anatomy?.parts ?? {}).some((p) => p.literal)) e.push('literal is declared but no anatomy part reads it (literal: \'surface\', \'label\' or \'mark\')');
+  for (const [k, en] of Object.entries(lit.entries)) {
+    const at = `literal.entries['${k}']`;
+    if (k.split('.').length !== holes.length) e.push(`${at} has ${k.split('.').length} segment(s); the key '${lit.key}' has ${holes.length}`);
+    for (const f of ['fill', 'edge', 'ink'] as const) if (en[f] !== undefined && !LITERAL_COLOR.test(en[f]!)) e.push(`${at}.${f} '${en[f]}' is not a lowercase #rrggbb or #rrggbbaa color`);
+    for (const [st, c] of Object.entries(en.wash ?? {})) {
+      if (!def.states.includes(st as State)) e.push(`${at}.wash.${st} names a state the def does not have [${def.states.join(', ')}]`);
+      if (!c || !LITERAL_COLOR.test(c) || c.length !== 9) e.push(`${at}.wash.${st} '${c}' is not a translucent #rrggbbaa color — a wash lies over the fill, so it must let it through`);
+    }
+    if (en.markTint !== undefined && !/^#[0-9a-f]{6}$/.test(en.markTint)) e.push(`${at}.markTint '${en.markTint}' is not an opaque lowercase #rrggbb color — a tint replaces the glyph's paint, so it may not let the fill through`);
+    if (en.text !== undefined && !en.text.trim()) e.push(`${at}.text is blank`);
+    if (en.font) {
+      const f = en.font;
+      if (!f.family.trim() || !f.style.trim() || !f.fallback?.family?.trim() || !f.fallback?.style?.trim()) e.push(`${at}.font names a blank family or style (its fallback included)`);
+      if (!(f.size > 0) || !(f.lineHeight >= f.size)) e.push(`${at}.font is ${f.size}/${f.lineHeight} — a size above 0 and a line height at least the size`);
+    }
+  }
+  return e;
+};
+
 const anatomyErrors = (def: ComponentDef): string[] => {
   const e: string[] = [];
   const a = def.anatomy!;
@@ -5055,6 +5157,47 @@ const anatomyErrors = (def: ComponentDef): string[] => {
           }
         }
       }
+    }
+    // `variantWhere` (#2343 PR 5): the joint host-coordinate → child-value mapping. Its rules are `variantWhen`'s,
+    // plus the one that makes a joint map safe: every entry names the same host axes, so at most one matches a member.
+    if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.variantWhere !== undefined) {
+      const vw = p.nesting.variantWhere;
+      const projected = [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? ['state'] : [])];
+      const follow = p.nesting.follow ?? [];
+      const variant = p.nesting.variant;
+      const byWhen = new Set(Object.values(p.nesting.variantWhen ?? {}).flatMap((m) => Object.values(m).flatMap((c) => Object.keys(c))));
+      if (!vw.length) e.push(`anatomy part '${n}' declares an EMPTY nesting 'variantWhere' — a mapping with no entries maps nothing. Drop the field`);
+      const shape = (w: Record<string, string>): string => Object.keys(w).sort().join('+');
+      const seen = new Set<string>();
+      vw.forEach((entry, i) => {
+        const at = `anatomy part '${n}' declares nesting 'variantWhere[${i}]'`;
+        if (!Object.keys(entry.when).length) e.push(`${at} with an empty 'when' — it would match every member`);
+        for (const [axis, value] of Object.entries(entry.when)) {
+          if (!projected.includes(axis)) { e.push(`${at} on '${axis}', which is not an axis this def PROJECTS [${projected.join(', ') || 'none'}] — the entry never fires`); continue; }
+          const values = axis === 'state' ? (def.figmaProperties?.stateAxis?.values ?? []) : ((variantsOf(def)[axis] ?? []) as readonly string[]);
+          if (!values.includes(value)) e.push(`${at} at ${axis}='${value}', which is not a projected value of '${axis}' [${values.join(', ')}] — no member carries it`);
+        }
+        if (shape(entry.when) !== shape(vw[0].when))
+          e.push(`${at} matches on [${shape(entry.when)}] while entry 0 matches on [${shape(vw[0].when)}] — two entries could match one member, and which wins would be declaration order. Name the same host axes in every entry`);
+        const k = JSON.stringify(Object.entries(entry.when).sort());
+        if (seen.has(k)) e.push(`${at} repeats a 'when' an earlier entry already maps`);
+        seen.add(k);
+        if (!Object.keys(entry.set).length) e.push(`${at} with an empty 'set' — it sets no child axis`);
+        for (const c of Object.keys(entry.set)) {
+          if (!(c in variant)) e.push(`${at} setting the child's '${c}', which its 'variant' does not name`);
+          if (follow.includes(c)) e.push(`${at} setting the child's '${c}', which is also in 'follow' — the follow overwrites it at every member`);
+          if (byWhen.has(c)) e.push(`${at} setting the child's '${c}', which 'variantWhen' also sets — both can apply at one member`);
+        }
+      });
+    }
+    // THE LITERAL RECORD (#2343 PR 5): a part reads it only on a def that has one, and only in place of the paint
+    // grammar, never beside it.
+    if (p.literal !== undefined) {
+      if (!def.literal) e.push(`anatomy part '${n}' declares literal '${p.literal}' but the def carries no 'literal' record to read`);
+      if (p.literal === 'surface' && p.kind !== 'box') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares literal 'surface' — only a 'box' paints a fill and an edge`);
+      if (p.literal === 'label' && p.kind !== 'text') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares literal 'label' — only a 'text' part takes an ink, copy and font`);
+      if (p.literal === 'mark' && (p.kind !== 'nest' || p.nests !== 'brand-mark' || !p.fixedPaint)) e.push(`anatomy part '${n}' declares literal 'mark' but is not a 'nest' of 'brand-mark' stating fixedPaint — only a nested brand mark takes a tint, in place of its own paint`);
+      if (p.paintSlots?.length || p.paintSlot) e.push(`anatomy part '${n}' declares literal '${p.literal}' beside the paint grammar (${p.paintSlots?.length ? 'paintSlots' : 'paintSlot'}) — a node takes its paint from one place`);
     }
     // PER-INSTANCE OVERRIDES (#2645) ride an instance of a NAMED component, so only a part that builds one may carry
     // them: an `absolute` or `nest` that is `nest-fixed` or `nest-exposed`. Each map, when present, names at least one

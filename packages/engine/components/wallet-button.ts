@@ -169,7 +169,7 @@ export const walletButton: ComponentDef = {
     primaryPurpose: 'Offer an express checkout with a wallet, drawn by the wallet provider.',
     whenToUse: 'On a cart, checkout or product page, for each wallet the store accepts: Apple Pay, Google Pay, PayPal or Shop Pay.',
     avoidWhen: 'For a store\'s own checkout or pay action, use Button. To show which cards and wallets are accepted, use Brand mark tiles in a row. For signing in with a provider, use a sign-in button, not a wallet button.',
-    commonPartners: ['button', 'brand-mark', 'button-group'],
+    commonPartners: ['button', 'brand-mark', 'button-group', 'sign-in-button'],
     triggerKeywords: ['apple pay', 'google pay', 'paypal button', 'shop pay', 'express checkout', 'wallet button', 'pay with'],
     generationPriority: 2,
   },
@@ -178,7 +178,7 @@ export const walletButton: ComponentDef = {
     composesWith: ['brand-mark', 'focus-ring'],
     alternativeTo: [],
     replacesPatterns: ['a hand-drawn wallet button', 'a wallet logo pasted into a Button'],
-    planned: ['sign-in-button', 'payment-field'],
+    planned: ['payment-field'],
   },
 
   motion: {

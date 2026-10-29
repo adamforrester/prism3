@@ -171,7 +171,10 @@ console.log('\n7. C2: the set list shows each size\'s padding and gap only, at t
 // shown are typed here as the owner's decision words them (C2 A, "only the padding and gap values"); every leaf name
 // the corpus uses is classified below, so a def adding a new spacing name fails here until it is placed.
 const SHOWN = ['gap', 'pad-x', 'pad-y', 'padding-x', 'padding-y', 'pad'];
-const HIDDEN = ['back-gap', 'check-gap', 'dismissible.visible-gap', 'glyph-gap', 'pad-end', 'padding-x-visual', 'panel-pad-end', 'select.gap', 'select.padding-end', 'actions-gap'];
+const HIDDEN = ['back-gap', 'check-gap', 'dismissible.visible-gap', 'glyph-gap', 'pad-end', 'padding-x-visual', 'panel-pad-end', 'select.gap', 'select.padding-end', 'actions-gap',
+  // #2343 PR 5: SignInButton's spacing, per provider (Apple's and Facebook's follow density; Google's is fixed). Not one
+  // padding and gap per size, so the set list shows none for it.
+  ...['apple', 'facebook'].flatMap((p) => ['padding-x', 'padding-x-visual', 'padding-y', 'gap'].map((k) => `${p}.${k}`))];
 const leaf = (k: string): [string, string] => { const m = /^size\.([^.]+)\.(.+)$/.exec(k); return m ? [m[1][0].toUpperCase() + m[1].slice(1), m[2]] : ['', k]; };
 const names = new Set(componentDefs.flatMap((d) => densitySpacingKeys(d).map((k) => leaf(k)[1])));
 ok([...names].every((n) => SHOWN.includes(n) || HIDDEN.includes(n)), `C2: every spacing name is classified shown or hidden (unclassified: ${JSON.stringify([...names].filter((n) => !SHOWN.includes(n) && !HIDDEN.includes(n)))})`);

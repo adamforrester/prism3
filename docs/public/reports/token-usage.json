@@ -12,7 +12,7 @@
     "used": 265,
     "unusedSemantic": 250,
     "unusedPrimitive": 280,
-    "components": 59
+    "components": 60
   },
   "tokens": {
     "border-width.hairline": {
@@ -343,6 +343,17 @@
           "parts": {
             "control": {
               "members": 84,
+              "where": {}
+            }
+          }
+        },
+        "sign-in-button": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 96,
               "where": {}
             }
           }
@@ -17586,6 +17597,21 @@
             }
           }
         },
+        "sign-in-button": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "switch-control": {
           "keys": [
             "ring-offset"
@@ -18149,6 +18175,21 @@
                 "state": [
                   "focus-visible",
                   "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        },
+        "sign-in-button": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible"
                 ]
               }
             }
@@ -19074,6 +19115,21 @@
             }
           }
         },
+        "sign-in-button": {
+          "keys": [
+            "size.large.mark"
+          ],
+          "parts": {
+            "mark": {
+              "members": 32,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "spinner": {
           "keys": [
             "size.medium"
@@ -19787,6 +19843,21 @@
             }
           }
         },
+        "sign-in-button": {
+          "keys": [
+            "size.medium.mark"
+          ],
+          "parts": {
+            "mark": {
+              "members": 32,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "spinner": {
           "keys": [
             "size.small"
@@ -20422,6 +20493,21 @@
             }
           }
         },
+        "sign-in-button": {
+          "keys": [
+            "size.small.mark"
+          ],
+          "parts": {
+            "mark": {
+              "members": 32,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "spinner": {
           "keys": [
             "size.x-small"
@@ -20707,6 +20793,17 @@
           "parts": {
             "track": {
               "members": 3,
+              "where": {}
+            }
+          }
+        },
+        "sign-in-button": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "container": {
+              "members": 96,
               "where": {}
             }
           }
@@ -21526,6 +21623,21 @@
             }
           }
         },
+        "sign-in-button": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 32,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "tab-item": {
           "keys": [
             "size.large.height"
@@ -21855,6 +21967,21 @@
           "parts": {
             "container": {
               "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "sign-in-button": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 32,
               "where": {
                 "size": [
                   "medium"
@@ -22271,6 +22398,21 @@
           "parts": {
             "container": {
               "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "sign-in-button": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 32,
               "where": {
                 "size": [
                   "small"
@@ -23263,6 +23405,23 @@
             }
           }
         },
+        "sign-in-button": {
+          "keys": [
+            "size.small.apple.padding-y",
+            "size.small.facebook.padding-y",
+            "size.small.google.padding-y"
+          ],
+          "parts": {
+            "container": {
+              "members": 32,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "switch-row": {
           "keys": [
             "size.small.pad-y"
@@ -23833,6 +23992,29 @@
             }
           }
         },
+        "sign-in-button": {
+          "keys": [
+            "size.large.apple.padding-y",
+            "size.large.facebook.padding-y",
+            "size.large.google.gap",
+            "size.large.google.padding-y",
+            "size.medium.apple.gap",
+            "size.medium.apple.padding-y",
+            "size.medium.facebook.gap",
+            "size.medium.facebook.padding-y",
+            "size.medium.google.gap",
+            "size.medium.google.padding-y",
+            "size.small.apple.gap",
+            "size.small.facebook.gap",
+            "size.small.google.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 96,
+              "where": {}
+            }
+          }
+        },
         "slider": {
           "keys": [
             "gap"
@@ -24223,6 +24405,28 @@
             }
           }
         },
+        "sign-in-button": {
+          "keys": [
+            "size.large.apple.gap",
+            "size.large.facebook.gap",
+            "size.large.google.padding-x",
+            "size.large.google.padding-x-visual",
+            "size.medium.apple.padding-x-visual",
+            "size.medium.facebook.padding-x-visual",
+            "size.medium.google.padding-x",
+            "size.medium.google.padding-x-visual",
+            "size.small.apple.padding-x-visual",
+            "size.small.facebook.padding-x-visual",
+            "size.small.google.padding-x",
+            "size.small.google.padding-x-visual"
+          ],
+          "parts": {
+            "container": {
+              "members": 96,
+              "where": {}
+            }
+          }
+        },
         "slider": {
           "keys": [
             "inputs-gap"
@@ -24573,6 +24777,33 @@
                 "size": [
                   "medium",
                   "small"
+                ]
+              }
+            }
+          }
+        },
+        "sign-in-button": {
+          "keys": [
+            "size.large.apple.padding-x-visual",
+            "size.large.facebook.padding-x-visual",
+            "size.medium.apple.padding-x",
+            "size.medium.facebook.padding-x",
+            "size.small.apple.padding-x",
+            "size.small.facebook.padding-x"
+          ],
+          "parts": {
+            "container": {
+              "members": 60,
+              "where": {
+                "provider": [
+                  "apple",
+                  "facebook"
+                ],
+                "style": [
+                  "black",
+                  "blue",
+                  "outline",
+                  "white"
                 ]
               }
             }
@@ -24945,6 +25176,32 @@
               "where": {
                 "size": [
                   "large"
+                ]
+              }
+            }
+          }
+        },
+        "sign-in-button": {
+          "keys": [
+            "size.large.apple.padding-x",
+            "size.large.facebook.padding-x"
+          ],
+          "parts": {
+            "container": {
+              "members": 20,
+              "where": {
+                "provider": [
+                  "apple",
+                  "facebook"
+                ],
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "black",
+                  "blue",
+                  "outline",
+                  "white"
                 ]
               }
             }
@@ -27111,6 +27368,31 @@
             }
           }
         },
+        "sign-in-button": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 20,
+              "where": {
+                "provider": [
+                  "apple",
+                  "facebook"
+                ],
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "black",
+                  "blue",
+                  "outline",
+                  "white"
+                ]
+              }
+            }
+          }
+        },
         "tab-item": {
           "keys": [
             "size.large.type.selected"
@@ -27578,6 +27860,31 @@
               "where": {
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "sign-in-button": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 20,
+              "where": {
+                "provider": [
+                  "apple",
+                  "facebook"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "black",
+                  "blue",
+                  "outline",
+                  "white"
                 ]
               }
             }
@@ -28063,6 +28370,31 @@
             }
           }
         },
+        "sign-in-button": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 20,
+              "where": {
+                "provider": [
+                  "apple",
+                  "facebook"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "black",
+                  "blue",
+                  "outline",
+                  "white"
+                ]
+              }
+            }
+          }
+        },
         "tab-item": {
           "keys": [
             "size.small.type.selected"
@@ -28479,7 +28811,7 @@
       "drawnNotDeclared": []
     },
     "brand-mark": {
-      "members": 74,
+      "members": 75,
       "axes": {
         "name": [
           "logo/affirm",
@@ -28513,6 +28845,7 @@
           "payment/visa",
           "provider/apple",
           "provider/facebook",
+          "provider/facebook-blue",
           "provider/google",
           "social/apple",
           "social/apple-mono",
@@ -30701,6 +31034,58 @@
         "type.body.lg.default",
         "type.body.md.default",
         "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "sign-in-button": {
+      "members": 96,
+      "axes": {
+        "provider": [
+          "apple",
+          "facebook",
+          "google"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ],
+        "style": [
+          "black",
+          "blue",
+          "dark",
+          "light",
+          "neutral",
+          "outline",
+          "white"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.md",
+        "icon.size.sm",
+        "icon.size.xs",
+        "radius.md",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.075",
+        "space.100",
+        "space.150",
+        "space.200",
+        "space.300",
+        "type.label.lg.emphasis",
+        "type.label.md.emphasis",
+        "type.label.sm.emphasis"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
