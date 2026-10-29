@@ -15,7 +15,7 @@
  * WHAT THIS STYLES: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with Color's
  * sub-row, the notices row and the two panes (S1.2); the
  * preview header, the mode control, the verdict and Inspect (`src/shell/preview.ts`, S1.3); and the
- * Activity button and drawer, the Figma menu and the plugin's Agent tile (S1.4, T7); the levers panel, the
+ * Activity button and drawer, the Figma menu and the plugin's Agent switch (S1.4, T7; #3083); the levers panel, the
  * Palettes preview and the step picker (S2: `src/domains/`, `src/preview/`, `src/ui/`); the brand menu, the
  * export and prune dialogs and the error strip (S13.1: `src/shell/bar.ts`, `src/shell/notices.ts`). The
  * legacy views lent into Inspect and the previews keep `styles.css` and are pinned light with `data-theme="light"`
@@ -135,9 +135,9 @@
 .p3-btn.p3-tile .p3-ico.p3-tile-ok { color: var(--p3-ok-icon); }
 .p3-btn.p3-tile .p3-ico.p3-tile-bad { color: var(--p3-bad-icon); }
 .p3-tile-count { color: var(--p3-bad-text); font-size: var(--p3-fs-12); font-variant-numeric: tabular-nums; }
-/* Every tile dot (Activity's status, Agent's "on") sits at the glyph's top right, at one offset (the owner's QA,
-   2026-10-05). A failure is red (`.p3-status-dot[data-state="bad"]`); every other dot is the ok green (D-RED A): Agent
-   on, Activity running, a warning (`warn`) and a new result nobody opened. Every tile dot is filled, the same shape
+/* Every tile dot (Activity's status) sits at the glyph's top right, at one offset (the owner's QA, 2026-10-05). A
+   failure is red (`.p3-status-dot[data-state="bad"]`); every other dot is the ok green (D-RED A): Activity running, a
+   warning (`warn`) and a new result nobody opened. Agent's dot went with its tile (#3083): the switch's on state says it. Every tile dot is filled, the same shape
    (owner, 2026-10-05): Activity's running dot is no longer a ring on the tile. */
 .p3-tile-mark > .p3-dot { position: absolute; top: calc(-1 * var(--p3-space-025)); right: calc(-1 * var(--p3-space-050)); }
 .p3-tile-mark > .p3-status-dot:is([data-state="unread"], [data-state="warn"]) { background: var(--p3-ok-icon); }
@@ -666,16 +666,31 @@
 
 /* The Figma menu (S1.4, plugin only). At 380 it spans the top row, under it, like the Agent popover. */
 
-/* ── the Agent tile (S1.4, IA-3; T7 A, 2026-10-05; plugin only) ───────────────────────────── */
+/* ── the Agent switch (S1.4, IA-3; #3083, the owner's Q3083.5 B, Q3083.6 A and Q3083.7 B, 2026-10-28; plugin only) ── */
 .p3-agent-slot { display: inline-flex; }
 .p3-agent-slot:empty { display: none; }
-/* The Agent tile's dot (T7 A): green, at the glyph's top right like every tile dot, while the link is on; nothing while
-   it is off. */
-.p3-agent-dot { display: none; background: var(--p3-ok-icon); }
-.p3-tile[data-on="true"] .p3-agent-dot { display: block; }
-/* Q738 A: on the bar the Agent tile's mark is a square around its 16px glyph, so the on fill reads as one. The negative
-   margin takes the padding back, so the tile keeps its size whether the link is on or off, and at 380 its 28 × 28. */
-.p3-agent-tile > .p3-tile-mark { padding: var(--p3-space-050); margin: calc(-1 * var(--p3-space-050)); border-radius: var(--p3-radius-xl); }
+/* A bare "Agent" and the chrome's switch, on the bar ground with no control around them (Q3083.5 B): it replaced the
+   Agent tile, its green dot and the on mark's fill and edge (Q738 A, Q788 C). The word is a `<label>` for the switch, so a
+   click on either turns it, and the switch stays the chrome's one track-and-knob kind (#2183). The switch's own target is
+   its track's width by the bar's control height, 32px at 1280 (`ctl-h-sm`) and 28 at 380 (`ctl-h-xs`, below), where the
+   label drops and the switch stands alone (Q3083.6 A), its name still "Agent". The switch is the bar-only size
+   (Q3083.7 B): a 36 × 20 track and a 16px knob, from `bar-track-w`, `bar-track-h`, `bar-thumb` and `bar-thumb-inset`. On
+   the bar ground, off, the track's edge is `edge-bar` (`edge` is 2.92:1 on the dark bar), and on, `inv-bg` and its hover
+   `inv-bg-2`, each a declared pair on `bar-bg` (`spec.mjs`). The knob keeps the page switch's roles on the track's fill. */
+.p3-agent-slot > .p3-popwrap { align-items: center; gap: var(--p3-space-100); }
+.p3-agent-switch-label {
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); white-space: nowrap; cursor: pointer;
+}
+.p3-switch.p3-agent-switch { min-height: var(--p3-ctl-h-sm); border-radius: var(--p3-radius-lg); }
+.p3-agent-switch .p3-switch-track { width: var(--p3-bar-track-w); height: var(--p3-bar-track-h); border-color: var(--p3-edge-bar); }
+.p3-agent-switch .p3-switch-knob {
+  top: calc(var(--p3-bar-thumb-inset) - var(--p3-bw-hairline)); left: calc(var(--p3-bar-thumb-inset) - var(--p3-bw-hairline));
+  width: var(--p3-bar-thumb); height: var(--p3-bar-thumb);
+}
+/* One class over the page switch's on rule, which comes later in this file at the same weight. */
+.p3-switch.p3-agent-switch[aria-checked="true"] .p3-switch-knob { transform: translateX(calc(var(--p3-bar-track-w) - var(--p3-bar-thumb) - 2 * var(--p3-bar-thumb-inset))); }
+.p3-frame:is([data-w="narrow"], [data-bar-fit]) .p3-agent-switch-label { display: none; }
+.p3-frame[data-w="narrow"] .p3-switch.p3-agent-switch { min-height: var(--p3-ctl-h-xs); }
 /* Minimize (#2949, the owner's Q600 A): a tile at the rail's foot (Q731; on the top bar under #2909), drawn whether the
    agent link is on or off. */
 .p3-btn.p3-tile.p3-agent-min[hidden] { display: none; }
@@ -1688,13 +1703,9 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 /* A full-width page on the rail (Documentation, Export) draws its own header: the tab row and Color's sub-row are Theme's. */
 .p3-frame[data-shell="rail"][data-layout="page"] :is(.p3-nav, .p3-subnav) { display: none; }
 .p3-frame[data-shell="rail"] .p3-rail .p3-btn.p3-tile:where(:not(:disabled, [aria-disabled="true"])):hover > .p3-tile-mark { background: var(--p3-fill-1); }
-/* The on fill, one rule for both places it shows: the rail's current area, and the Agent tile while the link is on, on
-   the top bar since Q731 (Q738 A, the owner, 2026-10-26: the fill the rail drew behind an on Agent tile, at every width). */
-.p3-frame[data-shell="rail"] :is(.p3-rail .p3-tile:is([aria-current="page"], [data-on="true"]), .p3-agent-tile[data-on="true"]) > .p3-tile-mark { background: var(--p3-fill-2); }
-/* Q788 C (the owner, 2026-10-27): on the top bar the on fill alone does not read, `fill-2` is the dark bar's own color and
-   faint on the light one. So an on Agent tile's mark also takes the top bar's control edge, `edge-bar`, the role spec.mjs
-   holds at 3:1 on `bar-bg` in both themes, drawn inside the mark so the tile keeps its size. On only; the rail is unchanged. */
-.p3-frame[data-shell="rail"] .p3-bar .p3-agent-tile[data-on="true"] > .p3-tile-mark { outline: var(--p3-bw-hairline) solid var(--p3-edge-bar); outline-offset: calc(-1 * var(--p3-bw-hairline)); }
+/* The current area's fill. The Agent tile's on fill and its edge on the top bar (Q738 A, Q788 C) went with the tile, for
+   the Agent switch (#3083). */
+.p3-frame[data-shell="rail"] .p3-rail .p3-tile[aria-current="page"] > .p3-tile-mark { background: var(--p3-fill-2); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile[aria-current="page"] .p3-tile-label { font-weight: var(--p3-fw-strong); }
 .p3-frame[data-shell="rail"] .p3-rail .p3-tile-tip { top: 0; right: auto; left: calc(100% + var(--p3-space-050)); }
 /* A menu a rail tile opens (Appearance, at the rail's foot) opens beside the rail, to the right of its tile and level with
@@ -1754,6 +1765,13 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-badge[hidden] { display: none; }
 .p3-upd-setrow { display: grid; gap: 0; }
 .p3-upd-setline { padding-left: var(--p3-space-400); color: var(--p3-text-2); }
+/* The hand-edits choice (#3083, the owner's Q3083.3 A, 2026-10-28): a compact select in the foot, just before Cancel and
+   Update file, its label in the secondary ink on the window's ground; drawn only when the check finds hand edits. At 380
+   it takes its own row above the buttons. */
+.p3-upd-handsel { display: flex; align-items: center; gap: var(--p3-space-100); }
+.p3-upd-handsel > .p3-sub { white-space: nowrap; }
+.p3-upd-handsel > .p3-selwrap { flex: none; }
+.p3-frame[data-w="narrow"] .p3-upd-handsel { flex-basis: 100%; }
 .p3-upd-handrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); padding-left: var(--p3-space-300); }
 .p3-upd-saves { padding-left: var(--p3-space-300); }
 /* #2909 Q2909.8 A: a set's statuses on Components' list, after its meta. */

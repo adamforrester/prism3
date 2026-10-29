@@ -32,9 +32,10 @@ export const V6_VARS = [
   // field.border.rest fails on neutral 850 (2.92:1) and border.tertiary (neutral 500, the step border.secondary
   // held before #2569) clears it closest (3.52:1).
   ['edge-bar', 'color.field.border.rest', 'color.border.tertiary', C, 'control edge on the top bar (B1)'],
-  // Type for the hierarchy the owner asked for (V8): a 20px view title, and tracked small capitals for
-  // card titles. Same token in both themes.
-  ['fs-20', 'core.font.size.20', 'core.font.size.20', D, 'view title'],
+  // Type for the hierarchy the owner asked for (V8): a view title one step over the section titles, and tracked
+  // small capitals for card titles. Same token in both themes. #3083 (the owner's Q3083.1 A, 2026-10-28): the view
+  // title 20 → 18, in place under its old name, with the section titles' 16 → 14 (`fs-16`, tokens.mjs).
+  ['fs-20', 'core.font.size.18', 'core.font.size.18', D, 'view title'],
   ['ls-wide', 'core.font.letter-spacing-role.wide', 'core.font.letter-spacing-role.wide', D, 'card title tracking'],
 ];
 export const VARS_FOR = (mode) => [...TILE_VARS, ...V6_VARS.map(([n, l, d, k]) => [n, mode === 'light' ? l : d, k])];
@@ -58,7 +59,7 @@ export const PAIRS = [
   // B1 edges
   ['edge', 'bg-page', 3, 'control edge on the page, a card or a menu'],
   ['edge', 'levers-bg', 3, 'control edge on the levers panel (search, tab-row controls)'],
-  ['edge-bar', 'bar-bg', 3, 'control edge on the top bar (brand, verdict, Export, Figma, agent chip; the on Agent tile\'s mark, Q788 C)'],
+  ['edge-bar', 'bar-bg', 3, 'control edge on the top bar (brand, verdict, Export, Figma; the Agent switch\'s off track, #3083 Q3083.5 B)'],
   ['field-edge', 'fill-1', 3, 'control edge in an inset (selected segment, picker step, per-mode body)'],
   ['field-edge', 'bg-page', 3, 'edge of a selected segment on a page-colored track (the 380 top row)'],
   ['field-edge-hover', 'bg-page', 3, 'edge on hover; slider thumb edge'],
@@ -85,6 +86,11 @@ export const PAIRS = [
   ['danger-fill', 'bg-page', 3, 'Discard: the destructive button\'s fill against the window'],
   ['danger-edge-hover', 'bg-page', 3, 'Discard: its edge on hover'],
   ['text', 'fill-2', 3, 'progress fill on its track'], ['icon', 'fill-2', 3, 'spinner arc on its track'],
+  // Added by the product (#3083, the owner's Q3083.5 B, 2026-10-28): the Agent switch sits bare on the bar ground, with no
+  // control around it, so its on track is read against `bar-bg`, at rest and on hover. Its off track is `edge-bar` on
+  // `bar-bg` (above): `edge`, the page switch's off track, is 2.92:1 on the dark bar.
+  ['inv-bg', 'bar-bg', 3, 'the Agent switch\'s on track on the top bar'],
+  ['inv-bg-2', 'bar-bg', 3, 'the Agent switch\'s on track on the top bar, hover'],
 ];
 
 // IA-2 layers: the preview, the levers panel and the top bar must be three distinct steps, in one
@@ -167,6 +173,13 @@ export const PRODUCT_VARS = [
   ['danger-fill', 'color.interactive.destructive.fill.rest', 'color.interactive.destructive.fill.rest', C, 'the destructive button\'s fill (S5)'],
   ['danger-on', 'color.interactive.destructive.on-fill', 'color.interactive.destructive.on-fill', C, 'the destructive button\'s label (S5)'],
   ['danger-edge-hover', 'color.interactive.destructive.border.hover', 'color.interactive.destructive.border.hover', C, 'the destructive button\'s edge on hover (S5)'],
+  // #3083 (the owner's Q3083.7 B, 2026-10-28): the Agent switch on the top bar is the chrome's switch at a bar-only size,
+  // a 36 × 20 track with a 16px knob 2px in, from the dimension grid. No brand token: the switch component's own sizes
+  // (`control.size.*`) stop at sm, 48 × 24, which the page's switch keeps.
+  ['bar-track-w', 'core.dimension.36', 'core.dimension.36', D, 'the Agent switch\'s track width (Q3083.7 B)'],
+  ['bar-track-h', 'core.dimension.20', 'core.dimension.20', D, 'the Agent switch\'s track height (Q3083.7 B)'],
+  ['bar-thumb', 'core.dimension.16', 'core.dimension.16', D, 'the Agent switch\'s knob (Q3083.7 B)'],
+  ['bar-thumb-inset', 'core.dimension.2', 'core.dimension.2', D, 'the Agent switch\'s knob inset (Q3083.7 B)'],
 ];
 /** Pairs the product adds beyond the mockup's PAIRS, for PRODUCT_VARS rows the mockup never maps (`build-v6.mjs` reads
  *  PAIRS and would refuse a name it has no row for). Same shape as PAIRS; the product build evaluates both. */
@@ -226,6 +239,8 @@ export const SHELL_VARS = [
   'track-w', 'track-h', 'thumb', 'thumb-inset',
   // #2909 IA v2 phase 1: the plugin's left rail; the rail polish's icon and square mark.
   'rail-w', 'icon-md', 'rail-tile',
+  // #3083 (Q3083.7 B): the Agent switch's bar-only size.
+  'bar-track-w', 'bar-track-h', 'bar-thumb', 'bar-thumb-inset',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
