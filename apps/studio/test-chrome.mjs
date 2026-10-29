@@ -161,6 +161,12 @@
  *     `COLLAPSE_MS`, 4 s, v5 Q9; timed at 1280); a failure (light) or a warning (dark) keeps it open past
  *     5 s, its row's summary showing (at 380: the full-pane sheet); the Activity button's dot and name say
  *     running, needs attention or new result, in concept v6's words. The studio's drawer opens on its note.
+ *     #3113 (direction A, Q3113.1–10 A): the plugin draws the bar row from launch; a verdict is a mark in its status ink
+ *     and its words (no pill); the counts split into "1 failed" and "1 warning", and "n running" only for more than one;
+ *     a bad result leads with its reason in the UI face at 500 and offers "Set up again" (which posts the write Set up
+ *     file posted) and "Copy details"; an earlier result is one line; the 380 sheet has its own header row (a 24 × 24
+ *     Close, "Activity", the counts) and hides the Settings/Preview toggle; and, in every probe, T5's sanctioned shadow:
+ *     the drawer casts the scrim's shadow up from its top edge while it overlays the preview, and the closed bar row none.
  *   · THE FIGMA MENU (plugin): its four items by literal label, and no Apply Theme (#2178: the bar's filled button
  *     is its one control); Arrow Down, Home, End, Arrow Up (wrapping), Escape and Tab; each item's effect observed
  *     on the wire (the write message the old control posted, captured off the bus, payload and all: the bar's Apply
@@ -1256,12 +1262,18 @@ const PROBE = (opt) => {
     const g = groundOf(svg.parentElement);
     if (c) glyphs.push({ el: `glyph in ${label(svg.parentElement)}`, r: fl(ratio(over(c, g), g)), off: offOf(svg), ink: getComputedStyle(svg).color, canary: !!svg.closest('[data-ccanary]') });
   }
-  // shadows, on every chrome element and its pseudo-elements, drawn or not
+  // shadows, on every chrome element and its pseudo-elements, drawn or not. T5's sanctioned use (#3113, the owner,
+  // 2026-10-28), typed here and nowhere read from the stylesheet: the Activity drawer's own box-shadow, while it overlays the
+  // preview (open, or at the narrow tier as the strip and the sheet). Held below to its edge and its ink (DRAWER_SHADOW).
+  const dr = document.querySelector('[data-p3="activity-drawer"]');
+  const drNarrow = frame?.dataset.w === 'narrow';
+  const drawerShadow = dr ? { drawn: shown(dr), open: dr.dataset.open === 'true', narrow: drNarrow, box: getComputedStyle(dr).boxShadow } : null;
+  const excepted = (el, pseudo, cs) => el === dr && !pseudo && (dr.dataset.open === 'true' || drNarrow) && cs.textShadow === 'none' && !/drop-shadow/.test(cs.filter);
   const shadows = [];
   for (const el of all) {
     for (const pseudo of [null, '::before', '::after']) {
       const cs = getComputedStyle(el, pseudo);
-      if (cs.boxShadow !== 'none' || cs.textShadow !== 'none' || /drop-shadow/.test(cs.filter)) {
+      if ((cs.boxShadow !== 'none' || cs.textShadow !== 'none' || /drop-shadow/.test(cs.filter)) && !excepted(el, pseudo, cs)) {
         shadows.push(`${label(el)}${pseudo ?? ''}: ${cs.boxShadow !== 'none' ? cs.boxShadow : cs.textShadow !== 'none' ? cs.textShadow : cs.filter}`);
       }
     }
@@ -1283,7 +1295,7 @@ const PROBE = (opt) => {
     place, layout: frame?.dataset.layout, w: frame?.dataset.w, theme: document.documentElement.dataset.theme,
     inspectShown: [...document.querySelectorAll('[data-p3="inspect-body"]')].some(shown), panesShown: [...document.querySelectorAll('[data-p3="levers-pane"], [data-p3="preview-body"]')].some(shown),
     leversShown: [...document.querySelectorAll('[data-p3="levers-pane"]')].some(shown), previewShown: [...document.querySelectorAll('[data-p3="preview-body"]')].some(shown),
-    text, fields, controls, unclassified, edges, glyphs, shadows, inline, unparsed, boxes, switches,
+    text, fields, controls, unclassified, edges, glyphs, shadows, drawerShadow, inline, unparsed, boxes, switches,
     offs: offs.map(({ node, ...o }) => o),
     // The chrome theme as the generated CSS sets it (`color-scheme` on the root), so the oracle is read for the theme drawn.
     scheme: getComputedStyle(document.documentElement).colorScheme,
@@ -1386,6 +1398,34 @@ const focusRings = async (page, { all = false, max = 30, skipIn = [], onRing = n
   return seen;
 };
 
+// ── the Activity drawer's shadow (#3113) ───────────────────────────────────────────────────────────
+/** T5's sanctioned drawer shadow's ink, READ FROM THE EMISSION with this file's own walk: `color.scrim.default` in each chrome theme,
+ *  as the computed `rgba()` a box-shadow reports. Not from `chrome.css` or `chrome/spec.mjs`, which set it (docs/34). */
+const DRAWER_SHADOW_INK = (() => {
+  const out = join(REPO, 'packages', 'engine', 'out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const dark = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+  const at = (tree, path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), tree);
+  const walk = (mode, path, hops = 0) => {
+    const o = mode === 'dark' ? at(dark, path) : undefined;
+    const v = (o?.$value !== undefined ? o : at(base, path))?.$value;
+    const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v);
+    if (m && hops < 16) return walk(mode, m[1], hops + 1);
+    const hx = typeof v === 'string' && /^#([0-9a-f]{6})([0-9a-f]{2})$/i.exec(v);
+    if (!hx) throw new Error(`#3113: color.scrim.default resolves to ${JSON.stringify(v)} in ${mode}, not a hex with alpha`);
+    const n = (i) => parseInt(hx[1].slice(i, i + 2), 16);
+    return `rgba(${n(0)}, ${n(2)}, ${n(4)}, ${Math.round((parseInt(hx[2], 16) / 255) * 100) / 100})`;
+  };
+  return { light: walk('light', 'pds3.color.scrim.default'), dark: walk('dark', 'pds3.color.scrim.default') };
+})();
+/** A computed one-layer box-shadow ("rgba(0, 0, 0, 0.4) 0px -2px 12px -4px"), read into its parts, or null. */
+const parseShadow = (box) => {
+  const m = /^(rgba?\([^)]+\))\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+([\d.]+)px(?:\s+(-?[\d.]+)px)?$/.exec(box ?? '');
+  if (!m) return null;
+  const c = m[1].replace(/^rgb\(([^)]+)\)$/, 'rgba($1, 1)');
+  return { rgba: c, x: Number(m[2]), y: Number(m[3]), blur: Number(m[4]), spread: Number(m[5] ?? 0) };
+};
+
 // ── the focus ring's color (#2144) ───────────────────────────────────────────────────────────────
 /** Owner decision FR1 A (2026-10-05): every chrome focus ring draws in Prism3's `color.border.focus`, 2px wide and
  *  2px outside the control. THE EXPECTED HEX IS READ FROM THE EMISSION, here, with this file's own alias walk: not
@@ -1399,7 +1439,9 @@ const FOCUS_OFFSET = 2;
  *  sitting fully inside (an offset of minus its width). */
 // The export dialog's preview joins them (#2523, owner decision Q229 A): it fills a column that clips at its edges,
 // so its ring is drawn inside too.
-const INNER_RINGS = ['levers-pane', 'preview-body', 'export-preview'];
+// The Activity drawer's bar row joins them (#3113): it spans the drawer at the window's bottom edge, where a ring outside
+// it would be cut off, and the plugin draws it from launch.
+const INNER_RINGS = ['levers-pane', 'preview-body', 'export-preview', 'activity-toggle'];
 const FOCUS_HEX = (() => {
   const out = join(REPO, 'packages', 'engine', 'out');
   const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
@@ -1677,7 +1719,21 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   const offFace = m.fonts.filter((f) => !f.fonts.length || f.gapFonts > 0);
   ok(offFace.length === 0, `${where}: every chrome text element draws in the embedded ${UI_FONT} (${MONO_FONT} where it is set in mono)${offFace.length ? ` — ${offFace.slice(0, 3).map((f) => `${f.el} drew ${f.fonts.join(', ') || 'nothing'}`).join(' | ')}` : ''}`);
   // shadows, inline values, overflow
-  ok(m.shadows.length === 0, `${where}: no chrome element draws a shadow (T5)${m.shadows.length ? ` — shadow: ${m.shadows.slice(0, 3).join(' | ')}` : ''}`);
+  ok(m.shadows.length === 0, `${where}: no chrome element draws a shadow (T5) but a sanctioned use (the Activity drawer's top edge, #3113)${m.shadows.length ? ` — shadow: ${m.shadows.slice(0, 3).join(' | ')}` : ''}`);
+  // #3113 (a sanctioned shadow, T5): wherever the drawer is drawn, it carries its shadow exactly while it overlays the
+  // preview (open, or the strip and the sheet at 380), and the closed bar row wider carries none. The shadow is the top
+  // edge's: it casts upward (a negative y offset, no x offset, a blur), in the emission's scrim for the chrome theme drawn.
+  // MUTATIONS: the rule's `[data-open="true"]` dropped in `chrome.css` (and SANCTIONED_SHADOWS) → the closed arm, by name;
+  // the rule removed from both → the open arm, by name.
+  if (m.drawerShadow?.drawn) {
+    const d = m.drawerShadow;
+    const want = d.open || d.narrow;
+    const sh = parseShadow(d.box);
+    const scrim = DRAWER_SHADOW_INK[m.scheme === 'dark' ? 'dark' : 'light'];
+    if (want) ok(!!sh && sh.x === 0 && sh.y < 0 && sh.blur > 0 && sh.rgba === scrim,
+      `#3113 ${where}: the ${d.open ? 'open drawer' : 'strip'} casts its shadow up from its top edge, in the emission's scrim (${scrim}) — drew ${JSON.stringify(d.box)}`);
+    else ok(d.box === 'none', `#3113 ${where}: the closed bar row draws no shadow (nothing for it to overlay) — drew ${JSON.stringify(d.box)}`);
+  }
   ok(m.inline.length === 0, `${where}: no runtime inline value outside [data-content]${m.inline.length ? ` — ${m.inline.slice(0, 4).join(' | ')}` : ''}`);
   ok(m.overflowX <= 1, `${where}: no horizontal page scroll (${m.overflowX}px past the viewport)`);
   // layers
@@ -2845,12 +2901,21 @@ const drawerState = (page) => page.evaluate(() => {
     dot: btn?.querySelector('[data-state]')?.dataset.state ?? null,
     // S11: every operation that has run has its row: its state, its verdict pill, its phase while running,
     // and its summary when that is showing.
+    // #3113 (Q3113.2 A, Q3113.5 A): the verdict's words beside the row's mark, and a bad result's reason line before
+    // its mono lines; `summary` reads both, as drawn, in order.
     ops: Object.fromEntries([...document.querySelectorAll('[data-p3="activity-drawer"] [data-p3="activity-op"]')].map((n) => [n.dataset.op, {
-      state: n.dataset.state, verdict: n.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
+      state: n.dataset.state, kind: n.dataset.kind, verdict: n.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
+      mark: n.querySelector('[data-p3="op-head"] .p3-op-mark')?.dataset.state ?? null,
       phase: n.querySelector('[data-p3="op-progress"]')?.textContent ?? null,
-      summary: vis(n.querySelector('[data-p3="op-summary"]')) ? n.querySelector('[data-p3="op-summary"]').textContent : null,
+      summary: [n.querySelector('[data-p3="op-body"] > [data-p3="op-reason"]'), n.querySelector('[data-p3="op-body"] > [data-p3="op-summary"]')].filter(vis).map((x) => x.textContent).join('\n') || null,
+      reason: vis(n.querySelector('[data-p3="op-reason"]')) ? n.querySelector('[data-p3="op-reason"]').textContent : null,
+      next: [...n.querySelectorAll('[data-p3="op-next"] button')].filter(vis).map((b) => b.textContent),
     }])),
+    order: [...document.querySelectorAll('[data-p3="activity-drawer"] [data-p3="activity-op"]')].map((n) => n.dataset.op),
     last: document.querySelector('[data-p3="activity-toggle"]')?.textContent ?? null,
+    barMark: document.querySelector('[data-p3="activity-toggle"] > .p3-op-mark')?.dataset.state ?? null,
+    counts: [...document.querySelectorAll('[data-p3="activity-toggle"] [data-p3="activity-count"]')].map((c) => [c.dataset.kind, c.textContent]),
+    toggleShown: vis(document.querySelector('[data-p3="activity-toggle"]')),
     // Any write status in the top bar: a page row's pending pill (by its class: this suite never renders one,
     // so its hook would be one the guard cannot see), its verdict, or a drawer row's verdict pill.
     barPills: document.querySelectorAll('[data-p3="top-bar"] :is(.bar-seed, .applystat, [data-p3="op-verdict"])').length,
@@ -2873,10 +2938,15 @@ for (const host of ['web', 'figma']) {
       const { ctx, page, errors } = await open({ host, theme, w, h });
       try {
         await recordPosts(page);
-        // Idle: nothing has run, so the drawer is not drawn. #2909: the rail shell draws no Activity tile (the drawer's own
-        // row is Activity), on both hosts since Q2909.9 A, so only the drawer is read.
+        // Idle: nothing has run. #2909: the rail shell draws no Activity tile (the drawer's own row is Activity), on both
+        // hosts since Q2909.9 A, so only the drawer is read. #3113 (Q3113.9 A): the plugin draws its bar row from launch,
+        // closed, reading "Activity"; at 380 the strip waits for the first run (Q3113.15, #2105's room for the levers); the
+        // studio runs no write, so its drawer is not drawn.
+        // MUTATION: `opts.host === 'figma'` dropped from `data-ever` in `activity.ts` → the plugin arm, by name.
         const idle = await drawerState(page);
-        ok(!idle.shown && !idle.open && idle.name === null, `F2 ${where}: before anything runs the drawer is not drawn, and ${host === 'web' ? 'the studio' : 'the plugin'} draws no Activity tile (#2909) (${JSON.stringify({ shown: idle.shown, name: idle.name })})`);
+        if (host === 'web' || narrow) ok(!idle.shown && !idle.open && idle.name === null, `F2 ${where}: before anything runs the drawer is not drawn${narrow && host === 'figma' ? ' at 380 (Q3113.15)' : ''}, and ${host === 'web' ? 'the studio' : 'the plugin'} draws no Activity tile (#2909) (${JSON.stringify({ shown: idle.shown, name: idle.name })})`);
+        else ok(idle.shown && !idle.open && idle.pinned && idle.name === null && (idle.last ?? '').startsWith('Activity') && Object.keys(idle.ops).length === 0,
+          `Q3113.9 A ${where}: before anything runs the plugin draws the drawer's bar row from launch, closed and pinned to the bottom edge, reading "Activity", and no Activity tile (#2909) (${JSON.stringify({ shown: idle.shown, open: idle.open, pinned: idle.pinned, last: idle.last, name: idle.name })})`);
 
         if (host === 'web') {
           // The studio runs no write, so its drawer never draws (its old Activity tile went with the bar's, Q2909.9 A).
@@ -3181,6 +3251,9 @@ for (const host of ['web', 'figma']) {
         const ra = r.ops['apply'];
         ok(ra?.state === 'running' && ra.phase === 'Writing to Figma…', `F2 ${where}: the running write sits on the drawer's Apply Theme row, reading "Writing to Figma…" (row ${JSON.stringify(ra)})`);
         ok((r.last ?? '').includes('Apply Theme') && (r.last ?? '').includes('Writing to Figma…'), `F2 ${where}: the drawer's bar row names the running write and its phase (read "${r.last}")`);
+        // Q3113.3 A: a lone run is the lead row's, so the bar counts no "1 running"; its mark is the running ring.
+        // MUTATION: `running > 1 &&` back to `running &&` in `countEls` → this arm, by name.
+        ok(r.counts.length === 0 && r.barMark === 'run' && ra?.mark === 'run', `Q3113.3 A ${where}: a lone run draws the running ring and no "1 running" count (counts ${JSON.stringify(r.counts)}, bar mark ${r.barMark}, row mark ${ra?.mark})`);
         hooks.absent(ok, { seen: ra?.state === 'running', state: 'the running write on its drawer row' }, r.barPills === 0, `F2 ${where}: no status pill is left in the top bar (${r.barPills} found)`);
         if (narrow) {
           ok(!r.open && r.shown && r.pinned && !r.body, `F2 ${where}: at 380 a running write shows in the strip, pinned to the bottom edge, and the drawer stays closed (${JSON.stringify({ open: r.open, shown: r.shown, pinned: r.pinned })})`);
@@ -3198,19 +3271,38 @@ for (const host of ['web', 'figma']) {
         // A success collapses the drawer COLLAPSE_MS after it lands, and not before (timed at 1280).
         await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
         const t0 = Date.now();
-        await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="apply"] [data-p3="op-verdict"]')?.textContent ?? '').includes('✓ Applied'), null, { timeout: 5000 }).catch(() => {});
+        await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="apply"] [data-p3="op-verdict"]')?.textContent ?? '') === 'Applied 412 variables', null, { timeout: 5000 }).catch(() => {});
+        {
+          // Q3113.2 A: a clean result's verdict is its words without the leading mark, after a check in the ok ink, on the
+          // bar row and the row alike; no count while nothing is bad and one runs at most (Q3113.3 A).
+          // MUTATION: `verdictWords` returning the verdict whole → this arm, by name.
+          const sa = await drawerState(page);
+          ok(sa.ops['apply']?.verdict === 'Applied 412 variables' && sa.ops['apply']?.mark === 'ok' && sa.barMark === 'ok' && (sa.last ?? '').includes('Applied 412 variables') && !(sa.last ?? '').includes('\u2713') && sa.counts.length === 0,
+            `Q3113.2 A ${where}: a success reads "Applied 412 variables" after the ok mark, on the bar row and the row, and the bar counts nothing (${JSON.stringify({ row: sa.ops['apply'], bar: sa.last, mark: sa.barMark, counts: sa.counts })})`);
+        }
         if (w === 1280) {
           await sinceMs(page, t0, COLLAPSE_MS - 1000);
           const early = await drawerState(page);
           ok(early.open && early.body, `F2 ${where}: a success keeps the drawer open at ${(COLLAPSE_MS - 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s) — open ${early.open}`);
           await sinceMs(page, t0, COLLAPSE_MS + 1000);
           const late = await drawerState(page);
-          ok(!late.open && !late.body && late.shown && (late.last ?? '').includes('✓ Applied'),
+          ok(!late.open && !late.body && late.shown && (late.last ?? '').includes('Applied 412 variables'),
             `F2 ${where}: a success collapses the drawer by ${(COLLAPSE_MS + 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s), its result still on the drawer's bar row — open ${late.open}, bar "${late.last}"`);
           await shot('drawer-collapsed');
         } else if (narrow) {
           const s1 = await drawerState(page);
           ok(!s1.open && s1.shown, `F2 ${where}: at 380 a success stays in the strip (${JSON.stringify({ open: s1.open, shown: s1.shown })})`);
+        }
+        if (w === 1280 || narrow) {
+          // #2144 on the closed bar row, which the keyboard reaches from launch (#3113): Prism3's focus color, at least 2px,
+          // drawn inside its edge (INNER_RINGS), since it spans the window's bottom edge.
+          // MUTATION: the `.p3-drawer-bar:focus-visible` rule removed from `chrome.css` → this arm, by name.
+          await page.keyboard.press('Shift');
+          await page.locator('[data-p3="activity-toggle"]').focus();
+          const tr = await page.evaluate(FOCUS_RING_READ, [true, [], INSPECT_LEGACY]);
+          const tm = tr.hook === 'activity-toggle' ? ringMisses(tr, theme) : ['not focused'];
+          ok(tm.length === 0, `#2144 #3113 ${where}: the drawer's bar row draws its focus ring inside its edge in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide (${tr.hook}: ${tm.join(', ') || 'holds'})`);
+          await page.evaluate(() => document.activeElement?.blur());
         }
         const idleU2 = await updBtn();
         ok(!idleU2.busy && idleU2.text === UPDATE_LABEL, `${where}: the run over, Update file reads "${UPDATE_LABEL}" again (${JSON.stringify(idleU2)})`);
@@ -3252,7 +3344,7 @@ for (const host of ['web', 'figma']) {
           : { type: 'file-setup-result', ok: false, headline: '⚠ 2 pages skipped', summary: '2 pages already present were skipped: Cover, Sandbox' };
         await postMsg(page, bad);
         const t1 = Date.now();
-        await page.waitForFunction((s) => document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-summary"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
+        await page.waitForFunction((s) => document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-reason"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
         const after = await takePosts(page);
         ok(after.length === 0, `Update file ${where}: a step that does not land well ends the run: nothing more is posted (posted ${JSON.stringify(after)})`);
         if (w === 1280 || narrow) await sinceMs(page, t1, COLLAPSE_MS + 1000);
@@ -3260,13 +3352,99 @@ for (const host of ['web', 'figma']) {
         const fs = f.ops['filesetup'];
         ok(f.open && f.body && fs?.summary === bad.summary, `F2 ${where}: a ${kind} keeps the drawer open${w === 1280 || narrow ? ` past ${(COLLAPSE_MS + 1000) / 1000} s` : ''}, its row's summary showing — open ${f.open}, summary "${fs?.summary}"`);
         if (narrow) ok(f.sheet, `F2 ${where}: at 380 a ${kind} opens the full-pane sheet under the top row (sheet ${f.sheet})`);
+        // #3113, read on the bad result: its mark and words (Q3113.2 A), the split count (Q3113.3 A), its reason in the UI
+        // face at the emphasis weight above no mono lines (Q3113.5 A: the summary is one line), and its next steps (Q3113.4 A).
+        // MUTATIONS: `kindOf` dropping the ⚠ test (every bad result a failure) → the dark (warning) arm, by name; the reason
+        // left in the mono list (`splitLines` returning no reason) → the reason arm, by name; `AGAIN.filesetup` removed →
+        // the next-steps arm, by name.
+        {
+          const wantKind = kind === 'failure' ? 'bad' : 'warn';
+          const words = bad.headline.slice(2);
+          const wantCount = kind === 'failure' ? [['bad', '1 failed']] : [['warn', '1 warning']];
+          ok(fs?.mark === wantKind && fs?.verdict === words && JSON.stringify(f.counts) === JSON.stringify(wantCount) && (narrow || f.barMark === wantKind),
+            `Q3113.2 A Q3113.3 A ${where}: a ${kind} draws the ${wantKind} mark and "${words}", and the bar counts ${JSON.stringify(wantCount)} (row ${JSON.stringify({ mark: fs?.mark, verdict: fs?.verdict })}, bar mark ${f.barMark}, counts ${JSON.stringify(f.counts)})`);
+          const face = await page.evaluate(() => { const r = document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-reason"]'); const l = document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-head"]');
+            return r ? { family: getComputedStyle(r).fontFamily, weight: getComputedStyle(r).fontWeight, rowFamily: getComputedStyle(l).fontFamily, mono: !!r.closest('ul') } : null; });
+          ok(fs?.reason === bad.summary && !!face && face.family === face.rowFamily && !/mono/i.test(face.family) && Number(face.weight) === 500 && !face.mono,
+            `Q3113.5 A ${where}: the ${kind} leads with its reason in the UI face at 500, not in the mono list (${JSON.stringify({ reason: fs?.reason, face })})`);
+          ok(JSON.stringify(fs?.next) === JSON.stringify(['Set up again', 'Copy details']),
+            `Q3113.4 A ${where}: the ${kind} offers "Set up again" and "Copy details" (${JSON.stringify(fs?.next)})`);
+          // "Set up again" reruns the write the panel made: exactly the message Set up file posted, and nothing else.
+          await takeWrites(page);
+          await hooks.click(page.locator('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-again"]'), WAIT);
+          const again = await takeWrites(page);
+          ok(isWire(again, FIGMA_WIRE['file-setup']), `Q3113.4 A ${where}: "Set up again" posts ${JSON.stringify(FIGMA_WIRE['file-setup'])} and nothing more — ${wireDiff(again[0], FIGMA_WIRE['file-setup'])}`);
+          await postMsg(page, bad);
+          await page.waitForFunction((s) => document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-reason"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
+          const hist = await page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-history-head"]')].map((n) => n.textContent));
+          // Q3113.6 A: the earlier result is one line, its time and its words.
+          ok(hist.length === 1 && new RegExp(`^\\d\\d:\\d\\d${words}$`).test(hist[0]),
+            `Q3113.6 A ${where}: the earlier ${kind} is one line, its time and "${words}" (${JSON.stringify(hist)})`);
+          // The review of #3126 (nit 3): an open earlier result stays open when a new result arrives, though every entry moves
+          // down one. MUTATION: the open entries remembered by their index again → this arm, by name.
+          const row = '[data-p3="activity-op"][data-op="filesetup"]';
+          await page.evaluate((r) => { const d = document.querySelector(`${r} details.p3-op-history`); if (d) d.open = true; const e = document.querySelector(`${r} details.p3-op-entry`); if (e) e.open = true; }, row);
+          await takeWrites(page);
+          await hooks.click(page.locator(`${row} [data-p3="op-again"]`), WAIT);
+          await takeWrites(page);
+          await postMsg(page, bad);
+          await page.waitForFunction((r) => document.querySelectorAll(`${r} details.p3-op-entry`).length === 2, row, { timeout: 5000 }).catch(() => {});
+          const opened = await page.evaluate((r) => [...document.querySelectorAll(`${r} details.p3-op-entry`)].map((n) => n.open), row);
+          ok(JSON.stringify(opened) === '[false,true]',
+            `#3126 review ${where}: an open earlier result stays open when a new result arrives and moves it down one (entries open ${JSON.stringify(opened)})`);
+          // The review of #3126 (should-fix 2), the rerun's two guards. With another write running (an agent's build), "Set up
+          // again" reads unavailable and a click, activated in the page, posts nothing. MUTATION Ma: `activityAgain.can`
+          // returning true up front (`main.ts`) → this arm, by name.
+          await postMsg(page, { type: 'agent-started', id: 'ag1', cmd: 'build-components' });
+          await page.waitForFunction((r) => document.querySelector(`${r} [data-p3="op-again"]`)?.getAttribute('aria-disabled') === 'true', row, { timeout: 5000 }).catch(() => {});
+          const busy = await page.evaluate((r) => document.querySelector(`${r} [data-p3="op-again"]`)?.getAttribute('aria-disabled') ?? null, row);
+          await takeWrites(page);
+          await page.evaluate((r) => { const n = document.querySelector(`${r} [data-p3="op-again"]`); if (n) HTMLElement.prototype.click.call(n); }, row);
+          const busyW = await takeWrites(page);
+          ok(busy === 'true' && busyW.length === 0,
+            `#3126 review ${where}: with a second write running, "Set up again" is aria-disabled and a click posts nothing (aria-disabled ${busy}, posted ${JSON.stringify(busyW.map(keyOf))})`);
+          await postMsg(page, { type: 'agent-finished', id: 'ag1', cmd: 'build-components' });
+          await page.waitForFunction((r) => document.querySelector(`${r} [data-p3="op-again"]`)?.getAttribute('aria-disabled') === null, row, { timeout: 5000 }).catch(() => {});
+          // An agent's bad result ran with the agent's input, not the panel's, so it offers "Copy details" alone. MUTATION Mb:
+          // `nextSteps` without `!res.agent` (`activity.ts`) → this arm, by name.
+          await postMsg(page, { type: 'agent-started', id: 'ag2', cmd: 'file-setup' });
+          await postMsg(page, bad);
+          await postMsg(page, { type: 'agent-finished', id: 'ag2', cmd: 'file-setup' });
+          await page.waitForFunction((r) => !!document.querySelector(`${r} [data-p3="op-copy"]`) && document.querySelectorAll(`${r} details.p3-op-entry`).length === 3 && !document.querySelector(`${r} [data-p3="op-again"]`), row, { timeout: 5000 }).catch(() => {});
+          const agentNext = await page.evaluate((r) => ({ next: [...document.querySelectorAll(`${r} [data-p3="op-next"] button`)].map((n) => n.textContent), agent: !document.querySelector(`${r} [data-p3="op-head"] .p3-op-agent`)?.hidden }), row);
+          ok(agentNext.agent && JSON.stringify(agentNext.next) === '["Copy details"]',
+            `#3126 review ${where}: an agent's ${kind} offers "Copy details" alone (${JSON.stringify(agentNext)})`);
+          // Back to the panel's own bad result, the state the checks below read: Set up file run again from Update file.
+          await openUpdate({ present: [], setUp: false });
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+          await takeWrites(page);
+          await postMsg(page, bad);
+          await page.waitForFunction((r) => !!document.querySelector(`${r} [data-p3="op-again"]`), row, { timeout: 5000 }).catch(() => {});
+        }
+        if (narrow) {
+          // Q3113.8 A: the sheet's header row: the 24 × 24 close icon named "Close Activity", "Activity", the count; the bar
+          // row gives way to it; every row header inside the sheet's width; the Settings/Preview toggle hidden.
+          // MUTATION: the `.p3-pane-toggle` rule under an open sheet removed from `chrome.css` → this arm, by name.
+          const sh = await page.evaluate(() => {
+            const vis = (n) => !!n && n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden';
+            const d = document.querySelector('[data-p3="activity-drawer"]').getBoundingClientRect();
+            const c = document.querySelector('[data-p3="activity-close"]');
+            const cr = c?.getBoundingClientRect();
+            return { close: cr ? [Math.round(cr.width), Math.round(cr.height)] : null, name: c?.getAttribute('aria-label') ?? null, closeIn: !!cr && cr.left >= d.left - 0.5 && cr.right <= d.right + 0.5,
+              head: document.querySelector('[data-p3="activity-sheet-head"]')?.textContent ?? null, toggle: vis(document.querySelector('[data-p3="activity-toggle"]')),
+              paneToggle: [...document.querySelectorAll('.p3-pane-toggle')].some(vis),
+              rowsIn: [...document.querySelectorAll('[data-p3="op-head"]')].filter(vis).every((n) => { const r = n.getBoundingClientRect(); return r.left >= d.left - 0.5 && r.right <= d.right + 0.5 && n.scrollWidth <= n.clientWidth + 1; }) };
+          });
+          ok(JSON.stringify(sh.close) === '[24,24]' && sh.name === 'Close Activity' && sh.closeIn && (sh.head ?? '').startsWith('Activity') && !sh.toggle && !sh.paneToggle && sh.rowsIn,
+            `Q3113.8 A ${where}: the sheet's header row holds a 24 × 24 "Close Activity" inside the sheet and "Activity", the bar row and the Settings/Preview toggle give way, and every row header fits the sheet (${JSON.stringify(sh)})`);
+        }
         const mf = await measure(page, `${where} / a ${kind} open`, host, w);
         check(mf, `${where} / a ${kind} open`, columnOf(host, w), narrow ? { ...INSPECT_NARROW_FLOOR, text: 4, fonts: 4, controls: 6 } : PLACE_FLOOR,
-          { state: narrow ? 'sheet' : 'page', only: narrow ? ['[data-p3="brand-switcher"]', '[data-p3="update-file"]', ...FIGMA_RAIL, '[data-p3="activity-toggle"]', '[data-p3="op-head"]'] : null, extra: narrow ? [] : ['[data-p3="activity-toggle"]', '[data-p3="op-head"]'] });
+          { state: narrow ? 'sheet' : 'page', only: narrow ? ['[data-p3="brand-switcher"]', '[data-p3="update-file"]', ...FIGMA_RAIL, '[data-p3="activity-close"]', '[data-p3="op-head"]'] : null, extra: narrow ? [] : ['[data-p3="activity-toggle"]', '[data-p3="op-head"]'] });
         if (narrow) await shot('drawer-open');
-        await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
         const c = await drawerState(page);
-        ok(!c.open && c.shown, `F2 ${where}: the drawer's toggle closes it (open ${c.open})`);
+        ok(!c.open && c.shown, `F2 ${where}: the drawer's ${narrow ? 'sheet\'s Close' : 'toggle'} closes it (open ${c.open})`);
         // The areas the two option-first items used to open: Components (its list, no Build bar, Q2909.5 A) and
         // Documentation (settings only, Q2909.23 A). Neither writes.
         for (const area of ['components', 'documentation']) {
@@ -3300,7 +3478,7 @@ for (const host of ['web', 'figma']) {
         const rfC = (await drawerState(page)).ops['components'];
         ok(JSON.stringify(rfW1) === '["build-components"]' && JSON.stringify(rfW2) === '["build-components"]' && !rfU.busy && rfC?.state !== 'running' && String(rfC?.summary ?? '').includes(REFUSED_WORDS),
           `${where}: #3128: a set the host refuses ends the run: Update file is free and the Build set row stops, with the host's words (posted ${JSON.stringify(rfW1)} then ${JSON.stringify(rfW2)}, Update file ${JSON.stringify(rfU)}, row ${JSON.stringify(rfC ?? null)})`);
-        if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
         await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
         // #2830 Q2830.3 A: Documentation › Specs is a real control. Draw specs posts the panel's `draw-specs` (for the
         // current page; the host picks the page) and nothing else, reads as drawing until the host answers, and then shows
@@ -3346,7 +3524,7 @@ for (const host of ['web', 'figma']) {
         const spBU = await updBtn();
         ok(spT.theme === 'false' && spT.sets === 1 && spBW.length === 0 && !spBU.busy,
           `${where}: #3034 review C3: while Draw specs is out, Update file's sets step builds nothing, and its run ends (ticked ${JSON.stringify(spT)}, posted ${JSON.stringify(spBW.map(keyOf))}, Update file ${JSON.stringify(spBU)})`);
-        if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
         await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
         if (narrow) await page.locator('[data-p3="docs-select"]').selectOption('specs');
         else await hooks.click(page.locator('[data-p3="docs-tab-specs"]'), WAIT);
@@ -3359,10 +3537,10 @@ for (const host of ['web', 'figma']) {
         await settle(page);
         const spVD = await drawerState(page);
         const spV = spVD.ops['specs'];
-        ok(spV?.state === 'ok' && spV.verdict === '✓ drew 2 spec panels',
+        ok(spV?.state === 'ok' && spV.verdict === 'drew 2 spec panels',
           `${where}: #2830 Q713 A: the verdict ends the Specs row's run and is its verdict (row ${JSON.stringify(spV)})`);
         const spVC = spVD.ops['components'];
-        ok(spVC?.verdict !== '✓ drew 2 spec panels' && spVC?.state !== 'running',
+        ok(spVC?.verdict !== 'drew 2 spec panels' && spVC?.state !== 'running',
           `${where}: #2830 Q713 A: Draw specs' verdict does not land on the Build set row (row ${JSON.stringify(spVC ?? null)})`);
         // The review of #3034 (C2, C4): with an agent's components run out, Draw specs reads unavailable and a click posts
         // nothing; with the control's attribute stripped, as a stale paint would leave it, the draw's own guard still posts
@@ -3404,7 +3582,7 @@ for (const host of ['web', 'figma']) {
           await takeWrites(page);
           await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
           const urW = (await takeWrites(page)).map(keyOf);
-          if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+          if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
           await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
           if (narrow) await page.locator('[data-p3="docs-select"]').selectOption('specs');
           else await hooks.click(page.locator('[data-p3="docs-tab-specs"]'), WAIT);
@@ -3424,7 +3602,7 @@ for (const host of ['web', 'figma']) {
           const urEU = await updBtn();
           ok(urE === null && !urEU.busy, `${where}: #3034 review M1: once the ${step} step's verdict ends the run, Draw specs is available again (aria-disabled ${urE}, Update file busy ${urEU.busy})`);
           await takeWrites(page);
-          if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+          if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
         }
         if (!narrow) {
           const msp = await measure(page, `${where} / Documentation › Specs`, host, w);
@@ -12751,6 +12929,8 @@ console.log(`\nThe view and card titles (#2322)\n${'='.repeat(78)}`);
 // 31. #2213 (owner decisions N1 A and AS1 A, 2026-10-06): the agent link's status in the Activity drawer. The closed
 //     row's short status at its far right, beside the caret; the full status line as the open drawer's first line; and
 //     every text run in the row on one baseline. Plugin, light and dark, 1280 and 380; the web's row for the baseline.
+//     #3113 (Q3113.7 A): the short status is the link's glyph, a dot and one word ("Listening"), the glyph and the dot
+//     alone at 380, and the full line speaks in operation words with a relative age.
 // =============================================================================================
 if (runs('31')) console.log(`\nThe agent link's status in the Activity drawer (#2213)\n${'='.repeat(78)}`);
 /** THE FULL LINE, from the plugin's own formatter, bundled for Node from its source and called here with each state
@@ -12768,17 +12948,16 @@ const LINK_STATES = {
   error: { ...AGENT_ON, inboxError: 'the inbox is not a JSON array' },
   offStale: { ...AGENT_ON, on: false, since: null, transports: { mailbox: false, bridge: false }, inboxError: 'the inbox is not a JSON array' },
 };
-/** What each state must draw, typed from the owner's AS1 A: the closed row's short status and its ink (the chrome
- *  tokens' roles, resolved below from the committed emission, never the stylesheet), or none; and whether the open
- *  drawer's first line shows the full line (while the link is on, or while it holds an inbox error). Literals. */
+/** What each state must draw, typed from the owner's AS1 A and Q3113.7 A: the closed row's word, its ink and its dot's
+ *  ink (the chrome tokens' roles, resolved below from the committed emission, never the stylesheet), or none; and
+ *  whether the open drawer's first line shows the full line (while the link is on, or while it holds an inbox error).
+ *  Literals. MUTATION: `agentLinkWord`'s "Listening" changed in `agent-link-ui.ts` → the listening arm, by name. */
 if (runs('31')) {
 const LINK_WANT = {
   off: { short: null, full: false },
-  // #2909 (Q2909.22 A): while listening, the drawer's right end adds the last command and how long ago it finished, in
-  // the strip's words ("Agent listening · last: status 2h ago"); the age is the clock's, so it is matched by its form.
-  listening: { short: /^Agent listening · last: status \d+[smh] ago$/, ink: 'color.text.secondary', full: true },
-  notListening: { short: 'Agent not listening', ink: 'color.text.danger', full: true },
-  error: { short: 'Agent error', ink: 'color.text.danger', full: true },
+  listening: { short: 'Listening', ink: 'color.text.secondary', dot: 'color.icon.success', full: true },
+  notListening: { short: 'Not listening', ink: 'color.text.danger', dot: 'color.icon.danger', full: true },
+  error: { short: 'Error', ink: 'color.text.danger', dot: 'color.icon.danger', full: true },
   offStale: { short: null, full: true },
 };
 /** The emission's hex for a chrome role in a chrome theme: the base tree, the dark overlay over it in dark, aliases
@@ -12796,12 +12975,13 @@ const LINK_INK = (() => {
     return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null;
   };
   const r = {};
-  for (const mode of ['light', 'dark']) for (const role of ['color.text.secondary', 'color.text.danger']) r[`${mode} ${role}`] = walk(mode, `pds3.${role}`);
+  for (const mode of ['light', 'dark']) for (const role of ['color.text.secondary', 'color.text.danger', 'color.icon.success', 'color.icon.danger']) r[`${mode} ${role}`] = walk(mode, `pds3.${role}`);
   return r;
 })();
 ok(Object.values(LINK_INK).every((x) => /^#[0-9a-f]{6}$/.test(x ?? '')) && LINK_INK['light color.text.danger'] !== LINK_INK['light color.text.secondary'] && LINK_INK['dark color.text.danger'] !== LINK_INK['dark color.text.secondary'],
   `#2213: the oracle resolved the quiet and the error ink, distinct, in light and dark from the emission (${JSON.stringify(LINK_INK)})`);
-ok(typeof LINK_TEXT === 'function' && /^Listening/.test(LINK_TEXT(LINK_STATES.listening)) && LINK_TEXT(LINK_STATES.error).includes('⚠'),
+// Q3113.7 A: the full line in operation words ("status" is Status), with a relative age, never a command id or a clock time.
+ok(typeof LINK_TEXT === 'function' && /^Listening for agent commands \(file mailbox, every 1 s\)\. Last: Status, done, \d+ d ago\.$/.test(LINK_TEXT(LINK_STATES.listening)) && LINK_TEXT(LINK_STATES.error).includes('Inbox error: the inbox is not a JSON array.'),
   `#2213: the formatter, called here, words each state (${typeof LINK_TEXT === 'function' ? Object.keys(LINK_STATES).map((k) => `${k}: "${LINK_TEXT(LINK_STATES[k])}"`).join('; ') : 'not loaded'})`);
 /** The gap from the short status's right edge to the caret: the row's own gap, at most. Literal. */
 const LINK_CARET_GAP_MAX = 12;
@@ -12817,6 +12997,9 @@ const LINK_SEED = { type: 'seed-info', ok: true, present: true, summary: 'Contra
 const LINK_PROBE = () => {
   const row = document.querySelector('[data-p3="activity-toggle"]');
   const ln = row?.querySelector('[data-p3="activity-agent-link"]') ?? null;
+  const word = ln?.querySelector('[data-p3="activity-agent-word"]') ?? null;
+  const ldot = ln?.querySelector('.p3-drawer-link-dot') ?? null;
+  const lglyph = ln?.querySelector('svg.p3-ico') ?? null;
   const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
   const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s ?? ''); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
   const over = (f, g) => ({ r: f.r * f.a + g.r * (1 - f.a), g: f.g * f.a + g.g * (1 - f.a), b: f.b * f.a + g.b * (1 - f.a), a: 1 });
@@ -12833,7 +13016,7 @@ const LINK_PROBE = () => {
   if (row) {
     const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
     const nodes = [];
-    for (let t = walker.nextNode(); t; t = walker.nextNode()) if (t.textContent.trim() && !t.parentElement.closest('.p3-sr')) nodes.push(t);
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) if (t.textContent.trim() && !t.parentElement.closest('.p3-sr') && getComputedStyle(t.parentElement).clipPath === 'none') nodes.push(t);
     for (const t of nodes) {
       const pr = document.createElement('span');
       pr.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
@@ -12848,14 +13031,17 @@ const LINK_PROBE = () => {
     const g = ground(ln);
     const c = over(parse(cs.color), g);
     const x = lum(c), y = lum(g);
+    const dc = ldot ? parse(getComputedStyle(ldot).backgroundColor) : null;
     ink = { hex: hex(c), ground: hex(g), ratio: Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100,
-      lineH: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.6 };
+      lineH: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.6, dot: dc ? hex(over(dc, g)) : null };
   }
   return {
     rowShown: vis(row), row: box(row), sum: box(sum), sumText: sum?.textContent ?? null,
     sumWhole: !!sum && (() => { const rg = document.createRange(); rg.selectNodeContents(sum); return rg.getBoundingClientRect().width <= sum.getBoundingClientRect().width + 0.01; })(),
     when: box(row?.querySelector('.p3-op-when')), caret: box(caret), line: box(ln), lineShown: vis(ln),
-    text: ln ? ownText(ln) : null, title: ln?.getAttribute('title') ?? null, cut: !!ln && ln.scrollWidth > ln.clientWidth + 1,
+    // At 380 the word is clipped away as a screen-reader-only run is (Q3113.7 A): not drawn, still in the name.
+    text: vis(word) && getComputedStyle(word).clipPath === 'none' ? word.textContent : null, wordHidden: !!word && (!vis(word) || getComputedStyle(word).clipPath !== 'none'), dotShown: vis(ldot), glyphShown: vis(lglyph) && lglyph.dataset.glyph === 'agent',
+    title: ln?.getAttribute('title') ?? null, cut: !!ln && ln.scrollWidth > ln.clientWidth + 1,
     lastBeforeCaret: !!ln && !ln.nextElementSibling && ln.parentElement?.nextElementSibling === caret, rects: ln ? ln.getClientRects().length : 0, ink, runs,
   };
 };
@@ -12865,7 +13051,7 @@ const DETAIL_PROBE = () => {
   const body = document.querySelector('[data-p3="activity-body"]');
   const d = body?.querySelector('[data-p3="activity-agent-detail"]') ?? null;
   const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
-  const drawn = body ? [...body.children].filter((n) => vis(n) && n.getAttribute('data-p3') !== 'activity-close') : [];
+  const drawn = body ? [...body.children].filter((n) => vis(n) && n.getAttribute('data-p3') !== 'activity-sheet-head') : [];
   const rows = body?.querySelector('.p3-ops');
   const firstOp = rows?.querySelector('[data-p3="activity-op"]');
   return { bodyShown: vis(body), shown: vis(d), text: vis(d) ? d.textContent : null, first: drawn[0] === d,
@@ -12914,10 +13100,10 @@ for (const theme of ['light', 'dark']) {
         await page.waitForFunction((on) => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-checked') === String(on), state.on, WAIT).catch(() => {});
         await settle(page);
         const s = await page.evaluate(LINK_PROBE);
-        // The owner's Q2995.1 A (#2909): at 380, where the rail leaves the drawer 320px, the row shows the short status alone,
-        // whole ("Agent listening", without the last command), and the summary gives way; the full line stays the tooltip
-        // and the rest of the name.
-        const want = w === 380 && k === 'listening' ? { ...LINK_WANT[k], short: 'Agent listening' } : LINK_WANT[k];
+        // Q3113.7 A: at 380, where the rail leaves the drawer 320px, the row draws the link's glyph and dot alone; the word
+        // stays in its name, and the full line is the tooltip and the rest of the name.
+        const want = LINK_WANT[k];
+        const narrow31 = w === 380;
         const full = LINK_TEXT(state);
         if (k !== 'offStale') await shoot(`closed-${k}`, '[data-p3="activity-toggle"]');
         // One baseline, in every state.
@@ -12929,9 +13115,12 @@ for (const theme of ['light', 'dark']) {
           hooks.absent(ok, { seen: s.rowShown && s.sumText !== null, state: 'the drawer\'s bar row, drawn with its summary' }, s.line === null,
             `${where} ${k}: no agent status in the bar row while the link is off (read ${JSON.stringify(s.text)})`);
         } else {
-          const says = (t) => (want.short instanceof RegExp ? want.short.test(t ?? '') : t === want.short);
-          const carries = (t) => (want.short instanceof RegExp ? new RegExp(want.short.source.replace(/^\^|\$$/g, '')).test(t ?? '') : (t ?? '').includes(want.short));
-          ok(s.lineShown && says(s.text), `${where} ${k}: the bar row's agent status reads "${want.short}" (read ${JSON.stringify(s.text)}, shown ${s.lineShown})`);
+          const carries = (t) => (t ?? '').includes(want.short);
+          if (narrow31) ok(s.lineShown && s.wordHidden && s.text === null && s.dotShown && s.glyphShown,
+            `Q3113.7 A ${where} ${k}: at 380 the bar row's agent status is the link's glyph and its dot, the word "${want.short}" not drawn (${JSON.stringify({ shown: s.lineShown, word: s.text, hidden: s.wordHidden, dot: s.dotShown, glyph: s.glyphShown })})`);
+          else ok(s.lineShown && s.text === want.short && s.dotShown && s.glyphShown,
+            `Q3113.7 A ${where} ${k}: the bar row's agent status is the link's glyph, a dot and "${want.short}" (read ${JSON.stringify(s.text)}, shown ${s.lineShown}, dot ${s.dotShown}, glyph ${s.glyphShown})`);
+          ok(s.ink?.dot === LINK_INK[`${theme} ${want.dot}`], `Q3113.7 A ${where} ${k}: the status's dot draws in the emission's ${want.dot} ${LINK_INK[`${theme} ${want.dot}`]} (read ${s.ink?.dot})`);
           if (s.line) {
             const leftEdge = Math.max(s.sum?.r ?? 0, s.when?.r ?? 0);
             const gap = s.caret ? s.caret.l - s.line.r : null;
@@ -12962,20 +13151,25 @@ for (const theme of ['light', 'dark']) {
           hooks.absent(ok, { seen: d.bodyShown && d.ops > 0, state: 'the open drawer, its runs drawn' }, !d.shown,
             `${where} ${k}: the open drawer shows no agent line while the link is off with no inbox error (read ${JSON.stringify(d.text)})`);
         }
-        await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        // Q3113.8 A: at 380 the sheet's header row closes it; its bar row gives way while it is open.
+        await hooks.click(page.locator(w === 380 ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
         await settle(page);
       }
-      // The counts are a text run too: a write running puts "1 running" in the row, beside the agent status. #2909: the
-      // write is Update file's theme step.
+      // The counts are a text run too: a failed write puts "1 failed" in the row, beside the agent status (#3113,
+      // Q3113.3 A: a lone run counts nothing). #2909: the write is Update file's theme step.
       await postMsg(page, { type: 'agent-link-state', state: LINK_STATES.listening });
       await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
       await postMsg(page, { type: 'file-sets', present: [], setUp: true });
       await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+      await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'The write failed.' });
+      // The failure opens the drawer (at 380, the sheet): close it, to read the bar row.
+      await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, WAIT).catch(() => {});
+      await hooks.click(page.locator(w === 380 ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
       await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-toggle"] .p3-drawer-count'), null, WAIT).catch(() => {});
       const r = await page.evaluate(LINK_PROBE);
       const spread = baselineMiss(r.runs);
-      ok(r.runs.some((x) => /running/.test(x.text)) && r.runs.length >= 4 && spread !== null && spread <= BASELINE_TOL,
-        `${where} a write running: every text run in the bar row, the count too, sits on one baseline, within ${BASELINE_TOL}px (${r.runs.length} runs, spread ${spread}px: ${r.runs.map((x) => `"${x.text}" ${x.y}`).join(', ')})`);
+      ok(r.runs.some((x) => /^1 failed$/.test(x.text)) && r.runs.length >= 4 && spread !== null && spread <= BASELINE_TOL,
+        `${where} a write failed: every text run in the bar row, the count too, sits on one baseline, within ${BASELINE_TOL}px (${r.runs.length} runs, spread ${spread}px: ${r.runs.map((x) => `"${x.text}" ${x.y}`).join(', ')})`);
       const bad = errors.filter((e) => !/WebSocket/.test(e));
       ok(bad.length === 0, `${where}: 0 console errors (the agent link's bridge socket aside)${bad.length ? ` — ${bad.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
@@ -13570,9 +13764,10 @@ const dragGrip = async (page, y) => {
   return y0;
 };
 const openDrawer = async (page) => {
-  // #2909: the plugin draws no Activity tile; its drawer opens from its own row, drawn once something has run (a read-back).
+  // #2909: the plugin draws no Activity tile; its drawer opens from its own row, with a read-back's row in it (#3113: the
+  // row is drawn from launch, so the read-back is posted while nothing has run).
   if (await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.shell === 'rail')) {
-    if (await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.ever !== 'true')) {
+    if (await page.evaluate(() => !document.querySelector('[data-p3="activity-drawer"] [data-p3="activity-op"]'))) {
       await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'seed-info', ok: true, present: true, summary: 'Contract holds.', failed: 0 } }, '*'));
     }
     await hooks.click(page.locator('[data-p3="activity-toggle"]'));
@@ -15980,7 +16175,8 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
       await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, BOUND);
       await after(page);
       const f1 = await focusOf(page);
-      ok(f1.hook === 'activity-toggle', `${where} A8: a failed write's sheet keeps focus off BODY, on the sheet's toggle (focus ${JSON.stringify(f1)})`);
+      // #3113 (Q3113.8 A): the sheet's first control is its header row's Close, where the bar row gave way.
+      ok(f1.hook === 'activity-close', `${where} A8: a failed write's sheet keeps focus off BODY, on the sheet's Close (focus ${JSON.stringify(f1)})`);
       step = 'Escape';
       await page.keyboard.press('Escape');
       await after(page);

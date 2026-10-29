@@ -202,13 +202,18 @@ const BUSY_LABEL = 'Updating…';
  *  while the other was stale. Since #2909 they are Update file (the control that started the build, busy while the run
  *  is out) and the build's row in the Activity drawer, which carries the verdict and the live fraction; the Components
  *  page draws no fraction, no verdict and no per-set result line of its own (Q2909.5 A). */
+/** #3113 (Q3113.2 A): the drawer draws a verdict as a mark in its status ink and the headline's words, without the
+ *  leading mark. Typed here from the decision, not imported from the drawer. */
+const WORDS = (headline) => headline.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+
 const readSurfaces = (page) => page.evaluate(() => {
   const btn = document.querySelector('[data-p3="update-file"]');
   const busy = btn ? btn.getAttribute('aria-busy') === 'true' : null;
   const label = btn ? (busy ? btn.querySelector('[data-p3="label-busy"]') : btn.querySelector('[data-p3="label-idle"]'))?.textContent.replace(/^…\s*/, '').trim() ?? null : null;
   const row = document.querySelector('[data-p3="activity-op"][data-op="components"]');
   const pill = row?.querySelector('[data-p3="op-verdict"]');
-  const detail = row?.querySelector('[data-p3="op-summary"]') ?? null;
+  // #3113 (Q3113.5 A): a bad result's first line is its reason, set apart before the mono lines; the detail is both.
+  const parts = row ? [...row.querySelectorAll('[data-p3="op-body"] > :is([data-p3="op-reason"], [data-p3="op-summary"])')] : [];
   const drawer = document.querySelector('[data-p3="activity-drawer"]');
   const preview = document.querySelector('[data-p3="components-style-guide"]');
   return {
@@ -220,7 +225,7 @@ const readSurfaces = (page) => page.evaluate(() => {
     barVerdict: row && row.dataset.state !== 'running' && pill && !pill.hidden ? [pill.textContent] : [],
     barPending: row ? [...row.querySelectorAll('[data-p3="op-progress"]')].map((n) => n.textContent) : [],
     // Shown, read the way the browser decides it: the row's body and the drawer's are hidden with `hidden`.
-    detail: detail && detail.checkVisibility() ? detail.textContent : null,
+    detail: parts.length && parts.every((n) => n.checkVisibility()) ? parts.map((n) => n.textContent).join('') : null,
     drawerOpen: drawer?.dataset.open === 'true',
   };
 });
@@ -447,7 +452,7 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
   await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
   await idleAgain(page);
   const after = await readSurfaces(page);
-  ok(during.button === BUSY_LABEL && during.busy && after.barVerdict.some((t) => (t ?? '').includes('✓ built 648')),
+  ok(during.button === BUSY_LABEL && during.busy && after.barVerdict.some((t) => (t ?? '').includes('built 648')),
     `the proving build: the probe sees the busy label, then the result — read "${during.button}" (busy ${during.busy}), then ${JSON.stringify(after.barVerdict)}`);
   ok(JSON.stringify(await builds(page)) === '["button"]', `the build posts the set ticked — posted ${JSON.stringify(await builds(page))}`);
   await page.close();
@@ -477,10 +482,10 @@ for (const c of CONDITIONS) {
   ok(after.busy === false, `${c.name}: Update file is no longer busy, so another run can be started`);
 
   // The verdict is VISIBLE: the drawer carries the host's own headline.
-  ok(after.barVerdict.some((t) => (t ?? '').includes(c.msg.headline)), `${c.name}: the Activity row carries the verdict "${c.msg.headline}"`);
+  ok(after.barVerdict.some((t) => (t ?? '') === WORDS(c.msg.headline)), `${c.name}: the Activity row carries the verdict's words "${WORDS(c.msg.headline)}"`);
 
   // No pending text survives the verdict. ABSENCE, judged against what the same probe saw during this build (#1831).
-  const barLanded = after.barVerdict.some((t) => (t ?? '').includes(c.msg.headline));
+  const barLanded = after.barVerdict.some((t) => (t ?? '') === WORDS(c.msg.headline));
   hooks.absent(ok, { seen: during.barPending.some((t) => /24 of 648/.test(t ?? '')) && barLanded, state: "the Activity row's progress during the build, then its verdict" },
     after.barPending.length === 0, `${c.name}: no stale fraction is left in the Activity row beside the verdict`);
 
@@ -585,9 +590,9 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#1679 while the reference back-off waits, the pill reads exactly "Retrying property links…" — read ${JSON.stringify(retrying.barPending)}`);
 
   await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
-  await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? '').includes('✓ built 648'), null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? '').includes('built 648'), null, { timeout: 5000 }).catch(() => {});
   const landed = await readSurfaces(page);
-  ok(landed.barVerdict.some((t) => (t ?? '').includes('✓ built 648')), 'a verdict arriving off-page lands in the Activity drawer, which is what survives navigation');
+  ok(landed.barVerdict.some((t) => (t ?? '').includes('built 648')), 'a verdict arriving off-page lands in the Activity drawer, which is what survives navigation');
 
   await gotoComponents(page);
   const back = await readSurfaces(page);
@@ -613,7 +618,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ 0 new, 648 present', summary: 'second run — idempotent' });
   await idleAgain(page);
   const done = await readSurfaces(page);
-  ok(first.barVerdict.some((t) => (t ?? '').includes('⚠ 648, 4 missed')) && done.barVerdict.some((t) => (t ?? '').includes('✓ 0 new, 648 present')),
+  ok(first.barVerdict.some((t) => (t ?? '').includes('648, 4 missed')) && done.barVerdict.some((t) => (t ?? '').includes('0 new, 648 present')),
     `the second build's verdict replaces the first on the Activity row — first ${JSON.stringify(first.barVerdict)}, then ${JSON.stringify(done.barVerdict)}`);
   ok(JSON.stringify(await builds(page)) === '["button","button"]', `each build posts once — posted ${JSON.stringify(await builds(page))}`);
   await page.close();
@@ -773,7 +778,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: '6 pages added, 2 template assets built' });
   await page.waitForFunction(() => window.__posts.includes('apply-theme'), null, { timeout: 4000 }).catch(() => {});
   const done = await readFs();
-  ok(done.verdict.length === 1 && done.verdict[0].includes('✓ file set up'), `#1845 exactly one verdict on the Set up file row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
+  ok(done.verdict.length === 1 && done.verdict[0] === 'file set up', `#1845 exactly one verdict on the Set up file row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
   hooks.absent(ok, { seen: pending.state === 'running', state: 'the Set up file row running' },
     done.pending.length === 0, `#1845 no pending text is left on the Set up file row beside the verdict — found ${JSON.stringify(done.pending)}`);
   ok(JSON.stringify(await posts()) === '["file-setup","apply-theme"]', `#2909 the setup's verdict starts the theme step, and nothing else — posted ${JSON.stringify(await posts())}`);
@@ -904,7 +909,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
   await settle('apply', 'ok');
   const landed = await readOp('apply');
-  ok(landed.state === 'ok' && (landed.verdict ?? '').includes('✓ 42 roles written') && landed.agent,
+  ok(landed.state === 'ok' && (landed.verdict ?? '').includes('42 roles written') && landed.agent,
     `S11 the agent's verdict lands on the row, still tagged Agent — state ${landed.state}, verdict ${JSON.stringify(landed.verdict)}, agent ${landed.agent}`);
   ok(running.expanded === 'true' && landed.expanded === 'false',
     `S11 a clean result collapses its row (#483, owner decision #1 on #1956), which a run had opened — running ${running.expanded}, landed ${landed.expanded}`);
@@ -912,7 +917,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await post(page, { type: 'agent-finished', id: 'a1', cmd: 'apply-theme' });
   await page.waitForTimeout(100);
   const finished = await readOp('apply');
-  ok(finished.state === 'ok' && (finished.verdict ?? '').includes('✓ 42 roles written'),
+  ok(finished.state === 'ok' && (finished.verdict ?? '').includes('42 roles written'),
     `S11 agent-finished keeps the verdict on the row — state ${finished.state}, verdict ${JSON.stringify(finished.verdict)}`);
 
   await post(page, { type: 'agent-started', id: 'a2', cmd: 'apply-theme' });
@@ -925,7 +930,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await post(page, { type: 'agent-finished', id: 'a2', cmd: 'apply-theme' });
   await settle('apply', 'ok');
   const reverted = await readOp('apply');
-  ok(reverted.state === 'ok' && (reverted.verdict ?? '').includes('✓ 42 roles written') && reverted.history === null,
+  ok(reverted.state === 'ok' && (reverted.verdict ?? '').includes('42 roles written') && reverted.history === null,
     `S11 a run that finishes with no verdict reverts the row to its last result — state ${reverted.state}, verdict ${JSON.stringify(reverted.verdict)}, history ${JSON.stringify(reverted.history)}`);
 
   // Seven more runs, each with its own verdict: the row holds the newest, and the history exactly the five
@@ -934,14 +939,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     await post(page, { type: 'agent-started', id: `h${i}`, cmd: 'apply-theme' });
     await settle('apply', 'running');
     await post(page, { type: 'apply-result', ok: true, headline: `✓ ${i} roles written`, summary: `${i} roles written` });
-    await page.waitForFunction((w) => (document.querySelector('[data-p3="activity-op"][data-op="apply"] [data-p3="op-verdict"]')?.textContent ?? '') === w, `✓ ${i} roles written`, { timeout: 5000 }).catch(() => {});
+    await page.waitForFunction((w) => (document.querySelector('[data-p3="activity-op"][data-op="apply"] [data-p3="op-verdict"]')?.textContent ?? '') === w, `${i} roles written`, { timeout: 5000 }).catch(() => {});
     await post(page, { type: 'agent-finished', id: `h${i}`, cmd: 'apply-theme' });
   }
   const kept = await page.evaluate(() => {
     const row = document.querySelector('[data-p3="activity-op"][data-op="apply"]');
     return { summary: row?.querySelector('[data-p3="op-history"] summary')?.textContent ?? null, items: [...(row?.querySelectorAll('[data-p3="op-history-entry"]') ?? [])].map((n) => n.textContent ?? '') };
   });
-  const wantItems = [6, 5, 4, 3, 2].map((i) => `✓ ${i} roles written`);
+  const wantItems = [6, 5, 4, 3, 2].map((i) => `${i} roles written`);
   ok(kept.summary === 'Earlier results (5)' && kept.items.length === 5 && kept.items.every((t, j) => t.includes(wantItems[j])),
     `S11 the history keeps exactly five earlier results, newest first — read ${JSON.stringify(kept.summary)}, ${JSON.stringify(kept.items.map((t) => t.replace(/^\d\d:\d\d · /, '')))}`);
 
@@ -1226,7 +1231,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     const row = document.querySelector('[data-p3="activity-op"][data-op="apply"]');
     return { verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, items: [...(row?.querySelectorAll('[data-p3="op-history-entry"]') ?? [])].map((n) => n.textContent ?? '') };
   });
-  ok((after.verdict ?? '').includes('✓ 42 roles written') && after.items.length === 1 && after.items[0].includes('Refused'),
+  ok((after.verdict ?? '').includes('42 roles written') && after.items.length === 1 && after.items[0].includes('Refused'),
     `#1957 the running write's verdict lands on the row after a refusal — verdict ${JSON.stringify(after.verdict)}, history ${JSON.stringify(after.items)}`);
   ok(errors.length === 0, `#1957 refusal: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
@@ -1274,8 +1279,8 @@ for (const how of ['pointer', 'focus']) {
   await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="readback"]'), null, { timeout: 5000 }).catch(() => {});
   const rb = await page.evaluate(() => {
     const row = document.querySelector('[data-p3="activity-op"][data-op="readback"]');
-    const sum = row?.querySelector('[data-p3="op-summary"]');
-    return { state: row?.dataset.state, verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, summary: sum && sum.checkVisibility() ? sum.textContent : null };
+    const sums = row ? [...row.querySelectorAll('[data-p3="op-body"] > :is([data-p3="op-reason"], [data-p3="op-summary"])')] : [];
+    return { state: row?.dataset.state, verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, summary: sums.length && sums.every((n) => n.checkVisibility()) ? sums.map((n) => n.textContent).join('') : null };
   });
   ok(rb.state === 'bad' && rb.verdict === '2 mismatches' && (rb.summary ?? '').includes(SENTENCE),
     `S11 a failing read-back reads "2 mismatches", its sentence showing in the row's details — state ${rb.state}, verdict ${JSON.stringify(rb.verdict)}, summary ${JSON.stringify(rb.summary)}`);
@@ -1307,8 +1312,8 @@ for (const how of ['pointer', 'focus']) {
 {
   const readOp = (page, k) => page.evaluate((key) => {
     const row = document.querySelector(`[data-p3="activity-op"][data-op="${key}"]`);
-    const sum = row?.querySelector('[data-p3="op-summary"]');
-    return { verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, summary: sum?.textContent ?? null };
+    const sums = row ? [...row.querySelectorAll('[data-p3="op-body"] > :is([data-p3="op-reason"], [data-p3="op-summary"])')] : [];
+    return { verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, summary: sums.length ? sums.map((n) => n.textContent).join('') : null };
   }, k);
   const until = (page, k, want) => page.waitForFunction(([key, w]) => document.querySelector(`[data-p3="activity-op"][data-op="${key}"] [data-p3="op-verdict"]`)?.textContent === w, [k, want], { timeout: 5000 }).catch(() => {});
   const REFUSAL = 'saved brand data is from an older shape';
@@ -1441,7 +1446,7 @@ for (const how of ['pointer', 'focus']) {
     await until(page, want);
     await page.waitForTimeout(200);
     const r = await read(page);
-    ok(r.verdict === want && r.state === 'bad' && /1 needs attention/.test(r.count) && r.open === 'true',
+    ok(r.verdict === want && r.state === 'bad' && /^1 failed$/.test(r.count) && r.open === 'true',
       `#2008 control: ${what} after a failed restore is still a bad row, counted, and opens the drawer — verdict ${JSON.stringify(r.verdict)}, state ${r.state}, count ${JSON.stringify(r.count)}, open ${r.open}`);
     ok(errors.length === 0, `#2008 control, ${what}: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
@@ -1455,7 +1460,7 @@ for (const how of ['pointer', 'focus']) {
     await until(page, 'Not restored');
     await page.waitForTimeout(200);
     const r = await read(page);
-    ok(r.verdict === 'Not restored' && r.state === 'bad' && /1 needs attention/.test(r.count) && r.open === 'true',
+    ok(r.verdict === 'Not restored' && r.state === 'bad' && /^1 failed$/.test(r.count) && r.open === 'true',
       `#2008 control: a failed restore on its own is "Not restored", a bad row, counted, and opens the drawer — verdict ${JSON.stringify(r.verdict)}, state ${r.state}, count ${JSON.stringify(r.count)}, open ${r.open}`);
     ok(errors.length === 0, `#2008 control, a failed restore on its own: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
@@ -1557,12 +1562,13 @@ for (const how of ['pointer', 'focus']) {
     ok(before.drawer && !before.row, `#1890 ${v.type}: the drawer is mounted and has no ${op} row before the verdict — drawer ${before.drawer}, row ${before.row}`);
     await post(page, v);
     await page.waitForFunction((k) => {
-      const d = document.querySelector(`[data-p3="activity-op"][data-op="${k}"] [data-p3="op-summary"]`);
+      // #3113 (Q3113.5 A): a bad result's details are its reason and its lines, so its body is what opens.
+      const d = document.querySelector(`[data-p3="activity-op"][data-op="${k}"] [data-p3="op-body"]`);
       return !!d && d.checkVisibility() && (d.textContent ?? '').length > 0;
     }, op, { timeout: 5000 }).catch(() => {});
     const seen = await page.evaluate((k) => {
       const row = document.querySelector(`[data-p3="activity-op"][data-op="${k}"]`);
-      const detail = row?.querySelector('[data-p3="op-summary"]') ?? null;
+      const detail = row?.querySelector('[data-p3="op-body"]') ?? null;
       // The chrome is the frame's sticky head, located by its own hook. Whether this IS the region the
       // browser pins is read off its computed style, so a stale locator fails as "not the sticky region".
       const chrome = document.querySelector('[data-p3="frame-head"]');
@@ -2113,7 +2119,9 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     ok(shown, `#2177 ${k.op} ${w}: the run's details are shown in the drawer`);
     const seen = await page.evaluate((s) => {
       const list = document.querySelector(s);
-      const lines = list ? [...list.children] : [];
+      // #3113 (Q3113.5 A): a bad result's first item is its reason, set apart before the list in the UI face.
+      const reason = list?.closest('[data-p3="op-body"]')?.querySelector(':scope > [data-p3="op-reason"]') ?? null;
+      const lines = [...(reason ? [reason] : []), ...(list ? [...list.children] : [])];
       const body = document.querySelector('[data-p3="activity-body"]');
       const b = body?.getBoundingClientRect();
       const mono = getComputedStyle(document.documentElement).getPropertyValue('--p3-font-mono').trim();
@@ -2127,7 +2135,8 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
         clientWidth: body?.clientWidth ?? null,
         widestRight: lines.length ? r1(Math.max(...lines.map((n) => n.getBoundingClientRect().right))) : null,
         texts: lines.map((n) => n.textContent),
-        fonts: lines.map((n) => getComputedStyle(n).fontFamily),
+        fonts: lines.slice(1).map((n) => getComputedStyle(n).fontFamily),
+        reasonFont: reason ? getComputedStyle(reason).fontFamily : null,
         mono,
         // Each line inside the drawer's body, which scrolls no wider than it is.
         inside: !!b && lines.length > 0 && lines.every((n) => { const r = n.getBoundingClientRect(); return r.left >= b.left - 0.5 && r.right <= b.right + 0.5; }),
@@ -2138,7 +2147,8 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     ok(JSON.stringify(seen.texts) === JSON.stringify(items),
       `#2177 ${k.op} ${w}: ${items.length} items show as ${items.length} lines, in order, in the host's words — read ${seen.texts.length} lines ${JSON.stringify(seen.texts.map((t) => (t ?? '').slice(0, 40)))}`);
     ok(seen.mono !== '' && seen.fonts.length > 0 && seen.fonts.every((f) => f === seen.mono),
-      `#2177 ${k.op} ${w}: every line is set in the chrome's mono font (${seen.mono}) — read ${JSON.stringify([...new Set(seen.fonts)])}`);
+      `#2177 ${k.op} ${w}: every line after the reason is set in the chrome's mono font (${seen.mono}) — read ${JSON.stringify([...new Set(seen.fonts)])}`);
+    ok(!!seen.reasonFont && seen.reasonFont !== seen.mono, `#3113 Q3113.5 A ${k.op} ${w}: the first item, the reason, is set in the UI face, not mono — read ${JSON.stringify(seen.reasonFont)}`);
     ok(seen.inside && seen.noSideScroll,
       `#2177 ${k.op} ${w}: every line stays inside the drawer, which does not scroll sideways — inside ${seen.inside}, no side scroll ${seen.noSideScroll}; `
       + `tier ${seen.tier}, body ${seen.bodyWidth}px wide (right edge ${seen.bodyRight}), scrollWidth ${seen.scrollWidth} of clientWidth ${seen.clientWidth}, `
@@ -2164,8 +2174,8 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
       }
       ax = { role, read };
     } finally { await cdp.detach(); }
-    ok(ax.role === 'list' && ax.read.length === items.length && ax.read.every((r, i) => r.role === 'listitem' && r.words === items[i]),
-      `#2177 ${k.op} ${w}: a screen reader reads the lines in order, as a list of ${items.length} items — read ${ax.role}, ${JSON.stringify(ax.read.map((r) => `${r.role}: ${r.words.slice(0, 30)}`))}`);
+    ok(ax.role === 'list' && ax.read.length === items.length - 1 && ax.read.every((r, i) => r.role === 'listitem' && r.words === items[i + 1]),
+      `#2177 ${k.op} ${w}: a screen reader reads the lines after the reason in order, as a list of ${items.length - 1} items — read ${ax.role}, ${JSON.stringify(ax.read.map((r) => `${r.role}: ${r.words.slice(0, 30)}`))}`);
     ok(errors.length === 0, `#2177 ${k.op} ${w}: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
@@ -2174,9 +2184,10 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     const { page, errors } = await openPanel();
     const summary = 'file setup failed: a page named Components already exists';
     await post(page, { type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary });
-    const sel = '[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-summary"]';
+    // #3113 (Q3113.5 A): on a bad result that one line is its reason.
+    const sel = '[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-body"] > :is([data-p3="op-reason"], [data-p3="op-summary"])';
     await page.waitForFunction((s) => document.querySelector(s)?.checkVisibility() === true, sel, { timeout: 5000 }).catch(() => {});
-    const texts = await page.evaluate((s) => [...(document.querySelector(s)?.children ?? [])].map((n) => n.textContent), sel);
+    const texts = await page.evaluate((s) => [...document.querySelectorAll(s)].flatMap((n) => (n.tagName === 'UL' ? [...n.children] : [n])).map((n) => n.textContent), sel);
     ok(JSON.stringify(texts) === JSON.stringify([summary]), `#2177 a summary sent without items shows as its one line, in its own words — read ${JSON.stringify(texts)}`);
     ok(errors.length === 0, `#2177 no items: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
@@ -2237,6 +2248,8 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     }
     const row = `[data-p3="activity-op"][data-op="${k.op}"]`;
     await hooks.click(page.locator(`${row} [data-p3="op-history"] > summary`));
+    // #3113 (Q3113.6 A): each earlier result is one line that opens its own lines.
+    for (const e of await page.locator(`${row} [data-p3="op-history-entry"] summary`).all()) await hooks.click(e);
     await page.waitForFunction((s) => document.querySelector(s)?.checkVisibility() === true, `${row} [data-p3="op-history-line"]`, { timeout: 5000 }).catch(() => {});
     const want = [k.runs[1], k.runs[0]];
     const seen = await page.evaluate(([r, live]) => {
@@ -2246,7 +2259,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
       const status = document.querySelector('[data-p3="activity-status"]');
       return {
         heads: entries.map((e) => e.querySelector('[data-p3="op-history-head"]')?.textContent ?? null),
-        texts: entries.map((e) => [...e.querySelectorAll('[data-p3="op-history-line"]')].map((n) => n.textContent)),
+        texts: entries.map((e) => [...e.querySelectorAll('[data-p3="op-history-reason"], [data-p3="op-history-line"]')].map((n) => n.textContent)),
         mono,
         fonts: lines.map((n) => getComputedStyle(n).fontFamily),
         bullets: [...document.querySelectorAll(`${r} [data-p3="op-history-lines"]`)].map((n) => getComputedStyle(n).listStyleType),
@@ -2256,7 +2269,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     }, [row, LIVE]);
     ok(JSON.stringify(seen.texts) === JSON.stringify(want.map((r) => r.items.map(([, t]) => t))),
       `#2281 ${k.op} ${w}: the earlier results show their items as lines, newest first (${want.map((r) => r.items.length).join(' and ')} lines) — read ${JSON.stringify(seen.texts.map((l) => l.map((t) => (t ?? '').slice(0, 30))))}`);
-    ok(seen.heads.length === 2 && seen.heads.every((t, i) => new RegExp(`^\\d\\d:\\d\\d · ${want[i].headline.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`).test(t ?? '')),
+    ok(seen.heads.length === 2 && seen.heads.every((t, i) => new RegExp(`^\\d\\d:\\d\\d${WORDS(want[i].headline).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`).test(t ?? '')),
       `#2281 ${k.op} ${w}: each earlier result leads with its time and verdict, nothing after it — read ${JSON.stringify(seen.heads)}`);
     ok(seen.mono !== '' && seen.fonts.length > 0 && seen.fonts.every((f) => f === seen.mono) && seen.bullets.length === 2 && seen.bullets.every((b) => b === 'none'),
       `#2281 ${k.op} ${w}: every earlier line is in the chrome's mono font (${seen.mono}), in an unbulleted list — read ${JSON.stringify([...new Set(seen.fonts)])}, ${JSON.stringify(seen.bullets)}`);
@@ -2280,7 +2293,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
         read.push({ role, items });
       }
     } finally { await cdp.detach(); }
-    ok(read.length === 2 && read.every((l, i) => l.role === 'list' && l.items.length === want[i].items.length && l.items.every((x, j) => x.role === 'listitem' && x.words === want[i].items[j][1])),
+    ok(read.length === 2 && read.every((l, i) => l.role === 'list' && l.items.length === want[i].items.length - 1 && l.items.every((x, j) => x.role === 'listitem' && x.words === want[i].items[j + 1][1])),
       `#2281 ${k.op} ${w}: a screen reader reads each earlier result's lines in order, as a list — read ${JSON.stringify(read.map((l) => `${l.role}: ${l.items.map((x) => `${x.role} ${x.words.slice(0, 20)}`).join(' | ')}`))}`);
     ok(errors.length === 0, `#2281 ${k.op} ${w}: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
@@ -2292,8 +2305,9 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     await post(page, { type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary });
     await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-summary"]'), null, { timeout: 5000 }).catch(() => {});
     await post(page, { type: 'file-setup-result', ok: false, headline: '✗ setup failed again', summary: 'again' });
-    await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-history-line"]'), null, { timeout: 5000 }).catch(() => {});
-    const texts = await page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-history-line"]')].map((n) => n.textContent));
+    // #3113 (Q3113.5 A): a bad earlier result's one line is its reason.
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="filesetup"] :is([data-p3="op-history-reason"], [data-p3="op-history-line"])'), null, { timeout: 5000 }).catch(() => {});
+    const texts = await page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="filesetup"] :is([data-p3="op-history-reason"], [data-p3="op-history-line"])')].map((n) => n.textContent));
     ok(JSON.stringify(texts) === JSON.stringify([summary]), `#2281 an earlier result sent without items shows as its one line, in its own words — read ${JSON.stringify(texts)}`);
     ok(errors.length === 0, `#2281 no items: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();

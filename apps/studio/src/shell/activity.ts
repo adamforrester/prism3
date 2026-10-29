@@ -31,6 +31,14 @@
  *
  * The drawer sits at the bottom of the frame, pinned to the bottom edge, so it works on every page while
  * every page is legacy: under the legacy frame, or under the preview pane once a page moves (S2).
+ *
+ * DIRECTION A OF #3113 (the owner, 2026-10-28: Q3113.1–10 all A). The bar row leads with one state glyph in its status
+ * ink, the newest result and its time, then split counts ("1 failed", "1 warning"; "n running" only while more than one
+ * runs), and the agent link as a glyph, a dot and one word. The rows put attention first; each marks its verdict with a
+ * glyph in its status ink and the verdict's words, never a pill. A bad result leads with its reason in the UI face, then
+ * offers generic next steps (`AGAIN`, Copy details). Earlier results are one line each. At 380 the open sheet has a header
+ * row of its own (a close icon, "Activity", the counts, the agent dot). In the plugin the bar row is drawn from launch, and
+ * a dot on it marks a result nobody has opened. Fixes for a specific cause wait for structured results from the writers.
  */
 import { subscribe } from '../state/store';
 import type { OpKey } from '../state/host-session';
@@ -49,19 +57,16 @@ export const setAgentLinkOn = (on: boolean): void => {
 };
 
 /** The agent link's status (#2213; the owner's N1 A and AS1 A, 2026-10-06), as the plugin words it
- *  (`apps/plugin/src/agent-link-ui.ts`). `short` is the closed row's high-level status ("Agent listening", …), drawn at
- *  the far right of the drawer's bar row beside the caret, `error` drawing it in the chrome's error ink and otherwise
- *  quiet; `null` draws none. `full` is the link's whole status line (`agentLinkStatusText`), the open drawer's first line
+ *  (`apps/plugin/src/agent-link-ui.ts`). `short` is the bar row's one word ("Listening", Q3113.7 A), drawn at the far
+ *  right of the drawer's bar row beside the caret after the link's glyph and a dot (the glyph and the dot alone at 380),
+ *  `error` drawing the dot and the word in the chrome's error inks and otherwise quiet; `null` draws none. `full` is the link's whole status line (`agentLinkStatusText`), the open drawer's first line
  *  and the short status's tooltip and accessible name; `null` draws none. The plugin's Agent tile reports it with each
  *  published state; the studio never sets it, so on the web there is none. */
-export type AgentLinkStatus = { readonly short: string | null; readonly error: boolean; readonly full: string | null;
-  /** #2909 (Q2995.1 A): the narrow tier's words, the short status alone ("Agent listening", "Agent error", …), without the
-   *  last command. Absent, the narrow tier shows `short`. */
-  readonly brief?: string | null };
-let agentLinkStatus: AgentLinkStatus = { short: null, error: false, full: null, brief: null };
+export type AgentLinkStatus = { readonly short: string | null; readonly error: boolean; readonly full: string | null };
+let agentLinkStatus: AgentLinkStatus = { short: null, error: false, full: null };
 export const setAgentLinkStatus = (st: AgentLinkStatus): void => {
-  if (st.short === agentLinkStatus.short && st.error === agentLinkStatus.error && st.full === agentLinkStatus.full && (st.brief ?? null) === (agentLinkStatus.brief ?? null)) return;
-  agentLinkStatus = { short: st.short, error: st.error, full: st.full, brief: st.brief ?? null };
+  if (st.short === agentLinkStatus.short && st.error === agentLinkStatus.error && st.full === agentLinkStatus.full) return;
+  agentLinkStatus = { short: st.short, error: st.error, full: st.full };
   for (const f of linkWatchers) f();
 };
 
@@ -118,6 +123,23 @@ export const restoreActivityHeight = (v: unknown): void => {
  * A Figma plugin's iframe may refuse the async clipboard, so the copy falls back to a selected textarea and
  * `execCommand('copy')`, and when that is refused too it selects the text and says so. DRAFT wording.
  */
+/** Copy text from a Figma plugin's iframe, which may refuse the async clipboard: then a selected textarea and
+ *  `execCommand('copy')`. Whether it was copied. */
+const copyText = async (text: string): Promise<boolean> => {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* the iframe refused it: try the textarea */ }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.append(ta);
+  ta.select();
+  let done = false;
+  try { done = document.execCommand('copy'); } catch { done = false; }
+  ta.remove();
+  return done;
+};
+
 export const publishBlock = (text: string): HTMLElement => {
   const box = hook(h('div', 'p3-op-publish'), 'op-publish');
   const head = h('div', 'p3-op-publish-head');
@@ -134,22 +156,8 @@ export const publishBlock = (text: string): HTMLElement => {
     sel?.removeAllRanges();
     sel?.addRange(r);
   };
-  const viaTextarea = (): boolean => {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.append(ta);
-    ta.select();
-    let done = false;
-    try { done = document.execCommand('copy'); } catch { done = false; }
-    ta.remove();
-    return done;
-  };
   copy.onclick = async () => {
-    let done = false;
-    try { await navigator.clipboard.writeText(text); done = true; } catch { done = viaTextarea(); }
+    const done = await copyText(text);
     if (done) state.textContent = 'Copied.';
     else { select(); state.textContent = 'Selected. Copy it with your keyboard.'; }
   };
@@ -186,8 +194,33 @@ export type Refusal = { readonly op: OpKey; readonly message: string; readonly a
  *  pill clicked, or a bad verdict landing), `null` when none is, and the last refusal. Pure; no DOM. */
 export type ActivityReading = { readonly ops: Readonly<Record<OpKey, OpReading>>; readonly detail: OpKey | null; readonly refused: Refusal | null };
 export type ActivitySource = () => ActivityReading;
-/** What `main.ts` lends the drawer: the reading, and how to say a requested result has been shown. */
-export type ActivityLend = { readonly read: ActivitySource; readonly closeDetail: () => void };
+/** What `main.ts` lends the drawer: the reading, and how to say a requested result has been shown. `again` (#3113,
+ *  Q3113.4 A) runs an operation again through the write call Update file, Components or Documentation already makes, with
+ *  no new message: `can` says whether it may start now (nothing else in its way), `run` starts it. Absent, no
+ *  operation offers to run again. */
+export type ActivityLend = { readonly read: ActivitySource; readonly closeDetail: () => void;
+  readonly again?: { readonly can: (k: OpKey) => boolean; readonly run: (k: OpKey) => void } };
+
+/** Q3113.4 A: a bad result's next step that runs it again, by operation (DRAFT wording). The boot read-back has none:
+ *  nothing in the panel asks for it. */
+export const AGAIN: Readonly<Partial<Record<OpKey, string>>> = {
+  'apply': 'Apply again', components: 'Build again', filesetup: 'Set up again', styleguide: 'Run again', prune: 'Run again', specs: 'Run again',
+};
+/** Q3113.4 A: every bad result's last next step (DRAFT wording). */
+export const COPY_DETAILS = 'Copy details';
+
+/** How a result reads (Q3113.2 A): clean, a warning or a failure. A write's verdict is `ok: false` for a failure and a
+ *  warning alike. A bad result is a warning when its headline leads with "⚠" and it reports nothing it was asked to make as
+ *  failed; any other bad result is a failure (the owner's D-RED A). */
+export type Kind = 'ok' | 'warn' | 'bad';
+export const kindOf = (ok: boolean, verdict: string | null, failed?: number): Kind =>
+  ok ? 'ok' : (verdict ?? '').startsWith('\u26a0') && !((failed ?? 0) > 0) ? 'warn' : 'bad';
+/** A verdict's words without its leading mark (Q3113.2 A): the glyph says what the mark said. */
+export const verdictWords = (verdict: string | null): string => (verdict ?? '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
+/** Q3113.3 A: the split counts (DRAFT wording). */
+export const failedWords = (n: number): string => `${n} failed`;
+export const warningWords = (n: number): string => `${n} ${n === 1 ? 'warning' : 'warnings'}`;
+const KIND_GLYPH = { ok: 'check', warn: 'warn', bad: 'error' } as const;
 
 export type Activity = {
   /** The Activity button, for the top bar. */
@@ -199,11 +232,10 @@ export type Activity = {
   readonly live: HTMLElement;
 };
 
-/** The words the Activity button's name adds, as concept v6 has them. */
-const statusWords = (running: number, failed: number, unread: boolean): string =>
-  [running && `${running} running`, failed && attention(failed), !running && !failed && unread && 'new result']
+/** The words the Activity button's name adds: concept v6's, with the attention count split (Q3113.3 A). */
+const statusWords = (running: number, failures: number, warnings: number, unread: boolean): string =>
+  [running && `${running} running`, failures && failedWords(failures), warnings && warningWords(warnings), !running && !failures && !warnings && unread && 'new result']
     .filter(Boolean).join(', ');
-const attention = (n: number): string => `${n} ${n === 1 ? 'needs' : 'need'} attention`;
 
 /** The status line's words when a run finishes (Q194, #2487; DRAFT wording). A clean run is "finished"; a bad one names
  *  its reason, the first line of the host's detail (or its headline, without the leading mark, when it sent none). A
@@ -213,7 +245,7 @@ export const finishLine = (k: OpKey, o: Pick<OpReading, 'state' | 'verdict' | 's
   if (o.state !== 'bad') return `${OP_TITLE[k]} finished.`;
   const bare = (o.verdict ?? '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
   const reason = (o.lines?.find((l) => l.trim()) ?? o.summary?.split('\n').find((l) => l.trim()) ?? bare).trim().replace(/[.\s]+$/, '');
-  const warning = (o.verdict ?? '').startsWith('⚠') && !((o.failed ?? 0) > 0);
+  const warning = kindOf(false, o.verdict, o.failed) === 'warn';
   return `${OP_TITLE[k]} ${warning ? 'finished with a warning' : 'failed'}${reason ? `: ${reason}` : ''}.`;
 };
 
@@ -222,7 +254,24 @@ const clock = (d: Date): string => d.toTimeString().slice(0, 5);
 
 /** One result, as the drawer recorded it. `refused` marks a declined request (#1957), which is only ever
  *  history: it is not the operation's result, so a run that ends with no verdict skips it. */
-type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly lines?: readonly string[] | null; readonly publish?: string | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true };
+type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly lines?: readonly string[] | null; readonly publish?: string | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true;
+  /** What the run reported as failed, as data (`OpReading.failed`), so a "⚠" result with a failed item is a failure. */
+  readonly failed?: number };
+/** A recorded result's kind. A declined request (#1957) is not a failure: the running write goes on. */
+const kindOfResult = (r: Result): Kind => (r.refused ? 'ok' : kindOf(r.ok, r.verdict, r.failed));
+/** The state's mark (Q3113.2 A): a glyph in its status ink, or the running ring, which says what the bar's dot said. */
+const markOf = (state: Kind | 'run'): HTMLElement => {
+  const m = h('span', state === 'run' ? 'p3-dot p3-status-dot p3-op-mark' : 'p3-op-mark');
+  m.dataset.state = state;
+  m.setAttribute('aria-hidden', 'true');
+  if (state !== 'run') m.append(glyph(KIND_GLYPH[state]));
+  return m;
+};
+/** Where a bad result's details split (Q3113.5 A): its reason, the first line, set in the UI face; the rest, mono. */
+const splitLines = (r: Pick<Result, 'summary' | 'lines'>): { reason: string | null; rest: readonly string[] } => {
+  const all = (r.lines?.length ? r.lines : r.summary ? [r.summary] : []).filter((l) => l.trim());
+  return { reason: all[0] ?? null, rest: all.slice(1) };
+};
 /** One operation's record: what the drawer has seen of it this session. */
 type Rec = { t: string; result: Result | null; history: Result[] };
 
@@ -253,28 +302,41 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   mark.append(glyph('pulse'), dot);
 
   // ── the drawer ─────────────────────────────────────────────────────────────────────────────────
-  const drawer = hook(h('section', 'p3-drawer'), 'activity-drawer');
+  // A named region only while open (#2487 Q197: one main landmark; the named regions are Inspect and Activity, open). The
+  // closed bar row is a control, not a region: since #3113 the plugin draws it from launch, on every page.
+  const drawer = hook(h('div', 'p3-drawer'), 'activity-drawer');
   drawer.id = 'p3-activity';
-  drawer.setAttribute('aria-label', 'Activity');
   // The bar row is one button, as v6's is: the newest operation, its time, the counts, and the chevron.
   const toggle = hook(h('button', 'p3-drawer-bar'), 'activity-toggle');
   toggle.type = 'button';
   toggle.setAttribute('aria-controls', 'p3-activity-body');
   const body = hook(h('div', 'p3-drawer-body'), 'activity-body');
   body.id = 'p3-activity-body';
-  // v6's "Close Activity", which only the full-pane sheet at 380 shows (the stylesheet hides it wider).
-  const close = hook(h('button', 'p3-btn p3-btn-ghost p3-drawer-close'), 'activity-close');
+  // v6's "Close Activity", which only the full-pane sheet at 380 shows: since Q3113.8 A a 24 × 24 icon in its header row,
+  // named by its words.
+  const close = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-drawer-close'), 'activity-close');
   close.type = 'button';
-  close.append(glyph('x'), h('span', undefined, 'Close Activity'));
+  close.setAttribute('aria-label', 'Close Activity');
+  close.title = 'Close Activity';
+  close.append(glyph('x'));
   const rows = h('div', 'p3-ops');
+  // Q3113.8 A: the 380 sheet's header row: a close icon, "Activity", the counts and the agent dot. Only the full-pane
+  // sheet draws it (the stylesheet hides it wider), and there the bar row gives way to it.
+  const sheetHead = hook(h('div', 'p3-drawer-head'), 'activity-sheet-head');
+  const sheetCounts = h('span', 'p3-drawer-counts');
   // Shown while nothing has run. The plugin's line is concept v6's; the studio runs no write.
   const note = hook(h('p', 'p3-note p3-drawer-note', opts.host === 'figma'
     ? 'Results of Apply, Build and Prune appear here after they run.'
     : 'Nothing has run in this session.'), 'activity-note');
   // The agent link's full status line (#2213, AS1 A): the open drawer's first line, above the runs, while the plugin
   // reports one.
-  const linkDetail = hook(h('p', 'p3-note p3-drawer-note'), 'activity-agent-detail');
-  body.append(close, linkDetail, rows, note);
+  const linkDetail = hook(h('p', 'p3-note p3-drawer-note p3-drawer-linkline'), 'activity-agent-detail');
+  const linkDot = h('span', 'p3-dot p3-drawer-link-dot');
+  linkDot.setAttribute('aria-hidden', 'true');
+  const linkText = h('span');
+  linkDetail.append(glyph('agent'), linkDot, linkText);
+  sheetHead.append(close, h('b', 'p3-drawer-title', 'Activity'), h('span', 'p3-spacer'), sheetCounts);
+  body.append(sheetHead, linkDetail, rows, note);
   drawer.append(toggle, body);
   // A write's control says it is busy while the write runs, panel or agent, and a polite status line says
   // so once, when it starts (owner decision #4 on #1956, the engine Button's `isPending` aria note), and again when it
@@ -312,11 +374,30 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   /** The operations whose bodies are expanded. */
   const expanded = new Set<OpKey>();
   /** The rendered rows, keyed, so a repaint keeps the header that holds focus. */
-  const rowEls = new Map<OpKey, { root: HTMLElement; head: HTMLButtonElement; tag: HTMLElement; pill: HTMLElement; when: HTMLElement; body: HTMLElement; progress: HTMLElement | null }>();
+  const rowEls = new Map<OpKey, { root: HTMLElement; head: HTMLButtonElement; mark: HTMLElement; tag: HTMLElement; words: HTMLElement; when: HTMLElement; body: HTMLElement; progress: HTMLElement | null }>();
+  /** The earlier result each drawn history entry shows, so an open one is found again by its result (#3113 review). */
+  const entryOf = new WeakMap<HTMLDetailsElement, Result>();
 
-  const counts = (r: ActivityReading): { running: number; failed: number } => {
+  /** How many run, and how many results are bad (`failed`), split into failures and warnings (Q3113.3 A). */
+  const counts = (r: ActivityReading): { running: number; failed: number; failures: number; warnings: number } => {
     const ops = Object.values(r.ops);
-    return { running: ops.filter((o) => o.state === 'running').length, failed: ops.filter((o) => o.state === 'bad').length };
+    const bad = ops.filter((o) => o.state === 'bad');
+    const failures = bad.filter((o) => kindOf(false, o.verdict, o.failed) === 'bad').length;
+    return { running: ops.filter((o) => o.state === 'running').length, failed: bad.length, failures, warnings: bad.length - failures };
+  };
+  /** The split counts as drawn (Q3113.3 A): "1 failed" in the error ink after the error glyph, "1 warning" in the text ink
+   *  after the warning glyph, and "n running" only while more than one runs (the lead row says a lone run). */
+  const countEls = (): HTMLElement[] => {
+    const { running, failures, warnings } = counts(last);
+    const one = (kind: 'bad' | 'warn' | 'run', words: string): HTMLElement => {
+      const c = hook(h('span', 'p3-drawer-count'), 'activity-count');
+      c.dataset.kind = kind;
+      if (kind !== 'run') c.append(glyph(KIND_GLYPH[kind]));
+      c.append(words);
+      return c;
+    };
+    return [failures && one('bad', failedWords(failures)), warnings && one('warn', warningWords(warnings)), running > 1 && one('run', `${running} running`)]
+      .filter((x): x is HTMLElement => !!x);
   };
   const clear = (): void => { if (timer !== null) clearTimeout(timer); timer = null; };
   const collapse = (): void => { open = false; auto = false; };
@@ -378,6 +459,46 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     return wrap;
   };
 
+  /** Q3113.4 A: a bad result's next steps: run it again (a panel result only: an agent's ran with the agent's input, not
+   *  the panel's), then Copy details. Available only while nothing is in the run's way (`again.can`). */
+  const nextSteps = (k: OpKey, res: Result): HTMLElement => {
+    const box = hook(h('div', 'p3-op-next'), 'op-next');
+    const label = AGAIN[k];
+    const again = opts.lend.again;
+    if (label && again && !res.agent) {
+      const b = hook(h('button', 'p3-btn', label), 'op-again');
+      b.type = 'button';
+      const can = again.can(k);
+      if (!can) b.setAttribute('aria-disabled', 'true');
+      b.onclick = () => { if (again.can(k)) again.run(k); };
+      box.append(b);
+    }
+    const copy = hook(h('button', 'p3-btn p3-btn-ghost', COPY_DETAILS), 'op-copy');
+    copy.type = 'button';
+    const said = hook(h('span', 'p3-note p3-op-copied'), 'op-copied');
+    said.setAttribute('aria-live', 'polite');
+    const text = [`${OP_TITLE[k]}: ${res.verdict}`, ...(res.lines?.length ? res.lines : res.summary ? [res.summary] : [])].join('\n');
+    copy.onclick = async () => { said.textContent = (await copyText(text)) ? 'Copied.' : 'Not copied. Select the lines and copy them with your keyboard.'; };
+    box.append(copy, said);
+    return box;
+  };
+
+  /** A result's lines (#2177): one per item, each in the chrome's mono font, a long one wrapping inside the drawer. A
+   *  list, so a screen reader reads them in order and says how many. A bad result's first line is its reason, set apart
+   *  in the UI face (Q3113.5 A). */
+  const linesOf = (res: Result, hookOf: { list: string; line: string; reason: string }): HTMLElement[] => {
+    const bad = kindOfResult(res) !== 'ok';
+    const { reason, rest } = bad ? splitLines(res) : { reason: null, rest: (res.lines?.length ? res.lines : res.summary ? [res.summary] : []) };
+    const out: HTMLElement[] = [];
+    if (reason) out.push(hook(h('p', 'p3-op-reason', reason), hookOf.reason));
+    if (rest.length) {
+      const list = hook(h('ul', 'p3-op-summary'), hookOf.list);
+      for (const line of rest) list.append(hook(h('li', 'p3-op-line', line), hookOf.line));
+      out.push(list);
+    }
+    return out;
+  };
+
   const paintRow = (k: OpKey, rec: Rec, o: OpReading): void => {
     let el = rowEls.get(k);
     if (!el) {
@@ -389,25 +510,29 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       head.setAttribute('aria-controls', `p3-op-${k}-b`);
       const tag = h('span', 'p3-op-agent');
       tag.append(glyph('agent'), 'Agent');
-      const pill = hook(h('span', 'p3-pill'), 'op-verdict');
+      // Q3113.2 A: the verdict's words, after the mark, where the pill was.
+      const words = hook(h('span', 'p3-op-verdict'), 'op-verdict');
+      const mark = h('span', 'p3-op-markslot');
       const when = h('span', 'p3-op-when');
-      head.append(glyph('chevr'), h('b', undefined, OP_TITLE[k]), tag, pill, when);
+      head.append(glyph('chevr'), mark, h('b', undefined, OP_TITLE[k]), words, tag, when);
       const b = hook(h('div', 'p3-op-body'), 'op-body');
       b.id = `p3-op-${k}-b`;
       head.onclick = () => { if (expanded.has(k)) expanded.delete(k); else expanded.add(k); paint(); };
       root.append(head, b);
-      el = { root, head, tag, pill, when, body: b, progress: null };
+      el = { root, head, mark, tag, words, when, body: b, progress: null };
       rowEls.set(k, el);
     }
     const running = o.state === 'running';
     const res = rec.result;
-    const bad = running ? false : res ? !res.ok : false;
+    const kind: Kind | 'run' | null = running ? 'run' : res ? kindOfResult(res) : null;
     el.tag.hidden = !(running ? o.agent : res?.agent);
-    el.pill.className = bad ? 'p3-pill p3-pill-bad' : 'p3-pill';
-    const pill = running ? 'Running' : res?.verdict ?? '';
-    if (el.pill.textContent !== pill) el.pill.textContent = pill;
-    el.pill.hidden = !running && !res;
+    if (el.mark.firstElementChild?.getAttribute('data-state') !== kind) el.mark.replaceChildren(...(kind ? [markOf(kind)] : []));
+    el.words.dataset.state = kind ?? 'idle';
+    const words = running ? 'Running' : res ? verdictWords(res.verdict) : '';
+    if (el.words.textContent !== words) el.words.textContent = words;
+    el.words.hidden = !running && !res;
     el.root.dataset.state = running ? 'running' : res ? (res.ok ? 'ok' : 'bad') : 'idle';
+    el.root.dataset.kind = kind ?? 'idle';
     if (el.when.textContent !== rec.t) el.when.textContent = rec.t;
     const isOpen = expanded.has(k);
     el.head.setAttribute('aria-expanded', String(isOpen));
@@ -419,35 +544,42 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       parts.push(el.progress);
       // True of this plugin: the build lands each set on its own page and shows it (v6's line).
       if (k === 'components') parts.push(h('p', 'p3-note', "Build set switches Figma to the set's page."));
-    } else if (res?.summary) {
-      // One line per item, console-style (#2177): the items the host's summary joins, each in the chrome's mono font, a
-      // long one wrapping inside the drawer. A list, so a screen reader reads them in order and says how many. A
-      // summary sent without items is its own one line, in the same words.
-      const list = hook(h('ul', 'p3-op-summary'), 'op-summary');
-      for (const line of res.lines?.length ? res.lines : [res.summary]) list.append(hook(h('li', 'p3-op-line', line), 'op-line'));
-      parts.push(list);
+    } else if (res) {
+      parts.push(...linesOf(res, { list: 'op-summary', line: 'op-line', reason: 'op-reason' }));
       if (res.publish) parts.push(publishBlock(res.publish));
+      if (!res.ok) parts.push(nextSteps(k, res));
     }
     if (rec.history.length) {
       const d = hook(h('details', 'p3-op-history'), 'op-history');
       d.append(h('summary', undefined, `Earlier results (${rec.history.length})`));
       const ul = h('ul');
-      // Each earlier result is its time and verdict, then its details one line per item, as the current run's are
-      // (#2281, owner decision Q90 A): the same mono list, never in the live region, so nothing here is announced.
-      for (const x of rec.history) {
-        const entry = hook(h('li', 'p3-op-entry'), 'op-history-entry');
-        entry.append(hook(h('span', undefined, `${x.t} · ${x.verdict}${x.agent ? ' · Agent' : ''}`), 'op-history-head'));
-        if (x.summary) {
-          const list = hook(h('ul', 'p3-op-summary'), 'op-history-lines');
-          for (const line of x.lines?.length ? x.lines : [x.summary]) list.append(hook(h('li', 'p3-op-line', line), 'op-history-line'));
-          entry.append(list);
-        }
+      // Q3113.6 A: each earlier result is one line, its time, its mark and its words (and Agent), that opens its own
+      // lines (#2281's mono list). Never in the live region, so nothing here is announced.
+      // An open entry stays open across a repaint by the result it shows, not by its place: a new result moves every entry
+      // down one, and an entry with no lines draws no `details`.
+      const wasOpen = new Set([...el.body.querySelectorAll<HTMLDetailsElement>('details.p3-op-entry')].filter((x) => x.open).map((x) => entryOf.get(x)));
+      rec.history.forEach((x) => {
+        const entry = hook(h('li', 'p3-op-entry-row'), 'op-history-entry');
+        const head = hook(h('span', 'p3-op-entry-head'), 'op-history-head');
+        head.append(markOf(kindOfResult(x)), h('span', 'p3-op-when', x.t), h('span', undefined, x.refused ? x.verdict : verdictWords(x.verdict)));
+        if (x.agent) { const tag = h('span', 'p3-op-agent'); tag.append(glyph('agent'), 'Agent'); head.append(tag); }
+        const lines = x.summary ? linesOf(x, { list: 'op-history-lines', line: 'op-history-line', reason: 'op-history-reason' }) : [];
+        if (lines.length) {
+          head.prepend(glyph('chevr'));
+          const one = h('details', 'p3-op-entry') as HTMLDetailsElement;
+          const sum = h('summary');
+          sum.append(head);
+          one.append(sum, ...lines);
+          entryOf.set(one, x);
+          if (wasOpen.has(x)) one.open = true;
+          entry.append(one);
+        } else entry.append(head);
         ul.append(entry);
-      }
+      });
       d.append(ul);
       // A repaint keeps an open history open.
-      const was = el.body.querySelector('details');
-      if (was?.open) d.open = true;
+      const was = el.body.querySelector('details.p3-op-history');
+      if ((was as HTMLDetailsElement | null)?.open) d.open = true;
       parts.push(d);
     }
     el.body.replaceChildren(...parts);
@@ -461,11 +593,23 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     return keys.reduce<OpKey | null>((a, k) => (a === null || recs.get(k)!.t >= recs.get(a)!.t ? k : a), null);
   };
 
+  /** The agent link's status as drawn (Q3113.7 A): the link's glyph, a dot and its one word, the word hidden at 380 by the
+   *  stylesheet. Its tooltip, and the rest of its accessible name, are the link's full line. */
+  const linkEl = (): HTMLElement | null => {
+    if (!agentLinkStatus.short) return null;
+    const ln = hook(h('span', 'p3-drawer-link'), 'activity-agent-link');
+    ln.dataset.error = String(agentLinkStatus.error);
+    const dot = h('span', 'p3-dot p3-drawer-link-dot');
+    dot.setAttribute('aria-hidden', 'true');
+    ln.append(glyph('agent'), dot, hook(h('span', 'p3-drawer-link-word', agentLinkStatus.short), 'activity-agent-word'));
+    if (agentLinkStatus.full) { ln.title = agentLinkStatus.full; ln.append(h('span', 'p3-sr', agentLinkStatus.full)); }
+    return ln;
+  };
+
   const paintBar = (): void => {
-    const { running, failed } = counts(last);
     const lead = leadOf();
     // The row's text runs (the summary, its time, the counts and the agent status) share one baseline: they sit in a
-    // baseline-aligned run of their own (#2213, the owner's review), centered in the row with the dot and the caret,
+    // baseline-aligned run of their own (#2213, the owner's review), centered in the row with the mark and the caret,
     // because centering texts of two sizes one by one sets their baselines apart.
     const lead0: Node[] = [];
     const parts: Node[] = [];
@@ -473,12 +617,12 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       const o = last.ops[lead];
       const rec = recs.get(lead)!;
       const run = o.state === 'running';
-      const d = h('span', 'p3-dot p3-status-dot');
-      d.setAttribute('aria-hidden', 'true');
-      d.dataset.state = run ? 'run' : rec.result && !rec.result.ok ? 'bad' : 'ok';
+      const kind: Kind | 'run' = run ? 'run' : rec.result ? kindOfResult(rec.result) : 'ok';
+      lead0.push(markOf(kind));
       const text = h('span', 'p3-drawer-last');
-      text.append(h('b', undefined, OP_TITLE[lead]), ` · ${run ? o.phase ?? 'Running' : rec.result?.verdict ?? ''}`);
-      lead0.push(d);
+      const words = hook(h('span', 'p3-drawer-verdict', run ? o.phase ?? 'Running' : verdictWords(rec.result?.verdict ?? null)), 'activity-verdict');
+      words.dataset.state = kind;
+      text.append(h('b', undefined, OP_TITLE[lead]), ' ', words);
       parts.push(text, h('span', 'p3-op-when', rec.t));
       // At 380, the closed strip carries the running style guide's progress (the S11.2 mockup, variant 1).
       if (run && lead === 'styleguide' && o.strip && narrow() && !open) {
@@ -492,29 +636,44 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       lead0.push(glyph('pulse'));
       parts.push(h('span', 'p3-drawer-last', 'Activity'));
     }
-    parts.push(h('span', 'p3-spacer'));
-    const count = [running && `${running} running`, failed && attention(failed)].filter(Boolean).join(' · ');
-    if (count) parts.push(h('span', 'p3-drawer-count', count));
-    // The agent link's short status (#2213, AS1 A), last before the caret. One line, cut short with an ellipsis if the
-    // row has no room for it. Its tooltip is the link's full status line, and so is the rest of its accessible name,
-    // after its visible words.
-    if (agentLinkStatus.short) {
-      // #2909: the full words above the narrow tier; at 380 the short status alone (the owner's Q2995.1 A), whole, and the
-      // summary gives way to it. The full line is the tooltip and the rest of the accessible name either way.
-      const ln = hook(h('span', 'p3-drawer-link', opts.narrow() ? agentLinkStatus.brief ?? agentLinkStatus.short : agentLinkStatus.short), 'activity-agent-link');
-      ln.dataset.error = String(agentLinkStatus.error);
-      if (agentLinkStatus.full) { ln.title = agentLinkStatus.full; ln.append(h('span', 'p3-sr', agentLinkStatus.full)); }
-      parts.push(ln);
+    // Q3113.9 A: a dot on the bar row marks a result nobody has opened, now that no Activity tile carries it.
+    if (unread) {
+      const u = hook(h('span', 'p3-dot p3-status-dot'), 'activity-unread');
+      u.dataset.state = 'unread';
+      u.setAttribute('aria-hidden', 'true');
+      lead0.push(u);
+      parts.push(h('span', 'p3-sr', 'New result'));
     }
+    parts.push(h('span', 'p3-spacer'));
+    parts.push(...countEls());
+    // The agent link's status (#2213, AS1 A; Q3113.7 A), last before the caret.
+    const ln = linkEl();
+    if (ln) parts.push(ln);
     const runs = h('span', 'p3-drawer-text');
     runs.append(...parts);
     toggle.replaceChildren(...lead0, runs, glyph('chev'), h('span', 'p3-sr', `${open ? 'Collapse' : 'Expand'} Activity`));
+    // The sheet's header row carries the same counts and the agent dot (Q3113.8 A).
+    const sheetLink = linkEl();
+    sheetCounts.replaceChildren(...countEls(), ...(sheetLink ? [sheetLink] : []));
+  };
+
+  /** Q3113.2 A: attention first (failures, then warnings), then what runs, then the rest, each in the order it first ran. */
+  const rank = (k: OpKey): number => {
+    const o = last.ops[k];
+    if (o.state === 'running') return 2;
+    const r = recs.get(k)?.result;
+    const kind = r ? kindOfResult(r) : 'ok';
+    return kind === 'bad' ? 0 : kind === 'warn' ? 1 : 3;
   };
 
   const paint = (): void => {
-    const { running, failed } = counts(last);
+    const { running, failed, failures, warnings } = counts(last);
     drawer.dataset.open = String(open);
-    drawer.dataset.ever = String(recs.size > 0);
+    if (open) { drawer.setAttribute('role', 'region'); drawer.setAttribute('aria-label', 'Activity'); }
+    else { drawer.removeAttribute('role'); drawer.removeAttribute('aria-label'); }
+    // Q3113.9 A: the plugin draws the bar row from launch; the studio runs no write, so its drawer stays undrawn. At 380 the
+    // strip waits for the first run, so a short window keeps #2105's room for the levers under an error line (Q3113.15).
+    drawer.dataset.ever = String((opts.host === 'figma' && !narrow()) || recs.size > 0);
     grip.hidden = !open;
     // #2176: sized once this paint is done, so today's open height is measured with its rows in place.
     queueMicrotask(sizeDrawer);
@@ -522,25 +681,32 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     toggle.setAttribute('aria-expanded', String(open));
     button.setAttribute('aria-expanded', String(open));
     const kind = running ? 'run' : failed ? 'bad' : unread ? 'unread' : 'none';
-    // The tile's dot (the owner's D-RED A, 2026-10-05): red only for a failure. An attention state that is not one, a
-    // warning (its verdict leads with ⚠, as every write's headline does: ✓ done, ⚠ done with problems, ✗ failed), draws
-    // green like the rest. The drawer, and the names, keep counting both as needing attention.
-    // A failure: a bad result whose headline leads with anything but ⚠ (✗, or a short word such as "Failed"), or one
-    // that reports a failed item as data (`failed`), e.g. a style-guide run where a table failed: something asked for
-    // was not made. ⚠ with nothing failed ("⚠ 4 misses") is a warning, and draws green.
-    const failures = Object.values(last.ops).filter((o) => o.state === 'bad' && (!(o.verdict ?? '').startsWith('⚠') || (o.failed ?? 0) > 0)).length;
+    // The tile's dot (the owner's D-RED A, 2026-10-05): red only for a failure; a warning draws green like the rest.
     dot.dataset.state = kind === 'bad' && !failures ? 'warn' : kind;
     drawer.dataset.state = kind;
-    const name = ['Activity', agentLinkOn && 'agent link on', statusWords(running, failed, unread)].filter(Boolean).join(', ');
+    const name = ['Activity', agentLinkOn && 'agent link on', statusWords(running, failures, warnings, unread)].filter(Boolean).join(', ');
     button.setAttribute('aria-label', name);
     // Only when it differs (#2487 A9): a same-value write replaces the text node, and the bar re-measures.
     if (tip.textContent !== name) tip.textContent = name;
+    const had = document.activeElement;
+    /** The row that holds focus, if one does, so a repaint that rebuilds its body (a next step that started a run) puts
+     *  focus back on the row's header rather than on BODY. */
+    const focusRow = [...rowEls.values()].find((r) => had instanceof Node && r.root.contains(had)) ?? null;
     paintBar();
     for (const [k, rec] of recs) paintRow(k, rec, last.ops[k]);
-    const order = [...recs.keys()].map((k) => rowEls.get(k)!.root);
-    if (order.length !== rows.children.length || order.some((n, i) => rows.children[i] !== n)) rows.replaceChildren(...order);
+    const keys = [...recs.keys()];
+    const order = keys.map((k, i) => [k, i] as const).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(([k]) => rowEls.get(k)!.root);
+    if (order.length !== rows.children.length || order.some((n, i) => rows.children[i] !== n)) {
+      rows.replaceChildren(...order);
+      // A row that moves keeps the focus it held (its header, or a control in it).
+      if (had instanceof HTMLElement && had.isConnected && document.activeElement !== had && rows.contains(had)) had.focus({ preventScroll: true });
+    }
+    // A next step that started its run is gone with the body it sat in: focus goes to its row's header.
+    if (focusRow && had instanceof HTMLElement && !had.isConnected && focusRow.root.isConnected) focusRow.head.focus({ preventScroll: true });
     note.hidden = recs.size > 0;
-    if (linkDetail.textContent !== (agentLinkStatus.full ?? '')) linkDetail.textContent = agentLinkStatus.full ?? '';
+    // The agent link's full line heads the open drawer (Q3113.7 A), after the link's glyph and dot.
+    if (linkText.textContent !== (agentLinkStatus.full ?? '')) linkText.textContent = agentLinkStatus.full ?? '';
+    linkDetail.dataset.error = String(agentLinkStatus.error);
     linkDetail.hidden = !agentLinkStatus.full;
   };
 
@@ -566,7 +732,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     if (!r) { r = { t: '', result: null, history: [] }; recs.set(k, r); }
     return r;
   };
-  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, publish: o.publish ?? null, agent: o.agent, t, ref: o.ref });
+  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, publish: o.publish ?? null, agent: o.agent, t, ref: o.ref, failed: o.failed ?? 0 });
   /** The previous result moves to the history, newest first, at most `HISTORY_MAX`. */
   const retire = (rec: Rec): void => {
     if (rec.result) rec.history = [rec.result, ...rec.history].slice(0, HISTORY_MAX);
@@ -671,9 +837,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const had = document.activeElement;
     paint();
     // At 380 the open sheet hides the panes, and with them a focused lever, which would leave focus on BODY
-    // (#2487 A8). Focus moves to the sheet's own toggle, the first thing in it.
+    // (#2487 A8). Focus moves to the sheet's Close, the first thing in its header row (Q3113.8 A).
     if (open && narrow() && had instanceof HTMLElement && had !== document.body && !drawer.contains(had) && !had.getClientRects().length) {
-      toggle.focus({ preventScroll: true });
+      close.focus({ preventScroll: true });
     }
     // The request is answered: clear it, so the same pill asks again next time. `closeDetail` tells `host`
     // and `host:detail`, so `onHost` runs inside it and finds nothing to act on.

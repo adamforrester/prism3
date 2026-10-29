@@ -17,9 +17,10 @@
  * switches the link; its name is "Agent", with `aria-pressed` for on or off; a green dot sits on the glyph
  * while the link is on. Until T7 it was the "Agent: Off" chip, which opened a popover holding the switch, a line on
  * what the link does and the link's status; the chip and the popover are gone. The status now lives in the Activity
- * drawer (#2213, the owner's N1 A and AS1 A, 2026-10-06): a short status (`agentLinkShortStatus`) at the far right of its
- * bar row, beside the caret, and the full status line (`agentLinkStatusText`) as the open drawer's first line and the
- * short status's tooltip and accessible name. The tile reports both with each published state (`setAgentLinkStatus`,
+ * drawer (#2213, the owner's N1 A and AS1 A, 2026-10-06): a short status at the far right of its bar row, beside the
+ * caret, and the full status line (`agentLinkStatusText`) as the open drawer's first line and the short status's tooltip
+ * and accessible name. Since #3113 (Q3113.7 A) the short status is the link's glyph, a dot and one word
+ * (`agentLinkWord`: "Listening"), and the full line speaks in operation words with a relative age. The tile reports both with each published state (`setAgentLinkStatus`,
  * `shell/activity.ts`). A change of the short status INTO "Agent error" or "Agent not listening" is announced once,
  * politely, through one persistent live region the tile owns (#2275, the owner's Q86 B, 2026-10-07; below). Both are styled by the chrome stylesheet (`apps/studio/src/chrome.css`), so they carry no
  * inline value and follow the chrome's theme.
@@ -58,7 +59,7 @@ import type { AgentLinkState } from './agent-protocol';
 import { createBridgeRelay } from './agent-bridge-relay';
 import type { WsLike } from './agent-bridge-relay';
 import { glyph, h, hook, switchEl, tile } from '../../studio/src/shell/dom';
-import { setAgentLinkOn, setAgentLinkStatus } from '../../studio/src/shell/activity';
+import { OP_TITLE, setAgentLinkOn, setAgentLinkStatus } from '../../studio/src/shell/activity';
 
 /** The frame's stable slot for the tile, by its hook: on the top bar since Q731 (the rail's foot under #2909). */
 const SLOT = '[data-p3="bar-agent"]';
@@ -67,17 +68,50 @@ const MIN_SLOT = '[data-p3="rail-minimize"]';
 /** The library home's slot for its switch (#2879), by its hook. */
 const HOME_SLOT = '[data-p3="home-agent"]';
 
-/** The link's full status line, from the published state (the old popover's words; since #2213, the open Activity drawer's first line). */
-export const agentLinkStatusText = (s: AgentLinkState | null): string => {
+/** #3113 (Q3113.7 A): each agent command in operation words, the Activity drawer's titles where the command is one of its
+ *  operations. DRAFT wording for the rest. */
+export const AGENT_CMD_WORDS: Readonly<Record<string, string>> = {
+  status: 'Status', 'apply-theme': OP_TITLE['apply'], 'build-components': OP_TITLE.components, 'file-setup': OP_TITLE.filesetup,
+  'style-guide': OP_TITLE.styleguide, prune: OP_TITLE.prune, readback: OP_TITLE.readback, 'draw-specs': OP_TITLE.specs,
+  'update-components': 'Update sets', 'capture-baseline': 'Record the sets', 'adopt-members': 'Adopt members',
+};
+/** A relative age in words (Q3113.7 A; DRAFT): "just now" under a minute, then minutes, hours and days ago. Pure. */
+export const agoWords = (ms: number): string => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} min ago`;
+  const hrs = Math.floor(m / 60);
+  return hrs < 24 ? `${hrs} h ago` : `${Math.floor(hrs / 24)} d ago`;
+};
+
+/** The link's full status line, from the published state (the old popover's words; since #2213, the open Activity drawer's
+ *  first line). Since #3113 (Q3113.7 A) in operation words with a relative age: "Listening for agent commands (file
+ *  mailbox, every 2 s). Last: Build set, built 48 variants, 2 min ago." DRAFT wording. `now` is milliseconds since the
+ *  epoch. Pure. */
+export const agentLinkStatusText = (s: AgentLinkState | null, now: number = Date.now()): string => {
   if (!s || !s.on) return 'Off — agent commands are ignored.';
   const every = `${Math.round(s.pollMs / 100) / 10} s`;
-  const listening = (s.transports.mailbox ? `Listening — file mailbox, every ${every}` : 'On — no transport listening') +
-    (s.transports.bridge ? ' + desktop bridge' : '');
-  const last = s.lastCommand
-    ? ` · last: ${s.lastCommand.cmd} ${s.lastCommand.headline} (${s.lastCommand.finishedAt.slice(11, 19)})`
-    : ' · no command yet';
-  const inbox = s.inboxError ? ` · ⚠ ${s.inboxError}` : '';
+  const how = [s.transports.mailbox && `file mailbox, every ${every}`, s.transports.bridge && 'desktop bridge'].filter(Boolean).join(', and the ');
+  const listening = how ? `Listening for agent commands (${how}).` : 'On, but not listening: no transport is open.';
+  const c = s.lastCommand;
+  const at = c ? Date.parse(c.finishedAt) : NaN;
+  const words = c ? c.headline.replace(/^[^\p{L}\p{N}]+/u, '').trim() : '';
+  const last = c
+    ? ` Last: ${AGENT_CMD_WORDS[c.cmd] ?? c.cmd}${words ? `, ${words}` : ''}${Number.isNaN(at) ? '' : `, ${agoWords(now - at)}`}.`
+    : ' No command yet.';
+  const inbox = s.inboxError ? ` Inbox error: ${s.inboxError.replace(/[.\s]+$/, '')}.` : '';
   return listening + last + inbox;
+};
+
+/** #3113 (Q3113.7 A): the bar row's one word for the link, beside its glyph and dot: nothing while it is off, "Error" for
+ *  an inbox error, "Not listening" while it is on with no transport listening, otherwise "Listening". The error states
+ *  draw in the chrome's error inks. DRAFT wording, except "Listening". Pure. */
+export const agentLinkWord = (s: AgentLinkState | null): { readonly text: string; readonly error: boolean } | null => {
+  if (!s || !s.on) return null;
+  if (s.inboxError) return { text: 'Error', error: true };
+  if (!s.transports.mailbox && !s.transports.bridge) return { text: 'Not listening', error: true };
+  return { text: 'Listening', error: false };
 };
 
 /** The link's short status for the Activity drawer's bar row (#2213, the owner's AS1 A, 2026-10-06): nothing while the
@@ -248,10 +282,11 @@ export const mountAgentLink = (): void => {
     else if (!short?.error && shownError) live.textContent = '';
     shownShort = nextShort;
     shownError = !!short?.error;
-    // #2909 (Q2909.22 A): the drawer's right end says what the strip says, the last command and how long ago
-    // ("Agent listening · last: readback 2m ago"); the ticker below keeps the age current while the link is on.
-    const line = agentStripText(state, running, Date.now());
-    setAgentLinkStatus({ short: line?.text ?? null, error: !!line?.error, brief: short?.text ?? null,
+    // #3113 (Q3113.7 A): the drawer's bar row draws the link's glyph, a dot and one word ("Listening"); the full line, in
+    // operation words with a relative age, heads the open drawer and is the word's tooltip. The ticker below keeps the
+    // age current while the link is on.
+    const word = agentLinkWord(state);
+    setAgentLinkStatus({ short: word?.text ?? null, error: !!word?.error,
       full: state && (state.on || state.inboxError) ? agentLinkStatusText(state) : null });
     if (on && drawerTicker === null) drawerTicker = setInterval(render, 30_000);
     if (!on && drawerTicker !== null) { clearInterval(drawerTicker); drawerTicker = null; }
