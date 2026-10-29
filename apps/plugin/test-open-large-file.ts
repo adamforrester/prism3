@@ -40,7 +40,8 @@
  * #3129 Q833 A, THE ADD QUEUE through the same `main.ts`: `queue/read` (every read reports the queue without the sets the
  * file holds and without a def the engine does not define), `queue/read-only` (reads clear no key), `queue/write`,
  * `queue/tidy` (a queue write clears the stale keys) and `queue/remove`. Mutations failing by name: `queuedFor` reading the
- * raw keys → `queue/read`; the stale clear dropped from `addQueue` → `queue/tidy`.
+ * raw keys → `queue/read`; `fileDue` posting `queued: []` → `queue/read` (its live-recount case); the stale clear
+ * dropped from `addQueue` → `queue/tidy`.
  *
  * Also held: `open/race`, the checklist's own request asked while the read after open is still going, is answered
  * without `atOpen`, so the panel keeps it over the read after open (`host-session.ts`, `awaitingRead`).
@@ -240,6 +241,15 @@ for (const t of timings) console.log(`    stage ${t.stage.padEnd(22)}${t.ms} ms`
 console.log('\n  the add queue (#3129)');
 ok(JSON.stringify(first?.msg?.queued) === JSON.stringify([ABSENT]) && JSON.stringify(full?.msg?.queued) === JSON.stringify([ABSENT]),
   `queue/read: the ledger's answer and the full read report the queue minus the set the file holds and the retired def (${JSON.stringify([first?.msg?.queued, full?.msg?.queued])})`);
+{
+  // The badge's live recount reports the same queue: the panel replaces its queue with each recount's (host-session).
+  const from = posted.length;
+  send({ type: 'due-request', input: JSON.parse(sharedData.get('prism3:brandInput') ?? '{}'), seq: 1 });
+  const got = () => posted.slice(from).find((p) => p.msg?.type === 'file-due');
+  for (let i = 0; i < 2000 && !got(); i++) await new Promise((res) => realTimeout(res, 5));
+  ok(JSON.stringify(got()?.msg?.queued) === JSON.stringify([ABSENT]),
+    `queue/read: the live recount's file-due answer reports the same queue as the other two reads (${JSON.stringify(got()?.msg?.queued ?? null)})`);
+}
 ok(sharedData.get(`prism3:addQueue.${setIds[0]}`) !== '' && sharedData.get('prism3:addQueue.retired-def') !== '',
   'queue/read-only: the reads cleared no key (Q3129.2 A: reads never write)');
 {
