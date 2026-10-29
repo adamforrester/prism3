@@ -1469,6 +1469,25 @@
       }
     },
     {
+      "id": "add-queue",
+      "label": "Choose sets to add",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Components: one box per family the file lacks a set of, with section boxes and each tier's Select all and Deselect all, kept in the file as a queue that Update file lists under Components › To add and builds",
+          "sources": [
+            "apps/plugin/src/add-queue.ts",
+            "apps/studio/src/domains/components.ts",
+            "apps/studio/src/shell/update-file.ts"
+          ],
+          "messages": [
+            "add-queue"
+          ]
+        }
+      }
+    },
+    {
       "id": "capture-baseline",
       "label": "Record sets as built",
       "group": "Write to Figma",

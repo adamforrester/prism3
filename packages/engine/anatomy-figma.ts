@@ -1243,12 +1243,36 @@ const directionAt = (def: ComponentDef, slots: PlanSlots): ComponentDef => {
   return parts ? { ...def, anatomy: { ...a, parts } } : def;
 };
 
+/** THE MEMBER'S HUG (#3143, `PartDef.sizingWhen`): at a coordinate that holds a listed value on every axis `when`
+ *  names, each box that declares it reads as if its `layout.sizing` were `'hug'` on the axes named, and the `width`
+ *  (x) or `height` (y) it binds is dropped, because a hugging axis is its content's and a bound size would fix it.
+ *  Any other coordinate, and a structure-only plan, returns the def itself, so its plan is byte-identical. Applied
+ *  before anything reads the anatomy, as `directionAt` is. */
+const sizingAt = (def: ComponentDef, slots: PlanSlots): ComponentDef => {
+  const a = def.anatomy;
+  if (!a) return def;
+  let parts: typeof a.parts | undefined;
+  for (const [n, p] of Object.entries(a.parts)) {
+    const sw = p.kind === 'box' ? p.sizingWhen : undefined;
+    if (!sw || !p.layout || !Object.entries(sw.when).every(([ax, vs]) => typeof slots[ax] === 'string' && vs.includes(slots[ax] as string))) continue;
+    const { width, height, ...rest } = p;
+    parts ??= { ...a.parts };
+    parts[n] = {
+      ...rest,
+      ...(sw.x ? {} : width !== undefined ? { width } : {}),
+      ...(sw.y ? {} : height !== undefined ? { height } : {}),
+      layout: { ...p.layout, sizing: { x: sw.x ?? p.layout.sizing.x, y: sw.y ?? p.layout.sizing.y } },
+    };
+  }
+  return parts ? { ...def, anatomy: { ...a, parts } } : def;
+};
+
 export const figmaAnatomyPlan = (
   authored: ComponentDef,
   size: string | undefined,
   slots: PlanSlots = {},
 ): AnatomyPlan => {
-  const def = builtSizeAt(centeredAt(directionAt(authored, slots), slots), size, slots);
+  const def = builtSizeAt(centeredAt(sizingAt(directionAt(authored, slots), slots), slots), size, slots);
   const a = def.anatomy;
   if (!a) throw new Error(`${def.id}: no anatomy block to project`);
   // A DEF WITH ONE TYPE SCALE HAS NO SIZE COORDINATE (#795), and `undefined` is how it says so.
@@ -1865,6 +1889,12 @@ export const figmaAnatomyPlan = (
       // square. `unlockAspectRatio()` runs before every binding in both executors, so nothing extra is
       // needed here — but the reason it is safe is that call, not the arithmetic.
       if (p.width) bound.width = varOf(p.width);
+      // NO BOUND SIZE ON THE AXIS A PART GROWS ALONG (#3143 build check 1). The parent decides that length, so the
+      // binding is dead where the host keeps the fill, and where binding a size turns a filling child FIXED it pins
+      // the part at the token's px instead (a hairline: the divider's lines would be 1px long). The offline shim does
+      // not model that turn, so the projection does not write what it cannot measure. A key bound per orientation
+      // (the divider's `{orientation}.line.width`) is the case: one orientation's cross axis is the other's main.
+      if (p.grow && parentMain) delete bound[parentMain === 'x' ? 'width' : 'height'];
       if (p.radius) for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(p.radius);
       // THE TOP AND BOTTOM CORNERS APART (#2609, `PartDef.radiusEdges`): a bottom sheet rounds its top two only.
       if (p.radiusEdges) {

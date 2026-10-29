@@ -1130,7 +1130,10 @@ const mountView = (view: RootView): void => {
           busy: componentBusy, agentBusy: () => agentRunning('components'), lastOf: (id) => host.setBuilds.get(id),
           run: runSets, stop: stopSets, current: () => run, last: () => lastRun,
           showResult: () => { setHost({ openDetail: 'components' }); hostChanged(); },
-          status: (id) => (commit.isFigma ? statusesOf(id, host.fileSets, host.handEdits, host.handPass) : []),
+          status: (id) => (commit.isFigma ? statusesOf(id, host.fileSets, host.handEdits, host.handPass, host.addQueue) : []),
+          queue: () => (commit.isFigma ? host.addQueue : null),
+          present: () => (commit.isFigma && host.fileSets && !host.fileSets.partial && !host.fileSets.error ? host.fileSets.present : null),
+          queueSets,
         } },
         // The product mark's logo, `styles.css`'s fixed gradient, lent like the views above.
         logo: () => el('span', 'logo'),
@@ -1537,6 +1540,18 @@ const deletePrune = (): void => {
  *  could not hear. */
 const hostChanged = (): void => { invalidate('host'); invalidate('host:detail'); };
 
+/** #3129 Q833 A: A QUEUE WRITE (Components' boxes, Update file's Remove, Remove all and Add all). The queue is the
+ *  file's, so the write goes to the host (`add-queue`), which answers with the queue as the file then holds it, a
+ *  teammate's writes included. The panel shows the write at once, and the answer replaces it. Figma only. */
+const queueSets = (ids: readonly string[], on: boolean): void => {
+  if (!commit.isFigma || !ids.length) return;
+  const was = host.addQueue ?? [];
+  setHost({ addQueue: on ? [...was, ...ids.filter((id) => !was.includes(id))] : was.filter((id) => !ids.includes(id)) });
+  invalidate('host:update');
+  invalidate('host:components');
+  commit.postAddQueue(ids, on);
+};
+
 /** Answer a request to show a result (S11): lent to the Activity drawer, which calls it once it has opened
  *  on the result `openDetail` names, so the same pill can ask again. */
 const closeOpenDetail = (): void => { if (host.openDetail === null) return; setHost({ openDetail: null }); hostChanged(); };
@@ -1903,6 +1918,9 @@ const endStep = (ok: boolean, headline: string): void => {
     updatePhase = null;
     // Q2909.8 A: what is due now, and the hand edits after it, so the badge and the statuses follow the run.
     setHost({ handPass: 'running', handEdits: new Map(), updateCheck: null });
+    // #3129 Q3129.2 A, Q3129.3 A: the run ends with a queue write of no ids, which clears the keys of the sets the file
+    // now holds and of the defs the engine no longer builds. A set the run built has had its key cleared already.
+    commit.postAddQueue([], false);
     commit.requestFileSets(panelBrand(runTheme(steps)));
     commit.requestHandEdits();
     updateChanged();
@@ -1988,8 +2006,9 @@ const updateFileLend: UpdateFileLend = {
     fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: restoreFailure ? RESTORE_OFF_HINT : null,
     prune: { busy: host.pruneBusy, preview: host.prunePreview, verdict: host.pruneVerdict },
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
-    handEdits: host.handEdits, updateCheck: host.updateCheck,
+    handEdits: host.handEdits, updateCheck: host.updateCheck, queue: host.addQueue,
   }),
+  queueSets,
   check: (theme) => commit.requestFileSets(panelBrand(theme)),
   checkSets: (defs, theme) => { setHost({ updateCheck: 'pending' }); updateChanged(); commit.requestUpdateCheck(defs, panelBrand(theme)); },
   run: (steps, sets, update) => {

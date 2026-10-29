@@ -167,6 +167,13 @@ jobs:
       - name: "The component executor's code moved only with EXECUTOR_REVISION (#1098, #2265)"
         run: npx --yes tsx@4 apps/plugin/lint-executor-revision.ts
 
+      # Update file makes a set due for an executor change only when the revision names it (#3101,
+      # executor-reach.json). When the revision rose, this draws every set the new entries do not name with
+      # the base's executor and with this tree's, in the component shim, and fails one that drew differently.
+      # Entries at or below the base's revision may not change. Minutes when it measures; a file read otherwise.
+      - name: "Each EXECUTOR_REVISION names every set it redraws (#3101)"
+        run: npx --yes tsx@4 apps/plugin/lint-executor-reach.ts
+
       # The token-NAME contract (#464). Deliberately NOT part of `regen`: regen rewrites every
       # generated artifact, so if the baseline were regenerated a deleted token would rewrite the
       # baseline to agree with the deletion and both gates would go green. The baseline is only

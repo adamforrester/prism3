@@ -9,7 +9,7 @@
 
 ## Overview
 
-A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. A labeled divider breaks a horizontal rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label, and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.
+A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. A labeled divider breaks the rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label (12px when vertical), and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.
 
 - **Purpose:** Separate groups of content with a thin horizontal or vertical rule that spans its container.
 - **Use when:** Two groups of content sit next to each other and spacing alone does not separate them: page sections, accordion or list rows, or clusters of controls in a toolbar (vertical).
@@ -35,7 +35,7 @@ Shown on the default member: orientation `horizontal`, inset `none`, labeled `fa
 
 ## Usage guidelines
 
-Use a divider to separate groups of related content when spacing alone does not make the groups clear: sections of a page, rows in an accordion or list, or a cluster of controls in a toolbar. Horizontal by default, spanning its container; vertical between items in a row. Inset it from the start to line up with indented content, or from both ends to separate within a section. It is decorative by default; set decorative to false when the rule marks a real break in the content. Give it a label, such as Or, when it sits between two alternative groups of actions, such as social sign-in above and email sign-in below.
+Use a divider to separate groups of related content when spacing alone does not make the groups clear: sections of a page, rows in an accordion or list, or a cluster of controls in a toolbar. Horizontal by default, spanning its container; vertical between items in a row. Inset it from the start to line up with indented content, or from both ends to separate within a section. It is decorative by default; set decorative to false when the rule marks a real break in the content. Give it a label, such as Or, when it sits between two alternative groups of actions, such as social sign-in above and email sign-in below. Vertical, it sits between two groups side by side on a wide layout.
 
 ### Do
 
@@ -44,6 +44,7 @@ Use a divider to separate groups of related content when spacing alone does not 
 - Use a vertical divider between clusters of controls in a row, such as a toolbar
 - Leave a divider decorative unless it marks a real break in the content, so a screen reader is not told about every visual line
 - Use a labeled divider with Or between two alternative ways to do one thing, such as two ways to sign in
+- Use a vertical labeled divider only where both groups are at least 56px tall; between two single buttons, stack them and use a horizontal one
 
 ### Don't
 
@@ -86,11 +87,11 @@ A plain divider holds no copy. A labeled divider holds one short word, such as O
 | `orientation` | enum: 'horizontal' \| 'vertical' | `horizontal` | no | Which way the rule runs. horizontal spans the width of its container and separates content stacked above and below it; vertical spans the height of its container and separates items side by side. A vertical rule sets aria-orientation="vertical"; horizontal is the default and needs no attribute. |
 | `inset` | enum: 'none' \| 'inset' \| 'middle-inset' | `none` | no | How far the rule sits in from its container's edges. none runs edge to edge; inset starts the rule 16px in from the start edge, so it lines up with indented content such as list text after an avatar; middle-inset indents both ends. The start edge follows text direction. A vertical rule takes none or middle-inset only. |
 | `decorative` | boolean | `true` | no | Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden="true". Set false when the rule marks a real break in the content: it becomes a separator, an \<hr> for a horizontal rule, drawn in border.tertiary so it reaches 3:1 on every background. It has no effect on a labeled divider, where the label marks the break. |
-| `label` | string | — | no | One short word that breaks the rule in the middle, such as Or. Setting it makes a labeled divider: a line on each side, centered on the label. Horizontal with no inset only. Screen readers read the label as plain text and skip the two lines. Pass the translated word. |
+| `label` | string | — | no | One short word that breaks the rule in the middle, such as Or. Setting it makes a labeled divider: a line on each side, centered on the label. No inset only. A vertical labeled divider keeps the label upright, with a line above and below it. Screen readers read the label as plain text and skip the two lines. Pass the translated word. |
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 6 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 7 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -138,13 +139,21 @@ Keyed by `orientation`, `inset`, `labeled`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.0` | `space.300` | `size.md.height` | `border-width.hairline` | — | — |
+| `container` | `space.0` | `space.150` | `size.md.height` | `border-width.hairline` | — | — |
+
+**orientation=vertical, inset=none, labeled=true**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.0` | `space.150` | `size.xl.height` | — | — | — |
+| `container/leadingRule` | — | — | — | `border-width.hairline` | — | — |
+| `container/trailingRule` | — | — | — | `border-width.hairline` | — | — |
 
 **orientation=vertical, inset=middle-inset, labeled=false**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.300` | `size.md.height` | `border-width.hairline` | — | — |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.150` | `size.md.height` | `border-width.hairline` | — | — |
 
 ### Type
 
@@ -189,6 +198,14 @@ Keyed by `orientation`, `inset`, `labeled`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/rule` | `color.border.secondary` | — | — | — |
+
+**orientation=vertical, inset=none, labeled=true**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/leadingRule` | `color.border.secondary` | — | — | — |
+| `container/label` | — | — | `color.text.secondary` | — |
+| `container/trailingRule` | `color.border.secondary` | — | — | — |
 
 **orientation=vertical, inset=middle-inset, labeled=false**
 
