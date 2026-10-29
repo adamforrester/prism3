@@ -7271,7 +7271,9 @@ const TYPE_S63_COPY = {
 /** Every S6.3 lever, by its hook, drawn once each (represented, not counted). */
 const TYPE_S63_LEVERS = ['lever-typography-type-scale', 'lever-typography-sizes', 'lever-typography-responsive', 'lever-typography-display-ceiling',
   'lever-typography-title-floor', 'lever-typography-caption-floor', 'lever-typography-size-floor', 'lever-typography-weight-roles', 'lever-typography-weights',
-  'lever-typography-italics', 'lever-typography-faces', 'lever-typography-line-heights', 'lever-typography-letter-spacings', 'lever-typography-leading-shift'];
+  'lever-typography-italics', 'lever-typography-faces', 'lever-typography-line-heights', 'lever-typography-letter-spacings', 'lever-typography-leading-shift',
+  // #3077: Caption sizes and Letter spacing for each text type.
+  'lever-typography-sizes-caption', 'lever-typography-tracking'];
 /** Literal copy on the controls: the chips (the manifest's scale labels; Q6's italic chips), the floors, the
  *  owner's words for fluid sizing (Q70) and the way to Layout. */
 const TYPE_S63_WORDS = {
@@ -7317,7 +7319,9 @@ for (const host of ['web', 'figma']) {
       if (TYPE_S63_COPY[title]) ok(lev?.[1] === TYPE_S63_COPY[title], `${host}: "${title}" reads "${TYPE_S63_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
     }
     for (const [k, want] of Object.entries(TYPE_S63_WORDS)) ok(JSON.stringify(r.words[k]) === JSON.stringify(want), `${host}: the ${k} copy reads ${JSON.stringify(want)} (${JSON.stringify(r.words[k])})`);
-    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 13 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 13 advanced (#2942: Underline thickness and offset is the 13th) (${JSON.stringify(r.folds)})`);
+    // 15 since #3077: #2942's Underline thickness and offset is the 13th; #3077 adds Caption sizes (Scale limits) and
+    // Letter spacing for each text type (Line height and letter spacing).
+    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 15 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 15 advanced (${JSON.stringify(r.folds)})`);
     const WANT_NAMES = {
       weight: [['p3-fill-label', 'Strong'], ['p3-fill-tok', 'font.weight-role.strong']], lh: [['p3-fill-label', 'normal'], ['p3-fill-tok', 'font.line-height-role.normal']],
       matrix: [['p3-fill-label', 'Body'], ['p3-fill-tok', 'type.body']],
@@ -15772,11 +15776,13 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //   · Title floor 16px under Compact (S63.titleFloorCompact): Type scale on Compact; lifted by Type scale Default.
 //   · Title floor 18px while title 2xs is set individually (S63.titleFloorPinned): Expressive, title floor 16px, then
 //     title 2xs's desktop size set to its first free value; lifted by resetting that size.
+//   · Caption floor 10px while caption md is set to 10px (S63.captionFloorPinned, #3084): caption md set to 10px through
+//     its picker; lifted by resetting that size.
 //   · Italic only on a text type that pins a font style (S63.italicPinned): body's default weight pinned to "Medium";
 //     lifted by clearing the pin.
 //
 // INDEPENDENCE (docs/34). EXPECTED is typed here: the three approved sentences, copied from the owner-approved strings
-// (S63.titleFloorCompact, S63.titleFloorPinned, S63.italicPinned), and which chip each case refuses, worked out by hand
+// (S63.titleFloorCompact, S63.titleFloorPinned, S63.italicPinned), plus #3084's DRAFT S63.captionFloorPinned, and which chip each case refuses, worked out by hand
 // from the issue. ACTUAL is the browser's: the drawn paragraphs and their boxes, the accessibility tree, and every live
 // region in the document. The line is found by its words inside the row, never through `aria-describedby` or an id, so
 // an unlinked line still reads as drawn and fails only the description arm. The live-region arm is read with the line
@@ -15793,10 +15799,14 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //     hint doesn't announce: the drawn reason is in no live region (drawn 1, 1 live region(s) carrying it)`, each case (12).
 // =============================================================================================
 if (runs('43')) {
-console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only (#2451)\n${'='.repeat(78)}`);
+console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor and Italic only (#2451, #3084)\n${'='.repeat(78)}`);
 {
   const COMPACT = 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.';
   const PINNED18 = 'Leaves out title 2xs, which you set individually.';
+  const CAPTION10 = 'Caption md is 10px, which you set individually, so the engine refuses a second 10px caption.';
+  const CFLOOR_ROW = '[data-p3="lever-typography-caption-floor"]';
+  const CFLOOR_GROUP = '[data-p3="caption-floor"]';
+  const CAPMD = '[data-p3="caption-size"][data-variant="md"]';
   const ITALIC = 'This text type pins a font style. Clear the pin first: Italic only sets the style from the weight.';
   const FLOOR_ROW = '[data-p3="lever-typography-title-floor"]';
   const FLOOR_GROUP = '[data-p3="title-floor"]';
@@ -15886,6 +15896,19 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only 
         await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
         await closePicker(page);
         await chipOff(page, '[data-p3="title-floor-18"]', false);
+      });
+      // Caption floor 10px while caption md is set to 10px (#3084).
+      step = 'set caption md to 10px';
+      await hooks.click(page.locator(CAPMD), BOUND);
+      await hooks.need(page, '[data-p3="value-picker"]', BOUND);
+      await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="10"]'), BOUND);
+      await closePicker(page);
+      await chipOff(page, '[data-p3="caption-floor-10"]', true);
+      await arms('Caption floor 10px with caption md at 10px', CFLOOR_ROW, CFLOOR_GROUP, CAPTION10, async () => {
+        await hooks.click(page.locator(CAPMD), BOUND);
+        await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
+        await closePicker(page);
+        await chipOff(page, '[data-p3="caption-floor-10"]', false);
       });
       // Italic only on a text type that pins a font style.
       step = 'pin body\'s font style';
