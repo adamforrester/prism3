@@ -793,8 +793,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     'password-field': { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     textarea:        { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     select:          { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
-    'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
-    'radio-row':     { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    // #3153 (owner Q852, Q3153.1 A): the option rows' label is one body step below the row's size, 12/14/16.
+    'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/xs/default', medium: 'body/sm/default', large: 'body/md/default' } as Record<string, string>)[c.size!] },
+    'radio-row':     { parts: ['label'], style: (c) => ({ small: 'body/xs/default', medium: 'body/sm/default', large: 'body/md/default' } as Record<string, string>)[c.size!] },
     // #2715: List.Item's text, and an ordered item's number, read in the body style of the item's size (body small,
     // medium or large, its brief's size prop).
     'list-item':     { parts: (c) => (c.type === 'ordered' ? ['number', 'label'] : ['label']), style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
@@ -1513,17 +1514,20 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     await applyComponentPlan(plans, shim as any, {});
     const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
     const labels = members.map((m) => findByName(m, 'label'));
+    const stacks = members.map((m) => findByName(m, 'textStack'));
     const controlBoxes = members.map((m) => findByName(m, 'controlCell'));
     // SCOPE FLOOR — a label was built into every member, or "they all wrap" is a statement about an empty set.
     ok(members.length > 0 && labels.every(Boolean),
       `#1424 host-truth: ${id} builds a label into every member (${labels.filter(Boolean).length}/${members.length})`);
-    // THE LABEL FILLS AND WRAPS — read back off the built node (both facts, since either alone does not wrap).
-    ok(labels.length > 0 && labels.every((l) => l.layoutGrow === 1 && l.textAutoResize === 'HEIGHT'),
-      `#1424 host-truth: every ${id} label reads back layoutGrow=1 + textAutoResize=HEIGHT — it fills the row and wraps (e.g. layoutGrow=${String(labels[0]?.layoutGrow)}, textAutoResize=${String(labels[0]?.textAutoResize)})`);
-    // THE CONTROL STAYS FIXED — it does not grow (layoutGrow 0) and its cross axis is FIXED, so the wrapping
-    // label never shrinks or stretches it.
-    ok(controlBoxes.length > 0 && controlBoxes.every((c) => c && c.layoutGrow !== 1 && c.counterAxisSizingMode === 'FIXED'),
-      `#1424 host-truth: every ${id} controlBox reads back fixed/hug — layoutGrow≠1 (${String(controlBoxes[0]?.layoutGrow)}) and counterAxisSizingMode=FIXED (${String(controlBoxes[0]?.counterAxisSizingMode)})`);
+    // THE LABEL FILLS AND WRAPS — read back off the built node (both facts, since either alone does not wrap). Since
+    // #3153 the label sits in the text column, which fills the row (layoutGrow 1), and the label stretches across the
+    // column (its cross axis) at a fixed width with auto height.
+    ok(labels.length > 0 && labels.every((l, i) => stacks[i]?.layoutGrow === 1 && l.layoutAlign === 'STRETCH' && l.textAutoResize === 'HEIGHT'),
+      `#1424 host-truth: every ${id} label reads back stretched across a growing text column with textAutoResize=HEIGHT — it fills the row and wraps (e.g. column layoutGrow=${String(stacks[0]?.layoutGrow)}, layoutAlign=${String(labels[0]?.layoutAlign)}, textAutoResize=${String(labels[0]?.textAutoResize)})`);
+    // THE CONTROL CELL DOES NOT GROW along the row, so the wrapping label never shrinks or stretches it. Since #3153 it
+    // hugs its control above the label's line-box floor (owner Q852), so its cross axis reads AUTO.
+    ok(controlBoxes.length > 0 && controlBoxes.every((c) => c && c.layoutGrow !== 1 && c.counterAxisSizingMode === 'AUTO'),
+      `#1424 host-truth: every ${id} controlBox reads back not growing and hugging its control — layoutGrow≠1 (${String(controlBoxes[0]?.layoutGrow)}) and counterAxisSizingMode=AUTO (${String(controlBoxes[0]?.counterAxisSizingMode)})`);
   }
 }
 

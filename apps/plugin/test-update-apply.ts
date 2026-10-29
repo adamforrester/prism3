@@ -193,6 +193,11 @@
  *                  props taken back out) read current under today's plans, and the apply writes nothing: the props are
  *                  code API and move no Figma member (owner Q351 A). Mutation: `figmaAnatomySet` projecting a
  *                  `disabled` prop as a Figma boolean on the label → `<row>/dry run`, `<row>/nothing written`.
+ *   rows3153/…     Checkbox.Row, Radio.Row and Switch.Row built as main built them before #3153 (owner Q852, Q853 A)
+ *                  take one Update in place: the option rows gain the text column (the label MOVED into it) and the
+ *                  hidden description with its two properties, off by default; every key and id kept; a designer's gap
+ *                  on one member's row kept and reported as a hand edit, before and after. Mutations: the description
+ *                  boolean defaulting on → `rows3153/structure`, `rows3153/description`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -3685,6 +3690,30 @@ section('icons — a set built with inline glyphs updates to icon instances, as 
   }
 }
 
+/* ── option rows before #3153 ─────────────────────────────────────────────────────────────────────────── */
+// THE ROWS AS MAIN BUILT THEM BEFORE #3153 (owner Q852, Q853 A): the label one size up (`body.sm/md/lg`), the control
+// cell a FIXED height bound to the control rung's `control.size.*.line-box`, the label straight under `content`, no
+// text column, no description and no description properties. Reconstructed from today's def by putting those facts
+// back, so the subject is the real def's projection on both sides (as the #2894 and #2594 sections do).
+const OLD_TEXT: Record<string, string> = { small: 'type.body.sm.default', medium: 'type.body.md.default', large: 'type.body.lg.default' };
+const OLD_BOX: Record<string, string> = { small: 'control.size.sm.line-box', medium: 'control.size.md.line-box', large: 'control.size.lg.line-box' };
+const before3153 = (now: ComponentDef): ComponentDef => {
+  const tokens = Object.fromEntries(Object.entries(now.tokens).filter(([k]) => !/label-inset|description|indicator/.test(k)));
+  for (const size of Object.keys(OLD_TEXT)) {
+    if (tokens[`size.${size}.text`]) tokens[`size.${size}.text`] = OLD_TEXT[size];
+    if (tokens[`size.${size}.control-box`]) tokens[`size.${size}.control-box`] = OLD_BOX[size];
+  }
+  const a = now.anatomy!;
+  const { textStack: _t, description: _d, ...parts } = a.parts;
+  const { minHeight: _m, ...cell } = parts.controlCell;
+  parts.controlCell = { ...cell, height: 'size.{size}.control-box', layout: { ...cell.layout!, sizing: { ...cell.layout!.sizing, y: 'fixed' } } };
+  parts.content = { ...parts.content, children: parts.content.children!.map((c) => (c === 'textStack' ? 'label' : c)) };
+  const fp = now.figmaProperties!;
+  const { description: _dt, ...texts } = fp.texts ?? {};
+  const { description: _db, ...booleans } = fp.booleans ?? {};
+  return { ...now, tokens, anatomy: { ...a, parts }, figmaProperties: { ...fp, texts, booleans } } as ComponentDef;
+};
+
 /* ── option rows' content box (#2894, #2933) ─────────────────────────────────────────────────────────── */
 section('option rows — a set built before the content box (#2894, owner Q539) takes the box in place, every member and node kept');
 // THE FILE AS A BUILD AT MAIN BEFORE #2894 LEFT IT: the row top-aligned with no floor, holding the control cell and the
@@ -3694,7 +3723,8 @@ section('option rows — a set built before the content box (#2894, owner Q539) 
 // and its two flow children, which the dry run lists as moving into `content`, kept. Mutations: the executor offering the
 // new frame no children → `rows/moved children`, `rows/agree`; the dry run listing no moves → `rows/dry run moves`.
 for (const [ROW, MEMBERS, FLOW] of [['radio-row', 6, ['controlCell', 'label']], ['checkbox-row', 6, ['controlCell', 'label']], ['switch-row', 4, ['label', 'controlCell']]] as const) {
-  const now = componentDefs.find((x) => x.id === ROW)!;
+  // The #2894 target is the row as #2894 built it, which #3153 has since changed: `before3153` puts that back.
+  const now = before3153(componentDefs.find((x) => x.id === ROW)!) as typeof componentDefs[number];
   const { content, ...restParts } = now.anatomy.parts;
   const padded = ROW !== 'switch-row';
   const { padding: _p, minHeight: _m, ...rowRest } = now.anatomy.parts.row;
@@ -3705,7 +3735,7 @@ for (const [ROW, MEMBERS, FLOW] of [['radio-row', 6, ['controlCell', 'label']], 
   } as typeof now;
   const kids = (n: Node | undefined): string[] => ((n?.children as Node[] | undefined) ?? []).map((c) => String(c.name));
   // The file's variables are today's (an Update follows a token sync), so it holds the ones the new plans bind.
-  const newPlans = plansOf(ROW);
+  const newPlans = figmaAnatomySet(now, { swapTarget: SWAP_TARGET });
   const w = await world(ROW, figmaAnatomySet(before2894, { swapTarget: SWAP_TARGET }), { extraVars: newPlans.flatMap((q) => [...planBoundVars(q.root), ...planPaintVars(q.root)]) });
   ok(membersOf(w.set()).length === MEMBERS && membersOf(w.set()).every((m) => JSON.stringify(kids(m)) === JSON.stringify(FLOW) && m.counterAxisAlignItems === 'MIN'),
     `${ROW} premise: the file holds ${MEMBERS} members built before #2894, each top-aligned and holding [${FLOW.join(', ')}] directly (${kids(membersOf(w.set())[0]).join(', ')}; ${String(membersOf(w.set())[0].counterAxisAlignItems)})`);
@@ -3744,6 +3774,71 @@ for (const [ROW, MEMBERS, FLOW] of [['radio-row', 6, ['controlCell', 'label']], 
   ok(shape.length === 0, `${ROW} rows/structure: every member centers content, which holds [${FLOW.join(', ')}] top-aligned (${shape.slice(0, 2).map((m) => `${String(m.name)}: ${String(m.counterAxisAlignItems)} [${kids(m).join(', ')}]`).join('; ') || `all ${MEMBERS}`})`);
   const post = (await previewUpdate(w.host, [{ def: ROW, plans: newPlans }])).sets[0];
   ok(post.counts.current === MEMBERS && post.handEdits.length === 0, `${ROW} rows/current: the next dry run reads all ${MEMBERS} current (${JSON.stringify(post.counts)})`);
+}
+
+/* ── option rows' 14px label and description (#3153) ─────────────────────────────────────────────────── */
+section('option rows — a set built before #3153 (owner Q852, Q853 A) takes the text column, the description and the line-box cell in place, every member and node kept, a hand edit reported');
+// THE FILE: each row as main built it before #3153 (`before3153`). THE UPDATE: today's plans, through one Update file.
+// EXPECTED, typed here: each row's member count; on the two option rows, `content` holding [controlCell, textStack] and
+// the text column holding [label, description] with the description hidden; Switch.Row's flow unchanged. Every node
+// that was in the member before keeps its id (the label MOVES into the text column), the set gains the description's
+// two properties (off by default), and a designer's binding on one member's label is kept and reported as a hand edit.
+// Mutation: the description boolean defaulting on → `rows3153/structure`, `rows3153/description`.
+for (const [ROW, MEMBERS, STACKED] of [['checkbox-row', 6, true], ['radio-row', 6, true], ['switch-row', 4, false]] as const) {
+  const def = componentDefs.find((x) => x.id === ROW)!;
+  const old = before3153(def);
+  const newPlans = plansOf(ROW);
+  const w = await world(ROW, figmaAnatomySet(old, { swapTarget: SWAP_TARGET }), {
+    extraVars: newPlans.flatMap((q) => [...planBoundVars(q.root), ...planPaintVars(q.root)]),
+    extraStyles: newPlans.flatMap((q) => planTextStyles(q.root)),
+  });
+  const kids = (n: Node | undefined): string[] => ((n?.children as Node[] | undefined) ?? []).map((c) => String(c.name));
+  const content0 = childNamed(membersOf(w.set())[0], 'content');
+  ok(membersOf(w.set()).length === MEMBERS && !kids(content0).includes('textStack'),
+    `${ROW} rows3153 premise: the file holds ${MEMBERS} members built before #3153, with no text column (${kids(content0).join(', ')})`);
+  // A designer's edit on one member's row: the control-to-label gap bound to `space/0`, a step the plan does not name.
+  const edited = membersOf(w.set())[1];
+  const editVar = await varIdOf(w, 'space/0');
+  (childNamed(edited, 'content').setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: editVar });
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: ROW, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update + p.counts.handEdited === MEMBERS && p.counts.add === 0 && p.counts.drop === 0 && p.renames.length === 0 && !p.blockers.length && !p.replacements.length,
+    `${ROW} rows3153/dry run: all ${MEMBERS} members read update, none added, dropped, renamed or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+  ok(p.handEdits.length === 1 && p.handEdits[0].member === edited.name && p.handEdits[0].path === 'content',
+    `${ROW} rows3153/hand edit reported: the dry run reports the designer's edit on ${String(edited.name)}'s content, and nothing else (${JSON.stringify(p.handEdits).slice(0, 240)})`);
+  ok(res.outcomes[0].kept.length === 1 && res.outcomes[0].kept[0].path === 'content' && (childNamed(edited, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === editVar,
+    `${ROW} rows3153/hand edit kept: the apply keeps the designer's gap and lists it (${JSON.stringify(res.outcomes[0].kept)})`);
+  ok(applyVerdict(res).ok, `${ROW} rows3153/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const after = identityOf(w.set());
+  const movedMembers = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && movedMembers.length === 0 && after.members.size === MEMBERS,
+    `${ROW} rows3153/members kept: the set and all ${MEMBERS} members keep their keys and ids (${movedMembers.join('; ') || 'none moved'})`);
+  // KEPT, BY ID: every node the member held before is still in it (wherever it now sits), and none was removed.
+  const lost: string[] = [];
+  for (const [name, b] of before.members) {
+    const now = new Set([...(after.members.get(name)?.kids.values() ?? [])]);
+    const miss = [...b.kids].filter(([, id]) => !now.has(id));
+    if (miss.length) lost.push(`${name}: ${miss.map(([path]) => path).slice(0, 2).join(', ')}`);
+  }
+  ok(lost.length === 0, `${ROW} rows3153/kept: every node keeps its id, the label moved rather than rebuilt (${lost.slice(0, 2).join('; ') || `all ${MEMBERS}`})`);
+  // THE NEW STRUCTURE, read off the shim's nodes.
+  const shape = membersOf(w.set()).filter((m) => {
+    const c = childNamed(m, 'content');
+    if (!STACKED) return JSON.stringify(kids(c)) !== JSON.stringify(['label', 'controlCell']);
+    const t = childNamed(c, 'textStack');
+    return !(JSON.stringify(kids(c)) === JSON.stringify(['controlCell', 'textStack']) && JSON.stringify(kids(t)) === JSON.stringify(['label', 'description']) && childNamed(t, 'description').visible === false);
+  });
+  ok(shape.length === 0, `${ROW} rows3153/structure: ${STACKED ? 'content holds [controlCell, textStack], the text column [label, description], the description hidden' : 'content still holds [label, controlCell]'} (${shape.slice(0, 2).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ') || `all ${MEMBERS}`})`);
+  if (STACKED) {
+    const defs = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+    const bool = Object.entries(defs).find(([k, d]) => d.type === 'BOOLEAN' && /^description/.test(k));
+    const text = Object.entries(defs).find(([k, d]) => d.type === 'TEXT' && /^description text/.test(k));
+    ok(!!bool && bool[1].defaultValue === false && !!text, `${ROW} rows3153/description: the set gains a description boolean, off by default, and its text property (${JSON.stringify(Object.keys(defs))})`);
+  }
+  const post = (await previewUpdate(w.host, [{ def: ROW, plans: newPlans }])).sets[0];
+  ok(post.counts.current === MEMBERS - 1 && post.handEdits.length === 1 && post.handEdits[0].member === edited.name,
+    `${ROW} rows3153/current: the next dry run reads the other ${MEMBERS - 1} current and still reports the one hand edit (${JSON.stringify(post.counts)}, ${JSON.stringify(post.handEdits).slice(0, 200)})`);
 }
 
 /* ── accordion header row (#2594) ────────────────────────────────────────────────────────────────────── */

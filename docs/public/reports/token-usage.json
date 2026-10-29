@@ -8,9 +8,9 @@
   ],
   "note": "tokens: every token a definition declares or the design-file projection binds, keyed by path below the root. components.<id>.keys are the definition binding keys that name it; parts.<part>.where lists, per axis, the values the part is bound at — an axis bound at every value is left out, so an empty where means every member. byComponent is the inverse. unused lists emitted tokens nothing binds.",
   "summary": {
-    "emitted": 795,
-    "used": 265,
-    "unusedSemantic": 250,
+    "emitted": 802,
+    "used": 271,
+    "unusedSemantic": 251,
     "unusedPrimitive": 280,
     "components": 60
   },
@@ -3849,6 +3849,7 @@
         },
         "checkbox-row": {
           "keys": [
+            "disabled.indicator",
             "disabled.label"
           ],
           "parts": {}
@@ -3941,6 +3942,7 @@
         },
         "radio-row": {
           "keys": [
+            "disabled.indicator",
             "disabled.label"
           ],
           "parts": {}
@@ -15347,6 +15349,17 @@
             }
           }
         },
+        "checkbox-row": {
+          "keys": [
+            "indicator"
+          ],
+          "parts": {
+            "description": {
+              "members": 6,
+              "where": {}
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "indicator"
@@ -15512,6 +15525,17 @@
                   "determinate"
                 ]
               }
+            }
+          }
+        },
+        "radio-row": {
+          "keys": [
+            "indicator"
+          ],
+          "parts": {
+            "description": {
+              "members": 6,
+              "where": {}
             }
           }
         },
@@ -16113,6 +16137,41 @@
         }
       }
     },
+    "control.size.lg.label-inset": {
+      "type": "dimension",
+      "components": {
+        "checkbox-row": {
+          "keys": [
+            "size.large.label-inset"
+          ],
+          "parts": {
+            "textStack": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "radio-row": {
+          "keys": [
+            "size.large.label-inset"
+          ],
+          "parts": {
+            "textStack": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "control.size.lg.line-box": {
       "type": "dimension",
       "components": {
@@ -16140,21 +16199,6 @@
                 ],
                 "state": [
                   "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "checkbox-row": {
-          "keys": [
-            "size.large.control-box"
-          ],
-          "parts": {
-            "controlCell": {
-              "members": 2,
-              "where": {
-                "size": [
-                  "large"
                 ]
               }
             }
@@ -16199,21 +16243,6 @@
                 ],
                 "state": [
                   "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "radio-row": {
-          "keys": [
-            "size.large.control-box"
-          ],
-          "parts": {
-            "controlCell": {
-              "members": 2,
-              "where": {
-                "size": [
-                  "large"
                 ]
               }
             }
@@ -16493,6 +16522,41 @@
         }
       }
     },
+    "control.size.md.label-inset": {
+      "type": "dimension",
+      "components": {
+        "checkbox-row": {
+          "keys": [
+            "size.medium.label-inset"
+          ],
+          "parts": {
+            "textStack": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "radio-row": {
+          "keys": [
+            "size.medium.label-inset"
+          ],
+          "parts": {
+            "textStack": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "control.size.md.line-box": {
       "type": "dimension",
       "components": {
@@ -16520,21 +16584,6 @@
                 ],
                 "state": [
                   "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "checkbox-row": {
-          "keys": [
-            "size.medium.control-box"
-          ],
-          "parts": {
-            "controlCell": {
-              "members": 2,
-              "where": {
-                "size": [
-                  "medium"
                 ]
               }
             }
@@ -16584,21 +16633,6 @@
             }
           }
         },
-        "radio-row": {
-          "keys": [
-            "size.medium.control-box"
-          ],
-          "parts": {
-            "controlCell": {
-              "members": 2,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "search-field": {
           "keys": [
             "size.medium.caret-height"
@@ -16623,21 +16657,6 @@
                 ],
                 "state": [
                   "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "switch-row": {
-          "keys": [
-            "size.medium.control-box"
-          ],
-          "parts": {
-            "controlCell": {
-              "members": 2,
-              "where": {
-                "size": [
-                  "medium"
                 ]
               }
             }
@@ -17001,6 +17020,41 @@
         }
       }
     },
+    "control.size.sm.label-inset": {
+      "type": "dimension",
+      "components": {
+        "checkbox-row": {
+          "keys": [
+            "size.small.label-inset"
+          ],
+          "parts": {
+            "textStack": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "radio-row": {
+          "keys": [
+            "size.small.label-inset"
+          ],
+          "parts": {
+            "textStack": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "control.size.sm.line-box": {
       "type": "dimension",
       "components": {
@@ -17028,21 +17082,6 @@
                 ],
                 "state": [
                   "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "checkbox-row": {
-          "keys": [
-            "size.small.control-box"
-          ],
-          "parts": {
-            "controlCell": {
-              "members": 2,
-              "where": {
-                "size": [
-                  "small"
                 ]
               }
             }
@@ -17092,21 +17131,6 @@
             }
           }
         },
-        "radio-row": {
-          "keys": [
-            "size.small.control-box"
-          ],
-          "parts": {
-            "controlCell": {
-              "members": 2,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "search-field": {
           "keys": [
             "size.small.caret-height"
@@ -17131,21 +17155,6 @@
                 ],
                 "state": [
                   "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "switch-row": {
-          "keys": [
-            "size.small.control-box"
-          ],
-          "parts": {
-            "controlCell": {
-              "members": 2,
-              "where": {
-                "size": [
-                  "small"
                 ]
               }
             }
@@ -23061,6 +23070,17 @@
             }
           }
         },
+        "checkbox-row": {
+          "keys": [
+            "description-gap"
+          ],
+          "parts": {
+            "textStack": {
+              "members": 6,
+              "where": {}
+            }
+          }
+        },
         "counter": {
           "keys": [
             "size.medium.value-pad",
@@ -23148,6 +23168,17 @@
           "parts": {
             "container": {
               "members": 87,
+              "where": {}
+            }
+          }
+        },
+        "radio-row": {
+          "keys": [
+            "description-gap"
+          ],
+          "parts": {
+            "textStack": {
+              "members": 6,
               "where": {}
             }
           }
@@ -25340,21 +25371,6 @@
             }
           }
         },
-        "checkbox-row": {
-          "keys": [
-            "size.large.text"
-          ],
-          "parts": {
-            "label": {
-              "members": 2,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "counter": {
           "keys": [
             "size.large.type"
@@ -25450,21 +25466,6 @@
                   "filled",
                   "focus-visible-filled",
                   "read-only"
-                ]
-              }
-            }
-          }
-        },
-        "radio-row": {
-          "keys": [
-            "size.large.text"
-          ],
-          "parts": {
-            "label": {
-              "members": 2,
-              "where": {
-                "size": [
-                  "large"
                 ]
               }
             }
@@ -25799,14 +25800,14 @@
         },
         "checkbox-row": {
           "keys": [
-            "size.medium.text"
+            "size.large.text"
           ],
           "parts": {
             "label": {
               "members": 2,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -25979,14 +25980,14 @@
         },
         "radio-row": {
           "keys": [
-            "size.medium.text"
+            "size.large.text"
           ],
           "parts": {
             "label": {
               "members": 2,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -26055,21 +26056,6 @@
                   "filled",
                   "focus-visible-filled",
                   "read-only"
-                ]
-              }
-            }
-          }
-        },
-        "switch-row": {
-          "keys": [
-            "size.medium.text"
-          ],
-          "parts": {
-            "label": {
-              "members": 2,
-              "where": {
-                "size": [
-                  "medium"
                 ]
               }
             }
@@ -26185,6 +26171,41 @@
                 ],
                 "weight": [
                   "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.md.line-box": {
+      "type": "dimension",
+      "components": {
+        "checkbox-row": {
+          "keys": [
+            "size.large.control-box"
+          ],
+          "parts": {
+            "controlCell": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "radio-row": {
+          "keys": [
+            "size.large.control-box"
+          ],
+          "parts": {
+            "controlCell": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
                 ]
               }
             }
@@ -26365,14 +26386,23 @@
         },
         "checkbox-row": {
           "keys": [
-            "size.small.text"
+            "description.large.text",
+            "size.medium.text"
           ],
           "parts": {
+            "description": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            },
             "label": {
               "members": 2,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -26580,14 +26610,23 @@
         },
         "radio-row": {
           "keys": [
-            "size.small.text"
+            "description.large.text",
+            "size.medium.text"
           ],
           "parts": {
+            "description": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            },
             "label": {
               "members": 2,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -26686,14 +26725,14 @@
         },
         "switch-row": {
           "keys": [
-            "size.small.text"
+            "size.medium.text"
           ],
           "parts": {
             "label": {
               "members": 2,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -26805,6 +26844,56 @@
         }
       }
     },
+    "type.body.sm.line-box": {
+      "type": "dimension",
+      "components": {
+        "checkbox-row": {
+          "keys": [
+            "size.medium.control-box"
+          ],
+          "parts": {
+            "controlCell": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "radio-row": {
+          "keys": [
+            "size.medium.control-box"
+          ],
+          "parts": {
+            "controlCell": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "switch-row": {
+          "keys": [
+            "size.medium.control-box"
+          ],
+          "parts": {
+            "controlCell": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "type.body.sm.strong": {
       "type": "typography",
       "components": {
@@ -26903,6 +26992,32 @@
     "type.body.xs.default": {
       "type": "typography",
       "components": {
+        "checkbox-row": {
+          "keys": [
+            "description.medium.text",
+            "description.small.text",
+            "size.small.text"
+          ],
+          "parts": {
+            "description": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            },
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "size.small.regular.text"
@@ -26932,6 +27047,32 @@
             }
           }
         },
+        "radio-row": {
+          "keys": [
+            "description.medium.text",
+            "description.small.text",
+            "size.small.text"
+          ],
+          "parts": {
+            "description": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            },
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "slider": {
           "keys": [
             "milestone-type"
@@ -26948,6 +27089,71 @@
             "minLabel": {
               "members": 30,
               "where": {}
+            }
+          }
+        },
+        "switch-row": {
+          "keys": [
+            "size.small.text"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.xs.line-box": {
+      "type": "dimension",
+      "components": {
+        "checkbox-row": {
+          "keys": [
+            "size.small.control-box"
+          ],
+          "parts": {
+            "controlCell": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "radio-row": {
+          "keys": [
+            "size.small.control-box"
+          ],
+          "parts": {
+            "controlCell": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "switch-row": {
+          "keys": [
+            "size.small.control-box"
+          ],
+          "parts": {
+            "controlCell": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
             }
           }
         }
@@ -29509,22 +29715,27 @@
       "tokens": [
         "color.disabled.text",
         "color.text.primary",
+        "color.text.secondary",
         "control.size.lg.height",
-        "control.size.lg.line-box",
+        "control.size.lg.label-inset",
         "control.size.md.height",
-        "control.size.md.line-box",
+        "control.size.md.label-inset",
         "control.size.sm.height",
-        "control.size.sm.line-box",
+        "control.size.sm.label-inset",
         "size.lg.height",
         "size.md.height",
         "size.sm.height",
         "space.0",
+        "space.050",
         "space.075",
         "space.100",
         "space.150",
-        "type.body.lg.default",
         "type.body.md.default",
-        "type.body.sm.default"
+        "type.body.md.line-box",
+        "type.body.sm.default",
+        "type.body.sm.line-box",
+        "type.body.xs.default",
+        "type.body.xs.line-box"
       ],
       "declaredNotDrawn": [
         "color.disabled.text"
@@ -30822,22 +31033,27 @@
       "tokens": [
         "color.disabled.text",
         "color.text.primary",
+        "color.text.secondary",
         "control.size.lg.height",
-        "control.size.lg.line-box",
+        "control.size.lg.label-inset",
         "control.size.md.height",
-        "control.size.md.line-box",
+        "control.size.md.label-inset",
         "control.size.sm.height",
-        "control.size.sm.line-box",
+        "control.size.sm.label-inset",
         "size.lg.height",
         "size.md.height",
         "size.sm.height",
         "space.0",
+        "space.050",
         "space.075",
         "space.100",
         "space.150",
-        "type.body.lg.default",
         "type.body.md.default",
-        "type.body.sm.default"
+        "type.body.md.line-box",
+        "type.body.sm.default",
+        "type.body.sm.line-box",
+        "type.body.xs.default",
+        "type.body.xs.line-box"
       ],
       "declaredNotDrawn": [
         "color.disabled.text"
@@ -31222,17 +31438,17 @@
       "tokens": [
         "color.disabled.text",
         "color.text.primary",
-        "control.size.md.line-box",
         "control.size.md.track",
-        "control.size.sm.line-box",
         "control.size.sm.track",
         "size.md.height",
         "size.sm.height",
         "space.0",
         "space.075",
         "space.100",
-        "type.body.md.default",
-        "type.body.sm.default"
+        "type.body.sm.default",
+        "type.body.sm.line-box",
+        "type.body.xs.default",
+        "type.body.xs.line-box"
       ],
       "declaredNotDrawn": [
         "color.disabled.text"
@@ -31809,6 +32025,7 @@
       "space.900",
       "type.body.lg.default-italic",
       "type.body.lg.default-italic-link",
+      "type.body.lg.line-box",
       "type.body.lg.strong-italic",
       "type.body.lg.strong-italic-link",
       "type.body.md.default-italic",

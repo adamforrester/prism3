@@ -297,6 +297,8 @@ export const figmaControlDescription = (field: string, c: Record<string, number>
     case 'radius': return `Checkbox/radio corner — ${c.radius}px, clamped to the ${c.height}px box (does not follow the radius scale).`;
     case 'track': return `Switch track height — ${c.track}px. Switches only.`;
     case 'thumb': return `Switch thumb — ${c.thumb}px (0.75 × the ${c.track}px track). Switches only.`;
+    // #3153: the option row's label is one body rung below the control's (`ROW_LABEL_RUNG` in `tree.ts`).
+    case 'label-inset': return `Option row label inset — ${c['label-inset']}px, so the label's first line centers on the ${c.height}px box.`;
     default: throw new Error(`figma-description: no Figma description for control field '${field}'`);
   }
 };
@@ -304,6 +306,10 @@ export const figmaControlDescription = (field: string, c: Record<string, number>
 /** `type/label/<rung>/line-box` (#2586, Q275.3 A): one line of the label type, carried in the `control` collection. */
 export const figmaLabelLineBoxDescription = (rung: string, px: number): string =>
   `Title line height (label ${rung}, ${px}px) — a glyph centers on the title's first line.`;
+
+/** `type/body/<rung>/line-box` (#3153, Q852): one line of the body type, carried in the `control` collection. */
+export const figmaBodyLineBoxDescription = (rung: string, px: number): string =>
+  `Label line height (body ${rung}, ${px}px) — an option row's control stays on the label's first line.`;
 
 /** `focus/ring/<key>` (#1623 FG/F-17). */
 export const figmaFocusDescription = (key: string, px: number): string => {

@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 265 of 795 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 271 of 802 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -390,13 +390,13 @@ Type: color. Bound by 14 component(s).
 | button | `disabled.label` | label | appearance: outline, text · state: disabled · surface: default (36 of 576) |
 | button-destructive | `disabled.label` | label | appearance: outline, text · state: disabled · surface: default (36 of 576) |
 | button-neutral | `disabled.label` | label | appearance: outline, text · state: disabled · surface: default (36 of 576) |
-| checkbox-row | `disabled.label` | (not drawn) | — |
+| checkbox-row | `disabled.indicator`, `disabled.label` | (not drawn) | — |
 | counter | `disabled.label` | value | state: disabled (6 of 18) |
 | field-label | `disabled.indicator`, `disabled.label` | indicator | state: disabled (12 of 24) |
 |  |  | label | state: disabled (12 of 24) |
 | pagination-item | `disabled.label` | nextText | labeled: true · selection: unselected · state: disabled · style: border · type: next (3 of 87) |
 |  |  | previousText | labeled: true · selection: unselected · state: disabled · style: border · type: previous (3 of 87) |
-| radio-row | `disabled.label` | (not drawn) | — |
+| radio-row | `disabled.indicator`, `disabled.label` | (not drawn) | — |
 | segmented-control-segment | `disabled.label` | label | state: disabled (6 of 30) |
 |  |  | labelReserve | state: disabled (6 of 30) |
 | slider | `disabled.body`, `disabled.label` | maxLabel | state: disabled (6 of 30) |
@@ -1991,11 +1991,12 @@ Type: color. Bound by 21 component(s).
 
 ### `color.text.secondary`
 
-Type: color. Bound by 12 component(s).
+Type: color. Bound by 14 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | card-number-field | `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
+| checkbox-row | `indicator` | description | every member (6 of 6) |
 | dialog | `indicator` | description | every member (24 of 24) |
 | divider | `label` | label | inset: none · labeled: true · orientation: horizontal (1 of 6) |
 | field-label | `secondary.indicator`, `secondary.label` | indicator | emphasis: secondary · state: rest (6 of 24) |
@@ -2006,6 +2007,7 @@ Type: color. Bound by 12 component(s).
 |  |  | ringValueComplete | shape: circular · status: complete · type: determinate (2 of 12) |
 |  |  | value | shape: linear · size: medium · status: active, error · type: determinate (2 of 12) |
 |  |  | valueComplete | shape: linear · size: medium · status: complete · type: determinate (1 of 12) |
+| radio-row | `indicator` | description | every member (6 of 6) |
 | search-field | `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
 | select | `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
 | slider | `body` | maxLabel | state: focus-visible, hover, pressed, rest (24 of 30) |
@@ -2137,19 +2139,26 @@ Type: dimension. Bound by 4 component(s).
 | radio-control | `size.large.control` | control | size: large (20 of 60) |
 | radio-row | `size.large.control` | control | size: large (2 of 6) |
 
+### `control.size.lg.label-inset`
+
+Type: dimension. Bound by 2 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.large.label-inset` | textStack | size: large (2 of 6) |
+| radio-row | `size.large.label-inset` | textStack | size: large (2 of 6) |
+
 ### `control.size.lg.line-box`
 
-Type: dimension. Bound by 8 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | card-number-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: large · state: focus-visible-filled (4 of 84) |
-| checkbox-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 | list-item | `size.large.line-box` | markerBox | size: large (3 of 9) |
 | password-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: large · state: focus-visible-filled (4 of 84) |
-| radio-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 | search-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: large · state: focus-visible-filled (4 of 84) |
 | text-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
@@ -2203,22 +2212,28 @@ Type: dimension. Bound by 1 component(s).
 |---|---|---|---|
 | switch-control | `size.medium.inset` | track | size: medium (20 of 40) |
 
+### `control.size.md.label-inset`
+
+Type: dimension. Bound by 2 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.medium.label-inset` | textStack | size: medium (2 of 6) |
+| radio-row | `size.medium.label-inset` | textStack | size: medium (2 of 6) |
+
 ### `control.size.md.line-box`
 
-Type: dimension. Bound by 9 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | card-number-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
-| checkbox-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | list-item | `size.medium.line-box` | markerBox | size: medium (3 of 9) |
 | password-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
-| radio-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | search-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
-| switch-row | `size.medium.control-box` | controlCell | size: medium (2 of 4) |
 | text-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
 | textarea | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
@@ -2291,22 +2306,28 @@ Type: dimension. Bound by 1 component(s).
 |---|---|---|---|
 | switch-control | `size.small.inset` | track | size: small (20 of 40) |
 
+### `control.size.sm.label-inset`
+
+Type: dimension. Bound by 2 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.small.label-inset` | textStack | size: small (2 of 6) |
+| radio-row | `size.small.label-inset` | textStack | size: small (2 of 6) |
+
 ### `control.size.sm.line-box`
 
-Type: dimension. Bound by 9 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | card-number-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
-| checkbox-row | `size.small.control-box` | controlCell | size: small (2 of 6) |
 | list-item | `size.small.line-box` | markerBox | size: small (3 of 9) |
 | password-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
-| radio-row | `size.small.control-box` | controlCell | size: small (2 of 6) |
 | search-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
-| switch-row | `size.small.control-box` | controlCell | size: small (2 of 4) |
 | text-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
 | textarea | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
@@ -2912,7 +2933,7 @@ Type: dimension. Bound by 3 component(s).
 
 ### `space.050`
 
-Type: dimension. Bound by 12 component(s).
+Type: dimension. Bound by 14 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2923,6 +2944,7 @@ Type: dimension. Bound by 12 component(s).
 | breadcrumb-item | `size.small.gap` | container | size: small (5 of 10) |
 | breadcrumbs | `back-gap`, `size.small.gap` | container | every member (6 of 6) |
 |  |  | items | path: full · size: small (2 of 6) |
+| checkbox-row | `description-gap` | textStack | every member (6 of 6) |
 | counter | `size.medium.value-pad`, `size.small.value-pad` | entry | size: medium, small (12 of 18) |
 | field-label | `gap` | container | every member (24 of 24) |
 | link | `size.medium.gap`, `size.small.gap` | container | size: medium, small (96 of 144) |
@@ -2930,6 +2952,7 @@ Type: dimension. Bound by 12 component(s).
 |  |  | row | type: compact, numbered (9 of 12) |
 |  |  | simpleRow | style: border · type: simple (3 of 12) |
 | pagination-item | `gap` | container | every member (87 of 87) |
+| radio-row | `description-gap` | textStack | every member (6 of 6) |
 | segmented-control-segment | `inset` | container | every member (30 of 30) |
 | tag | `size.large.dismissible.gap`, `size.large.dismissible.label-inset`, `size.medium.dismissible.gap`, `size.medium.dismissible.label-inset`, `size.small.check-gap`, `size.small.dismissible.label-inset`, `size.small.underline.inset` | content | selection: unselected · size: large, medium · type: dismissible (10 of 45) |
 |  |  | labelCheck | every member (25 of 45) |
@@ -3144,21 +3167,19 @@ Type: dimension. Bound by 1 component(s).
 
 ### `type.body.lg.default`
 
-Type: typography. Bound by 12 component(s).
+Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.panel-type` | placeholder | expansion: expanded · size: large (8 of 48) |
 | card-number-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
-| checkbox-row | `size.large.text` | label | size: large (2 of 6) |
 | counter | `size.large.type` | value | size: large (6 of 18) |
 | link | `size.large.type.default.standalone.selected.focus-visible`, `size.large.type.default.standalone.selected.hover`, `size.large.type.default.standalone.selected.pressed`, `size.large.type.default.standalone.selected.rest`, `size.large.type.default.standalone.unselected.rest` | label | size: large · style: standalone · weight: default (10 of 144) |
 | list-item | `size.large.text` | label | size: large (3 of 9) |
 |  |  | number | size: large · type: ordered (1 of 9) |
 | password-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
-| radio-row | `size.large.text` | label | size: large (2 of 6) |
 | search-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
 | select | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3194,7 +3215,7 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 19 component(s).
+Type: typography. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3203,7 +3224,7 @@ Type: typography. Bound by 19 component(s).
 | breadcrumb-item | `size.medium.type` | current | kind: current · separator: chevron · size: medium (1 of 10) |
 | card-number-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
-| checkbox-row | `size.medium.text` | label | size: medium (2 of 6) |
+| checkbox-row | `size.large.text` | label | size: large (2 of 6) |
 | code-input-cell | `size.small.type` | digit | size: small · state: error, filled, focus-visible-filled (3 of 28) |
 | counter | `size.medium.type` | value | size: medium (6 of 18) |
 | dialog | `body-type`, `description-type` | description | every member (24 of 24) |
@@ -3215,12 +3236,11 @@ Type: typography. Bound by 19 component(s).
 |  |  | number | size: medium · type: ordered (1 of 9) |
 | password-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
-| radio-row | `size.medium.text` | label | size: medium (2 of 6) |
+| radio-row | `size.large.text` | label | size: large (2 of 6) |
 | search-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | select | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
-| switch-row | `size.medium.text` | label | size: medium (2 of 4) |
 | text-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | textarea | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3234,6 +3254,15 @@ Type: typography. Bound by 1 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | link | `size.medium.type.default.inline.selected.focus-visible`, `size.medium.type.default.inline.selected.hover`, `size.medium.type.default.inline.selected.pressed`, `size.medium.type.default.inline.selected.rest`, `size.medium.type.default.inline.unselected.focus-visible`, `size.medium.type.default.inline.unselected.hover`, `size.medium.type.default.inline.unselected.pressed`, `size.medium.type.default.inline.unselected.rest`, `size.medium.type.default.standalone.unselected.focus-visible`, `size.medium.type.default.standalone.unselected.hover`, `size.medium.type.default.standalone.unselected.pressed` | label | selection: unselected · size: medium · weight: default (14 of 144) |
+
+### `type.body.md.line-box`
+
+Type: dimension. Bound by 2 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
+| radio-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 
 ### `type.body.md.strong`
 
@@ -3263,7 +3292,8 @@ Type: typography. Bound by 17 component(s).
 | breadcrumb-item | `size.small.type` | current | kind: current · separator: chevron · size: small (1 of 10) |
 | card-number-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
-| checkbox-row | `size.small.text` | label | size: small (2 of 6) |
+| checkbox-row | `description.large.text`, `size.medium.text` | description | size: large (2 of 6) |
+|  |  | label | size: medium (2 of 6) |
 | counter | `size.small.type` | value | size: small (6 of 18) |
 | field-label | `size.medium.regular.text` | indicator | size: medium · weight: regular (4 of 24) |
 |  |  | label | size: medium · weight: regular (4 of 24) |
@@ -3276,14 +3306,15 @@ Type: typography. Bound by 17 component(s).
 |  |  | ringValueComplete | shape: circular · status: complete · type: determinate (2 of 12) |
 |  |  | value | shape: linear · size: medium · status: active, error · type: determinate (2 of 12) |
 |  |  | valueComplete | shape: linear · size: medium · status: complete · type: determinate (1 of 12) |
-| radio-row | `size.small.text` | label | size: small (2 of 6) |
+| radio-row | `description.large.text`, `size.medium.text` | description | size: large (2 of 6) |
+|  |  | label | size: medium (2 of 6) |
 | search-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | select | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | slider | `value-type` | valueRange | type: range (15 of 30) |
 |  |  | valueSingle | type: single (15 of 30) |
-| switch-row | `size.small.text` | label | size: small (2 of 4) |
+| switch-row | `size.medium.text` | label | size: medium (2 of 4) |
 | text-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | textarea | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3296,6 +3327,16 @@ Type: typography. Bound by 1 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | link | `size.small.type.default.inline.selected.focus-visible`, `size.small.type.default.inline.selected.hover`, `size.small.type.default.inline.selected.pressed`, `size.small.type.default.inline.selected.rest`, `size.small.type.default.inline.unselected.focus-visible`, `size.small.type.default.inline.unselected.hover`, `size.small.type.default.inline.unselected.pressed`, `size.small.type.default.inline.unselected.rest`, `size.small.type.default.standalone.unselected.focus-visible`, `size.small.type.default.standalone.unselected.hover`, `size.small.type.default.standalone.unselected.pressed` | label | selection: unselected · size: small · weight: default (14 of 144) |
+
+### `type.body.sm.line-box`
+
+Type: dimension. Bound by 3 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
+| radio-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
+| switch-row | `size.medium.control-box` | controlCell | size: medium (2 of 4) |
 
 ### `type.body.sm.strong`
 
@@ -3317,15 +3358,30 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.xs.default`
 
-Type: typography. Bound by 2 component(s).
+Type: typography. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| checkbox-row | `description.medium.text`, `description.small.text`, `size.small.text` | description | size: medium, small (4 of 6) |
+|  |  | label | size: small (2 of 6) |
 | field-label | `size.small.regular.text` | indicator | size: small · weight: regular (4 of 24) |
 |  |  | label | size: small · weight: regular (4 of 24) |
+| radio-row | `description.medium.text`, `description.small.text`, `size.small.text` | description | size: medium, small (4 of 6) |
+|  |  | label | size: small (2 of 6) |
 | slider | `milestone-type` | maxLabel | every member (30 of 30) |
 |  |  | milestone | every member (30 of 30) |
 |  |  | minLabel | every member (30 of 30) |
+| switch-row | `size.small.text` | label | size: small (2 of 4) |
+
+### `type.body.xs.line-box`
+
+Type: dimension. Bound by 3 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.small.control-box` | controlCell | size: small (2 of 6) |
+| radio-row | `size.small.control-box` | controlCell | size: small (2 of 6) |
+| switch-row | `size.small.control-box` | controlCell | size: small (2 of 4) |
 
 ### `type.body.xs.strong`
 
@@ -3640,9 +3696,9 @@ Declared, not drawn: `color.border.focus`
 
 ### checkbox-row
 
-18 token(s); 6 design-file member(s).
+23 token(s); 6 design-file member(s).
 
-`color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`color.disabled.text`, `color.text.primary`, `color.text.secondary`, `control.size.lg.height`, `control.size.lg.label-inset`, `control.size.md.height`, `control.size.md.label-inset`, `control.size.sm.height`, `control.size.sm.label-inset`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.075`, `space.100`, `space.150`, `type.body.md.default`, `type.body.md.line-box`, `type.body.sm.default`, `type.body.sm.line-box`, `type.body.xs.default`, `type.body.xs.line-box`
 
 Declared, not drawn: `color.disabled.text`
 
@@ -3832,9 +3888,9 @@ Declared, not drawn: `color.border.focus`
 
 ### radio-row
 
-18 token(s); 6 design-file member(s).
+23 token(s); 6 design-file member(s).
 
-`color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`color.disabled.text`, `color.text.primary`, `color.text.secondary`, `control.size.lg.height`, `control.size.lg.label-inset`, `control.size.md.height`, `control.size.md.label-inset`, `control.size.sm.height`, `control.size.sm.label-inset`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.075`, `space.100`, `space.150`, `type.body.md.default`, `type.body.md.line-box`, `type.body.sm.default`, `type.body.sm.line-box`, `type.body.xs.default`, `type.body.xs.line-box`
 
 Declared, not drawn: `color.disabled.text`
 
@@ -3894,7 +3950,7 @@ Declared, not drawn: `color.border.focus`
 
 13 token(s); 4 design-file member(s).
 
-`color.disabled.text`, `color.text.primary`, `control.size.md.line-box`, `control.size.md.track`, `control.size.sm.line-box`, `control.size.sm.track`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `type.body.md.default`, `type.body.sm.default`
+`color.disabled.text`, `color.text.primary`, `control.size.md.track`, `control.size.sm.track`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `type.body.sm.default`, `type.body.sm.line-box`, `type.body.xs.default`, `type.body.xs.line-box`
 
 Declared, not drawn: `color.disabled.text`
 
@@ -3952,7 +4008,7 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-250 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+251 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
@@ -3977,7 +4033,7 @@ Declared, not drawn: `color.border.focus`
 - **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.md`, `shadow.sm`, `shadow.xs`
 - **size** — `size.xl.height`, `size.xs.height`
 - **space** — `space.1000`, `space.1100`, `space.1200`, `space.600`, `space.700`, `space.800`, `space.900`
-- **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.default-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.body.xs.strong-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.sm.emphasis`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
+- **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.line-box`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.default-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.body.xs.strong-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.sm.emphasis`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
 
 ### Primitive
 

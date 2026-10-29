@@ -8118,6 +8118,30 @@
     }
   },
   "layout": {
+    "type.body.xs.line-box": {
+      "$description": "type.body.xs line-box — 18px, the height of one line of the `body.xs` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+      "meaning": "Body line height, xs — one line of the body xs type",
+      "when_to_use": "The least height of the box a control beside a body label sits in (an option row's control cell), so the control stays on the label's first line.",
+      "resolves_to": "18px"
+    },
+    "type.body.sm.line-box": {
+      "$description": "type.body.sm line-box — 21px, the height of one line of the `body.sm` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+      "meaning": "Body line height, sm — one line of the body sm type",
+      "when_to_use": "The least height of the box a control beside a body label sits in (an option row's control cell), so the control stays on the label's first line.",
+      "resolves_to": "21px"
+    },
+    "type.body.md.line-box": {
+      "$description": "type.body.md line-box — 24px, the height of one line of the `body.md` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+      "meaning": "Body line height, md — one line of the body md type",
+      "when_to_use": "The least height of the box a control beside a body label sits in (an option row's control cell), so the control stays on the label's first line.",
+      "resolves_to": "24px"
+    },
+    "type.body.lg.line-box": {
+      "$description": "type.body.lg line-box — 27px, the height of one line of the `body.lg` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+      "meaning": "Body line height, lg — one line of the body lg type",
+      "when_to_use": "The least height of the box a control beside a body label sits in (an option row's control cell), so the control stays on the label's first line.",
+      "resolves_to": "27px"
+    },
     "type.label.sm.line-box": {
       "$description": "type.label.sm line-box — 14px, the height of one line of the `label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
       "meaning": "Label line height, sm — one line of the label sm type",
@@ -8568,6 +8592,12 @@
       "when_to_use": "The line-box of a checkbox, radio or switch at the sm step.",
       "resolves_to": "21px"
     },
+    "control.size.sm.label-inset": {
+      "$description": "control.size.sm label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 16px box less the 18px `body.xs` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
+      "meaning": "Selection-control geometry, sm step — label-inset",
+      "when_to_use": "The label-inset of a checkbox, radio or switch at the sm step.",
+      "resolves_to": "0px"
+    },
     "control.size.md.height": {
       "$description": "control.size.md — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "meaning": "Selection-control geometry, md step — height",
@@ -8616,6 +8646,12 @@
       "when_to_use": "The line-box of a checkbox, radio or switch at the md step.",
       "resolves_to": "24px"
     },
+    "control.size.md.label-inset": {
+      "$description": "control.size.md label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 20px box less the 21px `body.sm` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
+      "meaning": "Selection-control geometry, md step — label-inset",
+      "when_to_use": "The label-inset of a checkbox, radio or switch at the md step.",
+      "resolves_to": "0px"
+    },
     "control.size.lg.height": {
       "$description": "control.size.lg — 24px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "meaning": "Selection-control geometry, lg step — height",
@@ -8663,6 +8699,12 @@
       "meaning": "Selection-control geometry, lg step — line-box",
       "when_to_use": "The line-box of a checkbox, radio or switch at the lg step.",
       "resolves_to": "27px"
+    },
+    "control.size.lg.label-inset": {
+      "$description": "control.size.lg label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 24px box less the 24px `body.md` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
+      "meaning": "Selection-control geometry, lg step — label-inset",
+      "when_to_use": "The label-inset of a checkbox, radio or switch at the lg step.",
+      "resolves_to": "0px"
     }
   },
   "motion": {

@@ -3558,6 +3558,11 @@
               "textDecoration": "underline"
             },
             "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color)."
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "18px",
+            "$description": "type.body.xs line-box — 18px, the height of one line of the `body.xs` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps."
           }
         },
         "sm": {
@@ -3606,6 +3611,11 @@
               "textDecoration": "underline"
             },
             "$description": "body sm strong link — 14px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)"
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "21px",
+            "$description": "type.body.sm line-box — 21px, the height of one line of the `body.sm` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps."
           }
         },
         "md": {
@@ -3654,6 +3664,11 @@
               "textDecoration": "underline"
             },
             "$description": "body md strong link — 16px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)"
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "24px",
+            "$description": "type.body.md line-box — 24px, the height of one line of the `body.md` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps."
           }
         },
         "lg": {
@@ -3702,6 +3717,11 @@
               "textDecoration": "underline"
             },
             "$description": "body lg strong link — 18px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)"
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "27px",
+            "$description": "type.body.lg line-box — 27px, the height of one line of the `body.lg` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps."
           }
         }
       },
@@ -4610,6 +4630,11 @@
             "$type": "dimension",
             "$value": "21px",
             "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph."
+          },
+          "label-inset": {
+            "$type": "dimension",
+            "$value": "0px",
+            "$description": "control.size.sm label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 16px box less the 18px `body.xs` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line."
           }
         },
         "md": {
@@ -4652,6 +4677,11 @@
             "$type": "dimension",
             "$value": "24px",
             "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph."
+          },
+          "label-inset": {
+            "$type": "dimension",
+            "$value": "0px",
+            "$description": "control.size.md label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 20px box less the 21px `body.sm` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line."
           }
         },
         "lg": {
@@ -4694,6 +4724,11 @@
             "$type": "dimension",
             "$value": "27px",
             "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph."
+          },
+          "label-inset": {
+            "$type": "dimension",
+            "$value": "0px",
+            "$description": "control.size.lg label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 24px box less the 24px `body.md` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line."
           }
         }
       }
