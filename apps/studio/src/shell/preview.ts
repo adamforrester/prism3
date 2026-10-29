@@ -66,7 +66,8 @@ export type ModeControl = {
   readonly el: HTMLElement;
   /** PM1 B (owner, 2026-10-08; #2321): hold the control in Prism3's disabled skin, every radio and the select by
    *  their own `disabled` (#2284's pattern: out of the tab order, disabled to assistive technology), described by
-   *  `why`, the id of the line that says why. `null` releases it. */
+   *  `why`, the id of the line that says why. `''` holds it with no line (Components, which hides the control, #3129
+   *  R4). `null` releases it. */
   readonly hold: (why: string | null) => void;
 };
 export const modeControl = (cleanups: (() => void)[]): ModeControl => {

@@ -248,9 +248,11 @@ const openPanel = async () => {
   await page.evaluate(() => {
     window.__builds = [];
     window.__sets = 0;
+    window.__queues = [];
     window.addEventListener('message', (e) => {
       const m = e.data && e.data.pluginMessage;
       if (m && m.type === 'build-components') window.__builds.push(m.def ?? null);
+      if (m && m.type === 'add-queue') window.__queues.push(JSON.parse(JSON.stringify(m)));
       if (m && m.type === 'file-sets-request') window.__sets++;
     });
   });
@@ -291,18 +293,17 @@ const reopen = async (page) => {
 const setBox = async (page, locator, on) => {
   if ((await locator.getAttribute('aria-checked')) !== String(on)) await hooks.click(locator);
 };
-/** Build these sets through Update file (#2909, Q2909.5 A): the sets ticked, the theme unticked, so the run is the sets
- *  step alone. Returns false if the checklist could not be driven. */
+/** Build these sets through Update file (#2909, Q2909.5 A): the sets queued in the file (#3129, the host's answer carries
+ *  the queue), the theme unticked, so the run is the sets step alone. Returns false if the checklist could not be driven. */
 const runSets = async (page, ids, label = 'build') => {
   try {
-    await openUpdate(page);
+    await openUpdate(page, { present: [], setUp: true, queued: ids });
     // #3023 Q701 B: unticking Theme checks the file again, against the stored brand; it is answered as the first read was.
     const asked = await page.evaluate(() => window.__sets);
     await setBox(page, page.locator('[data-p3="update-check-theme"]'), false);
     await page.waitForFunction((n) => window.__sets > n, asked, { timeout: 3000 }).catch(() => {});
-    await post(page, { type: 'file-sets', present: [], setUp: true });
+    await post(page, { type: 'file-sets', present: [], setUp: true, queued: ids });
     await hooks.need(page, '[data-p3="update-go"]');
-    for (const id of ids) await setBox(page, page.locator(`[data-p3="update-set"][data-id="${id}"]`), true);
     await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
     return true;
   } catch (e) {
@@ -430,7 +431,7 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
 //
 // The zeroth terminating condition is "nothing has terminated yet", and it needs its own assertion: a control that
 // mounted blank or busy would sail past every check below, which read the control only after a build. Since #2909 the
-// control is Update file, and the checklist it opens lists every set the file lacks, unticked (Q2909.5 A). The proving
+// control is Update file, and on a set-up file with nothing queued it shows no To add at all (#3129 R7). The proving
 // build after it shows this probe CAN see a busy label and a result, so the fresh reading is a measurement.
 {
   const { page, errors } = await openPanel();
@@ -439,19 +440,25 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
   ok(errors.length === 0, `opening the panel logs no console errors (${errors.slice(0, 2).join(' · ')})`);
   await openUpdate(page);
   const list = await page.evaluate(() => ({
-    sets: [...document.querySelectorAll('[data-p3="update-set"]')].map((b) => [b.dataset.id, b.getAttribute('aria-checked')]),
-    tag: document.querySelector('[data-p3="update-set-new"]')?.textContent ?? null,
+    rows: document.querySelectorAll('[data-p3="update-add-row"]').length,
+    group: !!document.querySelector('[data-p3="update-group-add"], [data-p3="update-add-line"]'),
     theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
   }));
-  ok(list.sets.length >= 20 && list.sets.every(([, c]) => c === 'false') && list.sets.some(([id]) => id === 'button') && list.tag === 'Not in file · add',
-    `Q2909.5 A: on a set-up file the checklist lists each set the file lacks, unticked, "Not in file · add" — ${list.sets.length} sets, ticked ${list.sets.filter(([, c]) => c === 'true').length}, tag ${JSON.stringify(list.tag)}`);
   ok(list.theme === 'true', `Q2909.2 A: the checklist always shows the theme, ticked — read ${list.theme}`);
+  hooks.absent(ok, { seen: list.theme === 'true', state: 'the checklist drawn, its Theme item ticked' }, list.rows === 0 && !list.group,
+    `#3129 Q832 A, R7: on a set-up file with nothing queued there is no To add at all; no set is listed to tick — ${JSON.stringify(list)}`);
   await hooks.click(page.locator('[data-p3="update-cancel"]'));
   await startBuild(page, undefined, 'the fresh panel\'s proving build');
   const during = await readSurfaces(page);
+  const queuesBefore = (await page.evaluate(() => window.__queues)).length;
   await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
   await idleAgain(page);
   const after = await readSurfaces(page);
+  // #3129 Q3129.2 A, Q3129.3 A: a finished run ends with one queue write of no ids, which clears the keys of the sets the
+  // file now holds; without it a hand-added set's key lingers and comes back as queued once that set is deleted.
+  const closing = (await page.evaluate(() => window.__queues)).slice(queuesBefore);
+  ok(JSON.stringify(closing) === JSON.stringify([{ type: 'add-queue', ids: [], on: false }]),
+    `#3129 Q3129.2 A: a finished Update file run posts one queue write of no ids — posted ${JSON.stringify(closing)}`);
   ok(during.button === BUSY_LABEL && during.busy && after.barVerdict.some((t) => (t ?? '').includes('built 648')),
     `the proving build: the probe sees the busy label, then the result — read "${during.button}" (busy ${during.busy}), then ${JSON.stringify(after.barVerdict)}`);
   ok(JSON.stringify(await builds(page)) === '["button"]', `the build posts the set ticked — posted ${JSON.stringify(await builds(page))}`);
@@ -756,16 +763,17 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       pending: row ? [...row.querySelectorAll('[data-p3="op-progress"]')].map((n) => n.textContent) : [],
     };
   });
-  await openUpdate(page, { present: [], setUp: false });
+  // #3129 Q3129.10 A: the queue is the file's, so one set queued (Button) is what the sets step builds.
+  await openUpdate(page, { present: [], setUp: false, queued: ['button'] });
   const first = await page.evaluate(() => ({
     setup: document.querySelector('[data-p3="update-check-setup"]')?.getAttribute('aria-checked') ?? null,
     theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
     guides: document.querySelector('[data-p3="update-check-guides"]')?.getAttribute('aria-checked') ?? null,
-    sets: [...document.querySelectorAll('[data-p3="update-set"]')].map((b) => b.getAttribute('aria-checked')),
+    sets: [...document.querySelectorAll('[data-p3="update-add-row"]')].map((b) => b.dataset.id),
     go: document.querySelector('[data-p3="update-go"]')?.textContent ?? null,
   }));
-  ok(first.setup === 'true' && first.theme === 'true' && first.guides === 'true' && first.sets.length > 0 && first.sets.every((c) => c === 'true') && first.go === 'Set up and update',
-    `Q668 A, Q2909.5 A: on a file not set up the first checklist is the setup, everything ticked, its action "Set up and update" — read ${JSON.stringify({ ...first, sets: `${first.sets.filter((c) => c === 'true').length} of ${first.sets.length} ticked` })}`);
+  ok(first.setup === 'true' && first.theme === 'true' && first.guides === 'true' && JSON.stringify(first.sets) === '["button"]' && first.go === 'Set up and update',
+    `Q668 A, Q3129.10 A: on a file not set up the first checklist is the setup, its items ticked, the queued set under To add, its action "Set up and update" — read ${JSON.stringify(first)}`);
   await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
   await page.waitForFunction(() => window.__posts.length > 0, null, { timeout: 3000 }).catch(() => {});
   const pending = await readFs();
@@ -810,8 +818,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     window.__posts = [];
     window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && ['apply-theme', 'build-components'].includes(m.type)) window.__posts.push(m.type); });
   });
-  await openUpdate(page);
-  await setBox(page, page.locator('[data-p3="update-set"][data-id="tag"]'), true);
+  await openUpdate(page, { present: [], setUp: true, queued: ['tag'] });
   await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
   await page.waitForFunction(() => window.__posts.length > 0, null, { timeout: 3000 }).catch(() => {});
   await post(page, { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'write failed' });
@@ -1098,7 +1105,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // suite playing the plugin: what is posted, and when; that Activity reads one running build between the sets and ONE
 // result at the end (idea 13 A), with no Earlier results from the sets in between; and Stop (call 16 A; since #2909 the
 // checklist's "Stop after this step") letting the set being built finish and posting nothing after it. The sets run in
-// the checklist's order, which is the catalog's: typed here as the order this run posts. EXPECTED is typed here: the ids,
+// the add queue's order, which is Components' list order since #3129 (Q833 A): Tag's section comes before Other
+// components, and Badge before Divider within it. Typed here as the order this run posts. EXPECTED is typed here: the ids,
 // the order and the words.
 //
 // RETIRED in #2909 (Q2909.5 A): the Components bar's own surfaces (its "Build 3 sets" and "Building 1 of 3…" labels,
@@ -1117,7 +1125,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const history = () => page.evaluate(() => document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-history-entry"]').length);
   const verdict = () => page.evaluate(() => document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? null);
   const result = (id) => post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${id}'`, lines: [] });
-  const ORDER = ['badge', 'tag', 'divider'];
+  const ORDER = ['tag', 'badge', 'divider'];
   await runSets(page, ['tag', 'badge', 'divider'], '#2700 a run of three');
   await waitPosts(1);
   const first = JSON.stringify(await posted());

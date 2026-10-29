@@ -199,20 +199,28 @@ accepts('style-guide-result with a malformed stopped leaves it off', { type: 'st
 {
   const moved = { parts: [{ part: 'focus-ring', facets: ['size'] }], added: ['icon'], dropped: [], set: false };
   accepts('file-sets with an engine and an executor due reading', { type: 'file-sets', present: ['button', 'tag'], setUp: true, due: { button: { state: 'due', reason: 'engine', moved }, tag: { state: 'due', reason: 'executor' } } },
-    { kind: 'file-sets', present: ['button', 'tag'], setUp: true, error: null, due: { button: { state: 'due', reason: 'engine', moved }, tag: { state: 'due', reason: 'executor' } } });
+    { kind: 'file-sets', present: ['button', 'tag'], setUp: true, error: null, due: { button: { state: 'due', reason: 'engine', moved }, tag: { state: 'due', reason: 'executor' } }, queued: [] });
   accepts('file-sets with a malformed moved list keeps the set due and drops the bad entries', { type: 'file-sets', present: ['button'], setUp: true, due: { button: { state: 'due', reason: 'engine', moved: { parts: [{ part: 'label', facets: ['nope'] }, { part: 3, facets: ['size'] }], added: [7, 'x'], set: 'yes' } } } },
-    { kind: 'file-sets', present: ['button'], setUp: true, error: null, due: { button: { state: 'due', reason: 'engine', moved: { parts: [], added: ['x'], dropped: [], set: false } } } });
+    { kind: 'file-sets', present: ['button'], setUp: true, error: null, due: { button: { state: 'due', reason: 'engine', moved: { parts: [], added: ['x'], dropped: [], set: false } } }, queued: [] });
   // #3090 finding 1: an entry recorded with no print reads due for the engine with no list, and keeps none.
   accepts('file-sets with an engine due reading and no moved list keeps the set due with none', { type: 'file-sets', present: ['button'], setUp: true, due: { button: { state: 'due', reason: 'engine' } } },
-    { kind: 'file-sets', present: ['button'], setUp: true, error: null, due: { button: { state: 'due', reason: 'engine' } } });
+    { kind: 'file-sets', present: ['button'], setUp: true, error: null, due: { button: { state: 'due', reason: 'engine' } }, queued: [] });
 }
 
 // #3110: the flags the host sets on a read at open cross intact, so the panel can tell the ledger's answer and a read after
 // open from an answer it asked for; a flag that is not `true` is left off, the answer kept.
 accepts('file-sets at open, the ledger\'s alone, keeps partial and atOpen', { type: 'file-sets', present: ['button'], setUp: false, due: {}, partial: true, atOpen: true },
-  { kind: 'file-sets', present: ['button'], setUp: false, error: null, due: {}, partial: true, atOpen: true });
+  { kind: 'file-sets', present: ['button'], setUp: false, error: null, due: {}, queued: [], partial: true, atOpen: true });
 accepts('file-sets with a malformed partial and atOpen leaves both off', { type: 'file-sets', present: ['button'], setUp: true, due: {}, partial: 'yes', atOpen: 1 },
-  { kind: 'file-sets', present: ['button'], setUp: true, error: null, due: {} });
+  { kind: 'file-sets', present: ['button'], setUp: true, error: null, due: {}, queued: [] });
+// #3129 Q833 A: the add queue crosses on file-sets, file-due and a queue write's answer; ids that are not strings are
+// dropped, a queue that is not a list reads as empty, and the panel's own add-queue request (no queue list) is dropped.
+accepts('file-sets with the add queue', { type: 'file-sets', present: [], setUp: true, due: {}, queued: ['tag', 7, 'badge'] },
+  { kind: 'file-sets', present: [], setUp: true, error: null, due: {}, queued: ['tag', 'badge'] });
+accepts('file-due with the add queue', { type: 'file-due', seq: 2, present: [], theme: false, due: {}, queued: 'tag' },
+  { kind: 'file-due', seq: 2, present: [], theme: false, error: null, due: {}, queued: [] });
+accepts('add-queue, the answer to a queue write', { type: 'add-queue', queued: ['tag'] }, { kind: 'add-queue', queued: ['tag'], error: null });
+drops('the panel\'s own add-queue request, which carries no queue', wire({ type: 'add-queue', ids: ['tag'], on: true }));
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

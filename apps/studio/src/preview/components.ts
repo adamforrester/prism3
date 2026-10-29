@@ -48,7 +48,6 @@ export const DETAIL_COPY = {
   preview: 'Preview',
   setsInFamily: 'Sets in this family',
   set: 'Set',
-  selected: 'selected',
 } as const;
 
 /** The family the page shows when nothing is focused: Buttons (the one with a preview), else the first row. */
@@ -66,11 +65,12 @@ const densityLabel = (): string => {
   return (leverManifest.find((l) => l.key === 'density')?.options ?? []).find((o) => String(o.value) === d)?.label ?? d;
 };
 
-/** What a member says about its cost, and whether it is selected. */
+/** What a member says about its cost. (#3129 retired the session's selection it also named: the list's To add tag says
+ *  what is queued.) */
 const partsLine = (catalog: Catalog, id: string): string | null => {
   const e = entryOf(catalog, id);
   if (!e?.buildable || e.members === null) return null;
-  return GROUPS_COPY.members(e.members, e.unit) + (componentsPage().sel.has(id) ? ` · ${DETAIL_COPY.selected}` : '');
+  return GROUPS_COPY.members(e.members, e.unit);
 };
 
 /** One family's block (see the header). */
@@ -155,16 +155,10 @@ export const mountComponentsPreview = (hostEl: HTMLElement, cleanups: (() => voi
       if (n && v.last !== null && n.textContent !== v.last) n.textContent = v.last;
     }
   };
-  /** A focus change redraws the block; a selection change moves only the "· selected" marks. */
+  /** A focus change redraws the block. */
   const onPage = (): void => {
-    const catalog = componentCatalog();
-    const row = focusedRow(catalog, componentsPage().focus);
-    if ((row?.key ?? null) !== shown) { paint(); return; }
-    for (const id of row?.ids ?? []) {
-      const n = stack.querySelector<HTMLElement>(`[data-p3="component-set"][data-set="${id}"] [data-p3="component-set-parts"]`);
-      const p = partsLine(catalog, id);
-      if (n && p && n.textContent !== p) n.textContent = p;
-    }
+    const row = focusedRow(componentCatalog(), componentsPage().focus);
+    if ((row?.key ?? null) !== shown) paint();
   };
   cleanups.push(subscribe('brand', paint), subscribe('mode', paint), subscribe('host', syncLast), subscribe('host:components', syncLast),
     watchComponentsPage(onPage));
