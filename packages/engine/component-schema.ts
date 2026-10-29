@@ -734,6 +734,17 @@ export type PartDef = {
    *  `layoutMode` and neither executor changes. Refused off a `box` with `layout`, with an `axis` that is not a
    *  projected variant axis, and with a key that is not one of its values or a value missing. */
   directionWhen?: { axis: string; values: Record<string, 'row' | 'column'> };
+  /** For a `box` with `layout`: the axes it HUGS at some members (#3143, owner decision Q3143.2 A). At a coordinate
+   *  that holds one of the listed values on every axis `when` names, the box reads as if its `layout.sizing` were
+   *  `'hug'` on `x` and/or `y`, and the `width` (x) or `height` (y) it binds is not written, because a hugging axis
+   *  is decided by its content and a bound size there would fix it. Divider's vertical labeled member hugs its label
+   *  across while every other member stays fixed. Resolved at projection with `directionWhen`, before anything reads
+   *  the anatomy (`sizingAt` in `anatomy-figma.ts`), so each member's plan is an ordinary sizing mode and neither
+   *  executor changes. Hug only: a fill needs a parent or a placement width, which `builtSize` already carries.
+   *  Refused off a `box` with `layout`, with a `when` axis that is not projected or a value that is not one of its
+   *  values, with neither `x` nor `y`, with any mode but `'hug'`, and on a box that binds `size` (both axes at once)
+   *  or carries `builtSize`, `center`, `placementWidth` or `placementHeight` (each already sets a sizing). */
+  sizingWhen?: { when: Record<string, readonly string[]>; x?: 'hug'; y?: 'hug' };
   builtSize?: {
     axis: string;
     widths: Record<string, number | Record<string, number>>;
@@ -5112,6 +5123,31 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         if (dw.values[k] !== 'row' && dw.values[k] !== 'column') e.push(`anatomy part '${n}' directionWhen.${k} is '${String(dw.values[k])}' — a direction is 'row' or 'column'`);
       }
       for (const v of values) if (!(v in dw.values)) e.push(`anatomy part '${n}' directionWhen gives no direction for '${dw.axis}=${v}' — name every value, so no member falls back to the authored direction by omission`);
+    }
+    // PER-MEMBER HUG (#3143): projected axes and their own values, hug only, on a box whose sizing nothing else sets.
+    if (p.sizingWhen !== undefined) {
+      const sw = p.sizingWhen;
+      const projected = def.figmaProperties?.variantAxes ?? [];
+      if (p.kind !== 'box' || !p.layout)
+        e.push(`anatomy part '${n}' declares 'sizingWhen' but is not a 'box' with 'layout' — only an auto-layout frame hugs`);
+      if (!Object.keys(sw.when ?? {}).length)
+        e.push(`anatomy part '${n}' sizingWhen names no axis in 'when' — it would hug at every member, which is 'layout.sizing' itself`);
+      for (const [axis, vs] of Object.entries(sw.when ?? {})) {
+        const values = (def.variants as Record<string, readonly string[] | undefined> | undefined)?.[axis] ?? [];
+        if (!projected.includes(axis))
+          e.push(`anatomy part '${n}' sizingWhen.when axis '${axis}' is not an axis this def projects [${projected.join(', ') || 'none'}]`);
+        if (!vs.length) e.push(`anatomy part '${n}' sizingWhen.when.${axis} lists no value, so no member matches`);
+        for (const v of vs) if (!values.includes(v)) e.push(`anatomy part '${n}' sizingWhen.when.${axis} gives '${v}', which is not a value of '${axis}' [${values.join(', ')}]`);
+      }
+      if (sw.x === undefined && sw.y === undefined)
+        e.push(`anatomy part '${n}' sizingWhen gives neither 'x' nor 'y' — name the axis it hugs`);
+      for (const ax of ['x', 'y'] as const)
+        if (sw[ax] !== undefined && sw[ax] !== 'hug')
+          e.push(`anatomy part '${n}' sizingWhen.${ax} is '${String(sw[ax])}' — only 'hug' is per member; a fill needs a parent or a placement width, which 'builtSize' carries`);
+      if (p.size !== undefined)
+        e.push(`anatomy part '${n}' declares 'sizingWhen' beside 'size' — a square binds both axes at once, so hugging one would take it out of square`);
+      if (p.builtSize !== undefined || p.center !== undefined || p.placementWidth !== undefined || p.placementHeight !== undefined)
+        e.push(`anatomy part '${n}' declares 'sizingWhen' beside builtSize, center or a placement size — each already sets the member's sizing, and two rules would race`);
     }
     if (p.nestTexts && p.kind !== 'nest')
       e.push(`anatomy part '${n}' declares 'nestTexts' but is kind '${p.kind}' — only an in-flow nested instance carries text overrides`);

@@ -449,6 +449,17 @@ npx tsx apps/plugin/lint-executor-revision.ts
                                                     # main's push run also compares HEAD^, so a squash
                                                     # landing a taken number fails there. Its
                                                     # self-check replays #2529/#2548 in a $TMPDIR repo
+npx tsx apps/plugin/lint-executor-reach.ts         # each new EXECUTOR_REVISION's entry in
+                                                    # executor-reach.json names every set it redraws
+                                                    # (#3101): Update file makes a set due for an
+                                                    # executor change only when an entry names it.
+                                                    # When the revision rose, it draws every set no
+                                                    # new entry names with the base's executor and
+                                                    # this tree's, in the shim (fresh, update, update
+                                                    # across levers, update over an update, two
+                                                    # brands), and fails one that drew differently.
+                                                    # Older entries may not change. Minutes when it
+                                                    # measures; reads the merge base with git
 npx tsx packages/engine/lint-materialization-renames.ts
                                                     # a materialization rename — one the CONTRACT
                                                     # cannot see, because a Figma collection name and

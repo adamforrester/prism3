@@ -2074,7 +2074,7 @@
         "kind": "component set",
         "page": "↳ Divider",
         "section": "Components",
-        "members": 6,
+        "members": 7,
         "variantProperties": [
           {
             "name": "orientation",

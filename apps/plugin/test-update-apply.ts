@@ -55,6 +55,8 @@
  *   edge/…         a file built when the disabled edge bound `color.disabled.icon` (#1349, #1697) is corrected in
  *                  place to `color.disabled.border` (Q346, #2749): Tag, Button and IconButton, every key and id kept,
  *                  current after. Mutation: the def's binding reverted → `edge/<def> rebound`.
+ *   reach/…        a member stamped under a revision that did not redraw its set reads current; below the record's
+ *                  floor it is to update (#3101). Mutation: `update-plan.ts` without `reaches` → `reach/dry run 42`.
  *   corpus/…       every def, re-applied in place by an executor revision bump, keeps every key and id, reads
  *                  back as its plan, and reads current after.
  *   choices/…      `overwrite` writes the plan over a hand edit; `accept` keeps it as the new record (§5).
@@ -209,6 +211,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { adoptions, applyComponentPlan, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
+import { EXECUTOR_REACH } from './src/executor-reach';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
@@ -3564,6 +3567,23 @@ section('tag style — a Tag set built in one Tag style is redrawn in place in t
     ok(off.length === 0, `tag style/${tag} drawn: ${toName === 'underline' ? 'every member draws the bottom line alone and no fill' : 'no member keeps a side at none'} (${off.slice(0, 2).join('; ') || 'ok'})`);
     const post = (await previewUpdate(w.host, [{ def: 'tag', plans: [...to] }])).sets[0];
     ok(post.counts.current === n, `tag style/${tag} converges: the next dry run reads all ${n} current (${JSON.stringify(post.counts)})`);
+  }
+}
+
+section('reach — a member stamped under an older revision is to update only when a revision since redraws its set (#3101)');
+{
+  // Revision 43 redrew the sign-in button alone (`executor-reach.json`). A Tag set whose members carry 42 is current
+  // under 43; the same set stamped below the record's floor is to update, as every member was before #3101. Read off
+  // the dry run of the host's own members; the stamps are rewritten on the host, as an older plugin left them.
+  for (const [rev, want] of [[42, 'current'], [EXECUTOR_REACH.floor - 1, 'update']] as const) {
+    const w = await world(TAG);
+    for (const m of membersOf(w.set())) {
+      const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, `|${rev}`));
+    }
+    const n = membersOf(w.set()).length;
+    const c = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0].counts;
+    ok(c[want] === n, `reach/dry run ${rev}: a Tag set stamped under revision ${rev} reads all ${n} members ${want === 'current' ? 'current' : 'to update'} (${JSON.stringify(c)})`);
   }
 }
 

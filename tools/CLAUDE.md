@@ -293,3 +293,12 @@ worth knowing before adding an arm: **running the real check in a clone fetches,
 clone's `refs/remotes/origin/main` and silently repairs the stale world for every later arm.** One
 shared clone made M2 read a repaired ref and "fire", which reads as *the fetch does not matter* — the
 opposite of the truth, out of an arm that looked green. Each arm now asserts its own precondition.
+
+## `tools/executor-reach/`
+
+`history.ts` measures which component sets each past `EXECUTOR_REVISION` redrew (#3101): per revision commit, the
+parent's executor against the commit's, over the commit's own plans and shim, through today's
+`apps/plugin/reach-draw.ts`. It is the measurement `apps/plugin/src/executor-reach.json`'s entries from the floor up
+were written from. **Its gate sibling is `apps/plugin/lint-executor-reach.ts`**, which runs the same `reach-draw.ts`
+for the one revision a PR raises and fails an entry that names fewer sets than moved; the tool answers for the
+revisions before the gate existed and exits 0. Minutes per revision; `--jobs` runs revisions side by side.

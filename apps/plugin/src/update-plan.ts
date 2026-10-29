@@ -52,6 +52,7 @@ import { COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, partRenames, ren
 import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
+import { reaches } from './executor-reach';
 import { adoptions, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
 import { labelColumns, readLabelColumn } from './label-columns';
@@ -529,7 +530,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const state: MemberState = (damaged.length && !structural) || rxv.dangling ? 'update'
       : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
-      : planMoved || (revField !== null && revField !== rev) || rxv.differs ? 'update'
+      // #3101: a member stamped under another revision is to update only when a revision since reaches this set.
+      : planMoved || (revField !== null && revField !== rev && reaches(defId, Number(revField), EXECUTOR_REVISION)) || rxv.differs ? 'update'
       : revField === null ? 'revisionUnknown'
       : 'current';
     counts[state]++;
