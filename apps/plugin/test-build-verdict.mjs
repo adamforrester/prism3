@@ -243,9 +243,11 @@ const openPanel = async () => {
   await page.evaluate(() => {
     window.__builds = [];
     window.__sets = 0;
+    window.__queues = [];
     window.addEventListener('message', (e) => {
       const m = e.data && e.data.pluginMessage;
       if (m && m.type === 'build-components') window.__builds.push(m.def ?? null);
+      if (m && m.type === 'add-queue') window.__queues.push(JSON.parse(JSON.stringify(m)));
       if (m && m.type === 'file-sets-request') window.__sets++;
     });
   });
@@ -443,9 +445,15 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
   await hooks.click(page.locator('[data-p3="update-cancel"]'));
   await startBuild(page, undefined, 'the fresh panel\'s proving build');
   const during = await readSurfaces(page);
+  const queuesBefore = (await page.evaluate(() => window.__queues)).length;
   await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
   await idleAgain(page);
   const after = await readSurfaces(page);
+  // #3129 Q3129.2 A, Q3129.3 A: a finished run ends with one queue write of no ids, which clears the keys of the sets the
+  // file now holds; without it a hand-added set's key lingers and comes back as queued once that set is deleted.
+  const closing = (await page.evaluate(() => window.__queues)).slice(queuesBefore);
+  ok(JSON.stringify(closing) === JSON.stringify([{ type: 'add-queue', ids: [], on: false }]),
+    `#3129 Q3129.2 A: a finished Update file run posts one queue write of no ids — posted ${JSON.stringify(closing)}`);
   ok(during.button === BUSY_LABEL && during.busy && after.barVerdict.some((t) => (t ?? '').includes('✓ built 648')),
     `the proving build: the probe sees the busy label, then the result — read "${during.button}" (busy ${during.busy}), then ${JSON.stringify(after.barVerdict)}`);
   ok(JSON.stringify(await builds(page)) === '["button"]', `the build posts the set ticked — posted ${JSON.stringify(await builds(page))}`);
