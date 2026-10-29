@@ -593,6 +593,15 @@ export const GATES: Gate[] = [
     cmd: [...TSX, 'apps/plugin/lint-executor-revision.ts'],
   },
   {
+    // Each new EXECUTOR_REVISION's entry in executor-reach.json names every set it redraws (#3101): the base's
+    // executor and the tree's draw every set in the shim. Source only, beside the revision gate it follows.
+    id: 'lint-executor-reach',
+    ciStep: 'Each EXECUTOR_REVISION names every set it redraws (#3101)',
+    after: ['lint-executor-revision'],
+    why: 'it measures only a revision the revision gate has already held to the executor',
+    cmd: [...TSX, 'apps/plugin/lint-executor-reach.ts'],
+  },
+  {
     id: 'drift-coverage',
     ciStep: 'Drift gate still covers the full artifact set',
     after: ['drift'],
