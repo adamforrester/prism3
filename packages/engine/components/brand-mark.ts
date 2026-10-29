@@ -11,6 +11,9 @@
  * decides, and nothing may retint it: the provider's guidelines forbid it, and Remix's license forbids its
  * glyphs as logos (`icons/NOTICE.md`). So the artwork comes from `marks/` through `brand-mark-set.ts` and
  * `emit-marks.ts`, and this component paints nothing: it has no `paintKeys`, no ink token and no `tone`.
+ * One exception, outside this def (owner decision Q846 A): SignInButton paints its one-color `provider/*` glyph white
+ * where its own fill is dark, as a literal tint on the instance. No other host and no other mark may, and
+ * `lint-mark-colors.ts` (d) and (g) hold that by name.
  *
  * THE SHAPE IS ICON'S, MATERIALIZED THE SAME WAY. One `vector` part, its glyph templated on `name`, and
  * `emitAsComponents`, so each mark is its own top-level `brand-mark/<kind>/<name>` component and the kind

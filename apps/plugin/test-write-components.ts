@@ -5777,18 +5777,22 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // #2343 PR 5 — SIGNINBUTTON BUILT BY THE REAL EXECUTOR: each provider's literal fill, edge, wash, ink, wording and font
 // land on the host as plain values, with no variable. The values are typed here from the providers' guidelines (read
 // 2026-10-27), never read off the def or the plan (docs/34). Mutation: the plugin executor's literal-fill branch
-// deleted → `sign-in build/literal` fails by name.
+// deleted → `sign-in build/literal` fails by name. `glyph` is the color every vector of the provider glyph reads after
+// the build where the fill is dark: white (Q846 A's tint). Elsewhere the glyph keeps its file's colors, which
+// `lint-mark-colors.ts` holds. Mutation: the executor's tint branch deleted → `sign-in build/literal` fails by name.
 {
-  const RULE: Record<string, { fill: string; edge?: string; ink: string; mark: string; word: string }> = {
-    'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'brand-mark/provider/apple', word: 'Continue with Apple' },
-    'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'brand-mark/provider/apple-black', word: 'Continue with Apple' },
-    'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'brand-mark/provider/apple-black', word: 'Continue with Apple' },
+  const RULE: Record<string, { fill: string; edge?: string; ink: string; mark: string; word: string; glyph?: string }> = {
+    'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'brand-mark/provider/apple', word: 'Continue with Apple', glyph: '#ffffff' },
+    'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'brand-mark/provider/apple', word: 'Continue with Apple' },
+    'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'brand-mark/provider/apple', word: 'Continue with Apple' },
     'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
     'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
     'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
-    'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook', word: 'Continue with Facebook' },
+    'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook', word: 'Continue with Facebook', glyph: '#ffffff' },
     'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'brand-mark/provider/facebook-blue', word: 'Continue with Facebook' },
   };
+  // An instance's vectors are reachable through `findAll`, as on the host (#2389).
+  const vectorsIn = (n: Node | undefined): Node[] => typeof n?.findAll === 'function' ? (n.findAll as (p: (x: Node) => boolean) => Node[])((x) => x.type === 'VECTOR') : [];
   const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
   const same = (paint: { type?: string; color?: { r: number; g: number; b: number }; boundVariables?: object } | undefined, hex: string): boolean =>
     !!paint && paint.type === 'SOLID' && !!paint.color && rgb(hex).every((v, i) => Math.abs(v - [paint.color!.r, paint.color!.g, paint.color!.b][i]) < 1 / 512)
@@ -5830,6 +5834,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       : label?.characters !== r.word ? `wording ${String(label?.characters)}`
       : key.startsWith('google.') && !(font?.family === 'Google Sans' && font.style === 'Medium' && label?.fontSize === 14 && (label?.lineHeight as { value?: number } | undefined)?.value === 20) ? `font ${JSON.stringify(font)} ${String(label?.fontSize)}`
       : String((mark?.mainComponent as Node | undefined)?.name) !== r.mark ? `mark ${String((mark?.mainComponent as Node | undefined)?.name)}`
+      : r.glyph && (!vectorsIn(mark).length || vectorsIn(mark).some((v) => !same(((v.fills ?? []) as typeof fills)[0], r.glyph!))) ? `glyph ${vectorsIn(mark).map((v) => JSON.stringify(((v.fills ?? []) as typeof fills)[0]?.color)).join(',') || 'no vector'}, want ${r.glyph}`
       : '';
     if (why) off.push(`${name}: ${why}`);
   }

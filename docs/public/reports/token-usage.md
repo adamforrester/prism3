@@ -22,7 +22,7 @@ Type: dimension. Bound by 25 component(s).
 |---|---|---|---|
 | badge | `border-width` | surface | every member (40 of 40) |
 | banner | `border-width`, `width.contained.edge-side` | container | every member (8 of 8) |
-| brand-mark | `tile.border-width` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 76) |
+| brand-mark | `tile.border-width` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 75) |
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
@@ -207,7 +207,7 @@ Type: color. Bound by 3 component(s).
 |---|---|---|---|
 | _slider-thumb | `border.hover`, `border.pressed`, `fill.pressed` | hoverHalo | state: hover, pressed (6 of 15) |
 |  |  | pressHalo | state: pressed (3 of 15) |
-| brand-mark | `tile.border` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 76) |
+| brand-mark | `tile.border` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 75) |
 | tabs | `fill` | baseline | every member (6 of 6) |
 
 ### `color.border.secondary`
@@ -2719,7 +2719,7 @@ Type: dimension. Bound by 11 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `status.radius` | surface | type: status (30 of 40) |
-| brand-mark | `tile.radius` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 76) |
+| brand-mark | `tile.radius` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 75) |
 | card-number-field | `radius` | control | every member (84 of 84) |
 | code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | container | size: large, medium, small (21 of 28) |
 | counter | `radius` | control | every member (18 of 18) |
@@ -3564,7 +3564,7 @@ Declared, not drawn: `color.border.focus`
 
 ### brand-mark
 
-6 token(s); 76 design-file member(s).
+6 token(s); 75 design-file member(s).
 
 `border-width.hairline`, `color.border.primary`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.sm`
 

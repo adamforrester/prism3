@@ -601,7 +601,7 @@
     "brand-mark": {
       "id": "brand-mark",
       "name": "BrandMark",
-      "members": 76,
+      "members": 75,
       "axes": [
         {
           "name": "name",
@@ -637,7 +637,6 @@
             "payment/venmo",
             "payment/visa",
             "provider/apple",
-            "provider/apple-black",
             "provider/facebook",
             "provider/facebook-blue",
             "provider/google",
@@ -692,7 +691,7 @@
         {
           "part": "glyph",
           "kind": "glyph",
-          "members": 76
+          "members": 75
         }
       ],
       "redlineKey": [],
@@ -945,12 +944,6 @@
         {
           "where": {
             "name": "provider/apple"
-          },
-          "parts": []
-        },
-        {
-          "where": {
-            "name": "provider/apple-black"
           },
           "parts": []
         },
@@ -10940,7 +10933,7 @@
                 "style": "white"
               },
               "set": {
-                "name": "provider/apple-black"
+                "name": "provider/apple"
               }
             },
             {
@@ -10949,7 +10942,7 @@
                 "style": "outline"
               },
               "set": {
-                "name": "provider/apple-black"
+                "name": "provider/apple"
               }
             },
             {
@@ -11023,7 +11016,8 @@
               "hover": "#ffffff1a",
               "pressed": "#ffffff33"
             },
-            "text": "Continue with Apple"
+            "text": "Continue with Apple",
+            "markTint": "#ffffff"
           },
           "apple.white": {
             "fill": "#ffffff",
@@ -11110,7 +11104,8 @@
               "hover": "#ffffff1a",
               "pressed": "#ffffff33"
             },
-            "text": "Continue with Facebook"
+            "text": "Continue with Facebook",
+            "markTint": "#ffffff"
           },
           "facebook.white": {
             "fill": "#ffffff",

@@ -2528,6 +2528,15 @@ const writeComponentSet = async (
         }
       }
 
+      // THE PROVIDER GLYPH'S TINT (owner decision Q846 A): a literal solid on every VECTOR inside the nested brand mark,
+      // in place of the file's own colors. Only SignInButton's black provider glyph on a dark fill carries one.
+      // Lockstep with the paste twin.
+      const tintVecs = n.literalTint && node.findAll ? node.findAll((x) => x.type === 'VECTOR') : [];
+      if (n.literalTint) {
+        if (tintVecs.length === 0) misses.push(`${n.name}.literalTint -> ${n.literalTint} (no VECTOR inside this node to paint)`);
+        for (const vec of tintVecs) wr(vec as CompNode).fills = [literalSolid(n.literalTint)];
+      }
+
       // READ BACK. The name resolved and the setter did not throw, which is not the same as the binding
       // being there — a Figma setter that accepts a call is not a Figma setter that honoured it.
       const got = (node.boundVariables ?? {}) as Record<string, unknown>;
@@ -2541,6 +2550,7 @@ const writeComponentSet = async (
         const want = key === 'fills' ? n.literalPaints?.fills : n.literalPaints?.strokes ? [n.literalPaints.strokes] : undefined;
         if (want && !literalHeld(node[key], want)) misses.push(`${n.name}.${key} -> DISCARDED (literal ${want.join(' + ')} set, not retained)`);
       }
+      if (n.literalTint && tintVecs.some((v) => !literalHeld((v as { fills?: unknown }).fills, [n.literalTint!]))) misses.push(`${n.name}.literalTint -> DISCARDED (literal ${n.literalTint} set, not retained)`);
       return appliedStyle;
     };
     const appliedStyle = kept ? undefined : await own();

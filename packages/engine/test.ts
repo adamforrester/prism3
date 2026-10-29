@@ -18915,27 +18915,28 @@ arm: {
   // #2343 PR 5 — SIGNINBUTTON HOLDS EACH PROVIDER'S RULES. Typed HERE from the providers' guidelines (the proposal's §2
   // table, read 2026-10-27: Apple's HIG, Google's branding guidelines, Facebook's Login UX page) and the owner's calls
   // (Q-S1 to Q-S12, all A), never read off the def or its rule record (docs/34). Each arm's mutation is in the PR's
-  // progress entry. All eight pairs ship (Q831 A): Apple's black glyph and Facebook's blue one are derived from the
-  // social marks, so no pair waits on artwork.
+  // progress entry. All eight pairs ship (Q831 A): Facebook's blue glyph is derived from the social mark, so no pair
+  // waits on artwork. Apple's light styles carry the black `provider/apple` itself, and the two dark-fill styles paint
+  // their black provider glyph white (Q846 A, `tint`).
   {
     const sb = componentDefs.find((d) => d.id === 'sign-in-button')!;
     // The wash, by value (Q-S6 A, Q-S13 A): black at 10% and 20% over a light fill, white at 10% and 20% over a dark one.
     const ON_LIGHT = { hover: '#0000001a', pressed: '#00000033' }, ON_DARK = { hover: '#ffffff1a', pressed: '#ffffff33' };
-    type R = { fill: string; edge?: string; ink: string; mark: string; wash: { hover: string; pressed: string } };
+    type R = { fill: string; edge?: string; ink: string; mark: string; wash: { hover: string; pressed: string }; tint?: string };
     const RULES: Record<string, R> = {
-      'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'brand-mark/provider/apple', wash: ON_DARK },
-      'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'brand-mark/provider/apple-black', wash: ON_LIGHT },
-      'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'brand-mark/provider/apple-black', wash: ON_LIGHT },
+      'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'brand-mark/provider/apple', wash: ON_DARK, tint: '#ffffff' },
+      'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'brand-mark/provider/apple', wash: ON_LIGHT },
+      'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'brand-mark/provider/apple', wash: ON_LIGHT },
       'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
       'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google', wash: ON_DARK },
       'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
-      'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook', wash: ON_DARK },
+      'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook', wash: ON_DARK, tint: '#ffffff' },
       'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'brand-mark/provider/facebook-blue', wash: ON_LIGHT },
     };
-    // The glyphs Q831 A derived. The exclusion arm below drops them from the vocabulary to prove a missing glyph still
-    // removes its pairs, for a future provider whose artwork is not in yet.
-    const DERIVED = ['provider/apple-black', 'provider/facebook-blue'];
-    const WAITS_ON_DERIVED = ['apple.white', 'apple.outline', 'facebook.white'];
+    // The glyph Q831 A derived (Q846 A dropped its Apple twin). The exclusion arm below drops it from the vocabulary to
+    // prove a missing glyph still removes its pairs, for a future provider whose artwork is not in yet.
+    const DERIVED = ['provider/facebook-blue'];
+    const WAITS_ON_DERIVED = ['facebook.white'];
     const NAME: Record<string, string> = { apple: 'Apple', google: 'Google', facebook: 'Facebook' };
     const GOOGLE_FONT = { family: 'Google Sans', style: 'Medium', size: 14, lineHeight: 20 };
     type N = AnatomyPlan['root'];
@@ -18947,9 +18948,9 @@ arm: {
     // ARTWORK: every rule pair is a member (Q831 A), 4 states × 3 sizes each, 96 in all.
     const present = [...new Set(plans.map(keyOf))].sort();
     ok(plans.length === 96 && JSON.stringify(present) === JSON.stringify(Object.keys(RULES).sort()) && DERIVED.every((g) => SIGN_IN_MARK_NAMES.includes(g as never)),
-      `#2343 PR 5 provider rules ARTWORK: 96 members, all 8 pairs, with both derived glyphs in the mark set (got ${plans.length}: ${present.join(', ')})`);
-    // ...and the exclusion stays data-driven: built over a vocabulary without the derived glyphs, the three pairs that
-    // need them drop out, 60 members, with no change to the def. Counted and read, not projected.
+      `#2343 PR 5 provider rules ARTWORK: 96 members, all 8 pairs, with the derived glyph in the mark set (got ${plans.length}: ${present.join(', ')})`);
+    // ...and the exclusion stays data-driven: built over a vocabulary without the derived glyph, the pair that needs it
+    // drops out, 84 members, with no change to the def. Counted and read, not projected.
     const short = makeSignInButton(SIGN_IN_MARK_NAMES.filter((g) => !DERIVED.includes(g)));
     const shortErrs = validateComponentDef(short).errors;
     const shortPairs = (short.variants.provider ?? []).flatMap((pv) => (short.variants.style ?? []).map((st) => ({ provider: pv, style: st })))
@@ -18957,8 +18958,8 @@ arm: {
     const shortNest = (short.anatomy!.parts.mark.nesting as { variantWhere?: { when: Record<string, string>; set: Record<string, string> }[] }).variantWhere ?? [];
     const shortMarks = shortNest.filter((w) => `brand-mark/${w.set.name}` !== RULES[`${w.when.provider}.${w.when.style}`]?.mark).map((w) => `${w.when.provider}.${w.when.style} → ${w.set.name}`);
     const wantShort = Object.keys(RULES).filter((k) => !WAITS_ON_DERIVED.includes(k)).sort();
-    ok(shortErrs.length === 0 && figmaVariantCount(short) === 60 && JSON.stringify(shortPairs) === JSON.stringify(wantShort) && shortNest.length === 5 && shortMarks.length === 0 && Object.keys(short.literal?.entries ?? {}).length === 5,
-      `#2343 PR 5 provider rules ARTWORK (data-driven): without provider/apple-black and provider/facebook-blue in the mark set the def validates with the 5 pairs whose glyph exists, 60 members, each mapped to its own glyph (errors ${shortErrs.slice(0, 2).join('; ') || 'none'}; ${figmaVariantCount(short)} members: ${shortPairs.join(', ')}; glyphs off ${shortMarks.join(', ') || 'none'})`);
+    ok(shortErrs.length === 0 && figmaVariantCount(short) === 84 && JSON.stringify(shortPairs) === JSON.stringify(wantShort) && shortNest.length === 7 && shortMarks.length === 0 && Object.keys(short.literal?.entries ?? {}).length === 7,
+      `#2343 PR 5 provider rules ARTWORK (data-driven): without provider/facebook-blue in the mark set the def validates with the 7 pairs whose glyph exists, 84 members, each mapped to its own glyph (errors ${shortErrs.slice(0, 2).join('; ') || 'none'}; ${figmaVariantCount(short)} members: ${shortPairs.join(', ')}; glyphs off ${shortMarks.join(', ') || 'none'})`);
     // COLOR: every member's fill, edge and label ink are the provider's own, as literals, never a bound variable.
     const checkColor = (ps: AnatomyPlan[]): string[] => ps.flatMap((p) => {
       const r = RULES[keyOf(p)], lit = p.root.literalPaints, l = label(p);
@@ -18999,13 +19000,26 @@ arm: {
     const heights = new Map<string, Set<string>>();
     for (const p of plans) heights.set(String(p.size), (heights.get(String(p.size)) ?? new Set()).add(String(p.root.bound?.height)));
     ok([...heights.values()].every((h) => h.size === 1) && heights.size === 3, `#2343 PR 5 provider rules PARITY: one height per size across every provider (${[...heights].map(([s, h]) => `${s}: ${[...h].join('|')}`).join('; ')})`);
-    // MARK: the provider's own glyph for the style, nested whole, height bound, width from its proportion, own paint.
+    // MARK: the provider's own glyph for the style, nested whole, height bound, width from its proportion, its own paint
+    // or, on a dark fill, the typed tint in its place (Q846 A).
     const offMark = plans.flatMap((p) => {
-      const n = mark(p), want = RULES[keyOf(p)]?.mark;
-      const why = !n ? 'no mark' : n.nestTarget !== want ? `nests ${n.nestTarget}, not ${want}` : !n.fixedPaint ? 'no fixedPaint' : !n.aspectLock ? 'no aspect lock' : n.bound?.width ? 'binds a width' : !n.bound?.height ? 'binds no height' : n.nestOverrides?.length ? 'carries overrides' : '';
+      const n = mark(p), want = RULES[keyOf(p)]?.mark, tint = RULES[keyOf(p)]?.tint;
+      const why = !n ? 'no mark' : n.nestTarget !== want ? `nests ${n.nestTarget}, not ${want}` : (n.literalTint ?? null) !== (tint ?? null) ? `tint ${n.literalTint}, not ${tint}` : !tint && !n.fixedPaint ? 'no fixedPaint' : tint && n.fixedPaint ? 'fixedPaint beside a tint' : !n.aspectLock ? 'no aspect lock' : n.bound?.width ? 'binds a width' : !n.bound?.height ? 'binds no height' : n.nestOverrides?.length ? 'carries overrides' : '';
       return why ? [`${planComponentName(p)}: ${why}`] : [];
     });
-    ok(offMark.length === 0, `#2343 PR 5 provider rules MARK: each member nests its provider's own glyph for its style, unaltered (${offMark.slice(0, 3).join('; ') || 'clean'})`);
+    ok(offMark.length === 0, `#2343 PR 5 provider rules MARK: each member nests its provider's own glyph for its style, unaltered but for the dark-fill tint (${offMark.slice(0, 3).join('; ') || 'clean'})`);
+    // Q846 A — THE DARK-FILL STYLES DRAW WHITE. Typed from the decision (2026-10-29), not from RULES above or the def:
+    // Apple black and Facebook blue paint their black provider glyph white, and no other style tints. A contrast floor
+    // cannot hold this alone: a black "f" on #1877f2 is about 4.95:1, over 3:1, and Facebook's rule (white on blue) is a
+    // brand rule, not a contrast one. Read from the plan, where the executors take it.
+    const DRAWS_WHITE = ['apple.black', 'facebook.blue'];
+    const offWhite = plans.flatMap((p) => {
+      const n = mark(p), want = DRAWS_WHITE.includes(keyOf(p)) ? '#ffffff' : undefined;
+      return n && (n.literalTint ?? undefined) === want ? [] : [`${planComponentName(p)}: ${n ? `tint ${n.literalTint ?? 'none'}, want ${want ?? 'none'}` : 'no mark'}`];
+    });
+    const whiteCount = plans.filter((p) => mark(p)?.literalTint === '#ffffff').length;
+    ok(offWhite.length === 0 && whiteCount === 24,
+      `#2343 PR 5 Q846 A dark-fill styles draw white: Apple black and Facebook blue paint their provider glyph #ffffff at all 24 members, and no other style tints (${whiteCount} white; ${offWhite.slice(0, 3).join('; ') || 'clean'})`);
     // WORDING: "Continue with <Provider>" in Figma, with no TEXT property (Q-S8 A); the code prop takes the provider's list.
     const offWord = plans.flatMap((p) => {
       const l = label(p);
@@ -23131,6 +23145,8 @@ arm: {
     }
 
     // ---- #3134 review: a provider glyph nested over a LITERAL fill stands off it, 3:1 or more ----
+    // Q846 A: where the plan tints the glyph (`literalTint`), the tint is its paint, since that is what the executors
+    // draw; the arm judges the painted color, not the file's.
     // Now that provider/apple and provider/facebook are black, a host that nests one over a black or dark provider fill
     // (SignInButton, #3125) draws it invisible. A themed fill is the contrast contract's; a literal one is the def's own
     // value and nothing else checks it. The glyph's paint is its file's colors, and a many-colored glyph passes on its
@@ -23138,7 +23154,7 @@ arm: {
     // With no host on main it passes vacuously, so it states what it walked, and its fixtures must fail.
     {
       const PROVIDER = 'brand-mark/provider/';
-      type Node = { name?: string; nestTarget?: string; swapTarget?: string; paints?: { fills?: string }; literalPaints?: { fills?: readonly string[] }; children?: Node[] };
+      type Node = { name?: string; nestTarget?: string; swapTarget?: string; literalTint?: string; paints?: { fills?: string }; literalPaints?: { fills?: readonly string[] }; children?: Node[] };
       const HEX = /^#[0-9A-Fa-f]{6}/;
       const paintsOf = (svg: string): string[] => [...new Set([...svg.matchAll(/\sfill="(#[0-9A-Fa-f]{6})"/g)].map((m) => m[1].toUpperCase()))];
       /** Every provider glyph a plan nests, with the nearest painted ancestor's fill when that fill is a literal. */
@@ -23149,7 +23165,9 @@ arm: {
           const here = lit ? { hex: lit.slice(0, 7), themed: false } : n.paints?.fills ? { themed: true } : fill;
           for (const t of [n.nestTarget, n.swapTarget]) if (typeof t === 'string' && t.startsWith(PROVIDER)) {
             const glyph = t.slice('brand-mark/'.length);
-            out.push({ glyph, over: fill?.hex, themed: !!fill?.themed, paints: paintsOf(docs[glyph] ?? '') });
+            // A TINT (Q846 A) is what the executors paint in place of the file's colors, so it is the glyph's paint.
+            const own = paintsOf(docs[glyph] ?? '');
+            out.push({ glyph, over: fill?.hex, themed: !!fill?.themed, paints: own.length && n.literalTint ? [n.literalTint.toUpperCase()] : own });
           }
           for (const c of n.children ?? []) visit(c, here);
         };
@@ -23158,10 +23176,10 @@ arm: {
       };
       /** What is wrong with a plan's provider glyphs, by name. Empty when clean. */
       const lowGlyphs = (root: Node, docs: Record<string, string>, at: string): string[] => glyphsOver(root, docs).flatMap((g) => {
-        if (!g.paints.length) return [`${at}: nests ${PROVIDER}${g.glyph}, which the mark set does not draw`];
+        if (!g.paints.length) return [`${at}: nests brand-mark/${g.glyph}, which the mark set does not draw`];
         if (!g.over) return [];
         const best = Math.max(...g.paints.map((p) => contrast(hexToRgb(p), hexToRgb(g.over!))));
-        return best < 3 ? [`${at}: ${PROVIDER}${g.glyph} (${g.paints.join(', ')}) over the literal fill ${g.over} is ${best.toFixed(2)}:1, under 3:1`] : [];
+        return best < 3 ? [`${at}: brand-mark/${g.glyph} (${g.paints.join(', ')}) over the literal fill ${g.over} is ${best.toFixed(2)}:1, under 3:1`] : [];
       });
       const docs = BRAND_MARK_DOCUMENTS as Record<string, string>;
       const fixture = (fill: string, glyph: string): Node => ({ name: 'container', literalPaints: { fills: [fill] }, children: [{ name: 'mark', nestTarget: `${PROVIDER}${glyph}` }] });
@@ -23172,6 +23190,14 @@ arm: {
       if (lowGlyphs(fixture('#FFFFFF', 'google'), docs, 'fixture').length) self.push('the many-colored Google glyph on white is refused');
       if (lowGlyphs({ name: 'c', paints: { fills: 'color/surface/primary' }, children: [{ name: 'mark', nestTarget: `${PROVIDER}apple` }] }, docs, 'fixture').length) self.push('a themed fill is judged as a literal');
       if (lowGlyphs({ ...fixture('#000000', 'apple'), children: [{ name: 'inner', children: [{ name: 'mark', swapTarget: `${PROVIDER}apple` }] }] }, docs, 'fixture').length !== 1) self.push('a swapped glyph two levels under the literal fill is not caught');
+      // A themed fill nested UNDER a literal one is the nearest painted ancestor, so the glyph is skipped (review M2).
+      if (lowGlyphs({ ...fixture('#000000', 'apple'), children: [{ name: 'inner', paints: { fills: 'color/surface/primary' }, children: [{ name: 'mark', nestTarget: `${PROVIDER}apple` }] }] }, docs, 'fixture').length) self.push('a themed fill under a literal one is judged against the outer literal');
+      // The tint (Q846 A) is read from the plan: white on black and on #1877f2 pass, a black tint on black fails.
+      const tinted = (fill: string, glyph: string, tint: string): Node => ({ name: 'container', literalPaints: { fills: [fill] }, children: [{ name: 'mark', nestTarget: `${PROVIDER}${glyph}`, literalTint: tint }] });
+      if (lowGlyphs(tinted('#000000', 'apple', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on black is refused');
+      if (lowGlyphs(tinted('#1877f2', 'facebook', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on #1877f2 is refused');
+      if (lowGlyphs(tinted('#000000', 'apple', '#000000'), docs, 'fixture').length !== 1) self.push('a glyph tinted black on black is not caught');
+      if (!lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]?.includes(': brand-mark/provider/apple (')) self.push(`the failure line does not name brand-mark/provider/apple once (${lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]})`);
       // The walk over every registered def: what it covered, so a vacuous pass says so.
       const bad: string[] = [];
       let defs = 0, plans = 0, marks = 0, glyphs = 0, overLiteral = 0;
@@ -23188,7 +23214,7 @@ arm: {
           bad.push(...lowGlyphs(plan.root as Node, docs, `${def.id} ${JSON.stringify({ size: plan.size, ...plan.coord })}`));
         }
       }
-      ok(self.length === 0, `#3134 provider glyph contrast self-test: the arm catches a low glyph on a literal fill and passes a readable one (${self.join(' | ') || 'clean'})`);
+      ok(self.length === 0, `#3134 provider glyph contrast self-test: the arm catches a low glyph on a literal fill, reads a tint as the glyph's paint and passes a readable one (${self.join(' | ') || 'clean'})`);
       ok(defs > 0 && plans > 0 && marks > 0 && bad.length === 0,
         `#3134 provider glyph contrast: every brand-mark/provider/* glyph nested over a literal fill is 3:1 or more against it — walked ${defs} def(s), ${plans} plan(s), ${marks} nested brand mark(s), ${glyphs} provider glyph(s), ${overLiteral} over a literal fill (${bad.slice(0, 6).join(' | ') || 'clean'})`);
     }
@@ -23230,7 +23256,8 @@ arm: {
 
     // ---- #2343 PR 5: SignInButton's literal paint and font through the PASTE executor ----
     // The plugin leg is in test-write-components (`sign-in build/literal`). Values typed from the guidelines; misses
-    // read for the literal channels only (the nested glyph has no component in this stub file).
+    // read for the literal channels only. The stub file holds the provider brand marks, so the glyph is a
+    // real instance and its VECTOR carries Q846 A's tint (`glyph`: white on the dark fills, none elsewhere).
     {
       const sb = componentDefs.find((x) => x.id === 'sign-in-button')!;
       const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
@@ -23238,32 +23265,40 @@ arm: {
         !!p && p.type === 'SOLID' && !!p.color && rgb(hex).every((v, i) => Math.abs(v - [p.color!.r, p.color!.g, p.color!.b][i]) < 1 / 512)
         && Math.abs((p.opacity ?? 1) - (hex.length === 9 ? parseInt(hex.slice(7), 16) / 255 : 1)) < 1 / 512;
       const CASES = [
-        { coord: { provider: 'google', style: 'light', state: 'hover' }, size: 'medium', fills: ['#ffffff', '#0000001a'], edge: '#747775', ink: '#1f1f1f', font: 'Google Sans', word: 'Continue with Google' },
-        { coord: { provider: 'apple', style: 'black', state: 'rest' }, size: 'large', fills: ['#000000'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Apple' },
-        { coord: { provider: 'facebook', style: 'blue', state: 'pressed' }, size: 'small', fills: ['#1877f2', '#ffffff33'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Facebook' },
+        { coord: { provider: 'google', style: 'light', state: 'hover' }, size: 'medium', fills: ['#ffffff', '#0000001a'], edge: '#747775', ink: '#1f1f1f', font: 'Google Sans', word: 'Continue with Google', glyph: undefined },
+        { coord: { provider: 'apple', style: 'black', state: 'rest' }, size: 'large', fills: ['#000000'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Apple', glyph: '#ffffff' },
+        { coord: { provider: 'apple', style: 'white', state: 'rest' }, size: 'medium', fills: ['#ffffff'], edge: undefined, ink: '#000000', font: undefined, word: 'Continue with Apple', glyph: undefined },
+        { coord: { provider: 'facebook', style: 'blue', state: 'pressed' }, size: 'small', fills: ['#1877f2', '#ffffff33'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Facebook', glyph: '#ffffff' },
       ];
+      const MARKS = ['apple', 'facebook', 'facebook-blue', 'google'].map((g) => `brand-mark/provider/${g}`);
       const bad: string[] = [];
       for (const c of CASES) {
         const plan = figmaAnatomyPlan(sb, c.size, c.coord as never);
         const page: StubPage = { children: [] };
-        const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page });
+        const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: MARKS, page });
         const walk = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(walk)];
         const all = page.children.flatMap((x) => walk(x as Record<string, unknown>));
+        const glyphInst = all.find((n) => n.type === 'INSTANCE' && String((n.mainComponent as { name?: string } | undefined)?.name).startsWith('brand-mark/provider/'));
+        const glyphVecs = typeof glyphInst?.findAll === 'function' ? (glyphInst.findAll as () => Record<string, unknown>[])() : [];
         const box = all.find((n) => n.name === 'container' || (Array.isArray(n.fills) && (n.children as unknown[] | undefined)?.length)) as Record<string, unknown> | undefined;
         const text = all.find((n) => n.type === 'TEXT');
         const fills = (box?.fills ?? []) as Array<{ type?: string; color?: { r: number; g: number; b: number }; opacity?: number }>;
         const strokes = (box?.strokes ?? []) as typeof fills;
         const font = text?.fontName as { family?: string } | undefined;
-        const litMisses = run.misses.filter((m) => /\.(fills|strokes|font|literalFont|characters) ->|THREW/.test(m) && !/^mark/.test(m));
+        const litMisses = run.misses.filter((m) => /\.(fills|strokes|font|literalFont|characters|literalTint) ->|THREW/.test(m) && !/^mark\.(?!literalTint)/.test(m));
         const why = fills.length !== c.fills.length || !c.fills.every((h, i) => same(fills[i], h)) ? `fills ${JSON.stringify(fills)}`
           : (c.edge ? !same(strokes[0], c.edge) : strokes.length !== 0) ? `strokes ${JSON.stringify(strokes)}`
           : !same(((text?.fills ?? []) as typeof fills)[0], c.ink) ? `ink ${JSON.stringify(text?.fills)}`
           : text?.characters !== c.word ? `wording ${String(text?.characters)}`
           : c.font && !(font?.family === c.font && text?.fontSize === 14) ? `font ${JSON.stringify(font)}`
+          : !glyphInst || !glyphVecs.length ? 'no glyph instance'
+          : c.glyph ? (glyphVecs.some((v) => !same(((v.fills ?? []) as typeof fills)[0], c.glyph!)) ? `glyph ${JSON.stringify(glyphVecs.map((v) => v.fills))}, want ${c.glyph}` : '')
+            || (litMisses.length ? litMisses[0] : '')
+          : glyphVecs.some((v) => ((v.fills ?? []) as unknown[]).length) ? `glyph tinted ${JSON.stringify(glyphVecs.map((v) => v.fills))} on a light fill`
           : litMisses.length ? litMisses[0] : '';
         if (why) bad.push(`${JSON.stringify(c.coord)}: ${why}`);
       }
-      ok(bad.length === 0, `#2343 PR 5 paste executor: SignInButton's literal fill, wash, edge, label ink, wording and Google's font land as plain values, nothing discarded (${bad.join(' | ') || 'clean'})`);
+      ok(bad.length === 0, `#2343 PR 5 paste executor: SignInButton's literal fill, wash, edge, label ink, wording, Google's font and the dark-fill glyph tint land as plain values, nothing discarded (${bad.join(' | ') || 'clean'})`);
 
       // THE FALLBACK FACE (Q-S7 A): a file without Google Sans refuses the load; the label lands in Roboto Medium
       // 14/20, typed here, the refused face is reported by name, and the member still builds. Mutation: the payload's

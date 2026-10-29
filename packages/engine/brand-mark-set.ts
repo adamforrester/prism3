@@ -112,7 +112,6 @@ export const BRAND_MARK_SOURCES: Record<string, string> = {
   'logo/visa': 'logo/visa',
   // The glyph a sign-in button carries.
   'provider/apple': 'provider/apple',
-  'provider/apple-black': 'provider/apple-black',
   'provider/facebook': 'provider/facebook',
   'provider/facebook-blue': 'provider/facebook-blue',
   'provider/google': 'provider/google',

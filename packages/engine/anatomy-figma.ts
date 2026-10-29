@@ -473,6 +473,11 @@ export type FigmaNodePlan = {
    *  an absent `descendantFills`, so a gate reads the promise and the outcome as two facts. Carried ONLY on such a
    *  part, so every other plan is byte-identical. */
   fixedPaint?: true;
+  /** THE PROVIDER GLYPH'S TINT (owner decision Q846 A, `PartDef.literal: 'mark'`): an opaque `#rrggbb` the executors
+   *  paint on every VECTOR inside this nested brand mark, as a plain solid with no variable. Carried IN PLACE of
+   *  `fixedPaint`, never beside it, and only where the def's literal entry names a `markTint`: SignInButton's black
+   *  provider glyph, painted white on a dark fill. `lint-mark-colors.ts` (d) holds which hosts and which marks. */
+  literalTint?: string;
   /** For a `box`: whether the frame crops content that overflows it — Figma's `clipsContent` (#1316).
    *  Carried onto the plan ONLY when `true`, so every existing box's plan is byte-identical (both
    *  executors read `n.clipsContent ?? false`, which is the literal they hardcoded before this field). */
@@ -1965,6 +1970,7 @@ export const figmaAnatomyPlan = (
       if (!literal) throw new Error(`${def.id}: anatomy part '${name}' reads literal '${p.literal}' at ${JSON.stringify(paintCoord)}, and the literal record has no entry '${key}'`);
     }
     const literalFont = p.literal === 'label' ? literal?.font : undefined;
+    const literalTint = p.literal === 'mark' ? literal?.markTint : undefined;
     let textStyle: string | undefined;
     // A literal font REPLACES the type binding at this member: the provider fixes the face.
     if (p.type && !literalFont) textStyle = figmaTextStyleName(resolveKey(p.type, 'type'));
@@ -2212,7 +2218,8 @@ export const figmaAnatomyPlan = (
       ...(aspectRatio !== undefined ? { aspectRatio } : {}),
       // A hosted instance's own proportion and paint (#2343 PR 2), carried only where the part declares them.
       ...((p.kind === 'slot' || p.kind === 'nest') && p.aspectLock ? { aspectLock: true as const } : {}),
-      ...((p.kind === 'slot' || p.kind === 'overlay' || p.kind === 'nest') && p.fixedPaint ? { fixedPaint: true as const } : {}),
+      ...((p.kind === 'slot' || p.kind === 'overlay' || p.kind === 'nest') && p.fixedPaint && !literalTint ? { fixedPaint: true as const } : {}),
+      ...(literalTint ? { literalTint } : {}),
       // The crop flag (#1316), carried ONLY when true so every existing box's plan is byte-identical —
       // both executors read `n.clipsContent ?? false`, which is the literal `false` they hardcoded before.
       ...((p.kind === 'box' && p.clipsContent) || tileEdge ? { clipsContent: true as const } : {}),
@@ -4544,7 +4551,8 @@ const GRADIENT_CLAIM_SLOT = '__GRADIENT_CLAIM__';
 const PAYLOAD_GRADIENT_CLAIM = '&&!m.gradientFill';
 const hasGradient = (n: FigmaNodePlan): boolean => n.gradientFill !== undefined || n.children.some(hasGradient);
 /** #2343 PR 5 — LITERAL PAINT AND FONT, the paste twin of the plugin executor's `literalPaints` / `literalFont`
- *  branches, spliced only into a payload whose plans carry one, so every other payload is byte-identical. Miss
+ *  branches (and Q846 A's `literalTint`), spliced only into a payload whose plans carry one, so every other payload
+ *  is byte-identical. Miss
  *  strings match the plugin's byte for byte. A literal stroke skips the bound-stroke read-back; the literal read-back
  *  checks it by value instead. */
 const LITERAL_FILL_CLAIM_SLOT = '__LITERAL_FILL_CLAIM__';
@@ -4555,7 +4563,8 @@ const LITERAL_STROKE_PAINT_SLOT = '__LITERAL_STROKE_PAINT__';
 const LITERAL_FONT_SLOT = '__LITERAL_FONT__';
 const PAYLOAD_LITERAL_FILL = `  const __lit=h=>{const c=i=>parseInt(h.slice(i,i+2),16)/255,a=h.length===9?c(7):1,p={type:'SOLID',color:{r:c(1),g:c(3),b:c(5)}};if(a<1)p.opacity=a;return p;};
   const __litHeld=(arr,want)=>Array.isArray(arr)&&arr.length===want.length&&want.every((h,i)=>{const w=__lit(h),g=arr[i],near=(a,b)=>typeof a==='number'&&Math.abs(a-b)<1/512;return g&&g.type==='SOLID'&&g.color&&near(g.color.r,w.color.r)&&near(g.color.g,w.color.g)&&near(g.color.b,w.color.b)&&near(g.opacity==null?1:g.opacity,w.opacity==null?1:w.opacity);});
-  if(n.literalPaints&&n.literalPaints.fills)node.fills=n.literalPaints.fills.map(__lit);`;
+  if(n.literalPaints&&n.literalPaints.fills)node.fills=n.literalPaints.fills.map(__lit);
+  if(n.literalTint){const vecs=node.findAll?node.findAll(x=>x.type==='VECTOR'):[];if(vecs.length===0)misses.push(n.name+'.literalTint -> '+n.literalTint+' (no VECTOR inside this node to paint)');for(const vec of vecs)vec.fills=[__lit(n.literalTint)];}`;
 const PAYLOAD_LITERAL_FILL_CLAIM = '&&!(m.literalPaints&&m.literalPaints.fills)';
 const PAYLOAD_LITERAL_STROKE_CLAIM = '&&!(m.literalPaints&&m.literalPaints.strokes)';
 const PAYLOAD_LITERAL_STROKE_COND = '||(n.literalPaints&&n.literalPaints.strokes)';
@@ -4563,7 +4572,8 @@ const PAYLOAD_LITERAL_STROKE_PAINT = 'n.literalPaints&&n.literalPaints.strokes?_
 const LITERAL_STROKE_MARK_SLOT = '__LITERAL_STROKE_MARK__';
 const PAYLOAD_LITERAL_STROKE_MARK = 'if(!(n.literalPaints&&n.literalPaints.strokes))';
 const LITERAL_READBACK_SLOT = '__LITERAL_READBACK__';
-const PAYLOAD_LITERAL_READBACK = `  if(n.literalPaints){if(n.literalPaints.fills&&!__litHeld(node.fills,n.literalPaints.fills))misses.push(n.name+'.fills -> DISCARDED (literal '+n.literalPaints.fills.join(' + ')+' set, not retained)');if(n.literalPaints.strokes&&!__litHeld(node.strokes,[n.literalPaints.strokes]))misses.push(n.name+'.strokes -> DISCARDED (literal '+n.literalPaints.strokes+' set, not retained)');}`;
+const PAYLOAD_LITERAL_READBACK = `  if(n.literalPaints){if(n.literalPaints.fills&&!__litHeld(node.fills,n.literalPaints.fills))misses.push(n.name+'.fills -> DISCARDED (literal '+n.literalPaints.fills.join(' + ')+' set, not retained)');if(n.literalPaints.strokes&&!__litHeld(node.strokes,[n.literalPaints.strokes]))misses.push(n.name+'.strokes -> DISCARDED (literal '+n.literalPaints.strokes+' set, not retained)');}
+  if(n.literalTint){const vecs=node.findAll?node.findAll(x=>x.type==='VECTOR'):[];if(vecs.some(v=>!__litHeld(v.fills,[n.literalTint])))misses.push(n.name+'.literalTint -> DISCARDED (literal '+n.literalTint+' set, not retained)');}`;
 const PAYLOAD_LITERAL_FONT = `  if(n.literalFont){
     const f=n.literalFont;let face=null;
     for(const want of [{family:f.family,style:f.style},f.fallback]){try{await figma.loadFontAsync(want);face=want;break;}catch(err){misses.push(n.name+'.font -> '+want.family+' '+want.style+' ('+err.message+')');}}
@@ -4573,7 +4583,7 @@ const PAYLOAD_LITERAL_FONT = `  if(n.literalFont){
       if(!(fn&&typeof fn==='object'&&fn.family===face.family&&fn.style===face.style)||node.fontSize!==f.size||!(lh&&typeof lh==='object'&&lh.unit==='PIXELS'&&lh.value===f.lineHeight))misses.push(n.name+'.literalFont -> DISCARDED (set '+face.family+' '+face.style+' '+f.size+'/'+f.lineHeight+')');
     }
   }`;
-const hasLiteral = (n: FigmaNodePlan): boolean => n.literalPaints !== undefined || n.literalFont !== undefined || n.children.some(hasLiteral);
+const hasLiteral = (n: FigmaNodePlan): boolean => n.literalPaints !== undefined || n.literalFont !== undefined || n.literalTint !== undefined || n.children.some(hasLiteral);
 /** `PAYLOAD_BUILD` for these roots: the reserved-lines write, the pinned icons, the corner pin, the root's
  *  build width, the hugging wrap's max width and the gradient fill spliced in where one of them needs it. */
 /** #2417 — the native-slot conversion, shipped only in a payload whose plans hold a slot: every byte of the build

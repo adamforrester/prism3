@@ -59,6 +59,8 @@ export const markPart = (o: {
   nesting: Extract<NestingRelation, { kind: 'nest-fixed' }>;
   height: string;
   note: string;
+  /** Reads the def's literal record for a glyph tint (Q846 A, SignInButton only). */
+  literal?: 'mark';
 }): PartDef => ({
   kind: 'nest',
   nests: 'brand-mark',
@@ -66,6 +68,7 @@ export const markPart = (o: {
   height: o.height,
   aspectLock: true,
   fixedPaint: true,
+  ...(o.literal ? { literal: o.literal } : {}),
   note: o.note,
 });
 

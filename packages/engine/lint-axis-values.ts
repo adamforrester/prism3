@@ -403,7 +403,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'payment/affirm', 'payment/amazon-pay', 'payment/amex', 'payment/apple-pay', 'payment/diners-club',
       'payment/discover', 'payment/generic', 'payment/google-pay', 'payment/klarna', 'payment/maestro',
       'payment/mastercard', 'payment/paypal', 'payment/shop-pay', 'payment/venmo', 'payment/visa',
-      'provider/apple', 'provider/apple-black', 'provider/facebook', 'provider/facebook-blue', 'provider/google',
+      'provider/apple', 'provider/facebook', 'provider/facebook-blue', 'provider/google',
       'social/apple', 'social/apple-mono', 'social/discord', 'social/discord-mono', 'social/dribbble',
       'social/dribbble-mono', 'social/facebook', 'social/facebook-mono', 'social/figma', 'social/figma-mono',
       'social/github', 'social/github-mono', 'social/google', 'social/google-mono', 'social/instagram',

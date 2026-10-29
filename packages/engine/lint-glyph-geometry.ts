@@ -1366,14 +1366,13 @@ for (const key of Object.keys(SCALED_GLYPH))
     failures.push(`STALE SCALED_GLYPH: '${key}' records a glyphScale of ${SCALED_GLYPH[key].scale}, and no def declares a vector part by that name. The per-part loop cannot see this, so the padded-artboard exemption would outlive its subject and let arm D be relaxed for the next part to take that name.`);
 
 // ---- THE DERIVED PROVIDER GLYPHS (#2343, owner decision Q831 A) --------------------------------------------------------
-// `provider/apple-black` and `provider/facebook-blue` are not supplied artwork: each is its social mark scaled to the
-// provider glyphs' 0.5px inset. Measured FROM THE FILES, never from the derivation: the derived file's body (its first
-// path, the provider-colored shape: Apple's black glyph, Facebook's blue disc) must span its `provider/` sibling's ink
-// box within 0.01px (INSET), and every path must be its source's path under ONE uniform scale and move (SHAPE), so the
+// `provider/facebook-blue` is not supplied artwork: it is its social mark scaled to the provider glyphs' 0.5px inset
+// (Q846 A dropped `provider/apple-black`, a duplicate of the black `provider/apple`). Measured FROM THE FILES, never
+// from the derivation: the derived file's body (its first path, the provider-colored shape: Facebook's blue disc) must
+// span its `provider/` sibling's ink box within 0.01px (INSET), and every path must be its source's path under ONE uniform scale and move (SHAPE), so the
 // artwork is resized, never redrawn. `DERIVED_MARK` is typed here and compared with the records' `derivedFrom` both
 // ways. A derived file left at the social mark's full bleed fails INSET by name.
 const DERIVED_MARK: Record<string, { from: string; sibling: string }> = {
-  'provider/apple-black': { from: 'social/apple', sibling: 'provider/apple' },
   'provider/facebook-blue': { from: 'social/facebook', sibling: 'provider/facebook' },
 };
 const INSET_TOL = 0.01;

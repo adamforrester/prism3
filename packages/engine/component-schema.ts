@@ -257,7 +257,7 @@ export type LiteralFont = {
 
 /** One coordinate's literals (#2343 PR 5, Q-S2 A): what a third party fixes and the brand may not theme. Colors are
  *  `#rrggbb`, or `#rrggbbaa` for a wash. A `literal: 'surface'` box reads `fill`, `edge` and `wash[state]`; a
- *  `literal: 'label'` text part reads `ink`, `text` and `font`. */
+ *  `literal: 'label'` text part reads `ink`, `text` and `font`; a `literal: 'mark'` nest reads `markTint`. */
 export type LiteralEntry = {
   fill?: string;
   edge?: string;
@@ -268,6 +268,11 @@ export type LiteralEntry = {
   text?: string;
   /** Replaces the part's `type` binding where present. */
   font?: LiteralFont;
+  /** THE PROVIDER GLYPH'S TINT (owner decision Q846 A): the opaque `#rrggbb` a `literal: 'mark'` nest paints every
+   *  vector of its `brand-mark/provider/*` glyph, in place of the file's own colors. One black glyph per provider,
+   *  painted white on a dark fill. Absent, the glyph keeps its own colors. Every other mark is never retinted, and
+   *  `lint-mark-colors.ts` (d) holds that by name. */
+  markTint?: string;
 };
 
 /** THE LITERAL RECORD (#2343 PR 5, owner decision Q-S2 A). Everywhere else a def binds token NAMES, never values,
@@ -877,9 +882,11 @@ export type PartDef = {
   /** READS THE DEF'S LITERAL RECORD (#2343 PR 5, `ComponentDef.literal`). `surface` on a `box`: its fills are the
    *  entry's `fill` with the entry's `wash` for the member's state laid over it, and its stroke is `edge`, drawn
    *  inside. `label` on a `text` part: its fill is `ink`, its copy `text` (no TEXT property claims it) and its font
-   *  `font` where the entry has one, else the part's `type`. Refused beside `paintSlots`/`paintSlot`, and on a def
-   *  with no `literal`. */
-  literal?: 'surface' | 'label';
+   *  `font` where the entry has one, else the part's `type`. `mark` on a `nest` of a brand mark that states
+   *  `fixedPaint` (owner decision Q846 A): where the entry has a `markTint`, the plan carries it as `literalTint` in
+   *  place of `fixedPaint`, and every vector of the nested glyph is painted that color. Refused beside
+   *  `paintSlots`/`paintSlot`, and on a def with no `literal`. */
+  literal?: 'surface' | 'label' | 'mark';
   /** For a `vector` drawn inline: the TILE EDGE ITS OWN FRAME DRAWS around artwork exported full-bleed (#2343, owner
    *  decision Q720 A). A payment mark is a tile, and its files arrive with square corners and no
    *  border, so the component draws both: at the coordinates `when` names, the GLYPH's frame (the artboard the importer
@@ -4215,7 +4222,7 @@ const literalErrors = (def: ComponentDef): string[] => {
   if (!holes.length) e.push(`literal.key '${lit.key}' names no axis — one entry would paint every member, which is a token's job, not a literal's`);
   for (const h of holes) if (!projected.includes(h)) e.push(`literal.key '${lit.key}' names '{${h}}', which is not a projected variant axis [${projected.join(', ') || 'none'}]`);
   if (!Object.keys(lit.entries).length) e.push('literal.entries is empty');
-  if (!Object.values(def.anatomy?.parts ?? {}).some((p) => p.literal)) e.push('literal is declared but no anatomy part reads it (literal: \'surface\' or \'label\')');
+  if (!Object.values(def.anatomy?.parts ?? {}).some((p) => p.literal)) e.push('literal is declared but no anatomy part reads it (literal: \'surface\', \'label\' or \'mark\')');
   for (const [k, en] of Object.entries(lit.entries)) {
     const at = `literal.entries['${k}']`;
     if (k.split('.').length !== holes.length) e.push(`${at} has ${k.split('.').length} segment(s); the key '${lit.key}' has ${holes.length}`);
@@ -4224,6 +4231,7 @@ const literalErrors = (def: ComponentDef): string[] => {
       if (!def.states.includes(st as State)) e.push(`${at}.wash.${st} names a state the def does not have [${def.states.join(', ')}]`);
       if (!c || !LITERAL_COLOR.test(c) || c.length !== 9) e.push(`${at}.wash.${st} '${c}' is not a translucent #rrggbbaa color — a wash lies over the fill, so it must let it through`);
     }
+    if (en.markTint !== undefined && !/^#[0-9a-f]{6}$/.test(en.markTint)) e.push(`${at}.markTint '${en.markTint}' is not an opaque lowercase #rrggbb color — a tint replaces the glyph's paint, so it may not let the fill through`);
     if (en.text !== undefined && !en.text.trim()) e.push(`${at}.text is blank`);
     if (en.font) {
       const f = en.font;
@@ -5188,6 +5196,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (!def.literal) e.push(`anatomy part '${n}' declares literal '${p.literal}' but the def carries no 'literal' record to read`);
       if (p.literal === 'surface' && p.kind !== 'box') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares literal 'surface' — only a 'box' paints a fill and an edge`);
       if (p.literal === 'label' && p.kind !== 'text') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares literal 'label' — only a 'text' part takes an ink, copy and font`);
+      if (p.literal === 'mark' && (p.kind !== 'nest' || p.nests !== 'brand-mark' || !p.fixedPaint)) e.push(`anatomy part '${n}' declares literal 'mark' but is not a 'nest' of 'brand-mark' stating fixedPaint — only a nested brand mark takes a tint, in place of its own paint`);
       if (p.paintSlots?.length || p.paintSlot) e.push(`anatomy part '${n}' declares literal '${p.literal}' beside the paint grammar (${p.paintSlots?.length ? 'paintSlots' : 'paintSlot'}) — a node takes its paint from one place`);
     }
     // PER-INSTANCE OVERRIDES (#2645) ride an instance of a NAMED component, so only a part that builds one may carry

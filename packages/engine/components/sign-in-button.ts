@@ -17,12 +17,21 @@
  * Facebook, Q-S7 A), the radius (`radius.md`, Q-S12 A), the 140 width floor and the focus ring.
  *
  * ALL EIGHT PAIRS SHIP, 96 MEMBERS (Q831 A, superseding Q-S5 A's wait for artwork). Each style's glyph is in the mark
- * set: `provider/apple` and `provider/facebook` (white), `provider/google`, and `provider/apple-black` and
- * `provider/facebook-blue`, derived from `social/apple` and `social/facebook` and scaled to the provider inset.
+ * set: `provider/apple` and `provider/facebook` (black since #3134), `provider/google`, and `provider/facebook-blue`,
+ * derived from `social/facebook` and scaled to the provider inset.
+ *
+ * ONE BLACK GLYPH PER PROVIDER, PAINTED WHITE ON A DARK FILL (Q846 A). Apple black and Facebook blue carry the black
+ * `provider/apple` and `provider/facebook` with a literal tint, `#ffffff` (the rule's `tint`, the literal entry's
+ * `markTint`, the plan's `literalTint`), painted on every vector of the glyph. That is the one place a brand mark is
+ * retinted: only here, only a `provider/*` glyph, and only where the fill is dark. `lint-mark-colors.ts` (g) fails any
+ * other host or mark that tints, and `test.ts` (`Q846 A dark-fill styles draw white`) types which styles do. Q846 A
+ * dropped the derived `provider/apple-black`, a duplicate of the black `provider/apple`; `provider/facebook-blue` stays,
+ * because a one-color tint cannot draw a blue disc with a white "f".
+ *
  * The members stay data: a provider × style pair is a member only when the mark set holds its glyph, and the style
  * axis lists only the styles some member carries, so a future provider whose artwork is not in yet is excluded, never
  * stood in. `makeSignInButton(names)` reads the vocabulary it is given; the gate (`test.ts`, `#2343 PR 5 provider rules
- * ARTWORK`) counts 96 over the real set, and 60 over the set without the two derived glyphs.
+ * ARTWORK`) counts 96 over the real set, and 84 over the set without the derived glyph.
  *
  * THE PROVIDER RULES, AS DATA THE GATE HOLDS (`test.ts`, `#2343 PR 5 provider rules`, which types each rule again from
  * the providers' guidelines, read 2026-10-27, and never reads this file's values):
@@ -31,7 +40,8 @@
  *   - the font: Google Sans Medium 14/20 on Google members at every size, a literal with a fallback; the brand's
  *     label type on Apple and Facebook, which leave the font free.
  *   - the width floor: 140, Apple's minimum and the largest of the three.
- *   - the mark: `brand-mark/provider/<provider>[-<glyph color>]`, nested whole, height bound, own paint.
+ *   - the mark: `brand-mark/provider/<provider>[-<glyph color>]`, nested whole, height bound, its own paint, or
+ *     white where the fill is dark (Q846 A).
  *   - the wording: "Continue with <Provider>" in Figma, with no text property (Q-S8 A); the code prop takes the
  *     provider's own list.
  */
@@ -51,8 +61,9 @@ const WASH = {
   onDark: { hover: '#ffffff1a', pressed: '#ffffff33' },
 } as const;
 
-/** A style: the provider's fill, edge and ink, the wash for its fill, and the glyph it carries. */
-type StyleRule = { fill: string; edge?: string; ink: string; wash: keyof typeof WASH; mark: string };
+/** A style: the provider's fill, edge and ink, the wash for its fill, the glyph it carries, and the color the glyph is
+ *  painted where the fill is dark (Q846 A: one black glyph per provider, painted white on a dark fill). */
+type StyleRule = { fill: string; edge?: string; ink: string; wash: keyof typeof WASH; mark: string; tint?: string };
 
 /** THE ONE AUTHORED RULE RECORD (Q-S2 A): per provider, its name, its wording list, its font when it fixes one, its
  *  spacing when it fixes one, and its styles in the provider's own names (Q-S4 A), the code default first. */
@@ -66,9 +77,9 @@ const RULES: Record<Provider, {
     name: 'Apple',
     wording: { continue: 'Continue with Apple', 'sign-in': 'Sign in with Apple', 'sign-up': 'Sign up with Apple' },
     styles: {
-      black: { fill: '#000000', ink: '#ffffff', wash: 'onDark', mark: 'provider/apple' },
-      white: { fill: '#ffffff', ink: '#000000', wash: 'onLight', mark: 'provider/apple-black' },
-      outline: { fill: '#ffffff', edge: '#000000', ink: '#000000', wash: 'onLight', mark: 'provider/apple-black' },
+      black: { fill: '#000000', ink: '#ffffff', wash: 'onDark', mark: 'provider/apple', tint: '#ffffff' },
+      white: { fill: '#ffffff', ink: '#000000', wash: 'onLight', mark: 'provider/apple' },
+      outline: { fill: '#ffffff', edge: '#000000', ink: '#000000', wash: 'onLight', mark: 'provider/apple' },
     },
   },
   google: {
@@ -85,7 +96,7 @@ const RULES: Record<Provider, {
     name: 'Facebook',
     wording: { continue: 'Continue with Facebook', login: 'Login with Facebook' },
     styles: {
-      blue: { fill: '#1877f2', ink: '#ffffff', wash: 'onDark', mark: 'provider/facebook' },
+      blue: { fill: '#1877f2', ink: '#ffffff', wash: 'onDark', mark: 'provider/facebook', tint: '#ffffff' },
       white: { fill: '#ffffff', ink: '#1877f2', wash: 'onLight', mark: 'provider/facebook-blue' },
     },
   },
@@ -133,6 +144,7 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
       wash: WASH[s.wash],
       text: r.wording.continue,
       ...(r.font ? { font: r.font } : {}),
+      ...(s.tint ? { markTint: s.tint } : {}),
     }];
   }));
   const first = built[0];
@@ -202,7 +214,8 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
             variantWhere: built.map(({ provider, style }) => ({ when: { provider, style }, set: { name: RULES[provider].styles[style].mark } })),
           },
           height: 'size.{size}.mark',
-          note: 'The provider\'s own glyph, in its own colors, at the leading edge. Only its height is set.',
+          literal: 'mark',
+          note: 'The provider\'s own glyph at the leading edge, in its own colors, or in white where the button\'s fill is dark. Only its height and that color are set.',
         }),
         label: {
           kind: 'text',
@@ -217,7 +230,7 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
       'the provider\'s sign-in — on click the button calls the provider\'s own function: AppleID.auth.signIn() (Sign in with Apple JS), the OAuth code client from Google Identity Services (google.accounts.oauth2.initCodeClient(…).requestCode()), or FB.login() (the Facebook JS SDK). The popup or redirect that follows is the provider\'s; the component draws nothing past its own button. onClick runs first.',
       'the provider scripts — each provider\'s script must be on the page before the button is used; until it loads, the button stays in place and its click waits for the script rather than failing.',
       'the provider\'s own buttons — the providers\' rendered buttons (appleid-signin, google.accounts.id.renderButton, fb-login-button) are documented, not wrapped. A team that wants Google\'s personalized "Continue as …" button renders it directly, in its own frame, beside the stack (Q-S3 A).',
-      'the colors and the font — the code reads the same literal record as the design file: each provider × style\'s fill, 1px inside edge, label ink and hover and pressed wash, and Google\'s font, font-family "Google Sans", Roboto, Arial, sans-serif at 500, 14px / 20px at every size. None of them is a token, so no theme or mode moves them.',
+      'the colors and the font — the code reads the same literal record as the design file: each provider × style\'s fill, 1px inside edge, label ink and hover and pressed wash, the white the glyph is painted on Apple black and Facebook blue, and Google\'s font, font-family "Google Sans", Roboto, Arial, sans-serif at 500, 14px / 20px at every size. None of them is a token, so no theme or mode moves them.',
       'the wording — a fixed key per provider × wording (continue, sign-in, sign-up for Apple and Google; continue, login for Facebook), translated by the app; the provider\'s name is never translated. The wording prop is typed per provider, so a wording the provider does not offer is a type error, not a fallback.',
       'the width — the button hugs its label with a 140px floor, Apple\'s minimum and the largest of the three, and fullWidth makes it fill its column.',
       'RTL — the row mirrors, so the glyph stays at the leading edge, now the right. The glyph itself is never flipped.',
@@ -291,9 +304,6 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
 
     notes: {
       contested: [
-        'Q-S13 (the wash): built as A, a literal wash of black at 10% and 20% on a light fill and white at 10% and 20% on a dark one, Button\'s neutral overlay steps. The brand\'s own overlay roles flip with the mode while the provider\'s fill does not, so a bound wash would vanish on a white button in dark mode. B, bind the brand\'s neutral overlay roles anyway and accept the dark-mode gap.',
-        'Q-S14 (Google\'s gap): built as A, 8px. Google sets 12 / 10 / 12; its 10px gap is off the space scale, so the gap binds the 8px step and both sides bind 12px. B, a literal 10px gap, which needs a literal spacing field the engine does not have.',
-        'Q-S15 (the wording in Figma): built as Continue with <Provider> for all three, per Q-S8 A. The proposal\'s Q-S8 text also said Facebook\'s string is "Login with Facebook"; the decision text names Continue with <Provider>, and Facebook allows both.',
         'Google Sans licensing: whether Google Sans may be used outside Google\'s own assets is unverified (Q-S7). The design file falls back to Roboto Medium where Google Sans is not installed, and reports the fallback.',
         'The Facebook styles measure 4.23:1, white on #1877f2 and the reverse, under 4.5:1 for text at these sizes. The color is the provider\'s; the gate records it as a known provider shortfall.',
       ],
@@ -306,9 +316,11 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
       evolution: [
         'Proposed on #2343 (2026-10-28, PR 5) with a wireframe of all members; the owner chose all twelve calls as A: Apple, Google and Facebook (Q-S1), Prism3 draws the button with the provider\'s fill, edge and ink as literal paint (Q-S2), a native button that calls the provider\'s sign-in (Q-S3), the providers\' style names (Q-S4), members only where the mark set holds the glyph (Q-S5), rest, hover, pressed and focus-visible (Q-S6), Google Sans as a literal font (Q-S7), the label fixed with no text property (Q-S8), no logo-only member (Q-S9), its own page (Q-S10), the shared helpers (Q-S11) and radius.md with no shape axis (Q-S12).',
         'Q831 A (2026-10-28) supersedes Q-S5 A\'s wait for artwork: Apple\'s black glyph and Facebook\'s blue one are derived from social/apple and social/facebook, scaled to the provider inset, so all eight pairs ship, 96 members. The membership stays data, for a future provider whose glyph is not in yet.',
+        'The owner decided Q-S13 to Q-S17 as A (2026-10-29): a literal wash of black at 10% and 20% on a light fill and white on a dark one, which does not flip with the mode (Q-S13); Google\'s 8px gap with 12px at both sides, since its 10px gap is off the space scale (Q-S14); Continue with Facebook (Q-S15); glyph heights 16, 20 and 24 (Q-S16); and code offers only the styles whose artwork is in the design file, all eight today (Q-S17).',
+        'Q846 A (2026-10-29): #3134 drew provider/apple and provider/facebook black, so each provider has one black glyph, painted white where the button\'s fill is dark (Apple black, Facebook blue). Every other mark is never retinted. The derived provider/apple-black, now a duplicate of provider/apple, was dropped; still 96 members.',
       ],
       projection: [
-        'In Figma the button\'s fill, edge and label color are plain colors with no variable, and the label has no text property; Google\'s label carries Google Sans Medium 14/20 directly, not a text style. The glyph is a brand-mark/provider instance, its height bound and its width from its proportion.',
+        'In Figma the button\'s fill, edge and label color are plain colors with no variable, and the label has no text property; Google\'s label carries Google Sans Medium 14/20 directly, not a text style. The glyph is a brand-mark/provider instance, its height bound and its width from its proportion; on Apple black and Facebook blue its vectors are painted white as a plain color.',
       ],
     },
   };

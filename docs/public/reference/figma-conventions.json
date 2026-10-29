@@ -411,7 +411,7 @@
         "kind": "component set",
         "page": "↳ Brand marks",
         "section": "Foundations",
-        "members": 76,
+        "members": 75,
         "variantProperties": [
           {
             "name": "name",
@@ -446,7 +446,6 @@
               "payment/venmo",
               "payment/visa",
               "provider/apple",
-              "provider/apple-black",
               "provider/facebook",
               "provider/facebook-blue",
               "provider/google",

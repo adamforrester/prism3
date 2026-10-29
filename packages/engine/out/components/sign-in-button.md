@@ -20,7 +20,7 @@ A button that signs the user in with their Apple, Google or Facebook account. Ea
 Shown on the default member: provider `apple`, style `black`, size `medium`.
 
 1. **Container** — The provider's button: its fill, and a 1px edge where the provider draws one. Hover and pressed lay a light wash over the fill, which never changes.
-2. **Mark** — The provider's own glyph, in its own colors, at the leading edge. Only its height is set.
+2. **Mark** — The provider's own glyph at the leading edge, in its own colors, or in white where the button's fill is dark. Only its height and that color are set.
 3. **Label** — The provider's wording, in the provider's label color. Google's label is set in Google's own typeface; Apple's and Facebook's in the theme's label style.
 4. **Focus ring** — The shared focus ring, outside the provider's button while it has keyboard focus.
 
@@ -203,7 +203,7 @@ Keyed by `provider`, `style`, `state`.
 
 ### Nesting and properties
 
-- `container/mark` nests `brand-mark` at `name=provider/apple`; `provider=apple, style=black` takes `name=provider/apple`, `provider=apple, style=white` takes `name=provider/apple-black`, `provider=apple, style=outline` takes `name=provider/apple-black`, `provider=google, style=light` takes `name=provider/google`, `provider=google, style=dark` takes `name=provider/google`, `provider=google, style=neutral` takes `name=provider/google`, `provider=facebook, style=blue` takes `name=provider/facebook`, `provider=facebook, style=white` takes `name=provider/facebook-blue`
+- `container/mark` nests `brand-mark` at `name=provider/apple`; `provider=apple, style=black` takes `name=provider/apple`, `provider=apple, style=white` takes `name=provider/apple`, `provider=apple, style=outline` takes `name=provider/apple`, `provider=google, style=light` takes `name=provider/google`, `provider=google, style=dark` takes `name=provider/google`, `provider=google, style=neutral` takes `name=provider/google`, `provider=facebook, style=blue` takes `name=provider/facebook`, `provider=facebook, style=white` takes `name=provider/facebook-blue`
 - `container/focusRing` nests `focus-ring` at `surface=default`
 
 ---
