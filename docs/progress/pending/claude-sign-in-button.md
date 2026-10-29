@@ -31,7 +31,7 @@ PR 5 of #2343, stacked on the branded-button helpers (#3122). It follows the pro
 - **Both executors** write literal paints as unbound solids, and a `#rrggbbaa` color's alpha becomes the paint's opacity. They load the literal font, falling back and reporting when the face is not installed. Each reads the result back by value.
   - The #865 defaults treat a literal channel as claimed.
   - The paste executor splices all of this into a payload only when its plans carry a literal, so every other payload is byte-identical.
-  - `anatomy-readback.ts` classifies both fields. `EXECUTOR_REVISION` 40 → 41.
+  - `anatomy-readback.ts` classifies both fields. `EXECUTOR_REVISION` 41 → 42 (#3132 took 41 on main first).
 - **`NestingRelation.variantWhere`**, a joint host-coordinate mapping. Apple white and Facebook white carry different glyphs, so the glyph depends on provider and style together. `variantWhen` maps one axis at a time and rightly refuses one child axis set from two host axes. `variantWhere` requires every entry to name the same host axes, so at most one matches a member. It is refused on an unprojected axis, an unknown value, a repeated `when`, or a `set` axis that `variant` lacks, that `follow` names or that `variantWhen` also sets.
 - **The spec model** (`component-specs.ts`, which feeds `specs.json` and the docs page) carries `variantWhere` as `where` and the literal record as `literal`, so the code side gets the provider's values and each member's glyph. The roundtrip's spec read-back resolves `where` like `when`.
 - **`lint-paint-placement`** learns literal paint as its own placement kind. It also fails a node that carries both a literal and a bound paint on one channel (arm L).
