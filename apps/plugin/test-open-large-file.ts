@@ -15,7 +15,8 @@
  *
  * THE STAND-IN. 60 pages, one in ten a divider; 50 component sets, one per page from the first, each named by a
  * buildable def's id, as the build names them; a ledger at the root naming 45 of them, 3 of those due for their
- * definition. Figma's page model is kept where it decides the result: a page has to be loaded before its children are
+ * definition, and 12 recorded with a print under an older engine whose plans have not moved, so the read at open
+ * projects them (`open/printed`: current, read from their print) and `open/ready` covers the print path. Figma's page model is kept where it decides the result: a page has to be loaded before its children are
  * searched; loading one costs `PAGE_MS` of main-thread time, burned synchronously as Figma does; `loadAllPagesAsync`
  * loads every page not yet loaded in one go; and the document-wide search refuses until `loadAllPagesAsync` was called,
  * as under `documentAccess: dynamic-page`.
@@ -30,7 +31,7 @@
  * about 330 ms a page. Set `PAGE_MS` in the environment to rescale.
  *
  * MUTATIONS, each failing by name: `ui-ready` reading the file first (`fileSets()` in place of `ledgerSets()`) →
- * `open/ready`; `loadPagesYielding` as one `loadAllPagesAsync` → `open/yields`; `ledgerSets` dropping `partial` →
+ * `open/ready`; `printYielding` loading every page after each projection → `open/ready`; `loadPagesYielding` as one `loadAllPagesAsync` → `open/yields`; `ledgerSets` dropping `partial` →
  * `open/partial`; the read after open posted untagged → `open/full`; `styleGuideCatalog` back on `loadAllPagesAsync`
  * → `open/yields`; `checkSets`, prune, `styleGuide` or `styleGuideCleanup` loading every page in one call →
  * `entry/check`, `entry/prune`, `entry/style-guide`, `entry/style-guide-cleanup`; the read after open's error answer
@@ -48,6 +49,8 @@ import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
 import { componentDefs } from '@prism3/engine/components/index';
 import { materializerFor } from './src/brand-def';
+import { SWAP_TARGET } from './src/build-deps';
+import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { entryFor, LEDGER_KEY, LEDGER_V } from './src/as-built-ledger';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 
@@ -62,6 +65,10 @@ const PAGES = 60;
 const SETS = 50;
 const RECORDED = 45;
 const DUE = 3;
+/** Recorded with a print under an older engine, plans unchanged: the read at open must print them to call them current
+ *  (#3090 review of cc9fe14f), and printing must load no page. */
+const PRINTED = 12;
+const OLD_ENGINE = '0.0.0-before';
 
 /* ── the stand-in file ─────────────────────────────────────────────────────────────────────────────── */
 
@@ -115,7 +122,9 @@ const pluginData = new Map<string, string>();
 const sharedData = new Map<string, string>();
 const mat = materializerFor(null);
 const ledger = Object.fromEntries(setIds.slice(0, RECORDED).map((id, i) => {
-  const e = entryFor(mat(componentDefs.find((d) => d.id === id)!));
+  const m = mat(componentDefs.find((d) => d.id === id)!);
+  if (i >= DUE && i < DUE + PRINTED) return [id, { ...entryFor(m, figmaAnatomySet(m, { swapTarget: SWAP_TARGET })), engine: OLD_ENGINE }];
+  const e = entryFor(m);
   return [id, i < DUE ? { ...e, def: 'moved000moved000' } : e];
 }));
 pluginData.set(LEDGER_KEY, JSON.stringify({ v: LEDGER_V, sets: ledger }));
@@ -201,6 +210,10 @@ ok(first?.msg?.partial === true, `open/partial: that answer says it is the ledge
 const firstDue = Object.entries((first?.msg?.due ?? {}) as Record<string, { state: string }>).filter(([, d]) => d.state === 'due').map(([id]) => id);
 ok(first?.msg?.present?.length === RECORDED && firstDue.length === DUE,
   `open/ledger: it names the ${RECORDED} sets the ledger records, ${DUE} of them due (${first?.msg?.present?.length} present, ${firstDue.length} due)`);
+const printedIds = setIds.slice(DUE, DUE + PRINTED);
+const printedRead = printedIds.map((id) => first?.msg?.due?.[id]?.state);
+ok(printedRead.length === PRINTED && printedRead.every((st) => st === 'current'),
+  `open/printed: the ${PRINTED} sets recorded with a print under an older engine, plans unchanged, are printed at open and read current (${JSON.stringify([...new Set(printedRead)])})`);
 ok(first?.msg?.atOpen === true, `open/tagged: it is tagged as the host's read after open (atOpen ${first?.msg?.atOpen})`);
 ok(answer !== undefined && answer.msg.present?.length === SETS && loadsAtAsk > 0 && loadsAtAsk < PAGES,
   `open/race: the checklist's request, asked mid-read (${loadsAtAsk} of ${PAGES} pages loaded), is answered untagged, so the panel can tell it from the read after open (${answer ? `${answer.msg.present?.length} present` : 'no answer'})`);

@@ -28,6 +28,10 @@
  *       radius and weight hold their value at every one of them, where a baked edge would scale with the
  *       artwork. That the FILE bakes no edge is `lint-glyph-geometry.ts`'s mark arm (TILE BAKED).
  *       The edge is the frame's, never the artwork's, so (c) admits exactly these properties on exactly that node.
+ *       THE EDGE ONLY WHERE THE FILL NEEDS IT (owner direction on #3134): the stroke and its weight are drawn only on a
+ *       tile whose own fill (the first hex fill its file paints) is under 3:1 against a white page; every other tile
+ *       keeps its corners and its crop and carries neither. Judged here from the raw file with this gate's own
+ *       luminance arithmetic, never the def's helper (docs/34 shape 1).
  *
  * ── INDEPENDENCE (docs/34) ──────────────────────────────────────────────────────────────────────────
  *
@@ -92,8 +96,18 @@ const TILE_EDGE: Record<string, string> = {
   strokeWeight: 'border-width/',
 };
 const TILE_STROKE = 'color/border/';
-/** What is wrong with a node's tile edge, given whether it should carry one. Empty when right. Pure. */
-export const tileEdgeErrors = (n: FigmaNodePlan, tile: boolean): string[] => {
+/** A hex color's WCAG relative luminance, written here rather than imported from the engine's color math. Pure. */
+const lum = (hex: string): number => {
+  const ch = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+};
+/** Whether a tile's file needs the edge (#3134): its first hex fill under 3:1 against white, or no fill to read. Pure. */
+export const needsEdge = (svg: string): boolean => {
+  const fill = /<path\b[^>]*\sfill="(#[0-9A-Fa-f]{6})"/.exec(svg)?.[1];
+  return !fill || 1.05 / (lum(fill) + 0.05) < 3;
+};
+/** What is wrong with a node's tile edge, given whether it is a tile and whether its edge is drawn. Empty when right. Pure. */
+export const tileEdgeErrors = (n: FigmaNodePlan, tile: boolean, edged = tile): string[] => {
   const out: string[] = [];
   const bound = (n.bound ?? {}) as Record<string, unknown>;
   if (!tile) {
@@ -102,9 +116,14 @@ export const tileEdgeErrors = (n: FigmaNodePlan, tile: boolean): string[] => {
   }
   for (const [prop, family] of Object.entries(TILE_EDGE)) {
     const v = bound[prop];
+    if (!edged && prop === 'strokeWeight') {
+      if (v !== undefined) out.push(`binds strokeWeight to '${String(v)}', and a tile whose fill stands apart from a white page (3:1) draws no edge`);
+      continue;
+    }
     if (typeof v !== 'string' || !v.startsWith(family)) out.push(`${prop} is ${v === undefined ? 'unbound' : `bound to '${String(v)}'`}, and a tile's ${prop.endsWith('Radius') ? 'corner' : 'edge weight'} is a ${family}* variable`);
   }
-  if (!n.paints?.strokes?.startsWith(TILE_STROKE)) out.push(`its stroke is ${n.paints?.strokes ? `'${n.paints.strokes}'` : 'unpainted'}, and a tile's edge is a ${TILE_STROKE}* variable`);
+  if (!edged) { if (n.paints?.strokes) out.push(`its stroke is '${n.paints.strokes}', and a tile whose fill stands apart from a white page (3:1) draws no edge`); }
+  else if (!n.paints?.strokes?.startsWith(TILE_STROKE)) out.push(`its stroke is ${n.paints?.strokes ? `'${n.paints.strokes}'` : 'unpainted'}, and a tile's edge is a ${TILE_STROKE}* variable`);
   if (!n.clipsContent) out.push('does not clip the artwork, so a full-bleed ground would show square corners outside the rounded edge');
   return out;
 };
@@ -124,6 +143,12 @@ const self: string[] = [];
   if (tileEdgeErrors({ ...tile, bound: { ...edge, topLeftRadius: undefined } } as unknown as FigmaNodePlan, true).length !== 1) self.push('tileEdgeErrors misses an unbound corner');
   if (tileEdgeErrors({ ...tile, paints: {} } as unknown as FigmaNodePlan, true).length !== 1) self.push('tileEdgeErrors misses an unpainted edge');
   if (tileEdgeErrors({ name: 'glyph', type: 'GLYPH' } as FigmaNodePlan, false).length) self.push('tileEdgeErrors reports an edge on a bare non-tile');
+  const { strokeWeight: _w, ...corners } = edge;
+  const bare = { ...tile, bound: corners, paints: {} } as unknown as FigmaNodePlan;
+  if (tileEdgeErrors(bare, true, false).length) self.push(`tileEdgeErrors rejects an edgeless tile with its corners and crop: ${tileEdgeErrors(bare, true, false).join('; ')}`);
+  if (tileEdgeErrors(tile, true, false).length !== 2) self.push('tileEdgeErrors misses an edge drawn on a tile that needs none');
+  if (!needsEdge('<svg><path d="M0 0H32V20H0Z" fill="#FFFFFF"/></svg>') || !needsEdge('<svg><path d="M0 0Z" fill="#FEB4C7"/></svg>')) self.push('needsEdge drops the edge on a white or pale tile');
+  if (needsEdge('<svg><path d="M0 0H32V20H0Z" fill="#008CFF"/></svg>') || needsEdge('<svg><path d="M0 0Z" fill="#000000"/></svg>')) self.push('needsEdge keeps the edge on a tile whose fill is 3:1 or more against white');
   if (!isTileMark('payment/visa') || isTileMark('social/x-mono') || isTileMark('logo/visa')) self.push('isTileMark misreads a kind');
   if (carriesMark({ name: 'icon', type: 'NESTED_INSTANCE', nestTarget: 'icon/check' } as FigmaNodePlan)) self.push('carriesMark reads an icon as a mark');
 }
@@ -137,11 +162,13 @@ if (self.length) {
 const failures: string[] = [];
 const records = (JSON.parse(readFileSync(join(marksDir, 'provenance.json'), 'utf8')) as { marks: Record<string, { colors?: string[] }> }).marks;
 const sourceColors = new Map<string, string[]>();
+const sourceSvgs = new Map<string, string>();
 for (const [name, source] of Object.entries(BRAND_MARK_SOURCES)) {
   let svg = '';
   try { svg = readFileSync(join(marksDir, `${source}.svg`), 'utf8'); } catch { failures.push(`${name}: marks/${source}.svg is unreadable`); continue; }
   const colors = colorsOf(svg);
   sourceColors.set(name, colors);
+  sourceSvgs.set(name, svg);
   if (colors.length === 0) failures.push(`${name}: marks/${source}.svg paints no hex color — a mark with no color of its own`);
   // (a) source vs record
   const rec = records[`${source}.svg`]?.colors ?? [];
@@ -163,8 +190,10 @@ else {
     const name = String(plan.coord.name);
     let docs = 0;
     const tile = isTileMark(name);
-    // (e) the tile edge, on the frame that holds the artwork: the plan's GLYPH node, which a host instances.
-    for (const t of tileEdgeErrors(plan.root, tile)) failures.push(`${MARK_PREFIX}${name}: TILE EDGE — the mark's frame '${plan.root.name}' ${t}`);
+    // (e) the tile edge, on the frame that holds the artwork: the plan's GLYPH node, which a host instances. Whether the
+    // edge is drawn is judged from the raw file (`sourceSvgs`), never from the def.
+    const edged = tile && needsEdge(sourceSvgs.get(name) ?? '');
+    for (const t of tileEdgeErrors(plan.root, tile, edged)) failures.push(`${MARK_PREFIX}${name}: TILE EDGE — the mark's frame '${plan.root.name}' ${t}`);
     if (tile) tileMembers++;
     walk(plan.root, (n) => {
       // The edge is the one paint a payment tile's frame carries, and (e) has judged it: (c) admits exactly those keys there.

@@ -278,7 +278,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         const d = f.due[id];
         const c = checkOf(id);
         const label: Node[] = [h('span', 'p3-upd-setname', nameOf(id))];
-        if (d?.state === 'due') label.push(hook(h('span', 'p3-sg-tag', UPDATE_COPY.dueWhy(d.reason)), 'update-set-due'));
+        if (d?.state === 'due') label.push(hook(h('span', 'p3-sg-tag', UPDATE_COPY.dueWhy(d)), 'update-set-due'));
         const box = check('update-due-set', `due=${id}`, on, label, () => {
           const next = new Set(t.update);
           if (on) next.delete(id); else next.add(id);

@@ -46,7 +46,13 @@
  * `panelBeside` read as `true`) → `docs/panels off`; Set up file ignoring Cover off (`main.ts` `fileSetup`, its
  * `readDocSettings(figma.root).cover` test never taken) → `docs/cover off`. The as-built ledger (#2909 Q2909.8 A): Build
  * recording nothing (`main.ts`, its `recordSets` after `applyComponentPlan`) → `ledger/build`; the Update recording
- * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. Q699 A
+ * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. #3082 Q811 A
+ * (section 1a'): `fileSets` calling `restampQuiet` → `q811/load: the read records nothing`; `restampQuiet` a no-op →
+ * `q811/restamp`; the update's record without its print AND `restampQuiet` a no-op → `ledger/print` (either alone is
+ * covered by the other: the quiet re-record gives a no-print entry its print); `dueOf` reading a print-less entry under a
+ * moved engine `unrecorded` → `q811/unprinted` (#3090 finding 1); `fileSets` printing against the stored brand,
+ * `printNow()` → `q811/panel brand` (#3090 M6, section 6); `restampQuiet`'s stale filter losing `!ledger[id].print`, so a
+ * print-less entry under today's engine never gains its print → `q811/migrate`. Q699 A
  * (section 6): `main.ts`'s `brandOf` reading the stored brand whatever the panel sends → `q699/due` and `q699/update`
  * ("Nothing was updated: the file changed since the check"). #3023 Q701 B (section 6b): the panel's `brandFor` sending its own brand with
  * Theme unticked → `q701/update writes A`, `q701/next load`. The hand-edit pass (section 7): `stale()` cut to
@@ -58,7 +64,9 @@
  * (`presentCache` unused) → `q810/cheap`; `guarded` keeping the sets it caches after a write → `q810/after a write`; its
  * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`; `guarded` keeping the sets a recount
  * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7); its `catch` posting
- * no `error` (a failed read reaching the panel as a live answer with nothing due) → `q810/error`.
+ * no `error` (a failed read reaching the panel as a live answer with nothing due) → `q810/error`; `fileDue` calling
+ * `dueOf` without `printNow(input)`, so an engine-moved set reads `unrecorded` → `q810/engine`; `ledgerSets` the same → `q810/engine at open`; `printNow` projecting on every call (`printMemo` unused) → `q810/memo`
+ * (#3096 into #3090).
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -174,7 +182,23 @@ g.figma = shim;
 g.__html__ = '';
 g.PRISM3_BUILD = '2026-10-05T00:00:00Z tree-test0000';
 
-await import('./src/main');
+const { ACTIONS: TABLE } = await import('./src/main');
+// #3131 releases a build's guard as soon as its verdict posts, while the build's tail (the settle probe, then
+// `thenRestamp`'s quiet re-record) still runs. An arm that plants a ledger entry after a write must wait for that tail,
+// or the late re-record records the planted entry over (the #3090 review of cc9fe14f). The panel's messages reach the
+// writes through this table and drop the promise (`void ACTIONS.…`), so each write's own promise is kept here, and
+// `settled` awaits every one still pending.
+const pending = new Set<Promise<void>>();
+let writesSeen = 0;
+for (const k of ['applyTheme', 'buildComponents', 'updateComponents', 'drawSpecs'] as const) {
+  const fn = TABLE[k] as (...a: unknown[]) => Promise<void>;
+  (TABLE as Record<string, unknown>)[k] = (...a: unknown[]): Promise<void> => {
+    const p = fn(...a).finally(() => pending.delete(p));
+    pending.add(p); writesSeen++;
+    return p;
+  };
+}
+const settled = async (): Promise<void> => { while (pending.size) await Promise.allSettled([...pending]); };
 
 const realTimeout = globalThis.setTimeout;
 /** Post the panel's build message and wait (bounded) for the one `component-result` it produces. The run guard
@@ -188,7 +212,7 @@ const build = async (def: string): Promise<any> => {
     if (posted.some((m) => m?.type === 'refused')) { await new Promise((res) => realTimeout(res, 25)); continue; }
     for (let j = 0; j < 600; j++) {
       const r = posted.find((m) => m?.type === 'component-result');
-      if (r) return r;
+      if (r) { await settled(); return r; }
       await new Promise((res) => realTimeout(res, 10));
     }
     return null;
@@ -203,6 +227,7 @@ console.log('component-result.completed, through main.ts (C1)');
 sharedData.set('prism3:addQueue.badge', '2026-10-28T09:00:00.000Z');
 const first = await build('badge');
 ok(first !== null, `the build posts a component-result (${first ? first.headline : 'none in 6 s'})`);
+ok(writesSeen === 1 && pending.size === 0, `fixture: the panel's build reached the action table, and the test waited out its tail (${writesSeen} seen, ${pending.size} pending)`);
 const badgePage = pages.find((p) => p.children.some((c) => c.type === 'COMPONENT_SET'));
 const set = badgePage?.children.find((c) => c.type === 'COMPONENT_SET');
 ok(!!set && (set.children as Node[]).length > 1, `a real set reached the file (${set ? `${(set.children as Node[]).length} members on '${badgePage?.name}'` : 'none'})`);
@@ -222,7 +247,7 @@ const ask = async (msg: Record<string, unknown>, type: string, until: (m: any) =
   }
   return posted.filter((m) => m?.type === type);
 };
-const ledger = (): Record<string, { def: string; rev: number; engine: string }> => { try { return JSON.parse(pluginData.get('prism3:asBuilt') ?? '{}').sets ?? {}; } catch { return {}; } };
+const ledger = (): Record<string, { def: string; rev: number; engine: string; print?: { plan: string } }> => { try { return JSON.parse(pluginData.get('prism3:asBuilt') ?? '{}').sets ?? {}; } catch { return {}; } };
 ok(typeof ledger().badge?.def === 'string', `ledger/build: the build records the set it landed (${JSON.stringify(ledger().badge)})`);
 ok(sharedData.get('prism3:addQueue.badge') === '', `queue/build: the build that lands Badge whole clears its add-queue key, where the ledger records it (${JSON.stringify(sharedData.get('prism3:addQueue.badge'))})`);
 const fs1 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
@@ -274,6 +299,54 @@ ok(chk?.previewHash === hash, `update-check: the panel's scoped check hashes as 
 // The apply records the set it acted on, so the ledger reads it current again.
 const fs3 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
 ok(fs3?.due?.badge?.state === 'current' && ledger().badge?.def !== 'another-def', `ledger/update: the update records the set it acted on, current again (${JSON.stringify(fs3?.due)})`);
+
+// 1a'. #3082 Q811 A, through the real `main.ts`: an entry from an older engine whose plans print as they do now reads
+//      current, and the read writes nothing; an entry whose print differs reads due for the engine, naming the part and
+//      facet planted; the next write (a build of another set) records the quiet one under today's engine. The entries
+//      are planted from the one the update just recorded; the expected states and the moved part are literals.
+const asRecorded = ledger().badge as { def: string; rev: number; engine: string; print?: { plan: string; parts: Record<string, string>; set: string } };
+ok(!!asRecorded?.print && /^[0-9a-f]{16}$/.test(asRecorded.print.plan) && Object.keys(asRecorded.print.parts).length > 0,
+  `ledger/print: after the update, the set's entry carries the print of the plans it laid (its own record, else the quiet re-record after it) (${JSON.stringify(asRecorded?.print)?.slice(0, 120)})`);
+const OLD = '0.0.0-before';
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, engine: OLD } } }));
+const fsQ = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsQ?.due?.badge) === JSON.stringify({ state: 'current' }), `q811/load: an engine bump with an identical plan reads current (${JSON.stringify(fsQ?.due?.badge)})`);
+ok(ledger().badge?.engine === OLD, `q811/load: the read records nothing; the quiet re-record waits for a write (${ledger().badge?.engine})`);
+const part = Object.keys(asRecorded.print!.parts)[0];
+const chunk = asRecorded.print!.parts[part];
+const movedPrint = { plan: '0'.repeat(16), set: asRecorded.print!.set, parts: { ...asRecorded.print!.parts, [part]: (chunk.slice(0, 4) === 'ffff' ? '0000' : 'ffff') + chunk.slice(4) } };
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, engine: OLD, print: movedPrint } } }));
+const fsM = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsM?.due?.badge) === JSON.stringify({ state: 'due', reason: 'engine', moved: { parts: [{ part, facets: ['size'] }], added: [], dropped: [], set: false } }),
+  `q811/load: a changed plan reads due for the engine, naming the part and facet that moved (${JSON.stringify(fsM?.due?.badge)})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, engine: OLD } } }));
+await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
+ok(ledger().badge?.engine !== OLD && ledger().badge?.print?.plan === asRecorded.print!.plan,
+  `q811/restamp: the next write records the quiet set under today's engine, its print kept (${JSON.stringify({ engine: ledger().badge?.engine, plan: ledger().badge?.print?.plan })})`);
+// An entry from before Q811 A (no print) under TODAY's engine reads current, and the next write gives it its print.
+const { print: _q, ...printless } = asRecorded;
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: printless } }));
+const fsT = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsT?.due?.badge) === JSON.stringify({ state: 'current' }) && !ledger().badge?.print,
+  `q811/migrate: a print-less entry under today's engine reads current, and the read records nothing (${JSON.stringify({ due: fsT?.due?.badge, print: !!ledger().badge?.print })})`);
+await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
+ok(ledger().badge?.engine === asRecorded.engine && ledger().badge?.print?.plan === asRecorded.print!.plan,
+  `q811/migrate: the next write gives a print-less entry under today's engine its print (${JSON.stringify({ engine: ledger().badge?.engine, plan: ledger().badge?.print?.plan ?? null })})`);
+// #3090 finding 1: an entry from before Q811 A (no print) under an older engine. It reads due for the engine, naming
+// nothing, never "not checked yet"; a write does not record it quietly, nor does the check; the update's apply does,
+// with its print, and the next read finds it current.
+const { print: _p, ...unprinted } = asRecorded;
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...unprinted, engine: OLD } } }));
+const fsU = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsU?.due?.badge) === JSON.stringify({ state: 'due', reason: 'engine' }), `q811/unprinted: a print-less entry under an older engine reads due for the engine (${JSON.stringify(fsU?.due?.badge)})`);
+await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
+const chkP = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, undefined, sink as never));
+ok(ledger().badge?.engine === OLD && !ledger().badge?.print, `q811/unprinted: neither a write nor the check records it (${JSON.stringify(ledger().badge)})`);
+const hashP = (chkP.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string })?.previewHash;
+await runAction((sink) => ACTIONS.updateComponents('badge', hashP ?? null, undefined, undefined, sink as never));
+const healed = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(ledger().badge?.engine !== OLD && ledger().badge?.print?.plan === asRecorded.print!.plan && JSON.stringify(healed?.due?.badge) === JSON.stringify({ state: 'current' }),
+  `q811/unprinted: after a check and the update, the set is recorded under today's engine with its print, and reads current (${JSON.stringify({ entry: ledger().badge, due: healed?.due?.badge })})`);
 
 // 1c. Q284.3 A: a run that skipped furniture for a missing template is a WARNING, the state every partial result takes:
 //     `ok: false` and a `⚠` headline, never `✓`. The build still made its set, so it stays `completed`.
@@ -429,7 +502,7 @@ ok(staleUpd?.headline === '✗ update refused', `q699/control: an update echoing
 const askRun = async (msg: Record<string, unknown>, type: string): Promise<any> => {
   for (let i = 0; i < 1200; i++) {
     const got = await ask(msg, type);
-    if (got.length) return got[0];
+    if (got.length) { await settled(); return got[0]; }
     if (posted.some((m) => m?.type === 'refused')) { await new Promise((res) => realTimeout(res, 25)); continue; }
     return null;
   }
@@ -443,6 +516,17 @@ ok(!!after && after.update === 0 && after.upToDate === true, `q699/update wrote 
 const recorded = ledger()[LEVER_DEF]?.def;
 ok(recorded === entryFor(materializerFor(brandB)(componentDefs.find((d) => d.id === LEVER_DEF)!)).def && recorded !== entryFor(materializerFor(brandA)(componentDefs.find((d) => d.id === LEVER_DEF)!)).def,
   `q699/ledger: the ledger records the brand that was applied, B (${recorded})`);
+// M6 (#3090 review): under an engine move, the read prints against the PANEL's brand, as Q699 A reads the def. The file
+// stores B and the set is drawn under B; the entry is planted under an older engine. With the panel on A, a lever the
+// set follows, its plans would change: due for the engine. With the panel on B (control): current.
+const asB = ledger()[LEVER_DEF];
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: { ...asB, engine: '0.0.0-before' } } }));
+const m6B = (await ask({ type: 'file-sets-request', input: brandB }, 'file-sets'))[0]?.due?.[LEVER_DEF];
+const m6A = (await ask({ type: 'file-sets-request', input: brandA }, 'file-sets'))[0]?.due?.[LEVER_DEF];
+ok(!!asB?.print && JSON.stringify(m6B) === JSON.stringify({ state: 'current' }), `q811/panel brand control: under an engine move, the panel on the stored brand reads the set current (${JSON.stringify(m6B)})`);
+ok(m6A?.state === 'due' && m6A?.reason === 'engine' && (m6A?.moved?.parts?.length ?? 0) > 0,
+  `q811/panel brand: under an engine move, a lever changed in the panel and not yet applied makes the set due, printed against the panel's brand (${JSON.stringify(m6A)})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: asB } }));
 
 // 6b. #3023, the owner's decision Q701 B (2026-10-25): with Theme unticked, the run leaves the stored brand in the file,
 //    so the check and the update measure against it. The file stores A again; the set is still built under B (the arm
@@ -513,6 +597,47 @@ const dE = (await ask({ type: 'due-request', input: brandB, seq: 8 }, 'file-due'
 ok(dE?.seq === 8 && typeof dE.error === 'string' && dE.error.includes('pages refused') && Object.keys(dE.due ?? {}).length === 0,
   `q810/error: a recount whose read of the file fails answers with the error, and nothing due (${JSON.stringify({ seq: dE?.seq, error: dE?.error ?? null, due: dE?.due })})`);
 shim.loadAllPagesAsync = loadAll;
+// #3096 into #3090 (Q811 A): an engine move under the badge. The entry for the set (drawn under A in 6b, with its print)
+// is planted under an older engine. With the panel on B, a lever the set follows, its plans would change: the recount
+// reads it due for the engine and the badge counts it. With the panel on A, the drawing would not change: current, not
+// counted. Without the print in `fileDue`, both read `unrecorded` and the badge counts neither.
+const { badgeCount } = await import('../studio/src/state/update-file');
+const asA = ledger()[LEVER_DEF];
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: { ...asA, engine: '0.0.0-before' } } }));
+const one = [{ id: LEVER_DEF }] as unknown as Parameters<typeof badgeCount>[0];
+const liveOf = (d: any) => ({ present: d?.present ?? [], theme: false, error: d?.error ?? null, due: d?.due ?? {} });
+const dEB = (await ask({ type: 'due-request', input: brandB, seq: 9 }, 'file-due'))[0];
+const dEA = (await ask({ type: 'due-request', input: brandA, seq: 10 }, 'file-due'))[0];
+ok(!!asA?.print && dEB?.due?.[LEVER_DEF]?.state === 'due' && dEB.due[LEVER_DEF].reason === 'engine' && badgeCount(one, null, liveOf(dEB)) === 1,
+  `q810/engine: under an older engine, a printed set whose plans the panel's brand changes is due for the engine, and the badge counts it (${JSON.stringify({ due: dEB?.due?.[LEVER_DEF], badge: badgeCount(one, null, liveOf(dEB)) })})`);
+ok(JSON.stringify(dEA?.due?.[LEVER_DEF]) === JSON.stringify({ state: 'current' }) && badgeCount(one, null, liveOf(dEA)) === 0,
+  `q810/engine control: the same entry, the panel's brand leaving its plans unchanged, is current, and the badge does not count it (${JSON.stringify({ due: dEA?.due?.[LEVER_DEF], badge: badgeCount(one, null, liveOf(dEA)) })})`);
+// The print memo holds: a recount against a brand not seen before projects the set's plans, and a second against the
+// same brand projects nothing (the projections are counted through the `print` stage `main.ts` logs).
+const gl = globalThis as { PRISM3_OPEN_TIMINGS?: { stage: string }[] };
+const prints = (): number => (gl.PRISM3_OPEN_TIMINGS ?? []).filter((x) => x.stage === 'print').length;
+gl.PRISM3_OPEN_TIMINGS = [];
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: { ...asA, engine: '0.0.0-before', print: { ...asA.print, plan: 'replanted' } } } }));
+const brandC: BrandInput = { ...brandA, density: 'spacious' };
+const memoFirst = (await ask({ type: 'due-request', input: brandC, seq: 11 }, 'file-due'))[0];
+const afterFirst = prints();
+await ask({ type: 'due-request', input: brandC, seq: 12 }, 'file-due');
+const afterSecond = prints();
+delete gl.PRISM3_OPEN_TIMINGS;
+ok(memoFirst?.due?.[LEVER_DEF]?.state === 'due' && afterFirst > 0 && afterSecond === afterFirst,
+  `q810/memo: a second recount against the same brand projects no plan again (${afterFirst} projected by the first, ${afterSecond - afterFirst} by the second)`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: { ...asA, engine: '0.0.0-before' } } }));
+// The read at open, the same planted entry (#3110's `ledgerSets`, then the full read). The file stores B, which moves
+// the set's plans, so both answers read it due for the engine. The ledger's answer prints too, loading no page: without
+// the print it would read `unrecorded` and disagree with the full read that replaces it. That it loads no page is
+// `test-open-large-file.ts`'s `open/ready`.
+const atOpen = await ask({ type: 'ui-ready' }, 'hand-edits', (m) => m.done === true);
+const openSets = posted.filter((m) => m?.type === 'file-sets' && m.atOpen === true);
+const ledgerAns = openSets.find((m) => m.partial === true);
+const fullAns = openSets.find((m) => m.partial !== true);
+ok(atOpen.length > 0 && ledgerAns?.due?.[LEVER_DEF]?.state === 'due' && ledgerAns.due[LEVER_DEF].reason === 'engine' && JSON.stringify(ledgerAns.due[LEVER_DEF]) === JSON.stringify(fullAns?.due?.[LEVER_DEF]),
+  `q810/engine at open: the ledger's answer at open prints the engine-moved set as the full read does, due for the engine in both (${JSON.stringify({ ledger: ledgerAns?.due?.[LEVER_DEF], full: fullAns?.due?.[LEVER_DEF] })})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: asA } }));
 
 // 7. #2909 S2: the background hand-edit pass stops when a write starts (`handEditsPass`'s `stale()`, the run guard). A
 //    build is held mid-run (its page switch waits on a promise this test releases), the pass is asked for, and no set's
@@ -544,7 +669,7 @@ const loadsMid = midLoads;
 shim.setCurrentPageAsync = setPage;
 release();
 await heldResult;
-await new Promise((res) => realTimeout(res, 50));
+await settled();
 midLoads = 0;
 const dEnd = (await ask({ type: 'due-request', input: brandB, seq: 9 }, 'file-due'))[0];
 ok(dMid?.seq === 8 && dEnd?.seq === 9 && midLoads === 1,

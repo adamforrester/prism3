@@ -74,7 +74,7 @@ import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { materializeForBrand, materializerFor } from './brand-def';
-import { dueOf, entryFor, readLedger, recordSets, type LedgerEntry } from './as-built-ledger';
+import { dueOf, entryFor, needsPrint, printOf, quietOf, readLedger, recordSets, type LedgerEntry, type PlanPrint } from './as-built-ledger';
 import { clearQueued, readQueue, setQueued, staleOf, visibleOf, type QueueRoot } from './add-queue';
 import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
@@ -775,7 +775,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // THE AS-BUILT LEDGER (#2909 Q2909.8 A): a set this build landed whole, every member fresh or already this plan's,
       // is recorded as built from the def it was materialized to. A set holding a member from another plan (`stale`) is
       // not: it still is what it was, and its entry says so. CAUGHT: the set is built, and the record is bookkeeping.
-      if (built.id && built.stale === 0) { try { recordSets(figma.root, { [target.id]: entryFor(materializeForBrand(target, brandInput)) }); } catch { /* read as unrecorded */ } }
+      if (built.id && built.stale === 0) { try { recordSets(figma.root, { [target.id]: entryFor(materializeForBrand(target, brandInput), project(target)) }); } catch { /* read as unrecorded */ } }
       // #3129 Q833 A: and its add-queue key is cleared in the same place, so a set that fails, or is stopped before it
       // runs, stays queued. A set made first as a nested set (#1633), or by the agent's build, clears here too.
       if (built.id && built.stale === 0) { try { clearQueued(queueRoot(), [target.id]); } catch { /* cleared by the next queue write */ } }
@@ -1078,13 +1078,84 @@ const addQueue = async (ids: readonly string[], on: boolean): Promise<void> => {
   } catch { /* the next write clears them */ }
   postToUi({ type: 'add-queue', queued: queuedFor(present), ...(error ? { error } : {}) });
 };
+/** The print of the plans each def would be drawn from now, against `input`'s brand (#3082 Q811 A): the plans a build
+ *  hands the executor (`project` in `buildComponents`). A def the engine cannot plan has none. Memoized across calls
+ *  (`printMemo`), so the reads after open and the badge's recounts project a stale set once, not once each. */
+const printNow = (input?: BrandInput): Printer => {
+  const mat = materializerFor(brandOf(input));
+  const defs = new Map<string, { m: ComponentDef; key: string } | null>();
+  const defOf = (id: string): { m: ComponentDef; key: string } | null => {
+    if (defs.has(id)) return defs.get(id)!;
+    const d = componentDefs.find((x) => x.id === id);
+    let v: { m: ComponentDef; key: string } | null = null;
+    try { if (d) { const m = mat(d); v = { m, key: JSON.stringify(m) }; } } catch { v = null; }
+    defs.set(id, v);
+    return v;
+  };
+  const print = (id: string): PlanPrint | null => {
+    const v = defOf(id);
+    if (!v) return null;
+    const { m, key } = v;
+    if (printMemo.has(key)) return printMemo.get(key)!;
+    let p: PlanPrint | null = null;
+    const t0 = Date.now();
+    try { p = printOf(figmaAnatomySet(m, { swapTarget: SWAP_TARGET })); } catch { p = null; }
+    // Each projection is logged as a `print` stage when timings are kept (`timed`), so a test can count them.
+    const log = (globalThis as { PRISM3_OPEN_TIMINGS?: unknown }).PRISM3_OPEN_TIMINGS;
+    if (Array.isArray(log)) log.push({ stage: 'print', ms: Date.now() - t0 });
+    if (printMemo.size >= PRINT_MEMO_MAX) printMemo.delete(printMemo.keys().next().value!);
+    printMemo.set(key, p);
+    return p;
+  };
+  return Object.assign(print, { held: (id: string) => { const v = defOf(id); return !v || printMemo.has(v.key); } });
+};
+type Printer = ((def: string) => PlanPrint | null) & { readonly held: (def: string) => boolean };
+/** Prints `ids` ahead of a `dueOf`, handing the thread back after each set it projects. A print the memo holds costs no
+ *  projection, so it yields nothing: a turn per set would make each recount wait on a timer per stale set. */
+const printYielding = async (print: Printer, ids: readonly string[]): Promise<void> => {
+  for (const id of ids) { if (print.held(id)) continue; print(id); await breathe(); }
+};
+/** #3096 into #3090: a set's plans are a function of its materialized def alone (the engine's code is fixed for the
+ *  session), so its print is kept by that def's JSON, whatever brand produced it. Projecting is the costly part of a
+ *  read under a moved engine (about 0.85 s for every def in Node): the ledger read at open, the full read after it and
+ *  each recount the badge asks would otherwise project the same stale sets again. Bounded, oldest out first. */
+const printMemo = new Map<string, PlanPrint | null>();
+const PRINT_MEMO_MAX = 256;
+/**
+ * THE QUIET RE-RECORD (#3082 Q811 A), after a write: each set whose entry names another engine (or carries no print, an
+ * entry from before Q811 A) and whose plans print now as they did when it was drawn is recorded again under today's
+ * engine, against the file's stored brand, which the write has just left. Never at load: a read that wrote the file's
+ * root would make opening the plugin an edit of the document, refused on a file the person can only view, and the
+ * panel's read carries a brand not yet applied. Until a write records it, the read prints the set and calls it current.
+ * One root read; a set's plans are projected only when its entry is stale. CAUGHT: the write is done, and this is
+ * bookkeeping.
+ */
+const restampQuiet = (): void => {
+  try {
+    const ledger = readLedger(figma.root);
+    const now = ledgerNow();
+    const stale = Object.keys(ledger).filter((id) => { const e = now(id); return !!e && (e.engine !== ledger[id].engine || !ledger[id].print); });
+    if (!stale.length) return;
+    const print = printNow();
+    recordSets(figma.root, quietOf(ledger, dueOf(ledger, stale, now, print), (id) => { const e = now(id); const p = print(id); return e && p ? { ...e, print: p } : null; }));
+  } catch { /* read as current by print until the next write */ }
+};
+/** `fn`, then the quiet re-record (Q811 A): for Theme and the build, two writes Update file runs. The in-place update
+ *  calls it after its apply only, since its check is a read. */
+const thenRestamp = <A extends unknown[]>(fn: (...a: A) => Promise<void>) => async (...a: A): Promise<void> => { try { await fn(...a); } finally { restampQuiet(); } };
 /** `atOpen`: the read after open (#3110), as against an answer to the panel's own `file-sets-request`. It now yields, so
  *  a request asked meanwhile can be answered first; the panel tells the two apart by this. */
 const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
   try {
     const present = await presentDefs();
     // #2909 Q2909.8 A: what is due, from the as-built ledger, one root read (`as-built-ledger.ts`), against the panel's brand.
-    const due = await timed('due (file)', () => dueOf(readLedger(figma.root), present, ledgerNow(input)));
+    // #3082 Q811 A: a set whose engine moved is printed, a set at a time with the thread handed back, and is due only
+    // when its plans moved.
+    const ledger = readLedger(figma.root);
+    const now = ledgerNow(input);
+    const print = printNow(input);
+    await printYielding(print, needsPrint(ledger, present, now));
+    const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
     postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...(atOpen ? { atOpen: true as const } : {}) });
   } catch (e) {
     postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e), ...(atOpen ? { atOpen: true as const } : {}) });
@@ -1102,7 +1173,14 @@ const ledgerSets = async (): Promise<void> => {
   try {
     const ledger = await timed('ledger read', () => readLedger(figma.root));
     const present = componentDefs.filter((d) => d.figmaProperties && ledger[d.id]).map((d) => d.id);
-    const due = await timed('due (ledger)', () => dueOf(ledger, present, ledgerNow()));
+    // #3096 into #3090: the ledger's read prints too, as `fileSets` does, against the same stored brand: without a print
+    // a printed set under a moved engine reads `unrecorded`, and the panel's first answer would disagree with the full
+    // read on what is due. Printing projects the plans in memory and loads no page, a set at a time with the thread
+    // handed back; the full read after it finds those prints memoized.
+    const now = ledgerNow();
+    const print = printNow();
+    await printYielding(print, needsPrint(ledger, present, now));
+    const due = await timed('due (ledger)', () => dueOf(ledger, present, now, print));
     // `setUp` is not read: it needs a document-wide search, so every page loaded. Only the checklist reads it, and the
     // checklist waits for the full read.
     postToUi({ type: 'file-sets', present, setUp: false, due, queued: queuedFor(present), partial: true, atOpen: true });
@@ -1117,7 +1195,13 @@ const ledgerSets = async (): Promise<void> => {
 const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void> => {
   try {
     const present = presentCache ?? await presentDefs();
-    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(readLedger(figma.root), present, ledgerNow(input)), queued: queuedFor(present) });
+    // #3096 into #3090: printed as `fileSets` prints, against the panel's brand, or an engine-moved set whose drawing
+    // changed would read `unrecorded` and the badge would not count it while the checklist lists it as Due.
+    const ledger = readLedger(figma.root);
+    const now = ledgerNow(input);
+    const print = printNow(input);
+    await printYielding(print, needsPrint(ledger, present, now));
+    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(ledger, present, now, print), queued: queuedFor(present) });
   } catch (e) {
     postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e) });
   }
@@ -1233,9 +1317,16 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // THE AS-BUILT LEDGER (#2909 Q2909.8 A): each set the apply acted on is recorded as built from today's def, under the
     // brand its plans were laid from (the panel's, which the run's Theme step applied). A refused set, or an apply
     // refused whole (the file moved since the check), records nothing. CAUGHT, as the build's is.
+    // #3082 Q811 A: with the print of the plans the apply laid, the target's own.
     const now = ledgerNow(input);
-    const acted = Object.fromEntries(r.outcomes.filter((o) => !o.refused).flatMap((o) => { const e = now(o.def); return e ? [[o.def, e] as const] : []; }));
+    const acted = Object.fromEntries(r.outcomes.filter((o) => !o.refused).flatMap((o) => {
+      const e = now(o.def);
+      const plans = targets.find((t) => t.def === o.def)?.plans;
+      return e && plans ? [[o.def, { ...e, print: printOf(plans) }] as const] : [];
+    }));
     try { recordSets(figma.root, acted); } catch { /* read as due again; the next update records it */ }
+    // Q811 A: the apply is a write, so the sets that are current by their print are recorded now too. Not the check above.
+    restampQuiet();
     sink.data({ update: { mode: 'apply', ...r, furniture } });
     // #2858: the library publish description, which the Activity drawer offers with a Copy button.
     postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture), ...(r.publish ? { publish: r.publish } : {}) }, sink);
@@ -1630,8 +1721,8 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
  * Exported for that test only; nothing in the plugin imports it.
  */
 export const ACTIONS: AgentActions = {
-  applyTheme: guarded('apply-theme', applyTheme),
-  buildComponents: guarded('build-components', buildComponents),
+  applyTheme: guarded('apply-theme', thenRestamp(applyTheme)),
+  buildComponents: guarded('build-components', thenRestamp(buildComponents)),
   fileSetup: guarded('file-setup', fileSetup),
   styleGuide: guarded('style-guide', styleGuide),
   prune: guarded('prune', prune, (_input, confirm) => confirm),
