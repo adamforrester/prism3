@@ -498,6 +498,34 @@ const SWITCH_THUMB_RATIO = 0.75;
  *  2/3/4/5/6 across `SWITCH_TRACK_RUNGS`. */
 const controlInset = (track: number, thumb: number): number => (track - thumb) / 2;
 
+/** THE RADIO DOT SETTING (#3086, owner Q816 A: one share, no new token). `radioDot` sets `control.size.{sm,md,lg}.dot`
+ *  as a share of the box edge, in percent, at every size. 50 is `CONTROL_DOT_RATIO`, the default and today's dot.
+ *  Only the token's VALUE moves: Radio already binds `control.size.*.dot`, so no name is added and CONTRACT holds. */
+export const RADIO_DOT_SHARES = [50, 60, 70, 80] as const;
+export type RadioDotShare = typeof RADIO_DOT_SHARES[number];
+export const RADIO_DOT_DEFAULT: RadioDotShare = 50;
+/** The ring's stroke, `border-width.thick` (2px, fixed in `tree.ts`), which Radio's ring binds (#1348). A dot wider than
+ *  the box minus this stroke on both sides would cover the ring. `test.ts` reads both ends of that claim from the
+ *  emitted tree and the def rather than from this constant. */
+export const CONTROL_RING_PX = 2;
+
+/** One radio dot's px: `edge × share`, snapped to the 2px sub-grid and capped at `edge − 2 × ring`.
+ *
+ *  THE DEFAULT IS THE IDENTITY. At 50 the dot is `edge × CONTROL_DOT_RATIO` exactly, as it was before the setting, so a
+ *  brand that leaves it unset is byte-identical by construction rather than by a rounding that happens to agree.
+ *
+ *  THE SNAP. `snap2`, the 2px sub-grid the control corner rides (`controlRadius`, #1015), not the brand's own dimension
+ *  grid. That grid cannot hold the dot the owner asked for: 70% of the reference brand's 20px medium box is 14, and its
+ *  comfortable grid runs 10, 12, 16. Snapping to the grid would give 12 or 16; feeding 14 into it would mint a new
+ *  primitive (owner: no new token). So a dot on the grid aliases its step, and one off it is a literal px (`tree.ts`
+ *  `controlLeaf`). Every box edge is a multiple of 4, so the result is always even and always an integer.
+ *
+ *  THE CAP. `edge − 2 × CONTROL_RING_PX`: the dot may fill the ring's inside but never cover the ring. It only binds at
+ *  compact density (80% of a 12px box snaps to 10, inside a ring that leaves 8). */
+export const radioDotPx = (edge: number, share: RadioDotShare = RADIO_DOT_DEFAULT): number =>
+  share === RADIO_DOT_DEFAULT ? edge * CONTROL_DOT_RATIO
+    : Math.min(Math.round((edge * share) / 100 / 2) * 2, edge - 2 * CONTROL_RING_PX);
+
 export type ControlSizeStep = { name: string; height: number; width: number; dot: number; inset: number; track: number; thumb: number };
 
 /** Control-box sizes for a density. The SAME window mechanism as `componentSizes` — three names
@@ -511,10 +539,10 @@ export type ControlSizeStep = { name: string; height: number; width: number; dot
  *  (16–48 windowed, thumb = 0.75, width = 2× track, inset centers the thumb). They share a rung name and
  *  a density window and nothing else — a switch is bigger than a checkbox because a track that holds a
  *  traveling thumb has to be, which is the whole of #1425. */
-export const controlSizes = (density: Density): ControlSizeStep[] =>
+export const controlSizes = (density: Density, dotShare: RadioDotShare = RADIO_DOT_DEFAULT): ControlSizeStep[] =>
   CONTROL_NAMES.map((name, i) => {
     const height = CONTROL_RUNGS[DENSITY_START[density] + i];
-    const dot = height * CONTROL_DOT_RATIO;
+    const dot = radioDotPx(height, dotShare);
     const track = SWITCH_TRACK_RUNGS[DENSITY_START[density] + i];
     const thumb = track * SWITCH_THUMB_RATIO;
     return { name, height, width: track * CONTROL_TRACK_RATIO, dot, inset: controlInset(track, thumb), track, thumb };

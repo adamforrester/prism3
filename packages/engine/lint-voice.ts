@@ -712,6 +712,7 @@ const NOTE_SWEEP: [string, Record<string, unknown>][] = [
   ['opaque outline hover fill', { outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: 'neutral.050' } } }],
   ['outline hover fill under the wash', { outlineHoverFill: { light: { hover: 'neutral.050' } } }],
   ['grid margins off the spacing scale (#3052)', { layout: { marginOverrides: { md: 44, lg: 45 } } }],
+  ['caption sizes and letter spacing pins (#3077)', { typography: { sizes: { caption: { md: 10 } }, tracking: { display: 'open', label: 'open' } } }],
   ['a trait pre-empted by another', { personality: ['soft', 'sharp'] }],
   // Every trait the schema advertises, so each trait's approved `why` is scanned too.
   ...((Array.isArray(traitEnum) ? traitEnum : []) as string[]).map((t): [string, Record<string, unknown>] => [`personality '${t}'`, { personality: [t] }]),
@@ -769,6 +770,8 @@ const PRODUCERS: Producer[] = [
   { id: 'typography: caption tier', re: /^typography: .*caption adds caption\.xs \(8px\) and caption\.sm \(10px\)/, kind: 'fragment' },
   { id: 'typography: static sizes', re: /^typography: .*Sizes are fixed at every viewport\.$/, kind: 'fragment' },
   { id: 'typography: sizeFloor 8', re: /^typography: sizeFloor 8 /, kind: 'site' },
+  { id: 'typography: caption sizes', re: /^typography: caption sizes set by the brand: /, kind: 'site' },
+  { id: 'typography: tracking pins', re: /^typography: letter spacing pinned per text type: /, kind: 'site' },
   { id: 'disabled: full', re: /^disabled: 'full' — /, kind: 'site' },
   { id: 'disabled: reduced', re: /^disabled: 'reduced' \(default\) — /, kind: 'site' },
   { id: 'overlays: default', re: /^interactive overlays: 'overlay-neutral' \(default\)/, kind: 'site' },
@@ -808,7 +811,7 @@ const NOTES_UNREACHABLE = ['typography: empty display tier (the "below the usual
 // The push sites, counted in the SOURCE (comments dropped), as a tripwire for a new producer the sweep
 // never reaches: one the sweep reaches is an unclaimed note already. A literal per file, written here.
 // theme.ts: 45 note pushes (#3052 added the grid-link notes' spread) + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
-const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme.ts': 48, 'packages/engine/vocabulary.ts': 2 };
+const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme.ts': 50, 'packages/engine/vocabulary.ts': 2 };
 // The rules a NOTE must also pass, beyond §2 and `normative`. Each is a thing an engine note has carried.
 const ALLCAPS_OK = new Set(['AA', 'AAA', 'WCAG', 'OKLCH', 'HC']);
 const NOTE_RULES: { rule: string; re: RegExp }[] = [
