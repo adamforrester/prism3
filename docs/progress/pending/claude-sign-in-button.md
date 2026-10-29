@@ -62,6 +62,13 @@ PR 5 of #2343, stacked on the branded-button helpers (#3122). It follows the pro
 - **Round A, five def mutations, each aimed at a different arm.** Google light's edge to `#757575`, Google's font to 15, `minWidth` to 120, Facebook blue's glyph to `social/facebook`, Apple's continue wording to "Sign in with Apple". Each fails its arm by name (COLOR, FONT, WIDTH, MARK, WORDING); ARTWORK and the paste executor arm also catch the changed values; `lint-component-surface` fails `surface/sign-in-button`.
 - **Round B:** the dark pressed wash set equal to hover fails WASH. Exclusions from a hard-coded list instead of the vocabulary fail ARTWORK (data-driven), at 60 instead of 96. The projector's `variantWhere` step disabled fails MARK (Google nests the Apple glyph). The paste executor's literal-fill line removed fails `#2343 PR 5 paste executor`.
 - **Plugin executor:** the literal-fill line removed fails `sign-in build` (the executor's own `container.fills -> DISCARDED`) and `sign-in build/literal`.
+- **Q846 A, the tint** (each committed first, then reset):
+  - **Apple black's tint dropped:** fails `Q846 A dark-fill styles draw white` (`tint none, want #ffffff`), MARK, the paste executor arm, and `#3134 provider glyph contrast` (`brand-mark/provider/apple (#000000) over the literal fill #000000 is 1.00:1`).
+  - **Facebook blue's tint dropped:** fails `Q846 A dark-fill styles draw white`, MARK and the paste executor arm; the contrast arm passes it (black on `#1877f2` clears 3:1), which is why the white rule has its own arm.
+  - **The tint on a light style** (Apple white): fails `Q846 A dark-fill styles draw white` (`tint #ffffff, want none`), MARK, the contrast arm, and the paste executor arm (`glyph tinted … on a light fill`).
+  - **A non-provider mark tinted** (Apple black on `social/apple-mono`): fails `lint-mark-colors` (`HOST TINT — … brand-mark/social/apple-mono #ffffff, which is not a brand-mark/provider/* glyph`).
+  - **Another def tinting** (WalletButton with a tint record): fails `lint-mark-colors` (`HOST TINT — … only sign-in-button may tint a mark`).
+  - **The plugin's tint write removed:** fails `sign-in build` (`mark.literalTint -> DISCARDED`) and `sign-in build/literal`. **The paste payload's removed:** fails `#2343 PR 5 paste executor`.
 
 ### Decided by the owner (2026-10-29: Q-S13 to Q-S17 all A, Q846 A)
 - **Q-S13 A:** a literal hover and pressed wash, black at 10% and 20% on a light fill and white on a dark one, which does not flip with the mode.
