@@ -601,7 +601,7 @@
     "brand-mark": {
       "id": "brand-mark",
       "name": "BrandMark",
-      "members": 74,
+      "members": 75,
       "axes": [
         {
           "name": "name",
@@ -638,6 +638,7 @@
             "payment/visa",
             "provider/apple",
             "provider/facebook",
+            "provider/facebook-blue",
             "provider/google",
             "social/apple",
             "social/apple-mono",
@@ -690,7 +691,7 @@
         {
           "part": "glyph",
           "kind": "glyph",
-          "members": 74
+          "members": 75
         }
       ],
       "redlineKey": [],
@@ -949,6 +950,12 @@
         {
           "where": {
             "name": "provider/facebook"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "provider/facebook-blue"
           },
           "parts": []
         },
@@ -10067,6 +10074,1050 @@
         }
       ],
       "properties": []
+    },
+    "sign-in-button": {
+      "id": "sign-in-button",
+      "name": "SignInButton",
+      "members": 96,
+      "axes": [
+        {
+          "name": "provider",
+          "figmaName": "provider",
+          "values": [
+            "apple",
+            "google",
+            "facebook"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "style",
+          "figmaName": "style",
+          "values": [
+            "black",
+            "white",
+            "outline",
+            "light",
+            "dark",
+            "neutral",
+            "blue"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "hover",
+            "pressed",
+            "focus-visible"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 96
+        },
+        {
+          "part": "container/mark",
+          "kind": "instance",
+          "members": 96
+        },
+        {
+          "part": "container/label",
+          "kind": "text",
+          "members": 96
+        },
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "members": 24,
+          "when": {
+            "state": [
+              "focus-visible"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size",
+        "provider"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium",
+            "provider": "apple"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.200"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.150"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 140,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "provider": "apple"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.075"
+                },
+                "paddingRight": {
+                  "token": "space.200"
+                },
+                "paddingBottom": {
+                  "token": "space.075"
+                },
+                "paddingLeft": {
+                  "token": "space.150"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "px": 140,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "provider": "apple"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.300"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.150"
+                },
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "px": 140,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "provider": "google"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.150"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.150"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 140,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "provider": "google"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.075"
+                },
+                "paddingRight": {
+                  "token": "space.150"
+                },
+                "paddingBottom": {
+                  "token": "space.075"
+                },
+                "paddingLeft": {
+                  "token": "space.150"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "px": 140,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "provider": "google"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.150"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.150"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "px": 140,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "provider": "facebook"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.200"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.150"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 140,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "provider": "facebook"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.075"
+                },
+                "paddingRight": {
+                  "token": "space.200"
+                },
+                "paddingBottom": {
+                  "token": "space.075"
+                },
+                "paddingLeft": {
+                  "token": "space.150"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "px": 140,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "provider": "facebook"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.300"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.150"
+                },
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "px": 140,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size",
+        "provider"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium",
+            "provider": "apple"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.label.md.emphasis"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "provider": "apple"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.label.sm.emphasis"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "provider": "apple"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.label.lg.emphasis"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "provider": "google"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "small",
+            "provider": "google"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "large",
+            "provider": "google"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "medium",
+            "provider": "facebook"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.label.md.emphasis"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "provider": "facebook"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.label.sm.emphasis"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "provider": "facebook"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.label.lg.emphasis"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "provider",
+        "style",
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "provider": "apple",
+            "style": "black",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "black",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "black",
+            "state": "pressed"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "black",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "white",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "white",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "white",
+            "state": "pressed"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "white",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "outline",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "outline",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "outline",
+            "state": "pressed"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple",
+            "style": "outline",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "light",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "light",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "light",
+            "state": "pressed"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "light",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "dark",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "dark",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "dark",
+            "state": "pressed"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "dark",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "neutral",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "neutral",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "neutral",
+            "state": "pressed"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google",
+            "style": "neutral",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "white",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "white",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "white",
+            "state": "pressed"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "white",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "blue",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "blue",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "blue",
+            "state": "pressed"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "facebook",
+            "style": "blue",
+            "state": "focus-visible"
+          },
+          "parts": []
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/mark",
+          "kind": "instance",
+          "component": "brand-mark",
+          "variant": {
+            "name": "provider/apple"
+          },
+          "where": [
+            {
+              "when": {
+                "provider": "apple",
+                "style": "black"
+              },
+              "set": {
+                "name": "provider/apple"
+              }
+            },
+            {
+              "when": {
+                "provider": "apple",
+                "style": "white"
+              },
+              "set": {
+                "name": "provider/apple"
+              }
+            },
+            {
+              "when": {
+                "provider": "apple",
+                "style": "outline"
+              },
+              "set": {
+                "name": "provider/apple"
+              }
+            },
+            {
+              "when": {
+                "provider": "google",
+                "style": "light"
+              },
+              "set": {
+                "name": "provider/google"
+              }
+            },
+            {
+              "when": {
+                "provider": "google",
+                "style": "dark"
+              },
+              "set": {
+                "name": "provider/google"
+              }
+            },
+            {
+              "when": {
+                "provider": "google",
+                "style": "neutral"
+              },
+              "set": {
+                "name": "provider/google"
+              }
+            },
+            {
+              "when": {
+                "provider": "facebook",
+                "style": "blue"
+              },
+              "set": {
+                "name": "provider/facebook"
+              }
+            },
+            {
+              "when": {
+                "provider": "facebook",
+                "style": "white"
+              },
+              "set": {
+                "name": "provider/facebook-blue"
+              }
+            }
+          ],
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "component": "focus-ring",
+          "variant": {
+            "surface": "default"
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [],
+      "literal": {
+        "key": "{provider}.{style}",
+        "entries": {
+          "apple.black": {
+            "fill": "#000000",
+            "ink": "#ffffff",
+            "wash": {
+              "hover": "#ffffff1a",
+              "pressed": "#ffffff33"
+            },
+            "text": "Continue with Apple",
+            "markTint": "#ffffff"
+          },
+          "apple.white": {
+            "fill": "#ffffff",
+            "ink": "#000000",
+            "wash": {
+              "hover": "#0000001a",
+              "pressed": "#00000033"
+            },
+            "text": "Continue with Apple"
+          },
+          "apple.outline": {
+            "fill": "#ffffff",
+            "edge": "#000000",
+            "ink": "#000000",
+            "wash": {
+              "hover": "#0000001a",
+              "pressed": "#00000033"
+            },
+            "text": "Continue with Apple"
+          },
+          "google.light": {
+            "fill": "#ffffff",
+            "edge": "#747775",
+            "ink": "#1f1f1f",
+            "wash": {
+              "hover": "#0000001a",
+              "pressed": "#00000033"
+            },
+            "text": "Continue with Google",
+            "font": {
+              "family": "Google Sans",
+              "style": "Medium",
+              "size": 14,
+              "lineHeight": 20,
+              "fallback": {
+                "family": "Roboto",
+                "style": "Medium"
+              }
+            }
+          },
+          "google.dark": {
+            "fill": "#131314",
+            "edge": "#8e918f",
+            "ink": "#e3e3e3",
+            "wash": {
+              "hover": "#ffffff1a",
+              "pressed": "#ffffff33"
+            },
+            "text": "Continue with Google",
+            "font": {
+              "family": "Google Sans",
+              "style": "Medium",
+              "size": 14,
+              "lineHeight": 20,
+              "fallback": {
+                "family": "Roboto",
+                "style": "Medium"
+              }
+            }
+          },
+          "google.neutral": {
+            "fill": "#f2f2f2",
+            "ink": "#1f1f1f",
+            "wash": {
+              "hover": "#0000001a",
+              "pressed": "#00000033"
+            },
+            "text": "Continue with Google",
+            "font": {
+              "family": "Google Sans",
+              "style": "Medium",
+              "size": 14,
+              "lineHeight": 20,
+              "fallback": {
+                "family": "Roboto",
+                "style": "Medium"
+              }
+            }
+          },
+          "facebook.blue": {
+            "fill": "#1877f2",
+            "ink": "#ffffff",
+            "wash": {
+              "hover": "#ffffff1a",
+              "pressed": "#ffffff33"
+            },
+            "text": "Continue with Facebook",
+            "markTint": "#ffffff"
+          },
+          "facebook.white": {
+            "fill": "#ffffff",
+            "ink": "#1877f2",
+            "wash": {
+              "hover": "#0000001a",
+              "pressed": "#00000033"
+            },
+            "text": "Continue with Facebook"
+          }
+        }
+      }
     },
     "icon-button": {
       "id": "icon-button",

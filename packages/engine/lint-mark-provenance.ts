@@ -71,6 +71,12 @@ export const recordProblems = (file: string, r: Rec | undefined, today: string):
   if (!perMark && r.width !== undefined) out.push(`${file}: declares a width, and only a logo takes one (its kind fixes the artboard)`);
   if (r.normalized !== undefined && (!Array.isArray(r.normalized) || r.normalized.length === 0 || r.normalized.some((x) => typeof x !== 'string' || !x.trim())))
     out.push(`${file}: 'normalized' is not a list of the steps taken (leave it out when the file is as supplied)`);
+  // Q831 A: a derived mark names the social file it was scaled from, and says so in its source line.
+  if (r.derivedFrom !== undefined) {
+    if (typeof r.derivedFrom !== 'string' || !/^social\/[a-z0-9-]+\.svg$/.test(r.derivedFrom)) out.push(`${file}: 'derivedFrom' '${String(r.derivedFrom)}' is not a social/<name>.svg file`);
+    else if (typeof r.source !== 'string' || !r.source.startsWith(`derived from ${r.derivedFrom.replace(/\.svg$/, '')}, scaled to the provider inset`))
+      out.push(`${file}: is derived from ${r.derivedFrom} and its source does not say "derived from ${r.derivedFrom.replace(/\.svg$/, '')}, scaled to the provider inset"`);
+  }
   if (r.fullBleed !== undefined && (r.fullBleed !== false || !file.startsWith(TILE_FOLDER)))
     out.push(`${file}: 'fullBleed' may only be false, and only on a payment tile that draws no ground of its own`);
   return out;
@@ -103,6 +109,8 @@ expectFail('future date', 'payment/x.svg', { ...good, dateRetrieved: '2999-01-01
 expectFail('no colors', 'payment/x.svg', { ...good, colors: [] }, "lacks 'colors'");
 expectFail('bad color', 'payment/x.svg', { ...good, colors: ['red'] }, 'not a hex color');
 expectFail('bad form', 'payment/x.svg', { ...good, allowedForms: ['recolored'] }, 'allowedForms names');
+expectFail('derived from a non-social file', 'provider/x.svg', { ...good, source: 'derived from logo/x, scaled to the provider inset', derivedFrom: 'logo/x.svg' }, "'derivedFrom'");
+expectFail('derived, source silent', 'provider/x.svg', { ...good, derivedFrom: 'social/x.svg' }, 'its source does not say');
 expectFail('no placeholder flag', 'payment/x.svg', { ...good, placeholder: undefined }, "lacks 'placeholder'");
 expectFail('logo without width', 'logo/x.svg', good, "lacks 'width'");
 expectFail('tile with width', 'payment/x.svg', { ...good, width: 40 }, 'declares a width');

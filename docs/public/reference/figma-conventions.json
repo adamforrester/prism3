@@ -66,6 +66,13 @@
             "usagePanelLead": "wallet-button"
           },
           {
+            "name": "↳ Sign-in button",
+            "components": [
+              "sign-in-button"
+            ],
+            "usagePanelLead": "sign-in-button"
+          },
+          {
             "name": "↳ Checkbox",
             "components": [
               "checkbox-control",
@@ -404,7 +411,7 @@
         "kind": "component set",
         "page": "↳ Brand marks",
         "section": "Foundations",
-        "members": 74,
+        "members": 75,
         "variantProperties": [
           {
             "name": "name",
@@ -440,6 +447,7 @@
               "payment/visa",
               "provider/apple",
               "provider/facebook",
+              "provider/facebook-blue",
               "provider/google",
               "social/apple",
               "social/apple-mono",
@@ -793,6 +801,56 @@
         ],
         "properties": [],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/wallet-button.md"
+      },
+      {
+        "id": "sign-in-button",
+        "name": "SignInButton",
+        "figmaName": "sign-in-button",
+        "kind": "component set",
+        "page": "↳ Sign-in button",
+        "section": "Components",
+        "members": 96,
+        "variantProperties": [
+          {
+            "name": "provider",
+            "values": [
+              "apple",
+              "google",
+              "facebook"
+            ]
+          },
+          {
+            "name": "style",
+            "values": [
+              "black",
+              "white",
+              "outline",
+              "light",
+              "dark",
+              "neutral",
+              "blue"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/sign-in-button.md"
       },
       {
         "id": "icon-button",
@@ -3630,7 +3688,8 @@
       "code-input-cell",
       "code-input",
       "card-number-field",
-      "wallet-button"
+      "wallet-button",
+      "sign-in-button"
     ],
     "templates": [
       {

@@ -587,6 +587,83 @@
         }
       ]
     },
+    "sign-in-button": {
+      "codeOnly": [
+        "the native button — every provider renders a real <button type=\"button\"> drawn by Prism3, never the provider's iframe. Enter and Space activate it, as on any button.",
+        "the provider's sign-in — on click the button calls the provider's own function: AppleID.auth.signIn() (Sign in with Apple JS), the OAuth code client from Google Identity Services (google.accounts.oauth2.initCodeClient(…).requestCode()), or FB.login() (the Facebook JS SDK). The popup or redirect that follows is the provider's; the component draws nothing past its own button. onClick runs first.",
+        "the provider scripts — each provider's script must be on the page before the button is used; until it loads, the button stays in place and its click waits for the script rather than failing.",
+        "the provider's own buttons — the providers' rendered buttons (appleid-signin, google.accounts.id.renderButton, fb-login-button) are documented, not wrapped. A team that wants Google's personalized \"Continue as …\" button renders it directly, in its own frame, beside the stack (Q-S3 A).",
+        "the colors and the font — the code reads the same literal record as the design file: each provider × style's fill, 1px inside edge, label ink and hover and pressed wash, the white the glyph is painted on Apple black and Facebook blue, and Google's font, font-family \"Google Sans\", Roboto, Arial, sans-serif at 500, 14px / 20px at every size. None of them is a token, so no theme or mode moves them.",
+        "the wording — a fixed key per provider × wording (continue, sign-in, sign-up for Apple and Google; continue, login for Facebook), translated by the app; the provider's name is never translated. The wording prop is typed per provider, so a wording the provider does not offer is a type error, not a fallback.",
+        "the width — the button hugs its label with a 140px floor, Apple's minimum and the largest of the three, and fullWidth makes it fill its column.",
+        "RTL — the row mirrors, so the glyph stays at the leading edge, now the right. The glyph itself is never flipped.",
+        "forced colors — under forced-colors mode the button follows the system colors like any button (its fill, edge and label become ButtonFace, ButtonText and the system border), while the glyph keeps forced-color-adjust: none, the brand mark's own rule, so the provider's artwork is never repainted.",
+        "the accessible name — the visible wording is the name (\"Continue with Google\"), so the label and the name match. No aria-label is added, and the glyph is decorative (aria-hidden, the brand mark with no label)."
+      ],
+      "notes": {
+        "contested": [
+          "Google Sans licensing: whether Google Sans may be used outside Google's own assets is unverified (Q-S7). The design file falls back to Roboto Medium where Google Sans is not installed, and reports the fallback.",
+          "The Facebook styles measure 4.23:1, white on #1877f2 and the reverse, under 4.5:1 for text at these sizes. The color is the provider's; the gate records it as a known provider shortfall."
+        ],
+        "unverified": [
+          "The provider rules typed in the gate are the proposal's reading of each provider's guidelines on 2026-10-27.",
+          "The Google G on the dark style: Google says the G must appear on a white background, while its own dark asset puts it on #131314.",
+          "Whether Google's 14/20 holds at the 36 and 56 heights; the build keeps it at every size.",
+          "Facebook's white-style label color is not published; the build uses #1877f2."
+        ],
+        "evolution": [
+          "Proposed on #2343 (2026-10-28, PR 5) with a wireframe of all members; the owner chose all twelve calls as A: Apple, Google and Facebook (Q-S1), Prism3 draws the button with the provider's fill, edge and ink as literal paint (Q-S2), a native button that calls the provider's sign-in (Q-S3), the providers' style names (Q-S4), members only where the mark set holds the glyph (Q-S5), rest, hover, pressed and focus-visible (Q-S6), Google Sans as a literal font (Q-S7), the label fixed with no text property (Q-S8), no logo-only member (Q-S9), its own page (Q-S10), the shared helpers (Q-S11) and radius.md with no shape axis (Q-S12).",
+          "Q831 A (2026-10-28) supersedes Q-S5 A's wait for artwork: Apple's black glyph and Facebook's blue one are derived from social/apple and social/facebook, scaled to the provider inset, so all eight pairs ship, 96 members. The membership stays data, for a future provider whose glyph is not in yet.",
+          "The owner decided Q-S13 to Q-S17 as A (2026-10-29): a literal wash of black at 10% and 20% on a light fill and white on a dark one, which does not flip with the mode (Q-S13); Google's 8px gap with 12px at both sides, since its 10px gap is off the space scale (Q-S14); Continue with Facebook (Q-S15); glyph heights 16, 20 and 24 (Q-S16); and code offers only the styles whose artwork is in the design file, all eight today (Q-S17).",
+          "Q846 A (2026-10-29): #3134 drew provider/apple and provider/facebook black, so each provider has one black glyph, painted white where the button's fill is dark (Apple black, Facebook blue). Every other mark is never retinted. The derived provider/apple-black, now a duplicate of provider/apple, was dropped; still 96 members."
+        ],
+        "projection": [
+          "In Figma the button's fill, edge and label color are plain colors with no variable, and the label has no text property; Google's label carries Google Sans Medium 14/20 directly, not a text style. The glyph is a brand-mark/provider instance, its height bound and its width from its proportion; on Apple black and Facebook blue its vectors are painted white as a plain color."
+        ]
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
+    },
     "icon-button": {
       "codeOnly": [
         "touch-target-expansion — the same decoupling of the optical box from the hit box Button records, and the one component where it matters MOST: `size=small` is a 36px square in every example brand (28px at compact density), so the optical box is below the Apple HIG 44×44 floor in every brand. Figma has no concept of a hit area larger than the frame, so the expansion cannot project and the emitted small square is the optical size only. A designer measuring it in Figma is reading the wrong box.",

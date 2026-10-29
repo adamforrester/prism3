@@ -14,7 +14,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | _breadcrumb-separator | breadcrumb-item | breadcrumb-item, breadcrumbs |
 | _slider-thumb | slider | slider |
 | badge | tab-item | tab-item, tabs |
-| brand-mark | wallet-button | wallet-button |
+| brand-mark | sign-in-button, wallet-button | sign-in-button, wallet-button |
 | breadcrumb-item | breadcrumbs | breadcrumbs |
 | button | banner, button-group, password-field, toast | banner, button-group, dialog, password-field, toast |
 | button-group | dialog | dialog |
@@ -25,7 +25,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | field-label | card-number-field, checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea | card-number-field, checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea |
 | field-message | card-number-field, checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea | card-number-field, checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea |
 | flush-icon-button-neutral | banner, breadcrumb-item, counter, dialog, toast | banner, breadcrumb-item, breadcrumbs, counter, dialog, toast |
-| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, search-field, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea, wallet-button | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast, wallet-button |
+| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, search-field, segmented-control-segment, select, sign-in-button, switch-control, tab-item, tag, text-field, textarea, wallet-button | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast, wallet-button |
 | link | breadcrumb-item, breadcrumbs | breadcrumb-item, breadcrumbs |
 | list-item | list | list |
 | pagination-item | pagination | pagination |
@@ -90,6 +90,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | segmented-control | 2 | field-label, segmented-control-segment | field-label, focus-ring, segmented-control-segment |
 | segmented-control-segment | 1 | focus-ring | focus-ring |
 | select | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
+| sign-in-button | 1 | brand-mark, focus-ring | brand-mark, focus-ring |
 | slider | 2 | _slider-thumb, field-label, field-message, text-field | _slider-thumb, field-label, field-message, focus-ring, text-field |
 | spinner | 0 | — | — |
 | switch-control | 1 | focus-ring | focus-ring |
@@ -215,6 +216,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | select | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | select | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | select | message | nest | field-message | nest-fixed | status=default | status | — |
+| sign-in-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| sign-in-button | mark | nest | brand-mark | nest-fixed | name=provider/apple | — | — |
 | slider | inputMax | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
 | slider | inputMin | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
 | slider | inputSingle | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |

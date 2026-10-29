@@ -155,6 +155,7 @@ const INTERACTIVE: Record<string, Binding> = {
   'button-neutral': { key: (s) => `size.${s}.height`, why: 'the button box height' },
   // #2343 PR 4: the slot the provider's button mounts into, at the provider's height.
   'wallet-button': { key: (s) => `size.${s}.height`, why: 'the slot height the provider\'s button is drawn at' },
+  'sign-in-button': { key: (s) => `size.${s}.height`, why: 'the button height every provider in a stack shares (#2343 PR 5)' },
   'icon-button': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
   'icon-button-destructive': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
   'icon-button-neutral': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
@@ -315,7 +316,7 @@ const ruleGap = (entries: readonly string[], rule: readonly RegExp[]): string[] 
 /** The defs carved out as a size-level exception: a small button (owner, #1443) and a small tag (owner,
  *  2026-09-27, "as for Button") sit below the floor on purpose. Kept as data so the walk asserts each is
  *  ACTUALLY below the floor. */
-const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'wallet-button', 'tag', 'tab-item', 'segmented-control-segment', 'pagination-item']);
+const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'wallet-button', 'sign-in-button', 'tag', 'tab-item', 'segmented-control-segment', 'pagination-item']);
 
 // ── EXCLUDED: represented, with a stated reason (docs/34 — a hand-enumerated legitimate exclusion) ──
 const EXCLUDED: Record<string, string> = {

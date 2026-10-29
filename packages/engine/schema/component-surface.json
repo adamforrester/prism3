@@ -7,8 +7,8 @@
       "properties": []
     },
     "brand-mark": {
-      "members": 74,
-      "sha256": "c75bd0c8e71f4b9d1e9d5449995683ad2a9834003067ee4063de5388c9807f3f",
+      "members": 75,
+      "sha256": "3b9af665d65f1146adf2533cbb168ce2cddee9471e39150e216e2d71379e4365",
       "properties": []
     },
     "focus-ring": {
@@ -229,6 +229,11 @@
     "wallet-button": {
       "members": 20,
       "sha256": "69d0924b7636dec97101e0fa55b14bc813b60a09d36d8fc34a3248082c93c7c2",
+      "properties": []
+    },
+    "sign-in-button": {
+      "members": 96,
+      "sha256": "7f9aa64abbc8eb73e406edfb264b242ebd8e6446a7a28628acda97b53bb8d629",
       "properties": []
     },
     "icon-button": {

@@ -74,7 +74,9 @@ export type SpecColorRow = { where: SpecWhere; parts: { part: string; fill?: str
 export type SpecNest =
   /** `when` (#2427's `variantWhen`): a host axis value that moves the nested variant, e.g. Counter's ghost members
    *  nest the round shape. Absent when the variant moves only with `follows`. */
-  | { part: string; kind: 'instance'; component: string; variant: Record<string, string>; when?: Record<string, Record<string, Record<string, string>>>; follows: string[]; exposes: string[] }
+  /** `where` (#2343 PR 5's `variantWhere`): a full host coordinate that moves the nested variant, applied after `when`,
+   *  e.g. SignInButton's provider × style picks its glyph. Absent when no joint mapping is declared. */
+  | { part: string; kind: 'instance'; component: string; variant: Record<string, string>; when?: Record<string, Record<string, Record<string, string>>>; where?: { when: Record<string, string>; set: Record<string, string> }[]; follows: string[]; exposes: string[] }
   | { part: string; kind: 'swap'; property: string; visibility?: string; default?: string }
   /** An instance the BUILD places and a designer does not swap (Button's pending spinner, #1670): which component
    *  depends on the member, so every one the set uses is listed, in member order. */
@@ -98,6 +100,9 @@ export type ComponentSpec = {
   colors: SpecColorRow[];
   nesting: SpecNest[];
   properties: SpecComponentProperty[];
+  /** A provider's own values (#2343 PR 5, `ComponentDef.literal`), as the def authors them: the record the code paints
+   *  from, since no token carries them. Absent on every def without one, so every other spec is byte-identical. */
+  literal?: { key: string; entries: Record<string, unknown> };
 };
 
 // ---- names ------------------------------------------------------------------------------------
@@ -316,10 +321,11 @@ export const componentSpec = (authored: ComponentDef, opts: { def?: ComponentDef
       const rel = partDef?.nesting;
       const variant = rel && rel.kind !== 'swap' ? { ...rel.variant } : { ...n.nestVariant ?? {} };
       const when = rel && rel.kind !== 'swap' && rel.variantWhen ? (JSON.parse(JSON.stringify(rel.variantWhen)) as Record<string, Record<string, Record<string, string>>>) : undefined;
+      const where = rel && rel.kind !== 'swap' && rel.variantWhere ? (JSON.parse(JSON.stringify(rel.variantWhere)) as { when: Record<string, string>; set: Record<string, string> }[]) : undefined;
       // A nest of a standalone-component def (#2343 PR 4) targets the member's own component, `<id>/<value>`, which moves
       // with `when`; the model names the def, and the variant and `when` say which member each host member holds.
       const standalone = !!partDef?.nests && n.nestTarget.startsWith(`${partDef.nests}/`);
-      nesting.push({ part: path, kind: 'instance', component: standalone ? partDef!.nests! : n.nestTarget, variant, ...(when ? { when } : {}), follows: rel && rel.kind !== 'swap' ? [...rel.follow ?? []] : [], exposes: [...n.nestExpose ?? []] });
+      nesting.push({ part: path, kind: 'instance', component: standalone ? partDef!.nests! : n.nestTarget, variant, ...(when ? { when } : {}), ...(where ? { where } : {}), follows: rel && rel.kind !== 'swap' ? [...rel.follow ?? []] : [], exposes: [...n.nestExpose ?? []] });
     } else if (n.type === 'INSTANCE_SWAP' && n.propertyRef?.field === 'mainComponent') {
       nesting.push({ part: path, kind: 'swap', property: n.propertyRef.prop, ...(n.visibleProp ? { visibility: n.visibleProp } : {}), ...(partDef?.swapDefault ? { default: partDef.swapDefault } : {}) });
     } else if (n.type === 'INSTANCE_SWAP' && n.swapTarget) {
@@ -349,6 +355,7 @@ export const componentSpec = (authored: ComponentDef, opts: { def?: ComponentDef
     colors,
     nesting,
     properties,
+    ...(authored.literal ? { literal: JSON.parse(JSON.stringify(authored.literal)) as { key: string; entries: Record<string, unknown> } } : {}),
   };
 };
 
@@ -426,7 +433,8 @@ export const renderSpecsMarkdown = (spec: ComponentSpec | undefined): string[] =
       if (n.kind === 'instance') {
         const variant = Object.entries(n.variant).map(([a, v]) => `${a}=${v}`).join(', ');
         const when = Object.entries(n.when ?? {}).flatMap(([axis, byValue]) => Object.entries(byValue).map(([v, to]) => `${code(`${axis}=${v}`)} takes ${code(Object.entries(to).map(([a, x]) => `${a}=${x}`).join(', '))}`));
-        out.push(`- ${code(n.part)} nests ${code(n.component)}${variant ? ` at ${code(variant)}` : ''}${when.length ? `; ${when.join(', ')}` : ''}${n.follows.length ? `; follows ${n.follows.map(code).join(', ')}` : ''}${n.exposes.length ? `; exposes ${n.exposes.map(code).join(', ')}` : ''}`);
+        const where = (n.where ?? []).map((w) => `${code(Object.entries(w.when).map(([a, x]) => `${a}=${x}`).join(', '))} takes ${code(Object.entries(w.set).map(([a, x]) => `${a}=${x}`).join(', '))}`);
+        out.push(`- ${code(n.part)} nests ${code(n.component)}${variant ? ` at ${code(variant)}` : ''}${when.length ? `; ${when.join(', ')}` : ''}${where.length ? `; ${where.join(', ')}` : ''}${n.follows.length ? `; follows ${n.follows.map(code).join(', ')}` : ''}${n.exposes.length ? `; exposes ${n.exposes.map(code).join(', ')}` : ''}`);
       } else if (n.kind === 'fixed') {
         out.push(`- ${code(n.part)} holds ${n.components.map(code).join(', ')}, by member; it is not a swap`);
       } else if (n.kind === 'swap') {

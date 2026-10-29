@@ -11,6 +11,9 @@
  * decides, and nothing may retint it: the provider's guidelines forbid it, and Remix's license forbids its
  * glyphs as logos (`icons/NOTICE.md`). So the artwork comes from `marks/` through `brand-mark-set.ts` and
  * `emit-marks.ts`, and this component paints nothing: it has no `paintKeys`, no ink token and no `tone`.
+ * One exception, outside this def (owner decision Q846 A): SignInButton paints its one-color `provider/*` glyph white
+ * where its own fill is dark, as a literal tint on the instance. No other host and no other mark may, and
+ * `lint-mark-colors.ts` (d) and (g) hold that by name.
  *
  * THE SHAPE IS ICON'S, MATERIALIZED THE SAME WAY. One `vector` part, its glyph templated on `name`, and
  * `emitAsComponents`, so each mark is its own top-level `brand-mark/<kind>/<name>` component and the kind
@@ -162,7 +165,7 @@ export const brandMark: ComponentDef = {
     whenToUse: 'Wherever a provider\'s service is named: in a sign-in or wallet button, a payment field or a social link, and on its own, named by label, in a row of accepted payments.',
     avoidWhen:
       'For a generic concept glyph, use Icon: a mark identifies one provider and is never retinted. Never as a button on its own: a sign-in or social action is a button or link whose label names the provider, with the mark inside it, decorative. Never for a provider whose artwork is not in the set.',
-    commonPartners: ['icon', 'link', 'button', 'card-number-field', 'wallet-button'],
+    commonPartners: ['icon', 'link', 'button', 'card-number-field', 'wallet-button', 'sign-in-button'],
     triggerKeywords: ['brand mark', 'logo', 'provider logo', 'payment logo', 'card network logo', 'social icon', 'sign in with', 'wallet logo'],
     generationPriority: 3,
   },
@@ -171,7 +174,7 @@ export const brandMark: ComponentDef = {
     composesWith: [],
     alternativeTo: ['icon'],
     replacesPatterns: ['provider logos pasted into a design as images', 'a provider logo recolored to match the palette'],
-    planned: ['sign-in-button', 'payment-field'],
+    planned: ['payment-field'],
   },
 
   motion: {

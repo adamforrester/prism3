@@ -163,6 +163,7 @@
         "payment/visa",
         "provider/apple",
         "provider/facebook",
+        "provider/facebook-blue",
         "provider/google",
         "social/apple",
         "social/apple-mono",
@@ -208,7 +209,7 @@
         "social/youtube-mono"
       ]
     },
-    "members": 74,
+    "members": 75,
     "properties": {}
   },
   "breadcrumb-item": {
@@ -1291,6 +1292,37 @@
       "value": "TEXT",
       "↳ swap leading icon": "INSTANCE_SWAP"
     }
+  },
+  "sign-in-button": {
+    "axes": {
+      "provider": [
+        "apple",
+        "facebook",
+        "google"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "style": [
+        "black",
+        "blue",
+        "dark",
+        "light",
+        "neutral",
+        "outline",
+        "white"
+      ]
+    },
+    "members": 96,
+    "properties": {}
   },
   "slider": {
     "axes": {

@@ -19,7 +19,14 @@
  *       pushes no `descendantFills` into it, names no fill or stroke paint, binds no paint variable, and states
  *       `fixedPaint` (#2343 PR 2's mechanism; this is the outcome). At every member: a disabled host keeps the
  *       mark's colors too. The Card number field and WalletButton are the hosts (#2343 PR 4), and `MARK_HOSTS` lists
- *       every host by hand, both ways, so the arm cannot pass by reading no host (docs/34 shape 9).
+ *       every host by hand, both ways, so the arm cannot pass by reading no host (docs/34 shape 9). The one
+ *       relaxation is (g)'s.
+ *   (g) THE PROVIDER TINT (owner decision Q846 A) — a host node may carry `literalTint` in place of `fixedPaint`
+ *       only where the host is in `TINT_HOSTS` (SignInButton alone) AND the mark it carries is a `brand-mark/provider/*`
+ *       glyph, and the tint is an opaque `#rrggbb`. Any other def that tints a mark, or SignInButton tinting a
+ *       non-provider mark, fails by name (`HOST TINT`). Every other mark keeps "never retinted". Each tint host must
+ *       tint at least one member, so the arm cannot pass by reading none. WHICH members tint, and to what, is
+ *       `test.ts`'s `Q846 A dark-fill styles draw white` arm, typed from the decision.
  *   (e) THE PAYMENT TILE (owner decisions Q720 A, Q780 A) — a payment tile is full-bleed, and the component draws the
  *       tile's corners and edge. On every `payment/*` member, the frame that holds the artwork binds all four corner
  *       radii to a `radius/*` variable and its stroke weight to a `border-width/*` variable, strokes in a
@@ -32,6 +39,11 @@
  *       tile whose own fill (the first hex fill its file paints) is under 3:1 against a white page; every other tile
  *       keeps its corners and its crop and carries neither. Judged here from the raw file with this gate's own
  *       luminance arithmetic, never the def's helper (docs/34 shape 1).
+ *   (f) DERIVED (owner decision Q831 A) — a mark whose record names `derivedFrom` (`provider/facebook-blue`: a
+ *       social mark scaled to the provider inset; Q846 A dropped `provider/apple-black`) paints exactly its source
+ *       file's colors, in drawing order, read from that file. For it, (a)'s record is not the only witness (#3066): a
+ *       retint of the derived file and its record together still fails here, because the social file is the oracle.
+ *       Its geometry is `lint-glyph-geometry.ts`'s DERIVED arm.
  *
  * ── INDEPENDENCE (docs/34) ──────────────────────────────────────────────────────────────────────────
  *
@@ -54,7 +66,10 @@ const MARK_DEF = 'brand-mark';
 const MARK_PREFIX = 'brand-mark/';
 /** Every def that carries a brand mark in a slot or a nest, typed here: (d) reads each one, and a def that carries a
  *  mark without being listed fails. */
-const MARK_HOSTS = ['card-number-field', 'wallet-button'];
+const MARK_HOSTS = ['card-number-field', 'wallet-button', 'sign-in-button'];
+/** (g) The hosts that may tint a mark, and the marks they may tint (Q846 A), typed here. */
+const TINT_HOSTS = ['sign-in-button'];
+const TINTABLE_PREFIX = 'brand-mark/provider/';
 
 /** The colors a document paints, in document order: each path's hex `fill` (not a `url(#…)` reference, and
  *  not the wrapper's `fill="none"`) and each gradient `stop-color`. Pure. */
@@ -179,6 +194,18 @@ for (const [name, source] of Object.entries(BRAND_MARK_SOURCES)) {
   if (!sameList(colorsOf(doc), colors)) failures.push(`${name}: brand-mark-glyphs.ts paints ${JSON.stringify(colorsOf(doc))} and the source paints ${JSON.stringify(colors)} — the emitter changed a color`);
 }
 
+// (f) derived marks: the source file, not the record, is the oracle (#3066)
+let derived = 0;
+for (const [file, rec] of Object.entries(records as Record<string, { derivedFrom?: unknown }>)) {
+  if (rec.derivedFrom === undefined) continue;
+  derived++;
+  let own = '', src = '';
+  try { own = readFileSync(join(marksDir, file), 'utf8'); src = readFileSync(join(marksDir, String(rec.derivedFrom)), 'utf8'); }
+  catch { failures.push(`${file}: DERIVED — it or its source marks/${String(rec.derivedFrom)} is unreadable`); continue; }
+  if (!sameList(colorsOf(own), colorsOf(src)))
+    failures.push(`${file}: DERIVED — paints ${JSON.stringify(colorsOf(own))} and its source marks/${String(rec.derivedFrom)} paints ${JSON.stringify(colorsOf(src))}: a derived mark is resized, never retinted (Q831 A)`);
+}
+
 // (c) the mark def's own plans
 const markDef = componentDefs.find((d) => d.id === MARK_DEF);
 let markPlans = 0;
@@ -209,8 +236,9 @@ else {
   }
 }
 
-// (d) hosts
-let hosted = 0;
+// (d) hosts, and (g) the provider tint
+let hosted = 0, tinted = 0;
+const hostTints = new Map<string, number>();
 for (const def of componentDefs) {
   if (def.id === MARK_DEF || !def.figmaProperties) continue;
   let carried = 0;
@@ -222,14 +250,25 @@ for (const def of componentDefs) {
     if (n.descendantFills) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and pushes descendantFills ${n.descendantFills} into it — the host's ink would retint the mark`);
     if (n.paints?.fills || n.paints?.strokes) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and names paint ${JSON.stringify(n.paints)} on it`);
     for (const [k, v] of Object.entries(n.bound ?? {})) if (/fill|stroke/i.test(k)) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and binds ${k} to ${String(v)}`);
-    if (n.fixedPaint !== true) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and does not state fixedPaint, so nothing holds the host's ink off it`);
+    const target = String(n.nestTarget ?? n.swapTarget);
+    if (n.literalTint !== undefined) {
+      tinted++;
+      if (!TINT_HOSTS.includes(def.id)) failures.push(`${at}: HOST TINT — part '${n.name}' paints ${target} ${n.literalTint}, and only ${TINT_HOSTS.join(', ')} may tint a mark (Q846 A)`);
+      else {
+        hostTints.set(def.id, (hostTints.get(def.id) ?? 0) + 1);
+        if (!target.startsWith(TINTABLE_PREFIX)) failures.push(`${at}: HOST TINT — part '${n.name}' paints ${target} ${n.literalTint}, which is not a ${TINTABLE_PREFIX}* glyph; only a provider glyph takes a tint (Q846 A)`);
+      }
+      if (!/^#[0-9a-f]{6}$/.test(n.literalTint)) failures.push(`${at}: HOST TINT — part '${n.name}' paints ${target} '${n.literalTint}', which is not an opaque #rrggbb`);
+      if (n.fixedPaint !== undefined) failures.push(`${at}: HOST TINT — part '${n.name}' states fixedPaint beside a tint; the plan says one or the other`);
+    } else if (n.fixedPaint !== true) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and does not state fixedPaint, so nothing holds the host's ink off it`);
   });
   if (carried && !MARK_HOSTS.includes(def.id)) failures.push(`${def.id}: carries a brand mark and is not in MARK_HOSTS — list it, so the host arm is known to read it`);
   if (!carried && MARK_HOSTS.includes(def.id)) failures.push(`${def.id}: is in MARK_HOSTS and no member carries a brand mark — the host arm read nothing for it`);
 }
 for (const id of MARK_HOSTS) if (!componentDefs.some((d) => d.id === id)) failures.push(`${id}: is in MARK_HOSTS and no such component is registered`);
+for (const id of TINT_HOSTS) if (!hostTints.get(id)) failures.push(`${id}: is in TINT_HOSTS and tints no provider glyph at any member — the tint arm read nothing for it`);
 
-console.log(`Mark colors — ${sourceColors.size} source file(s), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} payment tile(s), ${hosted} host node(s) carrying a mark.`);
+console.log(`Mark colors — ${sourceColors.size} source file(s) (${derived} derived, read against their source), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} payment tile(s), ${hosted} host node(s) carrying a mark, ${tinted} of them tinted.`);
 if (markPlans === 0 && markDef) failures.push(`'${MARK_DEF}' projected no plan — the plan arm checked nothing`);
 if (markDef && Object.keys(BRAND_MARK_SOURCES).some(isTileMark) && tileMembers === 0) failures.push(`the set lists payment tiles and no '${MARK_DEF}' plan was read as a tile — the tile-edge arm checked nothing`);
 if (failures.length) {
@@ -239,5 +278,6 @@ if (failures.length) {
   console.error('  own artwork and its record with the new colors, then run npx tsx packages/engine/emit-marks.ts.');
   process.exit(1);
 }
-console.log('  ✓ clean — every mark paints its own colors, from file to record to module to plan, and no host retints one;');
+console.log('  ✓ clean — every mark paints its own colors, from file to record to module to plan, and no host retints one');
+console.log('    but SignInButton\'s provider glyphs (Q846 A);');
 console.log('    every payment tile\'s corners and edge are bound on its frame, and no other mark has an edge.');

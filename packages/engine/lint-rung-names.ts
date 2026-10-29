@@ -237,6 +237,9 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   // the owner took with its 16 recommendations (Q-B10 A, 2026-10-26), so the tile never stands taller than the value
   // line. The medium default is `sm`; the field's own control and type families stay at `md`.
   'card-number-field': 'icon.size.*',
+  // SignInButton's provider glyph (#2343 PR 5): 16/20/24, Button's one-rung offset, as the proposal's anatomy (§3.2)
+  // drew it in the wireframe the owner approved with Q-S1 to Q-S12 (2026-10-28). Flagged on the PR as Q-S16.
+  'sign-in-button': 'icon.size.*',
 };
 
 /**
@@ -415,6 +418,7 @@ const DEFAULT_FIRST: Record<string, string> = {
   'button-destructive': Q1B,
   'button-neutral': Q1B,
   'wallet-button': Q1B,
+  'sign-in-button': Q1B,
   'icon-button': Q1B,
   'icon-button-destructive': Q1B,
   'icon-button-neutral': Q1B,
@@ -489,7 +493,7 @@ const SIZE_BY_BUILT_WIDTH: Record<string, string> = {
  */
 const MUST_COVER = [
   'icon', 'brand-mark', 'spinner', 'progress',
-  'button', 'button-destructive', 'button-neutral', 'wallet-button',
+  'button', 'button-destructive', 'button-neutral', 'wallet-button', 'sign-in-button',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter', 'slider', '_slider-thumb',
