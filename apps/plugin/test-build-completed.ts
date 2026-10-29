@@ -178,7 +178,23 @@ g.figma = shim;
 g.__html__ = '';
 g.PRISM3_BUILD = '2026-10-05T00:00:00Z tree-test0000';
 
-await import('./src/main');
+const { ACTIONS: TABLE } = await import('./src/main');
+// #3131 releases a build's guard as soon as its verdict posts, while the build's tail (the settle probe, then
+// `thenRestamp`'s quiet re-record) still runs. An arm that plants a ledger entry after a write must wait for that tail,
+// or the late re-record records the planted entry over (the #3090 review of cc9fe14f). The panel's messages reach the
+// writes through this table and drop the promise (`void ACTIONS.…`), so each write's own promise is kept here, and
+// `settled` awaits every one still pending.
+const pending = new Set<Promise<void>>();
+let writesSeen = 0;
+for (const k of ['applyTheme', 'buildComponents', 'updateComponents', 'drawSpecs'] as const) {
+  const fn = TABLE[k] as (...a: unknown[]) => Promise<void>;
+  (TABLE as Record<string, unknown>)[k] = (...a: unknown[]): Promise<void> => {
+    const p = fn(...a).finally(() => pending.delete(p));
+    pending.add(p); writesSeen++;
+    return p;
+  };
+}
+const settled = async (): Promise<void> => { while (pending.size) await Promise.allSettled([...pending]); };
 
 const realTimeout = globalThis.setTimeout;
 /** Post the panel's build message and wait (bounded) for the one `component-result` it produces. The run guard
@@ -192,7 +208,7 @@ const build = async (def: string): Promise<any> => {
     if (posted.some((m) => m?.type === 'refused')) { await new Promise((res) => realTimeout(res, 25)); continue; }
     for (let j = 0; j < 600; j++) {
       const r = posted.find((m) => m?.type === 'component-result');
-      if (r) return r;
+      if (r) { await settled(); return r; }
       await new Promise((res) => realTimeout(res, 10));
     }
     return null;
@@ -205,6 +221,7 @@ console.log('component-result.completed, through main.ts (C1)');
 // 1. A fresh build: the set is made.
 const first = await build('badge');
 ok(first !== null, `the build posts a component-result (${first ? first.headline : 'none in 6 s'})`);
+ok(writesSeen === 1 && pending.size === 0, `fixture: the panel's build reached the action table, and the test waited out its tail (${writesSeen} seen, ${pending.size} pending)`);
 const badgePage = pages.find((p) => p.children.some((c) => c.type === 'COMPONENT_SET'));
 const set = badgePage?.children.find((c) => c.type === 'COMPONENT_SET');
 ok(!!set && (set.children as Node[]).length > 1, `a real set reached the file (${set ? `${(set.children as Node[]).length} members on '${badgePage?.name}'` : 'none'})`);
@@ -474,7 +491,7 @@ ok(staleUpd?.headline === '✗ update refused', `q699/control: an update echoing
 const askRun = async (msg: Record<string, unknown>, type: string): Promise<any> => {
   for (let i = 0; i < 1200; i++) {
     const got = await ask(msg, type);
-    if (got.length) return got[0];
+    if (got.length) { await settled(); return got[0]; }
     if (posted.some((m) => m?.type === 'refused')) { await new Promise((res) => realTimeout(res, 25)); continue; }
     return null;
   }
@@ -641,7 +658,7 @@ const loadsMid = midLoads;
 shim.setCurrentPageAsync = setPage;
 release();
 await heldResult;
-await new Promise((res) => realTimeout(res, 50));
+await settled();
 midLoads = 0;
 const dEnd = (await ask({ type: 'due-request', input: brandB, seq: 9 }, 'file-due'))[0];
 ok(dMid?.seq === 8 && dEnd?.seq === 9 && midLoads === 1,
