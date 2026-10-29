@@ -3987,8 +3987,8 @@ for (const b of brands) {
       // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
       // glyph-to-message gap. The action-to-close 4px is not listed: it stays at the floor.
       toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
-      // Divider (#3051): the labeled divider's label-to-line gap.
-      divider: { keys: [], sizes: [], bare: ['gap'] },
+      // Divider (#3051, #3143): the labeled divider's label-to-line gap, across a row and down a column.
+      divider: { keys: [], sizes: [], bare: ['horizontal.gap', 'vertical.gap'] },
       'breadcrumb-item': { keys: ['gap'], sizes: ['small', 'medium'] },
       breadcrumbs: { bare: ['back-gap'], keys: ['gap'], sizes: ['small', 'medium'] },
     };
@@ -4031,8 +4031,9 @@ for (const b of brands) {
       banner: { compact: 'bare 12/8/8', comfortable: 'bare 16/12/12', spacious: 'bare 20/16/16' },
       // Toast (#2668, the proposal's §8 approved by call 13 A): comfortable is 8/16/8 padding, 8 to the controls, 12 glyph to message.
       toast: { compact: 'bare 6/12/6/6/8', comfortable: 'bare 8/16/8/8/12', spacious: 'bare 12/20/12/12/16' },
-      // Divider (#3051, Q3051.4 A): the label-to-line gap. Comfortable is the owner's space.300, 24px.
-      divider: { compact: 'bare 20', comfortable: 'bare 24', spacious: 'bare 32' },
+      // Divider (#3051, Q3051.4 A; #3143, Q3143.3 A): the label-to-line gap, horizontal / vertical. Comfortable is the
+      // owner's space.300, 24px, across a row and space.150, 12px, down a column; the vertical one moves 8/12/16.
+      divider: { compact: 'bare 20/8', comfortable: 'bare 24/12', spacious: 'bare 32/16' },
       // Breadcrumbs (#2666, DRAFT): the label-to-separator gap, repeated between items, and the parent path's
       // chevron-to-link gap (Link's own icon gap). Comfortable is the proposal's space.050 / space.100; compact clamps
       // the small gap at space.050, as Link's does.
@@ -4081,8 +4082,8 @@ for (const b of brands) {
       // Banner (#2579): the glyph→content gap and the fixed title→body gap (one action since Q533.1, so no action gap).
       banner: ['gap', 'content-gap'],
       toast: ['gap', 'glyph-gap', 'controls-gap'],
-      // #3051: the labeled divider's label-to-line gap (the plain rule's zero gap does not follow density).
-      divider: ['gap'],
+      // #3051, #3143: the labeled divider's label-to-line gap, each orientation's own key.
+      divider: ['horizontal.gap', 'vertical.gap'],
       // #2709: the three defs with a density-following gap that joined after this list was written.
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2888: the Search field, TextField's gap through the shared field factory.
@@ -30796,6 +30797,7 @@ arm: {
   const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'search-field', 'card-number-field', 'code-input-cell', 'pagination-item'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
+  const grownWidth: string[] = [];
   for (const def of widthDefs) {
     const sizes = def.variants?.size ?? [];
     const size = sizes[Math.min(1, sizes.length - 1)];
@@ -30809,6 +30811,10 @@ arm: {
     };
     for (const [name, part] of Object.entries(def.anatomy!.parts)) {
       if (!part.width || part.aspectRatio) continue;
+      // A GROWING part's `width` is not a track (#3143): it is the divider line's per-orientation thickness key, the
+      // cross axis in a column and the main axis in a row, where the projection writes no bound size. Held by its
+      // own arm below, on every member, so it is excused here by name and not by omission.
+      if (part.grow) { grownWidth.push(`${def.id}.${name}`); continue; }
       // A GATED part is read at its own first value on each axis it is gated on: the caret at focus-visible, not at
       // rest, and Pagination.Item's balance on the current page in the underline style (Q537).
       const gates = Object.fromEntries(Object.entries(part.presentWhen ?? {}).map(([ax, vs]) => [ax, String((vs as unknown[])[0])]));
@@ -30822,6 +30828,33 @@ arm: {
       ok(!!node?.bound?.height && node.bound.height !== node.bound.width,
         `#990 ${def.id}: '${name}' binds height and width to DIFFERENT variables — that is the whole of what 'width' is for, and a part whose two axes resolve to one variable should have declared 'size' instead (h '${node?.bound?.height}' / w '${node?.bound?.width}')`);
     }
+  }
+
+  // #3143 BUILD CHECK 1: NO BOUND SIZE ON THE AXIS A PART GROWS ALONG. The divider's two lines bind a thickness key per
+  // orientation on both axes and grow along the root. EXPECTED, typed here from the proposal's fallback rule: on every
+  // member that draws them, a line in a ROW carries a bound height (its hairline, across) and no bound width (the
+  // length its parent decides), and a line in a COLUMN the reverse. Where the host turns a filling child FIXED when a
+  // size is bound, a written main-axis hairline would make the line 1px long. Mutation: delete the projector's
+  // `if (p.grow && parentMain) delete bound[...]` line, and this fails by name on the horizontal labeled member.
+  {
+    const GROWN_WIDTH_EXPECTED = ['divider.leadingRule', 'divider.trailingRule'];
+    ok(JSON.stringify(grownWidth.sort()) === JSON.stringify(GROWN_WIDTH_EXPECTED),
+      `#3143 the growing parts that bind a width are exactly [${GROWN_WIDTH_EXPECTED.join(', ')}] (found: ${grownWidth.join(', ') || 'none'})`);
+    const wrong: string[] = [];
+    let seen = 0;
+    for (const plan of figmaAnatomySet(divider)) {
+      const root = plan.root as any;
+      for (const line of (root.children ?? []).filter((c: any) => c.name === 'leadingRule' || c.name === 'trailingRule')) {
+        seen++;
+        const row = root.layoutMode === 'HORIZONTAL';
+        const across = row ? line.bound?.height : line.bound?.width;
+        const along = row ? line.bound?.width : line.bound?.height;
+        if (across !== 'border-width/hairline' || along !== undefined || line.layoutGrow !== 1)
+          wrong.push(`${planComponentName(plan)} ${line.name}: across ${across}, along ${along}, grow ${line.layoutGrow}`);
+      }
+    }
+    ok(seen === 4 && wrong.length === 0,
+      `#3143 divider build check 1: each line binds the hairline across its root and nothing along it, where it grows — a row binds height only, a column width only (${seen} lines over the two labeled members${wrong.length ? `; WRONG: ${wrong.join('; ')}` : ''})`);
   }
 
   // ---- `positionWhen`: variant-keyed POSITION, and why it needed its own mechanism (#990) ---------
@@ -32167,9 +32200,10 @@ arm: {
     'breadcrumb-item.container':
       "a breadcrumb step is one text line tall and never wraps (breadcrumb-item.ts codeOnly), so the separator centers against the only line.",
     // `divider` (#3051, Q3051.4 A): the labeled divider centers its two hairlines on the label's line box. The label is
-    // one short word that never wraps (divider.ts codeOnly), and the root is exactly one label line box tall.
+    // one short word that never wraps (divider.ts codeOnly), and the root is exactly one label line box tall. #3143: a
+    // vertical labeled divider is a column that hugs the word across, so its two lines center under and over it.
     'divider.container':
-      "a labeled divider's label is one short word that never wraps and the root is one label line box tall, so the two lines center against the only line; the plain rule stretches across and is not moved by it.",
+      "a labeled divider's label is one short word that never wraps; across a row the root is one label line box tall, so the two lines center against the only line, and down a column it hugs the word, so the lines center above and below it; the plain rule stretches across and is not moved by it.",
     // `sign-in-button` (#2343 PR 5): the button is one fixed height and its wording is one short line that never wraps
     // (the provider's own words), so the glyph centers against the only line, as Button's icon does.
     'sign-in-button.container':
@@ -36252,8 +36286,10 @@ arm: {
   ok(JSON.stringify(divider.variants) === JSON.stringify({ orientation: ['horizontal', 'vertical'], inset: ['none', 'inset', 'middle-inset'], labeled: ['false', 'true'] }),
     `#2455 divider: three axes, orientation = [horizontal, vertical], inset = [none, inset, middle-inset] and labeled = [false, true] (#3051), each default first so it is the code default and Figma's default member (got ${JSON.stringify(divider.variants)})`);
   ok(divider.states.length === 0, `#2455 divider: no states, because it is not interactive (got [${divider.states.join(', ')}])`);
-  ok(figmaVariantCount(divider) === 6,
-    `#2455 divider inset: the Figma set is six members — five plain (vertical takes none and middle-inset only) and one labeled (#3051) (got ${figmaVariantCount(divider)})`);
+  ok(figmaVariantCount(divider) === 7,
+    `#2455 divider inset: the Figma set is seven members — five plain (vertical takes none and middle-inset only) and two labeled, one each way (#3051, #3143) (got ${figmaVariantCount(divider)})`);
+  // #3143: the root's direction follows the member — a row horizontal, a column vertical — so the rule grows along it.
+  const MODE: Record<string, string> = { horizontal: 'HORIZONTAL', vertical: 'VERTICAL' };
   for (const [coord, pad] of Object.entries(INSET)) {
     const [o, inset] = coord.split('/');
     const root = figmaAnatomyPlan(divider, undefined, { orientation: o, inset, labeled: 'false' } as never).root as any;
@@ -36263,8 +36299,8 @@ arm: {
       `#2455 divider ${o} inset=${inset}: the root pads [top, right, bottom, left] = [${pad.join(', ')}] (got [${got.join(', ')}])`);
     ok(root.bound?.height === FOOT[o].height && root.bound?.width === FOOT[o].width,
       `#2455 divider ${o} inset=${inset}: the root binds height ${FOOT[o].height} and width ${FOOT[o].width} — the hairline is its thickness, the other axis its nominal length (got h ${root.bound?.height} / w ${root.bound?.width})`);
-    ok(root.layoutMode === 'HORIZONTAL' && !root.paints?.fills && (root.children ?? []).length === 1 && rule?.name === 'rule',
-      `#2455 divider ${o} inset=${inset}: the root is a row that paints nothing, with one child, the rule (got layoutMode ${root.layoutMode}, fills ${root.paints?.fills}, children [${(root.children ?? []).map((c: any) => c.name).join(', ')}])`);
+    ok(root.layoutMode === MODE[o] && !root.paints?.fills && (root.children ?? []).length === 1 && rule?.name === 'rule',
+      `#2455 divider ${o} inset=${inset}: the root is a row horizontal and a column vertical (#3143) that paints nothing, with one child, the rule (got layoutMode ${root.layoutMode}, fills ${root.paints?.fills}, children [${(root.children ?? []).map((c: any) => c.name).join(', ')}])`);
     ok(rule?.paints?.fills === 'color/border/secondary' && rule?.layoutGrow === 1 && rule?.layoutAlign === 'STRETCH',
       `#2455 divider ${o} inset=${inset}: the rule's color is color/border/secondary and it fills the root's content box (grow along, stretch across) (got fills ${rule?.paints?.fills}, grow ${rule?.layoutGrow}, align ${rule?.layoutAlign})`);
   }
@@ -36293,10 +36329,12 @@ arm: {
   const set = figmaAnatomySet(divider);
   const labeledPlans = set.filter((p) => (p.coord as any).labeled === 'true');
   const plainPlans = set.filter((p) => (p.coord as any).labeled === 'false');
-  // Q3051.3 A + Q3051.6 A: one labeled member, horizontal, inset none, centered (no alignment axis).
-  ok(labeledPlans.length === 1 && (labeledPlans[0].coord as any).orientation === 'horizontal' && (labeledPlans[0].coord as any).inset === 'none'
+  // Q3051.3 A + Q3051.6 A: a labeled member takes inset none and is centered (no alignment axis). #3143 (Q3143.4 A)
+  // reopened vertical, so there are two, one each way; the horizontal one is this block's subject.
+  ok(labeledPlans.length === 2 && labeledPlans.every((p) => (p.coord as any).inset === 'none')
+    && JSON.stringify(labeledPlans.map((p) => (p.coord as any).orientation).sort()) === JSON.stringify(['horizontal', 'vertical'])
     && plainPlans.length === 5 && !('alignment' in (divider.variants ?? {})),
-    `${D3051}: exactly one labeled member, horizontal with inset none, and five plain ones; no alignment axis, center only (got labeled at ${JSON.stringify(labeledPlans.map((p) => p.coord))}, ${plainPlans.length} plain)`);
+    `${D3051}: two labeled members, horizontal and vertical (#3143), both with inset none, and five plain ones; no alignment axis, center only (got labeled at ${JSON.stringify(labeledPlans.map((p) => p.coord))}, ${plainPlans.length} plain)`);
   // Label present ONLY when labeled=true: the three labeled cells on the labeled member and on no plain one, and the
   // plain `rule` on every plain member and not on the labeled one.
   const LABELED_CELLS = ['leadingRule', 'label', 'trailingRule'];
@@ -36308,7 +36346,7 @@ arm: {
   }
   ok(wrongPresence.length === 0,
     `${D3051}: the label and its two lines are present only when labeled=true, in the order line, label, line; every plain member draws the one rule${wrongPresence.length ? ` — WRONG: ${wrongPresence.join('; ')}` : ''}`);
-  const lp = labeledPlans[0];
+  const lp = labeledPlans.find((p) => (p.coord as any).orientation === 'horizontal');
   if (lp) {
     const root = lp.root as any;
     const label = findIn(root, 'label'), lead = findIn(root, 'leadingRule'), trail = findIn(root, 'trailingRule');
@@ -36333,7 +36371,7 @@ arm: {
       && root.bound?.height === 'type/label/md/line-box' && root.bound?.width === 'container/narrow' && !root.paints?.fills,
       `${D3051}: the root is a row one label line box tall (type/label/md/line-box), centered across, space/300 between the label and each line, painting nothing (got ${root.layoutMode}, align ${root.counterAxisAlignItems}, gap ${root.bound?.itemSpacing}, h ${root.bound?.height}, w ${root.bound?.width})`);
     // The gap follows density but never reaches zero (the lines would touch the label).
-    const gapAt = ['compact', 'comfortable', 'spacious'].map((d) => applySpacingDensity(divider, d as never).tokens['gap']);
+    const gapAt = ['compact', 'comfortable', 'spacious'].map((d) => applySpacingDensity(divider, d as never).tokens['horizontal.gap']);
     ok(gapAt[1] === 'space.300' && gapAt.every((g) => g && g !== 'space.0'),
       `${D3051}: the label-to-line gap is space.300 at comfortable and follows density without collapsing (got ${gapAt.join(' / ')})`);
   }
@@ -36365,6 +36403,74 @@ arm: {
   }
   ok(under.length === 0,
     `${D3051}: the label ink text.secondary clears 4.5:1 against background.primary and background.secondary in every mode of every example brand${under.length ? ` — UNDER: ${under.slice(0, 4).join('; ')}` : ''}`);
+}
+
+// ------------------------------------------------------------------- #3143: the vertical labeled divider
+// The owner's seven calls (Q3143.1–.7, all A), each held against a literal typed HERE from the proposal and the owner's
+// comment on #3143, never read off the def (docs/34 shape 1). ACTUAL is the projected plan, the density resolution and
+// the def's prose. The plan arm is the mutation's subject: `directionWhen.values.vertical` → 'row' fails it by name
+// (and the shim's layout in `apps/plugin/test-roundtrip.ts`, the `#3143 divider` arm).
+{
+  const D3143 = '#3143 divider vertical labeled';
+  const findIn = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findIn(c, name)).find(Boolean));
+  const vp = figmaAnatomySet(divider).find((p) => (p.coord as any).orientation === 'vertical' && (p.coord as any).labeled === 'true');
+  ok(!!vp && (vp.coord as any).inset === 'none',
+    `${D3143}: the member exists, at inset none (Q3143.4 A) (got ${JSON.stringify(vp?.coord)})`);
+  if (vp) {
+    const root = vp.root as any;
+    const names = (root.children ?? []).map((c: any) => c.name);
+    const label = findIn(root, 'label'), lead = findIn(root, 'leadingRule'), trail = findIn(root, 'trailingRule');
+    // Q3143.1 A: a COLUMN — a line above the upright label and a line below it, in that order. No rotation is carried.
+    ok(root.layoutMode === 'VERTICAL' && JSON.stringify(names) === JSON.stringify(['leadingRule', 'label', 'trailingRule'])
+      && root.counterAxisAlignItems === 'CENTER' && label?.type === 'TEXT' && !label?.rotation,
+      `${D3143}: the root is a column, line above, upright label, line below, centered across (Q3143.1 A) (got ${root.layoutMode}, [${names.join(', ')}], align ${root.counterAxisAlignItems}, label rotation ${label?.rotation})`);
+    // Q3143.2 A: it HUGS the label across (AUTO, no width written) and is fixed down the column.
+    ok(root.counterAxisSizingMode === 'AUTO' && root.primaryAxisSizingMode === 'FIXED' && root.bound?.width === undefined,
+      `${D3143}: the root hugs its label across and binds no width, fixed along the column (Q3143.2 A, sizingWhen) (got counter ${root.counterAxisSizingMode}, primary ${root.primaryAxisSizingMode}, w ${root.bound?.width})`);
+    // Q3143.3 A + Q3143.5 A: 12px between the label and each line; 68px tall.
+    ok(root.bound?.itemSpacing === 'space/150' && root.bound?.height === 'size/xl/height',
+      `${D3143}: space/150 between the label and each line (Q3143.3 A) and size/xl/height tall (Q3143.5 A) (got gap ${root.bound?.itemSpacing}, h ${root.bound?.height})`);
+    // The lines: the rule's ink and the hairline across, growing down the column. The label keeps #3051's style and ink.
+    const lineOk = (l: any) => l?.type === 'FRAME' && l?.layoutGrow === 1 && l?.paints?.fills === 'color/border/secondary' && l?.bound?.width === 'border-width/hairline';
+    ok(lineOk(lead) && lineOk(trail) && label?.paints?.fills === 'color/text/secondary' && label?.textStyle === 'label/md/default' && label?.characters === 'Or',
+      `${D3143}: both lines grow down the column in color/border/secondary, a hairline wide, around an "Or" label in color/text/secondary at label/md/default (got lead ${lead?.layoutGrow}/${lead?.paints?.fills}/${lead?.bound?.width}, label ${label?.paints?.fills}/${label?.textStyle}/"${label?.characters}")`);
+  }
+  // Q3143.3 A: the vertical gap follows density, 8 / 12 / 16, and the horizontal one is unchanged at comfortable.
+  const gaps = ['compact', 'comfortable', 'spacious'].map((d) => applySpacingDensity(divider, d as never).tokens);
+  ok(JSON.stringify(gaps.map((t) => t['vertical.gap'])) === JSON.stringify(['space.100', 'space.150', 'space.200']) && gaps[1]['horizontal.gap'] === 'space.300',
+    `${D3143}: vertical.gap is space.100 / space.150 / space.200 across compact / comfortable / spacious, and horizontal.gap stays space.300 at comfortable (got ${gaps.map((t) => t['vertical.gap']).join(' / ')}; ${gaps[1]['horizontal.gap']})`);
+  // Q3143.5 A: the docs state the 56px minimum (16 label + 2 × 12 gap + 2 × 8 line) and Q3143.6 A keeps the vertical
+  // label to Or between alternatives, the title-is-a-heading guidance standing.
+  ok(16 + 2 * 12 + 2 * 8 === 56 && divider.docs.do.some((x) => /vertical labeled divider only where both groups are at least 56px tall/.test(x))
+    && divider.docs.dont.some((x) => /title the group with a heading/.test(x)),
+    `${D3143}: docs.do states the 56px minimum (Q3143.5 A) and docs.dont still sends a group title to a heading (Q3143.6 A)`);
+  // Q3143.7 A: the Q3051.2 contract unchanged, and the labeled markup sets no aria-orientation (no role to describe).
+  const markup = (divider.anatomy?.codeOnly ?? []).find((c) => c.startsWith('the labeled divider in code — ')) ?? '';
+  ok(/flex-direction: column; gap: var\(--space-150\); inline-size: max-content; min-block-size: 56px/.test(markup) && !/aria-orientation/.test(markup),
+    `${D3143}: the code markup gives the vertical wrapper a column, the 12px gap, max-content width and the 56px minimum, with no aria-orientation (Q3143.2 A, Q3143.5 A, Q3143.7 A)`);
+  // The prose no longer says "horizontal only" anywhere it would now be false.
+  const prose = JSON.stringify([divider.summary, divider.description, divider.props, divider.anatomy?.codeOnly, divider.docs, divider.ai, divider.accessibility]);
+  ok(!/Horizontal with no inset only|Horizontal with `inset="none"` only|breaks a horizontal rule/.test(prose),
+    `${D3143}: no shipped divider prose still says a label is horizontal only`);
+
+  // THE SCHEMA ADDITION (`PartDef.sizingWhen`): each refusal by name, on the divider's own root.
+  const rootName = divider.anatomy!.root;
+  const withRoot = (patch: Record<string, unknown>): ComponentDef => ({ ...divider, anatomy: { ...divider.anatomy!, parts: { ...divider.anatomy!.parts, [rootName]: { ...divider.anatomy!.parts[rootName], ...patch } as PartDef } } });
+  const errs = (d: ComponentDef) => validateComponentDef(d).errors;
+  ok(errs(divider).length === 0, `${D3143}: the def validates (got ${errs(divider).slice(0, 2).join(' | ')})`);
+  ok(errs(withRoot({ sizingWhen: { when: { size: ['medium'] }, x: 'hug' } })).some((m) => /sizingWhen.when axis 'size' is not an axis this def projects/.test(m)), '#3143 sizingWhen on an axis the def does not project is refused');
+  ok(errs(withRoot({ sizingWhen: { when: { labeled: ['maybe'] }, x: 'hug' } })).some((m) => /sizingWhen.when.labeled gives 'maybe', which is not a value of 'labeled'/.test(m)), '#3143 sizingWhen on a value the axis does not have is refused');
+  ok(errs(withRoot({ sizingWhen: { when: {}, x: 'hug' } })).some((m) => /sizingWhen names no axis in 'when'/.test(m)), '#3143 sizingWhen with no condition is refused');
+  ok(errs(withRoot({ sizingWhen: { when: { labeled: ['true'] } } })).some((m) => /sizingWhen gives neither 'x' nor 'y'/.test(m)), '#3143 sizingWhen naming no axis is refused');
+  ok(errs(withRoot({ sizingWhen: { when: { labeled: ['true'] }, x: 'fill' } })).some((m) => /sizingWhen.x is 'fill' — only 'hug' is per member/.test(m)), '#3143 sizingWhen with a mode other than hug is refused');
+  ok(errs(withRoot({ sizingWhen: { when: { labeled: ['true'] }, x: 'hug' }, placementWidth: 320 })).some((m) => /declares 'sizingWhen' beside builtSize, center or a placement size/.test(m)), '#3143 sizingWhen beside another sizing rule is refused');
+  const rule = divider.anatomy!.parts.rule;
+  ok(validateComponentDef({ ...divider, anatomy: { ...divider.anatomy!, parts: { ...divider.anatomy!.parts, rule: { ...rule, sizingWhen: { when: { labeled: ['false'] }, x: 'hug' } } as PartDef } } }).errors
+    .some((m) => /'rule' declares 'sizingWhen' but is not a 'box' with 'layout'/.test(m)), '#3143 sizingWhen on a box with no layout is refused');
+  // Off the matched coordinate the plan is the def as authored: every other member's root is FIXED both ways.
+  const fixedElsewhere = figmaAnatomySet(divider).filter((p) => !((p.coord as any).orientation === 'vertical' && (p.coord as any).labeled === 'true'))
+    .every((p) => (p.root as any).primaryAxisSizingMode === 'FIXED' && (p.root as any).counterAxisSizingMode === 'FIXED' && (p.root as any).bound?.width);
+  ok(fixedElsewhere, `${D3143}: every other member's root stays fixed both ways with its width bound — sizingWhen moves only the member it names`);
 }
 
 // ---- centered Tabs (#2518, owner decision Q222 A) ----
