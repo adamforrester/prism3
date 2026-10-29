@@ -69,7 +69,8 @@ Both landed on main first, in the agreed order, and #3096's entry recorded what 
   the plugin typechecks either way, so the arm below is the only thing that holds it.
 - **`ledgerSets` prints too** (#3111's answer at open), against the stored brand, as the full read after it does.
   Chosen over leaving it print-less: a print projects plans in memory and loads no page, so open stays page-load-free
-  (`test-open-large-file.ts`'s `open/ready` still passes); without one, every printed set under a moved engine reads
+  (`test-open-large-file.ts`: 12 of the stand-in's entries are recorded with a print under an older engine, so
+  `open/ready` reaches the print path, and `open/printed` holds that they read current from it); without one, every printed set under a moved engine reads
   `unrecorded` ("not checked yet") at open and the first answer disagrees with the full read on what is due. On a large
   file the full read waits on every page (about 20 s on the 60-page reference master), so the ledger's answer is the
   only correct one the panel has for that long. The cost is time to that first answer, measured below.
@@ -115,6 +116,9 @@ Each mutation was made on a committed tree and failed by name:
 | `restampQuiet`'s stale filter loses `!ledger[id].print` (review's nit) | `test-build-completed.ts`: "q811/migrate: the next write gives a print-less entry under today's engine its print" |
 | `fileDue` calls `dueOf` without `printNow(input)` (#3096 into #3090) | `test-build-completed.ts`: "q810/engine: under an older engine, a printed set whose plans the panel's brand changes is due for the engine, and the badge counts it …" and "q810/engine control: … is current, and the badge does not count it" (both read `unrecorded`) |
 | `ledgerSets` calls `dueOf` without the print | `test-build-completed.ts`: "q810/engine at open: the ledger's answer at open prints the engine-moved set as the full read does …" (`unrecorded` vs due) |
+| `ledgerSets` calls `dueOf` without the print, on the large-file stand-in | `test-open-large-file.ts`: "open/printed: the 12 sets recorded with a print under an older engine, plans unchanged, are printed at open and read current" (`unrecorded`) |
+| `printYielding` calls `figma.loadAllPagesAsync()` after each projection | `test-open-large-file.ts`: "open/ready: the panel's first answer lands with no page loaded" (60 of 60) |
+| The test's wait for a panel-driven write's tail removed (#3131 releases the guard at the verdict) | `test-build-completed.ts`: "q811/panel brand: …" (5 of 20 loaded runs, `{"state":"due","reason":"definition"}`) and "fixture: the panel's build reached the action table, and the test waited out its tail" (20 of 20) |
 | `printNow` projects on every call (`printMemo` unused) | `test-build-completed.ts`: "q810/memo: a second recount against the same brand projects no plan again" (1 projected by the second) |
 
 `paints` belongs in the deciding hash: a paint binding the engine moves is a drawing change. The hash is the whole
