@@ -1561,6 +1561,26 @@ section('single, marks — a mark built under its former kind is renamed in plac
   const kept = Object.entries(FORMER).every(([now, was]) => after.get(now)?.key === before.get(was)?.key && after.get(now)?.id === before.get(was)?.id);
   ok(applyVerdict(res).ok && after.size === 3 && Object.values(FORMER).every((n) => !after.has(n)) && kept,
     `marks/rename: apply — each renamed in place to its new kind, keeping its key and id (${applyVerdict(res).headline}; ${[...after.keys()].join(', ')})`);
+
+  // TWO HOPS (#3156 review N2): a file built before #2343 PR 3 AND #3148 holds `brand-mark/card/<x>`, which takes the
+  // def rename and then the value rename, in one update. Every mark sits under the old id, so the reader finds them there.
+  const w2 = await singleWorld(plans);
+  const OLD2: Record<string, string> = Object.fromEntries(plans.map((p) => {
+    const now = `provider-logo/${p.coord.name}`;
+    return [now, `brand-mark/${TYPED[String(p.coord.name)] ?? p.coord.name}`];
+  }));
+  for (const x of w2.comps()) if (OLD2[String(x.name)]) x.name = OLD2[String(x.name)];
+  const before2 = new Map(w2.comps().map((x) => [String(x.name), { key: String(x.key), id: String(x.id) }] as const));
+  ok(Object.values(OLD2).every((n) => before2.has(n)) && [...before2.keys()].every((n) => n.startsWith('brand-mark/')),
+    `premise: every mark sits under the old id, the payment tile and logo under their former kinds too (${[...before2.keys()].join(', ')})`);
+  const pre2 = await previewUpdate(w2.host, [t]);
+  const c2 = pre2.sets[0]?.counts;
+  ok(pre2.sets[0]?.setRename?.from === 'brand-mark' && c2?.rename === 2 && c2.add === 0 && c2.members === 3,
+    `marks/two hops: dry run — read under brand-mark, the two former kinds to rename, none to add (${JSON.stringify({ setRename: pre2.sets[0]?.setRename, counts: c2 })})`);
+  const res2 = await applyUpdate(w2.host, w2.api as any, [t], previewHashOf(pre2));
+  const after2 = new Map(w2.comps().map((x) => [String(x.name), { key: String(x.key), id: String(x.id) }] as const));
+  ok(applyVerdict(res2).ok && after2.size === 3 && Object.entries(OLD2).every(([now, was]) => after2.get(now)?.key === before2.get(was)?.key && after2.get(now)?.id === before2.get(was)?.id),
+    `marks/two hops: apply — \`brand-mark/card/<x>\` is \`provider-logo/payment/<x>\`, each in place, keeping its key and id (${applyVerdict(res2).headline}; ${[...after2.keys()].join(', ')})`);
 }
 
 section('noop — a set already current is not written');
@@ -1777,7 +1797,17 @@ section('def rename, single — provider logos built as `brand-mark/…` are ren
   };
   // The page's own nodes, and the shim's stand-ins for the other components the file holds (focus ring, the swap target).
   const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => [...new Set([...every(c.types), ...(c.types.includes('COMPONENT') ? api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as Node[] : [])])] } } as unknown as ApplyHost;
-  const marks = (): Node[] => page.children.filter((n) => n.type === 'COMPONENT');
+  // A designer's own components under the old prefix, one in each shape (#3156 review): `<id>/<value>`, which the dry
+  // run reads as a member not built by Prism3, and `<id>/<kind>/<x>`, a value no plan holds, which it never reads as a
+  // member. Neither is stamped, so neither is Prism3's, and the update renames neither.
+  const own = (name: string): Node => {
+    const n = (api.createComponentFromNode as (n: Node) => Node)((api.createFrame as () => Node)());
+    n.name = name;
+    if (!page.children.includes(n)) page.children.push(n);
+    return n;
+  };
+  const theirs = [own(`${OLD}/handmade`), own(`${OLD}/payment/zz-own`)];
+  const marks = (): Node[] => page.children.filter((n) => n.type === 'COMPONENT' && !theirs.includes(n));
   // Every instance inside the two hosts' sets that points at a mark, as (instance id → its main component's id).
   const instancesIn = (n: Node): Node[] => [...(n.type === 'INSTANCE' ? [n] : []), ...(n.type === 'INSTANCE' ? [] : ((n.children as Node[] | undefined) ?? []).flatMap(instancesIn))];
   // Each instance in the two hosts' sets that points at a mark: instance id → its main's id, as Figma holds it.
@@ -1796,8 +1826,10 @@ section('def rename, single — provider logos built as `brand-mark/…` are ren
   // The engine's own ledger, so the shipped entry is what is under test.
   const pre = await previewUpdate(host, targets);
   const pm = pre.sets.find((x) => x.set === NEW);
-  ok(!!pm && pm.setRename?.from === OLD && pm.setRename.to === NEW && !pm.blockers.length && !pm.counts.add && !pm.counts.drop && pm.counts.members === oldMarks.length,
+  ok(!!pm && pm.setRename?.from === OLD && pm.setRename.to === NEW && !pm.blockers.length && !pm.counts.add && !pm.counts.drop && pm.counts.members === oldMarks.length + 1,
     `def rename, single/dry run: the marks are read under '${OLD}', to be renamed '${NEW}', with nothing added or dropped (${JSON.stringify(pm ? { setRename: pm.setRename, counts: pm.counts, blockers: pm.blockers } : null)})`);
+  ok(!!pm && pm.counts.unstamped === 1 && pm.unstamped.length === 1 && pm.unstamped[0].endsWith('=handmade') && !JSON.stringify(pm).includes('zz-own'),
+    `def rename, single/theirs, read: \`${OLD}/handmade\` is the one member not built by Prism3, and \`${OLD}/payment/zz-own\` is no member at all (${JSON.stringify(pm ? { unstamped: pm.unstamped, count: pm.counts.unstamped } : null)})`);
   ok(!!pm && previewLine(pm).endsWith(`Renamed from ${OLD}.`), `def rename, single/line: the dry run's line says so (${pm ? previewLine(pm) : 'none'})`);
   for (const id of HOSTS) {
     const hp = pre.sets.find((x) => x.set === id);
@@ -1818,6 +1850,8 @@ section('def rename, single — provider logos built as `brand-mark/…` are ren
   const afterMarks = new Map(marks().map((c) => [String(c.id), { key: String(c.key), name: String(c.name) }] as const));
   ok(afterMarks.size === beforeMarks.size && [...beforeMarks].every(([id, b]) => afterMarks.get(id)?.key === b.key && afterMarks.get(id)?.name === `${NEW}/${b.name.slice(OLD.length + 1)}`),
     `def rename, single/in place: the same ${afterMarks.size} components, each keeping its id and key, renamed \`${NEW}/…\`, and no duplicate (${marks().length} components; ${[...afterMarks.values()].filter((m) => !m.name.startsWith(`${NEW}/`)).map((m) => m.name).slice(0, 3).join(', ') || 'none left under the old name'})`);
+  ok(JSON.stringify(theirs.map((n) => n.name)) === JSON.stringify([`${OLD}/handmade`, `${OLD}/payment/zz-own`]) && theirs.every((n) => page.children.includes(n)),
+    `def rename, single/theirs, kept: a designer's own components under the old prefix keep their names (${JSON.stringify(theirs.map((n) => n.name))})`);
   const afterNests = nested();
   ok(afterNests.size === beforeNests.size && [...beforeNests].every(([i, m]) => afterNests.get(i) === m),
     `def rename, single/nests: every nested instance in the wallet button and card number field is the same node, pointing at the same mark (${afterNests.size} of ${beforeNests.size})`);

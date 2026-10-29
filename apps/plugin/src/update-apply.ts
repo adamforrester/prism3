@@ -53,7 +53,7 @@ import { partRenames, type ComponentRename } from '@prism3/engine/component-rena
 import { applyComponentPlan, emitCoordValue, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { planTargets } from './build-deps';
 import { NS } from './persist-figma';
-import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
+import { baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
 import { emptiedLine, pageMovesLine, relocateSets, type PageMove } from './page-moves';
@@ -391,11 +391,15 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   // ── A SINGLE-COMPONENT DEF'S OWN NAME (#3148), first: each component under the earlier id takes the current one, in
   // place, so it keeps its id and key and every placed instance keeps pointing at it. Everything below reads the
   // components by the current id, as the dry run did.
-  // Prism3's own only, as the dry run read them: a designer's component under the old prefix is theirs, and stays.
+  // Prism3's own only, owned by the stamp, never the name: the shared member test (`builtByPrism3`, #2510) the dry run
+  // reads members by, and the one the page move reads these same components by (`topSingles`). A designer's component
+  // under the old prefix is theirs and keeps its name, a `<id>/<value>` the dry run listed as not built by Prism3 and a
+  // `<id>/<kind>/<x>` it never read as a member alike (#3156 review).
   if (t.single && p.setRename) {
-    const theirs = new Set(p.unstamped);
-    const oldCoord = (h: string): string => { const n = namesFor(t); return n.coordOf(renamedComponent(h, p.setRename!)); };
-    for (const c of kidsOf(live)) if (!theirs.has(oldCoord(String(c.name ?? '')))) c.name = renamedComponent(String(c.name ?? ''), p.setRename);
+    const kids = kidsOf(live) as (LiveNode & { id?: unknown; getSharedPluginData?(ns: string, k: string): string })[];
+    const reads: OwnershipRead[] = kids.map((c) => ({ id: c.id === undefined ? undefined : String(c.id), stamp: c.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(c)?.id }));
+    const owned = builtByPrism3(reads);
+    kids.forEach((c, i) => { if (owned(reads[i])) c.name = renamedComponent(String(c.name ?? ''), p.setRename!); });
   }
 
   // ── LAYERS RENAMED IN PLACE (#2759), first, in every member this update configures: the dry run read them under
