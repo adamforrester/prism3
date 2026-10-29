@@ -5587,6 +5587,47 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#2343 Q720 A plugin executor: all ${cardFiles.length} tile files in marks/payment/ build as tiles (${tiles.length} of ${comps.length} built marks) reading back with radius/sm corners, clipped, and a border-width/hairline edge in color/border/primary on every tile but amex, generic, shop-pay and venmo (#3134); no other mark has an edge (off: ${[...off, ...edgeMisses, ...untiled.map((n) => `${n}: no tile`), ...unfiled.map((n) => `${n}: no tile file`)].slice(0, 4).join(' | ') || 'none'})`);
 }
 
+// ── #3127: THE ARTBOARD READ-BACK, AT FIGMA'S PRECISION, PER KIND ─────────────────────────────────────────────────────
+// Figma stores a frame's width and height as 32-bit floats, so a logo drawn at its own width, 34.97 × 24, reads back
+// 34.970001220703125 × 24. The exact compare reported 7 BrandMark logos as "sized to its ink" on a fresh file. Here
+// the importer stores its artboard at float32, as the host does: every mark at its own artboard reads back with no
+// `glyphViewBox` miss. Then the importer sizes the frame to its ink: a square kind (an icon-style provider mark) and a
+// logo each still miss, by name. Mutations: `atArtboard` back to an exact compare → `#3127 at its own width`; it
+// passing anything (`return true`) → `#3127 sized to its ink`.
+{
+  const markDef = componentDefs.find((d) => d.id === 'brand-mark')!;
+  const plans = figmaAnatomySet(markDef, { swapTarget: SWAP });
+  const boxOf = (p: (typeof plans)[number]): [number, number] | undefined => {
+    const walk = (n: { glyphViewBox?: [number, number]; children?: unknown[] }): [number, number] | undefined =>
+      n.glyphViewBox ?? (n.children ?? []).map((c) => walk(c as never)).find(Boolean);
+    return walk(p.root as never);
+  };
+  const build = async (pick: typeof plans, host: (n: Node) => void) => {
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(pick), page }) as Record<string, unknown>;
+    const svg = shim.createNodeFromSvg as (src: string) => Node;
+    shim.createNodeFromSvg = (src: string) => { const n = svg(src); host(n); return n; };
+    const r = await applyComponentPlan(pick, shim as any, { emitAsComponents: true });
+    return (r.misses ?? []).filter((m: string) => m.includes('.glyphViewBox'));
+  };
+  const resize = (n: Node, w: number, h: number) => (n.resize as (a: number, b: number) => void)(w, h);
+  // At float32, as the host stores it.
+  const f32 = await build(plans, (n) => resize(n, Math.fround(Number(n.width)), Math.fround(Number(n.height))));
+  const inexact = plans.filter((p) => { const b = boxOf(p); return !!b && (Math.fround(b[0]) !== b[0] || Math.fround(b[1]) !== b[1]); }).map((p) => String(p.coord.name));
+  ok(inexact.length > 0 && inexact.every((n) => n.startsWith('logo/')) && f32.length === 0,
+    `#3127 at its own width: every brand mark imported at float32 reads back at its artboard, the ${inexact.length} logos whose width float32 cannot hold exactly among them (${inexact.join(', ')}), with no glyphViewBox miss (${f32.length} misses${f32.length ? `: ${f32[0]}` : ''})`);
+  // Sized to its ink: the frame takes its outline's box.
+  const ink = (n: Node) => { const v = ((n.children as Node[]) ?? [])[0]; if (v) resize(n, Number(v.width), Number(v.height)); };
+  const square = plans.filter((p) => { const b = boxOf(p); return !!b && b[0] === b[1] && !/^(logo|payment)\//.test(String(p.coord.name)); }).slice(0, 1);
+  const logo = plans.filter((p) => String(p.coord.name) === 'logo/visa');
+  const inkSquare = await build(square, ink);
+  const inkLogo = await build(logo, ink);
+  ok(square.length === 1 && inkSquare.some((m: string) => m.includes('every host binding a square')),
+    `#3127 sized to its ink: a square-kind mark (${String(square[0]?.coord.name)}) whose frame is sized to its ink fails, named (${inkSquare[0] ?? 'no miss'})`);
+  ok(logo.length === 1 && inkLogo.some((m: string) => /a host binding its [\d.]+x24 box/.test(m)),
+    `#3127 sized to its ink: a logo whose frame is sized to its ink still fails, named for its own box (${inkLogo[0] ?? 'no miss'})`);
+}
+
 // ── #2428: CODE INPUT'S CHARACTER CARRIES ITS SIZE'S TEXT STYLE ON THE HOST ─────────────────────────────────────────
 // Owner QA Q534 on #2789: the character had no text style, so in a brand's file it kept the build's own font (the
 // default brand's display serif). Each built character must read its size's style back, untrimmed: a trim written

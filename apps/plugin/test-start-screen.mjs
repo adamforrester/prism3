@@ -1303,7 +1303,7 @@ const BRAND_WRITES = ['apply-theme', 'build-components', 'prune', 'file-setup', 
   await settle(1);
   let links = await page.evaluate(() => window.__links);
   ok(links.length === 1 && links[0].type === 'agent-link' && links[0].on === true, `the home's switch asks the main thread to turn the link on, as the tile does — ${JSON.stringify(links)}`);
-  const read = () => page.evaluate(() => ({ sw: document.querySelector('[data-p3="home-agent-switch"]')?.getAttribute('aria-checked'), tile: document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed'),
+  const read = () => page.evaluate(() => ({ sw: document.querySelector('[data-p3="home-agent-switch"]')?.getAttribute('aria-checked'), tile: document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-checked'),
     min: !!document.querySelector('[data-p3="agent-minimize"]') && !document.querySelector('[data-p3="agent-minimize"]').hidden, strip: !document.querySelector('[data-p3="agent-strip"]')?.hidden }));
   let s = await read();
   ok(s.sw === 'false' && s.tile === 'false', `until the main thread answers, both still read off — ${JSON.stringify(s)}`);

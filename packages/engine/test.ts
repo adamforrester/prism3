@@ -8525,6 +8525,89 @@ for (const scale of ['default', 'expressive'] as const) {
     ok(validateBrandInput({ ...inp, typography: { captionFloor: 10, sizeFloor: 8 } }).length === 0, '[#1360/#1363] captionFloor:10 + sizeFloor:8 accepted (both in enum)');
   }
 }
+// #3077 (owner decisions 2026-10-27): CAPTION A — `typography.sizes` takes caption, at the brand level only, one
+// static size per rung, on the ladder, at or above 10px, through the strict ramp check. Every expected size and
+// refusal is written here, never read from theme.ts, so each arm fails by name when its check goes (docs/34).
+{
+  const cap = (ty: any) => [...new Set(tBrand('cap3077-' + JSON.stringify(ty), ty).typography.composites
+    .filter((c) => c.group === 'caption').map((c) => `${c.variant}=${c.sizePx}/${c.sizeMinPx}`))].sort().join(',');
+  const refusal = (ty: any): string => { try { tBrand('cap3077r-' + JSON.stringify(ty), ty); return '(built)'; } catch (e) { return (e as Error).message; } };
+  // (a) ACCEPTED — md 10 on the ladder, above the floor, below lg 12: caption md/lg = 10/12, static (no mobile move).
+  ok(cap({ sizes: { caption: { md: 10 } } }) === 'lg=12/12,md=10/10', `#3077 caption A: sizes.caption.md 10 builds caption md 10 and lg 12, one size on desktop and mobile (got ${cap({ sizes: { caption: { md: 10 } } })})`);
+  ok(cap({ sizes: { caption: { lg: 14 } } }) === 'lg=14/14,md=11/11', `#3077 caption A: sizes.caption.lg 14 moves lg only (got ${cap({ sizes: { caption: { lg: 14 } } })})`);
+  // (b) ON THE LADDER — 13px is no ladder step.
+  ok(/^typography\.sizes\.caption\.md: 13px is not a step on the size ladder/.test(refusal({ sizes: { caption: { md: 13 } } })),
+    `#3077 caption A: an off-ladder caption size (13px) is refused by name (got: ${refusal({ sizes: { caption: { md: 13 } } }).slice(0, 120)})`);
+  // (c) AT OR ABOVE THE FLOOR — 8px is on the ladder under sizeFloor 8, and still refused: it is caption.xs's alone.
+  ok(/^typography\.sizes\.caption\.md: 8px is below the caption floor of 10px/.test(refusal({ sizeFloor: 8, sizes: { caption: { md: 8 } } })),
+    `#3077 caption A: caption md at 8px (on the sizeFloor 8 ladder) is refused by the 10px caption floor, by name (got: ${refusal({ sizeFloor: 8, sizes: { caption: { md: 8 } } }).slice(0, 120)})`);
+  // (d) RAMP ORDER — md 10 under captionFloor 10 ties caption.sm; md 14 passes lg 12. Both refused, strictly increasing.
+  ok(/^typography: caption\.md resolves to 10px, which is not larger than the previous rung \(10px\)/.test(refusal({ captionFloor: 10, sizes: { caption: { md: 10 } } })),
+    `#3077 caption A: caption md 10 beside captionFloor 10 (caption.sm 10) is refused by the ramp check (got: ${refusal({ captionFloor: 10, sizes: { caption: { md: 10 } } }).slice(0, 120)})`);
+  ok(/^typography: caption\.lg resolves to 12px, which is not larger than the previous rung \(14px\)/.test(refusal({ sizes: { caption: { md: 14 } } })),
+    `#3077 caption A: caption md 14 above lg 12 is refused by the ramp check (got: ${refusal({ sizes: { caption: { md: 14 } } }).slice(0, 120)})`);
+  // (e) xs/sm are their floors' — refused by name, not silently ignored.
+  ok(/^typography\.sizes\.caption\.sm: caption\.sm is pinned by captionFloor 10/.test(refusal({ captionFloor: 10, sizes: { caption: { sm: 11 } } })),
+    `#3077 caption A: sizes.caption.sm is refused, captionFloor pins it (got: ${refusal({ captionFloor: 10, sizes: { caption: { sm: 11 } } }).slice(0, 120)})`);
+  // (f) BRAND LEVEL ONLY — the per-viewport and per-mode size levers stay heading-only, and the rest of reading text stays out.
+  ok(/^typography\.sizeOverrides: 'caption' is not a heading group/.test(refusal({ sizeOverrides: { caption: { md: { desktop: 10 } } } })),
+    `#3077 caption A: sizeOverrides still refuses caption (got: ${refusal({ sizeOverrides: { caption: { md: { desktop: 10 } } } }).slice(0, 120)})`);
+  ok(/^typography\.sizes: 'body' is not a group a size can be set for/.test(refusal({ sizes: { body: { md: 15 } } })),
+    `#3077 caption A: sizes still refuses body (got: ${refusal({ sizes: { body: { md: 15 } } }).slice(0, 120)})`);
+  {
+    let msg = '(built)';
+    try { brandTheme({ id: 'cap3077-mode', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, modes: ['light', 'dark'], modeLevers: { dark: { typeSizes: { caption: { md: 10 } } } } } as any); }
+    catch (e) { msg = (e as Error).message; }
+    ok(/^modeLevers\.dark\.typeSizes: 'caption' is not a heading group/.test(msg), `#3077 caption A: a per-mode caption size is still refused (got: ${msg.slice(0, 120)})`);
+  }
+  // (g) the schema takes it, and holds its own floor.
+  const inp = { id: 'v', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } } as any;
+  ok(validateBrandInput({ ...inp, typography: { sizes: { caption: { md: 10 } } } }).length === 0, '#3077 caption A: the schema accepts sizes.caption.md 10');
+  ok(validateBrandInput({ ...inp, typography: { sizes: { caption: { md: 9 } } } }).length > 0, '#3077 caption A: the schema refuses sizes.caption.md 9 (floor 10)');
+  // (h) touches caption only.
+  const nonCap = (ty: any) => JSON.stringify(tBrand('nc3077-' + JSON.stringify(ty), ty).typography.composites.filter((c) => c.group !== 'caption'));
+  ok(nonCap({ sizes: { caption: { md: 10 } } }) === nonCap({}), '#3077 caption A: a caption size moves no other composite');
+}
+// #3077 (owner decisions 2026-10-27): TRACKING A — `typography.tracking` pins every composite in a category to one
+// named role and replaces the size-derived rung and its nudge, for that category only. Expected rungs are literals.
+{
+  const roles = (t: ReturnType<typeof tBrand>, g: string) => [...new Set(t.typography.composites.filter((c) => c.group === g).map((c) => `${c.sizePx}:${c.tracking}`))].join(' ');
+  // Display's derived rung splits at 96px (tight below, tighter at and above); the nudge -1 moves tight to tighter
+  // and holds tighter at the end of the nudge path.
+  const base = tBrand('tr3077-base', { trackingShift: { display: -1, title: 1 } });
+  ok(roles(base, 'display') === '48:tighter 64:tighter 80:tighter 96:tighter 128:tighter 160:tighter',
+    `#3077 tracking A: control — unpinned display follows its size and its nudge (got ${roles(base, 'display')})`);
+  const pinned = tBrand('tr3077-pin', { trackingShift: { display: -1, title: 1 }, tracking: { display: 'open' } });
+  // (a) the pin REPLACES the derived rung AND the nudge: every display size is open, the 96px split gone.
+  ok(roles(pinned, 'display') === '48:open 64:open 80:open 96:open 128:open 160:open',
+    `#3077 tracking A: a display pin puts every display size on open, over the size split and the -1 nudge (got ${roles(pinned, 'display')})`);
+  // (b) for the pinned category ONLY: title keeps snug + 1 = normal; every other composite matches the unpinned build.
+  ok(roles(pinned, 'title') === '18:normal 20:normal 24:normal 28:normal 32:normal 40:normal',
+    `#3077 tracking A: an unpinned title keeps its derive and nudge, snug + 1 = normal (got ${roles(pinned, 'title')})`);
+  const rest = (t: ReturnType<typeof tBrand>) => JSON.stringify(t.typography.composites.filter((c) => c.group !== 'display'));
+  ok(rest(pinned) === rest(base), '#3077 tracking A: a display pin leaves every non-display composite exactly as the unpinned build has it');
+  // (b2) the pin is not a new start for the nudge: a pin ON the nudge path (snug) with a +1 title nudge stays snug.
+  // (`open` alone can't show this: it is off the nudge path, so a nudge would leave it where it is either way.)
+  const onPath = tBrand('tr3077-onpath', { trackingShift: { title: 1 }, tracking: { title: 'snug' } });
+  ok(roles(onPath, 'title') === '18:snug 20:snug 24:snug 28:snug 32:snug 40:snug',
+    `#3077 tracking A: a title pin on snug ignores the +1 title nudge — the nudge is not applied to the pin (got ${roles(onPath, 'title')})`);
+  // (c) any of the nine roles, including the ones no nudge reaches.
+  const own = tBrand('tr3077-nine', { tracking: { body: 'snugger', eyebrow: 'tightest' } });
+  ok(roles(own, 'body') === '12:snugger 14:snugger 16:snugger 18:snugger' && roles(own, 'eyebrow') === '12:tightest 14:tightest 20:tightest',
+    `#3077 tracking A: a pin takes roles off the nudge path, snugger and tightest (got body ${roles(own, 'body')}; eyebrow ${roles(own, 'eyebrow')})`);
+  // (d) refused by name: a category that isn't one, a role that isn't one.
+  const refusal = (ty: any): string => { try { tBrand('tr3077r-' + JSON.stringify(ty), ty); return '(built)'; } catch (e) { return (e as Error).message; } };
+  ok(/^typography\.tracking: 'heading' is not a type category/.test(refusal({ tracking: { heading: 'open' } })),
+    `#3077 tracking A: an unknown category is refused by name (got: ${refusal({ tracking: { heading: 'open' } }).slice(0, 100)})`);
+  ok(/^typography\.tracking\.title: 'loose' is not a letter spacing role/.test(refusal({ tracking: { title: 'loose' } })),
+    `#3077 tracking A: an unknown role is refused by name (got: ${refusal({ tracking: { title: 'loose' } }).slice(0, 100)})`);
+  // (e) the schema takes the nine and refuses others.
+  const inp = { id: 'v', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } } as any;
+  ok(validateBrandInput({ ...inp, typography: { tracking: { display: 'open', code: 'tightest' } } }).length === 0, '#3077 tracking A: the schema accepts open and tightest pins');
+  ok(validateBrandInput({ ...inp, typography: { tracking: { display: 'loose' } } }).length > 0, '#3077 tracking A: the schema refuses a role outside the nine');
+  // (f) opt-in: an empty pin map builds the same theme as none.
+  ok(JSON.stringify(tBrand('tr3077-e', { tracking: {} }).typography) === JSON.stringify(tBrand('tr3077-e', {}).typography), '#3077 tracking A: an empty pin map changes nothing');
+}
 // C2 (#328): the ceiling names a RUNG, so the surviving rung COUNT is invariant under typeScale.
 // The old px ceiling was compared against already-shifted sizes, so `96` kept 4 rungs under
 // compact/default but only 3 under expressive — a brand lever silently changing the type SET.
@@ -9007,7 +9090,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       if (v.fontSize !== `{${root}.core.font.size.12}`) bad.push(`${where}: fontSize ${v.fontSize}, not the 12 step`);
       if (v.lineHeight !== `{${root}.core.font.line-height-role.normal}` || deref(deref(v.lineHeight).$value).$value !== 1.5)
         bad.push(`${where}: lineHeight ${v.lineHeight}, not the normal role at 1.5`);
-      if (v.letterSpacing !== `{${root}.core.font.letter-spacing-role.normal}`) bad.push(`${where}: letterSpacing ${v.letterSpacing}, not normal`);
+      // #3077: the reference brand pins body to the `open` letter spacing (owner decision 2026-10-27).
+      const ls = b === 'nb' ? 'open' : 'normal';
+      if (v.letterSpacing !== `{${root}.core.font.letter-spacing-role.${ls}}`) bad.push(`${where}: letterSpacing ${v.letterSpacing}, not ${ls}`);
       if (v.fontFamily !== `{${root}.core.font.family.body}`) bad.push(`${where}: fontFamily ${v.fontFamily}, not the body role`);
       // The weight, italic and underline match body.sm's same-named variant: only the size differs.
       for (const f of ['fontWeight', 'fontStyle', 'textDecoration']) if (v[f] !== ref[f]) bad.push(`${where}: ${f} ${v[f]} where body.sm.${k} has ${ref[f]}`);
@@ -12656,6 +12741,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const wrapped = ts.styles.filter((s) => s.name.startsWith('text/'));
   ok(wrapped.length === 0, 'figma text-styles: fix #1 — no emitted style name starts with `text/`');
 
+  // #3077 — the letter spacing, in percent, the owner decided for the reference brand's text types: +1% for
+  // display, title, body, label and caption, +2% for eyebrow. Literal, not derived from the pin.
+  const NB_TRACKING_PCT_3077: Record<string, number> = { display: 1, title: 1, body: 1, label: 1, caption: 1, eyebrow: 2 };
   const collBad: string[] = [], famBad: string[] = [], sizeBind: string[] = [], weightData: string[] = [];
   const lhWrong: string[] = [], lsWrong: string[] = [], styleWrong: string[] = [], styleBind: string[] = [];
   const upperMismatch: string[] = [], decoMismatch: string[] = [];
@@ -12678,7 +12766,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // The pre-fix fixture bound fontSize to the same collection the corrected
     // emit chooses (font-fluid for fluid composites, font for static) — that
     // structure survives the fixes. Verify same binding target.
-    if ((p.fontSize as any).variable !== nbFixName(fx.properties.fontSize.variable)) sizeBind.push(`${s.name}: ${(p.fontSize as any).variable} ≠ ${nbFixName(fx.properties.fontSize.variable)}`);
+    // #3077: the reference brand's caption.md is 10px by decision (owner, 2026-10-27), off the fixture's 11.
+    const fxSizeVar = s.name.startsWith('caption/md/') ? nbFixName(fx.properties.fontSize.variable).replace(/\/11$/, '/10') : nbFixName(fx.properties.fontSize.variable);
+    if ((p.fontSize as any).variable !== fxSizeVar) sizeBind.push(`${s.name}: ${(p.fontSize as any).variable} ≠ ${fxSizeVar}`);
     // #1485 — fontWeight is PARALLEL DATA on the style: unbound, numeric, matching the fixture's weight
     // value (the fixture bound it as a variable; the DATA it stood for is the numeric weight). The FLOAT
     // weight-role variable itself is still emitted (byte-repro above); it is just no longer bound here.
@@ -12707,8 +12797,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const ls = (p.letterSpacing as any).value;
     if (ls.unit !== 'PERCENT') lsWrong.push(`${s.name}:unit=${ls.unit}`);
     const fxLsPx = fx.properties.letterSpacing.value.value;
-    const expectedLsPct = Math.round((fxLsPx / fxDesktopSize) * 10000) / 100;
-    if (Math.abs(ls.value - expectedLsPct) > 0.01) lsWrong.push(`${s.name}:${ls.value}%≠${expectedLsPct}% (fixture ${fxLsPx}px/${fxDesktopSize}px)`);
+    // #3077 (owner decisions 2026-10-27): the reference brand's letter spacing moved off the frozen fixture by
+    // decision, so the moved text types are held to the decided percent, stated here rather than read from the
+    // lever. Code did not move and is still held to the fixture.
+    const decidedLsPct = NB_TRACKING_PCT_3077[s.name.split('/')[0]];
+    const expectedLsPct = decidedLsPct ?? Math.round((fxLsPx / fxDesktopSize) * 10000) / 100;
+    if (Math.abs(ls.value - expectedLsPct) > 0.01) lsWrong.push(`${s.name}:${ls.value}%≠${expectedLsPct}% (${decidedLsPct !== undefined ? '#3077 decision' : `fixture ${fxLsPx}px/${fxDesktopSize}px`})`);
 
     // fix #5 / #1485 — the cut value is checked via `styleBind` above (the bound cut variable's value
     // must equal the fixture's baked fontStyle). `styleWrong` is retained as a redundant direct compare
@@ -22883,6 +22977,32 @@ arm: {
         `#2343 Q720 A paste executor: a payment tile's frame reads back with radius/sm corners and clips, with a border-width/hairline edge in color/border/primary only where its fill is under 3:1 on white (visa; not generic or venmo, #3134); a square mark's or a logo's has no edge (${bad.join(' | ') || 'clean'})`);
     }
 
+    // ---- #3127: the paste executor's artboard read-back, at Figma's precision, per kind ----
+    // The plugin leg is in test-write-components. The importer here stores its artboard at float32, as the host does: a
+    // logo whose width float32 cannot hold exactly (34.97 → 34.970001220703125) reads back with no glyphViewBox miss.
+    // Then it sizes the frame to the ink: a square kind and a logo each still miss, named for their own box. Mutations:
+    // the payload's compare back to `!==` → `#3127 paste at its own width`; it passing anything → `#3127 paste ink`.
+    {
+      const markDef = componentDefs.find((x) => x.id === 'brand-mark')!;
+      const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<PayloadResult>;
+      const paste = async (name: string, host: (n: Record<string, any>) => void): Promise<string[]> => {
+        const plan = figmaAnatomyPlan(markDef, undefined, { name } as never);
+        const stub = makeFigmaStub({ vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: [], comps: [], page: { children: [] } }) as Record<string, any>;
+        const svg = stub.createNodeFromSvg as (src: string) => Record<string, any>;
+        stub.createNodeFromSvg = (src: string) => { const n = svg(src); host(n); return n; };
+        try { return (await new AsyncFunction('figma', planToPluginJs(plan))(stub)).misses.filter((m) => m.includes('.glyphViewBox')); }
+        catch (e) { return [`payload THREW -> ${(e as Error).message}`]; }
+      };
+      const f32 = await paste('logo/amex', (n) => n.resize(Math.fround(n.width), Math.fround(n.height)));
+      ok(Math.fround(34.97) !== 34.97 && f32.length === 0,
+        `#3127 paste at its own width: a 34.97 × 24 logo imported at float32 reads back at its artboard, with no glyphViewBox miss (${f32[0] ?? 'none'})`);
+      const ink = (n: Record<string, any>) => { const v = (n.children ?? [])[0]; if (v) n.resize(v.width, v.height); };
+      const inkSquare = await paste('provider/apple', ink);
+      const inkLogo = await paste('logo/visa', ink);
+      ok(inkSquare.some((m) => m.includes('every host binding a square')) && inkLogo.some((m) => m.includes('a host binding its 27.4x24 box')),
+        `#3127 paste ink: a square-kind mark and a logo whose frames are sized to their ink each still miss, named for their own box (${inkSquare[0] ?? 'no square miss'} | ${inkLogo[0] ?? 'no logo miss'})`);
+    }
+
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------
     // The stub stores `minHeight` via `Math.fround`, as the host does. At the live metrics (16px at 165%, 3 rows
     // = 79.2, read back 79.19999694824219) an exact compare in PAYLOAD_MIN_LINES reports a kept floor DISCARDED.
@@ -32090,6 +32210,82 @@ arm: {
 // fixture, not a path, so the test does not move when that file does. Module scope since #1387's block
 // below reads it too.
 const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+
+// ---- #3077 (owner decisions 2026-10-27): THE REFERENCE BRAND'S TYPE TABLE ------------------------------------
+//
+// The reference brand's typography patch: titleFloor 16, sizes.title.2xs 20 (18 on mobile, Q802 A),
+// sizes.caption.md 10 (caption A), and display/title/body/caption/label pinned to `open` (+1%) with eyebrow on its
+// nudge (+2%) (tracking A, Q803 B). Every expected row is a LITERAL from the decided table (size desktop/mobile px,
+// letter spacing in percent), never read from the lever or the input, so a change to either fails by name.
+{
+  const table = (t: Theme): Map<string, string> => {
+    const em = new Map(t.typography.letterSpacings.map((l) => [l.key, l.em]));
+    const out = new Map<string, string>();
+    for (const c of t.typography.composites) {
+      const k = `${c.group}.${c.variant}`;
+      if (!out.has(k)) out.set(k, `${c.sizePx}/${c.sizeMinPx} ${Math.round((em.get(c.tracking) ?? NaN) * 1000) / 10}%`);
+    }
+    return out;
+  };
+  const REF_TABLE: Record<string, string> = {
+    'display.sm': '64/40 1%', 'display.md': '72/40 1%', 'display.lg': '80/40 1%', 'display.xl': '96/48 1%', 'display.2xl': '128/48 1%',
+    'title.2xs': '20/18 1%', 'title.xs': '24/20 1%', 'title.sm': '32/24 1%', 'title.md': '36/28 1%', 'title.lg': '40/32 1%', 'title.xl': '48/36 1%', 'title.2xl': '56/40 1%',
+    'body.xs': '12/12 1%', 'body.sm': '14/14 1%', 'body.md': '16/16 1%', 'body.lg': '18/18 1%',
+    'label.sm': '12/12 1%', 'label.md': '14/14 1%', 'label.lg': '18/18 1%',
+    'caption.md': '10/10 1%', 'caption.lg': '12/12 1%',
+    'eyebrow.sm': '12/12 2%', 'eyebrow.md': '14/14 2%', 'eyebrow.lg': '20/18 2%',
+    'code.inline': '14/14 0%',
+  };
+  const diff = (got: Map<string, string>, want: Record<string, string>): string[] => [
+    ...Object.entries(want).filter(([k, v]) => got.get(k) !== v).map(([k, v]) => `${k}: ${got.get(k) ?? 'missing'} ≠ ${v}`),
+    ...[...got.keys()].filter((k) => !(k in want)).map((k) => `${k}: not in the table`),
+  ];
+  // (a) The redesign seed. It also carries the stored input's sizeFloor 8, so caption.xs 8 ships.
+  const seed = exampleTheme('nb-redesign', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input));
+  if (seed) {
+    const bad = diff(table(seed), { ...REF_TABLE, 'caption.xs': '8/8 1%' });
+    ok(bad.length === 0, `#3077 the reference brand's redesign seed builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+  }
+  // (b) The stored brand input (the copy above) with the same patch: what Apply Theme writes into its Figma file.
+  const patched = structuredClone(NB_MASTER) as any;
+  Object.assign(patched.typography, {
+    titleFloor: 16,
+    sizes: { ...patched.typography.sizes, title: { ...patched.typography.sizes.title, '2xs': 20 }, caption: { md: 10 } },
+    sizeOverrides: { title: { ...patched.typography.sizeOverrides.title, '2xs': { mobile: 18 } } },
+    tracking: { display: 'open', title: 'open', body: 'open', caption: 'open', label: 'open' },
+    trackingShift: { eyebrow: -1 },
+  });
+  {
+    const bad = diff(table(brandTheme(patched)), REF_TABLE);
+    ok(bad.length === 0, `#3077 the reference brand's stored input, patched, builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+  }
+  // (c) The legacy fixture: engine-default sizes (no 20px title.2xs: its title.xs is 18), the decided caption md and
+  // the decided letter spacing per text type.
+  {
+    const nb = nbTheme();
+    const em = new Map(nb.typography.letterSpacings.map((l) => [l.key, l.em]));
+    const WANT: Record<string, string> = { display: 'open 1%', title: 'open 1%', body: 'open 1%', label: 'open 1%', caption: 'open 1%', eyebrow: 'wide 2%', code: 'normal 0%' };
+    const bad = nb.typography.composites.filter((c) => `${c.tracking} ${Math.round((em.get(c.tracking) ?? NaN) * 1000) / 10}%` !== WANT[c.group]).map((c) => `${c.path}: ${c.tracking}`);
+    const caps = [...new Set(nb.typography.composites.filter((c) => c.group === 'caption').map((c) => `${c.variant}=${c.sizePx}`))].join(',');
+    ok(bad.length === 0 && caps === 'md=10,lg=12', `#3077 the legacy fixture: caption md 10 / lg 12 and the decided letter spacing per text type (caption ${caps}; ${bad.slice(0, 3).join(' | ') || 'tracking as decided'})`);
+  }
+  // (d) Every other brand is as it was: the default letter spacing by text type and size, and caption md 11 / lg 12.
+  // The default rungs are written here (display tight below 96px and tighter from 96px, title snug, eyebrow wider,
+  // the rest normal), not read from the engine.
+  for (const [id, build] of [
+    ['prism3', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input)],
+    ['aurora', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
+    ['harbor', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input)],
+    ['wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
+  ] as const) {
+    const t = exampleTheme(id, build);
+    if (!t) continue;
+    const want = (g: string, px: number) => g === 'display' ? (px >= 96 ? 'tighter' : 'tight') : g === 'title' ? 'snug' : g === 'eyebrow' ? 'wider' : 'normal';
+    const bad = t.typography.composites.filter((c) => c.tracking !== want(c.group, c.sizePx)).map((c) => `${c.path}: ${c.tracking}`);
+    const caps = [...new Set(t.typography.composites.filter((c) => c.group === 'caption' && (c.variant === 'md' || c.variant === 'lg')).map((c) => `${c.variant}=${c.sizePx}`))].join(',');
+    ok(bad.length === 0 && caps === 'md=11,lg=12', `#3077 ${id} is unmoved: default letter spacing by text type and size, caption md 11 / lg 12 (caption ${caps}; ${bad.slice(0, 3).join(' | ') || 'tracking default'})`);
+  }
+}
 
 // ---- #1354 (owner, 2026-09-28): THE LIGHT OFF TRACK + THE `state icon` BOOLEAN ------------------------
 //

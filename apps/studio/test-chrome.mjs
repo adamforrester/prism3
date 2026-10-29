@@ -1028,10 +1028,29 @@ const goPlace = async (page, place) => {
   await page.evaluate(() => document.fonts.ready);
 };
 
+/** Wait until the mode control has settled on radios or the select. The control measures itself after it is drawn and on
+ *  every resize of the header (`preview.ts` `fit`), so straight after a page opens it can still be on radios that are about
+ *  to give way to the select. Choosing from that first frame clicked a radio that was hidden a moment later, which timed
+ *  out on CI (section 24, #3083's merge with #3094). Settled: its choice and row are the same across two frames and one of
+ *  the two is drawn. Bounded; on a timeout the caller's own wait names the hook. */
+async function settleModes(page) {
+  for (let i = 0; i < 25; i++) {
+    const still = await page.evaluate(() => new Promise((done) => {
+      const w = document.querySelector('[data-p3="mode-control"]')?.parentElement;
+      if (!w) { requestAnimationFrame(() => done(false)); return; }
+      const at = () => `${w.dataset.fit}|${w.dataset.row ?? ''}`;
+      const was = at();
+      requestAnimationFrame(() => requestAnimationFrame(() => done(at() === was
+        && [...w.querySelectorAll('[data-p3="mode-select"], [data-p3="mode-option"]')].some((n) => n.getClientRects().length > 0))));
+    }));
+    if (still) return;
+  }
+}
 /** Choose a mode in the preview header by whichever control represents it: its radio, or, where the modes do not all
  *  fit, the select of the same modes (both are the mode choice, PREVIEW_HEAD_ALL). #2909: the plugin's preview header is
  *  narrower by the rail and holds Contrast, so at 1280 it can show the select where the web shows radios. */
 async function pickMode(page, mode) {
+  await settleModes(page);
   if (await page.locator('[data-p3="mode-select"]').isVisible()) await page.locator('[data-p3="mode-select"]').selectOption(mode);
   else await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
@@ -2869,21 +2888,22 @@ for (const host of ['web', 'figma']) {
           continue;
         }
 
-        // ── the Agent tile (IA-3; the owner's T7 A, 2026-10-05), in the top bar; the bottom-left chip is gone (D6) ──
-        // A borderless tile between Theme and Activity, its glyph over "Agent" (the label drops at the narrow tier). A
-        // click posts the same `agent-link` request the old popover's switch did; the main thread's published state is
-        // what the tile shows: the fixed name "Agent" (a toggle, Q44), aria-pressed false or true, and a green dot only while on.
+        // ── the Agent switch (IA-3; T7 A, 2026-10-05; since #3083 the owner's Q3083.5 B, Q3083.6 A and Q3083.7 B), in the
+        // top bar; the bottom-left chip is gone (D6) ──
+        // A bare "Agent" and the chrome's switch at the bar-only size, on the bar ground (the label drops at the narrow tier).
+        // A click posts the same `agent-link` request the tile did; the main thread's published state is what the switch
+        // shows: the fixed name "Agent" (Q44), `role="switch"` with aria-checked false or true. The tile's dot is gone: no
+        // dot, on or off (#3083), and no `aria-pressed`.
         const agentState = () => page.evaluate(() => {
           const c = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-toggle"]');
-          const dot = c?.querySelector('[data-p3="agent-dot"]');
-          const lab = c?.querySelector('.p3-tile-label');
+          const lab = c?.labels?.[0];
           const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none' && getComputedStyle(n).visibility !== 'hidden'; };
           // Q731: where it sits on the bar, after the brand switcher and before Update file, and never on the rail.
           const upd = document.querySelector('[data-p3="top-bar"] [data-p3="update-file"]'), brand = document.querySelector('[data-p3="top-bar"] [data-p3="brand-switcher"]');
           const after = (a, b) => !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING);
           return { inBar: !!c, onRail: !!document.querySelector('[data-p3="rail"] [data-p3="agent-toggle"]'), afterBrand: after(c, brand), beforeUpdate: after(upd, c),
-            name: c?.getAttribute('aria-label') ?? null, pressed: c?.getAttribute('aria-pressed') ?? null, dot: vis(dot), label: vis(lab) ? lab.textContent : null,
-            tip: c?.querySelector('[data-p3="agent-toggle-tip"]')?.textContent ?? null };
+            name: c?.getAttribute('aria-label') ?? null, role: c?.getAttribute('role') ?? null, checked: c?.getAttribute('aria-checked') ?? null,
+            pressed: c?.getAttribute('aria-pressed') ?? null, dot: [...(c?.querySelectorAll('.p3-dot') ?? [])].some(vis), label: vis(lab) ? lab.textContent : null };
         });
         const chip = await page.evaluate(() => {
           const frame = document.querySelector('[data-p3="frame"]');
@@ -2898,12 +2918,13 @@ for (const host of ['web', 'figma']) {
           };
         });
         const a0 = await agentState();
-        // Q731 (the owner, 2026-10-26): the Agent tile sits on the top bar, in the place Minimize held before the rail polish
-        // (after the brand switcher, before Update file), and not on the rail. Its label shows where the bar's tiles show
-        // theirs (S13.1 holds which), so it is not read here. MUTATION: `agent` back in the rail's `foot` and `minimize` back
-        // on the bar in `frame.ts` → this arm, by name, at every width and theme.
-        ok(a0.inBar && !a0.onRail && a0.afterBrand && a0.beforeUpdate && a0.name === 'Agent' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent',
-          `Q731 ${where}: the Agent tile sits on the top bar, after the brand switcher and before Update file, where Minimize was, never on the rail; named "Agent", aria-pressed false, no dot (${JSON.stringify(a0)})`);
+        // Q731 (the owner, 2026-10-26): the Agent control sits on the top bar, in the place Minimize held before the rail
+        // polish (after the brand switcher, before Update file), and not on the rail. #3083 (Q3083.6 A): its "Agent" label
+        // shows at 1280 and drops at 380, where the switch stands alone under the same name. MUTATION: `agent` back in the
+        // rail's `foot` and `minimize` back on the bar in `frame.ts` → this arm, by name, at every width and theme.
+        ok(a0.inBar && !a0.onRail && a0.afterBrand && a0.beforeUpdate && a0.name === 'Agent' && a0.role === 'switch' && a0.checked === 'false' && a0.pressed === null && !a0.dot
+          && a0.label === (narrow ? null : 'Agent'),
+          `Q731 #3083 ${where}: the Agent switch sits on the top bar, after the brand switcher and before Update file, where Minimize was, never on the rail; a switch named "Agent", aria-checked false, no dot, its label ${narrow ? 'dropped at 380' : 'shown'} (${JSON.stringify(a0)})`);
         hooks.absent(ok, { seen: chip.inBar, state: 'the Agent tile on the top bar' }, !chip.old && !chip.popover && chip.strays.length === 0,
           `D6 ${where}: the old chips are gone — no bottom-left chip, no Agent chip or popover, and nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'}, chip or popover ${chip.popover ? 'present' : 'absent'})`);
         const slot = await page.evaluate(() => { const s0 = document.querySelector('[data-p3="bar-agent"]'); s0.__p3Mark = 'slot'; return true; });
@@ -2916,9 +2937,9 @@ for (const host of ['web', 'figma']) {
         await takePosts(page);
         await hooks.click(page.locator('[data-p3="agent-toggle"]'), WAIT);
         const sw = await takeWrites(page);
-        ok(isWire(sw, AGENT_WIRE), `T7 ${where}: a click on the Agent tile asks the main thread to turn the link on, ${JSON.stringify(AGENT_WIRE)} (posted ${JSON.stringify(sw)})`);
+        ok(isWire(sw, AGENT_WIRE), `T7 ${where}: a click on the Agent switch asks the main thread to turn the link on, ${JSON.stringify(AGENT_WIRE)} (posted ${JSON.stringify(sw)})`);
         await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
-        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 5000 }).catch(() => {});
+        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         // #2949: the link on draws Minimize beside the tile, which widens the bar and can re-fit it a frame or more later,
         // moving tiles under the pointer and with them which tooltip shows. Measure once the bar holds still: Minimize
         // drawn and every bar control in the same box over four frames running.
@@ -2936,7 +2957,7 @@ for (const host of ['web', 'figma']) {
         if (at) await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
         await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
         const a1 = await agentState();
-        ok(a1.name === 'Agent' && a1.pressed === 'true' && a1.dot && a1.tip === 'Agent', `T7 ${where}: the main thread's state turns the tile on: named "Agent", aria-pressed true, the dot drawn (${JSON.stringify(a1)})`);
+        ok(a1.name === 'Agent' && a1.role === 'switch' && a1.checked === 'true' && a1.pressed === null && !a1.dot, `T7 #3083 ${where}: the main thread's state turns the switch on: named "Agent", aria-checked true, no dot (the switch's on state says it) (${JSON.stringify(a1)})`);
         const mc = await measure(page, `${where} / Agent on`, host, w);
         check(mc, `${where} / Agent on`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="agent-toggle"]'] });
         await shot('agent');
@@ -3090,9 +3111,9 @@ for (const host of ['web', 'figma']) {
         const sw2 = await takeWrites(page);
         ok(isWire(sw2, { type: 'agent-link', on: false }), `T7 ${where}: a click while on asks the main thread to turn the link off (posted ${JSON.stringify(sw2)})`);
         await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, on: false, since: null } });
-        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'false', null, { timeout: 5000 }).catch(() => {});
+        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-checked') === 'false', null, { timeout: 5000 }).catch(() => {});
         const a2 = await agentState();
-        ok(a2.name === 'Agent' && a2.pressed === 'false' && !a2.dot, `T7 ${where}: the published off state clears the dot and the pressed state (${JSON.stringify(a2)})`);
+        ok(a2.name === 'Agent' && a2.role === 'switch' && a2.checked === 'false' && !a2.dot, `T7 #3083 ${where}: the published off state turns the switch off, aria-checked false (${JSON.stringify(a2)})`);
         const m2 = await minTile();
         ok(m2.shown && m2.name === 'Minimize', `#2909 ${where}: with the link off again, Minimize is still drawn (the owner's direction of 2026-10-24) (${JSON.stringify(m2)})`);
         await takeWrites(page);
@@ -3116,12 +3137,12 @@ for (const host of ['web', 'figma']) {
         // its name (the drawer's own row is Activity now), and the two option-first items (Build sets…, Build style
         // guides…), whose pages are the Components and Documentation areas. Re-hosted here: each write the panel makes
         // posts exactly what the old control posted, whole, and the drawer behaves as F2 says.
-        // The pointer leaves the Agent tile it just clicked, so its hover-only tooltip is not drawn when measured (#2980).
+        // The pointer leaves the Agent switch it just clicked, so no hover state is drawn when measured (#2980).
         // Mid-content, not a corner: the drawer opens pinned to the bottom edge, and a pointer resting on it holds its
         // collapse (F2), which would be the test's pointer, not the product's timing.
         await page.mouse.move(Math.round(w / 2), Math.round(h / 3));
         const left = await page.waitForFunction(() => !document.querySelector('[data-p3="agent-toggle"]')?.matches(':hover'), null, { timeout: 5000 }).then(() => true, () => false);
-        ok(left, `Update file ${where}: the pointer has left the Agent tile before the overlay is measured (#2980)`);
+        ok(left, `Update file ${where}: the pointer has left the Agent switch before the overlay is measured (#2980)`);
         const updBtn = () => page.evaluate((shownSrc) => { const shown = eval(shownSrc); const b = document.querySelector('[data-p3="top-bar"] [data-p3="update-file"]');
           return { text: shown(b), disabled: b?.disabled ?? null, busy: !!b && b.getAttribute('aria-busy') === 'true',
             width: b ? Math.round(b.getBoundingClientRect().width * 10) / 10 : null }; }, SHOWN);
@@ -3258,6 +3279,29 @@ for (const host of ['web', 'figma']) {
           const landed = area === 'components' ? at.place === 'components' && at.levers && at.build === 0 : at.layout === 'page' && at.docs;
           ok(landed && px.length === 0, `${area} ${where}: the rail opens the ${area} area and writes nothing — ${JSON.stringify(at)}, posted ${JSON.stringify(px)}`);
         }
+        // #3128: a set the build queue posts that the host refuses (the plugin's run guard still held) gets no verdict.
+        // The run ends on the refusal: Update file is free again, the Build set row is not left running, and its result
+        // carries the host's words. Two sets ticked, the theme not; the first lands, the second is refused.
+        await openUpdate({ present: [], setUp: true });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+        await hooks.need(page, '[data-p3="update-set"]', WAIT);
+        await hooks.click(page.locator('[data-p3="update-set"]').nth(0), WAIT);
+        await hooks.click(page.locator('[data-p3="update-set"]').nth(1), WAIT);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+        const rfW1 = (await takeWrites(page)).map(keyOf);
+        await postMsg(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 1', summary: 'built', lines: ['built'] });
+        const rfW2 = (await takeWrites(page)).map(keyOf);
+        const REFUSED_WORDS = 'Build set is already running. Try again when it finishes.';
+        await postMsg(page, { type: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: REFUSED_WORDS });
+        await settle(page);
+        const rfU = await updBtn();
+        const rfC = (await drawerState(page)).ops['components'];
+        ok(JSON.stringify(rfW1) === '["build-components"]' && JSON.stringify(rfW2) === '["build-components"]' && !rfU.busy && rfC?.state !== 'running' && String(rfC?.summary ?? '').includes(REFUSED_WORDS),
+          `${where}: #3128: a set the host refuses ends the run: Update file is free and the Build set row stops, with the host's words (posted ${JSON.stringify(rfW1)} then ${JSON.stringify(rfW2)}, Update file ${JSON.stringify(rfU)}, row ${JSON.stringify(rfC ?? null)})`);
+        if ((await drawerState(page)).open) await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
         // #2830 Q2830.3 A: Documentation › Specs is a real control. Draw specs posts the panel's `draw-specs` (for the
         // current page; the host picks the page) and nothing else, reads as drawing until the host answers, and then shows
         // the host's verdict as its result line. The verdict is planted as the main thread posts one.
@@ -7070,7 +7114,9 @@ const TYPE_S63_COPY = {
 /** Every S6.3 lever, by its hook, drawn once each (represented, not counted). */
 const TYPE_S63_LEVERS = ['lever-typography-type-scale', 'lever-typography-sizes', 'lever-typography-responsive', 'lever-typography-display-ceiling',
   'lever-typography-title-floor', 'lever-typography-caption-floor', 'lever-typography-size-floor', 'lever-typography-weight-roles', 'lever-typography-weights',
-  'lever-typography-italics', 'lever-typography-faces', 'lever-typography-line-heights', 'lever-typography-letter-spacings', 'lever-typography-leading-shift'];
+  'lever-typography-italics', 'lever-typography-faces', 'lever-typography-line-heights', 'lever-typography-letter-spacings', 'lever-typography-leading-shift',
+  // #3077: Caption sizes and Letter spacing for each text type.
+  'lever-typography-sizes-caption', 'lever-typography-tracking'];
 /** Literal copy on the controls: the chips (the manifest's scale labels; Q6's italic chips), the floors, the
  *  owner's words for fluid sizing (Q70) and the way to Layout. */
 const TYPE_S63_WORDS = {
@@ -7116,7 +7162,9 @@ for (const host of ['web', 'figma']) {
       if (TYPE_S63_COPY[title]) ok(lev?.[1] === TYPE_S63_COPY[title], `${host}: "${title}" reads "${TYPE_S63_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
     }
     for (const [k, want] of Object.entries(TYPE_S63_WORDS)) ok(JSON.stringify(r.words[k]) === JSON.stringify(want), `${host}: the ${k} copy reads ${JSON.stringify(want)} (${JSON.stringify(r.words[k])})`);
-    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 13 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 13 advanced (#2942: Underline thickness and offset is the 13th) (${JSON.stringify(r.folds)})`);
+    // 15 since #3077: #2942's Underline thickness and offset is the 13th; #3077 adds Caption sizes (Scale limits) and
+    // Letter spacing for each text type (Line height and letter spacing).
+    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 15 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 15 advanced (${JSON.stringify(r.folds)})`);
     const WANT_NAMES = {
       weight: [['p3-fill-label', 'Strong'], ['p3-fill-tok', 'font.weight-role.strong']], lh: [['p3-fill-label', 'normal'], ['p3-fill-tok', 'font.line-height-role.normal']],
       matrix: [['p3-fill-label', 'Body'], ['p3-fill-tok', 'type.body']],
@@ -8307,6 +8355,7 @@ const openDepth = async (page) => {
 };
 /** Choose a mode in the preview header: its radio, or, where the modes do not all fit, the select of the same modes. */
 const chooseModeAny = async (page, mode) => {
+  await settleModes(page);
   if (await page.locator('[data-p3="mode-select"]').isVisible()) await page.locator('[data-p3="mode-select"]').selectOption(mode);
   else await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
@@ -10068,13 +10117,15 @@ for (const host of ['web', 'figma']) {
         last: !!st && menu.lastElementChild === st,
         parts: st ? [...st.children].map((n) => n.textContent) : [],
         title: st?.title ?? '',
-        small: st && item ? parseFloat(getComputedStyle(st).fontSize) < parseFloat(getComputedStyle(item).fontSize) : null,
+        // #3083 (Q3083.1 A): body and secondary text are both 12 now, so the stamp is set apart by its secondary ink, at
+        // no larger a size than the items (it was smaller until the size pass; the PR's Q3083.10 holds the call).
+        small: st && item ? parseFloat(getComputedStyle(st).fontSize) <= parseFloat(getComputedStyle(item).fontSize) && getComputedStyle(st).color !== getComputedStyle(item).color : null,
         shown: !!st && st.getClientRects().length > 0,
       };
     });
     ok(s.all === 1 && s.last && s.shown && s.parts.length === 2 && s.parts[0] === `engine ${ENGINE_V}` && s.parts[1].trim().length > 0 && s.title.length > 0,
       `C3: ${host}: the Inspect menu ends with the build stamp, "engine ${ENGINE_V}" and the build chip, its title the full reading — ${JSON.stringify(s)}`);
-    ok(s.small === true, `C3: ${host}: the stamp is smaller text than the menu's items (${s.small})`);
+    ok(s.small === true, `C3 #3083: ${host}: the stamp is no larger than the menu's items, and set apart in another ink (${s.small})`);
     await page.keyboard.press('Escape');
     ok(errors.length === 0, `C3 ${host}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -10130,7 +10181,8 @@ for (const { w, h } of WIDTHS) {
 //   · THE BAR (the owner's "A · Menu bar" decision, 2026-10-05), as rendered, on both hosts, both themes, every width:
 //     the DOM order per host; no divider (no separator element, no edge on a non-control, no thin filled bar); the
 //     brand switcher, Pages and Figma as white buttons with ▾; Contrast, Theme, Activity and Export as borderless tiles,
-//     (Agent too, on the plugin: T7 A) their label shown above the narrow tier and dropped at it, their names unchanged, their tooltip drawn on hover;
+//     their label shown above the narrow tier and dropped at it, their names unchanged, their tooltip drawn on hover (the
+//     plugin's Agent was a tile here from T7 A until #3083, a bare switch on the bar ground since);
 //     Apply Theme the only filled control (none on the web); the web at 640 on one row; the plugin at 380 on two rows,
 //     the file's actions on the second; and, at 1280 and 380, the top row's last control at the page content's right
 //     edge within 1px (on the web, Export). 29b holds Contrast's mark per verdict and the plugin's Theme choice.
@@ -10253,12 +10305,16 @@ const BAR_PROBE = () => {
     const b = q(k), cs = getComputedStyle(b);
     return { k, bg: cs.backgroundColor === page, edge: parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle === 'solid' && alpha(cs.borderTopColor) > 0, chev: chev(b) };
   });
-  const tiles = ['verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'agent-minimize'].filter((k) => q(k)).map((k) => {
+  // #3083: Agent is no longer a tile; it is a bare switch on the bar ground, read below (`agent`).
+  const tiles = ['verdict', 'theme-toggle', 'activity-open', 'export-open', 'agent-minimize'].filter((k) => q(k)).map((k) => {
     const b = q(k), cs = getComputedStyle(b), lab = b.querySelector('.p3-tile-label'), tip = b.querySelector('.p3-tile-tip'), g = b.querySelector('.p3-tile-mark svg.p3-ico');
     return { k, borderless: ['Top', 'Right', 'Bottom', 'Left'].every((sd) => parseFloat(cs[`border${sd}Width`]) === 0 || alpha(cs[`border${sd}Color`]) === 0), clear: alpha(cs.backgroundColor) === 0,
       glyph: shown(g) && g.getAttribute('aria-hidden') === 'true', label: shown(lab) ? lab.textContent : null, labelHidden: lab?.getAttribute('aria-hidden') === 'true',
       name: b.getAttribute('aria-label'), tip: tip?.textContent ?? null, tipHidden: tip?.getAttribute('aria-hidden') === 'true' };
   });
+  const ag = q('agent-toggle'), agc = ag ? getComputedStyle(ag) : null;
+  const agent = ag ? { role: ag.getAttribute('role'), btn: ag.classList.contains('p3-btn'), clear: alpha(agc.backgroundColor) === 0,
+    borderless: ['Top', 'Right', 'Bottom', 'Left'].every((sd) => parseFloat(agc[`border${sd}Width`]) === 0 || alpha(agc[`border${sd}Color`]) === 0) } : null;
   const buttons = [...bar.querySelectorAll('button')].filter((b) => shown(b) && !inside(b.parentElement ?? b));
   const filled = buttons.filter((b) => { const c = getComputedStyle(b).backgroundColor; return alpha(c) > 0 && c !== page; }).map((b) => b.getAttribute('data-p3') ?? b.className);
   const ctl = (k) => (k === 'product-mark' ? q(k) : q(k)?.closest('button') ?? q(k));
@@ -10273,20 +10329,20 @@ const BAR_PROBE = () => {
   const narrow = document.querySelector('[data-p3="frame"]').dataset.w === 'narrow';
   const ref = narrow ? document.querySelector('[data-p3="tab-row"]') : document.querySelector('.p3-preview-head');
   const rr = ref.getBoundingClientRect();
-  return { order, dividers, white, tiles, filled, row1, row2, last: last?.getAttribute('data-p3') ?? null, lastRight: Math.round((last?.getBoundingClientRect().right ?? -99) * 10) / 10,
+  return { order, dividers, white, tiles, agent, filled, row1, row2, last: last?.getAttribute('data-p3') ?? null, lastRight: Math.round((last?.getBoundingClientRect().right ?? -99) * 10) / 10,
     contentRight: Math.round((rr.right - parseFloat(getComputedStyle(ref).paddingRight)) * 10) / 10, contentFrom: narrow ? 'the tab row' : 'the preview header' };
 };
 const BAR_ORDER = {
   // #2909 Q2909.9 A: the web's bar is the brand switcher alone: the mark, Contrast, Theme, Activity and Export moved to
   // the rail, the Theme area and the Export area, and the web has no file to write and no window to shrink.
   web: ['brand-switcher'],
-  // #2909 (round 4): the plugin's bar is the brand switcher, then the Agent tile in the place Minimize held, and Update
+  // #2909 (round 4): the plugin's bar is the brand switcher, then Agent (a switch since #3083) in the place Minimize held, and Update
   // file at the outer end (Q731, the owner, 2026-10-26: Agent and Minimize swapped placements, Minimize to the rail's
   // foot); the rest moved to the rail, the Theme area and the drawer. MUTATION: `placed.agent` after `placed.update` in
   // `bar.ts` → `bar order` and `bar rows`, by name, at every plugin width and theme.
   figma: ['brand-switcher', 'agent-toggle', 'update-file'],
 };
-const TILE_LABEL = { verdict: 'Contrast', 'theme-toggle': 'Theme', 'agent-toggle': 'Agent', 'activity-open': 'Activity', 'export-open': 'Export', 'agent-minimize': 'Minimize' };
+const TILE_LABEL = { verdict: 'Contrast', 'theme-toggle': 'Theme', 'activity-open': 'Activity', 'export-open': 'Export', 'agent-minimize': 'Minimize' };
 for (const { w, h } of WIDTHS) {
   for (const host of ['web', 'figma']) {
     for (const theme of ['light', 'dark']) {
@@ -10299,9 +10355,23 @@ for (const { w, h } of WIDTHS) {
         const bp = await page.evaluate(BAR_PROBE);
         ok(JSON.stringify(bp.order) === JSON.stringify(BAR_ORDER[host]), `${where}: bar order: ${BAR_ORDER[host].join(', ')} (${bp.order.join(', ')})`);
         ok(bp.dividers.length === 0, `${where}: bar dividers: none between the bar's items (${bp.dividers.join(' | ') || 'none'})`);
+        // #3083 (the owner's Q3083.2 B, 2026-10-28): controls a step down, the bar not. Above the narrow tier a bar button
+        // (the brand switcher) is 32 tall, a field (the opening page's first color field) 36, and the top bar stays 56.
+        // Literals, the owner's. MUTATIONS: `ctl-h-sm` back to `size.sm.height` (`tokens.mjs`) → this arm (brand 36);
+        // `ctl-h` back to `core.dimension.40` → this arm (field 40).
+        if (!narrow) {
+          const hs = await page.evaluate(() => { const h = (n) => (n ? Math.round(n.getBoundingClientRect().height * 10) / 10 : null);
+            return { brand: h(document.querySelector('[data-p3="top-bar"] [data-p3="brand-switcher"]')), bar: h(document.querySelector('[data-p3="top-bar"]')),
+              field: h([...document.querySelectorAll('[data-p3="levers-pane"] .p3-colorfield')].find((n) => n.getClientRects().length > 0)) }; });
+          ok(hs.brand === 32 && hs.field === 36 && hs.bar === 56, `${where}: #3083 Q3083.2 B: a bar button is 32 tall, a field 36, and the top bar stays 56 (${JSON.stringify(hs)})`);
+        }
         for (const x of bp.white) ok(x.bg && x.edge && x.chev, `${where}: bar menus: ${x.k} is a white button with an edge and ▾ (white ${x.bg}, edge ${x.edge}, ▾ ${x.chev})`);
         ok(bp.white.length === 1, `${where}: bar menus: the brand switcher measured (${bp.white.map((x) => x.k).join(', ')})`);
-        ok(bp.tiles.length === (host === 'web' ? 0 : 1), `${where}: bar tiles: ${host === 'web' ? 'none on the web bar, whose tiles moved to the rail (Q2909.9 A)' : 'the Agent tile alone on the plugin bar, where Minimize was (Q731); the other tiles moved to the rail (#2909)'} (${bp.tiles.map((x) => x.k).join(', ')})`);
+        ok(bp.tiles.length === 0, `${where}: bar tiles: none on the ${host} bar; ${host === 'web' ? 'its tiles moved to the rail (Q2909.9 A)' : 'its tiles moved to the rail (#2909), and Agent, the last, became a switch (#3083)'} (${bp.tiles.map((x) => x.k).join(', ')})`);
+        // #3083 (Q3083.5 B): the plugin's Agent sits on the bar ground with no control around it: a switch, not a `p3-btn`,
+        // with no fill and no edge of its own. MUTATION: `p3-btn` added to the switch in `agent-link-ui.ts` → this arm.
+        if (host === 'figma') ok(!!bp.agent && bp.agent.role === 'switch' && !bp.agent.btn && bp.agent.clear && bp.agent.borderless,
+          `${where}: #3083 Q3083.5 B: Agent is a bare switch on the bar ground: no p3-btn, no fill and no edge around it (${JSON.stringify(bp.agent)})`);
         // #2214 (BL1 A+B, BL3 A): above the narrow tier every label drops together when the full bar would not fit on
         // one row, which `FIT_ORACLE` measures; an ambiguous width (within 1px) accepts either.
         const fit29 = narrow ? null : await page.evaluate(FIT_ORACLE);
@@ -10309,7 +10379,7 @@ for (const { w, h } of WIDTHS) {
         const either = !narrow && !dropped && fit29.also.some((x) => x !== 'full');
         for (const t of bp.tiles) {
           const want = TILE_LABEL[t.k];
-          const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : t.k === 'agent-toggle' ? t.name === 'Agent' : t.k === 'agent-minimize' ? t.name === 'Minimize' : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
+          const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : t.k === 'agent-minimize' ? t.name === 'Minimize' : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
           const tipOk = t.k === 'verdict' ? t.name === `Verdict: ${t.tip}. Open Inspect, Contrast` : t.tip === t.name;
           ok(t.borderless && t.clear && t.glyph && (either ? t.label === null || t.label === want : dropped ? t.label === null : t.label === want) && t.labelHidden && nameOk && tipOk && t.tipHidden,
             `${where}: bar tiles: ${t.k} is borderless (${t.borderless && t.clear}) with its glyph (${t.glyph}), ${narrow ? 'its label dropped' : dropped ? 'its label dropped, as the full bar would not fit on one row (#2214)' : `labelled "${want}"`} ("${t.label}"), named "${t.name}", its tooltip "${t.tip}"${fit29 ? ` (fit ${fit29.step}: need ${fit29.full} in ${fit29.room})` : ''}`);
@@ -10491,13 +10561,20 @@ for (const { w, h } of WIDTHS) {
 //     chrome on Figma's theme; a choice applies, is posted to the main thread as `set-theme-pref`, and, after a
 //     reload, comes back (the main thread's `theme-pref` reply, which `apps/plugin/test-theme-pref.ts` holds) as the
 //     checked choice and the chrome's theme.
-//   · THE AGENT TILE'S ON FILL ON THE BAR (Q738 A, the owner, 2026-10-26), the plugin at 1280 and 380: with the link on,
-//     the top bar's Agent tile fills a square mark with the `fill-2` role, read off a probe, and `aria-pressed` is true;
-//     with the link off, the mark is not that color.
-//     Q788 C (the owner, 2026-10-27): that fill is `bar-bg` itself in dark, so an on mark also takes the bar's control edge,
-//     `edge-bar`, and the arm compares the mark with the ground it is drawn on: its edge or its fill at 3:1 on it.
-//   Mutation: the `.p3-agent-tile[data-on="true"]` arm dropped from the on-fill rule in `chrome.css` → `29b … Q738 A: with
-//     the link on, …`. The Q788 C edge rule dropped → `29b figma dark … Q788 C: with the link on, …` (and in light, 1.14:1).
+//   · THE AGENT SWITCH ON THE BAR (#3083, the owner's Q3083.5 B, Q3083.6 A and Q3083.7 B, 2026-10-28), the plugin at 1280
+//     and 380, link off and on. It replaced the Agent tile, its dot and the on mark's fill and edge (Q738 A, Q788 C), which
+//     this arm held until then. Held as drawn: a `role="switch"` named "Agent"; no tile mark and no dot; its track the
+//     bar-only 36 × 20 (literals, the owner's "about 36 × 20"); the switch's own hit target 24px or more on both axes
+//     (TARGET_MIN; its label widens the clickable area at 1280, but is not counted); its "Agent" label (a `<label>` for
+//     the switch) shown at 1280 and dropped at 380. Each color
+//     is judged against the ground it is drawn on, the first opaque background behind the switch (the bar's), never
+//     against a role: off, the track's edge at 3:1 on it and the knob at 3:1 on the track; on, the track's fill at 3:1 on
+//     it and the knob at 3:1 on the track.
+//   Mutation: the off track's edge back to `edge` (`chrome.css`, `.p3-agent-switch .p3-switch-track`) → `29b figma dark 1280:
+//     #3083 Q3083.5 B: with the link off, the Agent switch's track edge …` (2.92:1 on the dark bar). The bar-only size rule
+//     dropped → `29b … #3083 Q3083.7 B: the Agent switch …` (the page switch's 48 × 24); the on knob's rule losing to the
+//     page switch's (one class less) → the same arm, link on, knob inside false. The narrow rule hiding the label
+//     dropped → `29b figma … 380: #3083 Q3083.6 A …`.
 // =============================================================================================
 if (runs('29b')) console.log('\n29b. The menu bar: Contrast per verdict, the plugin Theme menu');
 const LOW_FIXTURE = {
@@ -10566,59 +10643,58 @@ for (const host of ['web', 'figma']) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
         // Last, after the console check: a link switched on opens the desktop bridge's socket, which no harness serves.
-        // At 1280 and 380 since Q738 A: the on fill is owed at every width, the glyph-only tile at 380 too.
+        // At 1280 and 380 since Q738 A, and for the Agent switch since #3083: the label drops at 380 and the rest holds at both.
         if (host === 'figma') {
           // #2909: the plugin draws no Activity tile, so Activity's "agent link on" name, its tile dot and D-RED A's dot
           // colors are RETIRED for the plugin (the drawer's row says what runs; its right end says the link's status, §31).
-          // The Agent tile's dot stays (Q2909.22 A): filled, at its glyph's top right, in the ok green.
-          await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), AGENT_ON);
-          await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 3000 }).catch(() => {});
-          const ag = await page.evaluate(() => {
-            const g = document.createElement('div'); g.className = 'p3-dot p3-dot-ok'; document.body.append(g);
-            const okColor = getComputedStyle(g).backgroundColor; g.remove();
-            const b = document.querySelector('[data-p3="agent-toggle"]'), d = b?.querySelector('.p3-tile-mark > .p3-dot'), ic = b?.querySelector('.p3-tile-mark > svg.p3-ico');
-            const dr = d?.getBoundingClientRect(), ir = ic?.getBoundingClientRect(), cs = d ? getComputedStyle(d) : null;
-            return { shown: !!dr && dr.width > 0 && cs.display !== 'none', dx: dr && ir ? Math.round((dr.right - ir.right) * 10) / 10 : null, dy: dr && ir ? Math.round((dr.top - ir.top) * 10) / 10 : null,
-              color: cs ? cs.backgroundColor : null, okColor, name: b?.getAttribute('aria-label'), pressed: b?.getAttribute('aria-pressed'),
-              mark: getComputedStyle(b.querySelector('.p3-tile-mark')).backgroundColor,
-              filled: !!cs && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && (parseFloat(cs.borderTopWidth) === 0 || cs.borderTopStyle === 'none' || cs.borderTopColor === cs.backgroundColor) };
-          });
-          ok(ag.shown && ag.filled && ag.color === ag.okColor && ag.dy <= 0 && ag.dx >= 0 && ag.name === 'Agent' && ag.pressed === 'true',
-            `${where}: the Agent tile's dot, while the link is on: filled, at its glyph's top right, in the ok green ${ag.okColor} (${JSON.stringify(ag)})`);
-          // Q738 A (the owner, 2026-10-26): on the top bar since Q731, an on Agent tile's mark carries the fill the rail drew
-          // behind an on tile (Q2909.22 A), the `fill-2` role, as a 24 × 24 square behind the glyph. The expected color is
-          // the role itself, read off a probe in the frame, never off the tile's rule. Q788 C (the owner, 2026-10-27): the
-          // mark is judged against the ground it is drawn on, the first opaque background behind it (the bar's), never
-          // against its own role, since in dark `fill-2` IS `bar-bg`: while on, its edge or its fill clears 3:1 on that
-          // ground; off, it has neither. The theme in the name is the chrome's as read, since 29b's Theme menu step
-          // switches it at 1280.
-          const FILL_PROBE = () => {
-            const p = document.createElement('div'); p.style.background = 'var(--p3-fill-2)';
-            document.querySelector('[data-p3="frame"]').append(p);
-            const fill = getComputedStyle(p).backgroundColor; p.remove();
-            const b = document.querySelector('[data-p3="top-bar"] [data-p3="agent-toggle"]'), m = b?.querySelector('.p3-tile-mark');
-            const r = m?.getBoundingClientRect(), cs = m ? getComputedStyle(m) : null;
+          // #3083: the Agent tile's dot, its on fill and its edge are RETIRED with the tile (Q738 A, Q788 C); the switch's on
+          // state says it. The colors below are read as drawn and judged against the ground behind the switch.
+          const SWITCH_PROBE = () => {
+            const b = document.querySelector('[data-p3="top-bar"] [data-p3="agent-toggle"]');
+            const tr = b?.querySelector('.p3-switch-track'), kn = b?.querySelector('.p3-switch-knob'), lab = b?.labels?.[0];
+            const box = (n) => { const r = n?.getBoundingClientRect(); return r ? [Math.round(r.width * 10) / 10, Math.round(r.height * 10) / 10] : null; };
+            const vis = (n) => !!n && n.getClientRects().length > 0 && getComputedStyle(n).display !== 'none';
             let ground = null;
-            for (let e = m?.parentElement; e && !ground; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') ground = c; }
-            return { theme: document.documentElement.dataset.theme, fill, mark: cs ? cs.backgroundColor : null, ground,
-              edge: cs && cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0 ? cs.outlineColor : null, edgeW: cs ? cs.outlineWidth : null,
-              pressed: b?.getAttribute('aria-pressed') ?? null, w: r ? Math.round(r.width * 10) / 10 : null, h: r ? Math.round(r.height * 10) / 10 : null };
+            for (let e = b?.parentElement; e && !ground; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') ground = c; }
+            const tc = tr ? getComputedStyle(tr) : null;
+            return { theme: document.documentElement.dataset.theme, role: b?.getAttribute('role') ?? null, name: b?.getAttribute('aria-label') ?? null,
+              checked: b?.getAttribute('aria-checked') ?? null, ground, track: box(tr), hit: box(b), label: vis(lab) ? lab.textContent : null,
+              edge: tc && parseFloat(tc.borderTopWidth) > 0 && tc.borderTopStyle !== 'none' ? tc.borderTopColor : null, fill: tc ? tc.backgroundColor : null,
+              knob: kn ? getComputedStyle(kn).backgroundColor : null,
+              knobIn: (() => { const a = tr?.getBoundingClientRect(), k = kn?.getBoundingClientRect(); return !!a && !!k && k.left >= a.left && k.right <= a.right && k.top >= a.top && k.bottom <= a.bottom; })(),
+              retired: !!b?.querySelector('.p3-tile-mark, .p3-dot') };
           };
           const rgb = (c) => { const v = /^rgba?\(([^)]+)\)$/.exec(c ?? '')?.[1].split(/[,\s/]+/).filter(Boolean).map(Number); return v && (v.length < 4 || v[3] === 1) ? v.slice(0, 3) : null; };
           const lum = (v) => v.map((x) => { x /= 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }).reduce((t, x, i) => t + x * [0.2126, 0.7152, 0.0722][i], 0);
           const ratio = (c1, c2) => { const [x, y] = [rgb(c1), rgb(c2)]; if (!x || !y) return null; const [p, q] = [lum(x), lum(y)].sort((u, v) => v - u); return Math.round(((p + 0.05) / (q + 0.05)) * 100) / 100; };
-          const f1 = await page.evaluate(FILL_PROBE);
-          const at = `29b ${host} ${f1.theme} ${w}`;
-          ok(f1.fill !== 'rgba(0, 0, 0, 0)' && f1.mark === f1.fill && f1.pressed === 'true' && f1.w === 24 && f1.h === 24,
-            `${at}: Q738 A: with the link on, the bar's Agent tile fills a 24 × 24 mark with the on fill, fill-2 ${f1.fill}, as the rail did, aria-pressed true (${JSON.stringify(f1)})`);
-          const onEdge = ratio(f1.edge, f1.ground), onFill = ratio(f1.mark, f1.ground);
-          ok(!!f1.ground && ((onEdge ?? 0) >= 3 || (onFill ?? 0) >= 3),
-            `${at}: Q788 C: with the link on, the bar's Agent mark reads against the ground it is drawn on, ${f1.ground}: its edge or its fill at 3:1 or more (edge ${f1.edge} ${onEdge}:1, fill ${f1.mark} ${onFill}:1)`);
-          await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
-          await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'false', null, { timeout: 3000 }).catch(() => {});
-          const f0 = await page.evaluate(FILL_PROBE);
-          ok(f0.mark !== f0.fill && f0.edge === null && f0.pressed === 'false' && f0.w === 24 && f0.h === 24,
-            `${at}: Q738 A, Q788 C: with the link off, the bar's Agent mark has neither the on fill nor the edge, the same 24 × 24, aria-pressed false (${JSON.stringify(f0)})`);
+          const narrowBar = w < 600;
+          const arm = async (on) => {
+            await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), on ? AGENT_ON : { ...AGENT_ON, on: false, since: null });
+            await page.waitForFunction((v) => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-checked') === v, String(on), { timeout: 3000 }).catch(() => {});
+            // The knob slides (the eased transition): read it where it comes to rest, not mid-move.
+            await page.evaluate(() => Promise.all((document.querySelector('[data-p3="agent-toggle"] .p3-switch-knob')?.getAnimations() ?? []).map((a) => a.finished)));
+            const f = await page.evaluate(SWITCH_PROBE);
+            const at = `29b ${host} ${f.theme} ${w}`;
+            const state = on ? 'on' : 'off';
+            ok(f.role === 'switch' && f.name === 'Agent' && f.checked === String(on) && !f.retired,
+              `${at}: #3083 Q3083.5 B: with the link ${state}, the Agent control is a switch named "Agent", aria-checked ${on}, with no tile mark and no dot (${JSON.stringify(f)})`);
+            ok(JSON.stringify(f.track) === JSON.stringify([36, 20]) && f.knobIn && !!f.hit && f.hit[0] >= TARGET_MIN && f.hit[1] >= TARGET_MIN,
+              `${at}: #3083 Q3083.7 B: the Agent switch's track is the bar-only 36 × 20, its knob inside it, and its hit target ${TARGET_MIN}px or more each way (track ${JSON.stringify(f.track)}, knob inside ${f.knobIn}, hit ${JSON.stringify(f.hit)})`);
+            ok(f.label === (narrowBar ? null : 'Agent'),
+              `${at}: #3083 Q3083.6 A: the Agent switch's label is ${narrowBar ? 'dropped at 380, the switch alone' : 'shown at 1280'} (label ${JSON.stringify(f.label)})`);
+            const knobOn = ratio(f.knob, f.fill);
+            if (on) {
+              const trackOn = ratio(f.fill, f.ground);
+              ok(!!f.ground && (trackOn ?? 0) >= NONTEXT_MIN && (knobOn ?? 0) >= NONTEXT_MIN,
+                `${at}: #3083 Q3083.5 B: with the link on, the Agent switch's track fill clears ${NONTEXT_MIN}:1 on the ground it is drawn on, ${f.ground}, and its knob on the track (track ${f.fill} ${trackOn}:1, knob ${f.knob} ${knobOn}:1)`);
+            } else {
+              const edgeOff = ratio(f.edge, f.ground);
+              ok(!!f.ground && (edgeOff ?? 0) >= NONTEXT_MIN && (knobOn ?? 0) >= NONTEXT_MIN,
+                `${at}: #3083 Q3083.5 B: with the link off, the Agent switch's track edge clears ${NONTEXT_MIN}:1 on the ground it is drawn on, ${f.ground}, and its knob on the track (edge ${f.edge} ${edgeOff}:1, knob ${f.knob} on ${f.fill} ${knobOn}:1)`);
+            }
+          };
+          await arm(true);
+          await arm(false);
         }
       } catch (e) {
         ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
@@ -11309,7 +11385,8 @@ const readHome = (page) => page.evaluate((absent) => {
     badge: shown(q('[data-p3="home-badge"]')) ? q('[data-p3="home-badge"]').textContent : null,
     switchShown: shown(q('[data-p3="home-agent-switch"]')),
     switchOn: q('[data-p3="home-agent-switch"]')?.getAttribute('aria-checked') ?? null,
-    tileOn: q('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') ?? null,
+    // #3083: the bar's Agent is a switch now, its state `aria-checked` (it was the tile's `aria-pressed`).
+    tileOn: q('[data-p3="agent-toggle"]')?.getAttribute('aria-checked') ?? null,
     drawn: absent.filter((h) => shown(q(`[data-p3="${h}"]`))),
     focus: document.activeElement?.getAttribute('data-p3') ?? null,
     scrim: (() => { const sc = q('[data-p3="start-screen-scrim"]'); return sc ? getComputedStyle(sc).backgroundColor : null; })(),
@@ -11353,10 +11430,10 @@ for (const { w, h } of START_SIZES) {
         `${where}: the library home reads the wireframe's words — ${JSON.stringify([r.title, r.meta, r.line, r.button])}`);
       ok(r.barName === HOME_LIT.title && r.badge === HOME_LIT.badge, `${where}: the bar names the library, badge "${HOME_LIT.badge}" — "${r.barName}", "${r.badge}"`);
       ok(r.drawn.length === 0, `${where}: the library home's bar draws no brand control — drew ${JSON.stringify(r.drawn)}`);
-      ok(r.switchShown && r.switchOn === 'false' && r.tileOn === 'false', `${where}: the agent link's switch shows, off, as the tile is — switch ${r.switchOn}, tile ${r.tileOn}`);
+      ok(r.switchShown && r.switchOn === 'false' && r.tileOn === 'false', `${where}: the agent link's switch shows, off, as the bar's Agent switch is — switch ${r.switchOn}, bar ${r.tileOn}`);
       await postMain(page, LINK_STATE(true));
       r = await readHome(page);
-      ok(r.switchOn === 'true' && r.tileOn === 'true', `${where}: the switch and the tile both read the one published state (Q613 3 A) — switch ${r.switchOn}, tile ${r.tileOn}`);
+      ok(r.switchOn === 'true' && r.tileOn === 'true', `${where}: the switch and the bar's Agent switch both read the one published state (Q613 3 A) — switch ${r.switchOn}, bar ${r.tileOn}`);
       const m = await measure(page, `${where} / library home`, 'figma', w);
       check(m, `${where} / library home`, columnOf('figma', w), HOME_FLOOR.library, { state: 'home', only: ['[data-p3="home-agent-switch"]', '[data-p3="home-start"]'] });
       const rings = await focusRings(page);
@@ -12050,9 +12127,12 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
 //     fw-emphasis 500` (4).
 if (runs('30')) console.log(`\nThe heading rule (TY2 A, heading pass 1)\n${'='.repeat(78)}`);
 /** The chrome tokens the rule names, each to its emitted path (a literal map, typed from `chrome/tokens.mjs`'s rows on
- *  2026-10-06; deliberately not imported, so the build's map and this oracle stay two derivations). */
+ *  2026-10-06; deliberately not imported, so the build's map and this oracle stay two derivations). #3083 (the owner's
+ *  Q3083.1 A, 2026-10-28): the size pass took L1 16 → 14 and L2 and L3 14 → 12, typed here from the decision, the
+ *  variables keeping their old names. MUTATION: `fs-16` back to `core.font.size.16` in `tokens.mjs` → `TY2 A … L1 "Identity"
+ *  (section title) fs 16, want fs-16 14 …`. */
 const HEADING_TOKEN_PATHS = {
-  'fs-12': 'core.font.size.12', 'fs-14': 'core.font.size.14', 'fs-16': 'core.font.size.16',
+  'fs-12': 'core.font.size.12', 'fs-14': 'core.font.size.12', 'fs-16': 'core.font.size.14',
   'fw-default': 'core.font.weight-role.default', 'fw-emphasis': 'core.font.weight-role.emphasis', 'fw-strong': 'core.font.weight-role.strong',
   'lh-compact': 'core.font.line-height-role.compact', 'ls-snug': 'core.font.letter-spacing-role.snug',
   // #2322 (owner, 2026-10-08): L1 section titles at `tighter` (−3%), L2 group headings at `snugger` (−1.5%).
@@ -12088,7 +12168,7 @@ const HT = (() => {
 })();
 if (runs('30')) {
 ok(HT['ls-tighter']?.em === -0.03 && HT['ls-snugger']?.em === -0.015, `#2322: the oracle resolved L1's and L2's tracking from the emission, tighter −3% and snugger −1.5% (${JSON.stringify([HT['ls-tighter'], HT['ls-snugger']])})`);
-ok(HT['fs-14'] === 14 && HT['fs-16'] === 16 && HT['fw-strong'] === 600 && HT['fw-emphasis'] === 500 && HT['fw-default'] === 400
+ok(HT['fs-14'] === 12 && HT['fs-16'] === 14 && HT['fw-strong'] === 600 && HT['fw-emphasis'] === 500 && HT['fw-default'] === 400
   && HT['lh-compact'] === 1.25 && HT['space-150'] === 12 && HT['hit-min'] >= 24 && Object.values(HT.ink).every((m) => /^#[0-9a-f]{6}$/.test(m.light ?? '') && /^#[0-9a-f]{6}$/.test(m.dark ?? '') && m.light !== m.dark),
   `TY2 A: the oracle resolved the rule's chrome tokens from the emission (${JSON.stringify(HT)})`);
 } // 30
@@ -12657,8 +12737,9 @@ console.log(`\nThe view and card titles (#2322)\n${'='.repeat(78)}`);
       const read = (sel) => { const n = document.querySelector(sel); if (!n) return null; const cs = getComputedStyle(n); return { fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), ls: parseFloat(cs.letterSpacing) || 0 }; };
       return { view: read('[data-p3="preview-title"]'), card: read('.p3-card-title') };
     });
-    ok(!!got.view && got.view.fs === 20 && got.view.fw === 700 && Math.abs(got.view.ls - 20 * -0.04) < 0.05,
-      `#2322 web ${theme} 1280: the view title is 20px Bold at −4% (${JSON.stringify(got.view)})`);
+    // #3083 (the owner's Q3083.1 A, 2026-10-28): the view title 20 → 18. A literal, the owner's.
+    ok(!!got.view && got.view.fs === 18 && got.view.fw === 700 && Math.abs(got.view.ls - 18 * -0.04) < 0.05,
+      `#2322 #3083 web ${theme} 1280: the view title is 18px Bold at −4% (${JSON.stringify(got.view)})`);
     ok(!!got.card && got.card.fs === 12 && got.card.fw === 500 && Math.abs(got.card.ls - 12 * 0.01) < 0.05,
       `#2322 web ${theme} 1280: a card's title is 12px at +1% (${JSON.stringify(got.card)})`);
     await ctx.close();
@@ -12830,7 +12911,7 @@ for (const theme of ['light', 'dark']) {
       await page.waitForFunction(() => (document.querySelector('[data-p3="activity-toggle"]')?.textContent ?? '').includes('Read-back'), null, WAIT).catch(() => {});
       for (const [k, state] of Object.entries(LINK_STATES)) {
         await postMsg(page, { type: 'agent-link-state', state });
-        await page.waitForFunction((on) => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === String(on), state.on, WAIT).catch(() => {});
+        await page.waitForFunction((on) => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-checked') === String(on), state.on, WAIT).catch(() => {});
         await settle(page);
         const s = await page.evaluate(LINK_PROBE);
         // The owner's Q2995.1 A (#2909): at 380, where the rail leaves the drawer 320px, the row shows the short status alone,
@@ -13298,7 +13379,7 @@ console.log('\n#2909 Q2995.2 A. The rail at the plugin\'s least height');
 // The owner's Q2995.2 A: at the plugin's least window height (420, `MIN_SIZE` in apps/plugin/src/main.ts), every rail
 // tile lies inside the window and each area tile keeps its label; below the height the rail needs, the logo hides to make
 // the room. Since #3083 (2026-10-28) the foot's three tiles draw no label, the foot is shorter, and the rail fits at 420
-// with its logo, so the hide is held at 360 (measured: the rail first runs short of room just under 400). The fit is
+// with its logo, so the hide is held at 360 (measured: the rail first runs short of room just under 378 since #3083 moved `ctl-h` to 36; 400 with #3120 alone). The fit is
 // measured, not a breakpoint, so it holds at any height. EXPECTED is the window's own edge and the labels this suite
 // authors for the rail; MUTATION: the logo kept at every height (`rail.ts` `fit` removed) → the `inside the window` arm
 // at 360, by name, at both widths.
@@ -14881,8 +14962,9 @@ for (const host of ['web', 'figma']) {
 //   · the selected tab's underline in `CanvasText`, its neighbors' hidden in `Canvas`;
 //   · disabled (the held mode control on Palettes, Layout's first breakpoint field, a switch a derived mode holds):
 //     the ink and the edge in `GrayText`, and the held mode that is selected keeps its edge while the others hide theirs;
-//   · the status dots (Agent on; Activity running, which draws green, and failed, which draws red; and the plugin only,
-//     where they are drawn): filled in `CanvasText`, so drawn on the tile's `Canvas`;
+//   · the status dots (Activity running, which draws green, and failed, which draws red; and the plugin only, where they
+//     are drawn): filled in `CanvasText`, so drawn on the tile's `Canvas`. The Agent tile's dot went with the tile (#3083):
+//     the plugin's Agent switch, on, draws its track in `Highlight` and its knob in `HighlightText`, as every switch does;
 //   · the verdict's mark, the check and then the warning with its count: drawn in its tile's forced ink, never `Canvas`;
 //   · focus rings, on a selected chip (the case a `Highlight` fill makes hard), a chip, the selected segment and the tab:
 //     solid, at least 2px, in `CanvasText`;
@@ -14911,9 +14993,9 @@ const FC_KEYS = ['Canvas', 'CanvasText', 'Highlight', 'HighlightText', 'GrayText
 const FC_CASES = ['oracle', 'segment', 'tab', 'held modes', 'palettes specimens', 'controls opt in', 'chip', 'mode check', 'focus rings',
   'live modes', 'switch', 'step picker', 'fills specimens', 'held switch', 'disabled field', 'value picker', 'weights check', 'verdict',
   'type value picker', 'layout value picker'];
-/** The plugin only: its tile dots, and the font type-ahead, which lists the host's fonts (the web has none to list). */
-// #2909: 'activity dots' went with the plugin's Activity tile.
-const FC_PLUGIN_CASES = ['agent dot', 'font list'];
+/** The plugin only: its Agent switch, and the font type-ahead, which lists the host's fonts (the web has none to list). */
+// #2909: 'activity dots' went with the plugin's Activity tile. #3083: 'agent dot' went with the Agent tile, for 'agent switch'.
+const FC_PLUGIN_CASES = ['agent switch', 'font list'];
 /** The fonts the type-ahead is handed, as the host would send them. Literal. */
 const FC_FONTS = { type: 'font-list', families: ['Inter', 'Roboto', 'Playfair Display'], styles: [18, 36, 12] };
 /** Floors on the specimens read (prism3: 182 drawn on Palettes, its squares, strips, heroes, role dots and the brand
@@ -15275,17 +15357,16 @@ for (const host of ['web', 'figma']) {
       ran.add('verdict');
 
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
-      // ── the plugin's tile dots: Agent on, Activity running (green) and failed (red) ─────────────────────────────
-      const dotOf = (k) => page.evaluate((x) => { const d = document.querySelector(`[data-p3="${x}"] .p3-tile-mark > .p3-dot`), b = d?.closest('button');
-        const cs = d ? getComputedStyle(d) : null; return d ? { state: d.dataset.state ?? null, shown: d.getClientRects().length > 0 && cs.display !== 'none', bg: cs.backgroundColor, tile: getComputedStyle(b).backgroundColor } : null; }, k);
+      // ── the plugin's Agent switch, on (#3083; it was the Agent tile's dot) ──────────────────────────────────────
       // Last, after the console check: a link switched on opens the desktop bridge's socket, which no harness serves.
       if (host === 'figma') {
         step = 'Agent';
         await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), AGENT_ON);
-        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 5000 }).catch(() => {});
-        const a1 = await dotOf('agent-toggle');
-        ok(!!a1 && a1.shown && a1.bg === CT && a1.bg !== CV, `${where}: the pressed Agent tile's dot fills with CanvasText ${CT}, drawn on the forced Canvas ${CV} (${JSON.stringify(a1)})`);
-        ran.add('agent dot');
+        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const a1 = await page.evaluate(() => { const b = document.querySelector('[data-p3="agent-toggle"]'), t = b?.querySelector('.p3-switch-track'), k = b?.querySelector('.p3-switch-knob');
+          return t && k ? { track: getComputedStyle(t).backgroundColor, knob: getComputedStyle(k).backgroundColor, dot: !!b.querySelector('.p3-dot') } : null; });
+        ok(!!a1 && a1.track === H && a1.knob === HT && !a1.dot, `${where}: #3083: the Agent switch, on, draws its track in Highlight ${H} and its knob in HighlightText ${HT}, with no dot (${JSON.stringify(a1)})`);
+        ran.add('agent switch');
         // #2909: the plugin draws no Activity tile, so its dots under forced colors are RETIRED with it.
         await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
       }
@@ -15554,11 +15635,13 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //   · Title floor 16px under Compact (S63.titleFloorCompact): Type scale on Compact; lifted by Type scale Default.
 //   · Title floor 18px while title 2xs is set individually (S63.titleFloorPinned): Expressive, title floor 16px, then
 //     title 2xs's desktop size set to its first free value; lifted by resetting that size.
+//   · Caption floor 10px while caption md is set to 10px (S63.captionFloorPinned, #3084): caption md set to 10px through
+//     its picker; lifted by resetting that size.
 //   · Italic only on a text type that pins a font style (S63.italicPinned): body's default weight pinned to "Medium";
 //     lifted by clearing the pin.
 //
 // INDEPENDENCE (docs/34). EXPECTED is typed here: the three approved sentences, copied from the owner-approved strings
-// (S63.titleFloorCompact, S63.titleFloorPinned, S63.italicPinned), and which chip each case refuses, worked out by hand
+// (S63.titleFloorCompact, S63.titleFloorPinned, S63.italicPinned), plus #3084's DRAFT S63.captionFloorPinned, and which chip each case refuses, worked out by hand
 // from the issue. ACTUAL is the browser's: the drawn paragraphs and their boxes, the accessibility tree, and every live
 // region in the document. The line is found by its words inside the row, never through `aria-describedby` or an id, so
 // an unlinked line still reads as drawn and fails only the description arm. The live-region arm is read with the line
@@ -15575,10 +15658,14 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //     hint doesn't announce: the drawn reason is in no live region (drawn 1, 1 live region(s) carrying it)`, each case (12).
 // =============================================================================================
 if (runs('43')) {
-console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only (#2451)\n${'='.repeat(78)}`);
+console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor and Italic only (#2451, #3084)\n${'='.repeat(78)}`);
 {
   const COMPACT = 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.';
   const PINNED18 = 'Leaves out title 2xs, which you set individually.';
+  const CAPTION10 = 'Caption md is 10px, which you set individually, so the engine refuses a second 10px caption.';
+  const CFLOOR_ROW = '[data-p3="lever-typography-caption-floor"]';
+  const CFLOOR_GROUP = '[data-p3="caption-floor"]';
+  const CAPMD = '[data-p3="caption-size"][data-variant="md"]';
   const ITALIC = 'This text type pins a font style. Clear the pin first: Italic only sets the style from the weight.';
   const FLOOR_ROW = '[data-p3="lever-typography-title-floor"]';
   const FLOOR_GROUP = '[data-p3="title-floor"]';
@@ -15668,6 +15755,19 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only 
         await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
         await closePicker(page);
         await chipOff(page, '[data-p3="title-floor-18"]', false);
+      });
+      // Caption floor 10px while caption md is set to 10px (#3084).
+      step = 'set caption md to 10px';
+      await hooks.click(page.locator(CAPMD), BOUND);
+      await hooks.need(page, '[data-p3="value-picker"]', BOUND);
+      await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="10"]'), BOUND);
+      await closePicker(page);
+      await chipOff(page, '[data-p3="caption-floor-10"]', true);
+      await arms('Caption floor 10px with caption md at 10px', CFLOOR_ROW, CFLOOR_GROUP, CAPTION10, async () => {
+        await hooks.click(page.locator(CAPMD), BOUND);
+        await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
+        await closePicker(page);
+        await chipOff(page, '[data-p3="caption-floor-10"]', false);
       });
       // Italic only on a text type that pins a font style.
       step = 'pin body\'s font style';
@@ -16812,17 +16912,27 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => ({ id: b.dataset.id, on: b.getAttribute('aria-checked'), why: b.querySelector('[data-p3="update-set-due"]')?.textContent ?? null })),
         lines: [...document.querySelectorAll('[data-p3="update-set-check"]')].map((n) => n.textContent),
         breaks: [...document.querySelectorAll('[data-p3="update-due-sets"] [data-p3="update-set-breaks"]')].map((n) => [n.previousElementSibling?.querySelector('[data-p3="update-due-set"]')?.dataset.id ?? null, n.textContent]),
-        hand: [...document.querySelectorAll('[data-p3="update-hand-edits"] [role="radio"]')].map((b) => [b.dataset.key, b.getAttribute('aria-checked')]),
+        // #3083 (Q3083.3 A, Q3083.4 A): a select in the foot, before Cancel and Update file, labelled "Hand edits", 32px tall.
+        hand: (() => { const sl = document.querySelector('[data-p3="update-hand-edits"]'), foot = sl?.closest('.p3-bardlg-foot'), cancel = document.querySelector('[data-p3="update-cancel"]');
+          return sl ? { tag: sl.tagName.toLowerCase(), value: sl.value, options: [...sl.options].map((o) => [o.value, o.textContent]), label: sl.labels?.[0]?.textContent ?? null,
+            inFoot: !!foot && !!cancel && foot.contains(cancel), beforeCancel: !!cancel && !!(sl.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING),
+            inBody: !!sl.closest('[data-p3="update-body"]'), h: Math.round(sl.getBoundingClientRect().height * 10) / 10 } : null; })(),
         unrec: document.querySelector('[data-p3="update-unrecorded"]')?.textContent ?? null, saves: !!document.querySelector('[data-p3="update-saves"]'),
       }));
       ok(JSON.stringify(ck.rows) === JSON.stringify([{ id: 'button', on: 'true', why: 'Due · its settings changed' }, { id: 'select', on: 'true', why: 'Due · Prism3 changed' }]),
         `${where}: Q2909.8 A: the due sets are listed first, ticked, each with why it is due (${JSON.stringify(ck.rows)})`);
       ok(ck.lines[0] === '12 of 648 members change · 2 edited by hand' && ck.lines[1] === 'No member changes', `${where}: Q2909.8 A: each due set says what the check found (${JSON.stringify(ck.lines)})`);
       ok(JSON.stringify(ck.breaks) === JSON.stringify([['button', 'Breaks library consumers: 1 layer removed.']]), `${where}: #2831: a published set's consumer-breaking line sits under its row, and only under it (${JSON.stringify(ck.breaks)})`);
-      ok(JSON.stringify(ck.hand) === JSON.stringify([['hand=keep', 'true'], ['hand=overwrite', 'false'], ['hand=accept', 'false']]), `${where}: Q2909.8 A: the update keeps hand edits by default (${JSON.stringify(ck.hand)})`);
+      ok(ck.hand?.value === 'keep', `${where}: Q2909.8 A: the update keeps hand edits by default (${JSON.stringify(ck.hand)})`);
+      // #3083 (the owner's Q3083.3 A and Q3083.4 A, 2026-10-28): the hand-edits choice is a compact select, "Hand edits",
+      // in the foot just before Cancel and Update file, 32px tall, never in the body; its words are the short forms
+      // (DRAFT). Literals, the owner's. MUTATION: the select pushed to the body (`sets.append`) → this arm.
+      ok(!!ck.hand && ck.hand.tag === 'select' && ck.hand.label === 'Hand edits' && ck.hand.inFoot && ck.hand.beforeCancel && !ck.hand.inBody && ck.hand.h === 32
+        && JSON.stringify(ck.hand.options) === JSON.stringify([['keep', 'Keep'], ['overwrite', 'Overwrite'], ['accept', 'Accept as baseline']]),
+        `${where}: #3083 Q3083.3 A: the hand-edits choice is a 32px select labelled "Hand edits", in the foot before Cancel and Update file, reading Keep, Overwrite, Accept as baseline (${JSON.stringify(ck.hand)})`);
       ok(/^1 set not checked yet/.test(ck.unrec ?? '') && ck.saves, `${where}: Q2909.8 A: the set never recorded is offered a check, and the update says it saves a version first (${JSON.stringify({ unrec: ck.unrec, saves: ck.saves })})`);
       const dm = await measure(page, `${where} / Update checklist`, host, 1280);
-      check(dm, `${where} / Update checklist`, columnOf(host, 1280), PLACE_FLOOR, { only: ['[data-p3="update-go"]', '[data-p3="update-due-set"]', '[data-p3="update-hand-keep"]'] });
+      check(dm, `${where} / Update checklist`, columnOf(host, 1280), PLACE_FLOOR, { only: ['[data-p3="update-go"]', '[data-p3="update-due-set"]', '[data-p3="update-hand-edits"]'] });
       // #3023 Q701 B: a Theme toggle checks the file again, against the brand the run would leave in it: with Theme
       // unticked, the file's stored one (no brand on the wire), ticked again, the panel's. Each answer re-asks the check.
       step = 'the Theme toggle';
@@ -16848,14 +16958,24 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         ok(tg.box === String(on) && tg.checking && fs.length === 1 && fs.every(want(brand)) && uc.length === 1 && JSON.stringify(uc[0].defs) === JSON.stringify(['button', 'select']) && uc.every(want(brand)),
           `${where}: #3023 Q701 B: Theme ${words}: the checklist checks the file again, then the due sets, against that brand (${JSON.stringify({ box: tg.box, checking: tg.checking, fileSets: fs.map((m) => 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none'), check: uc.map((m) => [m.defs, 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none']) })})`);
       }
+      // #3083 (Q3083.3 A): the select's pick is the one the update posts, and the repaint the pick causes keeps focus
+      // on the select. MUTATION: `sel.onchange` writes 'keep' whatever is picked → this arm and the update-sets one below.
+      step = 'the hand-edits pick';
+      await page.locator('[data-p3="update-hand-edits"]').focus();
+      await page.selectOption('[data-p3="update-hand-edits"]', 'overwrite');
+      await settle(page);
+      const pick = await page.evaluate(() => ({ v: document.querySelector('[data-p3="update-hand-edits"]')?.value ?? null, f: document.activeElement?.getAttribute('data-p3') ?? null }));
+      ok(pick.v === 'overwrite' && pick.f === 'update-hand-edits',
+        `${where}: #3083 Q3083.3 A: Overwrite picked, the select keeps it across the repaint and keeps focus (${JSON.stringify(pick)})`);
       step = 'the update';
       // The theme unticked, so the update is the run's first step and posts at once, with no brand: the stored one.
       await page.evaluate(() => { window.__ia2.length = 0; });
       await hooks.click(page.locator('[data-p3="update-go"]'));
       await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
       const sent = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-sets'));
-      ok(sent.length === 1 && canon(sent[0]) === canon({ type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep' }),
-        `${where}: Q2909.8 A, #3023 Q701 B: with Theme unticked, the update posts the ticked sets with the check's own hash, Keep, and no brand, so the host lays the stored one (${sent.length ? wireDiff(sent[0], { type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'keep' }) : 'nothing posted'})`);
+      const UPD = { type: 'update-sets', defs: ['button', 'select'], previewHash: 'H-1', handEdits: 'overwrite' };
+      ok(sent.length === 1 && canon(sent[0]) === canon(UPD),
+        `${where}: Q2909.8 A, #3023 Q701 B, #3083 Q3083.3 A: with Theme unticked, the update posts the ticked sets with the check's own hash, the picked Overwrite, and no brand, so the host lays the stored one (${sent.length ? wireDiff(sent[0], UPD) : 'nothing posted'})`);
       // The run ends on the update's verdict, and the due read after it measures against the brand the run left in the
       // file: with Theme unticked, the stored one, so the badge does not flag the sets the run just wrote (#3023).
       step = 'the due read after the run';
@@ -17101,6 +17221,16 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
           return { tall: b.scrollHeight > b.clientHeight + 1, below, top: b.scrollTop, id: last.dataset.id, on: last.getAttribute('aria-checked') };
         });
         ok(!!fold && fold.tall && fold.below && fold.top > 0 && fold.on === 'false', `${at}: #3082: the checklist is taller than the dialog, its last new set starts below the fold, unticked, and the body scrolls down to it (${JSON.stringify(fold)})`);
+        // #3083 (the owner's Q3083.3 A): the hand-edits select sits in the foot's row with Cancel and Update file at 1280,
+        // just before them, and takes its own row above them at the narrow tier. MUTATION: the narrow rule's `flex-basis`
+        // dropped (`chrome.css`, `.p3-upd-handsel`) → this arm at 400.
+        const foot = await page.evaluate(() => { const r = (k) => document.querySelector(`[data-p3="${k}"]`)?.getBoundingClientRect();
+          const hr = r('update-hand-row'), c = r('update-cancel'), g = r('update-go');
+          return hr && c && g ? { handTop: Math.round(hr.top), handBottom: Math.round(hr.bottom), handRight: Math.round(hr.right), cancelTop: Math.round(c.top), cancelLeft: Math.round(c.left), goTop: Math.round(g.top),
+            handMid: Math.round((hr.top + hr.bottom) / 2), cancelMid: Math.round((c.top + c.bottom) / 2) } : null; });
+        const ownRow = vw < 560;
+        ok(!!foot && foot.cancelTop === foot.goTop && (ownRow ? foot.handBottom <= foot.cancelTop : Math.abs(foot.handMid - foot.cancelMid) <= 1 && foot.handRight <= foot.cancelLeft),
+          `${at}: #3083 Q3083.3 A: the hand-edits select ${ownRow ? 'takes its own row above Cancel and Update file' : 'sits in the foot\'s row just before Cancel and Update file'} (${JSON.stringify(foot)})`);
         const scrollNow = () => page.evaluate(() => { const a = document.activeElement;
           return { top: document.querySelector('[data-p3="update-body"]')?.scrollTop ?? null, focus: a?.closest('[data-p3="update-dialog"]') ? a.dataset.key ?? a.getAttribute('data-p3') : null }; });
         if (fold) {
