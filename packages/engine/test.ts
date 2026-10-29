@@ -32601,7 +32601,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   const seed = exampleTheme('nb-redesign', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input));
   if (seed) {
     const bad = diff(table(seed), { ...REF_TABLE, 'caption.xs': '8/8 1% cozy 1.4' });
-    ok(bad.length === 0, `#3077 the reference brand's redesign seed builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+    ok(bad.length === 0, `#3077/#3146 the reference brand's redesign seed builds the decided type table, size, tracking and leading (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
     // #3146: the rest of what #3080 synced from the stored input (Q821 A), also as literals. The leading rides in
     // the table above. The fluid clamp is 375–1440. The label weight-role set is {default, emphasis}: the engine
     // default emits the same pair, so the seed must also DECLARE it, or a dropped `label` line would pass here.
@@ -32624,7 +32624,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   });
   {
     const bad = diff(table(brandTheme(patched)), REF_TABLE);
-    ok(bad.length === 0, `#3077 the reference brand's stored input, patched, builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+    ok(bad.length === 0, `#3077/#3146 the reference brand's stored input, patched, builds the decided type table, size, tracking and leading (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
   }
   // (c) The legacy fixture: engine-default sizes (no 20px title.2xs: its title.xs is 18), the decided caption md and
   // the decided letter spacing per text type.
