@@ -568,37 +568,33 @@
     },
     "provider/apple.svg": {
       "placeholder": false,
-      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27). Drawn in black (#000000) where the supplied glyph was white, by owner direction on #3134 (2026-10-28): a white glyph vanished on the canvas; a consumer tints it as needed",
       "rightsHolder": "Apple Inc.",
       "dateRetrieved": "2026-10-27",
       "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
       "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#FFFFFF"
+        "#000000"
       ],
       "allowedForms": [
-        "mono-white"
-      ],
-      "normalized": [
-        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+        "mono-black"
       ]
     },
     "provider/facebook.svg": {
       "placeholder": false,
-      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27)",
+      "source": "Assembled by the owner from several public sources and hand-edited to fit; the original sources are not recorded (owner decision on #2343, 2026-10-27). Drawn in black (#000000) where the supplied glyph was white, by owner direction on #3134 (2026-10-28): a white glyph vanished on the canvas; a consumer tints it as needed",
       "rightsHolder": "Meta Platforms, Inc.",
       "dateRetrieved": "2026-10-27",
       "terms": "Committed under owner decision Q-B1 B on #2343: the repository is for internal use. The terms of the original sources were not recorded, so if the repository goes public the refactor in marks/NOTICE.md applies first",
       "usage": "Shown only as the provider's brand guidelines allow, unaltered, and only to identify the provider's own service (marks/NOTICE.md). The guideline link was not recorded with the artwork",
       "colors": [
-        "#FFFFFF"
+        "#000000"
       ],
       "allowedForms": [
-        "mono-white"
+        "mono-black"
       ],
       "normalized": [
-        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)",
-        "wrote the color keyword(s) white as #FFFFFF (the same color; the emitter takes hex only)"
+        "dropped a clip path that is the whole 24x24 artboard (a no-op; the emitter refuses clipPath)"
       ]
     },
     "provider/google.svg": {
