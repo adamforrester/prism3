@@ -273,7 +273,7 @@ export const visibleGapStep = (visibleRef: string, insetRef: string): string => 
 // onto this one array, and a dip anywhere in it surfaces as a wobbly ladder at whichever
 // density's window straddles the dip. The floor stays at exactly `MIN_TARGET_PX`, which is what
 // keeps the SC 2.5.8 assertion in `test.ts` load-bearing rather than slack. No component def
-// binds `size.xs.*` or `size.xl.*` — the corpus binds sm/md/lg only.
+// binds `size.xs.*`, and only the vertical labeled divider binds `size.xl.*` (#3143, its nominal length).
 const SIZE_RUNGS: number[] = [
   24,  // compact floor — named `xs` only at compact; ON `MIN_TARGET_PX`
   28,  // comfortable `xs`

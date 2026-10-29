@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 265 of 795 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 266 of 795 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -32,9 +32,9 @@ Type: dimension. Bound by 25 component(s).
 | code-input-cell | `border-width`, `caret-width` | caret | state: focus-visible (4 of 28) |
 |  |  | container | every member (28 of 28) |
 | counter | `border-width` | control | every member (18 of 18) |
-| divider | `horizontal.false.height`, `line.height`, `vertical.width` | container | labeled: false (5 of 6) |
-|  |  | leadingRule | inset: none · labeled: true · orientation: horizontal (1 of 6) |
-|  |  | trailingRule | inset: none · labeled: true · orientation: horizontal (1 of 6) |
+| divider | `horizontal.false.height`, `horizontal.line.height`, `horizontal.line.width`, `vertical.false.width`, `vertical.line.height`, `vertical.line.width` | container | labeled: false (5 of 7) |
+|  |  | leadingRule | inset: none · labeled: true (2 of 7) |
+|  |  | trailingRule | inset: none · labeled: true (2 of 7) |
 | flush-icon-button | `border-width` | container | every member (60 of 60) |
 | flush-icon-button-destructive | `border-width` | container | every member (60 of 60) |
 | flush-icon-button-neutral | `border-width` | container | every member (60 of 60) |
@@ -216,9 +216,9 @@ Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| divider | `fill` | leadingRule | inset: none · labeled: true · orientation: horizontal (1 of 6) |
-|  |  | rule | labeled: false (5 of 6) |
-|  |  | trailingRule | inset: none · labeled: true · orientation: horizontal (1 of 6) |
+| divider | `fill` | leadingRule | inset: none · labeled: true (2 of 7) |
+|  |  | rule | labeled: false (5 of 7) |
+|  |  | trailingRule | inset: none · labeled: true (2 of 7) |
 | flush-icon-button | `round.border` | container | shape: round · state: focus-visible, hover, pressed, rest · surface: default (12 of 60) |
 | flush-icon-button-destructive | `round.border` | container | shape: round · state: focus-visible, hover, pressed, rest · surface: default (12 of 60) |
 | flush-icon-button-neutral | `round.border` | container | shape: round · state: focus-visible, hover, pressed, rest · surface: default (12 of 60) |
@@ -1997,7 +1997,7 @@ Type: color. Bound by 12 component(s).
 |---|---|---|---|
 | card-number-field | `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
 | dialog | `indicator` | description | every member (24 of 24) |
-| divider | `label` | label | inset: none · labeled: true · orientation: horizontal (1 of 6) |
+| divider | `label` | label | inset: none · labeled: true (2 of 7) |
 | field-label | `secondary.indicator`, `secondary.label` | indicator | emphasis: secondary · state: rest (6 of 24) |
 |  |  | label | emphasis: secondary · state: rest (6 of 24) |
 | field-message | `default.label` | label | status: default (1 of 4) |
@@ -2111,7 +2111,7 @@ Type: dimension. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| divider | `horizontal.width` | container | orientation: horizontal (4 of 6) |
+| divider | `horizontal.false.width`, `horizontal.true.width` | container | orientation: horizontal (4 of 7) |
 | image-placeholder | `nominal-side` | frame | every member (7 of 7) |
 | veil | `nominal-side` | wash | every member (30 of 30) |
 
@@ -2797,7 +2797,7 @@ Type: dimension. Bound by 21 component(s).
 | button-neutral | `size.medium.height` | container | size: medium (192 of 576) |
 | checkbox-row | `size.medium.min-height` | row | size: medium (2 of 6) |
 | counter | `size.medium.height` | control | size: medium (6 of 18) |
-| divider | `vertical.false.height`, `vertical.true.height` | container | inset: middle-inset, none · labeled: false · orientation: vertical (2 of 6) |
+| divider | `vertical.false.height` | container | inset: middle-inset, none · labeled: false · orientation: vertical (2 of 7) |
 | flush-icon-button | `size.medium.round` | container | shape: round · size: medium (10 of 60) |
 | flush-icon-button-destructive | `size.medium.round` | container | shape: round · size: medium (10 of 60) |
 | flush-icon-button-neutral | `size.medium.round` | container | shape: round · size: medium (10 of 60) |
@@ -2856,6 +2856,14 @@ Type: dimension. Bound by 19 component(s).
 |  |  | dismiss | selection: unselected · size: small · type: dismissible (5 of 45) |
 | wallet-button | `size.small.height` | container | provider: apple-pay, google-pay, paypal · size: small (6 of 20) |
 
+### `size.xl.height`
+
+Type: dimension. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| divider | `vertical.true.height` | container | inset: none · labeled: true · orientation: vertical (1 of 7) |
+
 ### `space.0`
 
 Type: dimension. Bound by 22 component(s).
@@ -2877,7 +2885,7 @@ Type: dimension. Bound by 22 component(s).
 |  |  | footer | footer: fill, inline, stacked (18 of 24) |
 |  |  | header | every member (24 of 24) |
 |  |  | panel | every member (24 of 24) |
-| divider | `horizontal.inset.pad-block`, `horizontal.inset.pad-end`, `horizontal.middle-inset.pad-block`, `horizontal.none.pad-block`, `horizontal.none.pad-end`, `horizontal.none.pad-start`, `vertical.inset.pad-block`, `vertical.inset.pad-end`, `vertical.inset.pad-start`, `vertical.middle-inset.pad-end`, `vertical.middle-inset.pad-start`, `vertical.none.pad-block`, `vertical.none.pad-end`, `vertical.none.pad-start` | container | every member (6 of 6) |
+| divider | `horizontal.inset.pad-block`, `horizontal.inset.pad-end`, `horizontal.middle-inset.pad-block`, `horizontal.none.pad-block`, `horizontal.none.pad-end`, `horizontal.none.pad-start`, `vertical.inset.pad-block`, `vertical.inset.pad-end`, `vertical.inset.pad-start`, `vertical.middle-inset.pad-end`, `vertical.middle-inset.pad-start`, `vertical.none.pad-block`, `vertical.none.pad-end`, `vertical.none.pad-start` | container | every member (7 of 7) |
 | list-item | `gap` | row | every member (9 of 9) |
 | pagination-item | `balance-width`, `pad-y`, `reserve-height` | balance | labeled: false · selection: selected · state: focus-visible, rest · style: underline · type: page (6 of 87) |
 |  |  | container | every member (87 of 87) |
@@ -2988,7 +2996,7 @@ Type: dimension. Bound by 34 component(s).
 | counter | `root-gap`, `size.large.value-pad` | container | every member (18 of 18) |
 |  |  | entry | size: large (6 of 18) |
 | dialog | `title-gap` | titleBox | every member (24 of 24) |
-| divider | `vertical.middle-inset.pad-block` | container | inset: middle-inset · labeled: false · orientation: vertical (1 of 6) |
+| divider | `vertical.middle-inset.pad-block` | container | inset: middle-inset · labeled: false · orientation: vertical (1 of 7) |
 | link | `size.large.gap` | container | size: large (48 of 144) |
 | list | `size.small.gap` | container | size: small (3 of 9) |
 |  |  | items | size: small (3 of 9) |
@@ -3029,7 +3037,7 @@ Type: dimension. Bound by 34 component(s).
 
 ### `space.150`
 
-Type: dimension. Bound by 17 component(s).
+Type: dimension. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3046,6 +3054,7 @@ Type: dimension. Bound by 17 component(s).
 | checkbox-row | `size.large.gap`, `size.large.pad-y` | content | size: large (2 of 6) |
 |  |  | row | size: large (2 of 6) |
 | counter | `outline.size.medium.pad-x`, `outline.size.small.pad-x` | control | appearance: outline · size: medium, small (6 of 18) |
+| divider | `vertical.gap` | container | inset: middle-inset, none · orientation: vertical (3 of 7) |
 | list | `size.medium.gap` | container | size: medium (3 of 9) |
 |  |  | items | size: medium (3 of 9) |
 | radio-row | `size.large.gap`, `size.large.pad-y` | content | size: large (2 of 6) |
@@ -3076,7 +3085,7 @@ Type: dimension. Bound by 20 component(s).
 |  |  | footer | footer: fill, inline, stacked · placement: bottom, full · size: medium (6 of 24) |
 |  |  | header | every member (24 of 24) |
 |  |  | panel | every member (24 of 24) |
-| divider | `horizontal.inset.pad-start`, `horizontal.middle-inset.pad-end`, `horizontal.middle-inset.pad-start` | container | inset: inset, middle-inset · labeled: false · orientation: horizontal (2 of 6) |
+| divider | `horizontal.inset.pad-start`, `horizontal.middle-inset.pad-end`, `horizontal.middle-inset.pad-start` | container | inset: inset, middle-inset · labeled: false · orientation: horizontal (2 of 7) |
 | list | `size.large.gap` | container | size: large (3 of 9) |
 |  |  | items | size: large (3 of 9) |
 | password-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
@@ -3117,7 +3126,7 @@ Type: dimension. Bound by 14 component(s).
 |  |  | footer | footer: fill, inline, stacked · placement: center, end (12 of 24) |
 |  |  | header | placement: center, end (16 of 24) |
 |  |  | panel | placement: center, end (16 of 24) |
-| divider | `gap` | container | every member (6 of 6) |
+| divider | `horizontal.gap` | container | orientation: horizontal (4 of 7) |
 | list-item | `size.medium.ordered.marker-column`, `size.medium.unordered.marker-column`, `size.small.icon.marker-column` | markerBox | size: medium, small (3 of 9) |
 | password-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | search-field | `size.large.pad-x` | control | size: large (28 of 84) |
@@ -3403,7 +3412,7 @@ Type: typography. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| divider | `label.type` | label | inset: none · labeled: true · orientation: horizontal (1 of 6) |
+| divider | `label.type` | label | inset: none · labeled: true (2 of 7) |
 | pagination | `size.medium.type` | status | size: medium · style: border · type: compact (1 of 12) |
 | pagination-item | `size.medium.type.unselected` | label | labeled: false · selection: unselected · size: medium · state: focus-visible, hover, pressed, rest · style: border · type: page (4 of 87) |
 |  |  | nextText | labeled: true · selection: unselected · size: medium · style: border · type: next (5 of 87) |
@@ -3449,7 +3458,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| divider | `horizontal.true.height` | container | inset: none · labeled: true · orientation: horizontal (1 of 6) |
+| divider | `horizontal.true.height`, `vertical.true.width` | container | inset: none · labeled: true · orientation: horizontal (1 of 7) |
 
 ### `type.label.sm.default`
 
@@ -3672,9 +3681,9 @@ Declared, not drawn: `color.disabled.text`
 
 ### divider
 
-12 token(s); 6 design-file member(s).
+14 token(s); 7 design-file member(s).
 
-`border-width.hairline`, `color.border.secondary`, `color.border.tertiary`, `color.text.secondary`, `container.narrow`, `size.md.height`, `space.0`, `space.100`, `space.200`, `space.300`, `type.label.md.default`, `type.label.md.line-box`
+`border-width.hairline`, `color.border.secondary`, `color.border.tertiary`, `color.text.secondary`, `container.narrow`, `size.md.height`, `size.xl.height`, `space.0`, `space.100`, `space.150`, `space.200`, `space.300`, `type.label.md.default`, `type.label.md.line-box`
 
 Declared, not drawn: `color.border.tertiary`
 
@@ -3952,7 +3961,7 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-250 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+249 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
@@ -3975,7 +3984,7 @@ Declared, not drawn: `color.border.focus`
 - **opacity** — `opacity.0`, `opacity.10`, `opacity.100`, `opacity.20`, `opacity.30`, `opacity.40`, `opacity.5`, `opacity.50`, `opacity.60`, `opacity.70`, `opacity.80`, `opacity.90`
 - **radius** — `radius.3xl`, `radius.hairline`
 - **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.md`, `shadow.sm`, `shadow.xs`
-- **size** — `size.xl.height`, `size.xs.height`
+- **size** — `size.xs.height`
 - **space** — `space.1000`, `space.1100`, `space.1200`, `space.600`, `space.700`, `space.800`, `space.900`
 - **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.default-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.body.xs.strong-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.sm.emphasis`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
 

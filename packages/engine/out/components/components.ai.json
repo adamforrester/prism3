@@ -6938,7 +6938,7 @@
       "category": "foundations",
       "status": "draft",
       "summary": "A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.",
-      "description": "A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. A labeled divider breaks a horizontal rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label, and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.",
+      "description": "A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. A labeled divider breaks the rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label (12px when vertical), and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.",
       "props": [
         {
           "name": "orientation",
@@ -6974,7 +6974,7 @@
           "name": "label",
           "type": "string",
           "required": false,
-          "description": "One short word that breaks the rule in the middle, such as Or. Setting it makes a labeled divider: a line on each side, centered on the label. Horizontal with no inset only. Screen readers read the label as plain text and skip the two lines. Pass the translated word."
+          "description": "One short word that breaks the rule in the middle, such as Or. Setting it makes a labeled divider: a line on each side, centered on the label. No inset only. A vertical labeled divider keeps the label upright, with a line above and below it. Screen readers read the label as plain text and skip the two lines. Pass the translated word."
         }
       ],
       "states": [],
@@ -7016,13 +7016,14 @@
         "labelPattern": "A labeled divider names the choice between two groups of actions with one short word, such as Or, in sentence case. To title the group below, use a heading."
       },
       "docs": {
-        "usage": "Use a divider to separate groups of related content when spacing alone does not make the groups clear: sections of a page, rows in an accordion or list, or a cluster of controls in a toolbar. Horizontal by default, spanning its container; vertical between items in a row. Inset it from the start to line up with indented content, or from both ends to separate within a section. It is decorative by default; set decorative to false when the rule marks a real break in the content. Give it a label, such as Or, when it sits between two alternative groups of actions, such as social sign-in above and email sign-in below.",
+        "usage": "Use a divider to separate groups of related content when spacing alone does not make the groups clear: sections of a page, rows in an accordion or list, or a cluster of controls in a toolbar. Horizontal by default, spanning its container; vertical between items in a row. Inset it from the start to line up with indented content, or from both ends to separate within a section. It is decorative by default; set decorative to false when the rule marks a real break in the content. Give it a label, such as Or, when it sits between two alternative groups of actions, such as social sign-in above and email sign-in below. Vertical, it sits between two groups side by side on a wide layout.",
         "do": [
           "Let the divider span its container, so the break reads as a break between whole groups",
           "Try spacing first, and add a divider when the groups still run together",
           "Use a vertical divider between clusters of controls in a row, such as a toolbar",
           "Leave a divider decorative unless it marks a real break in the content, so a screen reader is not told about every visual line",
-          "Use a labeled divider with Or between two alternative ways to do one thing, such as two ways to sign in"
+          "Use a labeled divider with Or between two alternative ways to do one thing, such as two ways to sign in",
+          "Use a vertical labeled divider only where both groups are at least 56px tall; between two single buttons, stack them and use a horizontal one"
         ],
         "dont": [
           "Put a divider between every item in a list; increase the spacing instead",

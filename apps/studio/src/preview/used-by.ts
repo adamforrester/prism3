@@ -269,6 +269,9 @@ export const USED_BY = {
       "SegmentedControl",
       "Counter",
       "Pagination"
+    ],
+    "size.xl.height": [
+      "Divider"
     ]
   },
   buttonSizes: {
