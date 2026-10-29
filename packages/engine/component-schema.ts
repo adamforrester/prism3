@@ -833,8 +833,12 @@ export type PartDef = {
    *  (`brand-mark`, where square marks and logos carry no edge) names the members that are. A coordinate it names
    *  must resolve a `border` paint, or the projection throws: a weight with no stroke is an edge that draws nothing.
    *  Refused on any other kind, on an icon-set glyph (an instance, whose frame is the icon component's), and beside
-   *  `radius`, `strokeWidth`, `paintSlots` or `clipsContent`, which say the same things for a box. */
-  tileEdge?: { when: Record<string, readonly string[]>; radius: string; strokeWidth: string };
+   *  `radius`, `strokeWidth`, `paintSlots` or `clipsContent`, which say the same things for a box.
+   *
+   *  `edgeWhen` (#3134) narrows the 1px EDGE alone, in the same grammar, to members `when` also names: a tile it does
+   *  not name keeps its corners and its crop and draws no stroke and binds no weight, because its own fill already
+   *  separates it from the page. Absent, every tile `when` names draws the edge. */
+  tileEdge?: { when: Record<string, readonly string[]>; radius: string; strokeWidth: string; edgeWhen?: Record<string, readonly string[]> };
   /** For `vector` parts: WHICH glyph, by its name in the icon vocabulary (#864).
    *
    *  A NAME, resolved against `ICON_PATHS` at projection — never the path data itself. Two reasons, and
@@ -5201,6 +5205,18 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       for (const k of ['radius', 'strokeWidth', 'paintSlots', 'clipsContent'] as const)
         if (p[k] !== undefined)
           e.push(`anatomy part '${n}' declares both 'tileEdge' and '${k}' — the edge stated twice, and the projection would keep whichever wrote last`);
+      // `edgeWhen` (#3134): the edge's own gate, inside the tile gate. A value outside `when` names a member that is no
+      // tile, so its edge would never draw; an axis `when` does not gate is the same mistake one level up.
+      for (const [axis, values] of Object.entries(p.tileEdge.edgeWhen ?? {})) {
+        const tiles = p.tileEdge.when?.[axis];
+        if (!tiles) {
+          e.push(`anatomy part '${n}' gates its tileEdge's edge on '${axis}', which its 'when' does not gate — the edge is drawn only on a tile, so name it on a tile axis`);
+          continue;
+        }
+        for (const v of values ?? [])
+          if (!tiles.includes(v))
+            e.push(`anatomy part '${n}' gates its tileEdge's edge on ${axis}='${v}', which its 'when' does not name — that member is no tile, so its edge is never drawn`);
+      }
     }
     // ---- `minWidth`, the BOX kind's auto-layout width FLOOR (#1343a, #1345) ----
     // Figma applies `minWidth` only to an auto-layout frame, so it is refused on a non-box and on a box

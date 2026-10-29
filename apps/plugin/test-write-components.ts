@@ -5540,7 +5540,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // and Q-T2 on the PR), not read from the plan. The paste executor's twin is in packages/engine/test.ts.
 // Which marks are tiles comes from the `.svg` files in `marks/payment/`, not from the plan or a typed count (Q-B7 amended:
 // no hard-coded provider count): every file there must build as a tile, and the folder must not be empty.
+// #3134: the tiles whose own fill stands apart from a white page (3:1) keep corners and crop and draw no edge. Typed from
+// the owner's direction and the computed result on that PR, not read from the def; every other tile file draws the edge.
 {
+  const EDGELESS = new Set(['brand-mark/payment/amex', 'brand-mark/payment/generic', 'brand-mark/payment/shop-pay', 'brand-mark/payment/venmo']);
   const cardFiles = readdirSync(new URL('../../packages/engine/marks/payment/', import.meta.url)).filter((f) => f.endsWith('.svg')).map((f) => `brand-mark/payment/${f.slice(0, -4)}`).sort();
   const markDef = componentDefs.find((d) => d.id === 'brand-mark')!;
   const plans = figmaAnatomySet(markDef, { swapTarget: SWAP });
@@ -5560,14 +5563,69 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const got = [...CORNERS.map((k) => id(bv[k])), weight, id(strokes[0]?.boundVariables?.color), String(c.clipsContent)];
     if (String(c.name).startsWith('brand-mark/payment/')) {
       tiles.push(String(c.name));
-      const want = [...CORNERS.map(() => 'radius/sm'), 'border-width/hairline', 'color/border/primary', 'true'];
+      const want = [...CORNERS.map(() => 'radius/sm'), ...(EDGELESS.has(String(c.name)) ? [null, null] : ['border-width/hairline', 'color/border/primary']), 'true'];
       if (JSON.stringify(got) !== JSON.stringify(want)) off.push(`${c.name}: ${got.join(' / ')}`);
     } else if (strokes.length || c.clipsContent || CORNERS.some((k) => bv[k]) || weight) off.push(`${c.name} (not a tile): ${got.join(' / ')}`);
   }
   const edgeMisses = (r.misses ?? []).filter((m: string) => /Radius|stroke|clips/i.test(m));
+  // #3134: THE CANVAS GRID IS LAID OUT FROM THE MEMBERS' REAL SIZES. Every pair of built marks is checked for overlap on
+  // the page, by its own x, y, width and height; a mark wider than the old fixed 48px pitch must exist, or the arm
+  // proves nothing.
+  const marks = comps.filter((n) => String(n.name).startsWith('brand-mark/'));
+  const boxOf = (n: Node) => ({ name: String(n.name), x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
+  const boxes = marks.map(boxOf);
+  const overlaps: string[] = [];
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+    const a = boxes[i], b = boxes[j];
+    if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) overlaps.push(`${a.name} over ${b.name}`);
+  }
+  const widest = Math.max(...boxes.map((b) => b.w));
+  ok(boxes.length === plans.length && widest > 48 && boxes.every((b) => Number.isFinite(b.x + b.y + b.w + b.h)) && overlaps.length === 0,
+    `#3134 brand-mark canvas: no two of the ${boxes.length} built marks overlap on the page, the widest ${widest}px wide (overlaps: ${overlaps.length}${overlaps.length ? `, e.g. ${overlaps.slice(0, 3).join(' | ')}` : ''})`);
   const untiled = cardFiles.filter((n) => !tiles.includes(n)), unfiled = tiles.filter((n) => !cardFiles.includes(n));
-  ok(cardFiles.length > 0 && untiled.length === 0 && unfiled.length === 0 && comps.length === plans.length && off.length === 0 && edgeMisses.length === 0,
-    `#2343 Q720 A plugin executor: all ${cardFiles.length} tile files in marks/payment/ build as tiles (${tiles.length} of ${comps.length} built marks) reading back with radius/sm corners, a border-width/hairline edge in color/border/primary, clipped; no other mark has an edge (off: ${[...off, ...edgeMisses, ...untiled.map((n) => `${n}: no tile`), ...unfiled.map((n) => `${n}: no tile file`)].slice(0, 4).join(' | ') || 'none'})`);
+  ok(cardFiles.length > 0 && untiled.length === 0 && unfiled.length === 0 && comps.length === plans.length && off.length === 0 && edgeMisses.length === 0 && [...EDGELESS].every((n) => tiles.includes(n)),
+    `#2343 Q720 A plugin executor: all ${cardFiles.length} tile files in marks/payment/ build as tiles (${tiles.length} of ${comps.length} built marks) reading back with radius/sm corners, clipped, and a border-width/hairline edge in color/border/primary on every tile but amex, generic, shop-pay and venmo (#3134); no other mark has an edge (off: ${[...off, ...edgeMisses, ...untiled.map((n) => `${n}: no tile`), ...unfiled.map((n) => `${n}: no tile file`)].slice(0, 4).join(' | ') || 'none'})`);
+}
+
+// ── #3127: THE ARTBOARD READ-BACK, AT FIGMA'S PRECISION, PER KIND ─────────────────────────────────────────────────────
+// Figma stores a frame's width and height as 32-bit floats, so a logo drawn at its own width, 34.97 × 24, reads back
+// 34.970001220703125 × 24. The exact compare reported 7 BrandMark logos as "sized to its ink" on a fresh file. Here
+// the importer stores its artboard at float32, as the host does: every mark at its own artboard reads back with no
+// `glyphViewBox` miss. Then the importer sizes the frame to its ink: a square kind (an icon-style provider mark) and a
+// logo each still miss, by name. Mutations: `atArtboard` back to an exact compare → `#3127 at its own width`; it
+// passing anything (`return true`) → `#3127 sized to its ink`.
+{
+  const markDef = componentDefs.find((d) => d.id === 'brand-mark')!;
+  const plans = figmaAnatomySet(markDef, { swapTarget: SWAP });
+  const boxOf = (p: (typeof plans)[number]): [number, number] | undefined => {
+    const walk = (n: { glyphViewBox?: [number, number]; children?: unknown[] }): [number, number] | undefined =>
+      n.glyphViewBox ?? (n.children ?? []).map((c) => walk(c as never)).find(Boolean);
+    return walk(p.root as never);
+  };
+  const build = async (pick: typeof plans, host: (n: Node) => void) => {
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(pick), page }) as Record<string, unknown>;
+    const svg = shim.createNodeFromSvg as (src: string) => Node;
+    shim.createNodeFromSvg = (src: string) => { const n = svg(src); host(n); return n; };
+    const r = await applyComponentPlan(pick, shim as any, { emitAsComponents: true });
+    return (r.misses ?? []).filter((m: string) => m.includes('.glyphViewBox'));
+  };
+  const resize = (n: Node, w: number, h: number) => (n.resize as (a: number, b: number) => void)(w, h);
+  // At float32, as the host stores it.
+  const f32 = await build(plans, (n) => resize(n, Math.fround(Number(n.width)), Math.fround(Number(n.height))));
+  const inexact = plans.filter((p) => { const b = boxOf(p); return !!b && (Math.fround(b[0]) !== b[0] || Math.fround(b[1]) !== b[1]); }).map((p) => String(p.coord.name));
+  ok(inexact.length > 0 && inexact.every((n) => n.startsWith('logo/')) && f32.length === 0,
+    `#3127 at its own width: every brand mark imported at float32 reads back at its artboard, the ${inexact.length} logos whose width float32 cannot hold exactly among them (${inexact.join(', ')}), with no glyphViewBox miss (${f32.length} misses${f32.length ? `: ${f32[0]}` : ''})`);
+  // Sized to its ink: the frame takes its outline's box.
+  const ink = (n: Node) => { const v = ((n.children as Node[]) ?? [])[0]; if (v) resize(n, Number(v.width), Number(v.height)); };
+  const square = plans.filter((p) => { const b = boxOf(p); return !!b && b[0] === b[1] && !/^(logo|payment)\//.test(String(p.coord.name)); }).slice(0, 1);
+  const logo = plans.filter((p) => String(p.coord.name) === 'logo/visa');
+  const inkSquare = await build(square, ink);
+  const inkLogo = await build(logo, ink);
+  ok(square.length === 1 && inkSquare.some((m: string) => m.includes('every host binding a square')),
+    `#3127 sized to its ink: a square-kind mark (${String(square[0]?.coord.name)}) whose frame is sized to its ink fails, named (${inkSquare[0] ?? 'no miss'})`);
+  ok(logo.length === 1 && inkLogo.some((m: string) => /a host binding its [\d.]+x24 box/.test(m)),
+    `#3127 sized to its ink: a logo whose frame is sized to its ink still fails, named for its own box (${inkLogo[0] ?? 'no miss'})`);
 }
 
 // ── #2428: CODE INPUT'S CHARACTER CARRIES ITS SIZE'S TEXT STYLE ON THE HOST ─────────────────────────────────────────

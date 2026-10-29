@@ -1818,6 +1818,8 @@ export const figmaAnatomyPlan = (
     // THE TILE EDGE (#2343, Q720 A), at the coordinates its gate names: `PartDef.tileEdge`.
     const tileEdge = p.kind === 'vector' && p.tileEdge && Object.entries(p.tileEdge.when).every(([ax, vs]) => vs.includes(String(axisValue(ax))))
       ? p.tileEdge : undefined;
+    // THE EDGE ALONE (#3134): a tile `edgeWhen` does not name keeps its corners and crop, and draws no stroke.
+    const tileStroke = !!tileEdge && Object.entries(tileEdge.edgeWhen ?? {}).every(([ax, vs]) => vs.includes(String(axisValue(ax))));
     if (p.kind === 'box') {
       if (p.gap) bound.itemSpacing = varOf(p.gap);
       if (p.height) bound.height = varOf(p.height);
@@ -1932,7 +1934,7 @@ export const figmaAnatomyPlan = (
       // A FULL-BLEED TILE'S EDGE (#2343, Q720 A), on the glyph's own frame: its corners and its stroke weight, bound.
       if (tileEdge) {
         for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(tileEdge.radius);
-        bound.strokeWeight = varOf(tileEdge.strokeWidth);
+        if (tileStroke) bound.strokeWeight = varOf(tileEdge.strokeWidth);
       }
     }
 
@@ -2029,7 +2031,7 @@ export const figmaAnatomyPlan = (
       // THE TILE'S EDGE IS THE FRAME'S STROKE, never the artwork's: on the artboard, where a fill would be a square
       // behind the mark, a stroke drawn inside is the tile's border. It throws unpainted: a bound weight with no
       // stroke is an edge that draws nothing, the silent-loss shape.
-      if (tileEdge) {
+      if (tileEdge && tileStroke) {
         const edge = paintOf('border');
         if (!edge) throw new Error(`${def.id}: anatomy part '${name}' draws a tileEdge at ${JSON.stringify(paintCoord)} and the def resolves no 'border' paint there — the edge would bind its weight and draw nothing`);
         paints.strokes = edge;
@@ -4710,7 +4712,10 @@ const build=async(n)=>{
     // THE ARTBOARD, read back too, because an importer is free to size its result to the INK. That is
     // the second half of #864's own class: \`minus\` is 14×2 of drawing on a 24×24 artboard, and a member
     // sized to the drawing stretches non-uniformly into the square its host binds.
-    if(n.glyphViewBox&&(node.width!==n.glyphViewBox[0]||node.height!==n.glyphViewBox[1]))misses.push(n.name+'.glyphViewBox -> '+n.glyphViewBox[0]+'x'+n.glyphViewBox[1]+' (the imported frame reads '+node.width+'x'+node.height+'; the glyph was sized to its ink rather than to its artboard, so every host binding a square would distort it)');
+    // #3127: at Figma's precision. Width and height are stored as 32-bit floats, so an artboard not exact in binary
+    // (a 34.97 × 24 logo) reads a hair off; an exact compare called that ink-sized. The box is the plan's per kind:
+    // square for an icon, its own width × 24 for a logo, 32 × 20 for a payment tile. The plugin's twin is \`atArtboard\`.
+    if(n.glyphViewBox&&(Math.abs(node.width-n.glyphViewBox[0])>0.001||Math.abs(node.height-n.glyphViewBox[1])>0.001))misses.push(n.name+'.glyphViewBox -> '+n.glyphViewBox[0]+'x'+n.glyphViewBox[1]+' (the imported frame reads '+node.width+'x'+node.height+'; the glyph was sized to its ink rather than to its artboard, so '+(n.glyphViewBox[0]===n.glyphViewBox[1]?'every host binding a square':'a host binding its '+n.glyphViewBox[0]+'x'+n.glyphViewBox[1]+' box')+' would distort it)');
     // SCALE rather than the importer's default, on the OUTLINE and not on the frame. The frame is resized
     // by whoever instances it — a host binds \`size.{size}.icon\` onto its own slot — and a child left at
     // Figma's MIN/MIN constraint keeps the 24px it was drawn at, so a 16px instance would show the

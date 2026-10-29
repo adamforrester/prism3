@@ -93,7 +93,14 @@ export type HostMessage =
   | { kind: 'update-check'; previewHash: string; sets: readonly CheckedSetView[]; missing: readonly string[]; error: string | null };
 
 /** A set as the as-built ledger reads it (#2909 Q2909.8 A, `apps/plugin/src/as-built-ledger.ts`). */
-export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readonly state: 'due'; readonly reason: 'definition' | 'engine' };
+export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readonly state: 'due'; readonly reason: 'definition' | 'executor' }
+  | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: MovedView };
+/** What an engine update moved in a set's plans (#3082 Q811 A, `Moved` in `as-built-ledger.ts`), for its reason line. */
+export type MovedView = {
+  readonly parts: readonly { readonly part: string; readonly facets: readonly FacetView[] }[];
+  readonly added: readonly string[]; readonly dropped: readonly string[]; readonly set: boolean;
+};
+export type FacetView = 'size' | 'color' | 'type' | 'effect' | 'layout' | 'content';
 /** A set as the scoped check reads it (#2909, `CheckedSet` in `apps/plugin/src/messages.ts`). */
 export type CheckedSetView = {
   readonly def: string; readonly hash: string; readonly members: number; readonly update: number; readonly add: number; readonly drop: number;
@@ -275,9 +282,28 @@ const dueOf = (x: unknown): Record<string, SetDueView> => {
     const d = v as { state?: unknown; reason?: unknown } | null;
     if (!d || typeof d !== 'object') continue;
     if (d.state === 'current' || d.state === 'unrecorded') out[id] = { state: d.state };
-    else if (d.state === 'due' && (d.reason === 'definition' || d.reason === 'engine')) out[id] = { state: 'due', reason: d.reason };
+    else if (d.state === 'due' && (d.reason === 'definition' || d.reason === 'executor')) out[id] = { state: 'due', reason: d.reason };
+    // #3082 Q811 A: an engine update names what moved; a reading that names nothing usable still counts the set due. No
+    // list at all is an entry from before Q811 A, with no print to compare (`as-built-ledger.ts`, finding 1).
+    else if (d.state === 'due' && d.reason === 'engine') {
+      const m = (d as { moved?: unknown }).moved;
+      out[id] = m && typeof m === 'object' ? { state: 'due', reason: 'engine', moved: movedOf(m) } : { state: 'due', reason: 'engine' };
+    }
   }
   return out;
+};
+const FACET_VIEWS: readonly FacetView[] = ['size', 'color', 'type', 'effect', 'layout', 'content'];
+/** #3082 Q811 A: what moved, each list kept to the entries of the right shape. */
+const movedOf = (x: unknown): MovedView => {
+  const m = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
+  const names = (v: unknown): string[] => (Array.isArray(v) ? v.filter(isId) : []);
+  const parts = Array.isArray(m.parts) ? (m.parts as unknown[]).flatMap((p) => {
+    const q = p as { part?: unknown; facets?: unknown } | null;
+    if (!q || typeof q !== 'object' || !isId(q.part) || !Array.isArray(q.facets)) return [];
+    const facets = (q.facets as unknown[]).filter((f): f is FacetView => FACET_VIEWS.includes(f as FacetView));
+    return facets.length ? [{ part: q.part, facets }] : [];
+  }) : [];
+  return { parts, added: names(m.added), dropped: names(m.dropped), set: m.set === true };
 };
 /** #2909: one checked set, or none when a count or a flag is malformed. */
 const checkedSet = (x: unknown): CheckedSetView[] => {

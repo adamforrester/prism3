@@ -313,6 +313,13 @@
       "title": "the opaque outline hover fill is brand-dependent",
       "doc": "docs/30-versioning-and-compatibility.md",
       "section": null
+    },
+    {
+      "date": "2026-10-28",
+      "issue": 3135,
+      "title": "Effect styles and Gradient styles each in a group frame",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
     }
   ]
 }

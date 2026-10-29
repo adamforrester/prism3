@@ -80,7 +80,7 @@ import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, ic
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
-import { BRAND_MARK_BOXES } from './brand-mark-glyphs';
+import { BRAND_MARK_BOXES, BRAND_MARK_DOCUMENTS } from './brand-mark-glyphs';
 import { makeTextField } from './components/text-field';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -22926,15 +22926,97 @@ arm: {
         `#2428 paste: Code input's character carries its size's text style from the paste executor at every size, untrimmed, nothing discarded (${bad.join(' | ') || 'clean'})`);
     }
 
+    // ---- #3134: the Apple and Facebook sign-in glyphs are drawn black, so they show on the canvas like every other mark ----
+    // Typed from the owner's direction ("a consumer tints them as needed"), read from the emitted module and from the
+    // plan the importer is handed.
+    {
+      const markDef = componentDefs.find((x) => x.id === 'brand-mark')!;
+      const fills = (svg: string): string[] => [...svg.matchAll(/<path\b[^>]*\sfill="(#[0-9A-Fa-f]{6})"/g)].map((m) => m[1].toUpperCase());
+      const off: string[] = [];
+      for (const name of ['provider/apple', 'provider/facebook'] as const) {
+        const doc = fills(BRAND_MARK_DOCUMENTS[name]);
+        const plan = figmaAnatomyPlan(markDef, undefined, { name } as never);
+        const planned = fills(JSON.stringify(plan.root).replace(/\\"/g, '"'));
+        if (JSON.stringify(doc) !== '["#000000"]' || JSON.stringify(planned) !== '["#000000"]') off.push(`${name}: module ${JSON.stringify(doc)}, plan ${JSON.stringify(planned)}`);
+      }
+      ok(off.length === 0, `#3134 provider glyphs: provider/apple and provider/facebook are drawn in black (#000000) alone, in the module and in the plan (${off.join(' | ') || 'clean'})`);
+    }
+
+    // ---- #3134 review: a provider glyph nested over a LITERAL fill stands off it, 3:1 or more ----
+    // Now that provider/apple and provider/facebook are black, a host that nests one over a black or dark provider fill
+    // (SignInButton, #3125) draws it invisible. A themed fill is the contrast contract's; a literal one is the def's own
+    // value and nothing else checks it. The glyph's paint is its file's colors, and a many-colored glyph passes on its
+    // strongest one (Google's mark reads on white by its blue, not its yellow). WCAG 1.4.11's non-text floor, 3:1.
+    // With no host on main it passes vacuously, so it states what it walked, and its fixtures must fail.
+    {
+      const PROVIDER = 'brand-mark/provider/';
+      type Node = { name?: string; nestTarget?: string; swapTarget?: string; paints?: { fills?: string }; literalPaints?: { fills?: readonly string[] }; children?: Node[] };
+      const HEX = /^#[0-9A-Fa-f]{6}/;
+      const paintsOf = (svg: string): string[] => [...new Set([...svg.matchAll(/\sfill="(#[0-9A-Fa-f]{6})"/g)].map((m) => m[1].toUpperCase()))];
+      /** Every provider glyph a plan nests, with the nearest painted ancestor's fill when that fill is a literal. */
+      const glyphsOver = (root: Node, docs: Record<string, string>): { glyph: string; over?: string; themed: boolean; paints: string[] }[] => {
+        const out: { glyph: string; over?: string; themed: boolean; paints: string[] }[] = [];
+        const visit = (n: Node, fill: { hex?: string; themed: boolean } | undefined): void => {
+          const lit = n.literalPaints?.fills?.[0] ?? (HEX.test(n.paints?.fills ?? '') ? n.paints!.fills : undefined);
+          const here = lit ? { hex: lit.slice(0, 7), themed: false } : n.paints?.fills ? { themed: true } : fill;
+          for (const t of [n.nestTarget, n.swapTarget]) if (typeof t === 'string' && t.startsWith(PROVIDER)) {
+            const glyph = t.slice('brand-mark/'.length);
+            out.push({ glyph, over: fill?.hex, themed: !!fill?.themed, paints: paintsOf(docs[glyph] ?? '') });
+          }
+          for (const c of n.children ?? []) visit(c, here);
+        };
+        visit(root, undefined);
+        return out;
+      };
+      /** What is wrong with a plan's provider glyphs, by name. Empty when clean. */
+      const lowGlyphs = (root: Node, docs: Record<string, string>, at: string): string[] => glyphsOver(root, docs).flatMap((g) => {
+        if (!g.paints.length) return [`${at}: nests ${PROVIDER}${g.glyph}, which the mark set does not draw`];
+        if (!g.over) return [];
+        const best = Math.max(...g.paints.map((p) => contrast(hexToRgb(p), hexToRgb(g.over!))));
+        return best < 3 ? [`${at}: ${PROVIDER}${g.glyph} (${g.paints.join(', ')}) over the literal fill ${g.over} is ${best.toFixed(2)}:1, under 3:1`] : [];
+      });
+      const docs = BRAND_MARK_DOCUMENTS as Record<string, string>;
+      const fixture = (fill: string, glyph: string): Node => ({ name: 'container', literalPaints: { fills: [fill] }, children: [{ name: 'mark', nestTarget: `${PROVIDER}${glyph}` }] });
+      const self: string[] = [];
+      if (lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture').length !== 1) self.push('a black glyph on a black literal fill is not caught');
+      if (lowGlyphs(fixture('#131314', 'facebook'), docs, 'fixture').length !== 1) self.push('a black glyph on a near-black literal fill is not caught');
+      if (lowGlyphs(fixture('#FFFFFF', 'apple'), docs, 'fixture').length) self.push('a black glyph on white is refused');
+      if (lowGlyphs(fixture('#FFFFFF', 'google'), docs, 'fixture').length) self.push('the many-colored Google glyph on white is refused');
+      if (lowGlyphs({ name: 'c', paints: { fills: 'color/surface/primary' }, children: [{ name: 'mark', nestTarget: `${PROVIDER}apple` }] }, docs, 'fixture').length) self.push('a themed fill is judged as a literal');
+      if (lowGlyphs({ ...fixture('#000000', 'apple'), children: [{ name: 'inner', children: [{ name: 'mark', swapTarget: `${PROVIDER}apple` }] }] }, docs, 'fixture').length !== 1) self.push('a swapped glyph two levels under the literal fill is not caught');
+      // The walk over every registered def: what it covered, so a vacuous pass says so.
+      const bad: string[] = [];
+      let defs = 0, plans = 0, marks = 0, glyphs = 0, overLiteral = 0;
+      for (const def of componentDefs) {
+        if (def.id === 'brand-mark' || !def.figmaProperties) continue;
+        defs++;
+        for (const plan of figmaAnatomySet(def)) {
+          plans++;
+          const walkAll = (n: Node): void => { if ([n.nestTarget, n.swapTarget].some((t) => typeof t === 'string' && t.startsWith('brand-mark/'))) marks++; for (const c of n.children ?? []) walkAll(c); };
+          walkAll(plan.root as Node);
+          const found = glyphsOver(plan.root as Node, docs);
+          glyphs += found.length;
+          overLiteral += found.filter((g) => g.over).length;
+          bad.push(...lowGlyphs(plan.root as Node, docs, `${def.id} ${JSON.stringify({ size: plan.size, ...plan.coord })}`));
+        }
+      }
+      ok(self.length === 0, `#3134 provider glyph contrast self-test: the arm catches a low glyph on a literal fill and passes a readable one (${self.join(' | ') || 'clean'})`);
+      ok(defs > 0 && plans > 0 && marks > 0 && bad.length === 0,
+        `#3134 provider glyph contrast: every brand-mark/provider/* glyph nested over a literal fill is 3:1 or more against it — walked ${defs} def(s), ${plans} plan(s), ${marks} nested brand mark(s), ${glyphs} provider glyph(s), ${overLiteral} over a literal fill (${bad.slice(0, 6).join(' | ') || 'clean'})`);
+    }
+
     // ---- #2343 Q720 A: a payment tile's frame draws its corners and edge through the PASTE executor ----
     // The plugin leg is in test-write-components. Names typed from the decision (the roles held as Q-T1 and Q-T2 on
     // the PR), not read from the plan; a bound weight counts on the scalar or on all four per-side keys (#1332).
+    // #3134: a tile whose own fill stands apart from a white page (3:1) keeps its corners and crop and draws no edge.
+    // Typed from the owner's direction and the computed result on that PR, not read from the def.
     {
+      const EDGELESS = new Set(['payment/amex', 'payment/generic', 'payment/shop-pay', 'payment/venmo']);
       const markDef = componentDefs.find((x) => x.id === 'brand-mark')!;
       const CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
       const bad: string[] = [];
       let tiles = 0, pasted = 0;
-      for (const name of ['payment/visa', 'payment/generic', 'social/x-mono', 'logo/paypal']) {
+      for (const name of ['payment/visa', 'payment/generic', 'payment/venmo', 'social/x-mono', 'logo/paypal']) {
         const plan = figmaAnatomyPlan(markDef, undefined, { name } as never);
         const page: StubPage = { children: [] };
         const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: [], comps: [], page });
@@ -22950,12 +23032,38 @@ arm: {
         pasted++;
         if (name.startsWith('payment/')) {
           tiles++;
-          const want = [...CORNERS.map(() => 'radius/sm'), 'border-width/hairline', 'color/border/primary', 'true'];
+          const want = [...CORNERS.map(() => 'radius/sm'), ...(EDGELESS.has(name) ? [null, null] : ['border-width/hairline', 'color/border/primary']), 'true'];
           if (!frame || JSON.stringify(got) !== JSON.stringify(want) || edgeMisses.length) bad.push(`${name}: ${frame ? got.join(' / ') : 'no frame'}${edgeMisses.length ? `; ${edgeMisses[0]}` : ''}`);
         } else if (!frame || strokes.length || frame.clipsContent || CORNERS.some((k) => bv[k]) || weight) bad.push(`${name} (not a tile): ${frame ? got.join(' / ') : 'no frame'}`);
       }
-      ok(pasted === 4 && tiles === 2 && bad.length === 0,
-        `#2343 Q720 A paste executor: a payment tile's frame reads back with radius/sm corners, a border-width/hairline edge in color/border/primary, and clips; a square mark's or a logo's has no edge (${bad.join(' | ') || 'clean'})`);
+      ok(pasted === 5 && tiles === 3 && bad.length === 0,
+        `#2343 Q720 A paste executor: a payment tile's frame reads back with radius/sm corners and clips, with a border-width/hairline edge in color/border/primary only where its fill is under 3:1 on white (visa; not generic or venmo, #3134); a square mark's or a logo's has no edge (${bad.join(' | ') || 'clean'})`);
+    }
+
+    // ---- #3127: the paste executor's artboard read-back, at Figma's precision, per kind ----
+    // The plugin leg is in test-write-components. The importer here stores its artboard at float32, as the host does: a
+    // logo whose width float32 cannot hold exactly (34.97 → 34.970001220703125) reads back with no glyphViewBox miss.
+    // Then it sizes the frame to the ink: a square kind and a logo each still miss, named for their own box. Mutations:
+    // the payload's compare back to `!==` → `#3127 paste at its own width`; it passing anything → `#3127 paste ink`.
+    {
+      const markDef = componentDefs.find((x) => x.id === 'brand-mark')!;
+      const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<PayloadResult>;
+      const paste = async (name: string, host: (n: Record<string, any>) => void): Promise<string[]> => {
+        const plan = figmaAnatomyPlan(markDef, undefined, { name } as never);
+        const stub = makeFigmaStub({ vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: [], comps: [], page: { children: [] } }) as Record<string, any>;
+        const svg = stub.createNodeFromSvg as (src: string) => Record<string, any>;
+        stub.createNodeFromSvg = (src: string) => { const n = svg(src); host(n); return n; };
+        try { return (await new AsyncFunction('figma', planToPluginJs(plan))(stub)).misses.filter((m) => m.includes('.glyphViewBox')); }
+        catch (e) { return [`payload THREW -> ${(e as Error).message}`]; }
+      };
+      const f32 = await paste('logo/amex', (n) => n.resize(Math.fround(n.width), Math.fround(n.height)));
+      ok(Math.fround(34.97) !== 34.97 && f32.length === 0,
+        `#3127 paste at its own width: a 34.97 × 24 logo imported at float32 reads back at its artboard, with no glyphViewBox miss (${f32[0] ?? 'none'})`);
+      const ink = (n: Record<string, any>) => { const v = (n.children ?? [])[0]; if (v) n.resize(v.width, v.height); };
+      const inkSquare = await paste('provider/apple', ink);
+      const inkLogo = await paste('logo/visa', ink);
+      ok(inkSquare.some((m) => m.includes('every host binding a square')) && inkLogo.some((m) => m.includes('a host binding its 27.4x24 box')),
+        `#3127 paste ink: a square-kind mark and a logo whose frames are sized to their ink each still miss, named for their own box (${inkSquare[0] ?? 'no square miss'} | ${inkLogo[0] ?? 'no logo miss'})`);
     }
 
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------

@@ -129,18 +129,22 @@ export const TILE_VARS = [
   ['bw-hairline', 'border-width.hairline', D], ['bw-thick', 'border-width.thick', D],
   ['focus-width', 'focus.ring.width', D], ['focus-offset', 'focus.ring.offset', D],
   ['focus-offset-field', 'focus.ring.offset-field', D],
-  // control geometry: fields and chips 40, top-bar controls 36, small buttons 28, the drawer bar 44,
-  // the top bar and the tab row 56
-  ['ctl-h', 'core.dimension.40', D], ['ctl-h-sm', 'size.sm.height', D], ['ctl-h-xs', 'size.xs.height', D],
+  // control geometry: fields and chips 36, buttons and top-bar controls 32, small buttons 28, the drawer bar 44,
+  // the top bar and the tab row 56. #3083 (the owner's Q3083.2 B, 2026-10-28): controls only, a step down each
+  // (`ctl-h` 40 → 36, `ctl-h-sm` 36 → 32), changed in place, so the mockups and the product keep reading one row; the
+  // bar, the tab row and the narrow tier's 28 stay.
+  ['ctl-h', 'size.sm.height', D], ['ctl-h-sm', 'core.dimension.32', D], ['ctl-h-xs', 'size.xs.height', D],
   ['bar-h', 'size.lg.height', D], ['ctl-h-md', 'size.md.height', D],
   ['track-h', 'control.size.sm.track', D],
   ['track-w', 'control.size.sm.width', D], ['thumb', 'control.size.sm.thumb', D],
   ['thumb-inset', 'control.size.sm.inset', D], ['dot', 'control.size.sm.dot', D],
   ['icon-xs', 'icon.size.xs', D],
   ['hit-min', 'core.dimension.24', D], ['swatch-h', 'core.dimension.40', D],
-  // type: sizes, weights, leading and tracking. The families are chrome constants (CHROME_FONTS).
-  ['fs-12', 'core.font.size.12', D], ['fs-14', 'core.font.size.14', D],
-  ['fs-16', 'core.font.size.16', D],
+  // type: sizes, weights, leading and tracking. The families are chrome constants (CHROME_FONTS). #3083 (the owner's
+  // Q3083.1 A, 2026-10-28): body and controls (`fs-14`) take 12, section and dialog titles (`fs-16`) take 14, each a
+  // step down, changed in place under the old names so no rule moves; secondary (`fs-12`) stays 12, set apart by its ink.
+  ['fs-12', 'core.font.size.12', D], ['fs-14', 'core.font.size.12', D],
+  ['fs-16', 'core.font.size.14', D],
   ['fw-default', 'core.font.weight-role.default', N], ['fw-emphasis', 'core.font.weight-role.emphasis', N],
   ['fw-strong', 'core.font.weight-role.strong', N],
   ['lh-compact', 'core.font.line-height-role.compact', N],

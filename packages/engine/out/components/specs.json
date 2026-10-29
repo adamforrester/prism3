@@ -821,12 +821,7 @@
           "where": {
             "name": "payment/amex"
           },
-          "parts": [
-            {
-              "part": "glyph",
-              "stroke": "color.border.primary"
-            }
-          ]
+          "parts": []
         },
         {
           "where": {
@@ -865,12 +860,7 @@
           "where": {
             "name": "payment/generic"
           },
-          "parts": [
-            {
-              "part": "glyph",
-              "stroke": "color.border.primary"
-            }
-          ]
+          "parts": []
         },
         {
           "where": {
@@ -931,23 +921,13 @@
           "where": {
             "name": "payment/shop-pay"
           },
-          "parts": [
-            {
-              "part": "glyph",
-              "stroke": "color.border.primary"
-            }
-          ]
+          "parts": []
         },
         {
           "where": {
             "name": "payment/venmo"
           },
-          "parts": [
-            {
-              "part": "glyph",
-              "stroke": "color.border.primary"
-            }
-          ]
+          "parts": []
         },
         {
           "where": {
