@@ -506,5 +506,50 @@ console.log('\n10. The type sample\'s display line (#1942, owner decisions Q67, 
     `with no display.md.strong, the sample opens with the largest display style by size, display.3xl.emphasis at 160px — drew ${pick?.path} at ${pick?.sizePx}px`);
 }
 
+console.log('\n11. Caption sizes and the letter spacing pin (#3077, owner decisions 2026-10-27: caption A, tracking A)');
+{
+  reset();
+  T.setCaptionSize('md', 10);
+  const caps = [...new Set(engine().composites.filter((c) => c.group === 'caption').map((c) => `${c.variant}=${c.sizePx}`))].join(',');
+  ok(ty() === with3({ sizes: { caption: { md: 10 } } }) && caps === 'md=10,lg=12', `setCaptionSize(md, 10) writes typography.sizes.caption.md and the engine builds caption md 10 / lg 12 (${caps})`);
+  ok(T.captionSizePin('md') === 10 && T.captionSizePin('lg') === undefined, 'captionSizePin reads the caption size set');
+  ok(T.pinnedSizeCount() === 0, `a caption size is not counted among the pinned heading sizes (counted ${T.pinnedSizeCount()})`);
+  T.setSizePin(null, 'title', 'md', 26);
+  T.releasePinnedSizes();
+  ok(ty() === with3({ sizes: { caption: { md: 10 } } }), `Release pinned sizes drops the title size and keeps the caption size (${ty()})`);
+  T.setCaptionSize('md', undefined);
+  ok(pristine(), 'clearing the caption size leaves the brand byte-identical');
+  reset();
+  T.setTrackingPin('display', 'open');
+  T.setTrackingPin('label', 'open');
+  const disp = [...new Set(engine().composites.filter((c) => c.group === 'display').map((c) => c.tracking))].join(',');
+  ok(ty() === with3({ tracking: { display: 'open', label: 'open' } }) && disp === 'open', `setTrackingPin writes typography.tracking and every display style uses open (${disp})`);
+  ok(T.trackingPinOf('display') === 'open' && T.trackingPinOf('title') === undefined, 'trackingPinOf reads the pin');
+  T.setTrackingPin('display', undefined);
+  T.setTrackingPin('label', undefined);
+  ok(pristine(), 'clearing every pin leaves the brand byte-identical (typography.tracking pruned)');
+}
+// #3084: the 10px caption floor is refused while caption md is set to 10px, so its chip is disabled with a reason.
+// EXPECTED from the sizes typed here, never from the module: blocked exactly when caption md is 10px. The engine is the
+// second witness: on 11px every case builds, and on 10px each blocked case throws and each other one builds.
+{
+  const at10 = (): boolean => { try { brandTheme({ ...structuredClone(store.brandState), typography: { ...structuredClone(store.brandState.typography), captionFloor: 10 } }); return true; } catch { return false; } };
+  const check = (what: string, want: boolean): void => {
+    ok(T.captionFloorBlocked() === want, `captionFloorBlocked, ${what}: ${want ? 'refuses' : 'offers'} 10px (got ${T.captionFloorBlocked()})`);
+    ok(takes() && at10() === !want, `captionFloorBlocked, ${what}: the engine takes 11px and ${want ? 'refuses' : 'builds'} 10px`);
+  };
+  reset();
+  check('no caption size set', false);
+  T.setCaptionSize('md', 10);
+  check('caption md set to 10px', true);
+  T.setCaptionSize('lg', 16);
+  T.setCaptionSize('md', 12);
+  check('caption md set to 12px, lg to 16px', false);
+  reset();
+  T.setCaptionSize('lg', 14);
+  check('caption lg set, md not', false);
+  reset();
+}
+
 console.log(`\n${executed - failed}/${executed} type-input assertions passed.`);
 if (failed) process.exit(1);

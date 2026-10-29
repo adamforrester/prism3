@@ -219,6 +219,19 @@ const RAMPS: Ramp[] = [
     },
   },
   {
+    // #3077 (caption A): the caption rungs Type's Caption sizes control writes, `typography.sizes.caption.<rung>`.
+    // Held to the caption sizes each brand actually emits, so a rung renamed or dropped in the engine fails here
+    // instead of the control writing a size the engine refuses.
+    name: 'CAPTION_SIZE_RUNGS',
+    label: 'the caption sizes a brand may set',
+    source: 'theme.typography.composites (caption variants)',
+    ladder: (b) => {
+      const comps = (b.theme as unknown as { typography?: { composites?: { group: string; variant: string }[] } }).typography?.composites;
+      const vs = [...new Set((comps ?? []).filter((c) => c.group === 'caption').map((c) => c.variant))];
+      return vs.length ? vs : null;
+    },
+  },
+  {
     name: 'BULK_CATS',
     exempt:
       'not an authored list — it is `TYPE_GROUP_ORDER.filter((g) => g !== \'code\')`, computed from a ' +
