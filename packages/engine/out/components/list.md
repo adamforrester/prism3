@@ -119,22 +119,22 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.150` | — | — | 120px (literal) | build width 320px (literal) |
-| `container/items` | — | `space.150` | — | — | — | — |
+| `container` | — | `space.200` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.200` | — | — | — | — |
 
 **size=small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.100` | — | — | 120px (literal) | build width 320px (literal) |
-| `container/items` | — | `space.100` | — | — | — | — |
+| `container` | — | `space.150` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.150` | — | — | — | — |
 
 **size=large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.200` | — | — | 120px (literal) | build width 320px (literal) |
-| `container/items` | — | `space.200` | — | — | — | — |
+| `container` | — | `space.250` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.250` | — | — | — | — |
 
 ### Color
 

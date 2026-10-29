@@ -14,7 +14,8 @@
  * normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component." It is
  * carried in `summary` (the Figma description), `ai.avoidWhen` and the docs page.
  *
- * THE ITEM GAP (owner decision Q280.2 A): 8/12/16 (`space.100` / `150` / `200`), and it follows density.
+ * THE ITEM GAP (owner decision on #3155, revising Q280.2 A's 8/12/16): 12/16/20 (`space.150` / `200` / `250`), and it
+ * follows density.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -61,10 +62,11 @@ export const list: ComponentDef = {
   densitySpacing: ['size.{size}.gap'],
 
   tokens: {
-    // THE ITEM GAP (owner decision Q280.2 A): 8/12/16 at comfortable density, moved one step by density.
-    'size.small.gap': 'space.100',
-    'size.medium.gap': 'space.150',
-    'size.large.gap': 'space.200',
+    // THE ITEM GAP (owner decision on #3155): 12/16/20 at comfortable density, one step wider than Q280.2 A's 8/12/16,
+    // and still moved one step by density.
+    'size.small.gap': 'space.150',
+    'size.medium.gap': 'space.200',
+    'size.large.gap': 'space.250',
   },
 
   anatomy: {
@@ -177,6 +179,7 @@ export const list: ComponentDef = {
       'What Dev Mode shows for a native Figma text list (list spacing, the marker, bound paragraph variables) — not checked; the build lane has no Dev Mode (#2319, Q273.10).',
     ],
     evolution: [
+      '2026-10-29 (#3155): owner decision — the item gap one step wider at every size, 12/16/20 (`space.150` / `200` / `250`), revising Q280.2 A\'s 8/12/16. It still follows density.',
       '2026-10-15 (#2645): the nested items carry their own numbers, "2." to "8." after the first item\'s "1.", through a per-instance text override; they no longer all read "1." until a designer types them.',
       '2026-10-13 (#2319): owner decisions Q273 — the read list now (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), names, category data and its own page (Q273.7), markers at the text\'s strength (Q273.8), and native text lists for running text, the component for UI lists (Q273.9). Native list fields verified against the plugin typings (Q273.10): paragraph spacing and indent bind, list spacing and the marker do not.',
     ],
