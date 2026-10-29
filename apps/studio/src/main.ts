@@ -31,7 +31,7 @@ import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
 import type { StyleGuidesLend } from './shell/style-guides';
-import type { ActivityReading, OpReading } from './shell/activity';
+import type { ActivityLend, ActivityReading, OpReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { DocumentationLend } from './shell/documentation';
 import { brandFor, DUE_DEBOUNCE_MS, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
@@ -1117,7 +1117,7 @@ const mountView = (view: RootView): void => {
       frame = mountFrame(app, {
         host: commit.isFigma ? 'figma' : 'web',
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
-        activity: { read: activityReading, closeDetail: closeOpenDetail },
+        activity: { read: activityReading, closeDetail: closeOpenDetail, again: commit.isFigma ? activityAgain : undefined },
         // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
         updateFile: commit.isFigma ? updateFileLend : null,
         documentation: commit.isFigma ? documentationLend : null,
@@ -2027,6 +2027,27 @@ const updateFileLend: UpdateFileLend = {
   pruneCheck: () => runPrune(),
   pruneDelete: deletePrune,
   cleanUp: (ids) => styleGuidesLend.cleanUp(ids),
+};
+
+/** #3113 (Q3113.4 A): a bad result's "… again" in the Activity drawer, through the write call the panel already makes for
+ *  it: Update file's run for the theme, Set up file and the style guides, the Components page's run for the sets the last
+ *  panel build asked for, Clean up's dry run for Prune stale, and Documentation's Draw specs. It may start only while
+ *  nothing runs, panel or agent, and never after a failed restore (#1989); each call keeps its own guard as well. */
+const activityAgain: NonNullable<ActivityLend['again']> = {
+  can: (k) => {
+    if (restoreFailure || updateRun || Object.values(activityReading().ops).some((o) => o.state === 'running')) return false;
+    if (k === 'components') return !!lastRun;
+    return k === 'apply' || k === 'filesetup' || k === 'styleguide' || k === 'prune' || k === 'specs';
+  },
+  run: (k) => {
+    if (!activityAgain.can(k)) return;
+    if (k === 'apply') updateFileLend.run(['theme'], [], null);
+    else if (k === 'filesetup') updateFileLend.run(['setup'], [], null);
+    else if (k === 'styleguide') updateFileLend.run(['guides'], [], null);
+    else if (k === 'components' && lastRun) runSets(lastRun.run.kind, lastRun.run.ids);
+    else if (k === 'prune') runPrune();
+    else if (k === 'specs') documentationLend.specs.draw();
+  },
 };
 
 // ---- the homes (#2879) ---------------------------------------------------------------------------------

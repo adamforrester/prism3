@@ -263,3 +263,19 @@ export const DECORATIVE = ['line-1', 'scrim'];
 // role in either theme, so a live color cannot be parked here; and `test:chrome` exempts a drawn node only when it is
 // really disabled, and then holds it to these exact Prism3 roles, read from the emission.
 export const INACTIVE = ['disabled-fill', 'disabled-edge', 'disabled-ink', 'disabled-text', 'disabled-icon'];
+
+// T5, SHADOWS (decisions-2026-09-30-v4-review.md; reworded by the owner on #3113, 2026-10-28): shadows are used sparingly,
+// and only where they carry meaning. T5 is a rule of thumb, not a prohibition. Each sanctioned use is recorded here with
+// its rule and its reason.
+// · The Activity drawer's top edge (the owner, #3113): a subtle shadow while the drawer overlays the preview (the open
+//   drawer; the strip and the sheet at 380), so it reads as an overlay that slides up and over. Its color is the chrome's
+//   own scrim (`scrim`, the engine's `color.scrim.default`, already mapped), so no token or pair is added; its offsets and
+//   blur are the chrome's spacing variables. `test:chrome` holds the drawn side to its own literal: the open drawer or
+//   strip casts it upward, and the closed bar row casts none.
+// The product build lets each recorded rule through the raw scan word for word (`esbuild-plugin.mjs`).
+export const SANCTIONED_SHADOWS = [
+  {
+    rule: '.p3-drawer[data-open="true"], .p3-frame[data-w="narrow"] .p3-drawer { box-shadow: 0 calc(-1 * var(--p3-space-025)) var(--p3-space-150) calc(-1 * var(--p3-space-050)) var(--p3-scrim); }',
+    why: 'the owner, #3113 (2026-10-28): the Activity drawer reads as an overlay that slides up and over the preview',
+  },
+];
