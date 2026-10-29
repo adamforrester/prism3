@@ -1748,7 +1748,7 @@
       "accessibility": {
         "role": "button",
         "wcag": [
-          "1.4.3 Contrast (Minimum) (each style's label color on its fill is the provider's, and each clears 4.5:1)",
+          "1.4.3 Contrast (Minimum) (each style's label color on its fill is the provider's, and each clears 4.5:1 at rest and focus-visible; the Facebook styles fall short at hover and pressed, under the wash)",
           "1.4.11 Non-text Contrast (the provider picks each style for its ground: dark buttons on light grounds, light ones on dark grounds)",
           "2.4.7 Focus Visible (the focus ring outside the provider's fill)",
           "2.5.3 Label in Name (the visible wording is the accessible name)",

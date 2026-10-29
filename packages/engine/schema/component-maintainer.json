@@ -602,7 +602,8 @@
       ],
       "notes": {
         "contested": [
-          "Google Sans licensing: whether Google Sans may be used outside Google's own assets is unverified (Q-S7). The design file falls back to Roboto Medium where Google Sans is not installed, and reports the fallback."
+          "Google Sans licensing: whether Google Sans may be used outside Google's own assets is unverified (Q-S7). The design file falls back to Roboto Medium where Google Sans is not installed, and reports the fallback.",
+          "The Facebook styles fall short of 4.5:1 at hover and pressed, where the wash (Q-S13 A) lightens the blue fill or darkens the white one: blue hover 4.13:1, blue pressed 3.53:1, white hover 3.83:1, white pressed 3.00:1. Rest and focus-visible measure 4.82:1. Whether these states should clear 4.5:1 is a follow-up owner question."
         ],
         "unverified": [
           "The provider rules typed in the gate are the proposal's reading of each provider's guidelines on 2026-10-27.",
@@ -615,7 +616,7 @@
           "Q831 A (2026-10-28) supersedes Q-S5 A's wait for artwork: Apple's black glyph and Facebook's blue one are derived from social/apple and social/facebook, scaled to the provider inset, so all eight pairs ship, 96 members. The membership stays data, for a future provider whose glyph is not in yet.",
           "The owner decided Q-S13 to Q-S17 as A (2026-10-29): a literal wash of black at 10% and 20% on a light fill and white on a dark one, which does not flip with the mode (Q-S13); Google's 8px gap with 12px at both sides, since its 10px gap is off the space scale (Q-S14); Continue with Facebook (Q-S15); glyph heights 16, 20 and 24 (Q-S16); and code offers only the styles whose artwork is in the design file, all eight today (Q-S17).",
           "Q846 A (2026-10-29): #3134 drew provider/apple and provider/facebook black, so each provider has one black glyph, painted white where the button's fill is dark (Apple black, Facebook blue). Every other mark is never retinted. The derived provider/apple-black, now a duplicate of provider/apple, was dropped; still 96 members.",
-          "Q837 A (2026-10-28): Facebook's blue moved from #1877f2 to its current brand blue, #0866ff, in both styles and in the facebook marks. White on it measures 4.82:1, so every style now clears 4.5:1."
+          "Q837 A (2026-10-28): Facebook's blue moved from #1877f2 to its current brand blue, #0866ff, in both styles and in the facebook marks. White on it measures 4.82:1, so every style now clears 4.5:1 at rest and focus-visible; the Facebook hover and pressed states stay under it (see contested)."
         ],
         "projection": [
           "In Figma the button's fill, edge and label color are plain colors with no variable, and the label has no text property; Google's label carries Google Sans Medium 14/20 directly, not a text style. The glyph is a brand-mark/provider instance, its height bound and its width from its proportion; on Apple black and Facebook blue its vectors are painted white as a plain color."

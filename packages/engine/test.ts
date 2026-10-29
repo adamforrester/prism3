@@ -19038,15 +19038,33 @@ arm: {
     const lum = (hex: string): number => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
     const ratio = (a: string, b: string): number => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
     const offContrast = Object.entries(RULES).flatMap(([k, r]) => { const c = ratio(r.ink, r.fill); return c >= 4.5 ? [] : [`${k}: ${c.toFixed(2)}:1`]; });
-    // ...and from the plan: every member's label ink on its own fill, so a Facebook fill or ink back at #1877f2 in the
-    // def fails here by name, not only in COLOR.
+    // ...and from the plan: every member's label ink on its own fill, with each wash layer (Q-S13 A, a second fill such
+    // as #ffffff1a) alpha-composited over fills[0], so a state is judged on the fill it shows. Rest and focus-visible
+    // clear 4.5:1 everywhere. Facebook's hover and pressed fall short under the wash; their measured ratios are typed
+    // here (#3152's review, re-measured at the plan's exact alpha), not derived, so a wash or ink change moves them and fails by name.
+    // Composited in 0-255 floats and never rounded to a hex, so the ratio is the wash's own (0x1a is 10.2%, not 10%).
+    const rgbOf = (hex: string): number[] => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const over = (fills: readonly string[]): number[] => fills.slice(1).reduce((rgb, w) => {
+      const a = w.length === 9 ? parseInt(w.slice(7, 9), 16) / 255 : 1;
+      return rgbOf(w).map((v, k) => v * a + rgb[k] * (1 - a));
+    }, rgbOf(fills[0]));
+    const lumRgb = (rgb: number[]): number => { const c = rgb.map((v) => v / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const ratioRgb = (a: number[], b: number[]): number => { const [x, y] = [lumRgb(a), lumRgb(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+    const hexOf = (rgb: number[]): string => '#' + rgb.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+    const SHORTFALL: Record<string, number> = { 'facebook.blue.hover': 4.13, 'facebook.blue.pressed': 3.53, 'facebook.white.hover': 3.83, 'facebook.white.pressed': 3.00 };
+    let shortfallSeen = 0;
     const offPlanContrast = plans.flatMap((p) => {
-      const f = p.root.literalPaints?.fills?.[0], i = label(p)?.literalPaints?.fills?.[0];
-      const c = f && i ? ratio(i, f) : 0;
-      return c >= 4.5 ? [] : [`${planComponentName(p)}: ${i} on ${f} ${c.toFixed(2)}:1`];
+      const fs = p.root.literalPaints?.fills, i = label(p)?.literalPaints?.fills?.[0];
+      const rgb = fs?.length ? over(fs) : undefined, f = rgb && hexOf(rgb);
+      const c = rgb && i ? ratioRgb(rgbOf(i), rgb) : 0, want = SHORTFALL[`${keyOf(p)}.${p.coord.state}`];
+      if (want !== undefined) { shortfallSeen++; return Math.abs(c - want) <= 0.02 ? [] : [`${planComponentName(p)}: ${i} on ${f} ${c.toFixed(2)}:1, documented ${want.toFixed(2)}:1`]; }
+      return c >= 4.5 ? [] : [`state=${p.coord.state}: ${planComponentName(p)}: ${i} on ${f} ${c.toFixed(2)}:1`];
     });
-    ok(offContrast.length === 0 && offPlanContrast.length === 0 && !sb.accessibility.wcag.some((w) => /4\.23:1/.test(w)),
-      `#2343 PR 5 provider rules CONTRAST: every style's label clears 4.5:1 on its fill, Facebook's two styles included (Q837 A), in the typed rules and in every member's plan, and the docs claim no shortfall (${[...offContrast, ...offPlanContrast].slice(0, 3).join('; ') || 'clean'})`);
+    const contested = (sb.notes?.contested ?? []).join(' ');
+    const docsScoped = sb.accessibility.wcag.some((w) => w.startsWith('1.4.3') && /rest and focus-visible/.test(w) && /hover and pressed/.test(w))
+      && Object.values(SHORTFALL).every((v) => contested.includes(`${v.toFixed(2)}:1`)) && /Q-S13 A/.test(contested);
+    ok(offContrast.length === 0 && offPlanContrast.length === 0 && shortfallSeen === 12 && docsScoped && !sb.accessibility.wcag.some((w) => /4\.23:1/.test(w)),
+      `#2343 PR 5 provider rules CONTRAST: every style's label clears 4.5:1 at rest and focus-visible on its fill, Facebook's two styles included (Q837 A), in the typed rules and in every member's plan with the wash composited; Facebook's hover and pressed hold their documented shortfall (${shortfallSeen}/12 members), and the docs scope the claim and record it (${docsScoped ? 'scoped' : 'docs unscoped'}; ${[...offContrast, ...offPlanContrast].slice(0, 3).join('; ') || 'clean'})`);
   }
   // #2343 PR 5 — THE LITERAL RECORD STAYS WHERE IT WAS DECIDED. A literal is a value no theme moves, so a def that
   // carries one is listed here by name; a second def reaching for it fails until its own decision lands (docs/34: the
