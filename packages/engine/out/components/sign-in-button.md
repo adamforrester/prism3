@@ -62,7 +62,7 @@ Offer the sign-in providers the product supports as a stack of buttons, each the
 
 ### WCAG
 
-- 1.4.3 Contrast (Minimum) (each style's label color on its fill is the provider's; the Facebook styles measure 4.23:1, under the 4.5:1 floor, and the provider's blue may not be changed)
+- 1.4.3 Contrast (Minimum) (each style's label color on its fill is the provider's, and each clears 4.5:1)
 - 1.4.11 Non-text Contrast (the provider picks each style for its ground: dark buttons on light grounds, light ones on dark grounds)
 - 2.4.7 Focus Visible (the focus ring outside the provider's fill)
 - 2.5.3 Label in Name (the visible wording is the accessible name)

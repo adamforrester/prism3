@@ -18930,8 +18930,8 @@ arm: {
       'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
       'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google', wash: ON_DARK },
       'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
-      'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook', wash: ON_DARK, tint: '#ffffff' },
-      'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'brand-mark/provider/facebook-blue', wash: ON_LIGHT },
+      'facebook.blue': { fill: '#0866ff', ink: '#ffffff', mark: 'brand-mark/provider/facebook', wash: ON_DARK, tint: '#ffffff' },
+      'facebook.white': { fill: '#ffffff', ink: '#0866ff', mark: 'brand-mark/provider/facebook-blue', wash: ON_LIGHT },
     };
     // The glyph Q831 A derived (Q846 A dropped its Apple twin). The exclusion arm below drops it from the vocabulary to
     // prove a missing glyph still removes its pairs, for a future provider whose artwork is not in yet.
@@ -19010,7 +19010,7 @@ arm: {
     ok(offMark.length === 0, `#2343 PR 5 provider rules MARK: each member nests its provider's own glyph for its style, unaltered but for the dark-fill tint (${offMark.slice(0, 3).join('; ') || 'clean'})`);
     // Q846 A — THE DARK-FILL STYLES DRAW WHITE. Typed from the decision (2026-10-29), not from RULES above or the def:
     // Apple black and Facebook blue paint their black provider glyph white, and no other style tints. A contrast floor
-    // cannot hold this alone: a black "f" on #1877f2 is about 4.95:1, over 3:1, and Facebook's rule (white on blue) is a
+    // cannot hold this alone: a black "f" on #0866ff is about 4.35:1, over 3:1, and Facebook's rule (white on blue) is a
     // brand rule, not a contrast one. Read from the plan, where the executors take it.
     const DRAWS_WHITE = ['apple.black', 'facebook.blue'];
     const offWhite = plans.flatMap((p) => {
@@ -19032,16 +19032,20 @@ arm: {
     const nameLine = (sb.anatomy?.codeOnly ?? []).find((c) => c.startsWith('the accessible name — ')) ?? '';
     ok(/named by its visible wording/.test(sb.accessibility.aria) && /Add no label of your own/.test(sb.accessibility.aria) && /No aria-label is added/.test(nameLine) && /aria-hidden/.test(nameLine) && sb.accessibility.wcag.some((w) => w.startsWith('2.5.3')),
       `#2343 PR 5 provider rules NAME: the visible wording is the accessible name, no aria-label is added and the glyph is hidden (aria '${sb.accessibility.aria.slice(0, 80)}'; codeOnly '${nameLine.slice(0, 80) || 'missing'}')`);
-    // CONTRAST, from the typed values: each style's ink on its fill clears 4.5:1, except Facebook's two styles, which
-    // measure 4.23:1 on the provider's own blue. A known shortfall, recorded rather than failed, and stated in the docs.
+    // CONTRAST, from the typed values: each style's ink on its fill clears 4.5:1. Facebook's two styles measure 4.82:1 on
+    // its current brand blue, #0866ff (Q837 A, 2026-10-28); on the old #1877f2 they measured 4.23:1, and fail here.
     const lum = (hex: string): number => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
     const ratio = (a: string, b: string): number => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
-    const SHORTFALL: Record<string, number> = { 'facebook.blue': 4.23, 'facebook.white': 4.23 };
-    const offContrast = Object.entries(RULES).flatMap(([k, r]) => {
-      const c = ratio(r.ink, r.fill);
-      return (k in SHORTFALL ? Math.abs(c - SHORTFALL[k]) < 0.01 : c >= 4.5) ? [] : [`${k}: ${c.toFixed(2)}:1`];
+    const offContrast = Object.entries(RULES).flatMap(([k, r]) => { const c = ratio(r.ink, r.fill); return c >= 4.5 ? [] : [`${k}: ${c.toFixed(2)}:1`]; });
+    // ...and from the plan: every member's label ink on its own fill, so a Facebook fill or ink back at #1877f2 in the
+    // def fails here by name, not only in COLOR.
+    const offPlanContrast = plans.flatMap((p) => {
+      const f = p.root.literalPaints?.fills?.[0], i = label(p)?.literalPaints?.fills?.[0];
+      const c = f && i ? ratio(i, f) : 0;
+      return c >= 4.5 ? [] : [`${planComponentName(p)}: ${i} on ${f} ${c.toFixed(2)}:1`];
     });
-    ok(offContrast.length === 0 && sb.accessibility.wcag.some((w) => /4\.23:1/.test(w)), `#2343 PR 5 provider rules CONTRAST: every style's label clears 4.5:1 on its fill, and Facebook's two styles measure the known 4.23:1, stated in the docs (${offContrast.join('; ') || 'clean'})`);
+    ok(offContrast.length === 0 && offPlanContrast.length === 0 && !sb.accessibility.wcag.some((w) => /4\.23:1/.test(w)),
+      `#2343 PR 5 provider rules CONTRAST: every style's label clears 4.5:1 on its fill, Facebook's two styles included (Q837 A), in the typed rules and in every member's plan, and the docs claim no shortfall (${[...offContrast, ...offPlanContrast].slice(0, 3).join('; ') || 'clean'})`);
   }
   // #2343 PR 5 — THE LITERAL RECORD STAYS WHERE IT WAS DECIDED. A literal is a value no theme moves, so a def that
   // carries one is listed here by name; a second def reaching for it fails until its own decision lands (docs/34: the
@@ -23192,10 +23196,10 @@ arm: {
       if (lowGlyphs({ ...fixture('#000000', 'apple'), children: [{ name: 'inner', children: [{ name: 'mark', swapTarget: `${PROVIDER}apple` }] }] }, docs, 'fixture').length !== 1) self.push('a swapped glyph two levels under the literal fill is not caught');
       // A themed fill nested UNDER a literal one is the nearest painted ancestor, so the glyph is skipped (review M2).
       if (lowGlyphs({ ...fixture('#000000', 'apple'), children: [{ name: 'inner', paints: { fills: 'color/surface/primary' }, children: [{ name: 'mark', nestTarget: `${PROVIDER}apple` }] }] }, docs, 'fixture').length) self.push('a themed fill under a literal one is judged against the outer literal');
-      // The tint (Q846 A) is read from the plan: white on black and on #1877f2 pass, a black tint on black fails.
+      // The tint (Q846 A) is read from the plan: white on black and on #0866ff pass, a black tint on black fails.
       const tinted = (fill: string, glyph: string, tint: string): Node => ({ name: 'container', literalPaints: { fills: [fill] }, children: [{ name: 'mark', nestTarget: `${PROVIDER}${glyph}`, literalTint: tint }] });
       if (lowGlyphs(tinted('#000000', 'apple', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on black is refused');
-      if (lowGlyphs(tinted('#1877f2', 'facebook', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on #1877f2 is refused');
+      if (lowGlyphs(tinted('#0866ff', 'facebook', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on #0866ff is refused');
       if (lowGlyphs(tinted('#000000', 'apple', '#000000'), docs, 'fixture').length !== 1) self.push('a glyph tinted black on black is not caught');
       if (!lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]?.includes(': brand-mark/provider/apple (')) self.push(`the failure line does not name brand-mark/provider/apple once (${lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]})`);
       // The walk over every registered def: what it covered, so a vacuous pass says so.
@@ -23268,7 +23272,7 @@ arm: {
         { coord: { provider: 'google', style: 'light', state: 'hover' }, size: 'medium', fills: ['#ffffff', '#0000001a'], edge: '#747775', ink: '#1f1f1f', font: 'Google Sans', word: 'Continue with Google', glyph: undefined },
         { coord: { provider: 'apple', style: 'black', state: 'rest' }, size: 'large', fills: ['#000000'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Apple', glyph: '#ffffff' },
         { coord: { provider: 'apple', style: 'white', state: 'rest' }, size: 'medium', fills: ['#ffffff'], edge: undefined, ink: '#000000', font: undefined, word: 'Continue with Apple', glyph: undefined },
-        { coord: { provider: 'facebook', style: 'blue', state: 'pressed' }, size: 'small', fills: ['#1877f2', '#ffffff33'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Facebook', glyph: '#ffffff' },
+        { coord: { provider: 'facebook', style: 'blue', state: 'pressed' }, size: 'small', fills: ['#0866ff', '#ffffff33'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Facebook', glyph: '#ffffff' },
       ];
       const MARKS = ['apple', 'facebook', 'facebook-blue', 'google'].map((g) => `brand-mark/provider/${g}`);
       const bad: string[] = [];
