@@ -32628,25 +32628,26 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
 // The reference brand's typography patch: titleFloor 16, sizes.title.2xs 20 (18 on mobile, Q802 A),
 // sizes.caption.md 10 (caption A), and display/title/body/caption/label pinned to `open` (+1%) with eyebrow on its
 // nudge (+2%) (tracking A, Q803 B). Every expected row is a LITERAL from the decided table (size desktop/mobile px,
-// letter spacing in percent), never read from the lever or the input, so a change to either fails by name.
+// letter spacing in percent, and since #3146 the leading rung and its value), never read from the lever or the input, so a change to either fails by name.
 {
   const table = (t: Theme): Map<string, string> => {
     const em = new Map(t.typography.letterSpacings.map((l) => [l.key, l.em]));
+    const lh = new Map(t.typography.lineHeights.map((l) => [l.key, l.value]));
     const out = new Map<string, string>();
     for (const c of t.typography.composites) {
       const k = `${c.group}.${c.variant}`;
-      if (!out.has(k)) out.set(k, `${c.sizePx}/${c.sizeMinPx} ${Math.round((em.get(c.tracking) ?? NaN) * 1000) / 10}%`);
+      if (!out.has(k)) out.set(k, `${c.sizePx}/${c.sizeMinPx} ${Math.round((em.get(c.tracking) ?? NaN) * 1000) / 10}% ${c.lineHeight} ${lh.get(c.lineHeight)}`);
     }
     return out;
   };
   const REF_TABLE: Record<string, string> = {
-    'display.sm': '64/40 1%', 'display.md': '72/40 1%', 'display.lg': '80/40 1%', 'display.xl': '96/48 1%', 'display.2xl': '128/48 1%',
-    'title.2xs': '20/18 1%', 'title.xs': '24/20 1%', 'title.sm': '32/24 1%', 'title.md': '36/28 1%', 'title.lg': '40/32 1%', 'title.xl': '48/36 1%', 'title.2xl': '56/40 1%',
-    'body.xs': '12/12 1%', 'body.sm': '14/14 1%', 'body.md': '16/16 1%', 'body.lg': '18/18 1%',
-    'label.sm': '12/12 1%', 'label.md': '14/14 1%', 'label.lg': '18/18 1%',
-    'caption.md': '10/10 1%', 'caption.lg': '12/12 1%',
-    'eyebrow.sm': '12/12 2%', 'eyebrow.md': '14/14 2%', 'eyebrow.lg': '20/18 2%',
-    'code.inline': '14/14 0%',
+    'display.sm': '64/40 1% snug 1.2', 'display.md': '72/40 1% snug 1.2', 'display.lg': '80/40 1% snug 1.2', 'display.xl': '96/48 1% snug 1.2', 'display.2xl': '128/48 1% snug 1.2',
+    'title.2xs': '20/18 1% cozy 1.4', 'title.xs': '24/20 1% cozy 1.4', 'title.sm': '32/24 1% compact 1.25', 'title.md': '36/28 1% compact 1.25', 'title.lg': '40/32 1% compact 1.25', 'title.xl': '48/36 1% compact 1.25', 'title.2xl': '56/40 1% snug 1.2',
+    'body.xs': '12/12 1% relaxed 1.65', 'body.sm': '14/14 1% relaxed 1.65', 'body.md': '16/16 1% relaxed 1.65', 'body.lg': '18/18 1% relaxed 1.65',
+    'label.sm': '12/12 1% snug 1.2', 'label.md': '14/14 1% snug 1.2', 'label.lg': '18/18 1% snug 1.2',
+    'caption.md': '10/10 1% cozy 1.4', 'caption.lg': '12/12 1% cozy 1.4',
+    'eyebrow.sm': '12/12 2% snug 1.2', 'eyebrow.md': '14/14 2% snug 1.2', 'eyebrow.lg': '20/18 2% snug 1.2',
+    'code.inline': '14/14 0% normal 1.5',
   };
   const diff = (got: Map<string, string>, want: Record<string, string>): string[] => [
     ...Object.entries(want).filter(([k, v]) => got.get(k) !== v).map(([k, v]) => `${k}: ${got.get(k) ?? 'missing'} ≠ ${v}`),
@@ -32655,8 +32656,18 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   // (a) The redesign seed. It also carries the stored input's sizeFloor 8, so caption.xs 8 ships.
   const seed = exampleTheme('nb-redesign', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input));
   if (seed) {
-    const bad = diff(table(seed), { ...REF_TABLE, 'caption.xs': '8/8 1%' });
-    ok(bad.length === 0, `#3077 the reference brand's redesign seed builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+    const bad = diff(table(seed), { ...REF_TABLE, 'caption.xs': '8/8 1% cozy 1.4' });
+    ok(bad.length === 0, `#3077/#3146 the reference brand's redesign seed builds the decided type table, size, tracking and leading (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+    // #3146: the rest of what #3080 synced from the stored input (Q821 A), also as literals. The leading rides in
+    // the table above. The fluid clamp is 375–1440. The label weight-role set is {default, emphasis}: the engine
+    // default emits the same pair, so the seed must also DECLARE it, or a dropped `label` line would pass here.
+    const ty = seed.typography;
+    ok(ty.minViewport === 375 && ty.maxViewport === 1440,
+      `#3146 the reference brand's redesign seed clamps its fluid sizes between the stored input's 375 and 1440 viewports (got ${ty.minViewport}–${ty.maxViewport})`);
+    const labelRoles = [...new Set(ty.composites.filter((c) => c.group === 'label').map((c) => c.weightRole))].sort().join(',');
+    const declared = (parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input as any).typography?.weights?.label;
+    ok(labelRoles === 'default,emphasis' && JSON.stringify(declared) === '["default","emphasis"]',
+      `#3146 the reference brand's redesign seed declares and emits the stored input's label weights, default + emphasis (emitted ${labelRoles || 'none'}; declared ${JSON.stringify(declared)})`);
   }
   // (b) The stored brand input (the copy above) with the same patch: what Apply Theme writes into its Figma file.
   const patched = structuredClone(NB_MASTER) as any;
@@ -32669,7 +32680,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   });
   {
     const bad = diff(table(brandTheme(patched)), REF_TABLE);
-    ok(bad.length === 0, `#3077 the reference brand's stored input, patched, builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+    ok(bad.length === 0, `#3077/#3146 the reference brand's stored input, patched, builds the decided type table, size, tracking and leading (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
   }
   // (c) The legacy fixture: engine-default sizes (no 20px title.2xs: its title.xs is 18), the decided caption md and
   // the decided letter spacing per text type.

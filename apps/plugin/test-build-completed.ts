@@ -26,6 +26,10 @@
  * decision Q284.3 A): `ok: false` and a `⚠` headline. Then Set up file's template builder makes the templates, and the
  * same build and Update read `✓`. The host holds the variables and styles Badge binds, so only the template can warn.
  *
+ * #3129 Q833 A: a set queued to add (`add-queue.ts`) has its key cleared by the build that lands it whole, where the
+ * ledger records it (`queue/build`), and keeps it when the executor refuses the set (`queue/refused`). Mutation failing
+ * by name: the clear beside `recordSets` dropped → `queue/build`.
+ *
  * INDEPENDENCE (docs/34): the expected values are literals typed here, from the owner's definition of the
  * two results; the actual side is what `main.ts` posted. The refusal is reached by editing the HOST's file
  * (the member names, which are what a set's axes are), never by stubbing the executor.
@@ -44,7 +48,7 @@
  * recording nothing (`main.ts`, its `recordSets` after `applyComponentPlan`) → `ledger/build`; the Update recording
  * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. #3082 Q811 A
  * (section 1a'): `fileSets` calling `restampQuiet` → `q811/load: the read records nothing`; `restampQuiet` a no-op →
- * `q811/restamp`; the update's record without its print AND `restampQuiet` a no-op → `ledger/print` (either alone is
+ * `q811/restamp`; `restampQuiet`'s stale filter without the revision (#3101) → `reach/restamp`; the update's record without its print AND `restampQuiet` a no-op → `ledger/print` (either alone is
  * covered by the other: the quiet re-record gives a no-print entry its print); `dueOf` reading a print-less entry under a
  * moved engine `unrecorded` → `q811/unprinted` (#3090 finding 1); `fileSets` printing against the stored brand,
  * `printNow()` → `q811/panel brand` (#3090 M6, section 6); `restampQuiet`'s stale filter losing `!ledger[id].print`, so a
@@ -64,6 +68,7 @@
  * `dueOf` without `printNow(input)`, so an engine-moved set reads `unrecorded` → `q810/engine`; `ledgerSets` the same → `q810/engine at open`; `printNow` projecting on every call (`printMemo` unused) → `q810/memo`
  * (#3096 into #3090).
  */
+import { EXECUTOR_REACH } from './src/executor-reach';
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
@@ -219,6 +224,8 @@ const build = async (def: string): Promise<any> => {
 console.log('component-result.completed, through main.ts (C1)');
 
 // 1. A fresh build: the set is made.
+// #3129 Q833 A: Badge is queued to add (`add-queue.ts`, the root's shared data); the build that lands it clears its key.
+sharedData.set('prism3:addQueue.badge', '2026-10-28T09:00:00.000Z');
 const first = await build('badge');
 ok(first !== null, `the build posts a component-result (${first ? first.headline : 'none in 6 s'})`);
 ok(writesSeen === 1 && pending.size === 0, `fixture: the panel's build reached the action table, and the test waited out its tail (${writesSeen} seen, ${pending.size} pending)`);
@@ -243,6 +250,7 @@ const ask = async (msg: Record<string, unknown>, type: string, until: (m: any) =
 };
 const ledger = (): Record<string, { def: string; rev: number; engine: string; print?: { plan: string } }> => { try { return JSON.parse(pluginData.get('prism3:asBuilt') ?? '{}').sets ?? {}; } catch { return {}; } };
 ok(typeof ledger().badge?.def === 'string', `ledger/build: the build records the set it landed (${JSON.stringify(ledger().badge)})`);
+ok(sharedData.get('prism3:addQueue.badge') === '', `queue/build: the build that lands Badge whole clears its add-queue key, where the ledger records it (${JSON.stringify(sharedData.get('prism3:addQueue.badge'))})`);
 const fs1 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
 ok(fs1?.present?.includes('badge') && fs1?.due?.badge?.state === 'current', `ledger/due: file-sets reads the set just built as current (${JSON.stringify(fs1?.due)})`);
 pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...ledger().badge, def: 'another-def' } } }));
@@ -325,6 +333,21 @@ ok(JSON.stringify(fsT?.due?.badge) === JSON.stringify({ state: 'current' }) && !
 await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
 ok(ledger().badge?.engine === asRecorded.engine && ledger().badge?.print?.plan === asRecorded.print!.plan,
   `q811/migrate: the next write gives a print-less entry under today's engine its print (${JSON.stringify({ engine: ledger().badge?.engine, plan: ledger().badge?.print?.plan ?? null })})`);
+// #3101: an entry recorded under revision 42. Revision 43 redrew the sign-in button alone (`executor-reach.json`), so
+// Badge reads current, the read records nothing, and the next write records it under today's revision. Recorded below
+// the record's floor it is due for the executor, as every set was before #3101.
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, rev: 42 } } }));
+const fsR = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsR?.due?.badge) === JSON.stringify({ state: 'current' }) && ledger().badge?.rev === 42,
+  `reach/load: recorded under 42, Badge reads current under 43, which did not redraw it, and the read records nothing (${JSON.stringify({ due: fsR?.due?.badge, rev: ledger().badge?.rev })})`);
+await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
+ok(ledger().badge?.rev === asRecorded.rev && ledger().badge?.print?.plan === asRecorded.print!.plan,
+  `reach/restamp: the next write records it under today's revision, its print kept (${JSON.stringify({ rev: ledger().badge?.rev, plan: ledger().badge?.print?.plan })})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, rev: EXECUTOR_REACH.floor - 1 } } }));
+const fsF = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsF?.due?.badge) === JSON.stringify({ state: 'due', reason: 'executor' }),
+  `reach/floor: recorded below the record's floor, Badge is due for the executor (${JSON.stringify(fsF?.due?.badge)})`);
+pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: asRecorded } }));
 // #3090 finding 1: an entry from before Q811 A (no print) under an older engine. It reads due for the engine, naming
 // nothing, never "not checked yet"; a write does not record it quietly, nor does the check; the update's apply does,
 // with its print, and the next read finds it current.
@@ -412,7 +435,11 @@ const axis = dropAxis.split('=')[0];
 for (const m of members) m.name = String(m.name).split(', ').filter((pair) => !pair.startsWith(`${axis}=`)).join(', ');
 ok(firstName.includes(', ') && !String(members[0]?.name).includes(`${axis}=`),
   `fixture: the existing set's members no longer vary by "${axis}" (was "${firstName}", now "${members[0]?.name}")`);
+// #3129 Q833 A: queued again, so the refusal is read against it: a set that did not land stays queued.
+sharedData.set('prism3:addQueue.badge', '2026-10-28T10:00:00.000Z');
 const second = await build('badge');
+ok(sharedData.get('prism3:addQueue.badge') === '2026-10-28T10:00:00.000Z', `queue/refused: a build the executor refused leaves the set queued (${JSON.stringify(sharedData.get('prism3:addQueue.badge'))})`);
+sharedData.delete('prism3:addQueue.badge');
 ok(second !== null && /AXES CHANGED|left as it is/.test(second.summary ?? ''),
   `the rebuild is refused by the executor, through the success-path post (${String(second?.summary ?? 'none').slice(0, 100)})`);
 ok(second?.completed === false && second?.ok === false,
