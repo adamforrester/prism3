@@ -331,7 +331,7 @@ import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
 import { STYLE_GUIDE_GROUPS, styleGuideGroupOf } from '@prism3/engine/style-guide-groups';
-import { planStyleGuide, runStyleGuide, removeRetiredTables, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding, catalogFor, isSetUp } from './src/style-guide';
+import { planStyleGuide, runStyleGuide, removeRetiredTables, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding, catalogFor, isSetUp, tableMovesDue, relocateTables } from './src/style-guide';
 import { createRunGuard, busyMessage } from './src/run-guard';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd } from '@prism3/engine/design-md';
@@ -378,7 +378,7 @@ const insideInstance = (n: N): boolean => { for (let p = n.parent; p; p = p.pare
  * starts with `loadAllPagesAsync`, which makes its shim the one whose fonts, variables and styles a bind reads.
  * Its own weight table, not the plugin's (docs/34): the style a host picks for a weight.
  */
-interface World { fonts: Set<string>; loads: string[]; cols: ShimCol[]; vars: ShimVar[]; styles: ShimStyle[]; effectStyles: ShimEffectStyle[]; paintStyles: ShimPaintStyle[] }
+interface World { fonts: Set<string>; loads: string[]; cols: ShimCol[]; vars: ShimVar[]; styles: ShimStyle[]; effectStyles: ShimEffectStyle[]; paintStyles: ShimPaintStyle[]; gridStyles: ShimGridStyle[] }
 /** When set, applying an effect or a paint style throws, as the host does for a style it refuses (#2353 batch 2a). */
 let refuseStyle = false;
 let active: World | null = null;
@@ -933,7 +933,9 @@ const headerSet = (name = '_Section-header', sizes: readonly string[] = ['XL', '
   return set;
 };
 
-interface Shim { api: StyleGuideApi & CellsApi; pages: N[]; vars: ShimVar[]; cols: ShimCol[]; fontFails: Set<string>; styles: ShimStyle[]; world: World; effectStyles: ShimEffectStyle[]; paintStyles: ShimPaintStyle[] }
+interface Shim { api: StyleGuideApi & CellsApi; pages: N[]; vars: ShimVar[]; cols: ShimCol[]; fontFails: Set<string>; styles: ShimStyle[]; world: World; effectStyles: ShimEffectStyle[]; paintStyles: ShimPaintStyle[]; gridStyles: ShimGridStyle[] }
+/** A local grid style, as `getLocalGridStylesAsync` returns one (#3171). Empty unless a section adds some. */
+interface ShimGridStyle { id: string; name: string; description: string; layoutGrids: { pattern: string; alignment?: string; count?: number; gutterSize?: number; offset?: number; color?: { r: number; g: number; b: number; a: number } }[] }
 /** A local effect style and a local paint style, as `getLocalEffectStylesAsync` and `getLocalPaintStylesAsync` return them
  *  (#2353 batch 2a). Empty unless a section adds some. */
 interface ShimEffectStyle { id: string; name: string; description: string; effects: { type: string; color?: { r: number; g: number; b: number; a: number }; offset?: { x: number; y: number }; radius: number; spread?: number; visible: boolean; blendMode?: string }[] }
@@ -951,7 +953,8 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyl
   const fontFails = new Set<string>();
   const effectStyles: ShimEffectStyle[] = [];
   const paintStyles: ShimPaintStyle[] = [];
-  const world: World = { fonts: new Set(), loads: [], cols, vars, styles, effectStyles, paintStyles };
+  const gridStyles: ShimGridStyle[] = [];
+  const world: World = { fonts: new Set(), loads: [], cols, vars, styles, effectStyles, paintStyles, gridStyles };
   const root = {
     get children() { return pages; },
     findAllWithCriteria: (c: { types: string[] }) => pages.flatMap((p) => p.findAllWithCriteria(c)),
@@ -977,6 +980,7 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyl
     getLocalTextStylesAsync: async () => styles,
     getLocalEffectStylesAsync: async () => effectStyles,
     getLocalPaintStylesAsync: async () => paintStyles,
+    getLocalGridStylesAsync: async () => gridStyles,
     createComponent: () => new N('COMPONENT'),
     // The host's default for a new text node: it sizes to its words.
     createText: () => { const t = new N('TEXT'); t.textAutoResize = 'WIDTH_AND_HEIGHT'; return t; },
@@ -994,7 +998,7 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyl
       setBoundVariableForPaint: (paint: object, field: string, v: { id: string }) => ({ ...paint, boundVariables: { [field]: { type: 'VARIABLE_ALIAS', id: v.id } } }),
     },
   };
-  return { api: api as unknown as StyleGuideApi & CellsApi, pages, vars, cols, fontFails, styles, world, effectStyles, paintStyles };
+  return { api: api as unknown as StyleGuideApi & CellsApi, pages, vars, cols, fontFails, styles, world, effectStyles, paintStyles, gridStyles };
 };
 
 /** The prism3 variables, as a theme write leaves them: `core` (Default) and `color` (four modes). */
@@ -4003,8 +4007,8 @@ const main = async (): Promise<void> => {
       && styleGuideGroupOf({ type: 'shadow', tier: 'semantic' }) === 'effect-styles' && styleGuideGroupOf({ type: 'gradient', tier: 'semantic' }) === 'gradient-styles'
       && styleGuideGroupOf({ type: 'color', tier: 'semantic', inverse: true }) === 'inverse-colors' && styleGuideGroupOf({ type: 'later-type', tier: 'semantic' }) === null,
       '37: the engine table groups by type and tier: palettes, dimensions, fonts; semantic colors, inverse colors, space & size, borders, fonts, effect styles, gradient styles (#3135); a later type stands alone');
-    ok(JSON.stringify(STYLE_GUIDE_GROUPS.map((g) => `${g.tier[0]}:${g.title}${g.under ? ` under ${g.under}` : ''}`)) === JSON.stringify(['p:Palettes', 'p:Dimensions', 'p:Fonts', 's:Semantic colors', 's:Inverse colors under semantic-colors', 's:Space & size', 's:Borders', 's:Fonts', 's:Effect styles', 's:Gradient styles']),
-      `37: ten groups in the order they stack, titled as decided, Inverse colors under Semantic colors, Effect styles and Gradient styles last (#3135) (${STYLE_GUIDE_GROUPS.map((g) => g.title).join(', ')})`);
+    ok(JSON.stringify(STYLE_GUIDE_GROUPS.map((g) => `${g.tier[0]}:${g.title}${g.under ? ` under ${g.under}` : ''}`)) === JSON.stringify(['p:Palettes', 'p:Dimensions', 'p:Fonts', 's:Semantic colors', 's:Inverse colors under semantic-colors', 's:Space & size', 's:Borders', 's:Fonts', 's:Effect styles', 's:Gradient styles', 'l:Grids', 'l:Containers']),
+      `37: twelve groups in the order they stack, titled as decided, Inverse colors under Semantic colors, Effect styles and Gradient styles last of the semantic ones (#3135), Grids above Containers in the layout tier (#3171) (${STYLE_GUIDE_GROUPS.map((g) => g.title).join(', ')})`);
     // Through the plan, on a file with another brand's families: an `accent` ramp under a foreign root, a semantic `link`
     // family, an icon-size collection and a border-width collection the prism3 emission does not have.
     const gf = await phase2File();
@@ -4604,6 +4608,227 @@ const main = async (): Promise<void> => {
     ok(bareGroups.length > 0 && bareGroups.every((g) => !(g.fills as unknown[]).length && !(g.strokes as unknown[]).length)
       && r6.misses.includes(`Style guide groups are drawn without a fill or stroke: the file has no ${STROKE_ROLE} variable`),
       `42: with ${STROKE_ROLE} missing, groups stay bare and the run names the missing role (${r6.misses.filter((m) => m.includes('group')).join('; ')})`);
+  }
+
+  console.log('43. grids & layouts (#3171): the Grid styles table, a row per breakpoint with its link and mismatch chips; the Container table on Grids & layouts; an earlier file\'s Container table moved there');
+  {
+    // THE FILES: the committed emission of the reference brand (5 breakpoint modes) and of the corpus brand aurora (6), as a
+    // theme write leaves them: `core` (the core dimensions), `space` (aliasing them), `layout` (one mode per breakpoint,
+    // gutters and margins aliasing space or core) and the grid styles. Every expectation below is read off this catalog
+    // or typed here, never off the planner.
+    const GRIDS = '↳ Grids & layouts';
+    type Em = { name: string; resolvedType: string; description: string; value: unknown; alias: { name: string } | null; scopes?: string[] };
+    type EmGrid = { name: string; description: string; layoutGrids: ShimGridStyle['layoutGrids'] };
+    const layoutFile = async (dir: string, modes: readonly string[]) => {
+      const at = join(here, '../../packages/engine/out/figma', dir);
+      const em = (f: string): Em[] => (JSON.parse(readFileSync(join(at, f), 'utf8')) as { variables: Em[] }).variables;
+      const one = (id: string): ShimCol => ({ id: `VariableCollectionId:${id}`, name: id, modes: [{ modeId: `${id}:0`, name: 'Default' }], defaultModeId: `${id}:0` });
+      const cols: ShimCol[] = [one('core'), one('space'),
+        { id: 'VariableCollectionId:layout', name: 'layout', modes: modes.map((m, i) => ({ modeId: `layout:${i}`, name: m })), defaultModeId: 'layout:0' }];
+      const sources: [string, string[], Em[][]][] = [['core', ['core:0'], [em('core.dimension.json')]], ['space', ['space:0'], [em('space.json')]],
+        ['layout', modes.map((_, i) => `layout:${i}`), modes.map((m) => em(`layout.${m}.json`))]];
+      const idOf = new Map<string, string>();
+      for (const [c, , files] of sources) files[0].forEach((v, i) => idOf.set(v.name, `VariableID:${c}:${i}`));
+      const vars: ShimVar[] = [];
+      for (const [c, ms, files] of sources) files[0].forEach((v) => {
+        const valuesByMode: Record<string, unknown> = {};
+        ms.forEach((m, k) => { const mv = files[k].find((x) => x.name === v.name)!; valuesByMode[m] = mv.alias ? { type: 'VARIABLE_ALIAS', id: idOf.get(mv.alias.name) } : mv.value; });
+        vars.push({ id: idOf.get(v.name)!, name: v.name, variableCollectionId: `VariableCollectionId:${c}`, resolvedType: v.resolvedType, description: v.description, valuesByMode, scopes: v.scopes });
+      });
+      const fc = page(FC), prim = page(PRIM), sem = page(SEM), grids = page(GRIDS);
+      fc.appendChild(headerSet());
+      const s = makeShim([page('Cover'), prim, sem, grids, fc], cols, vars);
+      await ensureStyleGuideCells(s.api, fc);
+      (JSON.parse(readFileSync(join(at, 'grid-styles.json'), 'utf8')) as { styles: EmGrid[] }).styles
+        .forEach((st, i) => s.gridStyles.push({ id: `S:grid:${i},`, name: st.name, description: st.description, layoutGrids: st.layoutGrids }));
+      return { ...s, fc, prim, sem, grids, layoutId: 'VariableCollectionId:layout' };
+    };
+    type LayoutFile = Awaited<ReturnType<typeof layoutFile>>;
+    // The directory the reference brand's emission is committed under, and the breakpoints each brand's layout files hold.
+    const REF = ['nb', ['sm', 'md', 'lg', 'xl', '2xl']] as const;
+    const CORPUS = ['aurora', ['xs', 'sm', 'md', 'lg', 'xl', '2xl']] as const;
+    const COLUMNS = ['Token', 'Specimen', 'Min width', 'Columns', 'Gutter', 'Margin', 'Column', 'Max width', 'Description'];
+    /** The chip a gutter or margin must carry in a mode, read off the catalog: the space step it aliases, else what it
+     *  aliases marked off the space scale, else unlinked (#3052 / #3065). */
+    const chipFromCatalog = (f: LayoutFile, tail: 'gutter' | 'margin', modeId: string): string => {
+      const v = f.vars.find((x) => x.variableCollectionId === f.layoutId && x.name.endsWith(`/grid/${tail}`))!;
+      const raw = v.valuesByMode[modeId] as { type?: string; id?: string } | number;
+      const target = typeof raw === 'object' && raw?.type === 'VARIABLE_ALIAS' ? f.vars.find((x) => x.id === raw.id) : undefined;
+      return !target ? '⚠ unlinked px' : target.name.split('/').includes('space') ? target.name : `${target.name} · off space scale`;
+    };
+    const literalOf = (f: LayoutFile, tail: string, modeId: string): number => {
+      let raw = f.vars.find((x) => x.variableCollectionId === f.layoutId && x.name.endsWith(`/${tail}`))!.valuesByMode[modeId] as unknown;
+      while ((raw as { type?: string })?.type === 'VARIABLE_ALIAS') raw = Object.values(f.vars.find((x) => x.id === (raw as { id: string }).id)!.valuesByMode)[0];
+      return raw as number;
+    };
+    const catOf = (f: LayoutFile): SgCatalog => ({ collections: f.cols, variables: f.vars, gridStyles: f.gridStyles });
+
+    for (const [dir, modes] of [REF, CORPUS]) {
+      const who = dir === REF[0] ? 'the reference brand' : 'the corpus brand';
+      const f = await layoutFile(dir, modes);
+      const plan = planStyleGuide(catOf(f), null);
+      const gt = plan.tables.find((t) => t.type === 'grid');
+      // (a) ONE ROW PER BREAKPOINT, each its grid style, on Grids & layouts in the Grids group.
+      ok(!!gt && gt.page === GRIDS && gt.group === 'grids' && gt.title === 'Grid styles' && JSON.stringify(gt.columns) === JSON.stringify(COLUMNS)
+        && JSON.stringify(gt.rows.map((r) => r.token)) === JSON.stringify(modes) && gt.description === `${modes.length} grid styles, one per breakpoint, with the layout variables they copy`,
+        `43a ${who}: one Grid styles row per breakpoint (${modes.join(', ')}) on Grids & layouts, in the Grids group, ${COLUMNS.join(' · ')} (${gt?.page}; ${gt?.group}; ${gt?.rows.map((r) => r.token).join(', ')}; "${gt?.description}")`);
+      // (b) EACH LINK CLASS FROM THE CATALOG: the gutter and margin chips, mode by mode; and the values are the variables'.
+      const wrong: string[] = [];
+      const offScale: string[] = [];
+      modes.forEach((m, i) => {
+        const row = gt?.rows[i];
+        const modeId = `layout:${i}`;
+        for (const [k, tail] of [[1, 'gutter'], [2, 'margin']] as const) {
+          const want = chipFromCatalog(f, tail, modeId);
+          if (want.endsWith('off space scale')) offScale.push(`${m} ${tail}`);
+          const x = row?.extra?.[k];
+          const px = literalOf(f, `grid/${tail}`, modeId);
+          if (x?.alias !== want || !x.value.startsWith(`${px}px · ${px / 16}rem`)) wrong.push(`${m} ${tail}: "${x?.value}" [${x?.alias}] (catalog: ${px}px [${want}])`);
+        }
+      });
+      ok(wrong.length === 0, `43b ${who}: every gutter and margin prints the variable's value and the link its alias resolves through: a space step, a core dimension off the space scale, or unlinked (${wrong.slice(0, 3).join('; ') || 'all match'})`);
+      // The fixture exercises the off-scale arm where the emission has one: the reference brand's md margin, 44 (#3052).
+      ok(JSON.stringify(offScale) === JSON.stringify(dir === REF[0] ? ['md margin'] : []), `43b ${who}: off the space scale exactly where the catalog says (${offScale.join(', ') || 'none'})`);
+      // (c) NO MISMATCH CHIP where the emitted styles copy the variables (the engine's G1 holds).
+      ok(!!gt && gt.rows.every((r) => !(r.extra ?? []).some((x) => (x.alias ?? '').includes('⚠ style'))), `43c ${who}: no mismatch chip where every grid style copies its variables`);
+      // (d) THE CONTAINER TABLE on Grids & layouts, in Containers, its key unchanged; nothing of it on Primitive tokens; no
+      // breakpoint or grid variable named as a later phase.
+      const ct = plan.tables.find((t) => t.key.startsWith(`dimension|${f.layoutId}|`));
+      ok(!!ct && ct.page === GRIDS && ct.group === 'containers' && ct.title === 'Container' && ct.key.endsWith('/container') && ct.rows.length === 3
+        && !plan.tables.some((t) => t.page === PRIM && t.collectionId === f.layoutId) && !plan.notes.some((n) => /breakpoint|grid/.test(n)),
+        `43d ${who}: the Container table is drawn on Grids & layouts in Containers, keyed as before (${ct?.key}; ${ct?.page}; ${ct?.group}; notes: ${plan.notes.join(' | ') || 'none'})`);
+    }
+
+    // (e) A PLAIN VALUE IS FLAGGED: the reference brand's md margin written as a literal 44 reads "⚠ unlinked px".
+    {
+      const f = await layoutFile(REF[0], REF[1]);
+      const margin = f.vars.find((x) => x.variableCollectionId === f.layoutId && x.name.endsWith('/grid/margin'))!;
+      margin.valuesByMode['layout:1'] = 44;
+      const row = planStyleGuide(catOf(f), null).tables.find((t) => t.type === 'grid')?.rows[1];
+      ok(chipFromCatalog(f, 'margin', 'layout:1') === '⚠ unlinked px' && row?.extra?.[2].alias === '⚠ unlinked px' && row.extra[2].value.startsWith('44px'),
+        `43e: a margin with no alias reads "⚠ unlinked px" (${row?.extra?.[2].value} [${row?.extra?.[2].alias}])`);
+    }
+
+    // (f) THE MISMATCH CHIP: the lg grid style drifted to a 20px gutter while the variable holds 24. The Gutter cell prints the
+    // variable's value and names the style's; no other cell carries a mismatch; with the Aliases toggle off, the mismatch
+    // still shows and the links do not.
+    {
+      const f = await layoutFile(REF[0], REF[1]);
+      const lg = f.gridStyles.find((st) => st.name === 'lg')!;
+      lg.layoutGrids = [{ ...lg.layoutGrids[0], gutterSize: 20 }];
+      const want = literalOf(f, 'grid/gutter', 'layout:2');
+      const rows = planStyleGuide(catOf(f), null).tables.find((t) => t.type === 'grid')!.rows;
+      const cell = rows[2].extra![1];
+      const others = rows.flatMap((r, i) => (r.extra ?? []).filter((x, k) => (i !== 2 || k !== 1) && (x.alias ?? '').includes('⚠ style')).map((x) => `${r.token}: ${x.alias}`));
+      ok(want === 24 && cell.value.startsWith('24px') && cell.alias === `${chipFromCatalog(f, 'gutter', 'layout:2')} · ⚠ style 20 ≠ variable 24` && others.length === 0,
+        `43f: the mismatch arm — lg's gutter prints the variable's 24px and its chip names the style's 20 ("${cell.value}" [${cell.alias}]; elsewhere: ${others.join('; ') || 'none'})`);
+      const bare = planStyleGuide(catOf(f), null, { aliases: false }).tables.find((t) => t.type === 'grid')!.rows;
+      ok(bare[2].extra![1].alias === '⚠ style 20 ≠ variable 24' && bare[2].extra![1].always === true && bare[0].extra![1].alias === null,
+        `43f: with aliases off, the mismatch chip stays and the link chips go (${bare[2].extra![1].alias}; ${bare[0].extra![1].alias})`);
+    }
+
+    // (g) DRAWN: both groups on Grids & layouts, Grids above Containers; each row's specimen the style at 1:8, its columns
+    // laid out as the style lays them; the content cap only where the frame is wider than container/max; a rerun in place.
+    for (const [dir, modes] of [REF, CORPUS]) {
+      const who = dir === REF[0] ? 'the reference brand' : 'the corpus brand';
+      const f = await layoutFile(dir, modes);
+      const r = await draw(f.api, null);
+      const grids = groupFrame(f.grids, 'Grids'), conts = groupFrame(f.grids, 'Containers');
+      const gw = tableFrame(f.grids, 'Grid styles'), cw = tableFrame(f.grids, 'Container');
+      ok(!!grids && !!conts && Number(grids.y) < Number(conts.y) && !!gw && !!cw && gw.parent === guidesOf(grids) && cw.parent === guidesOf(conts)
+        && r.tables.every((t) => t.status === 'created') && !tablesOn(f.prim).some((t) => t.pluginData['prism3-style-guide'] === cw.pluginData['prism3-style-guide']),
+        `43g ${who}: Grids above Containers on Grids & layouts, each holding its table (${r.tables.map((t) => `${t.title}:${t.status}`).join(', ')})`);
+      const g = gridOf(gw);
+      const bad: string[] = [];
+      modes.forEach((m, i) => {
+        const row = rowOf(g, m);
+        const spec = cellAt(g, row, 1)?.findOne((k) => k.name === 'Grid');
+        const st = f.gridStyles.find((x) => x.name === m)!.layoutGrids[0];
+        const bp = literalOf(f, `breakpoint/${m}`, `layout:${i}`), max = literalOf(f, 'container/max', `layout:${i}`), min = literalOf(f, 'container/min', `layout:${i}`);
+        const W = bp || min;
+        const colW = (W - 2 * st.offset! - (st.count! - 1) * st.gutterSize!) / st.count!;
+        const cols = spec?.children.filter((k) => k.name.startsWith('Column ')) ?? [];
+        const cap = spec?.children.find((k) => k.name === 'Content cap');
+        const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.01;
+        if (!spec || !near(spec.w, W / 8) || cols.length !== st.count || !near(Number(cols[1]?.x), (st.offset! + colW + st.gutterSize!) / 8) || !near(cols[0]?.w ?? 0, colW / 8)
+          || !!cap !== W > max || (cap && !near(cap.w, max / 8))) bad.push(`${m}: ${spec?.w} wide, ${cols.length} columns, 2nd at ${cols[1]?.x}, cap ${cap?.w ?? 'none'}`);
+        if (!textIn(cellAt(g, row, 6)).startsWith(`${Math.round(colW * 100) / 100}px`)) bad.push(`${m} column: ${textIn(cellAt(g, row, 6))}`);
+      });
+      ok(bad.length === 0, `43g ${who}: every specimen is its style at 1:8, a content cap only past container/max, and the Column width the style gives (${bad.join('; ') || 'all match'})`);
+      const again = await draw(f.api, null);
+      ok(again.tables.every((t) => t.status === 'updated') && tablesOn(f.grids).length === 2 && !again.relocated,
+        `43g ${who}: a rerun updates both tables in place and moves nothing (${again.tables.map((t) => `${t.title}:${t.status}`).join(', ')})`);
+    }
+
+    // (h) AN EARLIER FILE'S CONTAINER TABLE MOVES. The file an earlier build left: the Container table in the first column of
+    // the Dimensions group on Primitive tokens, every other guide one column right, its mark and group record as that build
+    // wrote them, and nothing on Grids & layouts.
+    const earlier = async (): Promise<{ f: LayoutFile; cont: N; dims: N; others: string[] }> => {
+      const f = await layoutFile(REF[0], REF[1]);
+      await draw(f.api, null);
+      const cont = tableFrame(f.grids, 'Container')!;
+      const dims = groupFrame(f.prim, 'Dimensions')!;
+      const g = guidesOf(dims)!;
+      const others = [...g.children].sort((a, b) => a.gridCol! - b.gridCol!).map((k) => k.pluginData['prism3-style-guide']);
+      g.gridColumnCount = g.children.length + 1;
+      g.gridColumnSizes = Array.from({ length: g.children.length + 1 }, () => ({ type: 'HUG' }));
+      for (const k of [...g.children].sort((a, b) => b.gridCol! - a.gridCol!)) k.setGridChildPosition(0, k.gridCol! + 1);
+      g.appendChildAt(cont, 0, 0);
+      cont.pluginData['prism3-style-guide-mark'] = `${f.prim.id}|${cont.id}`;
+      cont.pluginData['prism3-style-guide-in-group'] = dims.id;
+      for (const n of [...f.grids.children]) n.remove();
+      return { f, cont, dims, others };
+    };
+    const census = (f: LayoutFile): Record<string, string[]> =>
+      Object.fromEntries(f.pages.map((p) => [p.name, tablesOn(p).map((t) => t.pluginData['prism3-style-guide']).sort()]));
+    {
+      const { f, cont, dims, others } = await earlier();
+      const key = cont.pluginData['prism3-style-guide'];
+      const id = cont.id;
+      const before = census(f);
+      const pagesBefore = f.pages.map((p) => p.name);
+      const due = tableMovesDue(f.pages);
+      ok(JSON.stringify(due) === JSON.stringify([{ table: 'Style guide — Container', key, from: PRIM, to: GRIDS }]),
+        `43h: the move is due, read off the pages: the Container table, Primitive tokens to Grids & layouts (${JSON.stringify(due)})`);
+      const r = await relocateTables(f.api);
+      const after = census(f);
+      const changed = Object.keys({ ...before, ...after }).filter((p) => JSON.stringify(before[p]) !== JSON.stringify(after[p]));
+      ok(r.moved.length === 1 && cont.id === id && cont.parent === f.grids && !cont.pluginData['prism3-style-guide-in-group'],
+        `43h: the same node moves onto Grids & layouts, its group record cleared (${cont.parent?.name}; ${cont.id})`);
+      ok(JSON.stringify(f.pages.map((p) => p.name)) === JSON.stringify(pagesBefore) && JSON.stringify(changed) === JSON.stringify([PRIM, GRIDS])
+        && JSON.stringify(after[PRIM]) === JSON.stringify(before[PRIM].filter((k) => k !== key)) && JSON.stringify(after[GRIDS]) === JSON.stringify([key]),
+        `43h: the per-page key census — only the Container key changes page, and no page is lost (${changed.map((p) => `${p}: ${before[p]?.length} → ${after[p]?.length}`).join('; ')})`);
+      const g = guidesOf(dims)!;
+      const now = [...g.children].sort((a, b) => a.gridCol! - b.gridCol!);
+      ok(JSON.stringify(now.map((k) => k.pluginData['prism3-style-guide'])) === JSON.stringify(others) && now.every((k, i) => k.gridCol === i && k.gridRow === 0) && g.gridColumnCount === others.length,
+        `43h: no other guide moved — the Dimensions guides keep their order and the grid closes over the gap (${now.map((k) => `${k.gridRow},${k.gridCol}`).join(' ')}; ${g.gridColumnCount} columns)`);
+      ok(tableMovesDue(f.pages).length === 0 && (await relocateTables(f.api)).moved.length === 0, '43h: a second move finds nothing to move');
+      const drawn = await draw(f.api, null);
+      const copies = f.pages.flatMap((p) => tablesOn(p)).filter((t) => t.pluginData['prism3-style-guide'] === key);
+      ok(drawn.tables.find((t) => t.key === key)?.status === 'updated' && copies.length === 1 && copies[0] === cont && cont.parent === guidesOf(groupFrame(f.grids, 'Containers')),
+        `43h: the next style-guide run updates the moved table in place, in Containers, and draws no second (${drawn.tables.find((t) => t.key === key)?.status}; ${copies.length} cop${copies.length === 1 ? 'y' : 'ies'})`);
+    }
+    // (i) THE STYLE-GUIDE RUN MOVES IT ITSELF (Q3171.7 A): the same earlier file, drawn without an Update first.
+    {
+      const { f, cont } = await earlier();
+      const key = cont.pluginData['prism3-style-guide'];
+      const r = await draw(f.api, null);
+      const copies = f.pages.flatMap((p) => tablesOn(p)).filter((t) => t.pluginData['prism3-style-guide'] === key);
+      ok(r.relocated?.length === 1 && r.tables.find((t) => t.key === key)?.status === 'updated' && copies.length === 1 && copies[0] === cont
+        && styleGuideSummary(r).lines.includes('Moved to its page: Style guide — Container (Primitive tokens to Grids & layouts)'),
+        `43i: a style-guide run before any Update moves the table, then updates it in place (${styleGuideSummary(r).lines.filter((l) => l.startsWith('Moved')).join(' | ')}; ${copies.length} cop${copies.length === 1 ? 'y' : 'ies'})`);
+    }
+    // (j) A COPY STAYS: a table whose mark names another node is a designer's copy, never moved; so is one a designer put in
+    // a frame of their own.
+    {
+      const { f, cont } = await earlier();
+      cont.pluginData['prism3-style-guide-mark'] = `${f.prim.id}|node:elsewhere`;
+      const copy = tableMovesDue(f.pages);
+      cont.pluginData['prism3-style-guide-mark'] = `${f.prim.id}|${cont.id}`;
+      const mine = new N('FRAME'); mine.name = 'My layouts'; f.prim.appendChild(mine); mine.appendChild(cont);
+      const framed = tableMovesDue(f.pages);
+      ok(copy.length === 0 && framed.length === 0, `43j: a copy, and a table in a designer's own frame, are never due (${copy.length}, ${framed.length})`);
+    }
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

@@ -56,7 +56,7 @@ import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
-import { emptiedLine, pageMovesLine, relocateSets, type PageMove } from './page-moves';
+import { emptiedLine, pageMovesLine, relocateSets, relocateTables, type PageMove, type TableMove } from './page-moves';
 import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furniture';
 import { docPanelReaches, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
@@ -87,6 +87,8 @@ export const previewHashOf = (r: UpdatePreview): string =>
   fnv(JSON.stringify([r.sets.map((s) => [s.set, s.previewHash, ...(s.setMove ? [s.setMove] : []), ...(s.blockers.length ? [s.blockers] : []), ...(s.furniture ? [s.furniture] : [])]), r.missing, r.refused, ...(r.pages ? [r.pages] : []),
     // #2989: the sets to move to their pages, only when there are any, so a file with none hashes as it did before.
     ...(r.pageMoves ? [{ pageMoves: r.pageMoves }] : []),
+    // #3171: the style-guide tables to move, the same way.
+    ...(r.tableMoves ? [{ tableMoves: r.tableMoves }] : []),
     // #2858: the About frame, only while it is work, so a file whose frame is current hashes as it did before it.
     ...(aboutIsWork(r.about) ? [r.about] : []),
     // #2859: the library cover, the same way.
@@ -180,6 +182,8 @@ export type ApplyResult = {
   /** #2989 — the sets moved to the page the taxonomy names now, and the pages that left empty (never deleted). Absent
    *  when none. */
   relocated?: PageMove[];
+  /** #3171 — the style-guide tables moved to the page they are drawn on now. Absent when none. */
+  relocatedTables?: TableMove[];
   emptied?: string[];
   /** #2858 — the Cover page's "About this library" frame, drawn after the sets. Absent when the run wrote nothing. */
   about?: AboutOutcome;
@@ -788,13 +792,15 @@ export const applyUpdate = async (
   // THE SETS ON A FORMER PAGE (#2989) are work of their own too, on a host that can make and move pages.
   const relocate = !!preview.pageMoves?.length && !!host.root.children && typeof (host as unknown as { createPage?: unknown }).createPage === 'function'
     && typeof (host as unknown as { loadAllPagesAsync?: unknown }).loadAllPagesAsync === 'function';
+  // THE STYLE-GUIDE TABLES ON A FORMER PAGE (#3171) too, on a host that can load its pages.
+  const retable = !!preview.tableMoves?.length && !!host.root.children && typeof (host as unknown as { loadAllPagesAsync?: unknown }).loadAllPagesAsync === 'function';
   // THE ABOUT FRAME (#2858) is work of its own when it is missing or drawn for another engine.
   // …and the library cover (#2859), when it is missing or behind.
   const about = aboutIsWork(preview.about) || coverIsWork(preview.cover);
-  if (!ready.length && !moving.length && !reorder && !relocate && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
+  if (!ready.length && !moving.length && !reorder && !relocate && !retable && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
   // THE ABOUT FRAME ALONE SAVES NO VERSION (owner decision Q498 B): no set changes, so Q7's way back has nothing to
   // cover. `settle` still saves one before any re-spacing it finds, as for any other second write.
-  if (!ready.length && !moving.length && !reorder && !relocate && !furnishing.length) {
+  if (!ready.length && !moving.length && !reorder && !relocate && !retable && !furnishing.length) {
     res.aboutOnly = true;
     await settle(host, targets, preview, res, opts);
     if (res.version) delete res.aboutOnly;
@@ -822,6 +828,11 @@ export const applyUpdate = async (
     const r = await relocateSets(host as unknown as Parameters<typeof relocateSets>[0]);
     if (r.moved.length) res.relocated = r.moved;
     if (r.emptied.length) res.emptied = r.emptied;
+  }
+  // …and the style-guide tables (#3171), the same function the style-guide run calls (Q3171.7 A).
+  if (retable) {
+    const t = await relocateTables(host as unknown as Parameters<typeof relocateTables>[0]);
+    if (t.moved.length) res.relocatedTables = t.moved;
   }
   for (const { t, p, live, stampOnly } of ready) {
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
@@ -929,6 +940,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   const furnished = r.outcomes.filter((o) => !o.refused && !o.stopped && furnitureDueCount(o.furniture)).length;
   const reordered = r.reordered?.length ?? 0;
   const relocated = r.relocated?.length ?? 0;
+  const tablesMoved = r.relocatedTables?.length ?? 0;
   const lines: string[] = [];
   for (const o of r.outcomes) {
     if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); continue; }
@@ -975,7 +987,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
   if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
   // #2989: the sets moved to their pages, and any page the move left empty, for the owner to delete by hand.
-  if (relocated) lines.push(pageMovesLine(r.relocated, true));
+  if (relocated || tablesMoved) lines.push(pageMovesLine([...(r.relocated ?? []), ...(r.relocatedTables ?? [])], true));
   if (r.emptied?.length) lines.push(emptiedLine(r.emptied));
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   // #2858: the Cover page's About frame, drawn last.
@@ -998,6 +1010,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                     : setsMoved ? `✓ ${n(setsMoved, 'set')} moved` : reordered ? `✓ reordered ${n(reordered, 'page')}`
                       // Owner-approved wording (#2989, Q3 A, 2026-10-24): a run whose only work was moving sets to their pages.
                       : relocated ? `✓ ${n(relocated, 'set')} moved to ${relocated === 1 ? 'its page' : 'their pages'}`
+                      // DRAFT wording for the owner (#3171): the same, for style-guide tables.
+                      : tablesMoved ? `✓ ${n(tablesMoved, 'table')} moved to ${tablesMoved === 1 ? 'its page' : 'their pages'}`
                       // DRAFT wording for the owner (#2803, Q379 A): a run whose only work was the canvas furniture.
                       : furnished ? `✓ canvas furniture drawn for ${n(furnished, 'set')}`
                         // DRAFT wording for the owner (#2858): a run whose only work was the About frame.

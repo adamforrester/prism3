@@ -1554,7 +1554,7 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
 const styleGuideCatalog = async (): Promise<void> => {
   try {
     await loadPagesYielding();
-    const { catalog } = await readCatalog(figma.variables, () => figma.getLocalTextStylesAsync(), { effect: () => figma.getLocalEffectStylesAsync(), paint: () => figma.getLocalPaintStylesAsync() });
+    const { catalog } = await readCatalog(figma.variables, () => figma.getLocalTextStylesAsync(), { effect: () => figma.getLocalEffectStylesAsync(), paint: () => figma.getLocalPaintStylesAsync(), grid: () => figma.getLocalGridStylesAsync() });
     postToUi({ type: 'style-guide-catalog', catalog: catalogFor(catalog, savedContract().contract, isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0])) });
   } catch (e) {
     postToUi({ type: 'style-guide-catalog', catalog: { setUp: false, collections: [], tables: [], notes: [] }, error: (e as Error)?.message ?? String(e) });

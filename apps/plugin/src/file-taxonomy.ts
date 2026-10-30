@@ -233,6 +233,23 @@ export const FORMER_PAGES: readonly { readonly page: string; readonly defs: read
 ];
 
 /**
+ * WHERE A STYLE-GUIDE TABLE USED TO BE DRAWN (#3171, owner decision Q3171.7 A) — the pages an earlier build drew a table on,
+ * which an existing file can still hold. `table` names the kind of table (`container`, the Container table). Update file
+ * and the style-guide run move a table Prism3 drew that is found on one of these pages onto the page it is drawn on now
+ * (`relocateTables`, `style-guide.ts`); a copy, and a table a designer moved elsewhere, stay. No page is ever deleted.
+ */
+export const FORMER_TABLE_PAGES: readonly { readonly page: string; readonly table: 'container'; readonly by: string }[] = [
+  // The Container table sat in the Dimensions group until it joined the grid styles on Grids & layouts (#3171).
+  { page: 'Primitive tokens', table: 'container', by: '#3171' },
+];
+
+/** Owner-approved wording (#2989, Q3 A, 2026-10-24), without its full stop: things moved to the page the file now puts
+ *  them on, each by name, as the dry run lists them and as the apply reports them done. A set is named by its def id
+ *  (`page-moves.ts`), a style-guide table by its frame's name (#3171). Empty when nothing moves. */
+export const movesClause = (moves: readonly { name: string; from: string; to: string }[] | undefined, done: boolean): string =>
+  moves?.length ? `${done ? 'Moved' : 'To move'} to ${moves.length === 1 ? 'its page' : 'their pages'}: ${moves.map((m) => `${m.name} (${m.from.slice(NEST_PREFIX.length)} to ${m.to.slice(NEST_PREFIX.length)})`).join(', ')}` : '';
+
+/**
  * EVERY DEF THAT NESTS EACH DEF, read off the defs themselves: any `nests` naming another def, at any depth (an anatomy
  * part, a slot's default items). Never off this file (`docs/34`): the defs are the oracle, the pages the subject.
  * `prefers` (a soft preference, never a requirement) is not `nests`, so it does not count.
