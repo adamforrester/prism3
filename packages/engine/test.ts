@@ -36917,6 +36917,38 @@ arm: {
   const GLYPH: Record<string, string> = { 'chevron/collapsed': 'chevron-down', 'chevron/expanded': 'chevron-up', 'plus-minus/collapsed': 'plus', 'plus-minus/expanded': 'minus' };
   ok(indPlans.length === 12 && indPlans.every((p) => { const c = coord(p); const shown = (p.root as PN).children.map((k) => k.name); return shown.length === 1 && shown[0] === { 'chevron-down': 'chevronDownGlyph', 'chevron-up': 'chevronUpGlyph', plus: 'plusGlyph', minus: 'minusGlyph' }[GLYPH[`${c.indicator}/${c.expansion}`]]; }),
     `#2417 accordion indicator: 12 members, each showing exactly the one glyph for its pair and state (Q183)`);
+
+  // THE TITLE WEIGHT (#3180, owner Q-ACC1 A): the regular label composite at every size, never emphasis. EXPECTED is
+  // the token and the Figma text style per size, typed here; ACTUAL is the def's binding and every projected member's
+  // label. A title moved back to `type.label.{rung}.emphasis` fails here by name.
+  const TITLE_TYPE: Record<string, string> = { small: 'type.label.sm.default', medium: 'type.label.md.default', large: 'type.label.lg.default' };
+  const TITLE_STYLE: Record<string, string> = { small: 'label/sm/default', medium: 'label/md/default', large: 'label/lg/default' };
+  const offWeight = [
+    ...Object.entries(TITLE_TYPE).filter(([s, t]) => acc.tokens[`size.${s}.type`] !== t).map(([s]) => `def ${s}: ${acc.tokens[`size.${s}.type`]}`),
+    ...plans.filter((p) => (find(p.root as PN, 'label') as PN & { textStyle?: string } | undefined)?.textStyle !== TITLE_STYLE[coord(p).size]).map((p) => `${planComponentName(p)}: ${(find(p.root as PN, 'label') as PN & { textStyle?: string } | undefined)?.textStyle}`),
+  ];
+  ok(offWeight.length === 0,
+    `#3180 accordion title weight (Q-ACC1 A): the regular label composite, type.label.{sm,md,lg}.default (label/{sm,md,lg}/default), on all 48 members at every size, never emphasis` + (offWeight.length ? ` — OFF: ${[...new Set(offWeight)].slice(0, 6).join('; ')}` : ''));
+  // AND ITS LINE BOX (#2586 kept): the composite the title now binds is one line of `type.label.{rung}.line-box` in
+  // every brand, resolved from the emitted composite's own font size and line height, never from the line-box token.
+  const offBox: string[] = [];
+  for (const { id, theme } of corpus()) {
+    const tr = buildTree(theme).tree as any;
+    const root = tr[Object.keys(tr)[0]];
+    const byPath = (dotted: string): any => dotted.split('.').reduce((n: any, k) => n?.[k], tr);
+    const num = (v: any, hops = 0): number => (typeof v === 'string' && /^\{.+\}$/.test(v) && hops < 10
+      ? (byPath(v.slice(1, -1))?.$extensions?.prism3?.px ?? num(byPath(v.slice(1, -1))?.$value, hops + 1))
+      : typeof v === 'number' ? v : parseFloat(String(v)) * (String(v).endsWith('rem') ? 16 : 1));
+    for (const [size, t] of Object.entries(TITLE_TYPE)) {
+      const [, , rung, name] = t.split('.');
+      const comp = root.type?.label?.[rung]?.[name];
+      const box = parseFloat(String(root.type?.label?.[rung]?.['line-box']?.$value));
+      const line = comp ? Math.round(num(comp.$value?.fontSize) * num(comp.$value?.lineHeight)) : NaN;
+      if (!(line === box)) offBox.push(`${id.split(' ')[0]} ${size}: ${t} gives ${line}px, line box ${box}px`);
+    }
+  }
+  ok(corpus().length >= 4 && offBox.length === 0,
+    `#3180 accordion title line box (#2586 kept): the regular title composite is one line of type.label.{rung}.line-box at every size, in every brand` + (offBox.length ? ` — OFF: ${offBox.join('; ')}` : ''));
 }
 
 // ------------------------------------------------------------------- #2319: the list and its item

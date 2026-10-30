@@ -84,8 +84,9 @@ export const accordion: ComponentDef = {
 
   tokens: {
     // ── INK (approved, Q241). The title is interactive neutral ink; the panel's placeholder is page ink (`body`).
-    // The title TYPE is `type.label.{rung}.emphasis`, which every brand emits (owner decision, 2026-10-11, revising
-    // Q182's `type.body.*.strong`: a brand emits body strong only if it adds that weight, and nb-redesign does not).
+    // The title TYPE is `type.label.{rung}.default`, the regular weight, at every size and in every brand (#3180, owner
+    // Q-ACC1 A, revising the 2026-10-11 `type.label.{rung}.emphasis`, itself revising Q182's `type.body.*.strong`). Every
+    // label composite at one rung shares its size and line height, so `type.label.{rung}.line-box` (#2586) is unmoved.
     'label': 'color.interactive.neutral.text.rest',
     'body': 'color.text.primary',
     // The ring is drawn INSIDE the header's edge (Q257 A, superseding Q243): offset 0, the fields' offset, and no stroke
@@ -99,7 +100,7 @@ export const accordion: ComponentDef = {
     'size.small.pad-x': 'space.150',
     'size.small.pad-y': 'space.100',
     'size.small.gap': 'space.100',
-    'size.small.type': 'type.label.sm.emphasis',
+    'size.small.type': 'type.label.sm.default',
     'size.small.panel-type': 'type.body.sm.default',
     'size.small.panel-pad-top': 'space.0',
     'size.small.panel-pad-end': 'space.150',
@@ -108,7 +109,7 @@ export const accordion: ComponentDef = {
     'size.medium.pad-x': 'space.200',
     'size.medium.pad-y': 'space.150',
     'size.medium.gap': 'space.150',
-    'size.medium.type': 'type.label.md.emphasis',
+    'size.medium.type': 'type.label.md.default',
     'size.medium.panel-type': 'type.body.md.default',
     'size.medium.panel-pad-top': 'space.0',
     'size.medium.panel-pad-end': 'space.200',
@@ -118,7 +119,7 @@ export const accordion: ComponentDef = {
     'size.large.pad-x': 'space.250',
     'size.large.pad-y': 'space.200',
     'size.large.gap': 'space.200',
-    'size.large.type': 'type.label.lg.emphasis',
+    'size.large.type': 'type.label.lg.default',
     'size.large.panel-type': 'type.body.lg.default',
     'size.large.panel-pad-top': 'space.0',
     'size.large.panel-pad-end': 'space.300',
@@ -349,6 +350,7 @@ export const accordion: ComponentDef = {
     ],
     evolution: [
       'Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header\'s focus ring on its edge, `focus.ring.offset-field`), and the owner\'s QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header\'s edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title\'s first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size); Q338 A (the large inline padding 24 → 20, `space.250`, so the side padding steps 12/16/20) and Q339 A (no change: the panel keeps its own padding). #2878 (Q-block A, 2026-10-25): the indicator pair is an `indicator` axis on the Accordion, which the nested indicator follows, so the set is 48 members and the nested instance is no longer exposed.',
+      '#3180 (Q-ACC1 A, 2026-10-30): the title moved from the emphasis label composite to the default (regular) one at every size, for every brand. The reference brand\'s FAQ accordion sets its title at 14px regular, and field practice is split between regular and medium. The line box is unmoved, and an Update rewrites the title\'s text style in place, keeping a hand edit on the header\'s padding.',
     ],
   },
 };

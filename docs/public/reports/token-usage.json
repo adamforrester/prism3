@@ -27292,6 +27292,21 @@
     "type.label.lg.default": {
       "type": "typography",
       "components": {
+        "accordion": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "pagination": {
           "keys": [
             "size.large.type"
@@ -27427,21 +27442,6 @@
     "type.label.lg.emphasis": {
       "type": "typography",
       "components": {
-        "accordion": {
-          "keys": [
-            "size.large.type"
-          ],
-          "parts": {
-            "label": {
-              "members": 16,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "size.large.filled.type",
@@ -27750,6 +27750,21 @@
     "type.label.md.default": {
       "type": "typography",
       "components": {
+        "accordion": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "divider": {
           "keys": [
             "label.type"
@@ -27903,21 +27918,6 @@
     "type.label.md.emphasis": {
       "type": "typography",
       "components": {
-        "accordion": {
-          "keys": [
-            "size.medium.type"
-          ],
-          "parts": {
-            "label": {
-              "members": 16,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "banner": {
           "keys": [
             "title-type"
@@ -28271,6 +28271,21 @@
     "type.label.sm.default": {
       "type": "typography",
       "components": {
+        "accordion": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "pagination": {
           "keys": [
             "size.small.type"
@@ -28406,21 +28421,6 @@
     "type.label.sm.emphasis": {
       "type": "typography",
       "components": {
-        "accordion": {
-          "keys": [
-            "size.small.type"
-          ],
-          "parts": {
-            "label": {
-              "members": 16,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "badge": {
           "keys": [
             "size.medium.type"
@@ -28943,9 +28943,9 @@
         "type.body.lg.default",
         "type.body.md.default",
         "type.body.sm.default",
-        "type.label.lg.emphasis",
-        "type.label.md.emphasis",
-        "type.label.sm.emphasis"
+        "type.label.lg.default",
+        "type.label.md.default",
+        "type.label.sm.default"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []

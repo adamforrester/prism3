@@ -183,11 +183,11 @@ Keyed by `size`.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| size=medium | `container/header/titleRow/titleBox/label` | `type.label.md.emphasis` |
+| size=medium | `container/header/titleRow/titleBox/label` | `type.label.md.default` |
 | size=medium | `container/content/placeholder` | `type.body.md.default` |
-| size=small | `container/header/titleRow/titleBox/label` | `type.label.sm.emphasis` |
+| size=small | `container/header/titleRow/titleBox/label` | `type.label.sm.default` |
 | size=small | `container/content/placeholder` | `type.body.sm.default` |
-| size=large | `container/header/titleRow/titleBox/label` | `type.label.lg.emphasis` |
+| size=large | `container/header/titleRow/titleBox/label` | `type.label.lg.default` |
 | size=large | `container/content/placeholder` | `type.body.lg.default` |
 
 ### Color
