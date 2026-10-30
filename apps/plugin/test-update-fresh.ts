@@ -4,7 +4,7 @@
  *   npx tsx apps/plugin/test-update-fresh.ts
  *
  * The owner's run: a new, empty file, Update file with everything ticked. Set up file landed, Icon (the first set in
- * catalog order) landed, and the run sat on BrandMark (the second) for good. Nothing about BrandMark itself: it is the
+ * catalog order) landed, and the run sat on ProviderLogo (the second) for good. Nothing about ProviderLogo itself: it is the
  * first set the panel's build queue posts AFTER another set's result. The queue (`apps/studio/src/main.ts`
  * `runAfterResult`, #2700) posts the next set the moment a `component-result` lands, and so does Update file's `update`
  * step after the sets step's last one. Until #3128 the plugin still held the build's run guard (#1957) after posting
@@ -24,7 +24,7 @@
  * literals. The order is the studio's own catalog function over the plugin's defs, as the panel's catalog is computed.
  *
  * Mutation this fails by name: `buildComponents` no longer releasing the build's guard when its verdict posts (`main.ts`,
- * the `guard.release` call after `verdictPosted = true`) → `sets/brand-mark: answered by component-result` (refused) and
+ * the `guard.release` call after `verdictPosted = true`) → `sets/provider-logo: answered by component-result` (refused) and
  * `update/after the last set: answered by component-update-result`. `run-guard.ts`'s `finally` deleting the operation
  * whoever holds it (the hold token dropped) → `guard/release: released, …`.
  */
@@ -125,13 +125,13 @@ ok(setup?.type === 'file-setup-result', `setup: Set up file answers with its res
 // 2. Every buildable set, in the panel's catalog order, each posted the moment the last answer landed.
 const placeOf = (id: string) => { const at = leafForDef(id); return at ? { page: at.leaf.page, section: at.section.header } : null; };
 const order = catalogOf(componentDefs, (d) => figmaAnatomySet(d, { swapTarget: CATALOG_SWAP_TARGET }), placeOf).filter((e) => e.buildable).map((e) => e.id);
-ok(order[0] === 'icon' && order[1] === 'brand-mark', `sets: Icon then BrandMark lead the catalog, as in the owner's run (${order.slice(0, 2).join(', ')})`);
+ok(order[0] === 'icon' && order[1] === 'provider-logo', `sets: Icon then ProviderLogo lead the catalog, as in the owner's run (${order.slice(0, 2).join(', ')})`);
 for (const id of order) {
   const r = await send({ type: 'build-components', def: id }, ['component-result']);
   ok(r?.type === 'component-result', `sets/${id}: answered by component-result (${said(r)})`);
 }
-const marks = onPages().filter((n) => n.type === 'COMPONENT' && String(n.name).startsWith('brand-mark/'));
-ok(marks.length > 0, `sets: BrandMark's components reached the file (${marks.length})`);
+const marks = onPages().filter((n) => n.type === 'COMPONENT' && String(n.name).startsWith('provider-logo/'));
+ok(marks.length > 0, `sets: ProviderLogo's components reached the file (${marks.length})`);
 
 // 3. Update file's update step, posted straight after the sets step's last result.
 const upd = await send({ type: 'update-sets', defs: ['badge'], previewHash: '', handEdits: 'keep' }, ['component-update-result']);

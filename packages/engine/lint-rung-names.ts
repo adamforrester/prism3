@@ -373,7 +373,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
  */
 const LADDER_STATED_ONCE: Record<string, string> = {
   icon: 'its Figma grid is the 40-glyph `name` axis (#864), and a def cannot declare a `variants` axis it does not project — so the ladder lives in `props.size` and `tokens` only',
-  'brand-mark': 'its Figma grid is the `name` axis, one standalone component per mark (#2343), as on Icon — so the height ladder a host binds lives in `props.size` and `tokens` only',
+  'provider-logo': 'its Figma grid is the `name` axis, one standalone component per mark (#2343), as on Icon — so the height ladder a host binds lives in `props.size` and `tokens` only',
 };
 
 /**
@@ -507,7 +507,7 @@ const SIZE_BY_BUILT_WIDTH: Record<string, string> = {
  * this list whole — the forward half alone let nine size-axis defs sit unlisted, each droppable in silence.
  */
 const MUST_COVER = [
-  'icon', 'brand-mark', 'spinner', 'progress',
+  'icon', 'provider-logo', 'spinner', 'progress',
   'button', 'button-destructive', 'button-neutral', 'wallet-button', 'sign-in-button',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',

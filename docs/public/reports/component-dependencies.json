@@ -1545,7 +1545,7 @@
     },
     {
       "from": "sign-in-button",
-      "to": "brand-mark",
+      "to": "provider-logo",
       "part": "mark",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1876,7 +1876,7 @@
     },
     {
       "from": "wallet-button",
-      "to": "brand-mark",
+      "to": "provider-logo",
       "part": "mark",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1964,19 +1964,6 @@
       ],
       "nestedBy": [],
       "affectedByChange": [],
-      "inheritedBy": []
-    },
-    "brand-mark": {
-      "nests": [],
-      "nestsTransitively": [],
-      "nestedBy": [
-        "sign-in-button",
-        "wallet-button"
-      ],
-      "affectedByChange": [
-        "sign-in-button",
-        "wallet-button"
-      ],
       "inheritedBy": []
     },
     "breadcrumb-item": {
@@ -2590,6 +2577,19 @@
       "affectedByChange": [],
       "inheritedBy": []
     },
+    "provider-logo": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "sign-in-button",
+        "wallet-button"
+      ],
+      "affectedByChange": [
+        "sign-in-button",
+        "wallet-button"
+      ],
+      "inheritedBy": []
+    },
     "radio-control": {
       "nests": [
         "focus-ring"
@@ -2701,12 +2701,12 @@
     },
     "sign-in-button": {
       "nests": [
-        "brand-mark",
-        "focus-ring"
+        "focus-ring",
+        "provider-logo"
       ],
       "nestsTransitively": [
-        "brand-mark",
-        "focus-ring"
+        "focus-ring",
+        "provider-logo"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -2887,12 +2887,12 @@
     },
     "wallet-button": {
       "nests": [
-        "brand-mark",
-        "focus-ring"
+        "focus-ring",
+        "provider-logo"
       ],
       "nestsTransitively": [
-        "brand-mark",
-        "focus-ring"
+        "focus-ring",
+        "provider-logo"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -2906,7 +2906,6 @@
     "accordion": 1,
     "badge": 0,
     "banner": 2,
-    "brand-mark": 0,
     "breadcrumb-item": 2,
     "breadcrumbs": 3,
     "button": 1,
@@ -2940,6 +2939,7 @@
     "pagination-item": 1,
     "password-field": 2,
     "progress": 1,
+    "provider-logo": 0,
     "radio-control": 1,
     "radio-group": 3,
     "radio-row": 2,

@@ -22,7 +22,7 @@
  *
  * ONE BLACK GLYPH PER PROVIDER, PAINTED WHITE ON A DARK FILL (Q846 A). Apple black and Facebook blue carry the black
  * `provider/apple` and `provider/facebook` with a literal tint, `#ffffff` (the rule's `tint`, the literal entry's
- * `markTint`, the plan's `literalTint`), painted on every vector of the glyph. That is the one place a brand mark is
+ * `markTint`, the plan's `literalTint`), painted on every vector of the glyph. That is the one place a provider logo is
  * retinted: only here, only a `provider/*` glyph, and only where the fill is dark. `lint-mark-colors.ts` (g) fails any
  * other host or mark that tints, and `test.ts` (`Q846 A dark-fill styles draw white`) types which styles do. Q846 A
  * dropped the derived `provider/apple-black`, a duplicate of the black `provider/apple`; `provider/facebook-blue` stays,
@@ -40,13 +40,13 @@
  *   - the font: Google Sans Medium 14/20 on Google members at every size, a literal with a fallback; the brand's
  *     label type on Apple and Facebook, which leave the font free.
  *   - the width floor: 140, Apple's minimum and the largest of the three.
- *   - the mark: `brand-mark/provider/<provider>[-<glyph color>]`, nested whole, height bound, its own paint, or
+ *   - the mark: `provider-logo/provider/<provider>[-<glyph color>]`, nested whole, height bound, its own paint, or
  *     white where the fill is dark (Q846 A).
  *   - the wording: "Continue with <Provider>" in Figma, with no text property (Q-S8 A); the code prop takes the
  *     provider's own list.
  */
 import { ComponentDef, type LiteralEntry } from '../component-schema';
-import { BRAND_MARK_NAMES } from '../brand-mark-glyphs';
+import { PROVIDER_LOGO_NAMES } from '../provider-logo-glyphs';
 import { BUTTON_SPACING } from '../button-spacing';
 import { focusRingPart, heightTokens, markPart, radiusToken, ringTokens } from '../branded-button';
 
@@ -234,8 +234,8 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
       'the wording — a fixed key per provider × wording (continue, sign-in, sign-up for Apple and Google; continue, login for Facebook), translated by the app; the provider\'s name is never translated. The wording prop is typed per provider, so a wording the provider does not offer is a type error, not a fallback.',
       'the width — the button hugs its label with a 140px floor, Apple\'s minimum and the largest of the three, and fullWidth makes it fill its column.',
       'RTL — the row mirrors, so the glyph stays at the leading edge, now the right. The glyph itself is never flipped.',
-      'forced colors — under forced-colors mode the button follows the system colors like any button (its fill, edge and label become ButtonFace, ButtonText and the system border), while the glyph keeps forced-color-adjust: none, the brand mark\'s own rule, so the provider\'s artwork is never repainted.',
-      'the accessible name — the visible wording is the name ("Continue with Google"), so the label and the name match. No aria-label is added, and the glyph is decorative (aria-hidden, the brand mark with no label).',
+      'forced colors — under forced-colors mode the button follows the system colors like any button (its fill, edge and label become ButtonFace, ButtonText and the system border), while the glyph keeps forced-color-adjust: none, the provider logo\'s own rule, so the provider\'s artwork is never repainted.',
+      'the accessible name — the visible wording is the name ("Continue with Google"), so the label and the name match. No aria-label is added, and the glyph is decorative (aria-hidden, the provider logo with no label).',
     ],
     },
     figmaProperties: {
@@ -283,14 +283,14 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
     ai: {
       primaryPurpose: 'Let a user sign in or sign up with their Apple, Google or Facebook account.',
       whenToUse: 'On a sign-in or sign-up screen, one button for each account provider the product supports, stacked at one size.',
-      avoidWhen: 'For signing in with an email and password, use Button. For paying with a wallet such as Apple Pay, use WalletButton. For a social link in a footer, use Link with a brand mark. For a provider outside Apple, Google and Facebook, use Button with the provider\'s name in the label.',
-      commonPartners: ['button', 'text-field', 'password-field', 'divider', 'brand-mark'],
+      avoidWhen: 'For signing in with an email and password, use Button. For paying with a wallet such as Apple Pay, use WalletButton. For a social link in a footer, use Link with a provider logo. For a provider outside Apple, Google and Facebook, use Button with the provider\'s name in the label.',
+      commonPartners: ['button', 'text-field', 'password-field', 'divider', 'provider-logo'],
       triggerKeywords: ['sign in with apple', 'sign in with google', 'continue with google', 'login with facebook', 'social login', 'social sign in', 'oauth button'],
       generationPriority: 2,
     },
 
     composition: {
-      composesWith: ['brand-mark', 'focus-ring'],
+      composesWith: ['provider-logo', 'focus-ring'],
       alternativeTo: [],
       replacesPatterns: ['a hand-drawn social sign-in button', 'a provider logo pasted into a Button'],
       planned: [],
@@ -321,10 +321,10 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
         'Q837 A (2026-10-28): Facebook\'s blue moved from #1877f2 to its current brand blue, #0866ff, in both styles and in the facebook marks. White on it measures 4.82:1, so every style now clears 4.5:1 at rest and focus-visible; the Facebook hover and pressed states stay under it (see contested).',
       ],
       projection: [
-        'In Figma the button\'s fill, edge and label color are plain colors with no variable, and the label has no text property; Google\'s label carries Google Sans Medium 14/20 directly, not a text style. The glyph is a brand-mark/provider instance, its height bound and its width from its proportion; on Apple black and Facebook blue its vectors are painted white as a plain color.',
+        'In Figma the button\'s fill, edge and label color are plain colors with no variable, and the label has no text property; Google\'s label carries Google Sans Medium 14/20 directly, not a text style. The glyph is a provider-logo/provider instance, its height bound and its width from its proportion; on Apple black and Facebook blue its vectors are painted white as a plain color.',
       ],
     },
   };
 };
 
-export const signInButton = makeSignInButton(BRAND_MARK_NAMES);
+export const signInButton = makeSignInButton(PROVIDER_LOGO_NAMES);

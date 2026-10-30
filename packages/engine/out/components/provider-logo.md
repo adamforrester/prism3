@@ -1,11 +1,11 @@
-# BrandMark
+# ProviderLogo
 
 > A provider's own mark, in its own colors: sign-in, payment and social. Never retinted.
 
-- **ID:** `brand-mark`
+- **ID:** `provider-logo`
 - **Category:** foundations
 - **Status:** draft
-- **Also known as:** logo-mark, provider-logo, payment-mark, social-mark
+- **Also known as:** brand-mark, logo-mark, payment-mark, social-mark
 
 ## Overview
 
@@ -83,7 +83,7 @@ Name an informative mark with the provider's own name, spelled the way the provi
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `name` | enum: BrandMarkName (`logo/affirm`, `logo/amazon-pay`, `logo/amex`, `logo/apple-pay`, `logo/diners-club`, `logo/discover`, `logo/google-pay`, `logo/klarna`, `logo/mastercard`, `logo/paypal`, `logo/paypal-wordmark`, `logo/shop-pay`, `logo/venmo`, `logo/visa`, `payment/affirm`, `payment/amazon-pay`, `payment/amex`, `payment/apple-pay`, `payment/diners-club`, `payment/discover`, `payment/generic`, `payment/google-pay`, `payment/klarna`, `payment/maestro`, `payment/mastercard`, `payment/paypal`, `payment/shop-pay`, `payment/venmo`, `payment/visa`, `provider/apple`, `provider/facebook`, `provider/facebook-blue`, `provider/google`, `social/apple`, `social/apple-mono`, `social/discord`, `social/discord-mono`, `social/dribbble`, `social/dribbble-mono`, `social/facebook`, `social/facebook-mono`, `social/figma`, `social/figma-mono`, `social/github`, `social/github-mono`, `social/google`, `social/google-mono`, `social/instagram`, `social/instagram-mono`, `social/linkedin`, `social/linkedin-mono`, `social/medium`, `social/medium-mono`, `social/messenger`, `social/messenger-mono`, `social/pinterest`, `social/pinterest-mono`, `social/reddit`, `social/reddit-mono`, `social/snapchat`, `social/snapchat-mono`, `social/spotify`, `social/spotify-mono`, `social/tiktok`, `social/tiktok-mono`, `social/tumblr`, `social/tumblr-mono`, `social/twitch`, `social/twitch-mono`, `social/whatsapp`, `social/whatsapp-mono`, `social/x`, `social/x-mono`, `social/youtube`, `social/youtube-mono`) | — | yes | Which mark, as kind and provider: payment/visa, logo/apple-pay, provider/google, social/instagram-mono. The list is generated from the mark set, so an unknown name fails at compile time, and a provider added to the set reaches the list the day it lands. |
+| `name` | enum: ProviderLogoName (`logo/affirm`, `logo/amazon-pay`, `logo/amex`, `logo/apple-pay`, `logo/diners-club`, `logo/discover`, `logo/google-pay`, `logo/klarna`, `logo/mastercard`, `logo/paypal`, `logo/paypal-wordmark`, `logo/shop-pay`, `logo/venmo`, `logo/visa`, `payment/affirm`, `payment/amazon-pay`, `payment/amex`, `payment/apple-pay`, `payment/diners-club`, `payment/discover`, `payment/generic`, `payment/google-pay`, `payment/klarna`, `payment/maestro`, `payment/mastercard`, `payment/paypal`, `payment/shop-pay`, `payment/venmo`, `payment/visa`, `provider/apple`, `provider/facebook`, `provider/facebook-blue`, `provider/google`, `social/apple`, `social/apple-mono`, `social/discord`, `social/discord-mono`, `social/dribbble`, `social/dribbble-mono`, `social/facebook`, `social/facebook-mono`, `social/figma`, `social/figma-mono`, `social/github`, `social/github-mono`, `social/google`, `social/google-mono`, `social/instagram`, `social/instagram-mono`, `social/linkedin`, `social/linkedin-mono`, `social/medium`, `social/medium-mono`, `social/messenger`, `social/messenger-mono`, `social/pinterest`, `social/pinterest-mono`, `social/reddit`, `social/reddit-mono`, `social/snapchat`, `social/snapchat-mono`, `social/spotify`, `social/spotify-mono`, `social/tiktok`, `social/tiktok-mono`, `social/tumblr`, `social/tumblr-mono`, `social/twitch`, `social/twitch-mono`, `social/whatsapp`, `social/whatsapp-mono`, `social/x`, `social/x-mono`, `social/youtube`, `social/youtube-mono`) | — | yes | Which mark, as kind and provider: payment/visa, logo/apple-pay, provider/google, social/instagram-mono. The list is generated from the mark set, so an unknown name fails at compile time, and a provider added to the set reaches the list the day it lands. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The height: 20, 24 or 32px, from the icon size tokens. The width follows from the mark's own proportion, so a payment tile stays 8 by 5 and a logo keeps its width. |
 | `label` | string | — | no | The accessible name, when the mark carries information the page states nowhere else, as in a row of accepted cards: the mark then has role="img" and aria-label. Without a label it is decorative and hidden from assistive tech, which is right inside a button or link whose own text or label names the provider. |
 
@@ -175,4 +175,4 @@ Keyed by `name`.
 
 ---
 
-Generated from the `brand-mark` component definition.
+Generated from the `provider-logo` component definition.

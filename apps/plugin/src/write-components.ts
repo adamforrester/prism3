@@ -760,7 +760,7 @@ export const MIN_HEIGHT_TOLERANCE = 0.01;
 /**
  * #3127: THE ARTBOARD READ-BACK, AT FIGMA'S PRECISION. Figma stores a node's width and height as 32-bit floats, so a
  * declared artboard that is not exact in binary comes back a hair off: a 34.97 × 24 logo reads 34.970001220703125. The
- * exact compare called that "sized to its ink", 7 false misses on BrandMark's logos (each at its own width, 24 high).
+ * exact compare called that "sized to its ink", 7 false misses on ProviderLogo's logos (each at its own width, 24 high).
  * The tolerance is float32's error at these sizes, many times over, and far under any glyph sized to its ink (`minus`
  * draws 14 × 2 on a 24 × 24 artboard). The expectation is the plan's own `glyphViewBox` per kind: square for an icon,
  * `social/` and `provider/`; its own width × 24 for `logo/`; 32 × 20 for `payment/`.
@@ -2129,7 +2129,7 @@ const writeComponentSet = async (
         // frame the file holds is already sized by its host's binding.
         if (n.glyphViewBox && !atArtboard(fresh.width, fresh.height, n.glyphViewBox)) misses.push(artboardMiss(n.name, n.glyphViewBox, fresh.width, fresh.height));
         if (fw > 0 && fh > 0 && (fw !== ex.width || fh !== ex.height)) fresh.resize?.(Number(ex.width), Number(ex.height));
-        // A GLYPH THAT TAKES NO HOST INK (#2343 PR 2, a brand mark) compares its vectors' FILLS too: its colors are the
+        // A GLYPH THAT TAKES NO HOST INK (#2343 PR 2, a provider logo) compares its vectors' FILLS too: its colors are the
         // document's own, so a mark whose provider changed a color and not a path must take the new import. A glyph a
         // host inks (`descendantFills`, every icon) does not: its fills are the binding written after, never the import's.
         const ownPaint = !n.descendantFills;
@@ -2528,7 +2528,7 @@ const writeComponentSet = async (
         }
       }
 
-      // THE PROVIDER GLYPH'S TINT (owner decision Q846 A): a literal solid on every VECTOR inside the nested brand mark,
+      // THE PROVIDER GLYPH'S TINT (owner decision Q846 A): a literal solid on every VECTOR inside the nested provider logo,
       // in place of the file's own colors. Only SignInButton's black provider glyph on a dark fill carries one.
       // Lockstep with the paste twin.
       const tintVecs = n.literalTint && node.findAll ? node.findAll((x) => x.type === 'VECTOR') : [];
@@ -3172,7 +3172,7 @@ const writeComponentSet = async (
     const emitted: string[] = [];
     const cols = Math.max(1, Math.ceil(Math.sqrt(fresh.length)));
     // THE GRID'S PITCH IS MEASURED (#3134): the widest and tallest component of this def on the page, plus a 24px gap.
-    // A fixed 48 fit the 24px icons and nothing wider, so a brand mark's 54px logo sat over its neighbor. Every cell is
+    // A fixed 48 fit the 24px icons and nothing wider, so a provider logo's 54px logo sat over its neighbor. Every cell is
     // the same size, so a member of any width clears the next one.
     const GAP = 24;
     const own = [...fresh, ...((dest.children ?? []) as CompNode[]).filter((c) => c.type === 'COMPONENT' && String(c.name ?? '').startsWith(`${component}/`) && !fresh.includes(c))];

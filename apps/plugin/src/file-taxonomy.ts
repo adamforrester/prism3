@@ -78,10 +78,9 @@ export const TAXONOMY: Taxonomy = {
       leaves: [
         { page: 'Primitive tokens', defs: [] },
         { page: 'Semantic tokens', defs: [] },
-        { page: 'Icons & assets', defs: ['icon'] },
-        // Brand marks (#2343): the second icon type, on a page of its own beside the icon set, so each Foundations page
-        // holds one set and its row reads by the set's name. DRAFT placement, held for the owner on #2343 (Q-B12).
-        { page: 'Brand marks', defs: ['brand-mark'] },
+        // Provider logos (#3148, owner decision on Q847): the second icon type, beside the icon set on its page. They had a
+        // "Brand marks" page of their own (#2343); a file built then has its marks moved here (`FORMER_PAGES`).
+        { page: 'Icons & assets', defs: ['icon', 'provider-logo'], lead: 'icon' },
         { page: 'Grids & layouts', defs: [] },
       ],
     },
@@ -113,7 +112,7 @@ export const TAXONOMY: Taxonomy = {
         // Search field (#2888) — its own page under Components, as the Password field's is.
         { page: 'Search field', defs: ['search-field'] },
         // Card number field (#2343 PR 4) — its own page under Components, as the Search field's is (DRAFT, held for the
-        // owner in the PR). Its tile slot starts at a brand mark, built first from the Brand marks page.
+        // owner in the PR). Its tile slot starts at a provider logo, built first from the Icons & assets page.
         { page: 'Card number field', defs: ['card-number-field'] },
         { page: 'Textarea', defs: ['textarea'] },
         { page: 'Veil', defs: ['veil'] },
@@ -229,6 +228,8 @@ export const STANDALONE_NESTED: Readonly<Record<string, string>> = {
 export const FORMER_PAGES: readonly { readonly page: string; readonly defs: readonly string[]; readonly by: string }[] = [
   { page: 'Breadcrumb Item', defs: ['_breadcrumb-separator', 'breadcrumb-item'], by: '#2989' },
   { page: 'Code Cell', defs: ['code-input-cell'], by: '#2989' },
+  // The provider logos' own page (#2343) until they joined the icons on Icons & assets (#3148). The page stays.
+  { page: 'Brand marks', defs: ['provider-logo'], by: '#3148' },
 ];
 
 /**

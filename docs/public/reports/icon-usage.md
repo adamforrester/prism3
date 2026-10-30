@@ -18,7 +18,6 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | infoGlyph | `info-circle` | icon set | drawn | tone: info |
 |  | successGlyph | `check-circle` | icon set | drawn | tone: success |
 |  | warningGlyph | `error-circle` | icon set | drawn | tone: warning |
-| brand-mark | glyph | `{name}` | any (prop) | drawn | always |
 | breadcrumbs | backGlyph | `chevron-left` | icon set | drawn | path: parent |
 | checkbox-control | checkGlyph | `check` | icon set | drawn | selection: checked |
 |  | dashGlyph | `minus` | icon set | drawn | selection: indeterminate |
@@ -35,6 +34,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | dotGlyph | `progress-stop` | component-owned | drawn | shape: linear; type: determinate |
 |  | fullRingGlyph | `progress-ring-{size}` | component-owned | drawn | shape: circular; status: complete |
 |  | ringGlyph | `progress-ring-{size}` | component-owned | drawn | shape: circular |
+| provider-logo | glyph | `{name}` | any (prop) | drawn | always |
 | search-field | leadingVisual | `search` | icon set | swap default | always |
 |  | trailingVisual | `close-filled` | icon set | swap default | always |
 | select | chevronGlyph | `chevron-down` | icon set | drawn | always |
