@@ -1469,6 +1469,14 @@
           {
             "name": "label",
             "type": "TEXT"
+          },
+          {
+            "name": "description text",
+            "type": "TEXT"
+          },
+          {
+            "name": "description",
+            "type": "BOOLEAN"
           }
         ],
         "codeOnly": {
@@ -1585,6 +1593,14 @@
           {
             "name": "label",
             "type": "TEXT"
+          },
+          {
+            "name": "description text",
+            "type": "TEXT"
+          },
+          {
+            "name": "description",
+            "type": "BOOLEAN"
           }
         ],
         "codeOnly": {

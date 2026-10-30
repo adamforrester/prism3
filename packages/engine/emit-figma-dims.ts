@@ -23,7 +23,7 @@ import { Theme } from './theme';
 import { buildTree, at } from './tree';
 import {
   figmaDimensionDescription, figmaSpaceDescription, figmaRadiusDescription, figmaSizeDescription, figmaIconSizeDescription,
-  figmaControlDescription, figmaLabelLineBoxDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription, figmaBlurDescription,
+  figmaControlDescription, figmaLabelLineBoxDescription, figmaBodyLineBoxDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription, figmaBlurDescription,
   figmaDurationPrimitiveDescription, figmaDurationDescription, figmaStaggerDescription,
   figmaCurveDescription, figmaEasingRoleDescription, figmaSpringDescription,
   figmaBreakpointDescription, figmaContainerDescription, figmaGridVarDescription,
@@ -295,7 +295,9 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     // The radio dot setting's share (#3086), read off the DTCG leaf, where `tree.ts` records it off the default only.
     const dotShare = brand.control.size[rung].dot?.$extensions?.prism3?.share;
     if (typeof dotShare === 'number') rungPx.dotShare = dotShare;
-    for (const field of ['height', 'width', 'dot', 'line-box', 'inset', 'radius', 'track', 'thumb']) {
+    // `label-inset` with #3153 — an option row's text column binds it as its top PADDING (the first line pushed down
+    // to stay centered on a control taller than the line), so it is GAP-scoped like `inset`.
+    for (const field of ['height', 'width', 'dot', 'line-box', 'inset', 'radius', 'track', 'thumb', 'label-inset']) {
       const leaf = brand.control.size[rung][field];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
@@ -306,7 +308,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
         // 211 makes for `size.*`, and it is not cosmetic: Figma offers a FLOAT variable only in the
         // fields its scopes name, so an inset scoped WIDTH_HEIGHT would be invisible in the padding
         // control that is its only consumer, and a corner scoped the same way invisible in the radius one.
-        scopes: field === 'inset' ? SIZE_PADDING_SCOPES : field === 'radius' ? RADIUS_SCOPES : SIZE_HEIGHT_SCOPES,
+        scopes: field === 'inset' || field === 'label-inset' ? SIZE_PADDING_SCOPES : field === 'radius' ? RADIUS_SCOPES : SIZE_HEIGHT_SCOPES,
         description: figmaControlDescription(field, rungPx, rung),
         value: pxFromValue(tree, leaf.$value),
         alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
@@ -327,6 +329,22 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       resolvedType: 'FLOAT',
       scopes: SIZE_HEIGHT_SCOPES,
       description: figmaLabelLineBoxDescription(rung, px),
+      value: px,
+      alias: null,
+    });
+  }
+
+  // `type/body/{rung}/line-box` with #3153 — an option row's control cell binds it as its minimum height (the label's
+  // own line box, Q852), beside the label twin above and for the same reason.
+  for (const rung of byNumericKey(Object.keys(brand.type?.body ?? {}))) {
+    const leaf = brand.type.body[rung]?.['line-box'];
+    if (!leaf) continue;
+    const px = pxFromValue(tree, leaf.$value);
+    controlVars.push({
+      name: ns(`type/body/${rung}/line-box`),
+      resolvedType: 'FLOAT',
+      scopes: SIZE_HEIGHT_SCOPES,
+      description: figmaBodyLineBoxDescription(rung, px),
       value: px,
       alias: null,
     });

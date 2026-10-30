@@ -390,8 +390,10 @@
     },
     "checkbox-row": {
       "members": 6,
-      "sha256": "a0c81601bb38ece864dc92c88d5099fdc99ac3bd2f4c290c6babf409d52c9798",
+      "sha256": "1598c70160d4c807b952931388b0bad94c7d49d6bbc00fb459074ec9b92e4871",
       "properties": [
+        "description text:TEXT",
+        "description:BOOLEAN",
         "label:TEXT"
       ]
     },
@@ -409,8 +411,10 @@
     },
     "radio-row": {
       "members": 6,
-      "sha256": "f3e5527bb61b79bfc3d6f0cd97b5fea38f31a75ca6c2c8a1abbee903ad1cd773",
+      "sha256": "ec3ac16bd6adf545635192229bd4d79db270506ba2acabefc11cb9196e8cb8be",
       "properties": [
+        "description text:TEXT",
+        "description:BOOLEAN",
         "label:TEXT"
       ]
     },
@@ -430,7 +434,7 @@
     },
     "switch-row": {
       "members": 4,
-      "sha256": "95cca5e179164f2306dfb4774c08eb6b090eec4058342d29d19fc7f659d5399f",
+      "sha256": "5455405514687eb36a3879b272900734048cc607c2c1d0d3beaf2c8fc59494f9",
       "properties": [
         "label:TEXT"
       ]

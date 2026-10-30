@@ -104,6 +104,16 @@
       }
     },
     {
+      "name": "wds/control/size/sm/label-inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Option row label inset — 0px, so the label's first line centers on the 16px box.",
+      "value": 0,
+      "alias": null
+    },
+    {
       "name": "wds/control/size/md/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -203,6 +213,16 @@
         "type": "VARIABLE_ALIAS",
         "name": "wds/core/dimension/24"
       }
+    },
+    {
+      "name": "wds/control/size/md/label-inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Option row label inset — 0px, so the label's first line centers on the 20px box.",
+      "value": 0,
+      "alias": null
     },
     {
       "name": "wds/control/size/lg/height",
@@ -306,6 +326,16 @@
       }
     },
     {
+      "name": "wds/control/size/lg/label-inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Option row label inset — 0px, so the label's first line centers on the 24px box.",
+      "value": 0,
+      "alias": null
+    },
+    {
       "name": "wds/type/label/sm/line-box",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -333,6 +363,46 @@
       ],
       "description": "Title line height (label lg, 21px) — a glyph centers on the title's first line.",
       "value": 21,
+      "alias": null
+    },
+    {
+      "name": "wds/type/body/xs/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body xs, 18px) — an option row's control stays on the label's first line.",
+      "value": 18,
+      "alias": null
+    },
+    {
+      "name": "wds/type/body/sm/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body sm, 21px) — an option row's control stays on the label's first line.",
+      "value": 21,
+      "alias": null
+    },
+    {
+      "name": "wds/type/body/md/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body md, 24px) — an option row's control stays on the label's first line.",
+      "value": 24,
+      "alias": null
+    },
+    {
+      "name": "wds/type/body/lg/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body lg, 27px) — an option row's control stays on the label's first line.",
+      "value": 27,
       "alias": null
     }
   ]
