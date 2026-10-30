@@ -38158,7 +38158,17 @@
           "members": 2
         },
         {
-          "part": "container/content/checkCircleGlyph",
+          "part": "container/content/glyphCell",
+          "kind": "frame",
+          "members": 1,
+          "when": {
+            "intent": [
+              "success"
+            ]
+          }
+        },
+        {
+          "part": "container/content/glyphCell/checkCircleGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -38217,7 +38227,15 @@
               }
             },
             {
-              "part": "container/content/checkCircleGlyph",
+              "part": "container/content/glyphCell",
+              "values": {
+                "minHeight": {
+                  "token": "type.body.sm.line-box"
+                }
+              }
+            },
+            {
+              "part": "container/content/glyphCell/checkCircleGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -38271,7 +38289,7 @@
               "fill": "color.inverse.background.primary"
             },
             {
-              "part": "container/content/checkCircleGlyph",
+              "part": "container/content/glyphCell/checkCircleGlyph",
               "icon": "color.inverse.icon.success"
             },
             {
@@ -38312,7 +38330,7 @@
           "exposes": []
         },
         {
-          "part": "container/content/checkCircleGlyph",
+          "part": "container/content/glyphCell/checkCircleGlyph",
           "kind": "instance",
           "component": "icon/check-circle",
           "variant": {},

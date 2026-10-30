@@ -39,7 +39,9 @@
  * 37px, off the control-height ladder. The card takes a floor instead, `size.md.height` (the ladder's medium rung, 44
  * at comfortable, 36 compact, 56 spacious), as the option rows' medium row does (#2894), and centers its one line in
  * it. A toast with the action measures 8 + 36 + 8 = 52 at comfortable, as before: the small Button sets it, not the
- * message. The glyph stays top-aligned beside the message, so its 20px box sits within 0.5px of line one's center.
+ * message. The glyph sits in #3153's line-box cell, as Checkbox.Row's and Radio.Row's control does: a cell whose floor
+ * is the message's own line box (`type.body.sm.line-box`, 21px), centring the glyph, inside a `content` that stays
+ * top-aligned. So the glyph is exactly centered on line one, and on a wrapped message it stays beside line one.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -83,6 +85,8 @@ export const toast: ComponentDef = {
     // 14px (#3165): one body step below the 16px the toast was built at, after the option rows' label (#3153).
     'type': 'type.body.sm.default',
     'glyph-size': 'icon.size.sm',
+    // The glyph cell's floor (#3165, #3153's rule): the message's own line box, so the glyph centers on line one.
+    'glyph-cell': 'type.body.sm.line-box',
     // ── SPACE (the proposal's §8, DRAFT, approved by call 13 A): block 8, inline start 16, inline end 8; the glyph to
     // the message 12; the action to the close 4. The message to the controls is this build's, 8 (the wireframe's).
     'pad-y': 'space.100',
@@ -125,8 +129,20 @@ export const toast: ComponentDef = {
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         grow: true,
         gap: 'glyph-gap',
-        children: ['checkCircleGlyph', 'message'],
+        children: ['glyphCell', 'message'],
         note: 'The glyph and the message. It takes the width the action and close button do not.',
+      },
+      // THE LINE-BOX CELL (#3165, #3153's rule as Checkbox.Row and Radio.Row build it). One line of the message tall
+      // as its floor, hugging the glyph, so the glyph centers on line one while `content` stays top-aligned. Draws
+      // nothing. On the success member only: a neutral toast has no glyph, so no cell and no gap before the message.
+      glyphCell: {
+        kind: 'box',
+        role: 'presentation',
+        minHeight: 'glyph-cell',
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
+        presentWhen: { intent: ['success'] },
+        children: ['checkCircleGlyph'],
+        note: 'One line of the message tall, centring the glyph on the message\'s first line.',
       },
       checkCircleGlyph: {
         kind: 'vector',

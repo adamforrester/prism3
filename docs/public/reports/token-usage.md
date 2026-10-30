@@ -3347,13 +3347,14 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.sm.line-box`
 
-Type: dimension. Bound by 3 component(s).
+Type: dimension. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | radio-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | switch-row | `size.medium.control-box` | controlCell | size: medium (2 of 4) |
+| toast | `glyph-cell` | glyphCell | intent: success (1 of 2) |
 
 ### `type.body.sm.strong`
 
@@ -4007,9 +4008,9 @@ Declared, not drawn: `color.border.focus`
 
 ### toast
 
-12 token(s); 2 design-file member(s).
+13 token(s); 2 design-file member(s).
 
-`color.inverse.background.primary`, `color.inverse.icon.success`, `color.inverse.text.primary`, `icon.size.sm`, `radius.xl`, `shadow.lg`, `size.md.height`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.sm.default`
+`color.inverse.background.primary`, `color.inverse.icon.success`, `color.inverse.text.primary`, `icon.size.sm`, `radius.xl`, `shadow.lg`, `size.md.height`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.sm.default`, `type.body.sm.line-box`
 
 ### veil
 

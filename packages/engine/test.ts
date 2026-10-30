@@ -37666,6 +37666,10 @@ arm: {
 // one line with no action and 52 at comfortable with the action. ACTUAL is the projected plan, its text style read as
 // the EMITTED composite and its bound variables resolved through each brand's emitted tree, never through the def's
 // tokens. Mutation: the message back to `type.body.md.default` → `#3165 toast message size`.
+// The glyph takes #3153's line-box cell (the #3169 review, option a): a cell whose floor is the message's own line box,
+// centring the glyph, inside a top-aligned `content`. EXPECTED: the cell's floor equals the line the message's emitted
+// composite resolves to, so the glyph's middle IS line one's. Mutation: the cell's floor bound to a size step instead of
+// the line box → `#3165 toast glyph`.
 {
   type PN = { name: string; type?: string; children: PN[]; bound?: Record<string, string>; counterAxisAlignItems?: string; textStyle?: string; nestTarget?: string; visible?: boolean };
   const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
@@ -37693,7 +37697,7 @@ arm: {
   for (const density of ['compact', 'comfortable', 'spacious'] as const) {
     const plans = figmaAnatomySet(applySpacingDensity(td, density), { swapTarget: 'FPO-default-icon' });
     for (const p of plans) {
-      const r = p.root as PN, msg = find(r, 'message'), glyph = find(r, 'checkCircleGlyph'), close = find(r, 'close'), content = find(r, 'content');
+      const r = p.root as PN, msg = find(r, 'message'), glyph = find(r, 'checkCircleGlyph'), close = find(r, 'close'), content = find(r, 'content'), cell = find(r, 'glyphCell');
       for (const w of worlds.filter((x) => x.density === density)) {
         const v = (name: string | undefined) => (name ? num(w.root, at(w.root, name.replace(/\//g, '.'))) : 0);
         const at1 = `${planComponentName(p)} ${w.brand} ${density}`;
@@ -37702,13 +37706,18 @@ arm: {
         if (fontSize !== 14) sizeBad.push(`${at1}: ${msg?.textStyle} is ${fontSize}px`);
         // The close is a flush glyph at the small rung (the FlushIconButton plan's own box), the glyph its bound width.
         const closeH = close ? v('icon/size/sm') : 0, glyphH = glyph ? v(glyph.bound?.height) : 0;
+        // The cell hugs the glyph over its floor, so it is max(floor, glyph) tall; the glyph centers in it.
+        const cellFloor = cell ? v(cell.bound?.minHeight) : 0, cellH = cell ? Math.max(cellFloor, glyphH) : glyphH;
         const padT = v(r.bound?.paddingTop), padB = v(r.bound?.paddingBottom), floor = v(r.bound?.minHeight);
-        const height = (lines: number, controls: number) => Math.max(floor, padT + Math.max(glyphH, lines * line, controls) + padB);
+        const height = (lines: number, controls: number) => Math.max(floor, padT + Math.max(cellH, lines * line, controls) + padB);
         measured++;
         const one = height(1, closeH);
         if (Math.abs(one - EXPECT[density]) > 0.5) offLadder.push(`${at1}: ${one.toFixed(1)} (want ${EXPECT[density]})`);
-        // The glyph is top-aligned in `content` beside line one: its middle within 0.5px of line one's, on two lines too.
-        if (glyph && !(content?.counterAxisAlignItems === 'MIN' && Math.abs(glyphH / 2 - line / 2) <= 0.5)) offLine.push(`${at1}: glyph ${glyphH} beside a ${line}px line, content ${content?.counterAxisAlignItems}`);
+        // The glyph sits in the line-box cell, the cell top-aligned in `content` beside line one: the cell's floor is the
+        // line, so the glyph's middle is line one's, on two lines too.
+        const inCell = !!cell && cell.children.includes(glyph!) && content?.children.includes(cell);
+        if (glyph && !(inCell && content?.counterAxisAlignItems === 'MIN' && cell?.counterAxisAlignItems === 'CENTER' && Math.abs(cellFloor - line) < 0.01 && Math.abs(cellH / 2 - line / 2) < 0.01)) offLine.push(`${at1}: glyph ${glyphH} in a ${cell ? `${cellFloor}px cell (${cell.bound?.minHeight}), ${cell.counterAxisAlignItems}` : 'no cell'} beside a ${line}px line, content ${content?.counterAxisAlignItems}`);
+        if (!glyph && cell) offLine.push(`${at1}: a glyph cell with no glyph`);
         if (density === 'comfortable') { const a = height(1, v(actionHeightVar)); if (Math.abs(a - 52) > 0.5) withAction.push(`${at1}: ${a.toFixed(1)}`); }
       }
     }
@@ -37717,7 +37726,7 @@ arm: {
   ok(sizeBad.length === 0, `#3165 toast message size: the message's text style is 14px (body.sm) in every brand and density${sizeBad.length ? ` — WRONG: ${sizeBad.slice(0, 4).join('; ')}` : ''}`);
   ok(offLadder.length === 0, `#3165 toast height: a one-line toast with no action measures 36/44/56 (compact/comfortable/spacious), on the ladder (Q3165.1 A)${offLadder.length ? ` — OFF: ${offLadder.slice(0, 4).join('; ')}` : ''}`);
   ok(!!actionHeightVar && withAction.length === 0, `#3165 toast height: with the action, 52 at comfortable, as built (the small Button sets it, ${actionHeightVar})${withAction.length ? ` — OFF: ${withAction.slice(0, 4).join('; ')}` : ''}`);
-  ok(offLine.length === 0, `#3165 toast glyph: the success glyph stays top-aligned beside line one, its middle within 0.5px of the line's${offLine.length ? ` — OFF: ${offLine.slice(0, 4).join('; ')}` : ''}`);
+  ok(offLine.length === 0, `#3165 toast glyph: the success glyph centers in a cell one message line tall (type.body.sm.line-box), top-aligned beside line one, its middle exactly the line's${offLine.length ? ` — OFF: ${offLine.slice(0, 4).join('; ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #2877: the dialog's end placement

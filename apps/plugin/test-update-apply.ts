@@ -117,9 +117,11 @@
  *   accordion pad-x/…  an Accordion built at the old large side padding (space/300, 24px) updates in place to the
  *                  def's 20px (space/250, Q338 A, #2726): the 16 large members updated, the 32 others current, every key
  *                  and id kept. Mutation: the def back at space.300 → `accordion pad-x/dry run`, `accordion pad-x/written`.
- *   toast 14/…     a Toast built with its message at body/md (16px) and no floor updates in place to body/sm (14px) and a
- *                  size/md/height floor (#3165, Q3165.1 A): both members updated, every key and id kept, current after.
- *                  Mutation: the def's message back at body.md → `toast 14/written`.
+ *   toast 14/…     a Toast built with its message at body/md (16px), no floor and the glyph straight under `content`
+ *                  updates in place to body/sm (14px), a size/md/height floor and the glyph in its line-box cell (#3165,
+ *                  Q3165.1 A, #3153's rule): both members updated, every key and id kept, the glyph moved into the
+ *                  inserted cell rather than rebuilt, current after. Mutation: the def's message back at body.md →
+ *                  `toast 14/written`.
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
  *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
@@ -1147,45 +1149,63 @@ section('accordion side padding — a file built at the old large 24px updates i
   ok(post?.counts.current === 48, `accordion pad-x/current: every member reads current after (${JSON.stringify(post?.counts)})`);
 }
 
-// #3165 (owner request, Q3165.1 A): the Toast's message moved from body/md (16px) to body/sm (14px), and the card took a
-// floor at size/md/height. A file built before holds both members with the 16px style and no floor; the Update rewrites
-// both in place. The old style name is the test's own literal; the plan it updates to is the engine's current one.
+// #3165 (owner request, Q3165.1 A): the Toast's message moved from body/md (16px) to body/sm (14px), the card took a
+// floor at size/md/height, and the success glyph moved into #3153's line-box cell (the #3169 review, option a). A file
+// built before holds both members with the 16px style, no floor and the glyph straight under `content`; the Update
+// rewrites both in place and inserts the cell. THE FILE is reconstructed from today's def by putting those facts back
+// (as `before3153` does), so the subject is the real def's projection on both sides. EXPECTED, typed here: the success
+// member's `content` holding [glyphCell, message] and the cell [checkCircleGlyph], the neutral member's [message].
 // Mutation: the def's message back at `type.body.md.default` → `toast 14/written`.
-section('toast 14 — a Toast built with the 16px message and no floor updates in place to 14px on the ladder (#3165)');
+section('toast 14 — a Toast built with the 16px message, no floor and no glyph cell updates in place to 14px on the ladder, the glyph moved into its cell (#3165)');
 {
-  const atOld = plansOf('toast').map((p) => {
-    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
-    delete (q.root.bound as Record<string, string>).minHeight;
-    const msg = planChild(planChild(q.root, 'content'), 'message') as PlanNode & { textStyle?: string };
-    msg.textStyle = 'body/md/default';
-    return q;
-  });
-  type OvNode = { nestOverrides?: { type: string; value: string }[]; children?: OvNode[] };
-  const overrideTargets = (n: OvNode): string[] => [...(n.nestOverrides ?? []).filter((x) => x.type === 'INSTANCE_SWAP').map((x) => x.value), ...(n.children ?? []).flatMap(overrideTargets)];
+  const now = componentDefs.find((x) => x.id === 'toast')!;
+  const { 'min-height': _mh, 'glyph-cell': _gc, ...oldTokens } = now.tokens;
+  const { glyphCell: _cell, ...oldParts } = now.anatomy!.parts;
+  const { minHeight: _m, ...oldContainer } = oldParts.container;
+  const before3165 = {
+    ...now,
+    tokens: { ...oldTokens, type: 'type.body.md.default' },
+    anatomy: { ...now.anatomy!, parts: { ...oldParts, container: oldContainer, content: { ...oldParts.content, children: oldParts.content.children!.map((c) => (c === 'glyphCell' ? 'checkCircleGlyph' : c)) } } },
+  } as ComponentDef;
   const plans = plansOf('toast');
   // The shim holds the nested Button and FlushIconButton as plain components with no `label` or `swap icon` property,
   // so the two nest overrides are misses on the build, as on the corpus arm's; the update must add none.
   const builtMisses: string[] = [];
-  const w = await world('toast', atOld, {
-    allowMisses: builtMisses, extraVars: ['size/md/height'], extraStyles: ['body/sm/default'],
-    extraComps: [...new Set(plans.flatMap((p) => overrideTargets(p.root as unknown as OvNode)))],
+  const w = await world('toast', figmaAnatomySet(before3165, { swapTarget: SWAP_TARGET }), {
+    allowMisses: builtMisses,
+    extraVars: plans.flatMap((q) => [...planBoundVars(q.root), ...planPaintVars(q.root)]),
+    extraStyles: plans.flatMap((q) => planTextStyles(q.root)),
+    extraComps: [...new Set(plans.flatMap((p) => planComps(p.root)))],
   });
+  const kids = (n: Node | undefined): string[] => ((n?.children as Node[] | undefined) ?? []).map((c) => String(c.name));
   const messageOf = (m: Node) => childNamed(childNamed(m, 'content'), 'message');
   const floorOf = (m: Node) => (m.boundVariables as Record<string, { id: string } | undefined>)?.minHeight?.id;
   const floor = await varIdOf(w, 'size/md/height');
-  ok(membersOf(w.set()).length === 2 && membersOf(w.set()).every((m) => /body\/md\/default/.test(String(messageOf(m).textStyleId)) && !floorOf(m)),
-    'premise: both Toast members hold the message at body/md/default and no floor');
+  const lineBox = await varIdOf(w, 'type/body/sm/line-box');
+  const isSuccess = (m: Node) => /intent=success/.test(String(m.name));
+  ok(membersOf(w.set()).length === 2 && membersOf(w.set()).every((m) => /body\/md\/default/.test(String(messageOf(m).textStyleId)) && !floorOf(m) && !kids(childNamed(m, 'content')).includes('glyphCell'))
+    && membersOf(w.set()).filter(isSuccess).length === 1 && membersOf(w.set()).filter(isSuccess).every((m) => JSON.stringify(kids(childNamed(m, 'content'))) === '["checkCircleGlyph","message"]'),
+    `premise: both Toast members hold the message at body/md/default, no floor and no glyph cell; the success glyph sits straight under content (${membersOf(w.set()).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ')})`);
   const before = identityOf(w.set());
   const { pre, res } = await confirm(w, [{ def: 'toast', plans }]);
   const p = pre.sets[0];
-  ok(!!p && !p.blockers.length && p.counts.update === 2 && p.counts.add === 0 && p.counts.drop === 0,
-    `toast 14/dry run: both members to update, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  ok(!!p && !p.blockers.length && p.counts.update === 2 && p.counts.add === 0 && p.counts.drop === 0 && !p.replacements.length,
+    `toast 14/dry run: both members to update, nothing added, dropped or replaced (${JSON.stringify(p?.counts)})`);
   const after = identityOf(w.set());
   const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
-  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
+  // KEPT, BY ID: every node a member held before is still in it, wherever it now sits; the glyph MOVED into the cell.
+  const kidsLost = [...before.members].flatMap(([name, b]) => { const ids = new Set(after.members.get(name)?.kids.values() ?? []); return [...b.kids].filter(([, id]) => !ids.has(id)).map(([path]) => `${name}/${path}`); });
   const extra = res.outcomes[0].misses.filter((x) => !builtMisses.includes(x));
-  ok(builtMisses.every((x) => /^(action\.nestOverrides -> label|close\.nestOverrides -> swap icon) /.test(x)) && extra.length === 0 && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 2,
-    `toast 14/in place: every member and child keeps its key and id, adding no miss to the build's (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved; ${extra.slice(0, 1).join('')})`);
+  ok(builtMisses.every((x) => /^(action\.nestOverrides -> label|close\.nestOverrides -> swap icon) /.test(x)) && extra.length === 0 && moved.length === 0 && kidsLost.length === 0 && after.members.size === 2,
+    `toast 14/in place: every member and child keeps its key and id, adding no miss to the build's (${applyVerdict(res).headline}; ${moved.length} members moved, ${kidsLost.slice(0, 2).join(', ') || 'no child lost'}; ${extra.slice(0, 1).join('')})`);
+  const glyphId = (m: Node | undefined) => m && [...(before.members.get(String(m.name))?.kids ?? [])].find(([path]) => /checkCircleGlyph/.test(path))?.[1];
+  const success = membersOf(w.set()).find(isSuccess)!;
+  const cell = childNamed(childNamed(success, 'content'), 'glyphCell');
+  ok(JSON.stringify(kids(childNamed(success, 'content'))) === '["glyphCell","message"]' && JSON.stringify(kids(cell)) === '["checkCircleGlyph"]'
+    && String(childNamed(cell, 'checkCircleGlyph').id) === glyphId(success)
+    && (cell.boundVariables as Record<string, { id: string } | undefined>)?.minHeight?.id === lineBox && cell.counterAxisAlignItems === 'CENTER' && childNamed(success, 'content').counterAxisAlignItems === 'MIN'
+    && membersOf(w.set()).filter((m) => !isSuccess(m)).every((m) => JSON.stringify(kids(childNamed(m, 'content'))) === '["message"]'),
+    `toast 14/cell: the success member's content holds [glyphCell, message], the inserted cell centers the glyph it kept (same id) on a type/body/sm/line-box floor, content top-aligned; neutral holds [message] (${membersOf(w.set()).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ')}; cell [${kids(cell).join(', ')}] ${String(cell?.counterAxisAlignItems)})`);
   const wrong = membersOf(w.set()).filter((m) => !(/body\/sm\/default/.test(String(messageOf(m).textStyleId)) && floorOf(m) === floor)).map((m) => `${String(m.name)}: ${String(messageOf(m).textStyleId)}, floor ${floorOf(m)}`);
   ok(wrong.length === 0, `toast 14/written: both members' message is body/sm/default and the card's minHeight binds size/md/height (${wrong.slice(0, 2).join('; ')})`);
   const post = (await previewUpdate(w.host, [{ def: 'toast', plans }])).sets[0];

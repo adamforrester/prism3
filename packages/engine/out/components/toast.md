@@ -21,11 +21,12 @@ Shown on the default member: intent `neutral`.
 
 1. **Container** — The toast: the inverse surface, its shadow and its corners. It is never shorter than a medium control, and holds the message on the start side and the action and close button on the end side.
 2. **Content** — The glyph and the message. It takes the width the action and close button do not.
-3. **Check circle glyph** — The success glyph, a circled check, hidden from assistive technology: the message carries the meaning. A neutral toast has no glyph.
-4. **Message** — The message. It wraps onto a second line rather than truncating.
-5. **Controls** — The action and the close button, at the end edge.
-6. **Action** (optional) — The action: a Button, text, small, on the inverse surface, reading "Action" until a designer names it. Off by default.
-7. **Close** (optional) — The close button: a FlushIconButton.Neutral, flush, small, showing the close glyph and named "Dismiss". On by default.
+3. **Glyph cell** — One line of the message tall, centring the glyph on the message's first line.
+4. **Check circle glyph** — The success glyph, a circled check, hidden from assistive technology: the message carries the meaning. A neutral toast has no glyph.
+5. **Message** — The message. It wraps onto a second line rather than truncating.
+6. **Controls** — The action and the close button, at the end edge.
+7. **Action** (optional) — The action: a Button, text, small, on the inverse surface, reading "Action" until a designer names it. Off by default.
+8. **Close** (optional) — The close button: a FlushIconButton.Neutral, flush, small, showing the close glyph and named "Dismiss". On by default.
 
 ## Styles
 
@@ -122,7 +123,8 @@ Generated from the plan that builds the design-file component: 2 members. Values
 | `container/controls` | frame | every member |
 | `container/controls/action` | instance | every member |
 | `container/controls/close` | instance | every member |
-| `container/content/checkCircleGlyph` | instance | intent=success |
+| `container/content/glyphCell` | frame | intent=success |
+| `container/content/glyphCell/checkCircleGlyph` | instance | intent=success |
 
 ### Spacing and size
 
@@ -137,7 +139,8 @@ Keyed by nothing: one row covers every member.
 | `container` | `space.100` / `space.100` / `space.100` / `space.200` | `space.100` | — | — | — | min height `size.md.height`; build width 360px (literal) |
 | `container/content` | — | `space.150` | — | — | — | — |
 | `container/controls` | — | `space.050` | — | — | — | — |
-| `container/content/checkCircleGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/content/glyphCell` | — | — | — | — | — | min height `type.body.sm.line-box` |
+| `container/content/glyphCell/checkCircleGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 ### Type
 
@@ -163,14 +166,14 @@ Keyed by `intent`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.inverse.background.primary` | — | — | — |
-| `container/content/checkCircleGlyph` | — | — | — | `color.inverse.icon.success` |
+| `container/content/glyphCell/checkCircleGlyph` | — | — | — | `color.inverse.icon.success` |
 | `container/content/message` | — | — | `color.inverse.text.primary` | — |
 
 ### Nesting and properties
 
 - `container/controls/action` nests `button` at `appearance=text, size=small, surface=inverse, inset=default, state=rest, leading icon=false, trailing icon=false`
 - `container/controls/close` nests `flush-icon-button-neutral` at `shape=flush, size=small, surface=inverse, state=rest`
-- `container/content/checkCircleGlyph` nests `icon/check-circle`
+- `container/content/glyphCell/checkCircleGlyph` nests `icon/check-circle`
 
 | Property | Type | Default |
 | --- | --- | --- |

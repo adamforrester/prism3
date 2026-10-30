@@ -26948,6 +26948,21 @@
               }
             }
           }
+        },
+        "toast": {
+          "keys": [
+            "glyph-cell"
+          ],
+          "parts": {
+            "glyphCell": {
+              "members": 1,
+              "where": {
+                "intent": [
+                  "success"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -31810,7 +31825,8 @@
         "space.100",
         "space.150",
         "space.200",
-        "type.body.sm.default"
+        "type.body.sm.default",
+        "type.body.sm.line-box"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
