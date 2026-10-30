@@ -1461,6 +1461,7 @@
           ],
           "messages": [
             "update-sets",
+            "update-stop",
             "update-check-request",
             "hand-edits-request",
             "due-request"
