@@ -16,7 +16,7 @@
  * DOM-LIGHT. Nothing runs at import. A load that lands invalidates `fonts`, the topic every brand-face section repaints on.
  */
 import { invalidate } from '../state/store';
-import { fontAvailable, type FaceCut } from './fonts';
+import type { FaceCut } from './fonts';
 
 export type WebFace = { readonly status: 'loading' | 'loaded' | 'missing'; readonly cuts: readonly FaceCut[] };
 
@@ -58,8 +58,10 @@ export const requestWebFace = (family: string): void => {
       style.textContent = css;
       document.head.append(style);
       await Promise.all(cuts.map((c) => document.fonts.load(`${c.italic ? 'italic ' : ''}${c.weight} 16px "${family}"`).catch(() => [])));
-      // A refused file (the CSS arrived, a face did not) leaves the family unpainted: the canvas probe says so.
-      done(fontAvailable(family) ? { status: 'loaded', cuts } : { status: 'missing', cuts: [] });
+      // A refused file (the CSS arrived, a face did not) leaves the family unpainted: only a face that LOADED counts here,
+      // never the declaration this module just added (which `fontAvailable` counts before its file arrives).
+      const loaded = [...document.fonts].some((f) => f.status === 'loaded' && f.family.replace(/["']/g, '') === family);
+      done(loaded ? { status: 'loaded', cuts } : { status: 'missing', cuts: [] });
     })
     .catch(() => done({ status: 'missing', cuts: [] }));
 };
