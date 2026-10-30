@@ -1807,7 +1807,15 @@ section('def rename, single — provider logos built as `brand-mark/…` are ren
     return n;
   };
   const theirs = [own(`${OLD}/handmade`), own(`${OLD}/payment/zz-own`)];
-  const marks = (): Node[] => page.children.filter((n) => n.type === 'COMPONENT' && !theirs.includes(n));
+  // A designer's Figma Duplicate of a shipped mark, renamed (#3156 delta review N1): the copy carries the original's
+  // stamp, but its record names the original's id, so `builtByPrism3` refuses it, and the rename leaves it alone.
+  const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const original = page.children.find((n) => n.type === 'COMPONENT' && n.name === `${OLD}/payment/visa`)!;
+  const copy = own(`${OLD}/payment/visa-copy`);
+  for (const k of [STAMP_KEY, BASELINE_KEY]) (copy.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, pd(original, k));
+  ok(!!pd(copy, STAMP_KEY) && JSON.parse(pd(copy, BASELINE_KEY) || '{}').id === String(original.id) && copy.id !== original.id,
+    `premise: the copy carries \`${OLD}/payment/visa\`'s stamp, and its record names that original's id, not its own`);
+  const marks = (): Node[] => page.children.filter((n) => n.type === 'COMPONENT' && !theirs.includes(n) && n !== copy);
   // Every instance inside the two hosts' sets that points at a mark, as (instance id → its main component's id).
   const instancesIn = (n: Node): Node[] => [...(n.type === 'INSTANCE' ? [n] : []), ...(n.type === 'INSTANCE' ? [] : ((n.children as Node[] | undefined) ?? []).flatMap(instancesIn))];
   // Each instance in the two hosts' sets that points at a mark: instance id → its main's id, as Figma holds it.
@@ -1852,6 +1860,8 @@ section('def rename, single — provider logos built as `brand-mark/…` are ren
     `def rename, single/in place: the same ${afterMarks.size} components, each keeping its id and key, renamed \`${NEW}/…\`, and no duplicate (${marks().length} components; ${[...afterMarks.values()].filter((m) => !m.name.startsWith(`${NEW}/`)).map((m) => m.name).slice(0, 3).join(', ') || 'none left under the old name'})`);
   ok(JSON.stringify(theirs.map((n) => n.name)) === JSON.stringify([`${OLD}/handmade`, `${OLD}/payment/zz-own`]) && theirs.every((n) => page.children.includes(n)),
     `def rename, single/theirs, kept: a designer's own components under the old prefix keep their names (${JSON.stringify(theirs.map((n) => n.name))})`);
+  ok(copy.name === `${OLD}/payment/visa-copy` && page.children.includes(copy),
+    `def rename, single/copy, kept: a designer's duplicate of a stamped mark (the stamp copied, the record naming the original) keeps its name (${copy.name})`);
   const afterNests = nested();
   ok(afterNests.size === beforeNests.size && [...beforeNests].every(([i, m]) => afterNests.get(i) === m),
     `def rename, single/nests: every nested instance in the wallet button and card number field is the same node, pointing at the same mark (${afterNests.size} of ${beforeNests.size})`);
