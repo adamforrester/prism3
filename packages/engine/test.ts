@@ -9347,6 +9347,32 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     'every composite lands on a real leading rung after derivation + nudge');
 }
 
+// ---- the serif fallback tail (#3140; owner decision Q3138.6 A) ----
+// A known serif or serif display family ends its stack in `serif`, so a page that can't load the face falls back to a
+// serif, not a sans. An unknown family keeps the sans tail, and an authored full stack is trusted verbatim. The expected
+// tails are literals here, never read from `font-class.ts` (docs/34): a list derived from the map could not fail.
+{
+  const tail = (stack: string[]): string => stack[stack.length - 1];
+  const famOf = (b: any, g: string): string[] => b.typography.families.find((f: any) => f.group === g).stack;
+  const serif = tBrand('serif-tail', { families: { display: 'Instrument Serif', title: 'playfair display', body: 'Inter', label: 'Clash Display', caption: 'Instrument Sans', code: 'Lora' } });
+  ok(tail(famOf(serif, 'display')) === 'serif' && famOf(serif, 'display')[1] === 'ui-serif',
+    `#3140: Instrument Serif takes the serif tail (got ${famOf(serif, 'display').join(', ')})`);
+  ok(tail(famOf(serif, 'title')) === 'serif', `#3140: the match ignores case — "playfair display" takes the serif tail (got ${tail(famOf(serif, 'title'))})`);
+  ok(tail(famOf(serif, 'body')) === 'sans-serif', `#3140: a sans family keeps the sans tail (got ${tail(famOf(serif, 'body'))})`);
+  ok(tail(famOf(serif, 'label')) === 'sans-serif', `#3140: a sans DISPLAY family (Clash Display) keeps the sans tail — the class is the face's, not the text type's (got ${tail(famOf(serif, 'label'))})`);
+  ok(tail(famOf(serif, 'caption')) === 'sans-serif', `#3140: an unknown family keeps the sans tail (got ${tail(famOf(serif, 'caption'))})`);
+  ok(tail(famOf(serif, 'code')) === 'monospace', `#3140: a serif face on code keeps the mono tail — code declares mono (got ${tail(famOf(serif, 'code'))})`);
+  const authored = tBrand('serif-authored', { families: { display: ['Lora', 'Helvetica', 'sans-serif'] } });
+  ok(famOf(authored, 'display').join('|') === 'Lora|Helvetica|sans-serif', `#3140: an authored full stack is trusted verbatim (got ${famOf(authored, 'display').join(', ')})`);
+  const lib = tBrand('serif-lib', { families: { body: 'Inter' }, typefaceLibrary: ['Fraunces'] });
+  const fr = lib.typography.typefaces.find((t: any) => t.slug === 'fraunces');
+  ok(tail(fr.stack) === 'serif', `#3140: a staged library face the map knows takes the serif tail (got ${tail(fr.stack)})`);
+  const root = Object.keys(buildTree(serif).tree)[0];
+  const prim = (buildTree(serif).tree[root] as any).core.font.typeface['instrument-serif'];
+  ok(JSON.stringify(prim).includes('"ui-serif"') && !JSON.stringify(prim).includes('"sans-serif"'),
+    '#3140: the emitted typeface primitive carries the serif tail, so a consumer falls back to a serif');
+}
+
 // ---- the authored typeface library (#287) ----
 // A face used to exist only if a role bound it. The library lets a brand stage a face first and
 // decide its job later, so `deriveTypefaces` is now a UNION of role-bound faces and authored ones.

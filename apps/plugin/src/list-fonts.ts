@@ -60,3 +60,23 @@ export const listFamilyStyleCounts = async (api: FontsApi): Promise<Array<{ fami
     .map(([family, styles]) => ({ family, styles }))
     .sort((a, b) => a.family.localeCompare(b.family));
 };
+
+/**
+ * The same families, each with its STYLE NAMES (#3138, owner decision Q4 A), in Figma's order, one per row as sent. The counts above say
+ * how many styles a family has; the names say WHICH, so the UI can tell a text style asking for `Semi Bold Italic` that
+ * the family ships only `Regular` and `Italic` before Apply skips it (#237), and the preview can draw the nearest real
+ * cut instead of a synthesized one. Ordered and grouped as `listFamilyStyleCounts`, so a family's name count is its style count.
+ */
+export const listFamilyStyleNames = async (api: FontsApi): Promise<Array<{ family: string; styles: string[] }>> => {
+  const fonts = await api.listAvailableFontsAsync();
+  // One entry per row as sent, as `listFamilyStyleCounts` counts them, so `styles.length` IS that count.
+  const names = new Map<string, string[]>();
+  for (const f of fonts) {
+    const list = names.get(f.fontName.family);
+    if (list) list.push(f.fontName.style);
+    else names.set(f.fontName.family, [f.fontName.style]);
+  }
+  return [...names.entries()]
+    .map(([family, styles]) => ({ family, styles }))
+    .sort((a, b) => a.family.localeCompare(b.family));
+};
