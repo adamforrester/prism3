@@ -541,7 +541,7 @@ const enter = (id) => {
 /** Whether this run runs section `id`. Every guard of a section asks, so the section's time is the time between. */
 const runs = (id) => {
   if (!REACHED.includes(id)) REACHED.push(id);
-  const go = MODE === 'run' && (!SHARD || SHARDS[SHARD].includes(id)) && (!process.env.P3_ONLY || process.env.P3_ONLY.split(',').includes(id));
+  const go = MODE === 'run' && (!SHARD || SHARDS[SHARD].includes(id));
   enter(go ? id : null);
   return go;
 };
@@ -18003,9 +18003,10 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 //   · A LOADED FACE (web): Google Fonts is served by `page.route` with a fixture, Playfair Display at 400 and 400 italic.
 //     The display line asks 600 italic: it draws the loaded face (CDP: a custom font), at 400, with `font-synthesis-weight:
 //     none`, and its note names the nearest cut. The request carries the family and no face the device already has.
-// Mutations, each after a `wip:` commit, each failing here by name: `fontAvailable` forced true in `faceDraw` → every
-// `FALLBACK … carries its note` arm; `drawFace`'s `font-synthesis` line removed → `LOADED … draws … with no synthesized
-// weight`; `styleNames` dropped from the main thread's `font-list` → `FIGMA … the display line says …`.
+// Mutations, each after a `wip:` commit, each failing here by name: `fontAvailable` forced true in `faceDraw` → the
+// display and title `FALLBACK … carries its note` arms; `drawFace`'s `font-synthesis` line removed → `LOADED … draws …
+// with no synthesized weight`; `styleNames` dropped from the write adapter's `font-list` → `FIGMA … the display line
+// says …` and the weight control's arm.
 // =============================================================================================
 if (runs('3138')) {
 console.log(`\nA brand face the preview can't show, said (#3138)\n${'='.repeat(78)}`);
