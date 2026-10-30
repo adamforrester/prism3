@@ -32339,7 +32339,8 @@ arm: {
 // (paddings, gaps, the widths of whatever sits before it), so a description moved out from under the label fails here
 // in px, whatever part names it is given. Mutations: the cell bound to the size step's line box
 // (`control.size.*.line-box`) → `#3153 cell`; the description moved under the whole row → `#3153 description start`;
-// the medium label back on `body.md` → `#3153 label size` (and `#3153 cell`).
+// the medium label back on `body.md` → `#3153 label size` (and `#3153 cell`); the description gap on `space.100` →
+// `#3153 description`.
 {
   type PN = { name: string; type?: string; children: PN[]; bound?: Record<string, string>; layoutMode?: string; itemSpacing?: number; visible?: boolean };
   const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
@@ -32355,6 +32356,8 @@ arm: {
   };
   // Description: one step under the label, floored at 12 (Q853 A, Q3153.1 A). The two option rows only.
   const DESC_PX: Record<string, number> = { small: 12, medium: 12, large: 14 };
+  // The gap between the label and the description: a small fixed step (Q853 A), 4px at every size and density.
+  const DESC_GAP_PX = 4;
   const worlds: { brand: string; density: string; root: any }[] = [];
   const corpus = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
   for (const b of corpus) worlds.push({ brand: b, density: 'comfortable', root: treeOf(JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'))) });
@@ -32401,8 +32404,9 @@ arm: {
           const dt = at(w.root, m.tokens[`description.${size}.text`])?.$value;
           const dPx = num(w.root, dt?.fontSize);
           const ink = (desc as { paints?: { fills?: string } } | undefined)?.paints?.fills;
-          if (!desc || dPx !== DESC_PX[size] || desc.visible !== false || ink !== 'color/text/secondary')
-            offDesc.push(`${where}: description ${dPx}px (want ${DESC_PX[size]}), visible ${desc?.visible}, ink ${ink}`);
+          const dGap = desc ? v(pathTo(row, 'description')!.slice(-2)[0].bound?.itemSpacing) : NaN;
+          if (!desc || dPx !== DESC_PX[size] || desc.visible !== false || ink !== 'color/text/secondary' || Math.abs(dGap - DESC_GAP_PX) > 0.01)
+            offDesc.push(`${where}: description ${dPx}px (want ${DESC_PX[size]}), visible ${desc?.visible}, ink ${ink}, gap ${dGap}px (want ${DESC_GAP_PX})`);
           // THE START EDGE, by a layout walk: x of a node = its parent's x + the parent's left padding + (in a ROW) every
           // preceding sibling's width and one gap each. A sibling's width is its bound width, or a hugging row's sum of
           // its children; a text before the target would make the walk unknowable, and is refused as an offset.
@@ -32432,7 +32436,7 @@ arm: {
   ok(grew > 0, `#3153: the grow-and-offset rule is exercised: some row in some world has a control taller than its label's line (${grew} cases)`);
   ok(offSize.length === 0, `#3153 label size: the option rows' labels are 12/14/16 and Switch.Row's 12/14, in px, in every world${offSize.length ? ` — OFF: ${offSize.slice(0, 4).join('; ')}` : ''}`);
   ok(offCell.length === 0, `#3153 cell: the control cell's floor is one line of the label's own type and the cell is max(control, line), with the label set down by max(0, control − line) ÷ 2, in px, in every world${offCell.length ? ` — OFF: ${offCell.slice(0, 4).join('; ')}` : ''}`);
-  ok(offDesc.length === 0, `#3153 description: one step under the label floored at 12 (12/12/14), muted ink, hidden by default${offDesc.length ? ` — OFF: ${offDesc.slice(0, 4).join('; ')}` : ''}`);
+  ok(offDesc.length === 0, `#3153 description: one step under the label floored at 12 (12/12/14), 4px under it, muted ink, hidden by default${offDesc.length ? ` — OFF: ${offDesc.slice(0, 4).join('; ')}` : ''}`);
   ok(offStart.length === 0, `#3153 description start: the description starts at the label's start edge, past the control, in px${offStart.length ? ` — OFF: ${offStart.slice(0, 4).join('; ')}` : ''}`);
 }
 
