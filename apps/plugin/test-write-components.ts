@@ -5614,7 +5614,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // At float32, as the host stores it.
   const f32 = await build(plans, (n) => resize(n, Math.fround(Number(n.width)), Math.fround(Number(n.height))));
   const inexact = plans.filter((p) => { const b = boxOf(p); return !!b && (Math.fround(b[0]) !== b[0] || Math.fround(b[1]) !== b[1]); }).map((p) => String(p.coord.name));
-  ok(inexact.length > 0 && inexact.every((n) => n.startsWith('logo/')) && f32.length === 0,
+  // The per-mark widths are the two kinds that hug their artwork: `logo/` and, since #3174, `button/`.
+  ok(inexact.length > 0 && inexact.every((n) => n.startsWith('logo/') || n.startsWith('button/')) && f32.length === 0,
     `#3127 at its own width: every provider logo imported at float32 reads back at its artboard, the ${inexact.length} logos whose width float32 cannot hold exactly among them (${inexact.join(', ')}), with no glyphViewBox miss (${f32.length} misses${f32.length ? `: ${f32[0]}` : ''})`);
   // Sized to its ink: the frame takes its outline's box.
   const ink = (n: Node) => { const v = ((n.children as Node[]) ?? [])[0]; if (v) resize(n, Number(v.width), Number(v.height)); };
@@ -5757,21 +5758,42 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   catch (err) { misses = [`threw: ${(err as Error).message.slice(0, 200)}`]; }
   const set = page.children.find((c) => c.name === 'wallet-button' && c.type === 'COMPONENT_SET') as Node | undefined;
   const members = (set?.children as Node[] | undefined) ?? [];
-  ok(members.length === 20 && misses.length === 0, `wallet build: the set builds 20 members with 0 misses (${members.length}; ${misses[0] ?? 'none'})`);
+  ok(members.length === 74 && misses.length === 0, `wallet build: the set builds 74 members with 0 misses (${members.length}; ${misses[0] ?? 'none'})`);
   const marks = new Map(page.children.filter((c) => String(c.name).startsWith('provider-logo/')).map((c) => [String(c.name), c] as const));
   const off: string[] = [];
   for (const m of members) {
     const provider = /provider=([a-z-]+)/.exec(String(m.name))?.[1] ?? '';
+    const style = /style=([a-z-]+)/.exec(String(m.name))?.[1] ?? '';
     const logo = ((m.children as Node[] | undefined) ?? []).find((c) => c.name === 'mark');
     const main = (logo?.mainComponent as Node | undefined) ?? undefined;
-    const want = LOGO[provider], src = marks.get(want);
+    // #3174: the any stand-in carries the provider's logo; every other style its button/ logo for that style.
+    const want = style === 'any' ? LOGO[provider] : `provider-logo/button/${provider}-${style}`, src = marks.get(want);
     const t = logo?.targetAspectRatio as { x: number; y: number } | undefined;
     const bv = (logo?.boundVariables ?? {}) as Record<string, unknown>;
     const ratio = src ? (src.width as number) / (src.height as number) : NaN;
     if (!logo || logo.type !== 'INSTANCE' || String(main?.name) !== want || !t || Math.abs(t.x / t.y - ratio) > 1e-6 || !bv.height || bv.width)
       off.push(`${String(m.name)}: ${logo ? `${String(logo.type)} of ${String(main?.name)}, ratio ${t ? t.x / t.y : 'none'} vs ${ratio}, ${Object.keys(bv).join(',')}` : 'no mark'}`);
   }
-  ok(members.length === 20 && off.length === 0, `wallet build/logos: every member's logo is an instance of its provider's own provider logo, locked to that mark's proportion with only its height bound (${off.length} off — ${off[0] ?? 'none'})`);
+  ok(members.length === 74 && off.length === 0, `wallet build/logos: every member's logo is an instance of its provider's own provider logo, locked to that mark's proportion with only its height bound (${off.length} off — ${off[0] ?? 'none'})`);
+  // #3174: the ground and edge each style's SDK paints, landed by the real executor as plain values. Typed here from the
+  // SDK capture of 2026-10-30 and Shop Pay's #5433EB, never read off the records or the def (docs/34). any paints nothing.
+  const GROUND: Record<string, { fill: string; edge?: string }> = {
+    'apple-pay.black': { fill: '#000000' }, 'apple-pay.white': { fill: '#ffffff' }, 'apple-pay.white-outline': { fill: '#ffffff', edge: '#000000' },
+    'google-pay.black': { fill: '#000000', edge: '#757575' }, 'google-pay.white': { fill: '#ffffff', edge: '#3c4043' },
+    'paypal.gold': { fill: '#ffc439' }, 'paypal.blue': { fill: '#0070ba' }, 'paypal.silver': { fill: '#eeeeee' },
+    'paypal.white': { fill: '#ffffff', edge: '#555555' }, 'paypal.black': { fill: '#2c2e2f' }, 'shop-pay.purple': { fill: '#5433eb' },
+  };
+  const hexOf = (p: { type?: string; color?: { r: number; g: number; b: number }; boundVariables?: object } | undefined): string | undefined =>
+    p?.type === 'SOLID' && p.color && !(p.boundVariables && Object.keys(p.boundVariables).length)
+      ? `#${[p.color.r, p.color.g, p.color.b].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('')}` : undefined;
+  const offGround = members.flatMap((m) => {
+    const provider = /provider=([a-z-]+)/.exec(String(m.name))?.[1] ?? '', style = /style=([a-z-]+)/.exec(String(m.name))?.[1] ?? '';
+    const fills = ((m.fills as unknown[]) ?? []) as Array<Parameters<typeof hexOf>[0]>, strokes = ((m.strokes as unknown[]) ?? []) as Array<Parameters<typeof hexOf>[0]>;
+    const got = { fill: fills.map(hexOf).join('+') || undefined, edge: strokes.map(hexOf).join('+') || undefined };
+    const want = style === 'any' ? {} : GROUND[`${provider}.${style}`] ?? { fill: 'untyped' };
+    return got.fill === want.fill && got.edge === want.edge ? [] : [`${String(m.name)}: ${JSON.stringify(got)} vs ${JSON.stringify(want)}`];
+  });
+  ok(members.length === 74 && offGround.length === 0, `wallet build/ground: each style's member carries its SDK's ground and edge as plain values, and any carries none (${offGround.length} off — ${offGround[0] ?? 'none'})`);
 }
 
 // #2343 PR 5 — SIGNINBUTTON BUILT BY THE REAL EXECUTOR: each provider's literal fill, edge, wash, ink, wording and font
