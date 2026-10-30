@@ -18062,9 +18062,18 @@ const WEIGHT_NOTE = 'Playfair Display has 2 styles: Regular and Italic. 500 and 
 const LOADED_CUT = 'Playfair Display has no 600 cut — shown at 400, its nearest. Browsers fake 600 by thickening 400.';
 /** The brand families CDP saw the web host draw for real in the arm below, before any web font loaded: the device's own. */
 const deviceFaces = new Set();
+// The device must paint a brand family on every runner, or the LOADED arm's "never asked" compares against nothing
+// (CI has no Inter installed). So the web arms register the chrome's embedded Inter under the family `Inter` before
+// boot, as a real face of that name: the page paints it, the UI's probe sees it, and the loader must not ask for it.
+const interB64 = readFileSync(join(STUDIO, 'chrome/fonts/inter-latin-wght-normal.woff2')).toString('base64');
+const paintInter = (page) => page.addInitScript((b64) => {
+  const face = new FontFace('Inter', Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), { weight: '100 900' });
+  document.fonts.add(face);
+  face.load();
+}, interB64);
 for (const host of ['web', 'figma']) {
   const where = `§3138 ${host} light 1280`;
-  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, prep: host === 'web' ? paintInter : undefined });
   let step = 'open';
   try {
     if (host === 'figma') {
@@ -18086,6 +18095,7 @@ for (const host of ['web', 'figma']) {
       ok(real === (l.note === null), `${where}: FALLBACK ${l.token} carries its note exactly when the face drawn is not the face asked (asked ${l.asked}, drew ${l.drawn}, note ${JSON.stringify(l.note)})`);
       if (real && host === 'web') deviceFaces.add(l.asked);
     }
+    if (host === 'web') ok(deviceFaces.has('Inter'), `${where}: FALLBACK the device paints Inter, registered before boot, so LOADED's "never asked" has a face to hold (device paints ${JSON.stringify([...deviceFaces])})`);
     const display = lines.find((l) => l.token === 'type.display.md.strong');
     ok(!!display && display.asked === 'Playfair Display' && display.drawn !== 'Playfair Display', `${where}: FALLBACK the display line asks for Playfair Display and draws another face (${JSON.stringify(display)})`);
     if (host === 'web') ok(display?.note === FALLBACK_WEB, `${where}: FALLBACK the display line says the face isn't installed (${JSON.stringify(display?.note)})`);
@@ -18111,6 +18121,7 @@ for (const host of ['web', 'figma']) {
   // The routes go in before the page loads, so every request from boot on is seen: the loader asks a family once per
   // session, and a request made while the page boots would otherwise pass the arm unseen.
   const prep = async (page) => {
+    await paintInter(page);
     await page.route(/^https:\/\/fonts\.googleapis\.com\//, (r) => {
       const url = r.request().url();
       asked.push(url);
@@ -18131,8 +18142,8 @@ for (const host of ['web', 'figma']) {
     ok(display?.weight === '400' && display?.synthesis === 'none', `${where}: LOADED draws the display line at 400, its nearest cut, with no synthesized weight (weight ${display?.weight}, font-synthesis-weight ${display?.synthesis})`);
     ok(display?.note === LOADED_CUT, `${where}: LOADED the display line names the nearest cut (${JSON.stringify(display?.note)})`);
     ok(asked.some((u) => /family=Playfair\+Display:/.test(u)), `${where}: LOADED the request names the family (${asked.length} request(s))`);
-    // Device-dependent on purpose: a family the device paints (CDP, in the web arm above) is never asked for, and one it
-    // lacks may be. CI has no Inter installed, and the chrome's embedded copy is registered under an alias (`tokens.mjs`).
+    // A family the device paints (CDP, in the web arm above) is never asked for, and one it lacks may be. CI has no Inter
+    // installed, and the chrome's own copy is registered under an alias (`tokens.mjs`), so `paintInter` registers one.
     const families = asked.map((u) => decodeURIComponent((/family=([^:&]+)/.exec(u)?.[1] ?? '').replace(/\+/g, ' ')));
     ok(!families.some((f) => deviceFaces.has(f)),
       `${where}: LOADED no face the device already paints is asked for (asked ${JSON.stringify(families)}; device paints ${JSON.stringify([...deviceFaces])})`);

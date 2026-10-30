@@ -18,8 +18,9 @@
  *   · `REFERENCE_ONLY`: hosts a bundle names but never requests (an SVG namespace, a license line, a docs link the
  *     user opens in their browser). Each carries its reason. A host in a bundle that is in neither list fails by name:
  *     that is "Prism3 Studio reaches only its listed domains".
- *   · `PRIMITIVES`: every way a page or the main thread makes a request. The offline build carries none of them, and
- *     no allowed host either: that is "Prism3 Studio Offline makes no network calls".
+ *   · `PRIMITIVES`: every way a page or the main thread makes a request. The offline build carries none of them, no
+ *     allowed host, and no host outside `REFERENCE_ONLY` at all, so a request through a primitive the list lacks
+ *     (`new Image().src`, `<script src>`) still fails by its host: that is "Prism3 Studio Offline makes no network calls".
  *
  * ── THE CHECKS ARE NOT VACUOUS ─────────────────────────────────────────────────────────────────────
  *
@@ -31,7 +32,8 @@
  * `PRISM3_NETWORK` gate in `web-fonts.ts` → `[fetch] is absent from release-offline/ui.html`; the offline manifest's
  * `allowedDomains` set to `["*"]` → `release-offline/manifest.json allows no network`; a third domain added to
  * `manifest.json` → `release/manifest.json allows exactly the listed domains`; a request to an unlisted host in the
- * loader → `[host example.com] in release/ui.html is allowed or reference-only`.
+ * loader → `[host example.com] in release/ui.html is allowed or reference-only`; an offline-only `new Image().src` to an
+ * unlisted host → `[host tracker.example.net] in release-offline/ui.html is reference-only`.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -106,6 +108,12 @@ for (const [b, files] of [[BUILDS.network, net], [BUILDS.offline, off]] as const
 for (const [f, text] of Object.entries(off)) {
   for (const p of PRIMITIVES) ok(text.length > 0 && !p.re.test(text), `[${p.name}] is absent from release-offline/${f}`, near(text, p.re));
   for (const h of ALLOWED_HOSTS) ok(text.length > 0 && !text.includes(h), `[host ${h}] is absent from release-offline/${f}`, near(text, new RegExp(h.replace(/\./g, '\\.'))));
+  // A primitive list is never complete (`new Image().src`, `<script src>`, `new Worker(url)`…), so the hosts the bundle
+  // names are held too: offline, only a reference-only host may appear, whatever would request it.
+  for (const h of [...new Set([...text.matchAll(URL_HOST)].map((m) => m[1].toLowerCase()))].sort()) {
+    ok(h in REFERENCE_ONLY, `[host ${h}] in release-offline/${f} is reference-only`,
+      `${h} is not in REFERENCE_ONLY: the offline build names no host it could request, and a reference needs its reason here`);
+  }
 }
 const offM = json(BUILDS.offline.dir);
 ok(!!offM, 'release-offline/manifest.json exists');
