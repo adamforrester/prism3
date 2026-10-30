@@ -30,6 +30,10 @@ serif faces move to the serif tail. CONTRACT unchanged: no token is renamed or a
 - **A failed request logs a console error.** The browser suites count those, so every suite's browser answers the
   Google Fonts hosts with an empty stylesheet (`apps/studio/test-web-fonts-stub.mjs`): the loader reads "not on Google
   Fonts", exactly as offline, and a run never depends on the runner's network. §3138 serves its own fixture.
+- **The canvas probe can't see a declared face before its file loads.** On CI's first render it measured the chrome's
+  embedded Inter as missing, and the loader asked Google for Inter and JetBrains Mono; §3138's "no face the device
+  already paints is asked for" arm failed by name. A family the page declares with `@font-face` now counts as
+  paintable, and the loader marks a family loaded only once a face of it has loaded.
 - **CDP reports a variable face by its named instance** (`Inter Medium`), so §3138 compares the drawn name's head.
 - **The Google Fonts CSS API (`/css`, not `/css2`)** answers a request for all eighteen cuts with the ones that exist,
   so one request per family also tells the preview the family's cuts.
