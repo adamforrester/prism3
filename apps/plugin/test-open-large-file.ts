@@ -51,7 +51,10 @@
  * `open/plans` (the pass projects one set per turn). Mutations failing by name: the reads back in the `ui-ready` turn →
  * `open/paint-first`; `readPresent` on one whole-file search → `open/no-walk`; the pass searching `figma` → `open/no-walk`;
  * no shared read → `open/one-read`; every set projected at once → `open/plans`; `isSetUp(figma.root)` in `fileSets` or
- * Style guides' catalog → `open/no-walk`.
+ * Style guides' catalog → `open/no-walk`. A write between two pages of the read after open: `open/write-shared` (a
+ * request after it reads the file anew) and `open/write-cache` (the older read's answer is not kept as `presentCache`).
+ * Mutations failing by name: `guarded` no longer dropping the read or moving `presentGen` → `open/write-shared`; the
+ * older read's answer cached without the generation check → `open/write-cache`.
  *
  * Also held: `open/race`, the checklist's own request asked while the read after open is still going, is answered
  * without `atOpen`, so the panel keeps it over the read after open (`host-session.ts`, `awaitingRead`).
@@ -403,6 +406,54 @@ await entry('style-guide-cleanup', { type: 'style-guide-cleanup', ids: [] }, 'st
   for (let i = 0; i < 4000 && !posted.slice(end).some((p) => p.msg?.type === 'hand-edits' && p.msg.done === true); i++) await new Promise((res) => realTimeout(res, 5));
   root.findAllWithCriteria = search;
   pages.forEach((p, i) => { p.findAllWithCriteria = pageSearch[i]; });
+}
+
+/* ── a write between two pages of the read after open ──────────────────────────────────────────────── */
+
+// #3170 review of 3985bd7b: the shared read is dropped as a write starts and ends (`guarded`), and a read begun before
+// the write never leaves its answer as `presentCache`. The read after open is let search a few pages, then a guarded
+// build runs and adds a set to a page that read has already searched, so only a read begun after the write can see it.
+// The shim cannot draw a real build on these pages, so the build is sent a def id the engine does not know (a guarded
+// write that answers at once) and the stand-in adds the set as the build posts its verdict, inside the write's hold.
+// `open/write-shared`: the checklist's request after the write is answered from a new read, not the one begun before it.
+// `open/write-cache`: the badge's recount asked as that older read ends is answered from the file as the write left it.
+{
+  for (const p of pages) p.loaded = false;
+  allCalled = false;
+  const from = posted.length;
+  const searchedAt = searchTurns.length;
+  const ADDED = ABSENT;
+  const hook = (shim.ui as { postMessage: (m: unknown) => void }).postMessage;
+  (shim.ui as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => {
+    if ((m as { type?: string })?.type === 'component-result') pages[0].children.push(mkNode('COMPONENT_SET', ADDED, [mkNode('COMPONENT', 'Variant=Default')]));
+    hook(m);
+  };
+  send({ type: 'ui-ready' });
+  for (let i = 0; i < 2000 && searchTurns.length - searchedAt < 5; i++) await new Promise((res) => realTimeout(res, 1));
+  const midRead = searchTurns.length - searchedAt;
+  send({ type: 'build-components', def: 'no-such-def' });
+  for (let i = 0; i < 200 && !reply('component-result', from); i++) await new Promise((res) => realTimeout(res, 1));
+  (shim.ui as { postMessage: (m: unknown) => void }).postMessage = hook;
+  // The checklist asks once the write is done; the badge asks the moment the older read posts its answer.
+  const asked = posted.length;
+  send({ type: 'file-sets-request', input: stored });
+  const olderRead = () => posted.slice(from).find((p) => p.msg?.type === 'file-sets' && p.msg.atOpen === true && p.msg.partial !== true);
+  for (let i = 0; i < 4000 && !olderRead(); i++) await new Promise((res) => realTimeout(res, 1));
+  const recountAt = posted.length;
+  send({ type: 'due-request', input: stored, seq: 2 });
+  const checklist = () => posted.slice(asked).find((p) => p.msg?.type === 'file-sets' && p.msg.atOpen !== true);
+  const recount = () => posted.slice(recountAt).find((p) => p.msg?.type === 'file-due' && p.msg.seq === 2);
+  for (let i = 0; i < 4000 && !(checklist() && recount()); i++) await new Promise((res) => realTimeout(res, 5));
+  const end = posted.length;
+  for (let i = 0; i < 4000 && !posted.slice(end).some((p) => p.msg?.type === 'hand-edits' && p.msg.done === true); i++) await new Promise((res) => realTimeout(res, 5));
+  const holds = (p?: { msg: any }) => !!p && (p.msg.present as string[]).includes(ADDED) && p.msg.present.length === SETS + 1;
+  ok(reply('component-result', from) !== undefined && midRead >= 5 && midRead < PAGES && olderRead() !== undefined && !olderRead()!.msg.present.includes(ADDED),
+    `open/write-setup: the build ran while the read after open was ${midRead} of ${PAGES} pages in, and that read did not see the set it added (${olderRead() ? `${olderRead()!.msg.present.length} present` : 'no read after open'})`);
+  ok(holds(checklist()),
+    `open/write-shared: the checklist's request after the write reads the file anew, not the read begun before it (${checklist() ? `${checklist()!.msg.present.length} present, the added set ${checklist()!.msg.present.includes(ADDED) ? 'in' : 'missing'}` : 'no answer'})`);
+  ok(holds(recount()),
+    `open/write-cache: the badge's recount after the older read ends counts the set the write added; that read's answer is not kept (${recount() ? `${recount()!.msg.present.length} present, the added set ${recount()!.msg.present.includes(ADDED) ? 'in' : 'missing'}` : 'no answer'})`);
+  pages[0].children.pop();
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');
