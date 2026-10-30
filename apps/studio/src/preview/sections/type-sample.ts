@@ -79,7 +79,7 @@ export const typeSampleSection = (c: SgCtx, ty: Typography, mode: string, ground
     row.append(tokenPillSpan(`type.${comp.path}`), text);
     if (note) {
       // Inked as the line above it, with the ground's own ink role, so it reads on either ground.
-      const n = c.painted(hook(el('p', 'tsm-note', note), 'type-sample-note'), ground.ink, 'color');
+      const n = c.painted(specimen(hook(el('p', 'tsm-note', note), 'type-sample-note')), ground.ink, 'color');
       n.style.color = c.paint(c.cur, ground.ink);
       row.append(n);
     }
