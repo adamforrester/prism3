@@ -474,7 +474,9 @@ section('page moves — a set on its former page moves to the page the taxonomy 
 // read dropped → `blocks/dry run`, `blocks/apply`; the earlier-name rewrite (`also`) dropped → `blocks/title`; every
 // Title rewritten → `blocks/designer`; the tag check in `blockHeadersDue` dropped → `blocks/idempotent`; the block's own
 // header untagged → `blocks/idempotent`, `blocks/fresh lead`; `headerFor`'s block arm dropped → `blocks/fresh`; the
-// blocks left in the lead header's measure → `blocks/fresh lead`.
+// blocks left in the lead header's measure → `blocks/fresh lead`; the lead's present-check counting a tagged header →
+// `blocks/fresh`, `blocks/fresh lead`; the emptied former page not reported → `blocks/page kept`, `/verdict`, `/rerun`.
+// The moved header left untagged → `blocks/apply`, `/idempotent`, `/rerun`, `/designer`.
 section('block headers — the provider logos\' own header, moved with them from their old page, or drawn');
 {
   const SUMMARY = 'A provider\'s own mark, in its own colors: sign-in, payment and social. Never retinted.';
