@@ -23696,16 +23696,14 @@
         },
         "checkbox-row": {
           "keys": [
-            "size.medium.gap",
             "size.medium.pad-y",
             "size.small.gap"
           ],
           "parts": {
             "content": {
-              "members": 4,
+              "members": 2,
               "where": {
                 "size": [
-                  "medium",
                   "small"
                 ]
               }
@@ -23902,16 +23900,14 @@
         },
         "radio-row": {
           "keys": [
-            "size.medium.gap",
             "size.medium.pad-y",
             "size.small.gap"
           ],
           "parts": {
             "content": {
-              "members": 4,
+              "members": 2,
               "where": {
                 "size": [
-                  "medium",
                   "small"
                 ]
               }
@@ -24038,14 +24034,17 @@
         },
         "switch-row": {
           "keys": [
-            "size.medium.gap",
             "size.medium.pad-y",
             "size.small.gap"
           ],
           "parts": {
             "content": {
-              "members": 4,
-              "where": {}
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
             },
             "row": {
               "members": 2,
@@ -24312,14 +24311,16 @@
         "checkbox-row": {
           "keys": [
             "size.large.gap",
-            "size.large.pad-y"
+            "size.large.pad-y",
+            "size.medium.gap"
           ],
           "parts": {
             "content": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "size": [
-                  "large"
+                  "large",
+                  "medium"
                 ]
               }
             },
@@ -24398,14 +24399,16 @@
         "radio-row": {
           "keys": [
             "size.large.gap",
-            "size.large.pad-y"
+            "size.large.pad-y",
+            "size.medium.gap"
           ],
           "parts": {
             "content": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "size": [
-                  "large"
+                  "large",
+                  "medium"
                 ]
               }
             },
@@ -24464,6 +24467,21 @@
             "inputs": {
               "members": 30,
               "where": {}
+            }
+          }
+        },
+        "switch-row": {
+          "keys": [
+            "size.medium.gap"
+          ],
+          "parts": {
+            "content": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
             }
           }
         },
@@ -31622,6 +31640,7 @@
         "space.0",
         "space.075",
         "space.100",
+        "space.150",
         "type.body.sm.default",
         "type.body.sm.line-box",
         "type.body.xs.default",

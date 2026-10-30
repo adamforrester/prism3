@@ -644,7 +644,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "spacing": [
       {
         "key": "size.medium.gap",
-        "ref": "space.100"
+        "ref": "space.150"
       },
       {
         "key": "size.small.gap",
@@ -719,7 +719,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "spacing": [
       {
         "key": "size.medium.gap",
-        "ref": "space.100"
+        "ref": "space.150"
       },
       {
         "key": "size.small.gap",
@@ -795,7 +795,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "spacing": [
       {
         "key": "size.medium.gap",
-        "ref": "space.100"
+        "ref": "space.150"
       },
       {
         "key": "size.small.gap",

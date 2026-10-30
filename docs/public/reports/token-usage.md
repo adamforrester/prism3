@@ -3010,7 +3010,7 @@ Type: dimension. Bound by 34 component(s).
 |  |  | content | every member (84 of 84) |
 |  |  | control | every member (84 of 84) |
 | checkbox-group | `pad-y` | container | every member (6 of 6) |
-| checkbox-row | `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | content | size: medium, small (4 of 6) |
+| checkbox-row | `size.medium.pad-y`, `size.small.gap` | content | size: small (2 of 6) |
 |  |  | row | size: medium (2 of 6) |
 | code-input | `cell-gap`, `root-gap` | container | every member (48 of 48) |
 |  |  | items | every member (48 of 48) |
@@ -3028,7 +3028,7 @@ Type: dimension. Bound by 34 component(s).
 | progress | `header-gap`, `ring-gap` | header | shape: linear · size: medium (4 of 12) |
 |  |  | ringRow | shape: circular (8 of 12) |
 | radio-group | `pad-y` | container | every member (6 of 6) |
-| radio-row | `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | content | size: medium, small (4 of 6) |
+| radio-row | `size.medium.pad-y`, `size.small.gap` | content | size: small (2 of 6) |
 |  |  | row | size: medium (2 of 6) |
 | search-field | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |
@@ -3040,7 +3040,7 @@ Type: dimension. Bound by 34 component(s).
 |  |  | control | every member (84 of 84) |
 | sign-in-button | `size.large.apple.padding-y`, `size.large.facebook.padding-y`, `size.large.google.gap`, `size.large.google.padding-y`, `size.medium.apple.gap`, `size.medium.apple.padding-y`, `size.medium.facebook.gap`, `size.medium.facebook.padding-y`, `size.medium.google.gap`, `size.medium.google.padding-y`, `size.small.apple.gap`, `size.small.facebook.gap`, `size.small.google.gap` | container | every member (96 of 96) |
 | slider | `gap` | container | every member (30 of 30) |
-| switch-row | `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | content | every member (4 of 4) |
+| switch-row | `size.medium.pad-y`, `size.small.gap` | content | size: small (2 of 4) |
 |  |  | row | size: medium (2 of 4) |
 | tab-item | `size.large.gap`, `size.medium.gap` | content | size: large, medium (20 of 30) |
 | tag | `group-gap`, `size.large.check-gap`, `size.large.dismissible.visible-gap`, `size.large.underline.inset`, `size.medium.dismissible.visible-gap`, `size.medium.select.gap`, `size.small.padding-x`, `size.small.select.padding-end` | content | size: medium, small (25 of 45) |
@@ -3057,7 +3057,7 @@ Type: dimension. Bound by 34 component(s).
 
 ### `space.150`
 
-Type: dimension. Bound by 18 component(s).
+Type: dimension. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3071,17 +3071,18 @@ Type: dimension. Bound by 18 component(s).
 | button-destructive | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
 | button-group | `layout.fill.gap`, `layout.inline.gap` | items | layout: fill, inline (2 of 3) |
 | button-neutral | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
-| checkbox-row | `size.large.gap`, `size.large.pad-y` | content | size: large (2 of 6) |
+| checkbox-row | `size.large.gap`, `size.large.pad-y`, `size.medium.gap` | content | size: large, medium (4 of 6) |
 |  |  | row | size: large (2 of 6) |
 | counter | `outline.size.medium.pad-x`, `outline.size.small.pad-x` | control | appearance: outline · size: medium, small (6 of 18) |
 | divider | `vertical.gap` | container | inset: middle-inset, none · orientation: vertical (3 of 7) |
 | list | `size.small.gap` | container | size: small (3 of 9) |
 |  |  | items | size: small (3 of 9) |
-| radio-row | `size.large.gap`, `size.large.pad-y` | content | size: large (2 of 6) |
+| radio-row | `size.large.gap`, `size.large.pad-y`, `size.medium.gap` | content | size: large, medium (4 of 6) |
 |  |  | row | size: large (2 of 6) |
 | segmented-control-segment | `size.small.padding-x` | content | size: small (10 of 30) |
 | sign-in-button | `size.large.apple.gap`, `size.large.facebook.gap`, `size.large.google.padding-x`, `size.large.google.padding-x-visual`, `size.medium.apple.padding-x-visual`, `size.medium.facebook.padding-x-visual`, `size.medium.google.padding-x`, `size.medium.google.padding-x-visual`, `size.small.apple.padding-x-visual`, `size.small.facebook.padding-x-visual`, `size.small.google.padding-x`, `size.small.google.padding-x-visual` | container | every member (96 of 96) |
 | slider | `inputs-gap` | inputs | every member (30 of 30) |
+| switch-row | `size.medium.gap` | content | size: medium (2 of 4) |
 | tab-item | `size.small.padding-x` | content | size: small (10 of 30) |
 | tag | `size.large.select.gap`, `size.medium.padding-x`, `size.medium.select.padding-end` | content | size: large, medium (25 of 45) |
 | toast | `glyph-gap` | content | every member (2 of 2) |
@@ -3982,9 +3983,9 @@ Declared, not drawn: `color.border.focus`
 
 ### switch-row
 
-13 token(s); 4 design-file member(s).
+14 token(s); 4 design-file member(s).
 
-`color.disabled.text`, `color.text.primary`, `control.size.md.track`, `control.size.sm.track`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `type.body.sm.default`, `type.body.sm.line-box`, `type.body.xs.default`, `type.body.xs.line-box`
+`color.disabled.text`, `color.text.primary`, `control.size.md.track`, `control.size.sm.track`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `type.body.sm.default`, `type.body.sm.line-box`, `type.body.xs.default`, `type.body.xs.line-box`
 
 Declared, not drawn: `color.disabled.text`
 
