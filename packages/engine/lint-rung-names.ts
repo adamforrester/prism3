@@ -296,6 +296,10 @@ const PINNED_LADDER_DEFS: Record<string, { families: string[]; why: string }> = 
   },
   // #2983: the status label's text has been 12px (`label.sm`) since Badge shipped (owner decisions 2026-09-27/28). The
   // size axis keeps it as medium, today's label, and adds the 11px small below it, so medium stays one rung below md.
+  badge: {
+    families: ['type.label.*.emphasis'],
+    why: 'the status label\'s 12px text predates the size axis (2026-09-28), and medium is today\'s label unchanged (#2983)',
+  },
   // #3153 (owner Q852, Q3153.1 A and Q3153.2 A, 2026-10-29): the option rows' label is one body rung below the row's
   // size for every brand, with no lever (Fluent 2's 20px control beside 14/20 text): 12/14/16, so medium is `body.sm`.
   // The control cell's floor is that label's own line box, so it moves with it. The control and the row floor stay `md`.
@@ -310,10 +314,6 @@ const PINNED_LADDER_DEFS: Record<string, { families: string[]; why: string }> = 
   'switch-row': {
     families: ['type.body.*.default', 'type.body.*.line-box'],
     why: 'Q852 and Q3153.2 A: Switch.Row takes the option rows\' 14px medium label and its line box',
-  },
-  badge: {
-    families: ['type.label.*.emphasis'],
-    why: 'the status label\'s 12px text predates the size axis (2026-09-28), and medium is today\'s label unchanged (#2983)',
   },
 };
 
