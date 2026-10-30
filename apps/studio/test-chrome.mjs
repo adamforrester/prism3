@@ -18035,6 +18035,8 @@ const FALLBACK_WEB = "Playfair Display isn't installed on this device — shown 
 const FIGMA_CUT = "Playfair Display can't load in this preview — shown in a fallback font. It has no 600 cut, so Apply skips this style in Figma.";
 const WEIGHT_NOTE = 'Playfair Display has 2 styles: Regular and Italic. 500 and 600 have no cut.';
 const LOADED_CUT = 'Playfair Display has no 600 cut — shown at 400, its nearest. Browsers fake 600 by thickening 400.';
+/** The brand families CDP saw the web host draw for real in the arm below, before any web font loaded: the device's own. */
+const deviceFaces = new Set();
 for (const host of ['web', 'figma']) {
   const where = `§3138 ${host} light 1280`;
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
@@ -18057,6 +18059,7 @@ for (const host of ['web', 'figma']) {
       // A variable face reports its named instance (`Inter Medium`), so the family is the drawn name's head.
       const real = l.drawn.toLowerCase().startsWith(l.asked.toLowerCase());
       ok(real === (l.note === null), `${where}: FALLBACK ${l.token} carries its note exactly when the face drawn is not the face asked (asked ${l.asked}, drew ${l.drawn}, note ${JSON.stringify(l.note)})`);
+      if (real && host === 'web') deviceFaces.add(l.asked);
     }
     const display = lines.find((l) => l.token === 'type.display.md.strong');
     ok(!!display && display.asked === 'Playfair Display' && display.drawn !== 'Playfair Display', `${where}: FALLBACK the display line asks for Playfair Display and draws another face (${JSON.stringify(display)})`);
@@ -18099,7 +18102,11 @@ for (const host of ['web', 'figma']) {
     ok(display?.weight === '400' && display?.synthesis === 'none', `${where}: LOADED draws the display line at 400, its nearest cut, with no synthesized weight (weight ${display?.weight}, font-synthesis-weight ${display?.synthesis})`);
     ok(display?.note === LOADED_CUT, `${where}: LOADED the display line names the nearest cut (${JSON.stringify(display?.note)})`);
     ok(asked.some((u) => /family=Playfair\+Display:/.test(u)), `${where}: LOADED the request names the family (${asked.length} request(s))`);
-    ok(!asked.some((u) => /family=Inter[:&]/.test(u)), `${where}: LOADED no face the device already paints is asked for (${JSON.stringify(asked.map((u) => /family=([^:&]+)/.exec(u)?.[1]))})`);
+    // Device-dependent on purpose: a family the device paints (CDP, in the web arm above) is never asked for, and one it
+    // lacks may be. CI has no Inter installed, and the chrome's embedded copy is registered under an alias (`tokens.mjs`).
+    const families = asked.map((u) => decodeURIComponent((/family=([^:&]+)/.exec(u)?.[1] ?? '').replace(/\+/g, ' ')));
+    ok(!families.some((f) => deviceFaces.has(f)),
+      `${where}: LOADED no face the device already paints is asked for (asked ${JSON.stringify(families)}; device paints ${JSON.stringify([...deviceFaces])})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);

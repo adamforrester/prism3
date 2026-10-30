@@ -51,13 +51,6 @@ export const WEIGHT_NAME: Record<number, string> = {
 let fontProbe: CanvasRenderingContext2D | null | undefined;
 export const fontAvailable = (name: string | undefined): boolean => {
   if (!name) return false;
-  // A family this page declares with @font-face (the chrome's embedded faces, a loaded web face) is paintable even
-  // before its file has loaded, which the canvas probe cannot see: on a first render it measured the embedded Inter as
-  // missing, and the web-font loader then asked Google for a face the page already carries (#3138, caught on CI).
-  const want = name.trim().toLowerCase();
-  if (typeof document !== 'undefined' && document.fonts) {
-    for (const f of document.fonts) if (f.status !== 'error' && f.family.replace(/["']/g, '').trim().toLowerCase() === want) return true;
-  }
   if (fontProbe === undefined) fontProbe = document.createElement('canvas').getContext('2d');
   const ctx = fontProbe;
   if (!ctx) return false;
