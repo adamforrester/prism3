@@ -21,7 +21,7 @@ Shown on the default member: intent `neutral`.
 
 1. **Container** — The toast: the inverse surface, its shadow and its corners. It is never shorter than a medium control, and holds the message on the start side and the action and close button on the end side.
 2. **Content** — The glyph and the message. It takes the width the action and close button do not.
-3. **Glyph cell** — One line of the message tall, centring the glyph on the message's first line.
+3. **Glyph cell** — One line of the message tall, centering the glyph on the message's first line.
 4. **Check circle glyph** — The success glyph, a circled check, hidden from assistive technology: the message carries the meaning. A neutral toast has no glyph.
 5. **Message** — The message. It wraps onto a second line rather than truncating.
 6. **Controls** — The action and the close button, at the end edge.
