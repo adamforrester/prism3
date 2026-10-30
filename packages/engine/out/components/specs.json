@@ -31176,10 +31176,10 @@
               "part": "row/markerBox/bullet",
               "values": {
                 "height": {
-                  "token": "control.size.md.dot"
+                  "token": "space.100"
                 },
                 "width": {
-                  "token": "control.size.md.dot"
+                  "token": "space.100"
                 }
               }
             }
@@ -31222,10 +31222,10 @@
               "part": "row/markerBox/bullet",
               "values": {
                 "height": {
-                  "token": "control.size.sm.dot"
+                  "token": "space.075"
                 },
                 "width": {
-                  "token": "control.size.sm.dot"
+                  "token": "space.075"
                 }
               }
             }
@@ -31268,10 +31268,10 @@
               "part": "row/markerBox/bullet",
               "values": {
                 "height": {
-                  "token": "control.size.lg.dot"
+                  "token": "space.100"
                 },
                 "width": {
-                  "token": "control.size.lg.dot"
+                  "token": "space.100"
                 }
               }
             }
@@ -31409,101 +31409,101 @@
               "values": {
                 "height": {
                   "token": "control.size.md.line-box"
-                },
-                "width": {
-                  "token": "space.400"
-                }
-              }
-            },
-            {
-              "part": "row/markerBox/icon",
-              "values": {
-                "height": {
-                  "token": "icon.size.md"
-                },
-                "width": {
-                  "token": "icon.size.md"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "where": {
-            "size": "small",
-            "type": "icon"
-          },
-          "parts": [
-            {
-              "part": "row",
-              "values": {
-                "gap": {
-                  "token": "space.0"
-                },
-                "minWidth": {
-                  "px": 120,
-                  "source": "literal"
-                },
-                "buildWidth": {
-                  "px": 320,
-                  "source": "literal"
-                }
-              }
-            },
-            {
-              "part": "row/markerBox",
-              "values": {
-                "height": {
-                  "token": "control.size.sm.line-box"
-                },
-                "width": {
-                  "token": "space.300"
-                }
-              }
-            },
-            {
-              "part": "row/markerBox/icon",
-              "values": {
-                "height": {
-                  "token": "icon.size.sm"
-                },
-                "width": {
-                  "token": "icon.size.sm"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "where": {
-            "size": "large",
-            "type": "icon"
-          },
-          "parts": [
-            {
-              "part": "row",
-              "values": {
-                "gap": {
-                  "token": "space.0"
-                },
-                "minWidth": {
-                  "px": 120,
-                  "source": "literal"
-                },
-                "buildWidth": {
-                  "px": 320,
-                  "source": "literal"
-                }
-              }
-            },
-            {
-              "part": "row/markerBox",
-              "values": {
-                "height": {
-                  "token": "control.size.lg.line-box"
                 },
                 "width": {
                   "token": "space.500"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox/icon",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "type": "icon"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.line-box"
+                },
+                "width": {
+                  "token": "space.400"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox/icon",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "type": "icon"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.line-box"
+                },
+                "width": {
+                  "token": "space.600"
                 }
               }
             },
@@ -31713,7 +31713,7 @@
               "part": "container",
               "values": {
                 "gap": {
-                  "token": "space.150"
+                  "token": "space.200"
                 },
                 "minWidth": {
                   "px": 120,
@@ -31729,7 +31729,7 @@
               "part": "container/items",
               "values": {
                 "gap": {
-                  "token": "space.150"
+                  "token": "space.200"
                 }
               }
             }
@@ -31744,7 +31744,7 @@
               "part": "container",
               "values": {
                 "gap": {
-                  "token": "space.100"
+                  "token": "space.150"
                 },
                 "minWidth": {
                   "px": 120,
@@ -31760,7 +31760,7 @@
               "part": "container/items",
               "values": {
                 "gap": {
-                  "token": "space.100"
+                  "token": "space.150"
                 }
               }
             }
@@ -31775,7 +31775,7 @@
               "part": "container",
               "values": {
                 "gap": {
-                  "token": "space.200"
+                  "token": "space.250"
                 },
                 "minWidth": {
                   "px": 120,
@@ -31791,7 +31791,7 @@
               "part": "container/items",
               "values": {
                 "gap": {
-                  "token": "space.200"
+                  "token": "space.250"
                 }
               }
             }

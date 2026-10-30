@@ -1201,15 +1201,15 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "spacing": [
       {
         "key": "size.medium.gap",
-        "ref": "space.150"
+        "ref": "space.200"
       },
       {
         "key": "size.small.gap",
-        "ref": "space.100"
+        "ref": "space.150"
       },
       {
         "key": "size.large.gap",
-        "ref": "space.200"
+        "ref": "space.250"
       }
     ],
     "page": "List",

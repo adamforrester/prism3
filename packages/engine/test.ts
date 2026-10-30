@@ -3654,8 +3654,10 @@ for (const b of brands) {
     // so both read the varying family and both belong here, exactly as checkbox + checkbox-control do.
     // #1348 split `radio` the same way: `radio-control` (the circle/dot, binding control+dot) and the
     // `radio` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's square).
-    // `list-item` (#2319) binds `size.*.dot` for its bullet, the radio dot's diameter, so it reads the varying family too.
-    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio-row', 'switch-control', 'switch-row', 'list-item'];
+    // `list-item` (#2319) bound `size.*.dot` for its bullet, the radio dot's diameter, until #3155 (Q3155.1 A) sized the
+    // bullet to the text on the space ladder as `size.*.bullet`: a mark beside fixed body text, not a control box, so it
+    // left this set. Its bullet is pinned by the #3155 arm below.
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio-row', 'switch-control', 'switch-row'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -4021,8 +4023,8 @@ for (const b of brands) {
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
       // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
       accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 16/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 20/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 24/20/20/32' },
-      // List (#2319, approved (Q280 A)): the item gap. Comfortable is 8/12/16.
-      list: { compact: 'small 6 · medium 8 · large 12', comfortable: 'small 8 · medium 12 · large 16', spacious: 'small 12 · medium 16 · large 20' },
+      // List (#2319, approved (Q280 A); widened one step on #3155): the item gap. Comfortable is 12/16/20.
+      list: { compact: 'small 8 · medium 12 · large 16', comfortable: 'small 12 · medium 16 · large 20', spacious: 'small 16 · medium 20 · large 24' },
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
       // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
       link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
@@ -36801,18 +36803,19 @@ arm: {
 
   // THE MARKER COLUMN: one fixed width per size AND type, never filling or hugging, so every item of a type keeps one
   // text edge and the column never shrinks with the text. Bullet and number 20/24/32px (space.250/300/400, Q340 A,
-  // #2727, one step tighter than Q280.1 A); icon 24/32/40px (space.300/400/500, Q280.1 A, kept by Q340 A). EXPECTED is
-  // typed here in px and as the variable; ACTUAL is the projected plan's binding read through the space scale.
+  // #2727, one step tighter than Q280.1 A); icon 32/40/48px (space.400/500/600, #3155: medium 40 the owner's, small and
+  // large Q3155.2 A, one step wider than Q280.1 A's 24/32/40). EXPECTED is typed here in px and as the variable; ACTUAL
+  // is the projected plan's binding read through the space scale.
   const COLUMN_PX: Record<string, Record<string, number>> = {
-    unordered: { small: 20, medium: 24, large: 32 }, ordered: { small: 20, medium: 24, large: 32 }, icon: { small: 24, medium: 32, large: 40 },
+    unordered: { small: 20, medium: 24, large: 32 }, ordered: { small: 20, medium: 24, large: 32 }, icon: { small: 32, medium: 40, large: 48 },
   };
   const COLUMN: Record<string, Record<string, string>> = {
-    unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, icon: { small: 'space/300', medium: 'space/400', large: 'space/500' },
+    unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, icon: { small: 'space/400', medium: 'space/500', large: 'space/600' },
   };
   const COL_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
   const colBad = liPlans.filter((p) => { const c = coord(p), m = find(p.root as PN, 'markerBox'); return !(m && m.bound?.width === COLUMN[c.type]?.[c.size] && COL_PX.get(m.bound.width) === COLUMN_PX[c.type]?.[c.size] && m.primaryAxisSizingMode === 'FIXED'); });
   ok(colBad.length === 0,
-    `#2727 list-item marker column (Q340 A): a fixed width per size and type, bullet and number 20/24/32px (space/250, 300, 400), icon 24/32/40px (space/300, 400, 500), never hugging or filling, so it never shrinks with the text (${colBad.length ? `WRONG: ${colBad.map((p) => `${planComponentName(p)} ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 3).join('; ')}` : 'all 9'})`);
+    `#3155 list-item marker column (Q340 A, Q3155.2 A): a fixed width per size and type, bullet and number 20/24/32px (space/250, 300, 400), icon 32/40/48px (space/400, 500, 600), never hugging or filling, so it never shrinks with the text (${colBad.length ? `WRONG: ${colBad.map((p) => `${planComponentName(p)} ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 3).join('; ')}` : 'all 9'})`);
   // The text takes the rest of the row and wraps under itself (the hanging indent).
   ok(liPlans.every((p) => { const t = find(p.root as PN, 'label'); return t?.layoutGrow === 1 && t.textAutoResize === 'HEIGHT' && t.textStyle === `body/${RUNG[coord(p).size]}/default` && t.paints?.fills === 'color/text/primary'; }),
     `#2319 list-item text: body sm / md / lg default in text.primary, filling the rest of the row and wrapping under itself (Q273.4)`);
@@ -36823,7 +36826,12 @@ arm: {
   ok(lineBad.length === 0,
     `#2319 list-item marker box: one body line tall (control/size/*/line-box) in a top-aligned row, the marker centered in it, so a wrapping item keeps its marker on line one (${lineBad.length ? `WRONG: ${lineBad.map((p) => `${planComponentName(p)} row ${(p.root as PN).counterAxisAlignItems}, box ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 2).join('; ')}` : 'all 9'})`);
 
-  // THE MARKERS (Q273.3, Q273.8): exactly one per member, the one its type names, each on its own role.
+  // THE MARKERS (Q273.3, Q273.8): exactly one per member, the one its type names, each on its own role. The bullet is
+  // 6/8/8px (space/075, 100, 100; #3155: medium 8 the owner's, small and large Q3155.1 A), typed here in px and as the
+  // variable and read back through the space scale, so a bullet returned to the radio dot fails here by name.
+  const BULLET: Record<string, string> = { small: 'space/075', medium: 'space/100', large: 'space/100' };
+  const BULLET_PX: Record<string, number> = { small: 6, medium: 8, large: 8 };
+  const BUL_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
   const markerBad: string[] = [];
   for (const p of liPlans) {
     const c = coord(p), m = find(p.root as PN, 'markerBox')!;
@@ -36831,13 +36839,13 @@ arm: {
     const want = { unordered: 'bullet', ordered: 'number', icon: 'icon' }[c.type]!;
     const k = m.children[0];
     // A member of a type outside the three has no marker child at all, so `k` is read optionally and the arm fails, not throws.
-    const okRole = !k ? false : c.type === 'unordered' ? k.paints?.fills === 'color/icon/primary' && k.bound?.width === `control/size/${RUNG[c.size]}/dot` && k.bound?.height === `control/size/${RUNG[c.size]}/dot` && k.bound?.topLeftRadius === 'radius/round'
+    const okRole = !k ? false : c.type === 'unordered' ? k.paints?.fills === 'color/icon/primary' && k.bound?.width === BULLET[c.size] && k.bound?.height === BULLET[c.size] && BUL_PX.get(k.bound.width) === BULLET_PX[c.size] && k.bound?.topLeftRadius === 'radius/round'
       : c.type === 'ordered' ? k.paints?.fills === 'color/text/primary' && k.textStyle === `body/${RUNG[c.size]}/default`
       : c.type === 'icon' && k?.type === 'INSTANCE_SWAP' && k.swapTarget === 'icon/check' && k.bound?.width === `icon/size/${RUNG[c.size]}`;
     if (kids.length !== 1 || kids[0] !== want || !okRole) markerBad.push(`${planComponentName(p)}: ${kids.join('+')} ${JSON.stringify({ fills: k?.paints?.fills, ts: k?.textStyle, sw: k?.swapTarget, b: k?.bound?.width })}`);
   }
   ok(markerBad.length === 0,
-    `#2319 list-item markers: one per member — a round control/size/*/dot bullet in color/icon/primary, a number in the item's body style in color/text/primary, or an icon swap starting at icon/check (Q273.3, Q273.8)${markerBad.length ? ` — WRONG: ${markerBad.slice(0, 3).join('; ')}` : ''}`);
+    `#3155 list-item markers: one per member — a round 6/8/8px bullet (space/075, 100, 100; Q3155.1 A) in color/icon/primary, a number in the item's body style in color/text/primary, or an icon swap starting at icon/check (Q273.3, Q273.8)${markerBad.length ? ` — WRONG: ${markerBad.slice(0, 3).join('; ')}` : ''}`);
   // The icon marker's ink, which reaches the glyph inside the instance, is the icon role too.
   ok(li.tokens.icon === 'color.icon.primary' && li.tokens.indicator === 'color.icon.primary' && li.tokens.label === 'color.text.primary',
     `#2319 list-item inks: the bullet (indicator) and the icon on color.icon.primary, the number and text (label) on color.text.primary (Q273.8, #1471) (got ${li.tokens.indicator}, ${li.tokens.icon}, ${li.tokens.label})`);
@@ -36847,7 +36855,8 @@ arm: {
 
   // THE LIST (Q273.2; #2649, owner decision Q307 A): an "items" slot of three List.Items stretched across the list,
   // every item following the list's type and size, the item gap on the slot. No item toggles remain.
-  const GAP: Record<string, string> = { small: 'space/100', medium: 'space/150', large: 'space/200' };
+  // The gap is 12/16/20px (space/150, 200, 250; owner decision on #3155, revising Q280.2 A's 8/12/16).
+  const GAP: Record<string, string> = { small: 'space/150', medium: 'space/200', large: 'space/250' };
   const listBad = lsPlans.filter((p) => {
     const c = coord(p), r = p.root as PN;
     const slot = r.children.length === 1 ? r.children[0] : undefined;
@@ -36855,7 +36864,7 @@ arm: {
     return !(slot?.name === 'items' && slot.type === 'CONTENT_SLOT' && slot.layoutAlign === 'STRETCH' && slot.bound?.itemSpacing === GAP[c.size] && items.length === 3 && items.every((it, i) => it.name === `item${i + 1}` && it.type === 'NESTED_INSTANCE' && it.nestTarget === 'list-item' && it.nestVariant?.type === c.type && it.nestVariant?.size === c.size && it.layoutAlign === 'STRETCH' && it.visible !== false && it.visibleProp === undefined));
   });
   ok(listBad.length === 0,
-    `#2649 list: an "items" slot of three nested List.Items stretched across the list, following its type and size, none hidden, the item gap space/100, 150, 200 on the slot (${listBad.length ? `WRONG: ${listBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 9'})`);
+    `#2649 list: an "items" slot of three nested List.Items stretched across the list, following its type and size, none hidden, the item gap space/150, 200, 250 (12/16/20px, #3155) on the slot (${listBad.length ? `WRONG: ${listBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 9'})`);
   ok(JSON.stringify(planSetProperties(lsPlans).map((p) => `${p.name}:${p.type}`)) === JSON.stringify(['items:SLOT']),
     `#2649 list: the set declares one property, the "items" slot, and no item toggle (got ${JSON.stringify(planSetProperties(lsPlans))})`);
 

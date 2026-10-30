@@ -3062,6 +3062,7 @@
           "Whether the number glyph and the text's first line share one baseline on a real host: both bind the same type style and the number sits in a box one line tall, so they should; not measured on a built file."
         ],
         "evolution": [
+          "2026-10-29 (#3155): owner decisions — the bullet smaller, 6/8/8 (`space.075` / `100` / `100`, medium 8 the owner's, small and large Q3155.1 A), bound to the space ladder rather than the radio dot, so it no longer follows density or the radio dot setting; and the icon column one step wider, 32/40/48 (`space.400` / `500` / `600`, medium 40 the owner's, small and large Q3155.2 A), revising Q280.1 A's 24/32/40. The bullet and number column keeps Q340 A's 20/24/32.",
           "2026-10-13 (#2319): owner decisions Q273 — the read list now as List and List.Item (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type starting at check (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), category data (Q273.7), markers at the text's strength (Q273.8), native text lists for running text (Q273.9).",
           "2026-10-15 (#2727): owner decision Q340 A — the bullet and number marker column one step tighter, 20/24/32 (`space.250` / `300` / `400`), revising Q280.1 A's 24/32/40 for those two types; the icon column keeps 24/32/40, so the column is fixed per type rather than in every type, and an icon item's text edge sits further in."
         ],
@@ -3147,6 +3148,7 @@
           "What Dev Mode shows for a native Figma text list (list spacing, the marker, bound paragraph variables) — not checked; the build lane has no Dev Mode (#2319, Q273.10)."
         ],
         "evolution": [
+          "2026-10-29 (#3155): owner decision — the item gap one step wider at every size, 12/16/20 (`space.150` / `200` / `250`), revising Q280.2 A's 8/12/16. It still follows density.",
           "2026-10-15 (#2645): the nested items carry their own numbers, \"2.\" to \"8.\" after the first item's \"1.\", through a per-instance text override; they no longer all read \"1.\" until a designer types them.",
           "2026-10-13 (#2319): owner decisions Q273 — the read list now (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), names, category data and its own page (Q273.7), markers at the text's strength (Q273.8), and native text lists for running text, the component for UI lists (Q273.9). Native list fields verified against the plugin typings (Q273.10): paragraph spacing and indent bind, list spacing and the marker do not."
         ],

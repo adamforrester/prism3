@@ -106,6 +106,11 @@
  *                  and number (#2727): 6 members updated, the 3 icon members current, every key and id kept; the List
  *                  set, whose plan moves only by its nested-list note, updates in place too. Mutation: the def back at the old column → `list column/dry
  *                  run`, `list column/written`.
+ *   list spacing/…  a List.Item built before #3155 (the bullet on the radio dot, the icon column at 24/32/40) and a List
+ *                  built at the 8/12/16 gap update in place: 6 List.Item members and all 9 List members updated, every key
+ *                  and id kept, the bullet at 6/8/8, the icon column at 32/40/48 and the gap at 12/16/20 after. Mutations:
+ *                  the medium bullet back on the radio dot → `list spacing/written`; the medium icon column back at 32 →
+ *                  `list spacing/written`; the medium gap back at 12 → `list spacing/gap written`.
  *   display rename/…  an Accordion built while its icon axis was `position`, or `iconPosition`, updates in place to the
  *                  def's `icon position`: every member renamed, every key and id the test captured kept (#2592).
  *                  Mutation: the ledger entries dropped → `display rename/position …`, `display rename/iconPosition …`.
@@ -970,18 +975,19 @@ section('list marker column — a file built at the old 24/32/40 column updates 
   const NEXT: Record<string, Record<string, string>> = {
     unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' },
     ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' },
-    icon: { small: 'space/300', medium: 'space/400', large: 'space/500' },
+    // #3155 (Q3155.2 A) moved the icon column to 32/40/48, so every type now updates from the pre-Q340 file.
+    icon: { small: 'space/400', medium: 'space/500', large: 'space/600' },
   };
   const atOld = plansOf('list-item').map((p) => {
     const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
     (planChild(q.root, 'markerBox').bound as Record<string, string>).width = OLD[q.size!];
     return q;
   });
-  const w = await world('list-item', atOld, { extraVars: ['space/250'] });
+  const w = await world('list-item', atOld, { extraVars: ['space/250', 'space/075', 'space/100', 'space/600'] });
   const typeOf = (m: Node) => /(?:^|, )type=(\w+)/.exec(String(m.name))?.[1] ?? '';
   const sizeOf = (m: Node) => /(?:^|, )size=(\w+)/.exec(String(m.name))?.[1] ?? '';
   const ids = new Map<string, string>();
-  for (const v of ['space/250', 'space/300', 'space/400', 'space/500']) ids.set(await varIdOf(w, v), v);
+  for (const v of ['space/250', 'space/300', 'space/400', 'space/500', 'space/600']) ids.set(await varIdOf(w, v), v);
   const columnOf = (m: Node) => ids.get((childNamed(m, 'markerBox').boundVariables as Record<string, { id: string }>).width?.id) ?? 'none';
   ok(membersOf(w.set()).length === 9 && membersOf(w.set()).every((m) => columnOf(m) === OLD[sizeOf(m)]),
     `premise: the 9 members carry the old column, space/300, 400, 500 by size in every type (${membersOf(w.set()).map(columnOf).join(', ')})`);
@@ -989,15 +995,15 @@ section('list marker column — a file built at the old 24/32/40 column updates 
   const plans = plansOf('list-item');
   const { pre, res } = await confirm(w, [{ def: 'list-item', plans }]);
   const p = pre.sets[0];
-  ok(!!p && !p.blockers.length && p.counts.update === 6 && p.counts.current === 3 && p.counts.add === 0 && p.counts.drop === 0,
-    `list column/dry run: the 6 bullet and number members to update, the 3 icon members current, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  ok(!!p && !p.blockers.length && p.counts.update === 9 && p.counts.current === 0 && p.counts.add === 0 && p.counts.drop === 0,
+    `list column/dry run: all 9 members to update (bullet and number to Q340 A's column, icon to #3155's), nothing added or dropped (${JSON.stringify(p?.counts)})`);
   const after = identityOf(w.set());
   const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
   const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
   ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 9,
     `list column/in place: every member and child keeps its key and id (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved)`);
   const wrong = membersOf(w.set()).filter((m) => columnOf(m) !== NEXT[typeOf(m)]?.[sizeOf(m)]).map((m) => `${m.name}: ${columnOf(m)}`);
-  ok(wrong.length === 0, `list column/written: bullet and number bind space/250, 300, 400 (20/24/32px), icon keeps space/300, 400, 500 (24/32/40px) (${wrong.slice(0, 3).join('; ')})`);
+  ok(wrong.length === 0, `list column/written: bullet and number bind space/250, 300, 400 (20/24/32px), icon space/400, 500, 600 (32/40/48px) (${wrong.slice(0, 3).join('; ')})`);
   const post = (await previewUpdate(w.host, [{ def: 'list-item', plans }])).sets[0];
   ok(post?.counts.current === 9, `list column/current: every member reads current after (${JSON.stringify(post?.counts)})`);
   // THE LIST holds nested List.Item instances and binds no column of its own, so its items show the new column from
@@ -1018,6 +1024,80 @@ section('list marker column — a file built at the old 24/32/40 column updates 
   const lpost = (await previewUpdate(lw.host, [{ def: 'list', plans: lplans }])).sets[0];
   ok(!l.pre.sets[0].blockers.length && l.pre.sets[0].counts.add === 0 && l.pre.sets[0].counts.drop === 0 && applyVerdict(l.res).ok && lmoved === 0 && lafter.members.size === 9 && lpost?.counts.current === 9,
     `list column/List: the List set updates in place to the new note, nothing added or dropped, every member's key and id kept, all 9 current after (${JSON.stringify(l.pre.sets[0].counts)}; ${applyVerdict(l.res).headline}; ${lmoved} moved)`);
+}
+
+section('list spacing — a file built before #3155 updates in place: the wider gap, the smaller bullet, the wider icon column');
+{
+  // The file as main built it before #3155: List.Item's bullet bound to the radio dot (control/size/*/dot) and its icon
+  // column at space/300, 400, 500 (24/32/40px); the List's item gap at space/100, 150, 200 (8/12/16px). The literals are
+  // the test's own; the plans it updates to are the engine's current ones.
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const OLD_ICON: Record<string, string> = { small: 'space/300', medium: 'space/400', large: 'space/500' };
+  const NEW_ICON: Record<string, string> = { small: 'space/400', medium: 'space/500', large: 'space/600' };
+  const NEW_BULLET: Record<string, string> = { small: 'space/075', medium: 'space/100', large: 'space/100' };
+  const atMain = plansOf('list-item').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const type = (q.coord as Record<string, string>).type, box = planChild(q.root, 'markerBox');
+    if (type === 'icon') (box.bound as Record<string, string>).width = OLD_ICON[q.size!];
+    if (type === 'unordered') { const b = planChild(box, 'bullet').bound as Record<string, string>; b.width = b.height = `control/size/${RUNG[q.size!]}/dot`; }
+    return q;
+  });
+  ok(JSON.stringify(atMain) !== JSON.stringify(plansOf('list-item')), 'premise: the List.Item built as main had it differs from the current plan');
+  const w = await world('list-item', atMain, { extraVars: ['space/075', 'space/100', 'space/600'] });
+  const typeOf = (m: Node) => /(?:^|, )type=(\w+)/.exec(String(m.name))?.[1] ?? '';
+  const sizeOf = (m: Node) => /(?:^|, )size=(\w+)/.exec(String(m.name))?.[1] ?? '';
+  const ids = new Map<string, string>();
+  for (const v of ['space/075', 'space/100', 'space/250', 'space/300', 'space/400', 'space/500', 'space/600', 'control/size/sm/dot', 'control/size/md/dot', 'control/size/lg/dot']) ids.set(await varIdOf(w, v), v);
+  const boundOf = (n: Node | undefined, f: string) => ids.get(((n?.boundVariables ?? {}) as Record<string, { id: string }>)[f]?.id) ?? 'none';
+  const before = identityOf(w.set());
+  const plans = plansOf('list-item');
+  const { pre, res } = await confirm(w, [{ def: 'list-item', plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.update === 6 && p.counts.current === 3 && p.counts.add === 0 && p.counts.drop === 0,
+    `list spacing/dry run: the 3 bullet and 3 icon members to update, the 3 number members current, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
+  ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 9,
+    `list spacing/in place: every List.Item member and child keeps its key and id (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved)`);
+  const wrong = membersOf(w.set()).flatMap((m) => {
+    const box = childNamed(m, 'markerBox'), t = typeOf(m), z = sizeOf(m);
+    if (t === 'icon' && boundOf(box, 'width') !== NEW_ICON[z]) return [`${m.name}: column ${boundOf(box, 'width')}`];
+    if (t === 'unordered') { const b = childNamed(box, 'bullet'); if (boundOf(b, 'width') !== NEW_BULLET[z] || boundOf(b, 'height') !== NEW_BULLET[z]) return [`${m.name}: bullet ${boundOf(b, 'width')}`]; }
+    return [];
+  });
+  ok(wrong.length === 0, `list spacing/written: the bullet binds space/075, 100, 100 (6/8/8px) and the icon column space/400, 500, 600 (32/40/48px) (${wrong.slice(0, 3).join('; ') || 'all 9'})`);
+  const post = (await previewUpdate(w.host, [{ def: 'list-item', plans }])).sets[0];
+  ok(post?.counts.current === 9, `list spacing/current: every List.Item member reads current after (${JSON.stringify(post?.counts)})`);
+
+  // THE LIST: built at main's 8/12/16 gap, on the slot and the container, it updates in place to 12/16/20.
+  const OLD_GAP: Record<string, string> = { small: 'space/100', medium: 'space/150', large: 'space/200' };
+  const NEW_GAP: Record<string, string> = { small: 'space/150', medium: 'space/200', large: 'space/250' };
+  const listMain = plansOf('list').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    (q.root.bound as Record<string, string>).itemSpacing = OLD_GAP[q.size!];
+    (planChild(q.root, 'items').bound as Record<string, string>).itemSpacing = OLD_GAP[q.size!];
+    return q;
+  });
+  ok(JSON.stringify(listMain) !== JSON.stringify(plansOf('list')), 'premise: the List built at the old gap differs from the current plan');
+  const lw = await world('list', listMain, { extraVars: ['space/250'], componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT', defaultValue: '1.' } } } });
+  const gids = new Map<string, string>();
+  for (const v of ['space/100', 'space/150', 'space/200', 'space/250']) gids.set(await varIdOf(lw, v), v);
+  const gapOf = (n: Node) => gids.get(((n.boundVariables ?? {}) as Record<string, { id: string }>).itemSpacing?.id) ?? 'none';
+  ok(membersOf(lw.set()).every((m) => gapOf(childNamed(m, 'items')) === OLD_GAP[sizeOf(m)]),
+    `premise: the 9 List members carry the old gap, space/100, 150, 200 by size (${membersOf(lw.set()).map((m) => gapOf(childNamed(m, 'items'))).join(', ')})`);
+  const lbefore = identityOf(lw.set());
+  const lplans = plansOf('list');
+  const l = await confirm(lw, [{ def: 'list', plans: lplans }]);
+  const lafter = identityOf(lw.set());
+  const lmoved = [...lbefore.members].filter(([name, b]) => lafter.members.get(name)?.key !== b.key || lafter.members.get(name)?.id !== b.id).length;
+  const lkids = [...lbefore.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => lafter.members.get(name)?.kids.get(path) !== id)).length;
+  ok(!l.pre.sets[0].blockers.length && l.pre.sets[0].counts.update === 9 && l.pre.sets[0].counts.add === 0 && l.pre.sets[0].counts.drop === 0 && applyVerdict(l.res).ok && lmoved === 0 && lkids === 0 && lafter.members.size === 9,
+    `list spacing/List in place: all 9 List members updated, nothing added or dropped, every member's and child's key and id kept (${JSON.stringify(l.pre.sets[0].counts)}; ${applyVerdict(l.res).headline}; ${lmoved} members, ${lkids} children moved)`);
+  const gwrong = membersOf(lw.set()).filter((m) => gapOf(m) !== NEW_GAP[sizeOf(m)] || gapOf(childNamed(m, 'items')) !== NEW_GAP[sizeOf(m)]).map((m) => `${m.name}: ${gapOf(m)}/${gapOf(childNamed(m, 'items'))}`);
+  ok(gwrong.length === 0, `list spacing/gap written: the List and its items slot bind space/150, 200, 250 (12/16/20px) (${gwrong.slice(0, 3).join('; ') || 'all 9'})`);
+  const lpost = (await previewUpdate(lw.host, [{ def: 'list', plans: lplans }])).sets[0];
+  ok(lpost?.counts.current === 9, `list spacing/List current: every List member reads current after (${JSON.stringify(lpost?.counts)})`);
 }
 
 section('accordion side padding — a file built at the old large 24px updates in place to 20px (#2726, Q338 A)');
