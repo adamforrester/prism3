@@ -18031,7 +18031,9 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 // Mutations, each after a `wip:` commit, each failing here by name: `fontAvailable` forced true in `faceDraw` → the
 // display and title `FALLBACK … carries its note` arms; `drawFace`'s `font-synthesis` line removed → `LOADED … draws …
 // with no synthesized weight`; `styleNames` dropped from the write adapter's `font-list` → `FIGMA … the display line
-// says …` and the weight control's arm.
+// says …` and the weight control's arm. Under a CI-like font set (no Inter or JetBrains Mono installed): `faceDraw`
+// asking Google even for a face it shows → `LOADED no face the device already paints is asked for`; `paintInter` made a
+// no-op → `FALLBACK the device paints Inter, registered before boot`.
 // =============================================================================================
 if (runs('3138')) {
 console.log(`\nA brand face the preview can't show, said (#3138)\n${'='.repeat(78)}`);

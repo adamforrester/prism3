@@ -16,7 +16,7 @@ serif faces move to the serif tail. CONTRACT unchanged: no token is renamed or a
   domain or a reference-only host with its reason; the manifests carry their names, ids and domains. The `["none"]`
   literal in `lint-release-bundle.ts` moved to the offline build, and both releases are held to the dev-only markers.
   `lint-sandbox-reject.ts` scans the offline `main.js` too.
-- **Q1 A:** a line whose face can't load here says so ("shown in a fallback face"); the web studio and the network
+- **Q1 A:** a line whose face can't load here says so ("shown in a fallback font"); the web studio and the network
   plugin first ask Google Fonts for it (`ui/web-fonts.ts`). **Q3 A:** a face shown without the asked cut draws the
   nearest real cut with `font-synthesis: none`, plus a note. **Q4 A:** the plugin's `font-list` carries style names, so
   the Type settings weight control names the cuts a family has and the weights with none. **Q5 A:** the drafted strings.
