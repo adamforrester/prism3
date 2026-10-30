@@ -75,6 +75,7 @@ import type { BrandInput } from '@prism3/engine/theme';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { materializeForBrand, materializerFor } from './brand-def';
 import { dueOf, entryFor, needsPrint, printOf, quietOf, readLedger, recordSets, type LedgerEntry, type PlanPrint } from './as-built-ledger';
+import { clearQueued, readQueue, setQueued, staleOf, visibleOf, type QueueRoot } from './add-queue';
 import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
 import { button } from '@prism3/engine/components/button';
@@ -775,6 +776,9 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // is recorded as built from the def it was materialized to. A set holding a member from another plan (`stale`) is
       // not: it still is what it was, and its entry says so. CAUGHT: the set is built, and the record is bookkeeping.
       if (built.id && built.stale === 0) { try { recordSets(figma.root, { [target.id]: entryFor(materializeForBrand(target, brandInput), project(target)) }); } catch { /* read as unrecorded */ } }
+      // #3129 Q833 A: and its add-queue key is cleared in the same place, so a set that fails, or is stopped before it
+      // runs, stays queued. A set made first as a nested set (#1633), or by the agent's build, clears here too.
+      if (built.id && built.stale === 0) { try { clearQueued(queueRoot(), [target.id]); } catch { /* cleared by the next queue write */ } }
       // AFTER the set lands and BEFORE the run's headers, so a first build's header measures the labels too.
       const drawn = await furnishSet(target.id, built.id, project(target));
       if (drawn) furniture.push(drawn);
@@ -1055,6 +1059,25 @@ const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) =>
     try { return d ? entryFor(mat(d)) : null; } catch { return null; }
   };
 };
+/** #3129 Q833 A: THE ADD QUEUE (`add-queue.ts`), on the root's shared plugin data. A def it may hold is one the engine
+ *  builds, the test `presentDefs` reads the file by; every read reports it without the sets the file holds (Q3129.2 A)
+ *  and without a def the engine no longer builds (Q3129.3 A). Reads never write. */
+const queueRoot = (): QueueRoot => figma.root as unknown as QueueRoot;
+const queueable = (id: string): boolean => componentDefs.some((d) => d.id === id && !!d.figmaProperties);
+const queuedFor = (present: readonly string[]): string[] => visibleOf(readQueue(queueRoot()), queueable, present);
+/** The panel's queue write: set or clear `ids`' keys, then clear the keys a read leaves out (the sets the file holds,
+ *  the defs the engine no longer builds), and answer with the queue. It writes no layer, so it saves no version and is
+ *  never guarded: a box ticked during a run is kept. An Update file run ends with one carrying no ids. */
+const addQueue = async (ids: readonly string[], on: boolean): Promise<void> => {
+  let error: string | undefined;
+  try { setQueued(queueRoot(), on ? ids.filter(queueable) : ids, on); } catch (e) { error = (e as Error)?.message ?? String(e); }
+  let present: readonly string[] = [];
+  try {
+    present = presentCache ?? await presentDefs();
+    clearQueued(queueRoot(), staleOf(readQueue(queueRoot()), queueable, present));
+  } catch { /* the next write clears them */ }
+  postToUi({ type: 'add-queue', queued: queuedFor(present), ...(error ? { error } : {}) });
+};
 /** The print of the plans each def would be drawn from now, against `input`'s brand (#3082 Q811 A): the plans a build
  *  hands the executor (`project` in `buildComponents`). A def the engine cannot plan has none. Memoized across calls
  *  (`printMemo`), so the reads after open and the badge's recounts project a stale set once, not once each. */
@@ -1133,9 +1156,9 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
     const print = printNow(input);
     await printYielding(print, needsPrint(ledger, present, now));
     const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
-    postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due, ...(atOpen ? { atOpen: true as const } : {}) });
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...(atOpen ? { atOpen: true as const } : {}) });
   } catch (e) {
-    postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, error: (e as Error)?.message ?? String(e), ...(atOpen ? { atOpen: true as const } : {}) });
+    postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e), ...(atOpen ? { atOpen: true as const } : {}) });
   }
 };
 /**
@@ -1160,7 +1183,7 @@ const ledgerSets = async (): Promise<void> => {
     const due = await timed('due (ledger)', () => dueOf(ledger, present, now, print));
     // `setUp` is not read: it needs a document-wide search, so every page loaded. Only the checklist reads it, and the
     // checklist waits for the full read.
-    postToUi({ type: 'file-sets', present, setUp: false, due, partial: true, atOpen: true });
+    postToUi({ type: 'file-sets', present, setUp: false, due, queued: queuedFor(present), partial: true, atOpen: true });
   } catch { /* the full read follows and says why */ }
 };
 
@@ -1178,9 +1201,9 @@ const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void
     const now = ledgerNow(input);
     const print = printNow(input);
     await printYielding(print, needsPrint(ledger, present, now));
-    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(ledger, present, now, print) });
+    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(ledger, present, now, print), queued: queuedFor(present) });
   } catch (e) {
-    postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, error: (e as Error)?.message ?? String(e) });
+    postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e) });
   }
 };
 
@@ -1793,6 +1816,10 @@ onUiMessage((msg: UiToMain) => {
     case 'due-request':
       // #3081 Q810 A: the badge's live recount, against the brand the panel holds. A read: never guarded.
       void fileDue(msg.input, msg.seq);
+      return;
+    case 'add-queue':
+      // #3129 Q833 A: Components' boxes and Update file's Remove, Remove all and Add all. Writes no layer: never guarded.
+      void addQueue(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], msg.on === true);
       return;
     case 'hand-edits-request':
       // #2909 Q2909.8 A: the background pass after load. A read: never guarded; a write starting ends it.

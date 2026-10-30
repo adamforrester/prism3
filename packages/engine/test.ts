@@ -18933,8 +18933,8 @@ arm: {
       'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
       'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google', wash: ON_DARK },
       'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
-      'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook', wash: ON_DARK, tint: '#ffffff' },
-      'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'brand-mark/provider/facebook-blue', wash: ON_LIGHT },
+      'facebook.blue': { fill: '#0866ff', ink: '#ffffff', mark: 'brand-mark/provider/facebook', wash: ON_DARK, tint: '#ffffff' },
+      'facebook.white': { fill: '#ffffff', ink: '#0866ff', mark: 'brand-mark/provider/facebook-blue', wash: ON_LIGHT },
     };
     // The glyph Q831 A derived (Q846 A dropped its Apple twin). The exclusion arm below drops it from the vocabulary to
     // prove a missing glyph still removes its pairs, for a future provider whose artwork is not in yet.
@@ -19013,7 +19013,7 @@ arm: {
     ok(offMark.length === 0, `#2343 PR 5 provider rules MARK: each member nests its provider's own glyph for its style, unaltered but for the dark-fill tint (${offMark.slice(0, 3).join('; ') || 'clean'})`);
     // Q846 A — THE DARK-FILL STYLES DRAW WHITE. Typed from the decision (2026-10-29), not from RULES above or the def:
     // Apple black and Facebook blue paint their black provider glyph white, and no other style tints. A contrast floor
-    // cannot hold this alone: a black "f" on #1877f2 is about 4.95:1, over 3:1, and Facebook's rule (white on blue) is a
+    // cannot hold this alone: a black "f" on #0866ff is about 4.35:1, over 3:1, and Facebook's rule (white on blue) is a
     // brand rule, not a contrast one. Read from the plan, where the executors take it.
     const DRAWS_WHITE = ['apple.black', 'facebook.blue'];
     const offWhite = plans.flatMap((p) => {
@@ -19035,16 +19035,38 @@ arm: {
     const nameLine = (sb.anatomy?.codeOnly ?? []).find((c) => c.startsWith('the accessible name — ')) ?? '';
     ok(/named by its visible wording/.test(sb.accessibility.aria) && /Add no label of your own/.test(sb.accessibility.aria) && /No aria-label is added/.test(nameLine) && /aria-hidden/.test(nameLine) && sb.accessibility.wcag.some((w) => w.startsWith('2.5.3')),
       `#2343 PR 5 provider rules NAME: the visible wording is the accessible name, no aria-label is added and the glyph is hidden (aria '${sb.accessibility.aria.slice(0, 80)}'; codeOnly '${nameLine.slice(0, 80) || 'missing'}')`);
-    // CONTRAST, from the typed values: each style's ink on its fill clears 4.5:1, except Facebook's two styles, which
-    // measure 4.23:1 on the provider's own blue. A known shortfall, recorded rather than failed, and stated in the docs.
+    // CONTRAST, from the typed values: each style's ink on its fill clears 4.5:1. Facebook's two styles measure 4.82:1 on
+    // its current brand blue, #0866ff (Q837 A, 2026-10-28); on the old #1877f2 they measured 4.23:1, and fail here.
     const lum = (hex: string): number => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
     const ratio = (a: string, b: string): number => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
-    const SHORTFALL: Record<string, number> = { 'facebook.blue': 4.23, 'facebook.white': 4.23 };
-    const offContrast = Object.entries(RULES).flatMap(([k, r]) => {
-      const c = ratio(r.ink, r.fill);
-      return (k in SHORTFALL ? Math.abs(c - SHORTFALL[k]) < 0.01 : c >= 4.5) ? [] : [`${k}: ${c.toFixed(2)}:1`];
+    const offContrast = Object.entries(RULES).flatMap(([k, r]) => { const c = ratio(r.ink, r.fill); return c >= 4.5 ? [] : [`${k}: ${c.toFixed(2)}:1`]; });
+    // ...and from the plan: every member's label ink on its own fill, with each wash layer (Q-S13 A, a second fill such
+    // as #ffffff1a) alpha-composited over fills[0], so a state is judged on the fill it shows. Rest and focus-visible
+    // clear 4.5:1 everywhere. Facebook's hover and pressed fall short under the wash; their measured ratios are typed
+    // here (#3152's review, re-measured at the plan's exact alpha), not derived, so a wash or ink change moves them and fails by name.
+    // Composited in 0-255 floats and never rounded to a hex, so the ratio is the wash's own (0x1a is 10.2%, not 10%).
+    const rgbOf = (hex: string): number[] => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const over = (fills: readonly string[]): number[] => fills.slice(1).reduce((rgb, w) => {
+      const a = w.length === 9 ? parseInt(w.slice(7, 9), 16) / 255 : 1;
+      return rgbOf(w).map((v, k) => v * a + rgb[k] * (1 - a));
+    }, rgbOf(fills[0]));
+    const lumRgb = (rgb: number[]): number => { const c = rgb.map((v) => v / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const ratioRgb = (a: number[], b: number[]): number => { const [x, y] = [lumRgb(a), lumRgb(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+    const hexOf = (rgb: number[]): string => '#' + rgb.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+    const SHORTFALL: Record<string, number> = { 'facebook.blue.hover': 4.13, 'facebook.blue.pressed': 3.53, 'facebook.white.hover': 3.83, 'facebook.white.pressed': 3.00 };
+    let shortfallSeen = 0;
+    const offPlanContrast = plans.flatMap((p) => {
+      const fs = p.root.literalPaints?.fills, i = label(p)?.literalPaints?.fills?.[0];
+      const rgb = fs?.length ? over(fs) : undefined, f = rgb && hexOf(rgb);
+      const c = rgb && i ? ratioRgb(rgbOf(i), rgb) : 0, want = SHORTFALL[`${keyOf(p)}.${p.coord.state}`];
+      if (want !== undefined) { shortfallSeen++; return Math.abs(c - want) <= 0.02 ? [] : [`${planComponentName(p)}: ${i} on ${f} ${c.toFixed(2)}:1, documented ${want.toFixed(2)}:1`]; }
+      return c >= 4.5 ? [] : [`state=${p.coord.state}: ${planComponentName(p)}: ${i} on ${f} ${c.toFixed(2)}:1`];
     });
-    ok(offContrast.length === 0 && sb.accessibility.wcag.some((w) => /4\.23:1/.test(w)), `#2343 PR 5 provider rules CONTRAST: every style's label clears 4.5:1 on its fill, and Facebook's two styles measure the known 4.23:1, stated in the docs (${offContrast.join('; ') || 'clean'})`);
+    const contested = (sb.notes?.contested ?? []).join(' ');
+    const docsScoped = sb.accessibility.wcag.some((w) => w.startsWith('1.4.3') && /rest and focus-visible/.test(w) && /hover and pressed/.test(w))
+      && Object.values(SHORTFALL).every((v) => contested.includes(`${v.toFixed(2)}:1`)) && /Q-S13 A/.test(contested);
+    ok(offContrast.length === 0 && offPlanContrast.length === 0 && shortfallSeen === 12 && docsScoped && !sb.accessibility.wcag.some((w) => /4\.23:1/.test(w)),
+      `#2343 PR 5 provider rules CONTRAST: every style's label clears 4.5:1 at rest and focus-visible on its fill, Facebook's two styles included (Q837 A), in the typed rules and in every member's plan with the wash composited; Facebook's hover and pressed hold their documented shortfall (${shortfallSeen}/12 members), and the docs scope the claim and record it (${docsScoped ? 'scoped' : 'docs unscoped'}; ${[...offContrast, ...offPlanContrast].slice(0, 3).join('; ') || 'clean'})`);
   }
   // #2343 PR 5 — THE LITERAL RECORD STAYS WHERE IT WAS DECIDED. A literal is a value no theme moves, so a def that
   // carries one is listed here by name; a second def reaching for it fails until its own decision lands (docs/34: the
@@ -23195,10 +23217,10 @@ arm: {
       if (lowGlyphs({ ...fixture('#000000', 'apple'), children: [{ name: 'inner', children: [{ name: 'mark', swapTarget: `${PROVIDER}apple` }] }] }, docs, 'fixture').length !== 1) self.push('a swapped glyph two levels under the literal fill is not caught');
       // A themed fill nested UNDER a literal one is the nearest painted ancestor, so the glyph is skipped (review M2).
       if (lowGlyphs({ ...fixture('#000000', 'apple'), children: [{ name: 'inner', paints: { fills: 'color/surface/primary' }, children: [{ name: 'mark', nestTarget: `${PROVIDER}apple` }] }] }, docs, 'fixture').length) self.push('a themed fill under a literal one is judged against the outer literal');
-      // The tint (Q846 A) is read from the plan: white on black and on #1877f2 pass, a black tint on black fails.
+      // The tint (Q846 A) is read from the plan: white on black and on #0866ff pass, a black tint on black fails.
       const tinted = (fill: string, glyph: string, tint: string): Node => ({ name: 'container', literalPaints: { fills: [fill] }, children: [{ name: 'mark', nestTarget: `${PROVIDER}${glyph}`, literalTint: tint }] });
       if (lowGlyphs(tinted('#000000', 'apple', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on black is refused');
-      if (lowGlyphs(tinted('#1877f2', 'facebook', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on #1877f2 is refused');
+      if (lowGlyphs(tinted('#0866ff', 'facebook', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on #0866ff is refused');
       if (lowGlyphs(tinted('#000000', 'apple', '#000000'), docs, 'fixture').length !== 1) self.push('a glyph tinted black on black is not caught');
       if (!lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]?.includes(': brand-mark/provider/apple (')) self.push(`the failure line does not name brand-mark/provider/apple once (${lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]})`);
       // The walk over every registered def: what it covered, so a vacuous pass says so.
@@ -23271,7 +23293,7 @@ arm: {
         { coord: { provider: 'google', style: 'light', state: 'hover' }, size: 'medium', fills: ['#ffffff', '#0000001a'], edge: '#747775', ink: '#1f1f1f', font: 'Google Sans', word: 'Continue with Google', glyph: undefined },
         { coord: { provider: 'apple', style: 'black', state: 'rest' }, size: 'large', fills: ['#000000'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Apple', glyph: '#ffffff' },
         { coord: { provider: 'apple', style: 'white', state: 'rest' }, size: 'medium', fills: ['#ffffff'], edge: undefined, ink: '#000000', font: undefined, word: 'Continue with Apple', glyph: undefined },
-        { coord: { provider: 'facebook', style: 'blue', state: 'pressed' }, size: 'small', fills: ['#1877f2', '#ffffff33'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Facebook', glyph: '#ffffff' },
+        { coord: { provider: 'facebook', style: 'blue', state: 'pressed' }, size: 'small', fills: ['#0866ff', '#ffffff33'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Facebook', glyph: '#ffffff' },
       ];
       const MARKS = ['apple', 'facebook', 'facebook-blue', 'google'].map((g) => `brand-mark/provider/${g}`);
       const bad: string[] = [];
@@ -32608,25 +32630,26 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
 // The reference brand's typography patch: titleFloor 16, sizes.title.2xs 20 (18 on mobile, Q802 A),
 // sizes.caption.md 10 (caption A), and display/title/body/caption/label pinned to `open` (+1%) with eyebrow on its
 // nudge (+2%) (tracking A, Q803 B). Every expected row is a LITERAL from the decided table (size desktop/mobile px,
-// letter spacing in percent), never read from the lever or the input, so a change to either fails by name.
+// letter spacing in percent, and since #3146 the leading rung and its value), never read from the lever or the input, so a change to either fails by name.
 {
   const table = (t: Theme): Map<string, string> => {
     const em = new Map(t.typography.letterSpacings.map((l) => [l.key, l.em]));
+    const lh = new Map(t.typography.lineHeights.map((l) => [l.key, l.value]));
     const out = new Map<string, string>();
     for (const c of t.typography.composites) {
       const k = `${c.group}.${c.variant}`;
-      if (!out.has(k)) out.set(k, `${c.sizePx}/${c.sizeMinPx} ${Math.round((em.get(c.tracking) ?? NaN) * 1000) / 10}%`);
+      if (!out.has(k)) out.set(k, `${c.sizePx}/${c.sizeMinPx} ${Math.round((em.get(c.tracking) ?? NaN) * 1000) / 10}% ${c.lineHeight} ${lh.get(c.lineHeight)}`);
     }
     return out;
   };
   const REF_TABLE: Record<string, string> = {
-    'display.sm': '64/40 1%', 'display.md': '72/40 1%', 'display.lg': '80/40 1%', 'display.xl': '96/48 1%', 'display.2xl': '128/48 1%',
-    'title.2xs': '20/18 1%', 'title.xs': '24/20 1%', 'title.sm': '32/24 1%', 'title.md': '36/28 1%', 'title.lg': '40/32 1%', 'title.xl': '48/36 1%', 'title.2xl': '56/40 1%',
-    'body.xs': '12/12 1%', 'body.sm': '14/14 1%', 'body.md': '16/16 1%', 'body.lg': '18/18 1%',
-    'label.sm': '12/12 1%', 'label.md': '14/14 1%', 'label.lg': '18/18 1%',
-    'caption.md': '10/10 1%', 'caption.lg': '12/12 1%',
-    'eyebrow.sm': '12/12 2%', 'eyebrow.md': '14/14 2%', 'eyebrow.lg': '20/18 2%',
-    'code.inline': '14/14 0%',
+    'display.sm': '64/40 1% snug 1.2', 'display.md': '72/40 1% snug 1.2', 'display.lg': '80/40 1% snug 1.2', 'display.xl': '96/48 1% snug 1.2', 'display.2xl': '128/48 1% snug 1.2',
+    'title.2xs': '20/18 1% cozy 1.4', 'title.xs': '24/20 1% cozy 1.4', 'title.sm': '32/24 1% compact 1.25', 'title.md': '36/28 1% compact 1.25', 'title.lg': '40/32 1% compact 1.25', 'title.xl': '48/36 1% compact 1.25', 'title.2xl': '56/40 1% snug 1.2',
+    'body.xs': '12/12 1% relaxed 1.65', 'body.sm': '14/14 1% relaxed 1.65', 'body.md': '16/16 1% relaxed 1.65', 'body.lg': '18/18 1% relaxed 1.65',
+    'label.sm': '12/12 1% snug 1.2', 'label.md': '14/14 1% snug 1.2', 'label.lg': '18/18 1% snug 1.2',
+    'caption.md': '10/10 1% cozy 1.4', 'caption.lg': '12/12 1% cozy 1.4',
+    'eyebrow.sm': '12/12 2% snug 1.2', 'eyebrow.md': '14/14 2% snug 1.2', 'eyebrow.lg': '20/18 2% snug 1.2',
+    'code.inline': '14/14 0% normal 1.5',
   };
   const diff = (got: Map<string, string>, want: Record<string, string>): string[] => [
     ...Object.entries(want).filter(([k, v]) => got.get(k) !== v).map(([k, v]) => `${k}: ${got.get(k) ?? 'missing'} ≠ ${v}`),
@@ -32635,8 +32658,18 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   // (a) The redesign seed. It also carries the stored input's sizeFloor 8, so caption.xs 8 ships.
   const seed = exampleTheme('nb-redesign', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input));
   if (seed) {
-    const bad = diff(table(seed), { ...REF_TABLE, 'caption.xs': '8/8 1%' });
-    ok(bad.length === 0, `#3077 the reference brand's redesign seed builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+    const bad = diff(table(seed), { ...REF_TABLE, 'caption.xs': '8/8 1% cozy 1.4' });
+    ok(bad.length === 0, `#3077/#3146 the reference brand's redesign seed builds the decided type table, size, tracking and leading (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+    // #3146: the rest of what #3080 synced from the stored input (Q821 A), also as literals. The leading rides in
+    // the table above. The fluid clamp is 375–1440. The label weight-role set is {default, emphasis}: the engine
+    // default emits the same pair, so the seed must also DECLARE it, or a dropped `label` line would pass here.
+    const ty = seed.typography;
+    ok(ty.minViewport === 375 && ty.maxViewport === 1440,
+      `#3146 the reference brand's redesign seed clamps its fluid sizes between the stored input's 375 and 1440 viewports (got ${ty.minViewport}–${ty.maxViewport})`);
+    const labelRoles = [...new Set(ty.composites.filter((c) => c.group === 'label').map((c) => c.weightRole))].sort().join(',');
+    const declared = (parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input as any).typography?.weights?.label;
+    ok(labelRoles === 'default,emphasis' && JSON.stringify(declared) === '["default","emphasis"]',
+      `#3146 the reference brand's redesign seed declares and emits the stored input's label weights, default + emphasis (emitted ${labelRoles || 'none'}; declared ${JSON.stringify(declared)})`);
   }
   // (b) The stored brand input (the copy above) with the same patch: what Apply Theme writes into its Figma file.
   const patched = structuredClone(NB_MASTER) as any;
@@ -32649,7 +32682,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   });
   {
     const bad = diff(table(brandTheme(patched)), REF_TABLE);
-    ok(bad.length === 0, `#3077 the reference brand's stored input, patched, builds the decided type table (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
+    ok(bad.length === 0, `#3077/#3146 the reference brand's stored input, patched, builds the decided type table, size, tracking and leading (${bad.length ? bad.slice(0, 4).join(' | ') : 'every style'})`);
   }
   // (c) The legacy fixture: engine-default sizes (no 20px title.2xs: its title.xs is 18), the decided caption md and
   // the decided letter spacing per text type.

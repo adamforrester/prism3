@@ -49,6 +49,14 @@ export type PageLends = {
     readonly showResult: () => void;
     /** #2909 Q2909.8 A: a set's statuses in this file (`state/update-file.ts` `statusesOf`); empty on the web. */
     readonly status: (id: string) => readonly SetStatus[];
+    /** #3129 Q833 A: the file's add queue, as the host last read it or the panel last wrote it; null before the host has
+     *  said, and on the web. */
+    readonly queue: () => readonly string[] | null;
+    /** #3129: the sets the file holds, from the host's full read; null before it lands, while only the ledger has
+     *  answered (#3110), after a failed read, and on the web. Components draws its boxes only once this is known. */
+    readonly present: () => readonly string[] | null;
+    /** #3129: queue `ids` in the file (`on`), or take them out. */
+    readonly queueSets: (ids: readonly string[], on: boolean) => void;
   };
 };
 
