@@ -2788,7 +2788,7 @@ Type: dimension. Bound by 24 component(s).
 
 ### `size.md.height`
 
-Type: dimension. Bound by 21 component(s).
+Type: dimension. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2813,6 +2813,7 @@ Type: dimension. Bound by 21 component(s).
 | tab-item | `size.medium.height` | container | size: medium (10 of 30) |
 | tag | `size.medium.height` | container | size: medium (15 of 45) |
 |  |  | dismiss | selection: unselected · size: medium · type: dismissible (5 of 45) |
+| toast | `min-height` | container | every member (2 of 2) |
 | wallet-button | `size.medium.height` | container | size: medium (8 of 20) |
 
 ### `size.md.min-height`
@@ -3203,7 +3204,7 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 19 component(s).
+Type: typography. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3234,7 +3235,6 @@ Type: typography. Bound by 19 component(s).
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | textarea | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
-| toast | `type` | message | every member (2 of 2) |
 
 ### `type.body.md.default-link`
 
@@ -3264,7 +3264,7 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.sm.default`
 
-Type: typography. Bound by 17 component(s).
+Type: typography. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3297,6 +3297,7 @@ Type: typography. Bound by 17 component(s).
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | textarea | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
+| toast | `type` | message | every member (2 of 2) |
 
 ### `type.body.sm.default-link`
 
@@ -3943,9 +3944,9 @@ Declared, not drawn: `color.border.focus`
 
 ### toast
 
-11 token(s); 2 design-file member(s).
+12 token(s); 2 design-file member(s).
 
-`color.inverse.background.primary`, `color.inverse.icon.success`, `color.inverse.text.primary`, `icon.size.sm`, `radius.xl`, `shadow.lg`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.md.default`
+`color.inverse.background.primary`, `color.inverse.icon.success`, `color.inverse.text.primary`, `icon.size.sm`, `radius.xl`, `shadow.lg`, `size.md.height`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.sm.default`
 
 ### veil
 

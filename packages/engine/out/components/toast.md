@@ -19,7 +19,7 @@ A short status message that appears over the page after something the user did, 
 
 Shown on the default member: intent `neutral`.
 
-1. **Container** — The toast: the inverse surface, its shadow and its corners. It holds the message on the start side and the action and close button on the end side.
+1. **Container** — The toast: the inverse surface, its shadow and its corners. It is never shorter than a medium control, and holds the message on the start side and the action and close button on the end side.
 2. **Content** — The glyph and the message. It takes the width the action and close button do not.
 3. **Check circle glyph** — The success glyph, a circled check, hidden from assistive technology: the message carries the meaning. A neutral toast has no glyph.
 4. **Message** — The message. It wraps onto a second line rather than truncating.
@@ -134,7 +134,7 @@ Keyed by nothing: one row covers every member.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.100` / `space.100` / `space.200` | `space.100` | — | — | — | build width 360px (literal) |
+| `container` | `space.100` / `space.100` / `space.100` / `space.200` | `space.100` | — | — | — | min height `size.md.height`; build width 360px (literal) |
 | `container/content` | — | `space.150` | — | — | — | — |
 | `container/controls` | — | `space.050` | — | — | — | — |
 | `container/content/checkCircleGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
@@ -145,7 +145,7 @@ Keyed by nothing: one row covers every member.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| every member | `container/content/message` | `type.body.md.default` |
+| every member | `container/content/message` | `type.body.sm.default` |
 
 ### Color
 

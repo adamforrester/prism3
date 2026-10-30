@@ -112,6 +112,9 @@
  *   accordion pad-x/…  an Accordion built at the old large side padding (space/300, 24px) updates in place to the
  *                  def's 20px (space/250, Q338 A, #2726): the 16 large members updated, the 32 others current, every key
  *                  and id kept. Mutation: the def back at space.300 → `accordion pad-x/dry run`, `accordion pad-x/written`.
+ *   toast 14/…     a Toast built with its message at body/md (16px) and no floor updates in place to body/sm (14px) and a
+ *                  size/md/height floor (#3165, Q3165.1 A): both members updated, every key and id kept, current after.
+ *                  Mutation: the def's message back at body.md → `toast 14/written`.
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
  *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
@@ -1057,6 +1060,51 @@ section('accordion side padding — a file built at the old large 24px updates i
   ok(wrong.length === 0, `accordion pad-x/written: the large header and open panel now bind space/250 (20px) at both sides, and no member still binds space/300 there (${wrong.slice(0, 2).join('; ')})`);
   const post = (await previewUpdate(w.host, [{ def: 'accordion', plans }])).sets[0];
   ok(post?.counts.current === 48, `accordion pad-x/current: every member reads current after (${JSON.stringify(post?.counts)})`);
+}
+
+// #3165 (owner request, Q3165.1 A): the Toast's message moved from body/md (16px) to body/sm (14px), and the card took a
+// floor at size/md/height. A file built before holds both members with the 16px style and no floor; the Update rewrites
+// both in place. The old style name is the test's own literal; the plan it updates to is the engine's current one.
+// Mutation: the def's message back at `type.body.md.default` → `toast 14/written`.
+section('toast 14 — a Toast built with the 16px message and no floor updates in place to 14px on the ladder (#3165)');
+{
+  const atOld = plansOf('toast').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    delete (q.root.bound as Record<string, string>).minHeight;
+    const msg = planChild(planChild(q.root, 'content'), 'message') as PlanNode & { textStyle?: string };
+    msg.textStyle = 'body/md/default';
+    return q;
+  });
+  type OvNode = { nestOverrides?: { type: string; value: string }[]; children?: OvNode[] };
+  const overrideTargets = (n: OvNode): string[] => [...(n.nestOverrides ?? []).filter((x) => x.type === 'INSTANCE_SWAP').map((x) => x.value), ...(n.children ?? []).flatMap(overrideTargets)];
+  const plans = plansOf('toast');
+  // The shim holds the nested Button and FlushIconButton as plain components with no `label` or `swap icon` property,
+  // so the two nest overrides are misses on the build, as on the corpus arm's; the update must add none.
+  const builtMisses: string[] = [];
+  const w = await world('toast', atOld, {
+    allowMisses: builtMisses, extraVars: ['size/md/height'], extraStyles: ['body/sm/default'],
+    extraComps: [...new Set(plans.flatMap((p) => overrideTargets(p.root as unknown as OvNode)))],
+  });
+  const messageOf = (m: Node) => childNamed(childNamed(m, 'content'), 'message');
+  const floorOf = (m: Node) => (m.boundVariables as Record<string, { id: string } | undefined>)?.minHeight?.id;
+  const floor = await varIdOf(w, 'size/md/height');
+  ok(membersOf(w.set()).length === 2 && membersOf(w.set()).every((m) => /body\/md\/default/.test(String(messageOf(m).textStyleId)) && !floorOf(m)),
+    'premise: both Toast members hold the message at body/md/default and no floor');
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: 'toast', plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.update === 2 && p.counts.add === 0 && p.counts.drop === 0,
+    `toast 14/dry run: both members to update, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
+  const extra = res.outcomes[0].misses.filter((x) => !builtMisses.includes(x));
+  ok(builtMisses.every((x) => /^(action\.nestOverrides -> label|close\.nestOverrides -> swap icon) /.test(x)) && extra.length === 0 && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 2,
+    `toast 14/in place: every member and child keeps its key and id, adding no miss to the build's (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved; ${extra.slice(0, 1).join('')})`);
+  const wrong = membersOf(w.set()).filter((m) => !(/body\/sm\/default/.test(String(messageOf(m).textStyleId)) && floorOf(m) === floor)).map((m) => `${String(m.name)}: ${String(messageOf(m).textStyleId)}, floor ${floorOf(m)}`);
+  ok(wrong.length === 0, `toast 14/written: both members' message is body/sm/default and the card's minHeight binds size/md/height (${wrong.slice(0, 2).join('; ')})`);
+  const post = (await previewUpdate(w.host, [{ def: 'toast', plans }])).sets[0];
+  ok(post?.counts.current === 2, `toast 14/current: both members read current after (${JSON.stringify(post?.counts)})`);
 }
 
 section('min/max — a member built under one Tag style and updated under the other has a fresh build\'s min and max sizes (#2976)');

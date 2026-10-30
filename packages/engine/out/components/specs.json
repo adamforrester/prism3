@@ -38045,6 +38045,9 @@
                 "gap": {
                   "token": "space.100"
                 },
+                "minHeight": {
+                  "token": "size.md.height"
+                },
                 "buildWidth": {
                   "px": 360,
                   "source": "literal"
@@ -38088,7 +38091,7 @@
           "parts": [
             {
               "part": "container/content/message",
-              "textStyle": "type.body.md.default"
+              "textStyle": "type.body.sm.default"
             }
           ]
         }
