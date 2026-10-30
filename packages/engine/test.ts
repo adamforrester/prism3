@@ -3270,9 +3270,14 @@ for (const b of brands) {
     // the SHARED rung so the switch stays inside the one control tier (its `width`/`inset` already lived
     // here, switch-only), not as a separate group that would orphan those two. A ninth field is still a
     // decision someone takes.
+    //
+    // #3153 took it: `label-inset`, the option row label's top inset against the box (owner Q852: the cell grows to
+    // a control taller than the label's line, and the label moves down by half the difference). The argument is
+    // `inset`'s: a max and a half of two variables has nowhere to happen in Figma, so the product is baked beside the
+    // edge it is taken from. A tenth is still a decision.
     const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
-    ok(fields.every((f) => f === 'dot+height+inset+line-box+radius+thumb+track+width'),
-      `#910/#1201/#997/#1015/#1425 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` + \`radius\` + \`track\` + \`thumb\` — no ninth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
+    ok(fields.every((f) => f === 'dot+height+inset+label-inset+line-box+radius+thumb+track+width'),
+      `#910/#1201/#997/#1015/#1425/#3153 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` + \`radius\` + \`track\` + \`thumb\` + \`label-inset\` — no tenth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
     ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
@@ -3654,8 +3659,10 @@ for (const b of brands) {
     // so both read the varying family and both belong here, exactly as checkbox + checkbox-control do.
     // #1348 split `radio` the same way: `radio-control` (the circle/dot, binding control+dot) and the
     // `radio` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's square).
-    // `list-item` (#2319) binds `size.*.dot` for its bullet, the radio dot's diameter, so it reads the varying family too.
-    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio-row', 'switch-control', 'switch-row', 'list-item'];
+    // `list-item` (#2319) bound `size.*.dot` for its bullet, the radio dot's diameter, until #3155 (Q3155.1 A) sized the
+    // bullet to the text on the space ladder as `size.*.bullet`: a mark beside fixed body text, not a control box, so it
+    // left this set. Its bullet is pinned by the #3155 arm below.
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio-row', 'switch-control', 'switch-row'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -4021,8 +4028,8 @@ for (const b of brands) {
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
       // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
       accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 16/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 20/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 24/20/20/32' },
-      // List (#2319, approved (Q280 A)): the item gap. Comfortable is 8/12/16.
-      list: { compact: 'small 6 · medium 8 · large 12', comfortable: 'small 8 · medium 12 · large 16', spacious: 'small 12 · medium 16 · large 20' },
+      // List (#2319, approved (Q280 A); widened one step on #3155): the item gap. Comfortable is 12/16/20.
+      list: { compact: 'small 8 · medium 12 · large 16', comfortable: 'small 12 · medium 16 · large 20', spacious: 'small 16 · medium 20 · large 24' },
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
       // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
       link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
@@ -9095,7 +9102,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
     const r = tree[root];
     const deref = (ref: string) => ref.replace(/^\{|\}$/g, '').split('.').slice(1).reduce((o: any, k) => o?.[k], r);
-    const leaves = (n: any) => Object.keys(n ?? {}).filter((k) => !k.startsWith('$')).sort();
+    // The composites only: `line-box` (#3153) is a dimension beside them, as on `type.label.*` (#2586).
+    const leaves = (n: any) => Object.keys(n ?? {}).filter((k) => !k.startsWith('$') && k !== 'line-box').sort();
     const xs = r.type?.body?.xs, sm = r.type?.body?.sm;
     if (!xs) { bad.push(`${b}: no type.body.xs`); continue; }
     if (leaves(xs).join() !== leaves(sm).join()) bad.push(`${b}: body.xs carries ${leaves(xs).join('/')} but body.sm carries ${leaves(sm).join('/')}`);
@@ -18152,14 +18160,17 @@ arm: {
         const p = figmaAnatomySet(def, {})[0];
         const row = wrapFind(p.root, 'row');
         const label = wrapFind(p.root, 'label');
+        const stack = wrapFind(p.root, 'textStack');
         const controlBox = wrapFind(p.root, 'controlCell');
-        // (a) THE LABEL FILLS AND WRAPS — the two facts together, since either alone does not wrap.
-        ok(label?.layoutGrow === 1 && label?.textAutoResize === 'HEIGHT',
-          `#1424 ${def.id}: the row label FILLS the main axis and WRAPS — layoutGrow=1 + textAutoResize=HEIGHT (got layoutGrow=${String(label?.layoutGrow)}, textAutoResize=${String(label?.textAutoResize)})`);
-        // (b) THE CONTROL STAYS FIXED — it does NOT grow (no layoutGrow) and its box keeps its fixed cross
-        //     axis, so a wrapping label never shrinks or stretches the control.
-        ok(controlBox?.layoutGrow === undefined && controlBox?.counterAxisSizingMode === 'FIXED',
-          `#1424 ${def.id}: the controlBox stays fixed/hug — it does not grow (layoutGrow ${String(controlBox?.layoutGrow)}) and its cross axis is FIXED (${String(controlBox?.counterAxisSizingMode)})`);
+        // (a) THE LABEL FILLS AND WRAPS — the two facts together, since either alone does not wrap. Since #3153 the
+        //     label sits in the text column (`textStack`), which FILLS the row beside the cell, and the label fills
+        //     that column's width (its cross axis: `layoutAlign STRETCH`) and wraps at it.
+        ok(stack?.layoutGrow === 1 && label?.layoutAlign === 'STRETCH' && label?.textAutoResize === 'HEIGHT',
+          `#1424 ${def.id}: the row label FILLS the main axis and WRAPS — the text column grows (layoutGrow ${String(stack?.layoutGrow)}) and the label stretches across it with textAutoResize=HEIGHT (got layoutAlign=${String(label?.layoutAlign)}, textAutoResize=${String(label?.textAutoResize)})`);
+        // (b) THE CONTROL CELL DOES NOT GROW along the row, so a wrapping label never shrinks or stretches the control.
+        //     Its height hugs the control above the label's line-box floor (#3153), so its cross axis is AUTO.
+        ok(controlBox?.layoutGrow === undefined && controlBox?.counterAxisSizingMode === 'AUTO' && controlBox?.bound?.minHeight !== undefined,
+          `#1424 ${def.id}: the controlBox does not grow (layoutGrow ${String(controlBox?.layoutGrow)}) and hugs its control above a bound floor (${String(controlBox?.counterAxisSizingMode)}, minHeight ${String(controlBox?.bound?.minHeight)})`);
         // (c) THE WIDTH THAT MAKES THE FILL RESOLVE, on every member (owner decision Q152.3: Q99 B reaches the
         //     rows). The row is BUILT at Prism 2's root width 320 (`placementWidth`, FIXED along its horizontal
         //     main axis) and floors at the fields' 120 (Q152.2), so it shrinks with a narrower column instead of
@@ -18176,8 +18187,8 @@ arm: {
         const noWrapLabel = { ...def.anatomy.parts.label, wrap: undefined };
         const noWrap = { ...def, anatomy: { ...def.anatomy, parts: { ...def.anatomy.parts, label: noWrapLabel } } };
         const mlabel = wrapFind(figmaAnatomySet(noWrap as ComponentDef, {})[0].root, 'label');
-        ok(mlabel?.layoutGrow === undefined && mlabel?.textAutoResize === undefined,
-          `#1424 ${def.id} MUTATION: removing 'wrap' drops layoutGrow (${String(mlabel?.layoutGrow)}) and textAutoResize (${String(mlabel?.textAutoResize)}) from the plan, flipping '#1424 ${def.id}: the row label FILLS the main axis and WRAPS' to failing`);
+        ok(mlabel?.layoutAlign === undefined && mlabel?.textAutoResize === undefined,
+          `#1424 ${def.id} MUTATION: removing 'wrap' drops layoutAlign (${String(mlabel?.layoutAlign)}) and textAutoResize (${String(mlabel?.textAutoResize)}) from the plan, flipping '#1424 ${def.id}: the row label FILLS the main axis and WRAPS' to failing`);
       }
       // ---- #1424: the two REFUSAL arms `PartDef.wrap` adds, each pinned BY NAME (docs/34) ----
       // A PR's own new refusal owes its own by-name mutation, or an arm could be deleted from `anatomyErrors`
@@ -21410,6 +21421,10 @@ arm: {
       { def: buttonNeutral, part: 'label', axes: { size: 3, appearance: 2 } },
       { def: checkboxRow, part: 'label', axes: { size: 3 } },
       { def: radioRow, part: 'label', axes: { size: 3 } },
+      // #3153 (Q853 A, Q3153.1 A): the description is one rung under the label, floored at body.xs, so small and
+      // medium share it (12) and large steps up (14): two distinct styles across the three sizes.
+      { def: checkboxRow, part: 'description', axes: { size: 2 } },
+      { def: radioRow, part: 'description', axes: { size: 2 } },
       // TWO, and not a collapse: `switch-row` declares `size: [small, medium]` only, on its brief's own
       // words ("switches rarely warrant a large"). Two values, two styles — full discrimination over
       // a shorter ladder, which is why the authored number is the right oracle and "one per declared
@@ -32099,7 +32114,8 @@ arm: {
 
   let sawTop = 0, sawCenter = 0;
   for (const m of figmaAnatomySet(withPart('label', { verticalAlign: 'top' }), { swapTarget: 'FPO' }))
-    walkPlan(m.root, (n) => { if (n.textAlignVertical === 'TOP') sawTop++; if (n.textAlignVertical === 'CENTER') sawCenter++; });
+    // The label node only: the description (#3153) is a second text node that keeps the default.
+    walkPlan(m.root, (n) => { if (n.name !== 'label') return; if (n.textAlignVertical === 'TOP') sawTop++; if (n.textAlignVertical === 'CENTER') sawCenter++; });
   ok(sawTop > 0 && sawCenter === 0,
     `#1009: a part declaring verticalAlign:'top' projects TOP — the per-part override reaches the plan (TOP ${sawTop}, CENTER ${sawCenter})`);
 
@@ -32289,8 +32305,14 @@ arm: {
     // Its wrapper: the part whose children include the control, height bound to the line-box, centred.
     const boxName = Object.keys(ps).find((n) => (ps[n].children ?? []).includes(ctrlName!));
     const box = boxName ? ps[boxName] : undefined;
-    ok(!!box && (box.height ?? '').includes('control-box') && box.layout?.align === 'center',
-      `#1201 ${def.id}: the control sits in a line-box wrapper — height→'…control-box', cross-axis centred (got '${boxName}' height='${box?.height}' align='${box?.layout?.align}')`);
+    // Since #3153 (owner Q852) the line box is the option rows' wrapper's FLOOR and the wrapper hugs the control, so
+    // it is max(control, line): `minHeight`→'…control-box' with a hugging cross axis, no fixed height. Switch.Row keeps
+    // the fixed line-tall wrapper (Q3153.2 A: a cell grown to the 32px track takes the medium row off the ladder).
+    const grows = def.id !== 'switch-row';
+    ok(!!box && box.layout?.align === 'center' && (grows
+      ? (box.minHeight ?? '').includes('control-box') && box.height === undefined && box.layout?.sizing.y === 'hug'
+      : (box.height ?? '').includes('control-box') && box.minHeight === undefined && box.layout?.sizing.y === 'fixed'),
+      `#1201 ${def.id}: the control sits in a line-box wrapper — ${grows ? "minHeight→'…control-box', hugging the control" : "height→'…control-box', fixed"}, cross-axis centred (got '${boxName}' minHeight='${box?.minHeight}' height='${box?.height}' sizing.y='${box?.layout?.sizing.y}' align='${box?.layout?.align}')`);
     // The row that PAIRS the control cell with the label stays top-aligned. Since #2894 (owner Q539, Q?3 A) that is
     // `content`, one level inside the root, and the root centers `content` as its ONE flow child (Accordion's Q276 A
     // construction), so a single line is centered in the floor and a wrapped label still holds line one.
@@ -32325,6 +32347,123 @@ arm: {
   }
 }
 
+// ---- #3153: THE OPTION ROWS' 14px LABEL, THE LINE-BOX CELL AND THE DESCRIPTION (owner Q852, Q853 A) -----------
+//
+// Q852: the medium option row's label is 14px (`body.sm`) beside the medium control, for every brand, and the control
+// cell follows the LABEL's own line box: it is max(control, line), and where the control is the taller the label moves
+// down by half the difference, so its first line stays centered on the control. Q3153.1 A takes small and large one
+// step down too (12 / 16), and Q3153.2 A moves Switch.Row's label (12 / 14) with a fixed line-tall cell (its track
+// grown into the cell would take the medium row to 48px, off the ladder). Q853 A: the description sits one type step under
+// the label, floored at 12, in the muted ink, starting at the label's start edge, off by default.
+//
+// INDEPENDENCE (docs/34). EXPECTED label sizes are literals from the decisions (px). The cell and the inset are
+// checked in px against a line box this block computes itself, from the label part's own emitted composite (font size
+// × line height) in each world, and the control's own bound edge: never from the `line-box` or `label-inset` tokens
+// the def binds, which are the subject. The description's start edge is placed by a small layout walk over the PLAN
+// (paddings, gaps, the widths of whatever sits before it), so a description moved out from under the label fails here
+// in px, whatever part names it is given. Mutations: the cell bound to the size step's line box
+// (`control.size.*.line-box`) → `#3153 cell`; the description moved under the whole row → `#3153 description start`;
+// the medium label back on `body.md` → `#3153 label size` (and `#3153 cell`); the description gap on `space.100` →
+// `#3153 description`.
+{
+  type PN = { name: string; type?: string; children: PN[]; bound?: Record<string, string>; layoutMode?: string; itemSpacing?: number; visible?: boolean };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const pathTo = (n: PN, name: string, trail: PN[] = []): PN[] | undefined => n.name === name ? [...trail, n] : n.children.map((c) => pathTo(c, name, [...trail, n])).find(Boolean);
+  const treeOf = (t: any) => t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+  const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+  const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); const x = String(leaf); return parseFloat(x) * (x.endsWith('rem') ? 16 : 1); };
+  // The decisions, in px. Label: Q852 (medium 14), Q3153.1 A (small 12, large 16), Q3153.2 A (Switch.Row 12 / 14).
+  const LABEL_PX: Record<string, Record<string, number>> = {
+    'checkbox-row': { small: 12, medium: 14, large: 16 },
+    'radio-row': { small: 12, medium: 14, large: 16 },
+    'switch-row': { small: 12, medium: 14 },
+  };
+  // Description: one step under the label, floored at 12 (Q853 A, Q3153.1 A). The two option rows only.
+  const DESC_PX: Record<string, number> = { small: 12, medium: 12, large: 14 };
+  // The gap between the label and the description: a small fixed step (Q853 A), 4px at every size and density.
+  const DESC_GAP_PX = 4;
+  const worlds: { brand: string; density: string; root: any }[] = [];
+  const corpus = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
+  for (const b of corpus) worlds.push({ brand: b, density: 'comfortable', root: treeOf(JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'))) });
+  // A spacious world, where a 24px medium box outgrows the 21px line: the one place the grow-and-offset rule bites on
+  // the two option rows (every corpus brand at comfortable has the line at or above the box).
+  for (const f of readdirSync(resolve(HERE, 'examples')).filter((x) => x.endsWith('.design.md'))) {
+    const text = readFileSync(resolve(HERE, 'examples', f), 'utf8');
+    const std = parseStandardDesignMd(text);
+    const input = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+    if (!corpus.includes(input.id)) continue;
+    worlds.push({ brand: input.id, density: 'spacious', root: treeOf(buildTree(brandTheme({ ...input, density: 'spacious' })).tree) });
+  }
+  const offSize: string[] = [], offCell: string[] = [], offDesc: string[] = [], offStart: string[] = [];
+  let measured = 0, grew = 0;
+  for (const def of componentDefs.filter((d) => d.id in LABEL_PX)) {
+    for (const density of ['comfortable', 'spacious'] as const) {
+      const m = applySpacingDensity(def, density);
+      for (const p of figmaAnatomySet(m, { swapTarget: 'FPO' }).filter((q) => (q.coord as Record<string, string>).status !== 'error')) {
+        const size = p.size ?? (p.coord as Record<string, string>).size;
+        const row = p.root as PN, cell = find(row, 'controlCell'), label = find(row, 'label'), ctl = find(row, 'control');
+        const desc = find(row, 'description');
+        for (const w of worlds.filter((x) => x.density === density)) {
+          measured++;
+          const where = `${def.id} ${w.brand} ${density} ${size}`;
+          const v = (name: string | undefined) => (name ? num(w.root, at(w.root, name.replace(/\//g, '.'))) : 0);
+          // The label's own type, through the def's own key (the plan carries a text style, not a size).
+          const lt = at(w.root, m.tokens[`size.${size}.text`])?.$value;
+          const labelPx = num(w.root, lt?.fontSize), line = Math.round(labelPx * num(w.root, lt?.lineHeight));
+          if (labelPx !== LABEL_PX[def.id][size]) offSize.push(`${where}: label ${labelPx}px (want ${LABEL_PX[def.id][size]})`);
+          // THE CELL: max(control, line), and the label inset (max(0, control − line) ÷ 2), in px.
+          const box = v(ctl?.bound?.height), cellH = Math.max(v(cell?.bound?.height), v(cell?.bound?.minHeight), box);
+          const inset = v(pathTo(row, 'label')!.slice(-2)[0].bound?.paddingTop);
+          if (def.id === 'switch-row') {
+            // Q3153.2 A: a fixed cell one line of the label tall, the track centered in it, no inset.
+            if (!(box > 0 && Math.abs(v(cell?.bound?.height) - line) < 0.01 && cell?.bound?.minHeight === undefined && inset === 0))
+              offCell.push(`${where}: cell height ${v(cell?.bound?.height)} (${cell?.bound?.height}), floor ${cell?.bound?.minHeight}, inset ${inset} — want a fixed ${line} (one line of the ${labelPx}px label) and no inset`);
+            continue;
+          }
+          const wantCell = Math.max(box, line), wantInset = Math.max(0, (box - line) / 2);
+          if (box > line) grew++;
+          if (!(box > 0 && cell?.bound?.height === undefined && Math.abs(cellH - wantCell) < 0.01 && Math.abs(v(cell?.bound?.minHeight) - line) < 0.01 && Math.abs(inset - wantInset) < 0.01))
+            offCell.push(`${where}: cell floor ${v(cell?.bound?.minHeight)} (${cell?.bound?.minHeight}), cell ${cellH}, inset ${inset} — want floor ${line} (one line of the ${labelPx}px label), cell ${wantCell}, inset ${wantInset}`);
+          // THE DESCRIPTION: its size, its ink, hidden by default.
+          const dt = at(w.root, m.tokens[`description.${size}.text`])?.$value;
+          const dPx = num(w.root, dt?.fontSize);
+          const ink = (desc as { paints?: { fills?: string } } | undefined)?.paints?.fills;
+          const dGap = desc ? v(pathTo(row, 'description')!.slice(-2)[0].bound?.itemSpacing) : NaN;
+          if (!desc || dPx !== DESC_PX[size] || desc.visible !== false || ink !== 'color/text/secondary' || Math.abs(dGap - DESC_GAP_PX) > 0.01)
+            offDesc.push(`${where}: description ${dPx}px (want ${DESC_PX[size]}), visible ${desc?.visible}, ink ${ink}, gap ${dGap}px (want ${DESC_GAP_PX})`);
+          // THE START EDGE, by a layout walk: x of a node = its parent's x + the parent's left padding + (in a ROW) every
+          // preceding sibling's width and one gap each. A sibling's width is its bound width, or a hugging row's sum of
+          // its children; a text before the target would make the walk unknowable, and is refused as an offset.
+          const width = (n: PN): number => n.bound?.width ? v(n.bound.width) : n.type === 'TEXT' ? NaN
+            : n.layoutMode === 'HORIZONTAL' ? n.children.reduce((a, c) => a + width(c), 0) + v(n.bound?.itemSpacing) * Math.max(0, n.children.length - 1) + v(n.bound?.paddingLeft) + v(n.bound?.paddingRight)
+            : Math.max(0, ...n.children.map(width)) + v(n.bound?.paddingLeft) + v(n.bound?.paddingRight);
+          const xOf = (name: string): number => {
+            const path = pathTo(row, name)!;
+            let x = 0;
+            for (let i = 0; i < path.length - 1; i++) {
+              const parent = path[i], child = path[i + 1];
+              x += v(parent.bound?.paddingLeft);
+              if (parent.layoutMode === 'HORIZONTAL') {
+                const before = parent.children.slice(0, parent.children.indexOf(child));
+                x += before.reduce((a, c) => a + width(c) + v(parent.bound?.itemSpacing), 0);
+              }
+            }
+            return x;
+          };
+          const xl = xOf('label'), xd = desc ? xOf('description') : NaN;
+          if (!(xl > 0 && Math.abs(xd - xl) < 0.01)) offStart.push(`${where}: description starts at ${xd}, label at ${xl}`);
+        }
+      }
+    }
+  }
+  ok(measured >= 8 * worlds.length && worlds.length >= 9, `#3153: every row and size measured in every world (${measured}, ${worlds.length} worlds)`);
+  ok(grew > 0, `#3153: the grow-and-offset rule is exercised: some row in some world has a control taller than its label's line (${grew} cases)`);
+  ok(offSize.length === 0, `#3153 label size: the option rows' labels are 12/14/16 and Switch.Row's 12/14, in px, in every world${offSize.length ? ` — OFF: ${offSize.slice(0, 4).join('; ')}` : ''}`);
+  ok(offCell.length === 0, `#3153 cell: the control cell's floor is one line of the label's own type and the cell is max(control, line), with the label set down by max(0, control − line) ÷ 2, in px, in every world${offCell.length ? ` — OFF: ${offCell.slice(0, 4).join('; ')}` : ''}`);
+  ok(offDesc.length === 0, `#3153 description: one step under the label floored at 12 (12/12/14), 4px under it, muted ink, hidden by default${offDesc.length ? ` — OFF: ${offDesc.slice(0, 4).join('; ')}` : ''}`);
+  ok(offStart.length === 0, `#3153 description start: the description starts at the label's start edge, past the control, in px${offStart.length ? ` — OFF: ${offStart.slice(0, 4).join('; ')}` : ''}`);
+}
+
 // ---- #2894: THE OPTION ROWS LAND ON THE CONTROL-HEIGHT LADDER (owner decision Q539, A on every question) --------
 //
 // Radio.Row, Checkbox.Row and Switch.Row bind their floor `size.{size}.min-height` (the ladder) as the Figma row's
@@ -32343,7 +32482,9 @@ arm: {
   const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); return parseFloat(String(leaf)); };
   const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
   const EXPECT: Record<string, Record<string, number>> = {
-    compact: { small: 29, medium: 36, large: 44 },
+    // #3153 (owner Q852): compact small was 29, a 21px line plus 4px pads outgrowing the 28px floor. The small label is
+    // 12/18 now, so the row lands ON the floor. Every other number is the wireframe's.
+    compact: { small: 28, medium: 36, large: 44 },
     comfortable: { small: 36, medium: 44, large: 56 },
     spacious: { small: 44, medium: 56, large: 68 },
   };
@@ -32380,28 +32521,35 @@ arm: {
       const plans = figmaAnatomySet(m, { swapTarget: 'FPO-default-icon' }).filter((p) => (p.coord as Record<string, string>).status !== 'error');
       for (const p of plans) {
         const size = p.size ?? (p.coord as Record<string, string>).size;
-        const row = p.root as PN, cell = find(row, 'controlCell'), label = find(row, 'label');
+        const row = p.root as PN, cell = find(row, 'controlCell'), label = find(row, 'label'), stack = find(row, 'textStack'), ctl = find(row, 'control');
         const pair = row.children.find((c) => c.children.some((k) => k.name === 'controlCell')) ?? (row.children.some((k) => k.name === 'controlCell') ? row : undefined);
         for (const w of worlds.filter((x) => x.density === density)) {
           const v = (name: string | undefined) => (name ? num(w.root, at(w.root, name.replace(/\//g, '.'))) : 0);
           const type = at(w.root, m.tokens[`size.${size}.text`]).$value;
           const line = num(w.root, type.fontSize) * num(w.root, type.lineHeight);
-          const cellH = v(cell?.bound?.height);
+          // #3153: the cell HUGS the control above its bound floor (a fixed height before), so it is max(floor, control),
+          // and the label sits in a text column whose top padding is the label inset.
+          // A fixed cell (Switch.Row, Q3153.2 A) is its height, the track overhanging it.
+          const cellH = cell?.bound?.height ? v(cell.bound.height) : Math.max(v(cell?.bound?.minHeight), v(ctl?.bound?.height));
+          const inset = v(stack?.bound?.paddingTop);
           // FIGMA: the plan's bound floor, padding and alignments.
           const figma = (lines: number) => {
             const padT = v(row.bound?.paddingTop), padB = v(row.bound?.paddingBottom), floor = v(row.bound?.minHeight);
-            const content = Math.max(cellH, lines * line);
+            const textH = inset + lines * line;
+            const content = Math.max(cellH, textH);
             const H = Math.max(floor, padT + content + padB);
             const top = padT + place(row.counterAxisAlignItems, content, H - padT - padB);
             // Inside `content`: the cell and the label at the pairing row's alignment; line one's middle vs the cell's.
             const cellMid = place(pair?.counterAxisAlignItems, cellH, content) + cellH / 2;
-            const lineOneMid = place(pair?.counterAxisAlignItems, lines * line, content) + line / 2;
+            const lineOneMid = place(pair?.counterAxisAlignItems, textH, content) + inset + line / 2;
             return { H, mid: top + content / 2, firstLine: Math.abs(cellMid - lineOneMid), padT, padB };
           };
           // CODE: the def's own keys (`min-height`, `pad-y`), CSS's border-box min-height, the row's `align`.
           const code = (lines: number) => {
             const pad = num(w.root, at(w.root, m.tokens[`size.${size}.pad-y`])), floor = num(w.root, at(w.root, m.tokens[`size.${size}.min-height`]));
-            return Math.max(floor, pad + Math.max(cellH, lines * line) + pad);
+            const tok = (k: string) => (m.tokens[k] ? num(w.root, at(w.root, m.tokens[k])) : 0);
+            const cellC = m.anatomy!.parts.controlCell.height ? tok(`size.${size}.control-box`) : Math.max(tok(`size.${size}.control-box`), tok(`size.${size}.control`));
+            return Math.max(floor, pad + Math.max(cellC, tok(`size.${size}.label-inset`) + lines * line) + pad);
           };
           const want = EXPECT[density][size];
           const one = figma(1), two = figma(2), c1 = code(1);
@@ -32409,7 +32557,7 @@ arm: {
           const at1 = `${def.id} ${w.brand} ${density} ${size}`;
           if (!(Math.abs(one.H - want) <= 0.5 && Math.abs(c1 - want) <= 0.5)) offLadder.push(`${at1}: Figma ${one.H.toFixed(1)} · code ${c1.toFixed(1)} (want ${want})`);
           if (Math.abs(one.mid - one.H / 2) > 0.5) offCenter.push(`${at1} (row ${row.counterAxisAlignItems}): content center ${one.mid.toFixed(2)} vs ${(one.H / 2).toFixed(2)}`);
-          if (!(pair && pair !== row && pair.counterAxisAlignItems === 'MIN' && one.firstLine <= 1 && two.firstLine <= 1 && two.H >= one.padT + 2 * line + one.padB - 0.01 && Math.abs(code(2) - two.H) <= 0.5))
+          if (!(pair && pair !== row && pair.counterAxisAlignItems === 'MIN' && one.firstLine <= 1 && two.firstLine <= 1 && two.H >= one.padT + inset + 2 * line + one.padB - 0.01 && Math.abs(code(2) - two.H) <= 0.5))
             offLine.push(`${at1} (content ${pair?.name} ${pair?.counterAxisAlignItems}): cell off line one by ${two.firstLine.toFixed(2)} on two lines; two-line Figma ${two.H.toFixed(1)} · code ${code(2).toFixed(1)}`);
           if (density === 'comfortable' && !(row.bound?.paddingTop === PAD_STEP[size].replace('.', '/') && row.bound?.paddingBottom === PAD_STEP[size].replace('.', '/')))
             offPad.push(`${at1}: pad ${row.bound?.paddingTop}/${row.bound?.paddingBottom} (want ${PAD_STEP[size]})`);
@@ -32421,7 +32569,7 @@ arm: {
   // The rows' sizes (3 + 3 + 2) × every world (each emitted brand at comfortable, each rebuilt one at compact and spacious).
   ok(measured === 8 * worlds.length && measured >= 104, `#2894: every row, size and density measured in every world (${measured} of ${8 * worlds.length})`);
   ok(offLadder.length === 0,
-    `#2894 option rows land on the ladder: a single-line row measures 36/44/56 at comfortable in every corpus brand, 29/36/44 compact and 44/56/68 spacious, in Figma and in code alike${offLadder.length ? ` — OFF: ${offLadder.slice(0, 6).join('; ')}` : ''}`);
+    `#2894 option rows land on the ladder: a single-line row measures 36/44/56 at comfortable in every corpus brand, 28/36/44 compact and 44/56/68 spacious, in Figma and in code alike${offLadder.length ? ` — OFF: ${offLadder.slice(0, 6).join('; ')}` : ''}`);
   ok(offCenter.length === 0,
     `#2894 option rows: a single-line row's content is centered in its floor, within 0.5px${offCenter.length ? ` — OFF: ${offCenter.slice(0, 6).join('; ')}` : ''}`);
   ok(offLine.length === 0,
@@ -36801,18 +36949,19 @@ arm: {
 
   // THE MARKER COLUMN: one fixed width per size AND type, never filling or hugging, so every item of a type keeps one
   // text edge and the column never shrinks with the text. Bullet and number 20/24/32px (space.250/300/400, Q340 A,
-  // #2727, one step tighter than Q280.1 A); icon 24/32/40px (space.300/400/500, Q280.1 A, kept by Q340 A). EXPECTED is
-  // typed here in px and as the variable; ACTUAL is the projected plan's binding read through the space scale.
+  // #2727, one step tighter than Q280.1 A); icon 32/40/48px (space.400/500/600, #3155: medium 40 the owner's, small and
+  // large Q3155.2 A, one step wider than Q280.1 A's 24/32/40). EXPECTED is typed here in px and as the variable; ACTUAL
+  // is the projected plan's binding read through the space scale.
   const COLUMN_PX: Record<string, Record<string, number>> = {
-    unordered: { small: 20, medium: 24, large: 32 }, ordered: { small: 20, medium: 24, large: 32 }, icon: { small: 24, medium: 32, large: 40 },
+    unordered: { small: 20, medium: 24, large: 32 }, ordered: { small: 20, medium: 24, large: 32 }, icon: { small: 32, medium: 40, large: 48 },
   };
   const COLUMN: Record<string, Record<string, string>> = {
-    unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, icon: { small: 'space/300', medium: 'space/400', large: 'space/500' },
+    unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, icon: { small: 'space/400', medium: 'space/500', large: 'space/600' },
   };
   const COL_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
   const colBad = liPlans.filter((p) => { const c = coord(p), m = find(p.root as PN, 'markerBox'); return !(m && m.bound?.width === COLUMN[c.type]?.[c.size] && COL_PX.get(m.bound.width) === COLUMN_PX[c.type]?.[c.size] && m.primaryAxisSizingMode === 'FIXED'); });
   ok(colBad.length === 0,
-    `#2727 list-item marker column (Q340 A): a fixed width per size and type, bullet and number 20/24/32px (space/250, 300, 400), icon 24/32/40px (space/300, 400, 500), never hugging or filling, so it never shrinks with the text (${colBad.length ? `WRONG: ${colBad.map((p) => `${planComponentName(p)} ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 3).join('; ')}` : 'all 9'})`);
+    `#3155 list-item marker column (Q340 A, Q3155.2 A): a fixed width per size and type, bullet and number 20/24/32px (space/250, 300, 400), icon 32/40/48px (space/400, 500, 600), never hugging or filling, so it never shrinks with the text (${colBad.length ? `WRONG: ${colBad.map((p) => `${planComponentName(p)} ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 3).join('; ')}` : 'all 9'})`);
   // The text takes the rest of the row and wraps under itself (the hanging indent).
   ok(liPlans.every((p) => { const t = find(p.root as PN, 'label'); return t?.layoutGrow === 1 && t.textAutoResize === 'HEIGHT' && t.textStyle === `body/${RUNG[coord(p).size]}/default` && t.paints?.fills === 'color/text/primary'; }),
     `#2319 list-item text: body sm / md / lg default in text.primary, filling the rest of the row and wrapping under itself (Q273.4)`);
@@ -36823,7 +36972,12 @@ arm: {
   ok(lineBad.length === 0,
     `#2319 list-item marker box: one body line tall (control/size/*/line-box) in a top-aligned row, the marker centered in it, so a wrapping item keeps its marker on line one (${lineBad.length ? `WRONG: ${lineBad.map((p) => `${planComponentName(p)} row ${(p.root as PN).counterAxisAlignItems}, box ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 2).join('; ')}` : 'all 9'})`);
 
-  // THE MARKERS (Q273.3, Q273.8): exactly one per member, the one its type names, each on its own role.
+  // THE MARKERS (Q273.3, Q273.8): exactly one per member, the one its type names, each on its own role. The bullet is
+  // 6/8/8px (space/075, 100, 100; #3155: medium 8 the owner's, small and large Q3155.1 A), typed here in px and as the
+  // variable and read back through the space scale, so a bullet returned to the radio dot fails here by name.
+  const BULLET: Record<string, string> = { small: 'space/075', medium: 'space/100', large: 'space/100' };
+  const BULLET_PX: Record<string, number> = { small: 6, medium: 8, large: 8 };
+  const BUL_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
   const markerBad: string[] = [];
   for (const p of liPlans) {
     const c = coord(p), m = find(p.root as PN, 'markerBox')!;
@@ -36831,13 +36985,13 @@ arm: {
     const want = { unordered: 'bullet', ordered: 'number', icon: 'icon' }[c.type]!;
     const k = m.children[0];
     // A member of a type outside the three has no marker child at all, so `k` is read optionally and the arm fails, not throws.
-    const okRole = !k ? false : c.type === 'unordered' ? k.paints?.fills === 'color/icon/primary' && k.bound?.width === `control/size/${RUNG[c.size]}/dot` && k.bound?.height === `control/size/${RUNG[c.size]}/dot` && k.bound?.topLeftRadius === 'radius/round'
+    const okRole = !k ? false : c.type === 'unordered' ? k.paints?.fills === 'color/icon/primary' && k.bound?.width === BULLET[c.size] && k.bound?.height === BULLET[c.size] && BUL_PX.get(k.bound.width) === BULLET_PX[c.size] && k.bound?.topLeftRadius === 'radius/round'
       : c.type === 'ordered' ? k.paints?.fills === 'color/text/primary' && k.textStyle === `body/${RUNG[c.size]}/default`
       : c.type === 'icon' && k?.type === 'INSTANCE_SWAP' && k.swapTarget === 'icon/check' && k.bound?.width === `icon/size/${RUNG[c.size]}`;
     if (kids.length !== 1 || kids[0] !== want || !okRole) markerBad.push(`${planComponentName(p)}: ${kids.join('+')} ${JSON.stringify({ fills: k?.paints?.fills, ts: k?.textStyle, sw: k?.swapTarget, b: k?.bound?.width })}`);
   }
   ok(markerBad.length === 0,
-    `#2319 list-item markers: one per member — a round control/size/*/dot bullet in color/icon/primary, a number in the item's body style in color/text/primary, or an icon swap starting at icon/check (Q273.3, Q273.8)${markerBad.length ? ` — WRONG: ${markerBad.slice(0, 3).join('; ')}` : ''}`);
+    `#3155 list-item markers: one per member — a round 6/8/8px bullet (space/075, 100, 100; Q3155.1 A) in color/icon/primary, a number in the item's body style in color/text/primary, or an icon swap starting at icon/check (Q273.3, Q273.8)${markerBad.length ? ` — WRONG: ${markerBad.slice(0, 3).join('; ')}` : ''}`);
   // The icon marker's ink, which reaches the glyph inside the instance, is the icon role too.
   ok(li.tokens.icon === 'color.icon.primary' && li.tokens.indicator === 'color.icon.primary' && li.tokens.label === 'color.text.primary',
     `#2319 list-item inks: the bullet (indicator) and the icon on color.icon.primary, the number and text (label) on color.text.primary (Q273.8, #1471) (got ${li.tokens.indicator}, ${li.tokens.icon}, ${li.tokens.label})`);
@@ -36847,7 +37001,8 @@ arm: {
 
   // THE LIST (Q273.2; #2649, owner decision Q307 A): an "items" slot of three List.Items stretched across the list,
   // every item following the list's type and size, the item gap on the slot. No item toggles remain.
-  const GAP: Record<string, string> = { small: 'space/100', medium: 'space/150', large: 'space/200' };
+  // The gap is 12/16/20px (space/150, 200, 250; owner decision on #3155, revising Q280.2 A's 8/12/16).
+  const GAP: Record<string, string> = { small: 'space/150', medium: 'space/200', large: 'space/250' };
   const listBad = lsPlans.filter((p) => {
     const c = coord(p), r = p.root as PN;
     const slot = r.children.length === 1 ? r.children[0] : undefined;
@@ -36855,7 +37010,7 @@ arm: {
     return !(slot?.name === 'items' && slot.type === 'CONTENT_SLOT' && slot.layoutAlign === 'STRETCH' && slot.bound?.itemSpacing === GAP[c.size] && items.length === 3 && items.every((it, i) => it.name === `item${i + 1}` && it.type === 'NESTED_INSTANCE' && it.nestTarget === 'list-item' && it.nestVariant?.type === c.type && it.nestVariant?.size === c.size && it.layoutAlign === 'STRETCH' && it.visible !== false && it.visibleProp === undefined));
   });
   ok(listBad.length === 0,
-    `#2649 list: an "items" slot of three nested List.Items stretched across the list, following its type and size, none hidden, the item gap space/100, 150, 200 on the slot (${listBad.length ? `WRONG: ${listBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 9'})`);
+    `#2649 list: an "items" slot of three nested List.Items stretched across the list, following its type and size, none hidden, the item gap space/150, 200, 250 (12/16/20px, #3155) on the slot (${listBad.length ? `WRONG: ${listBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 9'})`);
   ok(JSON.stringify(planSetProperties(lsPlans).map((p) => `${p.name}:${p.type}`)) === JSON.stringify(['items:SLOT']),
     `#2649 list: the set declares one property, the "items" slot, and no item toggle (got ${JSON.stringify(planSetProperties(lsPlans))})`);
 

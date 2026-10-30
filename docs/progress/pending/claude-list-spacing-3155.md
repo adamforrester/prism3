@@ -1,0 +1,15 @@
+## (2026-10-29) — List: a wider item gap, a smaller bullet and a wider icon column (#3155)
+
+**Status:** three owner decisions on #3155 (2026-10-29), built. The List's item gap is 12 / 16 / 20px (`space.150` / `200` / `250`), one step wider than Q280.2 A's 8 / 12 / 16, still following density. List.Item's bullet is 6 / 8 / 8px (`space.075` / `100` / `100`): medium 8 is the owner's, small and large are Q3155.1 A. The icon marker column is 32 / 40 / 48px (`space.400` / `500` / `600`): medium 40 is the owner's, small and large are Q3155.2 A. The bullet and number column keeps Q340 A's 20 / 24 / 32. ENGINE minor (change note). CONTRACT unchanged: component keys are not in the token-name contract, and no theme token is added or removed. No executor code moved, so `EXECUTOR_REVISION` stays at main's number; no artifact added.
+
+**The bullet's binding, and why it left the radio dot.** The bullet bound `control.size.{size}.dot`, the radio dot's diameter, which is 12 / 14 / 16 on the reference brand (its radio dot setting is 70%) and 8 / 10 / 12 on a default brand. The owner's 8 at medium is on neither ladder at that rung on the reference brand, so the bullet now binds the space ladder: `space.100` is 8 on every brand. Half the 14 / 16 / 18 body text is 7 / 8 / 9; the space ladder has 6 and 8 but no 10, so the ramp is 6 / 8 / 8 (Q3155.1 A). A 10 would need a new token or a primitive binding, offered as an option, not built. The key was renamed `size.{size}.dot` → `size.{size}.bullet`: `test.ts`'s #910 arm holds every `size.*.dot` to a px that moves with density, which is right for a control box and wrong for a mark beside fixed body text, so List.Item left that arm's authored set, with a comment saying why. Two consequences, both listed for the owner: the bullet no longer follows density, and no longer follows the radio dot setting. The setting's description ("List bullets and badge dots follow it") and its mentions in the theme skill and `theme-schema.json` now say badge dots only.
+
+**Spacing between the marker and the text.** Bullet: the column minus the bullet, 14 / 16 / 24 (was 8 / 10 / 18 on the reference brand). Icon: the column minus the icon (20 / 24 / 32), 12 / 16 / 16 (was 4 / 8 / 8). Number: unchanged. So at medium the bullet and the icon both sit 16 from the text, which is why the bullet and number column did not move (no Q3155.3).
+
+**Gates:**
+- `test.ts` `spacing model`: the List gap literal per density, now 8·12·16 / 12·16·20 / 16·20·24.
+- `test.ts` `#3155 list-item marker column`: icon 32 / 40 / 48 as variable and px.
+- `test.ts` `#3155 list-item markers`: the bullet 6 / 8 / 8 as variable and px through the space scale.
+- `test.ts` `#2649 list`: the gap `space/150` / `200` / `250` on the slot.
+- `apps/plugin/test-update-apply.ts` `list spacing/…`: a List.Item and a List built as main had them update in place, every key and id kept, the new bindings written, all current after. The older `list column/…` arm now expects all 9 to update from its pre-Q340 file.
+- Regenerated: component docs pages, `specs.json`, `component-maintainer.json`, `lever-manifest.json`, the token-usage reports.

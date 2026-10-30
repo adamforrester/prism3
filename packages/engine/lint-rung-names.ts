@@ -300,6 +300,21 @@ const PINNED_LADDER_DEFS: Record<string, { families: string[]; why: string }> = 
     families: ['type.label.*.emphasis'],
     why: 'the status label\'s 12px text predates the size axis (2026-09-28), and medium is today\'s label unchanged (#2983)',
   },
+  // #3153 (owner Q852, Q3153.1 A and Q3153.2 A, 2026-10-29): the option rows' label is one body rung below the row's
+  // size for every brand, with no lever (Fluent 2's 20px control beside 14/20 text): 12/14/16, so medium is `body.sm`.
+  // The control cell's floor is that label's own line box, so it moves with it. The control and the row floor stay `md`.
+  'checkbox-row': {
+    families: ['type.body.*.default', 'type.body.*.line-box'],
+    why: 'Q852 sets the medium option row\'s label at 14px, one body step below md, and the control cell follows the label\'s own line box',
+  },
+  'radio-row': {
+    families: ['type.body.*.default', 'type.body.*.line-box'],
+    why: 'Q852, as Checkbox.Row: a 14px medium label and a cell on its line box',
+  },
+  'switch-row': {
+    families: ['type.body.*.default', 'type.body.*.line-box'],
+    why: 'Q852 and Q3153.2 A: Switch.Row takes the option rows\' 14px medium label and its line box',
+  },
 };
 
 /**

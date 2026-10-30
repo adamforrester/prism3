@@ -94,13 +94,21 @@
  *   · **Q?3 A** — centering the row's own items would float the control to the middle of a wrapped label
  *     (#1009 half-1), so the row centers ONE inner box, named `content`, and that box keeps the control and
  *     label top-aligned: Accordion's Q276 A construction.
- *   · **Q?4 A** — `pad-y` joins `densitySpacing`, so compact rows compact (29/36/44) and spacious rows grow.
+ *   · **Q?4 A** — `pad-y` joins `densitySpacing`, so compact rows compact (28/36/44 since #3153) and spacious rows grow.
  *   · **Q?6 A** — the update cost is accepted: in files that already hold the row, an Update inserts `content` and
  *     MOVES the label and the control cell (the nested control with it) into it, keeping every node's id (#2595;
  *     `test-update-apply.ts` "option rows", #2933). Whether a placed instance's override survives the move is a
  *     host question the shim cannot answer, so a dry run on a copy of a shipped file comes before any master update.
  *
  * `test.ts` #2894 measures the result in every corpus brand.
+ *
+ * ── THE 14px LABEL, THE LINE-BOX CELL AND THE DESCRIPTION (#3153, owner Q852 and Q853 A) ────────────────────
+ *
+ * Checkbox.Row's construction, unchanged here (its header has the decisions): the label one body rung below the row's
+ * size (12/14/16), the control cell floored at the label's own line box and hugging the disc, the label set down by
+ * `control.size.*.label-inset` where the disc outgrows the line, and the description projected under the label in
+ * the same text column, muted and one step smaller, off by default. This closes the gap the description used to be
+ * listed as. `test.ts` #3153 measures it in px in every corpus brand.
  *
  * ── WHAT §15 CALLS RADIO-SPECIFIC STATES, TWO OF WHICH ARE NOT STATES ──────────────────────────────
  *
@@ -190,6 +198,11 @@ export const radioRow: ComponentDef = {
     // (field-label's pairing) and not `disabled.on-fill`.
     'label': 'color.text.primary',
     'disabled.label': 'color.disabled.text',
+    // THE DESCRIPTION (#3153, owner Q853 A): helper text under the label in the muted ink, dimming with the label. It
+    // paints through the `indicator` slot, Dialog's slot for its own muted description: the projector's slots are a
+    // closed list, and `indicator` is the one that means secondary text beside the main one.
+    'indicator': 'color.text.secondary',
+    'disabled.indicator': 'color.disabled.text',
 
     // ── THE ROW'S TOP/BOTTOM PADDING, a MINIMUM per size (owner Q539, Q?1 A on #2894). It was Prism 2's constant
     // 12 at every size (#1433b, `reference/Prism2/component-specs/radio-button-row.json`), which put no row on the
@@ -219,9 +232,21 @@ export const radioRow: ComponentDef = {
     // top-aligned, so a single-line option reads centered and a wrapping one holds the first line rather
     // than floating mid-paragraph. Option labels wrap by design here, so this matters more than on
     // checkbox. The control centers within its OWN box, never the row — `test.ts` #1009 half-1.
-    'size.small.control-box': 'control.size.sm.line-box',
-    'size.medium.control-box': 'control.size.md.line-box',
-    'size.large.control-box': 'control.size.lg.line-box',
+    //
+    // #3153 (owner Q852): the box is the label's OWN line box. The label sits one body rung below the control's
+    // rung (a medium row is a 20px box beside a 14px label), so the cell reads `type.body.{label rung}.line-box`
+    // (18/21/24) and no longer the control rung's `control.size.*.line-box` (21/24/27), which would leave the box
+    // centered on a line the label does not have. It is the cell's FLOOR, not its height: the cell hugs the control,
+    // so a control taller than the line grows the cell to the control (Fluent's rule), and `label-inset` below
+    // pushes the label down by half the difference.
+    'size.small.control-box': 'type.body.xs.line-box',
+    'size.medium.control-box': 'type.body.sm.line-box',
+    'size.large.control-box': 'type.body.md.line-box',
+    // The label's top inset in the text column: max(0, (box − line) ÷ 2), baked per rung (`tree.ts`), 0 in every
+    // corpus brand at comfortable density (16/18, 20/21, 24/24), non-zero only where the box outgrows the line.
+    'size.small.label-inset': 'control.size.sm.label-inset',
+    'size.medium.label-inset': 'control.size.md.label-inset',
+    'size.large.label-inset': 'control.size.lg.label-inset',
 
     // ── THE NESTED CONTROL'S OWN SQUARE (#1348). The `control` nest part binds this so the nested instance
     // is PINNED to the control square — 16/20/24 at comfortable density, 12/16/20 at compact — and does NOT stretch to fill
@@ -237,9 +262,21 @@ export const radioRow: ComponentDef = {
     // ── THE ROW'S TYPE, checkbox's reasoning unchanged: running text BESIDE a control, not a name
     // announcing a field above one, and `type.label.*` emits only `sm`/`md` so `large` would have no rung
     // to reach. `type.body.*` is the only family in the tier carrying all three.
-    'size.small.text': 'type.body.sm.default',
-    'size.medium.text': 'type.body.md.default',
-    'size.large.text': 'type.body.lg.default',
+    //
+    // #3153 (owner Q852, Q3153.1 A): ONE STEP BELOW the row's size, for every brand, with no lever. The medium row is
+    // a 20px box beside 14/21 text (Fluent 2's pairing); small and large keep the relationship at 12 and 16.
+    'size.small.text': 'type.body.xs.default',
+    'size.medium.text': 'type.body.sm.default',
+    'size.large.text': 'type.body.md.default',
+    // THE DESCRIPTION'S TYPE (#3153, owner Q853 A): one step below the label, floored at `body.xs` (Q3153.1 A): the
+    // body ladder has no rung under 12, and 10px helper text is too small to read. So 12 under 12, 12 under 14, 14
+    // under 16. The gap above it is a small FIXED step, not moved by density. Keyed `description.{size}.*`, not
+    // `size.{size}.*`: `lint-rung-names` reads every `size.*` key as the size's own rung, one ladder per token family,
+    // and this is a second ladder in the label's family, deliberately one step down. `test.ts` #3153 holds it in px.
+    'description.small.text': 'type.body.xs.default',
+    'description.medium.text': 'type.body.xs.default',
+    'description.large.text': 'type.body.sm.default',
+    'description-gap': 'space.050',
   },
 
   // ── ANATOMY — THE LABELED ROW THAT NESTS THE CONTROL (#910, #1348) ─────────────────────────────────
@@ -289,18 +326,22 @@ export const radioRow: ComponentDef = {
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         grow: true,
         gap: 'size.{size}.gap',
-        children: ['controlCell', 'label'],
+        children: ['controlCell', 'textStack'],
         note: 'The control and the label, side by side and top-aligned. The row centers this box in its minimum height, and the control stays beside the label\'s first line.',
       },
       // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). One line of the label tall
-      // (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the disc on its cross
+      // (`size.{size}.control-box` → the label's own `type.body.*.line-box` since #3153), centring the disc on its cross
       // axis. Draws nothing — it exists only to give the disc a line-tall box to center within, so the
-      // top-aligned row holds it on the FIRST line of a wrapping option. Height FIXED; width HUGs the disc.
+      // top-aligned row holds it on the FIRST line of a wrapping option. Since #3153 the line box is the floor and the
+      // cell hugs the disc (below); width HUGs the disc.
       controlCell: {
         kind: 'box',
         role: 'presentation',
-        height: 'size.{size}.control-box',
-        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
+        // #3153 (owner Q852): the label's line box is the cell's FLOOR and the cell HUGS the control, so the cell is
+        // max(control, line): the line where the line is taller (every corpus checkbox and radio at comfortable),
+        // the control where the control is (a spacious brand), and never a control spilling out of a short cell.
+        minHeight: 'size.{size}.control-box',
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         children: ['control'],
       },
       // THE NESTED CONTROL (#1348). Where the circle, dot and focus ring used to be authored in place, the
@@ -317,7 +358,7 @@ export const radioRow: ComponentDef = {
       //
       // IT PINS ITS OWN SQUARE and does NOT stretch. `size: 'size.{size}.control'` (→ `control.size.*.height`,
       // 16/20/24 on nb) binds the instance to the control square, which is SHORTER than the `control-box`
-      // line box (21/24/27) it is centered within — so the small control reads centered on the first line
+      // line box (18/21/24 since #3153) it is centered within — so the small control reads centered on the first line
       // rather than filling the taller box. Radio's control is square, so the pin is `size` (both axes),
       // like checkbox; `test.ts` #1201 asserts the pin by name, so a change binding the line box here
       // instead — which would stretch the control — fails rather than ships.
@@ -327,6 +368,21 @@ export const radioRow: ComponentDef = {
         size: 'size.{size}.control',
         nesting: { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest', status: 'default' }, expose: ['selection', 'state'], follow: ['size', 'status'] },
         note: 'An in-flow instance of `radio-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size and status, and binds its own square so it is centered within the taller wrapper rather than stretched to fill it.',
+      },
+      // THE TEXT COLUMN (#3153, owner Q853 A and Q852). The label and, under it, the description, so the description
+      // starts at the label's start edge and never under the control. Its top inset is `label-inset`, half of the box
+      // less the line where the box is the taller, so the label's first line stays centered on the control when the
+      // cell grows to it. FILLS the row's width beside the hugging cell, so both texts have a bounded width to wrap
+      // in. Draws nothing.
+      textStack: {
+        kind: 'box',
+        role: 'presentation',
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        grow: true,
+        paddingTop: 'size.{size}.label-inset',
+        gap: 'description-gap',
+        children: ['label', 'description'],
+        note: 'The label and the description under it, starting at the label\'s edge. Its top inset keeps the label\'s first line centered on the control.',
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
       // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the control and not
@@ -341,6 +397,17 @@ export const radioRow: ComponentDef = {
         wrap: true,
         note: 'The accessible name AND the second half of the hit target. Rich content in code; a plain text node in Figma. It WRAPS to a second line rather than overflowing (#1424) — it fills the row\'s main axis and reflows. The accessible name of the CHOICE is the group\'s label, which no part here can carry — an option label alone announces "radio button, 1 of 3" with no indication of what is being chosen.',
       },
+      // THE DESCRIPTION (#3153, owner Q853 A). Helper text under the label: one type step below it, in the muted
+      // ink, starting at the label's edge (it is the text column's second child), a small fixed gap above it. Hidden
+      // by default behind the `description` boolean, so a row without one is unchanged.
+      description: {
+        kind: 'text',
+        type: 'description.{size}.text',
+        paintSlot: 'indicator',
+        wrap: true,
+        optional: true,
+        note: 'The optional description under the label, in the muted text color, one type step smaller and starting at the label\'s edge. Hidden by default.',
+      },
     },
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word, so a
@@ -348,8 +415,7 @@ export const radioRow: ComponentDef = {
       'read-only — not projected: the Row\'s Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1348 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `radio-control` and the consumer drives it from the Row, so no state is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code: a radio has no working native readonly, so there is no treatment to project, and six variants byte-identical to `rest` would read as coverage of a state nobody has designed.',
       'states — the documented cost of collapsing 36 members to 3 (the #1348 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state. The Row\'s own per-state LABEL treatment (`disabled.label` dimming the text) is the CODE projection\'s, not Figma\'s — `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code while the Figma SET collapses to size-only.',
       'THE GROUP, which is the unit of use and is not this def — it is `radio-group` (#1469). The shared `name` that enforces exclusivity, the single scalar value selection is derived from, the single tab stop with roving tabindex and arrow navigation, `orientation`, `required` and all validation live there. A Figma set of options can show what an option looks like at every coordinate and cannot show a group at all — so the exclusivity that makes these radios rather than toggles is absent from the projection by construction, not by omission.',
-      'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch. Since #2894 the row\'s floor is the control-height ladder in both projections, so every row clears 24 (29px at its smallest, small at compact) and the medium row is 44 at comfortable; growing the target past the row on touch is a per-consumer decision about the surrounding layout, not the def\'s to pick.',
-      'The `description` prop — per-option helper text beneath the label, which is where the detail that distinguishes options goes (a price, a delivery estimate). It is a second text part under `label` rather than beside it, and adding it would double the row\'s vertical shape for content that is optional at every one of the three members. Left to the code projection, where it is describedby-wired.',
+      'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch. Since #2894 the row\'s floor is the control-height ladder in both projections, so every row clears 24 (28px at its smallest, small at compact) and the medium row is 44 at comfortable; growing the target past the row on touch is a per-consumer decision about the surrounding layout, not the def\'s to pick.',
       'motion — the select micro-motion and the SIBLING\'s dot animating out, the only exit animation a radio has. The dot is `radio-control`\'s, so its `motion` states it; a Figma variant carries no motion, so the dot is static at every coordinate.',
       'RTL — the row mirrors through logical properties: the control moves to the reading-start side and the label flows from it. The disc is symmetrical, so there is no glyph to hold unmirrored (brief §9). Figma members are drawn left to right.',
       'text expansion — option labels wrap rather than truncate, and the control stays on the first line (#1201). Horizontal option rows are fragile under expansion (German up to about 300%), which is part of why the group is vertical (brief §9). The Figma members carry the English placeholder only.',
@@ -379,11 +445,16 @@ export const radioRow: ComponentDef = {
       // REVERSES #798): the shipped placeholder reads as obviously replaceable, not as a real product's
       // option (voice-standard §1 recessive).
       label: { part: 'label', default: 'Radio option' },
+      // DRAFT copy (#3153): the description's placeholder, Dialog's.
+      description: { part: 'description', default: 'Supporting text', figmaName: 'description text' },
     },
     // No `swaps` — the Row nests `radio-control` and exposes its selection/state (the def picks the
     // control, the consumer drives it), and the dot gated by `presentWhen` lives in that atom now. No
     // `slotAxes`.
-    booleans: {},
+    // #3153 (owner Q853 A): the description is off by default.
+    booleans: {
+      description: { part: 'description', default: false },
+    },
   },
 
   accessibility: {

@@ -407,6 +407,8 @@
     },
     "members": 6,
     "properties": {
+      "description": "BOOLEAN",
+      "description text": "TEXT",
       "label": "TEXT"
     }
   },
@@ -1183,6 +1185,8 @@
     },
     "members": 6,
     "properties": {
+      "description": "BOOLEAN",
+      "description text": "TEXT",
       "label": "TEXT"
     }
   },

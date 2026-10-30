@@ -21620,7 +21620,17 @@
           "members": 6
         },
         {
-          "part": "row/content/label",
+          "part": "row/content/textStack",
+          "kind": "frame",
+          "members": 6
+        },
+        {
+          "part": "row/content/textStack/label",
+          "kind": "text",
+          "members": 6
+        },
+        {
+          "part": "row/content/textStack/description",
           "kind": "text",
           "members": 6
         }
@@ -21673,8 +21683,8 @@
             {
               "part": "row/content/controlCell",
               "values": {
-                "height": {
-                  "token": "control.size.md.line-box"
+                "minHeight": {
+                  "token": "type.body.sm.line-box"
                 }
               }
             },
@@ -21686,6 +21696,17 @@
                 },
                 "width": {
                   "token": "control.size.md.height"
+                }
+              }
+            },
+            {
+              "part": "row/content/textStack",
+              "values": {
+                "paddingTop": {
+                  "token": "control.size.md.label-inset"
+                },
+                "gap": {
+                  "token": "space.050"
                 }
               }
             }
@@ -21735,8 +21756,8 @@
             {
               "part": "row/content/controlCell",
               "values": {
-                "height": {
-                  "token": "control.size.sm.line-box"
+                "minHeight": {
+                  "token": "type.body.xs.line-box"
                 }
               }
             },
@@ -21748,6 +21769,17 @@
                 },
                 "width": {
                   "token": "control.size.sm.height"
+                }
+              }
+            },
+            {
+              "part": "row/content/textStack",
+              "values": {
+                "paddingTop": {
+                  "token": "control.size.sm.label-inset"
+                },
+                "gap": {
+                  "token": "space.050"
                 }
               }
             }
@@ -21797,8 +21829,8 @@
             {
               "part": "row/content/controlCell",
               "values": {
-                "height": {
-                  "token": "control.size.lg.line-box"
+                "minHeight": {
+                  "token": "type.body.md.line-box"
                 }
               }
             },
@@ -21810,6 +21842,17 @@
                 },
                 "width": {
                   "token": "control.size.lg.height"
+                }
+              }
+            },
+            {
+              "part": "row/content/textStack",
+              "values": {
+                "paddingTop": {
+                  "token": "control.size.lg.label-inset"
+                },
+                "gap": {
+                  "token": "space.050"
                 }
               }
             }
@@ -21826,8 +21869,12 @@
           },
           "parts": [
             {
-              "part": "row/content/label",
-              "textStyle": "type.body.md.default"
+              "part": "row/content/textStack/label",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "row/content/textStack/description",
+              "textStyle": "type.body.xs.default"
             }
           ]
         },
@@ -21837,8 +21884,12 @@
           },
           "parts": [
             {
-              "part": "row/content/label",
-              "textStyle": "type.body.sm.default"
+              "part": "row/content/textStack/label",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "row/content/textStack/description",
+              "textStyle": "type.body.xs.default"
             }
           ]
         },
@@ -21848,8 +21899,12 @@
           },
           "parts": [
             {
-              "part": "row/content/label",
-              "textStyle": "type.body.lg.default"
+              "part": "row/content/textStack/label",
+              "textStyle": "type.body.md.default"
+            },
+            {
+              "part": "row/content/textStack/description",
+              "textStyle": "type.body.sm.default"
             }
           ]
         }
@@ -21864,8 +21919,12 @@
           },
           "parts": [
             {
-              "part": "row/content/label",
+              "part": "row/content/textStack/label",
               "ink": "color.text.primary"
+            },
+            {
+              "part": "row/content/textStack/description",
+              "ink": "color.text.secondary"
             }
           ]
         },
@@ -21875,8 +21934,12 @@
           },
           "parts": [
             {
-              "part": "row/content/label",
+              "part": "row/content/textStack/label",
               "ink": "color.text.primary"
+            },
+            {
+              "part": "row/content/textStack/description",
+              "ink": "color.text.secondary"
             }
           ]
         }
@@ -21906,6 +21969,16 @@
           "name": "label",
           "type": "TEXT",
           "default": "Checkbox label"
+        },
+        {
+          "name": "description text",
+          "type": "TEXT",
+          "default": "Supporting text"
+        },
+        {
+          "name": "description",
+          "type": "BOOLEAN",
+          "default": false
         }
       ]
     },
@@ -22797,7 +22870,17 @@
           "members": 6
         },
         {
-          "part": "row/content/label",
+          "part": "row/content/textStack",
+          "kind": "frame",
+          "members": 6
+        },
+        {
+          "part": "row/content/textStack/label",
+          "kind": "text",
+          "members": 6
+        },
+        {
+          "part": "row/content/textStack/description",
           "kind": "text",
           "members": 6
         }
@@ -22850,8 +22933,8 @@
             {
               "part": "row/content/controlCell",
               "values": {
-                "height": {
-                  "token": "control.size.md.line-box"
+                "minHeight": {
+                  "token": "type.body.sm.line-box"
                 }
               }
             },
@@ -22863,6 +22946,17 @@
                 },
                 "width": {
                   "token": "control.size.md.height"
+                }
+              }
+            },
+            {
+              "part": "row/content/textStack",
+              "values": {
+                "paddingTop": {
+                  "token": "control.size.md.label-inset"
+                },
+                "gap": {
+                  "token": "space.050"
                 }
               }
             }
@@ -22912,8 +23006,8 @@
             {
               "part": "row/content/controlCell",
               "values": {
-                "height": {
-                  "token": "control.size.sm.line-box"
+                "minHeight": {
+                  "token": "type.body.xs.line-box"
                 }
               }
             },
@@ -22925,6 +23019,17 @@
                 },
                 "width": {
                   "token": "control.size.sm.height"
+                }
+              }
+            },
+            {
+              "part": "row/content/textStack",
+              "values": {
+                "paddingTop": {
+                  "token": "control.size.sm.label-inset"
+                },
+                "gap": {
+                  "token": "space.050"
                 }
               }
             }
@@ -22974,8 +23079,8 @@
             {
               "part": "row/content/controlCell",
               "values": {
-                "height": {
-                  "token": "control.size.lg.line-box"
+                "minHeight": {
+                  "token": "type.body.md.line-box"
                 }
               }
             },
@@ -22987,6 +23092,17 @@
                 },
                 "width": {
                   "token": "control.size.lg.height"
+                }
+              }
+            },
+            {
+              "part": "row/content/textStack",
+              "values": {
+                "paddingTop": {
+                  "token": "control.size.lg.label-inset"
+                },
+                "gap": {
+                  "token": "space.050"
                 }
               }
             }
@@ -23003,8 +23119,12 @@
           },
           "parts": [
             {
-              "part": "row/content/label",
-              "textStyle": "type.body.md.default"
+              "part": "row/content/textStack/label",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "row/content/textStack/description",
+              "textStyle": "type.body.xs.default"
             }
           ]
         },
@@ -23014,8 +23134,12 @@
           },
           "parts": [
             {
-              "part": "row/content/label",
-              "textStyle": "type.body.sm.default"
+              "part": "row/content/textStack/label",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "row/content/textStack/description",
+              "textStyle": "type.body.xs.default"
             }
           ]
         },
@@ -23025,8 +23149,12 @@
           },
           "parts": [
             {
-              "part": "row/content/label",
-              "textStyle": "type.body.lg.default"
+              "part": "row/content/textStack/label",
+              "textStyle": "type.body.md.default"
+            },
+            {
+              "part": "row/content/textStack/description",
+              "textStyle": "type.body.sm.default"
             }
           ]
         }
@@ -23041,8 +23169,12 @@
           },
           "parts": [
             {
-              "part": "row/content/label",
+              "part": "row/content/textStack/label",
               "ink": "color.text.primary"
+            },
+            {
+              "part": "row/content/textStack/description",
+              "ink": "color.text.secondary"
             }
           ]
         },
@@ -23052,8 +23184,12 @@
           },
           "parts": [
             {
-              "part": "row/content/label",
+              "part": "row/content/textStack/label",
               "ink": "color.text.primary"
+            },
+            {
+              "part": "row/content/textStack/description",
+              "ink": "color.text.secondary"
             }
           ]
         }
@@ -23083,6 +23219,16 @@
           "name": "label",
           "type": "TEXT",
           "default": "Radio option"
+        },
+        {
+          "name": "description text",
+          "type": "TEXT",
+          "default": "Supporting text"
+        },
+        {
+          "name": "description",
+          "type": "BOOLEAN",
+          "default": false
         }
       ]
     },
@@ -24222,7 +24368,7 @@
               "part": "row/content/controlCell",
               "values": {
                 "height": {
-                  "token": "control.size.md.line-box"
+                  "token": "type.body.sm.line-box"
                 }
               }
             },
@@ -24273,7 +24419,7 @@
               "part": "row/content/controlCell",
               "values": {
                 "height": {
-                  "token": "control.size.sm.line-box"
+                  "token": "type.body.xs.line-box"
                 }
               }
             },
@@ -24299,7 +24445,7 @@
           "parts": [
             {
               "part": "row/content/label",
-              "textStyle": "type.body.md.default"
+              "textStyle": "type.body.sm.default"
             }
           ]
         },
@@ -24310,7 +24456,7 @@
           "parts": [
             {
               "part": "row/content/label",
-              "textStyle": "type.body.sm.default"
+              "textStyle": "type.body.xs.default"
             }
           ]
         }
@@ -31176,10 +31322,10 @@
               "part": "row/markerBox/bullet",
               "values": {
                 "height": {
-                  "token": "control.size.md.dot"
+                  "token": "space.100"
                 },
                 "width": {
-                  "token": "control.size.md.dot"
+                  "token": "space.100"
                 }
               }
             }
@@ -31222,10 +31368,10 @@
               "part": "row/markerBox/bullet",
               "values": {
                 "height": {
-                  "token": "control.size.sm.dot"
+                  "token": "space.075"
                 },
                 "width": {
-                  "token": "control.size.sm.dot"
+                  "token": "space.075"
                 }
               }
             }
@@ -31268,10 +31414,10 @@
               "part": "row/markerBox/bullet",
               "values": {
                 "height": {
-                  "token": "control.size.lg.dot"
+                  "token": "space.100"
                 },
                 "width": {
-                  "token": "control.size.lg.dot"
+                  "token": "space.100"
                 }
               }
             }
@@ -31409,101 +31555,101 @@
               "values": {
                 "height": {
                   "token": "control.size.md.line-box"
-                },
-                "width": {
-                  "token": "space.400"
-                }
-              }
-            },
-            {
-              "part": "row/markerBox/icon",
-              "values": {
-                "height": {
-                  "token": "icon.size.md"
-                },
-                "width": {
-                  "token": "icon.size.md"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "where": {
-            "size": "small",
-            "type": "icon"
-          },
-          "parts": [
-            {
-              "part": "row",
-              "values": {
-                "gap": {
-                  "token": "space.0"
-                },
-                "minWidth": {
-                  "px": 120,
-                  "source": "literal"
-                },
-                "buildWidth": {
-                  "px": 320,
-                  "source": "literal"
-                }
-              }
-            },
-            {
-              "part": "row/markerBox",
-              "values": {
-                "height": {
-                  "token": "control.size.sm.line-box"
-                },
-                "width": {
-                  "token": "space.300"
-                }
-              }
-            },
-            {
-              "part": "row/markerBox/icon",
-              "values": {
-                "height": {
-                  "token": "icon.size.sm"
-                },
-                "width": {
-                  "token": "icon.size.sm"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "where": {
-            "size": "large",
-            "type": "icon"
-          },
-          "parts": [
-            {
-              "part": "row",
-              "values": {
-                "gap": {
-                  "token": "space.0"
-                },
-                "minWidth": {
-                  "px": 120,
-                  "source": "literal"
-                },
-                "buildWidth": {
-                  "px": 320,
-                  "source": "literal"
-                }
-              }
-            },
-            {
-              "part": "row/markerBox",
-              "values": {
-                "height": {
-                  "token": "control.size.lg.line-box"
                 },
                 "width": {
                   "token": "space.500"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox/icon",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "type": "icon"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.line-box"
+                },
+                "width": {
+                  "token": "space.400"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox/icon",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "type": "icon"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.line-box"
+                },
+                "width": {
+                  "token": "space.600"
                 }
               }
             },
@@ -31713,7 +31859,7 @@
               "part": "container",
               "values": {
                 "gap": {
-                  "token": "space.150"
+                  "token": "space.200"
                 },
                 "minWidth": {
                   "px": 120,
@@ -31729,7 +31875,7 @@
               "part": "container/items",
               "values": {
                 "gap": {
-                  "token": "space.150"
+                  "token": "space.200"
                 }
               }
             }
@@ -31744,7 +31890,7 @@
               "part": "container",
               "values": {
                 "gap": {
-                  "token": "space.100"
+                  "token": "space.150"
                 },
                 "minWidth": {
                   "px": 120,
@@ -31760,7 +31906,7 @@
               "part": "container/items",
               "values": {
                 "gap": {
-                  "token": "space.100"
+                  "token": "space.150"
                 }
               }
             }
@@ -31775,7 +31921,7 @@
               "part": "container",
               "values": {
                 "gap": {
-                  "token": "space.200"
+                  "token": "space.250"
                 },
                 "minWidth": {
                   "px": 120,
@@ -31791,7 +31937,7 @@
               "part": "container/items",
               "values": {
                 "gap": {
-                  "token": "space.200"
+                  "token": "space.250"
                 }
               }
             }

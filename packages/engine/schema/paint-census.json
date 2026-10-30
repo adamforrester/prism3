@@ -232,13 +232,13 @@
     "checkbox-row": {
       "set": {
         "members": 6,
-        "assignments": 6,
-        "sha256": "3516bba1f27126a5269df50ff85c353fc3e2e81a03d34ab9fbbf2acb7dfaa8ac"
+        "assignments": 12,
+        "sha256": "e4391f01350c68dd1b4538dfba08eeb78eeba3302c81a158ec4c784c43c996e5"
       },
       "grid": {
         "members": 36,
-        "assignments": 36,
-        "sha256": "b4354522d872bdff35e655b7b8f0083ea4cbae7d5ba0e78ce7c30416ef59e725"
+        "assignments": 72,
+        "sha256": "65039dbd0b3b9f942d684e53e1e33a83ca1c68014ff93922f4859d9ee0d07f17"
       }
     },
     "checkbox-group": {
@@ -268,13 +268,13 @@
     "radio-row": {
       "set": {
         "members": 6,
-        "assignments": 6,
-        "sha256": "3516bba1f27126a5269df50ff85c353fc3e2e81a03d34ab9fbbf2acb7dfaa8ac"
+        "assignments": 12,
+        "sha256": "e4391f01350c68dd1b4538dfba08eeb78eeba3302c81a158ec4c784c43c996e5"
       },
       "grid": {
         "members": 36,
-        "assignments": 36,
-        "sha256": "b4354522d872bdff35e655b7b8f0083ea4cbae7d5ba0e78ce7c30416ef59e725"
+        "assignments": 72,
+        "sha256": "65039dbd0b3b9f942d684e53e1e33a83ca1c68014ff93922f4859d9ee0d07f17"
       }
     },
     "radio-group": {
