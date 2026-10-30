@@ -72,6 +72,7 @@ code { font: 0.9em var(--mono); }
 .dhead .mark { font-weight: 700; color: var(--text); text-decoration: none; }
 .dhead .crumb { flex: 1; min-width: 0; color: var(--text-muted); font-size: var(--s-1); }
 .dhead .crumb a { color: var(--text-muted); }
+@media (max-width: 520px) { .dhead .crumb { display: none; } }
 .seg { display: inline-flex; margin-left: auto; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
 .seg button { font: var(--s-1) var(--sans); color: var(--text-muted); background: var(--surface); border: 0; padding: 4px 10px; cursor: pointer; }
 .seg button + button { border-left: 1px solid var(--border); }
@@ -96,3 +97,55 @@ a:hover .g-name { text-decoration: underline; }
 .more a:hover { border-color: var(--link); }
 .more .g-name, .more .g-desc { display: block; }
 .more .g-desc { margin-top: 2px; }
+
+/* ── A guide page: the guide list, the article, "On this page" ── */
+.guide {
+  display: grid; grid-template-columns: 210px minmax(0, 68ch) 180px; gap: 32px; justify-content: center;
+  padding: 28px max(16px, env(safe-area-inset-right, 0px)) 64px max(16px, env(safe-area-inset-left, 0px));
+}
+@media (max-width: 1180px) { .guide { grid-template-columns: 200px minmax(0, 68ch); } .toc { display: none; } }
+@media (max-width: 760px) { .guide { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+.gnav { font-size: var(--s-1); }
+.gnav summary { display: none; }
+@media (max-width: 760px) {
+  .gnav summary { display: block; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; }
+  .gnav details[open] summary { margin-bottom: 8px; }
+}
+.gnav ol, .toc ol { list-style: none; margin: 0; padding: 0; }
+.gnav ol { display: grid; gap: 2px; }
+.gnav a { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 6px; padding: 5px 8px; border-radius: 5px; color: var(--text-muted); text-decoration: none; }
+.gnav a span:first-child { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.gnav a:hover { color: var(--text); background: var(--surface); }
+.gnav a[aria-current="page"] { color: var(--text); background: var(--surface); box-shadow: inset 0 0 0 1px var(--border); font-weight: 600; }
+.gnav .eyebrow { margin: 14px 8px 4px; }
+.art { min-width: 0; }
+.art h1 { margin: 0 0 16px; font-size: var(--s3); line-height: 1.2; }
+.art h2 { margin: 36px 0 10px; font-size: var(--s2); line-height: 1.3; }
+.art h3 { margin: 24px 0 8px; font-size: var(--s1); }
+.art h2, .art h3 { scroll-margin-top: 16px; }
+.art p, .art ul, .art ol { margin: 0 0 14px; }
+.art li + li { margin-top: 4px; }
+.art code { padding: 0 4px; border: 1px solid var(--border); border-radius: 4px; overflow-wrap: anywhere; }
+.tbl { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.tbl table { width: 100%; border-collapse: collapse; font-size: var(--s-1); }
+.tbl th, .tbl td { padding: 9px 12px; text-align: left; vertical-align: top; }
+.tbl th { border-bottom: 1px solid var(--border); background: var(--bg); font-weight: 600; }
+.tbl tr + tr td { border-top: 1px solid var(--border); }
+.tbl td:first-child code { white-space: nowrap; }
+.uimsg { margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.uimsg figcaption { font: 600 11px/1.4 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.uimsg blockquote { margin: 4px 0 0; font: var(--s-1)/1.5 var(--mono); }
+.shot { margin: 0 0 18px; }
+.shot-frame { display: grid; place-items: center; aspect-ratio: 16 / 7; border: 1px dashed var(--border); border-radius: 8px; background: var(--surface); color: var(--text-muted); font-size: var(--s-1); }
+.shot figcaption { margin-top: 6px; color: var(--text-muted); font-size: var(--s-1); }
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 36px; }
+.pager a { display: block; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); text-decoration: none; }
+.pager a:hover { border-color: var(--link); }
+.pager .next { grid-column: 2; text-align: right; }
+.pager small { display: block; color: var(--text-muted); }
+.foot { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: var(--s-1); }
+.toc { font-size: var(--s-1); }
+.toc { align-self: start; position: sticky; top: 16px; }
+.toc ol { display: grid; gap: 6px; padding-left: 10px; border-left: 1px solid var(--border); }
+.toc a { color: var(--text-muted); text-decoration: none; }
+.toc a:hover { color: var(--link); }
