@@ -78,6 +78,6 @@ export const mountBrandPreview = (host: HTMLElement, cleanups: (() => void)[], l
       lend.styleGuide(card, paint);
     } finally { painting = false; }
   };
-  cleanups.push(subscribe('brand', paint), subscribe('mode', paint));
+  cleanups.push(subscribe('brand', paint), subscribe('mode', paint), subscribe('fonts', paint));   // fonts: the type sample's faces (#3138)
   paint();
 };

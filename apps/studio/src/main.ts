@@ -27,6 +27,7 @@ import { toDesignMd } from '@prism3/engine/design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
+import type { HostFonts } from './ui/fonts';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
@@ -364,6 +365,8 @@ const setHost = (patch: Partial<HostSession>): void => { host = { ...host, ...pa
 // reads host state subscribes to its topic beside its own painter — search `subscribe('host` and
 // `subscribe('fonts'`. The `Repaint` tag switch that stood here is gone; #1845 was the proof it could
 // lose a case silently, and `apps/plugin/test-build-verdict.mjs` now reads every topic's surface back.
+/** The host's fonts, for a renderer whose own `host` names its element (#3138: the Style guide's type sample). */
+const hostFonts = (): HostFonts => host;
 export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m) => {
   const prev = host;
   host = reduce(prev, m);
@@ -919,7 +922,7 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
 
   // The type sample first, before Background (#1942, owner decision Q67), shared with the Type preview: a few of
   // the brand's text styles in its faces, in the previewed mode, inked for the chosen ground.
-  host.append(ground(typeSampleSection(c, theme.typography, cur, { ink: surf.ink })));
+  host.append(ground(typeSampleSection(c, theme.typography, cur, { ink: surf.ink }, hostFonts())));
   // The radius sample (UI redesign S7, owner decision D18 B), shared from `preview/sections/`: the brand's radius on a
   // panel, a field, a button and a tag, in the previewed mode, on the chosen ground. S9 adds the shadow to its panel.
   host.append(ground(radiusSampleSection(c, { dims: theme.dims, modes: theme.modes, mode: cur, shape: brandControlShape(), copy: RADIUS_SAMPLE, inverse: surf.key.startsWith('inverse.'),

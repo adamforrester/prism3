@@ -1059,7 +1059,7 @@ export const GATES: Gate[] = [
     ciStep: "The built main.js carries no Figma-sandbox-rejected token sequence (#1461)",
     cmd: [...TSX, 'apps/plugin/lint-sandbox-reject.ts'],
     after: ['build-plugin', 'build-plugin-release'],
-    why: 'it scans the dist/main.js and release/main.js the two plugin builds just wrote, exactly as Figma reads them',
+    why: 'it scans the dist/main.js, release/main.js and release-offline/main.js the plugin builds just wrote, exactly as Figma reads them',
   },
   {
     id: 'lint-bundle-prose',
@@ -1073,7 +1073,15 @@ export const GATES: Gate[] = [
     ciStep: 'The release build carries no dev-only code (#2530)',
     cmd: [...TSX, 'apps/plugin/lint-release-bundle.ts'],
     after: ['build-plugin', 'build-plugin-release'],
-    why: 'it reads both builds: each dev-only marker must be in dist/ and absent from release/',
+    why: 'it reads every build: each dev-only marker must be in dist/ and absent from release/ and release-offline/',
+  },
+  {
+    // #3138 (the owner's network model): two plugins from one codebase, each held to its manifest's network reach.
+    id: 'lint-network-reach',
+    ciStep: 'Each plugin build reaches only what its manifest allows (#3138)',
+    cmd: [...TSX, 'apps/plugin/lint-network-reach.ts'],
+    after: ['build-plugin-release'],
+    why: 'it reads release/ and release-offline/, which the release build just wrote',
   },
   {
     // It fired for real on 2026-08-20, naming all 8 live sites that described #775's window — this

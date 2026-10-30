@@ -9,9 +9,14 @@
  *  in the body face. `test:smoke` holds every line's first face to the emission's `core.font.family.<type>`.
  *
  *  Stamps its root with the shared-section marker (`data-sg-section="type-sample"`, `kit.ts`'s header).
- *  WHAT IT IS HANDED. The section context, the resolved typography, the mode, and the ground's ink role (the
- *  Style guide can draw on the inverse fill). Nothing here reads the session. */
+ *  WHAT IT IS HANDED. The section context, the resolved typography, the mode, the ground's ink role (the
+ *  Style guide can draw on the inverse fill), and what the host knows of its fonts. Nothing here reads the session.
+ *
+ *  A FACE IT CAN'T SHOW, SAID (#3138, owner decisions Q1, Q3 A). A line whose face can't load here is drawn in a
+ *  fallback and says so; a line whose family has no cut at its weight is drawn at the nearest real cut with
+ *  `font-synthesis: none`, and says so. The note sits under the line (`type-sample-note`); `ui/fonts.ts` decides. */
 import type { Theme, TypeComposite } from '@prism3/engine/theme';
+import { drawFace, faceDraw, type HostFonts } from '../../ui/fonts';
 import { el, hook, palSection, specimen, tokenPillSpan, type SgCtx } from './kit';
 
 /** The display style the sample opens with: large, but not the largest (owner decision Q67: the largest can be
@@ -47,7 +52,7 @@ export const typeSamplePicks = (ty: Typography): TypeComposite[] => {
 const cssStack = (stack: readonly string[]): string =>
   stack.map((f) => (/^[a-z-]+$/.test(f) ? f : `"${f.replace(/"/g, '')}"`)).join(', ');
 
-export const typeSampleSection = (c: SgCtx, ty: Typography, mode: string, ground: { ink: string }): HTMLElement => {
+export const typeSampleSection = (c: SgCtx, ty: Typography, mode: string, ground: { ink: string }, fonts: HostFonts): HTMLElement => {
   const sec = palSection(TYPE_SAMPLE_TITLE, TYPE_SAMPLE_DESC);
   sec.dataset.sgSection = 'type-sample';   // the shared-section marker (`kit.ts`'s header)
   const fams = ty.familiesByMode?.[mode] ?? ty.families;
@@ -63,14 +68,23 @@ export const typeSampleSection = (c: SgCtx, ty: Typography, mode: string, ground
     // against the emission.
     const text = c.painted(specimen(el('p', 'tsm-text', TYPE_SAMPLE_TEXT)), ground.ink, 'color');
     text.style.color = c.paint(c.cur, ground.ink);
-    text.style.fontFamily = cssStack(fams.find((f) => f.group === comp.group)?.stack ?? []);
+    const stack = fams.find((f) => f.group === comp.group)?.stack ?? [];
+    text.style.fontFamily = cssStack(stack);
     text.style.fontSize = `${comp.sizeByMode?.[mode] ?? comp.sizePx}px`;
-    text.style.fontWeight = String(wrs.find((w) => w.role === comp.weightRole)?.value ?? 400);
+    const note = drawFace(text, faceDraw(stack[0], wrs.find((w) => w.role === comp.weightRole)?.value ?? 400, !!comp.italicDefault, fonts));
     if (lh !== undefined) text.style.lineHeight = String(lh);
     if (ls !== undefined) text.style.letterSpacing = `${ls}em`;
     if (comp.italicDefault) text.style.fontStyle = 'italic';
     if (comp.textCase !== 'none') text.style.textTransform = comp.textCase;
     row.append(tokenPillSpan(`type.${comp.path}`), text);
+    if (note) {
+      // Inked as the line above it, with the ground's own ink role, so it reads on either ground.
+      const n = c.painted(specimen(hook(el('p', 'tsm-note', note), 'type-sample-note')), ground.ink, 'color');
+      n.style.color = c.paint(c.cur, ground.ink);
+      // Small text, set here rather than in `styles.css`: the line's own size would make a note as large as the line.
+      Object.assign(n.style, { margin: '0', fontSize: '12.5px', lineHeight: '1.5', maxWidth: '100%', overflowWrap: 'anywhere' });
+      row.append(n);
+    }
     list.append(row);
   }
   sec.append(list);

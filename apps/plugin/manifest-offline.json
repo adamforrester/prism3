@@ -1,0 +1,8 @@
+{
+  "name": "Prism3 Studio Offline",
+  "id": "prism3-theming-plugin-offline",
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "reasoning": "Runs fully offline. The Prism3 engine is bundled into the plugin and makes no network calls."
+  }
+}

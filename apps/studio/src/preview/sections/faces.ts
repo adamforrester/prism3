@@ -9,7 +9,7 @@
  *  face's availability reads on this host (`faceStatus` in `ui/fonts.ts`, bound to the host's font list).
  *  Nothing here reads the session. */
 import type { Theme } from '@prism3/engine/theme';
-import type { FaceStatus } from '../../ui/fonts';
+import { drawFace, faceDraw, type FaceStatus, type HostFonts } from '../../ui/fonts';
 import { el, hook, palSection, specimen, subHead, tokenPillSpan, type SgCtx } from './kit';
 
 /** The two tables' sub-headings: the levers' own names for the two controls (Q23). DRAFT, as the levers' are. */
@@ -17,7 +17,7 @@ export const FACES_BY_TYPE = 'Font family for each text type';
 export const FACES_LIBRARY = 'Typeface library';
 
 export const facesSection = (c: SgCtx, ty: Theme['typography'], mode: string, copy: { title: string; desc: string },
-  status: (face: string) => FaceStatus): HTMLElement => {
+  status: (face: string) => FaceStatus, fonts: HostFonts): HTMLElement => {
   const sec = palSection(copy.title, copy.desc);
   sec.dataset.sgSection = 'faces';   // the shared-section marker (`kit.ts`'s header)
   const fams = ty.familiesByMode?.[mode] ?? ty.families;
@@ -61,6 +61,9 @@ export const facesSection = (c: SgCtx, ty: Theme['typography'], mode: string, co
     const samp = c.painted(specimen(el('span', 'mtbl-spec-t', 'The quick brown fox jumps')), 'text.primary', 'color');
     samp.style.color = c.paint(c.cur, 'text.primary');
     samp.style.fontFamily = f.stack.map((x) => (/^[a-z-]+$/.test(x) ? x : `"${x}"`)).join(', ');
+    // #3138: a face that can't load here is marked and says so in the specimen's title (`ui/fonts.ts` `faceDraw`).
+    const note = drawFace(samp, faceDraw(face, 400, false, fonts));
+    if (note) samp.title = note;
     spec.append(samp);
     tr.append(tc, el('td', 'mtbl-mode', face), statusCell(face), spec);
     byType.body.append(tr);

@@ -10,7 +10,7 @@
  * rendered datalist), an empty list is `[]` rather than a throw, and a rejecting API stays rejecting
  * so the caller's try/catch is the thing that decides the failure mode.
  */
-import { listFamilies, listFamilyStyleCounts } from './src/list-fonts';
+import { listFamilies, listFamilyStyleCounts, listFamilyStyleNames } from './src/list-fonts';
 import type { FontsApi } from './src/list-fonts';
 
 let failed = 0;
@@ -83,6 +83,19 @@ try {
   await listFamilyStyleCounts({ async listAvailableFontsAsync() { throw new Error('figma unavailable'); } });
 } catch { threw2 = true; }
 ok(threw2, 'a rejecting API surfaces as a rejection from the count reader too');
+
+// ---- style names (#3138, owner decision Q4 A) --------------------------------
+// The names say WHICH cuts a family has, so the UI can name them and warn before Apply skips a style.
+const named = await listFamilyStyleNames(shim([
+  ['Instrument Serif', 'Regular'], ['Inter', 'Regular'], ['Instrument Serif', 'Italic'], ['Inter', 'Semi Bold Italic'],
+]));
+ok(named.map((n) => n.family).join('|') === 'Instrument Serif|Inter', `names group by family, sorted (${named.map((n) => n.family).join('|')})`);
+ok(named[0]?.styles.join('|') === 'Regular|Italic', `Instrument Serif's styles, in Figma's order (${named[0]?.styles.join('|')})`);
+ok(named[1]?.styles.join('|') === 'Regular|Semi Bold Italic', `Inter's styles (${named[1]?.styles.join('|')})`);
+// The message's count is the names' length, so it must equal the count reader's, family by family.
+const agree = await Promise.all([listFamilyStyleCounts(shim(pairs)), listFamilyStyleNames(shim(pairs))]);
+ok(agree[0].map((c) => `${c.family}:${c.styles}`).join('|') === agree[1].map((c) => `${c.family}:${c.styles.length}`).join('|'),
+  `each family's name count is its style count (${agree[1].map((c) => `${c.family}:${c.styles.length}`).join('|')})`);
 
 console.log(failed === 0 ? '\nplugin FONT-LIST reader: ALL PASS' : `\nplugin FONT-LIST reader: ${failed} FAILED`);
 if (failed > 0) process.exit(1);

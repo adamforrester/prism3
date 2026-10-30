@@ -9,10 +9,12 @@
  *  the true size.
  *
  *  Stamps its root with the shared-section marker (`data-sg-section="type-scale"`, `kit.ts`'s header).
- *  WHAT IT IS HANDED. The section context, the resolved typography, the mode and the section's copy. Nothing here
- *  reads the session. */
+ *  WHAT IT IS HANDED. The section context, the resolved typography, the mode, the section's copy and what the host
+ *  knows of its fonts. Nothing here reads the session. A sample whose face can't load, or whose family lacks its
+ *  weight, is drawn as the type sample draws it (#3138, `ui/fonts.ts` `faceDraw`), its note in the sample's title. */
 import type { Theme, TypeComposite } from '@prism3/engine/theme';
 import { TYPE_GROUP_ORDER } from '../../state/type-input';
+import { drawFace, faceDraw, type HostFonts } from '../../ui/fonts';
 import { el, hook, palSection, specimen, tokenPillSpan, type SgCtx } from './kit';
 
 /** The largest a row's sample is drawn (v6's cap). */
@@ -23,7 +25,7 @@ export const MERGE_TITLE = 'Sizes that merge on mobile';
 /** One row per style: the composites of one text type and size, with every weight it ships. */
 type Style = { group: string; variant: string; first: TypeComposite; weights: string[] };
 
-export const typeScaleSection = (c: SgCtx, ty: Theme['typography'], mode: string, copy: { title: string; desc: string }): HTMLElement => {
+export const typeScaleSection = (c: SgCtx, ty: Theme['typography'], mode: string, copy: { title: string; desc: string }, fonts: HostFonts): HTMLElement => {
   const sec = palSection(copy.title, copy.desc);
   sec.dataset.sgSection = 'type-scale';   // the shared-section marker (`kit.ts`'s header)
   const fams = ty.familiesByMode?.[mode] ?? ty.families;
@@ -61,9 +63,11 @@ export const typeScaleSection = (c: SgCtx, ty: Theme['typography'], mode: string
     const sc = el('td', 'mtbl-fill mtbl-spec');
     const samp = c.painted(specimen(el('span', 'mtbl-spec-t', 'Aa')), 'text.primary', 'color');
     samp.style.color = c.paint(c.cur, 'text.primary');
-    samp.style.fontFamily = (fams.find((f) => f.group === s.group)?.stack ?? []).map((x) => (/^[a-z-]+$/.test(x) ? x : `"${x}"`)).join(', ');
+    const stack = fams.find((f) => f.group === s.group)?.stack ?? [];
+    samp.style.fontFamily = stack.map((x) => (/^[a-z-]+$/.test(x) ? x : `"${x}"`)).join(', ');
     samp.style.fontSize = `${Math.min(desk, SCALE_SAMPLE_CAP)}px`;
-    samp.style.fontWeight = String(wOf(comp.weightRole));
+    const note = drawFace(samp, faceDraw(stack[0], wOf(comp.weightRole), !!comp.italicDefault, fonts));
+    if (note) samp.title = note;
     if (comp.italicDefault) samp.style.fontStyle = 'italic';
     if (comp.textCase === 'uppercase') samp.style.textTransform = 'uppercase';
     sc.append(samp);

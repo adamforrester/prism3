@@ -187,6 +187,8 @@ export interface HostSession {
    *  `Roboto` loads while `roboto`, `ROBOTO` and `" Regular"` all fail — so a case-insensitive lookup
    *  here would claim a face will load when the write is going to skip it. */
   readonly hostFontStyles: ReadonlyMap<string, number>;
+  /** `hostFonts` family → its style names (#3138, Q4 A), keyed as `hostFontStyles`. Empty from a host that sends none. */
+  readonly hostFontStyleNames: ReadonlyMap<string, readonly string[]>;
   /** The agent command the Activity drawer shows as running (UI redesign S11), `null` when none is.
    *
    *  A SLOT OF ITS OWN, not the action's `pending`. The action slots say what the panel posted, and the
@@ -265,6 +267,7 @@ export const initialHostSession = (): HostSession => ({
   openDetail: null,
   hostFonts: [],
   hostFontStyles: new Map(),
+  hostFontStyleNames: new Map(),
   agentRun: null,
   refused: null,
   docSettings: null,
@@ -355,7 +358,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'restore-input-error':
       return { ...s, restoreError: m.message };
     case 'font-list':
-      return { ...s, hostFonts: m.families, hostFontStyles: new Map(m.families.map((f, i) => [f, m.styles[i] ?? 0])) };
+      return { ...s, hostFonts: m.families, hostFontStyles: new Map(m.families.map((f, i) => [f, m.styles[i] ?? 0])),
+        hostFontStyleNames: new Map(m.styleNames ? m.families.map((f, i) => [f, m.styleNames![i] ?? []]) : []) };
     case 'apply-result':
       // A bad result opens its own detail; a clean one closes whatever was open, whose counts would
       // otherwise sit beside a pill that has just been replaced.

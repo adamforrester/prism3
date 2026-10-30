@@ -59,7 +59,7 @@ import {
 } from '../state/type-input';
 import { HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, LETTER_SPACING_KEYS, CAPTION_SIZE_FLOOR, UNDERLINE_BOUNDS } from '@prism3/engine/theme';
 import type { FacePin } from '@prism3/engine/theme';
-import { faceStatus, WEIGHT_NAME, type HostFonts } from '../ui/fonts';
+import { faceStatus, missingCutsNote, WEIGHT_NAME, type HostFonts } from '../ui/fonts';
 import { valuePicker, type ValuePickerOpts } from '../ui/value-picker';
 import { emToPercentLabel } from '../em-percent';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
@@ -957,6 +957,20 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       if (pk) rows.append(pk);
     });
     b.ctl.append(rows);
+    // #3138 (owner decision Q4 A): a family that has no cut at a weight its text types use, named with the cuts it
+    // has, so the gap shows here before Apply skips those styles (#237). Exact in Figma (its style names); on the web
+    // from a loaded Google face or the advisory map; silent for an unknown family.
+    const fams = ty.familiesByMode?.[mode] ?? ty.families;
+    const needs = new Map<string, number[]>();
+    for (const c of ty.composites) {
+      const fam = fams.find((f) => f.group === c.group)?.stack[0];
+      const v = roles.find((w) => w.role === c.weightRole)?.value;
+      if (fam && v !== undefined) needs.set(fam, [...(needs.get(fam) ?? []), v]);
+    }
+    for (const [fam, ws] of needs) {
+      const note = missingCutsNote(fam, ws, fonts());
+      if (note) b.ctl.append(hook(subLine(note), 'weight-cuts-note'));
+    }
     const eff = roles.map((w) => w.value);
     if (eff.some((v, i) => i > 0 && v < eff[i - 1])) b.setState(hook(stateLine(S63.orderWarn, 'warn'), 'order-warning'));
     return [{ el: b.el, said: `${b.said} ${roles.map((w) => `${w.role} font.weight-role.${w.role}`).join(' ')}`.toLowerCase(), key: 'typography.weightRoles', block: b }];

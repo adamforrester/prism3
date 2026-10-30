@@ -79,7 +79,7 @@ export type HostMessage =
   // file uses a Prism3 library and holds no Prism3 tokens of its own. `name` is null without the team-library list.
   | { kind: 'restore-input-reading' }
   | { kind: 'restore-input-library'; library: LibraryFileView }
-  | { kind: 'font-list'; families: string[]; styles: number[] }
+  | { kind: 'font-list'; families: string[]; styles: number[]; styleNames?: string[][] }
   // #2909 — the file's Documentation settings (`apps/plugin/src/doc-settings.ts`): the usage-panel and cover switches,
   // and the Style guides tab's choices as the panel last saved them (`null` until it has). `error` when a save was refused.
   | { kind: 'doc-settings'; panels: boolean; cover: boolean; styleGuide: Record<string, unknown> | null; error: string | null }
@@ -469,17 +469,22 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
     // names first and mapping counts afterwards would shift every count by the number of dropped
     // names and mis-report every family after the first bad one. Zip, then drop pairs.
     const rawStyles = Array.isArray(m.styles) ? (m.styles as unknown[]) : null;
+    // #3138: the style names, index-parallel too, so zipped with the rest. A family with no usable list gets [].
+    const rawNames = Array.isArray(m.styleNames) ? (m.styleNames as unknown[]) : null;
     const families: string[] = [];
     const styles: number[] = [];
+    const styleNames: string[][] = [];
     (m.families as unknown[]).forEach((f, i) => {
       if (typeof f !== 'string') return;
       families.push(f);
+      const names = rawNames?.[i];
+      styleNames.push(Array.isArray(names) ? names.filter((x): x is string => typeof x === 'string') : []);
       // A missing/!finite count reads as 0 = "unknown", which the UI renders as a bare tick rather
       // than inventing a number. Older hosts send no `styles` at all, which lands here too.
       const n = rawStyles ? rawStyles[i] : undefined;
       styles.push(typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
     });
-    return { kind: 'font-list', families, styles };
+    return rawNames ? { kind: 'font-list', families, styles, styleNames } : { kind: 'font-list', families, styles };
   },
   // The agent link's messages. The panel's own listeners read them (`agent-link-ui.ts`, and the bridge
   // relay in `agent-bridge-relay.ts`); the shared UI body reads only what the Activity drawer shows (S11):

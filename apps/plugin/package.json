@@ -6,7 +6,7 @@
   "description": "Prism3 Figma plugin (docs/18, docs/22). Two contexts: a main-thread controller that writes/reads figma.variables, and the shared web UI in the iframe. #107 scaffold (manifest + two-context split + typed bridge); #108 write adapter (WritePlan \u2192 live figma.variables); #109 read adapter (readFigmaVariables \u2192 ReadbackSnapshot + verifyReadback); the shared-UI bundle (#110) lands later.",
   "scripts": {
     "build": "node build.mjs",
-    "build:release": "node build.mjs --release",
+    "build:release": "node build.mjs --release && node build.mjs --release --offline",
     "watch": "node build.mjs --watch",
     "fresh": "node build.mjs && echo '\\n\u2705 Plugin rebuilt with the latest apps/studio/src UI \u2014 reload the plugin in Figma (no re-import needed).'",
     "typecheck": "tsc --noEmit -p tsconfig.main.json && tsc --noEmit -p tsconfig.ui.json",
