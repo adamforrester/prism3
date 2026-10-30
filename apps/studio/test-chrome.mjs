@@ -492,6 +492,7 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync }
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { launchWithoutWebFonts } from './test-web-fonts-stub.mjs';
 import { hookGuard } from './test-hooks.mjs';
 import { INPUT_MS, makeBounded, watchStalls } from './test-bounded.mjs';
 import { P, loadModes, resolve as resolveToken } from './chrome/tokens.mjs';
@@ -990,15 +991,19 @@ const server = createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const ORIGIN = `http://127.0.0.1:${server.address().port}`;
-const browser = MODE === 'run' ? await chromium.launch() : null;
+// #3138: Google Fonts answers every request with nothing here (`test-web-fonts-stub.mjs`), so a run never reaches it;
+// §3138 serves its own fixture by `page.route`.
+const browser = MODE === 'run' ? await launchWithoutWebFonts(chromium) : null;
 
 /** A booted app on the opening page, Color › Palettes (the two panes, from S2). Studio: from the start
  *  screen's prism3 chip (or `brand`'s), the OS scheme emulated, `query` (web only) appended to the page URL.
  *  Plugin: Figma's theme stubbed, then the start screen the host asks for, then the same example. Named
  *  options, so `brand` (#2194) and `query` (#2124) can't be passed in each other's place. */
-const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3' }) => {
+const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3', prep }) => {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme });
   const page = await ctx.newPage();
+  // `prep` (#3138): runs on the page before it loads, for a section that must see every request from boot on.
+  if (prep) await prep(page);
   await hooks.watch(page);
   const errors = [];
   page.on('pageerror', (e) => errors.push(`uncaught: ${e.message}`));
@@ -18010,6 +18015,146 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
   } finally { await ctx.close(); }
 }
 } // 3129
+// =============================================================================================
+// §3138 — A BRAND FACE THE PREVIEW CAN'T SHOW, SAID (#3138, owner decisions Q1, Q3, Q4, Q5 A)
+// =============================================================================================
+// The type sample sets each line in its brand face. The example brand's display and title face, Playfair Display, is
+// on no CI device, and Google Fonts answers with nothing here (`test-web-fonts-stub.mjs`), so:
+//   · FALLBACK (both hosts): a line carries its note exactly when the face drawn is not the face asked for. The ORACLE is
+//     CDP's `CSS.getPlatformFontsForNode`, the face Chromium drew, never the UI's own canvas probe (docs/34).
+//   · THE FIGMA WORDS (plugin): with a font list planted as the main thread posts it, Playfair Display having only
+//     Regular and Italic, the display line says Figma skips its 600 style, and the Type settings weight control names
+//     the two styles and the weights with no cut. The sentences are typed here (Q5 A's drafts).
+//   · A LOADED FACE (web): Google Fonts is served by `page.route` with a fixture, Playfair Display at 400 and 400 italic.
+//     The display line asks 600 italic: it draws the loaded face (CDP: a custom font), at 400, with `font-synthesis-weight:
+//     none`, and its note names the nearest cut. The request carries the family and no face the device already has.
+// Mutations, each after a `wip:` commit, each failing here by name: `fontAvailable` forced true in `faceDraw` → the
+// display and title `FALLBACK … carries its note` arms; `drawFace`'s `font-synthesis` line removed → `LOADED … draws …
+// with no synthesized weight`; `styleNames` dropped from the write adapter's `font-list` → `FIGMA … the display line
+// says …` and the weight control's arm. Under a CI-like font set (no Inter or JetBrains Mono installed): `faceDraw`
+// asking Google even for a face it shows → `LOADED no face the device already paints is asked for`; `paintInter` made a
+// no-op → `FALLBACK the device paints Inter, registered before boot`.
+// =============================================================================================
+if (runs('3138')) {
+console.log(`\nA brand face the preview can't show, said (#3138)\n${'='.repeat(78)}`);
+/** Each type-sample line: its token, its note, the computed family, weight and synthesis, and the face CDP says drew it. */
+const sampleLines = async (page) => {
+  const lines = await page.evaluate(() => [...document.querySelectorAll('[data-p3="type-sample-line"]')].filter((r) => r.getClientRects().length).map((r, i) => {
+    const t = r.querySelector('.tsm-text');
+    t.setAttribute('data-face-probe', String(i));
+    const cs = getComputedStyle(t);
+    return { i, token: r.dataset.token, note: r.querySelector('[data-p3="type-sample-note"]')?.textContent ?? null,
+      asked: cs.fontFamily.split(',')[0].replace(/["']/g, '').trim(), weight: cs.fontWeight, synthesis: cs.fontSynthesisWeight };
+  }));
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('DOM.enable'); await cdp.send('CSS.enable');
+  const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
+  for (const l of lines) {
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `[data-face-probe="${l.i}"]` });
+    const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+    const top = [...fonts].sort((a, b) => b.glyphCount - a.glyphCount)[0];
+    l.drawn = top?.familyName ?? ''; l.custom = !!top?.isCustomFont;
+  }
+  await cdp.detach();
+  return lines;
+};
+const FALLBACK_WEB = "Playfair Display isn't installed on this device — shown in a fallback font.";
+const FIGMA_CUT = "Playfair Display can't load in this preview — shown in a fallback font. It has no 600 cut, so Apply skips this style in Figma.";
+const WEIGHT_NOTE = 'Playfair Display has 2 styles: Regular and Italic. 500 and 600 have no cut.';
+const LOADED_CUT = 'Playfair Display has no 600 cut — shown at 400, its nearest. Browsers fake 600 by thickening 400.';
+/** The brand families CDP saw the web host draw for real in the arm below, before any web font loaded: the device's own. */
+const deviceFaces = new Set();
+// The device must paint a brand family on every runner, or the LOADED arm's "never asked" compares against nothing
+// (CI has no Inter installed). So the web arms register the chrome's embedded Inter under the family `Inter` before
+// boot, as a real face of that name: the page paints it, the UI's probe sees it, and the loader must not ask for it.
+const interB64 = readFileSync(join(STUDIO, 'chrome/fonts/inter-latin-wght-normal.woff2')).toString('base64');
+const paintInter = (page) => page.addInitScript((b64) => {
+  const face = new FontFace('Inter', Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), { weight: '100 900' });
+  document.fonts.add(face);
+  face.load();
+}, interB64);
+for (const host of ['web', 'figma']) {
+  const where = `§3138 ${host} light 1280`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, prep: host === 'web' ? paintInter : undefined });
+  let step = 'open';
+  try {
+    if (host === 'figma') {
+      step = 'plant the font list';
+      // Inter and JetBrains Mono with every weight upright and italic, so only Playfair Display lacks a cut.
+      const all = ['Thin', 'Extra Light', 'Light', 'Regular', 'Medium', 'Semi Bold', 'Bold', 'Extra Bold', 'Black'].flatMap((w) => [w, w === 'Regular' ? 'Italic' : `${w} Italic`]);
+      await page.evaluate((all) => window.postMessage({ pluginMessage: { type: 'font-list', families: ['Inter', 'JetBrains Mono', 'Playfair Display'], styles: [18, 18, 2],
+        styleNames: [all, all, ['Regular', 'Italic']] } }, '*'), all);
+    }
+    step = 'the Type page';
+    await goPlace(page, 'type');
+    await hooks.need(page, '[data-p3="type-sample-line"]', { timeout: 10000 });
+    await page.waitForTimeout(300);
+    const lines = await sampleLines(page);
+    ok(lines.length >= 4, `${where}: FALLBACK the type sample draws its lines (${lines.length})`);
+    for (const l of lines) {
+      // A variable face reports its named instance (`Inter Medium`), so the family is the drawn name's head.
+      const real = l.drawn.toLowerCase().startsWith(l.asked.toLowerCase());
+      ok(real === (l.note === null), `${where}: FALLBACK ${l.token} carries its note exactly when the face drawn is not the face asked (asked ${l.asked}, drew ${l.drawn}, note ${JSON.stringify(l.note)})`);
+      if (real && host === 'web') deviceFaces.add(l.asked);
+    }
+    if (host === 'web') ok(deviceFaces.has('Inter'), `${where}: FALLBACK the device paints Inter, registered before boot, so LOADED's "never asked" has a face to hold (device paints ${JSON.stringify([...deviceFaces])})`);
+    const display = lines.find((l) => l.token === 'type.display.md.strong');
+    ok(!!display && display.asked === 'Playfair Display' && display.drawn !== 'Playfair Display', `${where}: FALLBACK the display line asks for Playfair Display and draws another face (${JSON.stringify(display)})`);
+    if (host === 'web') ok(display?.note === FALLBACK_WEB, `${where}: FALLBACK the display line says the face isn't installed (${JSON.stringify(display?.note)})`);
+    else {
+      ok(display?.note === FIGMA_CUT, `${where}: FIGMA the display line says it falls back and Figma skips its 600 style (${JSON.stringify(display?.note)})`);
+      step = 'Show advanced, for Weights and styles';
+      await hooks.click(page.locator('[data-p3="type-sections-advanced"]'));
+      await hooks.need(page, '[data-p3="weight-cuts-note"]', { timeout: 10000 });
+      const weightNotes = await page.locator('[data-p3="weight-cuts-note"]').allTextContents();
+      ok(weightNotes.includes(WEIGHT_NOTE), `${where}: FIGMA the weight control names Playfair Display's two styles and the weights with no cut (${JSON.stringify(weightNotes)})`);
+    }
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+{
+  // The web loader, against a fixture Google Fonts: the CSS reply declares Playfair Display at 400 and 400 italic, and
+  // the face file is the chrome's own embedded Inter, renamed by the @font-face rule. Any other family is a 400.
+  const where = '§3138 web light 1280 (Google Fonts fixture)';
+  const asked = [];
+  const woff2 = readFileSync(join(STUDIO, 'chrome/fonts/inter-latin-wght-normal.woff2'));
+  // The routes go in before the page loads, so every request from boot on is seen: the loader asks a family once per
+  // session, and a request made while the page boots would otherwise pass the arm unseen.
+  const prep = async (page) => {
+    await paintInter(page);
+    await page.route(/^https:\/\/fonts\.googleapis\.com\//, (r) => {
+      const url = r.request().url();
+      asked.push(url);
+      if (!/family=Playfair\+Display:/.test(url)) return r.fulfill({ status: 200, contentType: 'text/css', headers: { 'access-control-allow-origin': '*' }, body: '' });
+      const face = (style) => `@font-face{font-family:'Playfair Display';font-style:${style};font-weight:400;src:url(https://fonts.gstatic.com/p3-fixture.woff2) format('woff2');}`;
+      return r.fulfill({ status: 200, contentType: 'text/css', headers: { 'access-control-allow-origin': '*' }, body: `${face('normal')}\n${face('italic')}` });
+    });
+    await page.route(/^https:\/\/fonts\.gstatic\.com\//, (r) => r.fulfill({ status: 200, contentType: 'font/woff2', headers: { 'access-control-allow-origin': '*' }, body: woff2 }));
+  };
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900, prep });
+  let step = 'open';
+  try {
+    step = 'the Type page';
+    await goPlace(page, 'type');
+    await page.waitForFunction(() => document.querySelector('[data-p3="type-sample-line"][data-token="type.display.md.strong"] [data-p3="type-sample-note"]')?.textContent?.includes('cut'), null, { timeout: 15000 });
+    const display = (await sampleLines(page)).find((l) => l.token === 'type.display.md.strong');
+    ok(!!display?.custom, `${where}: LOADED the display line draws the loaded web face (CDP: ${display?.drawn}, custom ${display?.custom})`);
+    ok(display?.weight === '400' && display?.synthesis === 'none', `${where}: LOADED draws the display line at 400, its nearest cut, with no synthesized weight (weight ${display?.weight}, font-synthesis-weight ${display?.synthesis})`);
+    ok(display?.note === LOADED_CUT, `${where}: LOADED the display line names the nearest cut (${JSON.stringify(display?.note)})`);
+    ok(asked.some((u) => /family=Playfair\+Display:/.test(u)), `${where}: LOADED the request names the family (${asked.length} request(s))`);
+    // A family the device paints (CDP, in the web arm above) is never asked for, and one it lacks may be. CI has no Inter
+    // installed, and the chrome's own copy is registered under an alias (`tokens.mjs`), so `paintInter` registers one.
+    const families = asked.map((u) => decodeURIComponent((/family=([^:&]+)/.exec(u)?.[1] ?? '').replace(/\+/g, ' ')));
+    ok(!families.some((f) => deviceFaces.has(f)),
+      `${where}: LOADED no face the device already paints is asked for (asked ${JSON.stringify(families)}; device paints ${JSON.stringify([...deviceFaces])})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3138
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

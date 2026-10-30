@@ -141,6 +141,7 @@ const NOT_EN_GB = new Set([
   'your', 'yours', 'our', 'ours', 'four', 'hour', 'hours', 'pour', 'pours', 'tour', 'tours', 'detour',
   'source', 'sources', 'sourced', 'sourcing', 'resource', 'resources', 'outsource', 'flour', 'devour',
   'contour', 'contours', 'velour', 'dour', 'scour', 'sour',
+  'alegreya', // a typeface name, not `grey` (#3140: `font-class.ts`'s serif map ships in the bundles)
   // DOUBLE_L over-catches (#1447): en-US words that happen to be stem + `ll` + a listed suffix.
   'cancellous', // anatomy — the spongy bone; doubled in both dialects
   // `-our` inflection over-catches (#991): en-US words that are `our` + a now-listed suffix. Only stems

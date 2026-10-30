@@ -8,8 +8,8 @@
   "documentAccess": "dynamic-page",
   "permissions": ["teamlibrary"],
   "networkAccess": {
-    "allowedDomains": ["none"],
-    "reasoning": "The Prism3 engine is bundled into the plugin; theming runs fully offline with no runtime network calls.",
+    "allowedDomains": ["https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+    "reasoning": "Loads a brand's fonts from Google Fonts so the preview can show them. Google receives the font family name and your IP address. Nothing from your file is sent. The Prism3 engine runs inside the plugin and makes no other network calls.",
     "devAllowedDomains": ["ws://localhost:17331"]
   }
 }

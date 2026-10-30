@@ -44,6 +44,7 @@
  * at the plugin's own sizes; its reasoning is at the section.
  */
 import { chromium } from 'playwright';
+import { launchWithoutWebFonts } from '../studio/test-web-fonts-stub.mjs';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -94,7 +95,8 @@ const server = createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const ORIGIN = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch();
+// #3138: Google Fonts answers every request with nothing here (`test-web-fonts-stub.mjs`), so a run never reaches it.
+const browser = await launchWithoutWebFonts(chromium);
 
 /** Post a main-thread → UI message in the wire shape `bridge-main.ts` puts on the bus. */
 const post = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), msg);

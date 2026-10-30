@@ -473,8 +473,10 @@ export type MainToUi =
    *  this Figma has 36 styles of. Figma's list is authoritative about what a write will load, so the
    *  column reads this instead. Two parallel arrays rather than an array of objects keeps the wire
    *  payload small (34.5 KB of names already) and keeps the older single-array shape readable.
-   *  A receiver must treat `styles` as OPTIONAL: it is absent from any host build older than this. */
-  | { type: 'font-list'; families: string[]; styles?: number[] }
+   *  A receiver must treat `styles` as OPTIONAL: it is absent from any host build older than this.
+   *  `styleNames` (#3138, Q4 A) is each family's style names, parallel by index, so the UI can name the cuts a family
+   *  has; it is OPTIONAL for the same reason. */
+  | { type: 'font-list'; families: string[]; styles?: number[]; styleNames?: string[][] }
   /** The agent link's published state (`agent-protocol.ts` `AgentLinkState`): on/off, which transport is
    *  listening, and the last command it ran with its headline. Sent on `ui-ready`, on every switch, and
    *  after every command, so the panel's control always shows what the link is doing. The shared UI body

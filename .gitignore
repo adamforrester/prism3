@@ -8,6 +8,7 @@ apps/studio/public/
 apps/studio/chrome-record/
 apps/plugin/dist/
 apps/plugin/release/
+apps/plugin/release-offline/
 apps/tokenpress/dist/
 packages/tokens/build/
 

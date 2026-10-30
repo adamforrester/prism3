@@ -64,7 +64,7 @@ import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
 import { readFigmaVariables } from './read-figma';
-import { listFamilyStyleCounts } from './list-fonts';
+import { listFamilyStyleNames } from './list-fonts';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
 import { verifyReadback } from '@prism3/engine/read-back';
@@ -1724,11 +1724,13 @@ const sendFonts = async (): Promise<void> => {
   try {
     // One read, both shapes: the counts carry the family names too, so calling `listFamilies` as well
     // would mean a second `listAvailableFontsAsync` (11,005 entries) for data already in hand.
-    const counts = await listFamilyStyleCounts(figma);
-    if (counts.length) postToUi({
+    // #3138: the style NAMES too (Q4 A), so the count is their length rather than a second count of one list.
+    const named = await listFamilyStyleNames(figma);
+    if (named.length) postToUi({
       type: 'font-list',
-      families: counts.map((c) => c.family),
-      styles: counts.map((c) => c.styles),
+      families: named.map((c) => c.family),
+      styles: named.map((c) => c.styles.length),
+      styleNames: named.map((c) => c.styles),
     });
   } catch {
     /* no font list — the UI keeps its free-text input (which is the pre-#113 behavior) */

@@ -47,6 +47,7 @@ import { readdirSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { launchWithoutWebFonts } from './test-web-fonts-stub.mjs';
 import { hookGuard } from './test-hooks.mjs';
 import { INPUT_MS, makeBounded, rendersFrame, watchStalls } from './test-bounded.mjs';
 import { assertBundleFresh, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
@@ -784,7 +785,8 @@ const BRANDMENU_TEXT_FLOOR = 6;
 const BRANDMENU_CONTROLS = ['[data-p3="import-text"]'].map(hooks.role);
 
 // ---- browser plumbing ------------------------------------------------------------------------
-const browser = await chromium.launch();
+// #3138: Google Fonts answers every request with nothing here (`test-web-fonts-stub.mjs`), so a run never reaches it.
+const browser = await launchWithoutWebFonts(chromium);
 
 /** Console errors, uncaught exceptions, and failed requests, collected per page and drained per
  *  state — so a failure names the page × mode it happened on rather than a run-wide total. */
