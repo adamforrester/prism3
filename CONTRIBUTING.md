@@ -1556,6 +1556,17 @@ npx tsx apps/plugin/lint-release-bundle.ts
                                           # its bundle paths beside it. Runs after both plugin builds.
                                           # Mutation: drop the relay's `if (PRISM3_DEV)` guard, rebuild the
                                           # release — [bridge-relay-url] and [bridge-relay] fire by name.
+npx tsx apps/plugin/lint-network-reach.ts
+                                          # EACH PLUGIN BUILD REACHES ONLY WHAT ITS MANIFEST ALLOWS (#3138, the
+                                          # owner's network model). One codebase, two plugins: "Prism3 Studio"
+                                          # (release/) lists the two Google Fonts hosts, and every host its
+                                          # bundles name is one of them or reference-only, with a reason;
+                                          # "Prism3 Studio Offline" (release-offline/) allows ["none"] and
+                                          # carries no request primitive and no allowed host. Lists authored in
+                                          # the gate (docs/34); the loader must be in release/ so its absence
+                                          # offline means something. Runs after build:release (it builds both).
+                                          # Mutation: a fetch outside the PRISM3_NETWORK gate — [fetch] fires
+                                          # by name on release-offline/ui.html.
 npm run test      -w @prism3/tokenpress  # the ported suite's 263 assertions, on tsx rather than the
                                           # vitest it arrived with. The runner asserts a PER-FILE census
                                           # against the pre-port vitest baseline, so a test quietly

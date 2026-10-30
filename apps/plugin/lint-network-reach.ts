@@ -61,7 +61,7 @@ const REFERENCE_ONLY: Record<string, string> = {
 type Pattern = { name: string; re: RegExp; positive: string; negative: string };
 /** Every way the plugin could make a request. Authored from the platform's APIs, not from a bundle. */
 const PRIMITIVES: readonly Pattern[] = [
-  { name: 'fetch', re: /\bfetch\s*\(/, positive: 'fetch(webFontUrl(family))', negative: 'prefetch = 1; refetchAll()' },
+  { name: 'fetch', re: /\bfetch\s*\(/, positive: 'fetch(`https://fonts.googleapis.com/css?family=x`)', negative: 'prefetch = 1; refetchAll()' },
   { name: 'XMLHttpRequest', re: /\bXMLHttpRequest\b/, positive: 'new XMLHttpRequest()', negative: 'new XMLHttpRequester()' },
   { name: 'WebSocket', re: /\bnew\s+WebSocket\b/, positive: 'new WebSocket(url)', negative: 'type WebSocketLike = {}' },
   { name: 'EventSource', re: /\bnew\s+EventSource\b/, positive: 'new EventSource(u)', negative: 'new EventSourced(u)' },

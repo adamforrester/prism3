@@ -20,13 +20,7 @@ import { fontAvailable, type FaceCut } from './fonts';
 
 export type WebFace = { readonly status: 'loading' | 'loaded' | 'missing'; readonly cuts: readonly FaceCut[] };
 
-const GOOGLE_CSS = 'https://fonts.googleapis.com/css';
-const ALL_CUTS = [100, 200, 300, 400, 500, 600, 700, 800, 900].flatMap((w) => [`${w}`, `${w}i`]).join(',');
 const faces = new Map<string, WebFace>();
-
-/** The request for one family: every cut, `display=swap`. Exported so a test can read what is asked. */
-export const webFontUrl = (family: string): string =>
-  `${GOOGLE_CSS}?family=${encodeURIComponent(family).replace(/%20/g, '+')}:${ALL_CUTS}&display=swap`;
 
 /** The cuts a Google Fonts CSS reply declares, deduped and sorted. Pure, so a test can hand it a reply. */
 export const cutsOfCss = (css: string): FaceCut[] => {
@@ -49,7 +43,11 @@ export const requestWebFace = (family: string): void => {
   if (!family || /^[a-z-]+$/.test(family) || faces.has(family)) return;
   faces.set(family, { status: 'loading', cuts: [] });
   const done = (face: WebFace): void => { faces.set(family, face); invalidate('fonts'); };
-  fetch(webFontUrl(family))
+  // The request for one family: every cut, `display=swap`. Written inline, inside the `PRISM3_NETWORK` branch, and not
+  // in a helper or a module constant: esbuild tree-shakes before it drops a dead branch, so a helper this branch named
+  // would survive into the offline bundle with the host in it (`lint-network-reach.ts` failed on both, measured).
+  fetch(`https://fonts.googleapis.com/css?family=${encodeURIComponent(family).replace(/%20/g, '+')}:`
+    + '100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i&display=swap')
     .then(async (res) => {
       if (!res.ok) return done({ status: 'missing', cuts: [] });
       const css = await res.text();

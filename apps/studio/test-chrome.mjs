@@ -492,6 +492,7 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync }
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { launchWithoutWebFonts } from './test-web-fonts-stub.mjs';
 import { hookGuard } from './test-hooks.mjs';
 import { INPUT_MS, makeBounded, watchStalls } from './test-bounded.mjs';
 import { P, loadModes, resolve as resolveToken } from './chrome/tokens.mjs';
@@ -990,7 +991,9 @@ const server = createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const ORIGIN = `http://127.0.0.1:${server.address().port}`;
-const browser = MODE === 'run' ? await chromium.launch() : null;
+// #3138: Google Fonts answers every request with nothing here (`test-web-fonts-stub.mjs`), so a run never reaches it;
+// §3138 serves its own fixture by `page.route`.
+const browser = MODE === 'run' ? await launchWithoutWebFonts(chromium) : null;
 
 /** A booted app on the opening page, Color › Palettes (the two panes, from S2). Studio: from the start
  *  screen's prism3 chip (or `brand`'s), the OS scheme emulated, `query` (web only) appended to the page URL.
@@ -17987,6 +17990,115 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
   } finally { await ctx.close(); }
 }
 } // 3129
+// =============================================================================================
+// §3138 — A BRAND FACE THE PREVIEW CAN'T SHOW, SAID (#3138, owner decisions Q1, Q3, Q4, Q5 A)
+// =============================================================================================
+// The type sample sets each line in its brand face. The example brand's display and title face, Playfair Display, is
+// on no CI device, and Google Fonts answers with nothing here (`test-web-fonts-stub.mjs`), so:
+//   · FALLBACK (both hosts): a line carries its note exactly when the face drawn is not the face asked for. The ORACLE is
+//     CDP's `CSS.getPlatformFontsForNode`, the face Chromium drew, never the UI's own canvas probe (docs/34).
+//   · THE FIGMA WORDS (plugin): with a font list planted as the main thread posts it, Playfair Display having only
+//     Regular and Italic, the display line says Figma skips its 600 style, and the Type settings weight control names
+//     the two styles and the weights with no cut. The sentences are typed here (Q5 A's drafts).
+//   · A LOADED FACE (web): Google Fonts is served by `page.route` with a fixture, Playfair Display at 400 and 400 italic.
+//     The display line asks 600 italic: it draws the loaded face (CDP: a custom font), at 400, with `font-synthesis-weight:
+//     none`, and its note names the nearest cut. The request carries the family and no face the device already has.
+// Mutations, each after a `wip:` commit, each failing here by name: `fontAvailable` forced true in `faceDraw` → every
+// `FALLBACK … carries its note` arm; `drawFace`'s `font-synthesis` line removed → `LOADED … draws … with no synthesized
+// weight`; `styleNames` dropped from the main thread's `font-list` → `FIGMA … the display line says …`.
+// =============================================================================================
+if (runs('3138')) {
+console.log(`\nA brand face the preview can't show, said (#3138)\n${'='.repeat(78)}`);
+/** Each type-sample line: its token, its note, the computed family, weight and synthesis, and the face CDP says drew it. */
+const sampleLines = async (page) => {
+  const lines = await page.evaluate(() => [...document.querySelectorAll('[data-p3="type-sample-line"]')].filter((r) => r.getClientRects().length).map((r, i) => {
+    const t = r.querySelector('.tsm-text');
+    t.setAttribute('data-p3138', String(i));
+    const cs = getComputedStyle(t);
+    return { i, token: r.dataset.token, note: r.querySelector('[data-p3="type-sample-note"]')?.textContent ?? null,
+      asked: cs.fontFamily.split(',')[0].replace(/["']/g, '').trim(), weight: cs.fontWeight, synthesis: cs.fontSynthesisWeight };
+  }));
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('DOM.enable'); await cdp.send('CSS.enable');
+  const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
+  for (const l of lines) {
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `[data-p3138="${l.i}"]` });
+    const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+    const top = [...fonts].sort((a, b) => b.glyphCount - a.glyphCount)[0];
+    l.drawn = top?.familyName ?? ''; l.custom = !!top?.isCustomFont;
+  }
+  await cdp.detach();
+  return lines;
+};
+const FALLBACK_WEB = "Playfair Display isn't installed on this device — shown in a fallback face.";
+const FIGMA_CUT = "Playfair Display can't load in this preview — shown in a fallback face. It has no 600 cut, so Apply skips this style in Figma.";
+const WEIGHT_NOTE = 'Playfair Display has 2 styles: Regular and Italic. 500 and 600 have no cut.';
+const LOADED_CUT = 'Playfair Display has no 600 cut — shown at 400, its nearest. Browsers fake 600 by thickening 400.';
+for (const host of ['web', 'figma']) {
+  const where = `§3138 ${host} light 1280`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  let step = 'open';
+  try {
+    if (host === 'figma') {
+      step = 'plant the font list';
+      await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'font-list', families: ['Inter', 'JetBrains Mono', 'Playfair Display'], styles: [2, 1, 2],
+        styleNames: [['Regular', 'Semi Bold Italic'], ['Regular'], ['Regular', 'Italic']] } }, '*'));
+    }
+    step = 'the Type page';
+    await goPlace(page, 'type');
+    await hooks.need(page, '[data-p3="type-sample-line"]', { timeout: 10000 });
+    await page.waitForTimeout(300);
+    const lines = await sampleLines(page);
+    ok(lines.length >= 4, `${where}: FALLBACK the type sample draws its lines (${lines.length})`);
+    for (const l of lines) {
+      const real = l.drawn.toLowerCase() === l.asked.toLowerCase();
+      ok(real === (l.note === null), `${where}: FALLBACK ${l.token} carries its note exactly when the face drawn is not the face asked (asked ${l.asked}, drew ${l.drawn}, note ${JSON.stringify(l.note)})`);
+    }
+    const display = lines.find((l) => l.token === 'type.display.md.strong');
+    ok(!!display && display.asked === 'Playfair Display' && display.drawn !== 'Playfair Display', `${where}: FALLBACK the display line asks for Playfair Display and draws another face (${JSON.stringify(display)})`);
+    if (host === 'web') ok(display?.note === FALLBACK_WEB, `${where}: FALLBACK the display line says the face isn't installed (${JSON.stringify(display?.note)})`);
+    else {
+      ok(display?.note === FIGMA_CUT, `${where}: FIGMA the display line says it falls back and Figma skips its 600 style (${JSON.stringify(display?.note)})`);
+      const weightNotes = await page.locator('[data-p3="weight-cuts-note"]').allTextContents();
+      ok(weightNotes.includes(WEIGHT_NOTE), `${where}: FIGMA the weight control names Playfair Display's two styles and the weights with no cut (${JSON.stringify(weightNotes)})`);
+    }
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+{
+  // The web loader, against a fixture Google Fonts: the CSS reply declares Playfair Display at 400 and 400 italic, and
+  // the face file is the chrome's own embedded Inter, renamed by the @font-face rule. Any other family is a 400.
+  const where = '§3138 web light 1280 (Google Fonts fixture)';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  let step = 'route';
+  const asked = [];
+  try {
+    const woff2 = readFileSync(join(STUDIO, 'chrome/fonts/inter-latin-wght-normal.woff2'));
+    await page.route(/^https:\/\/fonts\.googleapis\.com\//, (r) => {
+      const url = r.request().url();
+      asked.push(url);
+      if (!/family=Playfair\+Display:/.test(url)) return r.fulfill({ status: 200, contentType: 'text/css', headers: { 'access-control-allow-origin': '*' }, body: '' });
+      const face = (style) => `@font-face{font-family:'Playfair Display';font-style:${style};font-weight:400;src:url(https://fonts.gstatic.com/p3-fixture.woff2) format('woff2');}`;
+      return r.fulfill({ status: 200, contentType: 'text/css', headers: { 'access-control-allow-origin': '*' }, body: `${face('normal')}\n${face('italic')}` });
+    });
+    await page.route(/^https:\/\/fonts\.gstatic\.com\//, (r) => r.fulfill({ status: 200, contentType: 'font/woff2', headers: { 'access-control-allow-origin': '*' }, body: woff2 }));
+    step = 'the Type page';
+    await goPlace(page, 'type');
+    await page.waitForFunction(() => document.querySelector('[data-p3="type-sample-line"][data-token="type.display.md.strong"] [data-p3="type-sample-note"]')?.textContent?.includes('cut'), null, { timeout: 15000 });
+    const display = (await sampleLines(page)).find((l) => l.token === 'type.display.md.strong');
+    ok(!!display?.custom, `${where}: LOADED the display line draws the loaded web face (CDP: ${display?.drawn}, custom ${display?.custom})`);
+    ok(display?.weight === '400' && display?.synthesis === 'none', `${where}: LOADED draws the display line at 400, its nearest cut, with no synthesized weight (weight ${display?.weight}, font-synthesis-weight ${display?.synthesis})`);
+    ok(display?.note === LOADED_CUT, `${where}: LOADED the display line names the nearest cut (${JSON.stringify(display?.note)})`);
+    ok(asked.some((u) => /family=Playfair\+Display:/.test(u)), `${where}: LOADED the request names the family (${asked.length} request(s))`);
+    ok(!asked.some((u) => /family=Inter[:&]/.test(u)), `${where}: LOADED no face the device already paints is asked for (${JSON.stringify(asked.map((u) => /family=([^:&]+)/.exec(u)?.[1]))})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3138
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

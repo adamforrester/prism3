@@ -173,15 +173,17 @@ export const FACE_NOTE = {
 export type FaceDraw = { readonly weight: number; readonly noSynthesis: boolean; readonly fallback: boolean; readonly note: string | null };
 
 /** Decide how a line asking for `family` at `weight` (italic or not) draws on this host. Asks the web-font loader for
- *  the family as a side effect; a load that lands repaints on `fonts`. */
+ *  a family this frame can't paint, as a side effect; a load that lands repaints on `fonts`. */
 export const faceDraw = (family: string | undefined, weight: number, italic: boolean, fonts: HostFonts): FaceDraw => {
   const plainDraw: FaceDraw = { weight, noSynthesis: false, fallback: false, note: null };
   if (!family || /^[a-z-]+$/.test(family)) return plainDraw;   // a generic family is always there
-  requestWebFace(family);
+  const shown = fontAvailable(family);
+  // Only a face this frame can't paint is asked for, so a face already here sends Google nothing.
+  if (!shown) requestWebFace(family);
   const figma = PRISM3_HOST === 'figma';
   const cuts = cutsOf(family, fonts);
   const has = !cuts || cuts.some((c) => c.weight === weight && (c.italic === italic || !cuts.some((x) => x.italic === italic)));
-  if (!fontAvailable(family)) {
+  if (!shown) {
     const inFigma = fonts.hostFontStyles.has(family);
     const note = !figma ? FACE_NOTE.fallbackWeb(family)
       : !inFigma ? FACE_NOTE.fallbackPreview(family)

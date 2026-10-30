@@ -1015,6 +1015,7 @@ jobs:
 
       # THE RELEASE BUILD (#2530, owner Q239 A): `release/`, with `PRISM3_DEV` false, so every dev-only branch (the
       # agent link's desktop bridge relay, any dev command) is dropped, and a manifest with no devAllowedDomains.
+      # Since #3138 it also builds the offline plugin, `release-offline/`, with `PRISM3_NETWORK` false.
       # `lint-release-bundle.ts` below checks it carries none of the dev-only code; `lint-sandbox-reject.ts` scans its
       # main.js too.
       - name: Build plugin (release)
@@ -1182,6 +1183,13 @@ jobs:
       # less devAllowedDomains with its bundle paths beside it. Runs after both plugin builds.
       - name: The release build carries no dev-only code (#2530)
         run: npx --yes tsx@4 apps/plugin/lint-release-bundle.ts
+
+      # #3138 (THE OWNER'S NETWORK MODEL): one codebase, two plugins. "Prism3 Studio" (release/) reaches only the domains
+      # its manifest lists, the two Google Fonts hosts; "Prism3 Studio Offline" (release-offline/) carries no network call
+      # at all. The domains, the reference-only hosts and the request primitives are authored in the gate (docs/34). Runs
+      # after the release build, which builds both.
+      - name: Each plugin build reaches only what its manifest allows (#3138)
+        run: npx --yes tsx@4 apps/plugin/lint-network-reach.ts
 
   # #2898: THE CHROME SUITE IN SHARDS. It was the whole critical path after Q503 A (about 24 minutes, against 12 or
   # less for every other job), so it runs as one job per shard, side by side: shard n runs the sections
