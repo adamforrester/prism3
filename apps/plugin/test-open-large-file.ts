@@ -43,6 +43,16 @@
  * raw keys → `queue/read`; `fileDue` posting `queued: []` → `queue/read` (its live-recount case); the stale clear
  * dropped from `addQueue` → `queue/tidy`.
  *
+ * #3170, THE HANG AFTER #3111. A page search costs `SEARCH_MS` of main-thread time, so a search of the whole file costs
+ * it once per page in one turn, as Figma's does, and the panel's live recount (`due-request`) arrives 250 ms after each
+ * `file-sets`, as the studio sends it. Arms: `open/paint-first` (the `ui-ready` turn loads, searches and projects
+ * nothing), `open/no-walk` (no whole-file search from open to the hand-edit pass's end), `open/search-yields` (one page
+ * searched per turn at most), `open/one-read` (requests asked mid-read share it: each page searched at most twice) and
+ * `open/plans` (the pass projects one set per turn). Mutations failing by name: the reads back in the `ui-ready` turn →
+ * `open/paint-first`; `readPresent` on one whole-file search → `open/no-walk`; the pass searching `figma` → `open/no-walk`;
+ * no shared read → `open/one-read`; every set projected at once → `open/plans`; `isSetUp(figma.root)` in `fileSets` or
+ * Style guides' catalog → `open/no-walk`.
+ *
  * Also held: `open/race`, the checklist's own request asked while the read after open is still going, is answered
  * without `atOpen`, so the panel keeps it over the read after open (`host-session.ts`, `awaitingRead`).
  */
@@ -62,6 +72,9 @@ const ok = (cond: boolean, label: string): void => {
 };
 
 const PAGE_MS = Number(process.env.PAGE_MS ?? 20);
+/** #3170: searching one loaded page's nodes costs `SEARCH_MS` of main-thread time, so a document-wide search costs it
+ *  once per page, all in one turn, as Figma's does. */
+const SEARCH_MS = Number(process.env.SEARCH_MS ?? 5);
 const PAGES = 60;
 const SETS = 50;
 const RECORDED = 45;
@@ -78,10 +91,26 @@ let loads = 0;
 let inTurn = 0;
 let worstTurn = 0;
 let allCalled = false;
+/** #3170: pages searched inside one turn (a document-wide search is every page at once), and document-wide searches. */
+let searchedInTurn = 0;
+let worstSearch = 0;
+let docSearches = 0;
+/** #3170: the turn each page load and page search ran in, and how often each page was searched. */
+let turnNo = 0;
+const loadTurns: number[] = [];
+const searchTurns: number[] = [];
+const searchesOf = new Map<string, number>();
+const searchOne = (): void => {
+  searchTurns.push(turnNo);
+  searchedInTurn++;
+  worstSearch = Math.max(worstSearch, searchedInTurn);
+  burn(SEARCH_MS);
+};
 const loadOne = (p: { loaded: boolean }): void => {
   if (p.loaded) return;
   p.loaded = true;
   loads++;
+  loadTurns.push(turnNo);
   inTurn++;
   worstTurn = Math.max(worstTurn, inTurn);
   burn(PAGE_MS);
@@ -111,6 +140,8 @@ for (let i = 0; i < PAGES; i++) {
     async loadAsync() { loadOne(this); },
     findAllWithCriteria(c) {
       if (!this.loaded) throw new Error(`page ${this.name} searched before it was loaded`);
+      searchOne();
+      searchesOf.set(this.id, (searchesOf.get(this.id) ?? 0) + 1);
       const all = this.children.flatMap((n) => [n, ...((n.children as Node[] | undefined) ?? [])]);
       return all.filter((n) => !c.types || c.types.includes(n.type as string));
     },
@@ -148,10 +179,13 @@ Object.assign(root, {
   // Under `dynamic-page`, a document-wide search refuses until `loadAllPagesAsync` was called.
   findAllWithCriteria: (c: { types?: string[] }) => {
     if (!allCalled) throw new Error('figma.root.findAllWithCriteria before figma.loadAllPagesAsync (dynamic-page)');
+    docSearches++;
     return pages.flatMap((p) => p.findAllWithCriteria(c));
   },
   findAll: (pred?: (n: Node) => boolean) => {
     if (!allCalled) throw new Error('figma.root.findAll before figma.loadAllPagesAsync (dynamic-page)');
+    docSearches++;
+    for (const _ of pages) searchOne();
     return pages.flatMap((p) => p.children.flatMap((n) => [n, ...((n.children as Node[] | undefined) ?? [])])).filter((n) => !pred || pred(n));
   },
 });
@@ -175,11 +209,13 @@ Object.assign(shim, {
 const g = globalThis as Record<string, unknown>;
 // Each timer callback is a task of its own, as in Figma's sandbox, so it closes the turn before it runs.
 const realTimeout = globalThis.setTimeout;
-g.setTimeout = ((fn: (...a: unknown[]) => void, ms?: number, ...a: unknown[]) => realTimeout(() => { inTurn = 0; fn(...a); }, ms)) as unknown as typeof setTimeout;
+g.setTimeout = ((fn: (...a: unknown[]) => void, ms?: number, ...a: unknown[]) => realTimeout(() => { inTurn = 0; searchedInTurn = 0; turnNo++; fn(...a); }, ms)) as unknown as typeof setTimeout;
 g.figma = shim;
 g.__html__ = '';
 g.PRISM3_BUILD = '2026-10-28T00:00:00Z tree-test0000';
-const timings: { stage: string; ms: number }[] = [];
+const timings: { stage: string; ms: number; turn?: number }[] = [];
+// Each stage is stamped with the turn it ended in (#3170), so a test can tell work done in one turn from work spread out.
+timings.push = (...e: { stage: string; ms: number }[]) => Array.prototype.push.call(timings, ...e.map((x) => ({ ...x, turn: turnNo })));
 g.PRISM3_OPEN_TIMINGS = timings;
 
 await import('./src/main');
@@ -187,10 +223,36 @@ await import('./src/main');
 /* ── open the plugin ───────────────────────────────────────────────────────────────────────────────── */
 
 console.log(`plugin open on a ${PAGES}-page, ${SETS}-set stand-in (#3110), ${PAGE_MS} ms a page`);
-loads = 0; inTurn = 0; worstTurn = 0;
+loads = 0; inTurn = 0; worstTurn = 0; searchedInTurn = 0; worstSearch = 0; docSearches = 0; loadTurns.length = 0; searchTurns.length = 0; searchesOf.clear();
 t0.at = Date.now();
-const send = (m: unknown): void => (shim.ui as { onmessage: (m: unknown) => void }).onmessage(m);
+// A message from the panel starts a turn of its own.
+const send = (m: unknown): void => { inTurn = 0; searchedInTurn = 0; turnNo++; (shim.ui as { onmessage: (m: unknown) => void }).onmessage(m); };
+// #3170: the panel as it is at open. It asks for the badge's live recount (`due-request`) 250 ms after each `file-sets`
+// lands (`DUE_AFTER`, `DUE_DEBOUNCE_MS` in the studio), against the brand it restored, so the first one arrives while the
+// read after open is still going, before that read has found the file's sets.
+let panelLive = true;
+let dueAsked = 0;
+const dueSeqAt: number[] = [];
+const panelPost = (shim.ui as { postMessage: (m: unknown) => void }).postMessage;
+(shim.ui as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => {
+  panelPost(m);
+  if (panelLive && (m as { type?: string })?.type === 'file-sets') realTimeout(() => {
+    if (!panelLive) return;
+    dueSeqAt.push(loads);
+    send({ type: 'due-request', input: JSON.parse(sharedData.get('prism3:brandInput') ?? '{}'), seq: 1000 + ++dueAsked });
+  }, 250);
+};
+// #3170: the event loop's longest stall from open to the hand-edit pass's end, read by a heartbeat on the real timer: how
+// long the panel and the file wait, at worst, for the thread. Measured, not asserted (it is wall-clock).
+let lag = 0;
+let beating = true;
+const beat = (): void => { const at = Date.now(); realTimeout(() => { lag = Math.max(lag, Date.now() - at - 1); if (beating) beat(); }, 1); };
+beat();
+const timingsAtOpen = timings.length;
 send({ type: 'ui-ready' });
+const readyTurn = turnNo;
+const postedInReady = posted.length;
+await Promise.resolve();
 const sets = () => posted.filter((p) => p.msg?.type === 'file-sets');
 // While the read after open runs, the panel opens Update file's checklist (its own `file-sets-request`, under the
 // panel's brand, Q699 A) and Style guides (`style-guide-catalog-request`, which needs every page). Neither may load
@@ -201,6 +263,10 @@ send({ type: 'file-sets-request', input: { ...(JSON.parse(sharedData.get('prism3
 send({ type: 'style-guide-catalog-request' });
 const done = () => posted.find((p) => p.msg?.type === 'hand-edits' && p.msg.done === true);
 for (let i = 0; i < 2000 && !done(); i++) await new Promise((res) => realTimeout(res, 5));
+// The live recounts the panel asked meanwhile, answered.
+for (let i = 0; i < 400 && posted.filter((p) => p.msg?.type === 'file-due' && p.msg.seq > 1000).length < dueAsked; i++) await new Promise((res) => realTimeout(res, 5));
+panelLive = false;
+beating = false;
 
 const first = sets()[0];
 const full = sets().find((p) => p.msg.atOpen === true && p.msg.partial !== true);
@@ -227,11 +293,35 @@ ok(loads === PAGES, `open/control: the read after the answer does load every pag
 ok(worstTurn <= 1, `open/yields: no turn of the event loop loads more than one page, the reads asked mid-read included (worst ${worstTurn})`);
 ok(done() !== undefined, `open/pass: the hand-edit pass runs after the read and ends (${done() ? `at ${done()!.at} ms` : 'no end in 10 s'})`);
 
+// #3170: the hang after #3111. The page loads were off the path, but each read still searched the whole file in one turn,
+// the hand-edit pass once per set, and projected every set's plans in one turn; and the badge's first recount, asked
+// while the read after open was going, started a second read beside it.
+{
+  const readyWork = [...loadTurns, ...searchTurns].filter((t) => t === readyTurn).length
+    + timings.slice(timingsAtOpen).filter((t) => t.turn === readyTurn && (t.stage === 'print' || t.stage === 'plan')).length;
+  const readyPosts = posted.slice(0, postedInReady).map((p) => p.msg?.type);
+  ok(readyWork === 0 && readyPosts.includes('doc-settings') && readyPosts.some((t) => typeof t === 'string' && t.startsWith('restore-input')),
+    `open/paint-first: the turn that answers ui-ready posts the brand and the settings and loads, searches and projects nothing (${readyWork} pieces of work in it; posted ${JSON.stringify(readyPosts)})`);
+  ok(docSearches === 0, `open/no-walk: from open to the hand-edit pass's end, the live recounts included, nothing searches the whole file in one turn (${docSearches} document-wide searches)`);
+  ok(worstSearch <= 1, `open/search-yields: no turn searches more than one page (worst ${worstSearch})`);
+  const most = Math.max(0, ...searchesOf.values());
+  ok(searchesOf.size === PAGES && most <= 2,
+    `open/one-read: the requests asked while the read after open is going share it; each page is searched at most twice, once for that read and once for the hand-edit pass (${searchesOf.size} of ${PAGES} pages searched, most ${most} times)`);
+  const plans = timings.slice(timingsAtOpen).filter((t) => t.stage === 'plan');
+  const planTurns = new Set(plans.map((t) => t.turn));
+  ok(plans.length === SETS && planTurns.size === plans.length,
+    `open/plans: the hand-edit pass projects one set's plans per turn (${plans.length} projections in ${planTurns.size} turns, ${SETS} sets)`);
+}
+
 console.log('\n  measured (not asserted):');
 console.log(`    first answer (panel ready)  ${first?.at ?? '—'} ms, ${first?.loads ?? '—'} pages loaded`);
 console.log(`    full read                   ${full?.at ?? '—'} ms`);
 console.log(`    hand-edit pass done         ${done()?.at ?? '—'} ms`);
 console.log(`    most pages in one turn      ${worstTurn} (${worstTurn * PAGE_MS} ms held)`);
+console.log(`    most pages searched in one turn ${worstSearch} (${worstSearch * SEARCH_MS} ms held)`);
+console.log(`    document-wide searches      ${docSearches}`);
+console.log(`    live recounts at open       ${dueAsked} (asked at ${JSON.stringify(dueSeqAt)} pages loaded)`);
+console.log(`    longest stall of the loop   ${lag} ms`);
 for (const t of timings) console.log(`    stage ${t.stage.padEnd(22)}${t.ms} ms`);
 
 /* ── the add queue (#3129 Q833 A) ──────────────────────────────────────────────────────────────────── */
@@ -301,6 +391,9 @@ await entry('style-guide-cleanup', { type: 'style-guide-cleanup', ids: [] }, 'st
   const from = posted.length;
   const search = root.findAllWithCriteria;
   root.findAllWithCriteria = () => { throw new Error('the stand-in refuses the search'); };
+  // #3170: the read searches a page at a time, so the pages refuse too.
+  const pageSearch = pages.map((p) => p.findAllWithCriteria);
+  for (const p of pages) p.findAllWithCriteria = () => { throw new Error('the stand-in refuses the search'); };
   send({ type: 'ui-ready' });
   const failedRead = () => posted.slice(from).find((p) => p.msg?.type === 'file-sets' && p.msg.error);
   for (let i = 0; i < 4000 && !failedRead(); i++) await new Promise((res) => realTimeout(res, 5));
@@ -309,6 +402,7 @@ await entry('style-guide-cleanup', { type: 'style-guide-cleanup', ids: [] }, 'st
   const end = posted.length;
   for (let i = 0; i < 4000 && !posted.slice(end).some((p) => p.msg?.type === 'hand-edits' && p.msg.done === true); i++) await new Promise((res) => realTimeout(res, 5));
   root.findAllWithCriteria = search;
+  pages.forEach((p, i) => { p.findAllWithCriteria = pageSearch[i]; });
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');

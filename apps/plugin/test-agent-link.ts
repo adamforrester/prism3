@@ -144,7 +144,9 @@ const timers = new Map<number, () => void>();
 let timerSeq = 0;
 
 const main = await import('./src/main');
-g.setTimeout = ((fn: () => void) => { const id = ++timerSeq; timers.set(id, fn); return id; }) as unknown as typeof setTimeout;
+// A 0 ms timer is the plugin handing back the thread (`breathe`; #3170's `ui-ready` starts its reads that way), not a
+// poll: it runs on a turn of its own, so only the poll loop's timers are held here.
+g.setTimeout = ((fn: () => void, ms?: number) => { if (!ms) { setImmediate(fn); return 0; } const id = ++timerSeq; timers.set(id, fn); return id; }) as unknown as typeof setTimeout;
 g.clearTimeout = ((id: number) => { timers.delete(id); }) as unknown as typeof clearTimeout;
 const settle = () => new Promise<void>((r) => setImmediate(r));
 
