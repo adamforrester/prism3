@@ -205,6 +205,11 @@
  *                  hidden description with its two properties, off by default; every key and id kept; a designer's gap
  *                  on one member's row kept and reported as a hand edit, before and after. Mutations: the description
  *                  boolean defaulting on → `rows3153/structure`, `rows3153/description`.
+ *   rows3173/…     Checkbox.Row, Radio.Row and Switch.Row built before #3173 (owner Q3173 A), the medium control-to-label
+ *                  gap on `space/100`, take one Update in place: only the medium members read update, and each one's
+ *                  `content` gap rebinds to `space/150` (12px) while small and large keep theirs; every key and id kept,
+ *                  the text column still beside the cell. Mutation: the executor skipping an in-place rebind of a node's
+ *                  existing `itemSpacing` binding → `rows3173/verdict`, `rows3173/gap`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -4072,6 +4077,53 @@ for (const [ROW, MEMBERS, STACKED] of [['checkbox-row', 6, true], ['radio-row', 
   const post = (await previewUpdate(w.host, [{ def: ROW, plans: newPlans }])).sets[0];
   ok(post.counts.current === MEMBERS - 1 && post.handEdits.length === 1 && post.handEdits[0].member === edited.name,
     `${ROW} rows3153/current: the next dry run reads the other ${MEMBERS - 1} current and still reports the one hand edit (${JSON.stringify(post.counts)}, ${JSON.stringify(post.handEdits).slice(0, 200)})`);
+}
+
+/* ── option rows' control-to-label gap (#3173) ──────────────────────────────────────────────────────────── */
+section('option rows — a set built before #3173 (owner Q3173 A) takes the 12px medium gap in place, every member and node kept');
+// THE FILE: each row as main built it before #3173, the medium gap on `space.100` (8px); small and large were already
+// 8 and 12. THE UPDATE: today's plans, through one Update file. EXPECTED, typed here: the gap variable per size,
+// `space/100` / `space/150` / `space/150`, so only the medium members read update; every key and id kept.
+const GAP_VAR_3173: Record<string, string> = { small: 'space/100', medium: 'space/150', large: 'space/150' };
+for (const [ROW, MEMBERS] of [['checkbox-row', 6], ['radio-row', 6], ['switch-row', 4]] as const) {
+  const def = componentDefs.find((x) => x.id === ROW)!;
+  const old = { ...def, tokens: { ...def.tokens, 'size.medium.gap': 'space.100' } } as typeof def;
+  const newPlans = plansOf(ROW);
+  const w = await world(ROW, figmaAnatomySet(old, { swapTarget: SWAP_TARGET }), {
+    extraVars: newPlans.flatMap((q) => [...planBoundVars(q.root), ...planPaintVars(q.root)]),
+    extraStyles: newPlans.flatMap((q) => planTextStyles(q.root)),
+  });
+  const sizeOf = (m: Node): string => /size=(\w+)/.exec(String(m.name))?.[1] ?? '?';
+  const gapOf = (m: Node): string | undefined => (childNamed(m, 'content').boundVariables as Record<string, { id: string }> | undefined)?.itemSpacing?.id;
+  const medium = membersOf(w.set()).filter((m) => sizeOf(m) === 'medium');
+  const v100 = await varIdOf(w, 'space/100');
+  ok(membersOf(w.set()).length === MEMBERS && medium.length > 0 && medium.every((m) => gapOf(m) === v100),
+    `${ROW} rows3173 premise: the file holds ${MEMBERS} members built before #3173, the ${medium.length} medium ones with the gap on space/100`);
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: ROW, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === medium.length && p.counts.current === MEMBERS - medium.length && p.counts.add === 0 && p.counts.drop === 0 && p.renames.length === 0 && !p.blockers.length && !p.replacements.length && p.handEdits.length === 0,
+    `${ROW} rows3173/dry run: the ${medium.length} medium members read update and the rest current, none added, dropped, renamed or replaced (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+  ok(applyVerdict(res).ok, `${ROW} rows3173/verdict: ${applyVerdict(res).headline}`);
+  const off: string[] = [];
+  for (const m of membersOf(w.set())) {
+    const want = await varIdOf(w, GAP_VAR_3173[sizeOf(m)]);
+    if (gapOf(m) !== want) off.push(`${String(m.name)}: ${gapOf(m)} (want ${GAP_VAR_3173[sizeOf(m)]})`);
+  }
+  ok(off.length === 0, `${ROW} rows3173/gap: every member's control-to-label gap binds space/100, space/150, space/150 by size (${off.slice(0, 2).join('; ') || `all ${MEMBERS}`})`);
+  const after = identityOf(w.set());
+  const lost: string[] = [];
+  for (const [name, b] of before.members) {
+    const a = after.members.get(name);
+    if (!a || a.key !== b.key || a.id !== b.id) { lost.push(`${name}: member`); continue; }
+    const now = new Set(a.kids.values());
+    const miss = [...b.kids].filter(([, id]) => !now.has(id));
+    if (miss.length) lost.push(`${name}: ${miss.map(([path]) => path).slice(0, 2).join(', ')}`);
+  }
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && lost.length === 0 && after.members.size === MEMBERS,
+    `${ROW} rows3173/kept: the set, all ${MEMBERS} members and every node keep their keys and ids (${lost.slice(0, 2).join('; ') || 'none moved'})`);
+  const post = (await previewUpdate(w.host, [{ def: ROW, plans: newPlans }])).sets[0];
+  ok(post.counts.current === MEMBERS && post.handEdits.length === 0, `${ROW} rows3173/current: the next dry run reads all ${MEMBERS} current (${JSON.stringify(post.counts)})`);
 }
 
 /* ── accordion header row (#2594) ────────────────────────────────────────────────────────────────────── */

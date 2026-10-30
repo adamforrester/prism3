@@ -3959,7 +3959,7 @@ for (const b of brands) {
 
   // 3. EVERY DEF'S SPACING, per size, at every density — px through the materializer the plugin runs. The
   //    comfortable column is what the removed shared scale resolved to (Button 16/12/6/8, 16/12/8/8,
-  //    24/16/8/12; fields 16/8/8; rows 8/8/12), so it holds PIXEL IDENTITY; the other two are the step rule's
+  //    24/16/8/12; fields 16/8/8; rows 8/8/12, whose medium gap #3173 then moved to 12), so it holds PIXEL IDENTITY; the other two are the step rule's
   //    moves, the table the PR reports. Tag's comfortable column is the owner's mockup.
   {
     const SPACE_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space.${sp.key}`, sp.px]));
@@ -4000,8 +4000,8 @@ for (const b of brands) {
       breadcrumbs: { bare: ['back-gap'], keys: ['gap'], sizes: ['small', 'medium'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
-    // Rows: block padding (the per-size minimum, #2894) / control-to-label gap.
-    const ROWS = { compact: 'small 4/6 · medium 6/6 · large 8/8', comfortable: 'small 6/8 · medium 8/8 · large 12/12', spacious: 'small 8/12 · medium 12/12 · large 16/16' };
+    // Rows: block padding (the per-size minimum, #2894) / control-to-label gap (8/12/12 since #3173, owner Q3173 A).
+    const ROWS = { compact: 'small 4/6 · medium 6/8 · large 8/8', comfortable: 'small 6/8 · medium 8/12 · large 12/12', spacious: 'small 8/12 · medium 12/16 · large 16/16' };
     const EXPECTED: Record<string, Record<typeof densities[number], string>> = {
       button: BTN, 'button-destructive': BTN, 'button-neutral': BTN,
       'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
@@ -4017,7 +4017,7 @@ for (const b of brands) {
       textarea: { compact: 'small 12/4 · medium 12/6 · large 20/6', comfortable: 'small 16/6 · medium 16/8 · large 24/8', spacious: 'small 20/8 · medium 20/12 · large 32/12' },
       select: { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
-      'switch-row': { compact: 'small 4/6 · medium 6/6', comfortable: 'small 6/8 · medium 8/8', spacious: 'small 8/12 · medium 12/12' },
+      'switch-row': { compact: 'small 4/6 · medium 6/8', comfortable: 'small 6/8 · medium 8/12', spacious: 'small 8/12 · medium 12/16' },
       // Tag: padding-x / select icon→label / dismissible VISIBLE icon→label (owner, 2026-09-29: 6/8/8) /
       // label→check / select trailing inset / dismissible trailing inset. Compact small's visible 6 steps to 4.
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
@@ -32462,6 +32462,79 @@ arm: {
   ok(offCell.length === 0, `#3153 cell: the control cell's floor is one line of the label's own type and the cell is max(control, line), with the label set down by max(0, control − line) ÷ 2, in px, in every world${offCell.length ? ` — OFF: ${offCell.slice(0, 4).join('; ')}` : ''}`);
   ok(offDesc.length === 0, `#3153 description: one step under the label floored at 12 (12/12/14), 4px under it, muted ink, hidden by default${offDesc.length ? ` — OFF: ${offDesc.slice(0, 4).join('; ')}` : ''}`);
   ok(offStart.length === 0, `#3153 description start: the description starts at the label's start edge, past the control, in px${offStart.length ? ` — OFF: ${offStart.slice(0, 4).join('; ')}` : ''}`);
+}
+
+// ---- #3173: THE OPTION ROWS' CONTROL-TO-LABEL GAP IS 8 / 12 / 12 (owner decision Q3173 A) ---------------------
+//
+// Q3173 A: the gap between the control and the label on Checkbox.Row, Radio.Row and Switch.Row is 8 / 12 / 12px
+// (small / medium / large) at comfortable density; medium was 8. Density still moves it one step along the space
+// ladder, so compact is 6 / 8 / 8 and spacious 12 / 16 / 16. The description (#3153) sits in the label's text column,
+// so its start edge moves with the gap: it starts one gap past the control cell.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here as px literals from the decision, never read from the defs' `space.*`
+// steps or from the step rule. ACTUAL is the gap the Figma PLAN binds on `content` (the part between the cell and the
+// text column, found by what it holds, not by name), resolved through each corpus brand's emitted token tree, and the
+// description's x by a layout walk over the plan. Mutations: medium back on `space.100` (any of the three rows) →
+// `#3173 gap`, `#3173 description start`; the three rows out of step (Switch.Row's medium alone moved) → `#3173 gap`.
+{
+  type PN = { name: string; type?: string; children: PN[]; bound?: Record<string, string>; layoutMode?: string };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const pathTo = (n: PN, name: string, trail: PN[] = []): PN[] | undefined => n.name === name ? [...trail, n] : n.children.map((c) => pathTo(c, name, [...trail, n])).find(Boolean);
+  const treeOf = (t: any) => t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+  const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+  const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); const x = String(leaf); return parseFloat(x) * (x.endsWith('rem') ? 16 : 1); };
+  // The decision, in px, per density. Switch.Row has no large.
+  const GAP_PX: Record<string, Record<string, number>> = {
+    compact: { small: 6, medium: 8, large: 8 },
+    comfortable: { small: 8, medium: 12, large: 12 },
+    spacious: { small: 12, medium: 16, large: 16 },
+  };
+  const ROWS = ['checkbox-row', 'radio-row', 'switch-row'];
+  const corpus = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
+  const worlds = corpus.map((b) => ({ brand: b, root: treeOf(JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'))) }));
+  const offGap: string[] = [], offStart: string[] = [];
+  let measured = 0, starts = 0;
+  for (const id of ROWS) {
+    const def = componentDefs.find((d) => d.id === id);
+    if (!def) { offGap.push(`${id}: no such def`); continue; }
+    for (const density of ['compact', 'comfortable', 'spacious'] as const) {
+      for (const p of figmaAnatomySet(applySpacingDensity(def, density), { swapTarget: 'FPO' }).filter((q) => (q.coord as Record<string, string>).status !== 'error')) {
+        const size = p.size ?? (p.coord as Record<string, string>).size;
+        const row = p.root as PN;
+        // The part that holds the control cell and the label's side, whatever it is named.
+        const holder = pathTo(row, 'controlCell')?.slice(-2)[0];
+        for (const w of worlds) {
+          measured++;
+          const where = `${id} ${w.brand} ${density} ${size}`;
+          const v = (name: string | undefined) => (name ? num(w.root, at(w.root, name.replace(/\//g, '.'))) : 0);
+          const gap = v(holder?.bound?.itemSpacing);
+          if (!(holder?.layoutMode === 'HORIZONTAL' && gap === GAP_PX[density][size]))
+            offGap.push(`${where}: gap ${gap}px (${holder?.bound?.itemSpacing}) — want ${GAP_PX[density][size]}`);
+          // THE DESCRIPTION'S START: one gap past the control cell, which hugs the control (comfortable; the option rows).
+          if (density !== 'comfortable' || !find(row, 'description')) continue;
+          starts++;
+          const xOf = (name: string): number => {
+            const path = pathTo(row, name)!;
+            let x = 0;
+            for (let i = 0; i < path.length - 1; i++) {
+              const parent = path[i], child = path[i + 1];
+              x += v(parent.bound?.paddingLeft);
+              if (parent.layoutMode === 'HORIZONTAL') x += parent.children.slice(0, parent.children.indexOf(child)).reduce((a, c) => a + v(find(c, 'control')?.bound?.width ?? c.bound?.width) + v(parent.bound?.itemSpacing), 0);
+            }
+            return x;
+          };
+          const ctl = v(find(row, 'control')?.bound?.width);
+          const want = xOf('controlCell') + ctl + GAP_PX[density][size];
+          if (!(ctl > 0 && Math.abs(xOf('description') - want) < 0.01 && Math.abs(xOf('label') - want) < 0.01))
+            offStart.push(`${where}: description at ${xOf('description')}, label at ${xOf('label')} — want ${want} (a ${ctl}px control, then ${GAP_PX[density][size]})`);
+        }
+      }
+    }
+  }
+  ok(measured >= 8 * 3 * worlds.length && worlds.length >= 4, `#3173: every row, size and density measured in every corpus brand (${measured}, ${worlds.length} brands)`);
+  ok(starts >= 6 * worlds.length, `#3173: the description start is measured on both option rows at every size (${starts})`);
+  ok(offGap.length === 0, `#3173 gap: the control-to-label gap is 8/12/12 at comfortable, 6/8/8 compact, 12/16/16 spacious, in px, on all three rows in every corpus brand${offGap.length ? ` — OFF: ${offGap.slice(0, 4).join('; ')}` : ''}`);
+  ok(offStart.length === 0, `#3173 description start: the label and the description start one gap past the control${offStart.length ? ` — OFF: ${offStart.slice(0, 4).join('; ')}` : ''}`);
 }
 
 // ---- #2894: THE OPTION ROWS LAND ON THE CONTROL-HEIGHT LADDER (owner decision Q539, A on every question) --------

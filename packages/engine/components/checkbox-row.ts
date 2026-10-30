@@ -254,11 +254,11 @@ export const checkboxRow: ComponentDef = {
     'pad-x': 'space.0',
 
     // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. The gap is this spec's own `space.*` step at
-    // comfortable (8/8/12px, the spacing model), which density moves one step (`densitySpacing`). `min-height`
+    // comfortable (8/12/12px since #3173, owner Q3173 A: medium was 8), which density moves one step (`densitySpacing`). `min-height`
     // is the control-height ladder (36/44/56 at comfortable), the row's floor in BOTH projections since #2894
     // (owner Q539, Q?2 A): Figma binds it as the row's auto-layout `minHeight`, so the row still hugs a wrapped label.
     'size.small.gap': 'space.100',
-    'size.medium.gap': 'space.100',
+    'size.medium.gap': 'space.150',
     'size.large.gap': 'space.150',
     'size.small.min-height': 'size.sm.height',
     'size.medium.min-height': 'size.md.height',
