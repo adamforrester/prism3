@@ -142,7 +142,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | `space.100` / `space.0` / `space.100` / `space.0` | — | — | — | — | min height `size.md.height` |
-| `row/content` | — | `space.100` | — | — | — | — |
+| `row/content` | — | `space.150` | — | — | — | — |
 | `row/content/controlCell` | — | — | `type.body.sm.line-box` | — | — | — |
 | `row/content/controlCell/control` | — | — | `control.size.md.track` | — | — | — |
 

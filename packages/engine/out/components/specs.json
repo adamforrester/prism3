@@ -21676,7 +21676,7 @@
               "part": "row/content",
               "values": {
                 "gap": {
-                  "token": "space.100"
+                  "token": "space.150"
                 }
               }
             },
@@ -22926,7 +22926,7 @@
               "part": "row/content",
               "values": {
                 "gap": {
-                  "token": "space.100"
+                  "token": "space.150"
                 }
               }
             },
@@ -24360,7 +24360,7 @@
               "part": "row/content",
               "values": {
                 "gap": {
-                  "token": "space.100"
+                  "token": "space.150"
                 }
               }
             },
