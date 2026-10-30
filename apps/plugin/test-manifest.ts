@@ -17,7 +17,9 @@
  * BY-NAME MUTATIONS (each proven red, then restored):
  *   - `name` back to "Prism3" → "the plugin is named \"Prism3 Studio\"" fails;
  *   - `id` changed → "the plugin keeps its id" fails;
- *   - `permissions` dropped → "the plugin asks for the teamlibrary permission and no other" fails.
+ *   - `permissions` dropped → "the plugin asks for the teamlibrary permission and no other" fails;
+ *   - a third domain in `allowedDomains` → "the plugin allows the two Google Fonts hosts and no other domain" fails;
+ *   - `manifest-offline.json`'s `allowedDomains` → `["*"]` → "the offline plugin allows no network" fails.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -30,12 +32,24 @@ const ok = (cond: boolean, label: string): void => {
 };
 
 const here = dirname(fileURLToPath(import.meta.url));
-const manifest = JSON.parse(readFileSync(join(here, 'manifest.json'), 'utf8')) as { name?: unknown; id?: unknown; permissions?: unknown };
+const manifest = JSON.parse(readFileSync(join(here, 'manifest.json'), 'utf8')) as { name?: unknown; id?: unknown; permissions?: unknown; networkAccess?: { allowedDomains?: unknown; devAllowedDomains?: unknown } };
+const offline = JSON.parse(readFileSync(join(here, 'manifest-offline.json'), 'utf8')) as { name?: unknown; id?: unknown; networkAccess?: { allowedDomains?: unknown } };
 
 ok(manifest.name === 'Prism3 Studio', `the plugin is named "Prism3 Studio" (manifest name: ${JSON.stringify(manifest.name)})`);
 ok(manifest.id === 'prism3-theming-plugin', `the plugin keeps its id "prism3-theming-plugin" (manifest id: ${JSON.stringify(manifest.id)})`);
 ok(JSON.stringify(manifest.permissions) === '["teamlibrary"]',
   `the plugin asks for the teamlibrary permission and no other (Q613 1 A; manifest permissions: ${JSON.stringify(manifest.permissions)})`);
+
+// #3138 (the owner's network model): the dev and "Prism3 Studio" manifest lists the two Google Fonts hosts and no other
+// domain; the offline overlay names the second plugin, gives it its own id, and allows no network.
+ok(JSON.stringify(manifest.networkAccess?.allowedDomains) === '["https://fonts.googleapis.com","https://fonts.gstatic.com"]',
+  `the plugin allows the two Google Fonts hosts and no other domain (#3138; allowedDomains: ${JSON.stringify(manifest.networkAccess?.allowedDomains)})`);
+ok(JSON.stringify(manifest.networkAccess?.devAllowedDomains) === '["ws://localhost:17331"]',
+  `the dev build still reaches the agent link's desktop bridge (devAllowedDomains: ${JSON.stringify(manifest.networkAccess?.devAllowedDomains)})`);
+ok(offline.name === 'Prism3 Studio Offline', `the offline plugin is named "Prism3 Studio Offline" (manifest-offline name: ${JSON.stringify(offline.name)})`);
+ok(offline.id === 'prism3-theming-plugin-offline', `the offline plugin has its own id (manifest-offline id: ${JSON.stringify(offline.id)})`);
+ok(JSON.stringify(offline.networkAccess?.allowedDomains) === '["none"]',
+  `the offline plugin allows no network (manifest-offline allowedDomains: ${JSON.stringify(offline.networkAccess?.allowedDomains)})`);
 
 console.log(failures ? `\n${failures} failure(s)` : '\nmanifest: all checks pass');
 if (failures > 0) process.exit(1);

@@ -9355,6 +9355,32 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     'every composite lands on a real leading rung after derivation + nudge');
 }
 
+// ---- the serif fallback tail (#3140; owner decision Q3138.6 A) ----
+// A known serif or serif display family ends its stack in `serif`, so a page that can't load the face falls back to a
+// serif, not a sans. An unknown family keeps the sans tail, and an authored full stack is trusted verbatim. The expected
+// tails are literals here, never read from `font-class.ts` (docs/34): a list derived from the map could not fail.
+{
+  const tail = (stack: string[]): string => stack[stack.length - 1];
+  const famOf = (b: any, g: string): string[] => b.typography.families.find((f: any) => f.group === g).stack;
+  const serif = tBrand('serif-tail', { families: { display: 'Instrument Serif', title: 'playfair display', body: 'Inter', label: 'Clash Display', caption: 'Instrument Sans', code: 'Lora' } });
+  ok(tail(famOf(serif, 'display')) === 'serif' && famOf(serif, 'display')[1] === 'ui-serif',
+    `#3140: Instrument Serif takes the serif tail (got ${famOf(serif, 'display').join(', ')})`);
+  ok(tail(famOf(serif, 'title')) === 'serif', `#3140: the match ignores case — "playfair display" takes the serif tail (got ${tail(famOf(serif, 'title'))})`);
+  ok(tail(famOf(serif, 'body')) === 'sans-serif', `#3140: a sans family keeps the sans tail (got ${tail(famOf(serif, 'body'))})`);
+  ok(tail(famOf(serif, 'label')) === 'sans-serif', `#3140: a sans DISPLAY family (Clash Display) keeps the sans tail — the class is the face's, not the text type's (got ${tail(famOf(serif, 'label'))})`);
+  ok(tail(famOf(serif, 'caption')) === 'sans-serif', `#3140: an unknown family keeps the sans tail (got ${tail(famOf(serif, 'caption'))})`);
+  ok(tail(famOf(serif, 'code')) === 'monospace', `#3140: a serif face on code keeps the mono tail — code declares mono (got ${tail(famOf(serif, 'code'))})`);
+  const authored = tBrand('serif-authored', { families: { display: ['Lora', 'Helvetica', 'sans-serif'] } });
+  ok(famOf(authored, 'display').join('|') === 'Lora|Helvetica|sans-serif', `#3140: an authored full stack is trusted verbatim (got ${famOf(authored, 'display').join(', ')})`);
+  const lib = tBrand('serif-lib', { families: { body: 'Inter' }, typefaceLibrary: ['Fraunces'] });
+  const fr = lib.typography.typefaces.find((t: any) => t.slug === 'fraunces');
+  ok(tail(fr.stack) === 'serif', `#3140: a staged library face the map knows takes the serif tail (got ${tail(fr.stack)})`);
+  const root = Object.keys(buildTree(serif).tree)[0];
+  const prim = (buildTree(serif).tree[root] as any).core.font.typeface['instrument-serif'];
+  ok(JSON.stringify(prim).includes('"ui-serif"') && !JSON.stringify(prim).includes('"sans-serif"'),
+    '#3140: the emitted typeface primitive carries the serif tail, so a consumer falls back to a serif');
+}
+
 // ---- the authored typeface library (#287) ----
 // A face used to exist only if a role bound it. The library lets a brand stage a face first and
 // decide its job later, so `deriveTypefaces` is now a UNION of role-bound faces and authored ones.
@@ -36990,6 +37016,38 @@ arm: {
   const GLYPH: Record<string, string> = { 'chevron/collapsed': 'chevron-down', 'chevron/expanded': 'chevron-up', 'plus-minus/collapsed': 'plus', 'plus-minus/expanded': 'minus' };
   ok(indPlans.length === 12 && indPlans.every((p) => { const c = coord(p); const shown = (p.root as PN).children.map((k) => k.name); return shown.length === 1 && shown[0] === { 'chevron-down': 'chevronDownGlyph', 'chevron-up': 'chevronUpGlyph', plus: 'plusGlyph', minus: 'minusGlyph' }[GLYPH[`${c.indicator}/${c.expansion}`]]; }),
     `#2417 accordion indicator: 12 members, each showing exactly the one glyph for its pair and state (Q183)`);
+
+  // THE TITLE WEIGHT (#3180, owner Q-ACC1 A): the regular label composite at every size, never emphasis. EXPECTED is
+  // the token and the Figma text style per size, typed here; ACTUAL is the def's binding and every projected member's
+  // label. A title moved back to `type.label.{rung}.emphasis` fails here by name.
+  const TITLE_TYPE: Record<string, string> = { small: 'type.label.sm.default', medium: 'type.label.md.default', large: 'type.label.lg.default' };
+  const TITLE_STYLE: Record<string, string> = { small: 'label/sm/default', medium: 'label/md/default', large: 'label/lg/default' };
+  const offWeight = [
+    ...Object.entries(TITLE_TYPE).filter(([s, t]) => acc.tokens[`size.${s}.type`] !== t).map(([s]) => `def ${s}: ${acc.tokens[`size.${s}.type`]}`),
+    ...plans.filter((p) => (find(p.root as PN, 'label') as PN & { textStyle?: string } | undefined)?.textStyle !== TITLE_STYLE[coord(p).size]).map((p) => `${planComponentName(p)}: ${(find(p.root as PN, 'label') as PN & { textStyle?: string } | undefined)?.textStyle}`),
+  ];
+  ok(offWeight.length === 0,
+    `#3180 accordion title weight (Q-ACC1 A): the regular label composite, type.label.{sm,md,lg}.default (label/{sm,md,lg}/default), on all 48 members at every size, never emphasis` + (offWeight.length ? ` — OFF: ${[...new Set(offWeight)].slice(0, 6).join('; ')}` : ''));
+  // AND ITS LINE BOX (#2586 kept): the composite the title now binds is one line of `type.label.{rung}.line-box` in
+  // every brand, resolved from the emitted composite's own font size and line height, never from the line-box token.
+  const offBox: string[] = [];
+  for (const { id, theme } of corpus()) {
+    const tr = buildTree(theme).tree as any;
+    const root = tr[Object.keys(tr)[0]];
+    const byPath = (dotted: string): any => dotted.split('.').reduce((n: any, k) => n?.[k], tr);
+    const num = (v: any, hops = 0): number => (typeof v === 'string' && /^\{.+\}$/.test(v) && hops < 10
+      ? (byPath(v.slice(1, -1))?.$extensions?.prism3?.px ?? num(byPath(v.slice(1, -1))?.$value, hops + 1))
+      : typeof v === 'number' ? v : parseFloat(String(v)) * (String(v).endsWith('rem') ? 16 : 1));
+    for (const [size, t] of Object.entries(TITLE_TYPE)) {
+      const [, , rung, name] = t.split('.');
+      const comp = root.type?.label?.[rung]?.[name];
+      const box = parseFloat(String(root.type?.label?.[rung]?.['line-box']?.$value));
+      const line = comp ? Math.round(num(comp.$value?.fontSize) * num(comp.$value?.lineHeight)) : NaN;
+      if (!(line === box)) offBox.push(`${id.split(' ')[0]} ${size}: ${t} gives ${line}px, line box ${box}px`);
+    }
+  }
+  ok(corpus().length >= 4 && offBox.length === 0,
+    `#3180 accordion title line box (#2586 kept): the regular title composite is one line of type.label.{rung}.line-box at every size, in every brand` + (offBox.length ? ` — OFF: ${offBox.join('; ')}` : ''));
 }
 
 // ------------------------------------------------------------------- #2319: the list and its item

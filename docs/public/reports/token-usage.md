@@ -3428,10 +3428,11 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.label.lg.default`
 
-Type: typography. Bound by 4 component(s).
+Type: typography. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| accordion | `size.large.type` | label | size: large (16 of 48) |
 | pagination | `size.large.type` | status | size: large · style: border · type: compact (1 of 12) |
 | pagination-item | `size.large.type.unselected` | label | labeled: false · selection: unselected · size: large · state: focus-visible, hover, pressed, rest · style: border · type: page (4 of 87) |
 |  |  | nextText | labeled: true · selection: unselected · size: large · style: border · type: next (5 of 87) |
@@ -3441,11 +3442,10 @@ Type: typography. Bound by 4 component(s).
 
 ### `type.label.lg.emphasis`
 
-Type: typography. Bound by 10 component(s).
+Type: typography. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.type` | label | size: large (16 of 48) |
 | button | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
 | button-destructive | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
 | button-neutral | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
@@ -3472,10 +3472,11 @@ Type: typography. Bound by 3 component(s).
 
 ### `type.label.md.default`
 
-Type: typography. Bound by 5 component(s).
+Type: typography. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| accordion | `size.medium.type` | label | size: medium (16 of 48) |
 | divider | `label.type` | label | inset: none · labeled: true (2 of 7) |
 | pagination | `size.medium.type` | status | size: medium · style: border · type: compact (1 of 12) |
 | pagination-item | `size.medium.type.unselected` | label | labeled: false · selection: unselected · size: medium · state: focus-visible, hover, pressed, rest · style: border · type: page (4 of 87) |
@@ -3486,11 +3487,10 @@ Type: typography. Bound by 5 component(s).
 
 ### `type.label.md.emphasis`
 
-Type: typography. Bound by 11 component(s).
+Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.medium.type` | label | size: medium (16 of 48) |
 | banner | `title-type` | title | every member (8 of 8) |
 | button | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
 | button-destructive | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
@@ -3526,10 +3526,11 @@ Type: dimension. Bound by 1 component(s).
 
 ### `type.label.sm.default`
 
-Type: typography. Bound by 4 component(s).
+Type: typography. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| accordion | `size.small.type` | label | size: small (16 of 48) |
 | pagination | `size.small.type` | status | size: small · style: border · type: compact (1 of 12) |
 | pagination-item | `size.small.type.unselected` | label | labeled: false · selection: unselected · size: small · state: focus-visible, hover, pressed, rest · style: border · type: page (4 of 87) |
 |  |  | nextText | labeled: true · selection: unselected · size: small · style: border · type: next (5 of 87) |
@@ -3539,11 +3540,10 @@ Type: typography. Bound by 4 component(s).
 
 ### `type.label.sm.emphasis`
 
-Type: typography. Bound by 10 component(s).
+Type: typography. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.small.type` | label | size: small (16 of 48) |
 | badge | `size.medium.type` | count | emphasis: bold · size: medium · type: count (5 of 40) |
 |  |  | label | size: medium · type: status (15 of 40) |
 | button | `size.small.filled.type`, `size.small.outline.type` | label | appearance: filled, outline · inset: default · size: small (96 of 576) |
@@ -3621,7 +3621,7 @@ Declared, not drawn: `color.border.focus`
 
 18 token(s); 48 design-file member(s).
 
-`color.interactive.neutral.text.rest`, `color.text.primary`, `focus.ring.offset-field`, `size.lg.height`, `size.md.min-height`, `space.0`, `space.025`, `space.100`, `space.150`, `space.200`, `space.250`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
+`color.interactive.neutral.text.rest`, `color.text.primary`, `focus.ring.offset-field`, `size.lg.height`, `size.md.min-height`, `space.0`, `space.025`, `space.100`, `space.150`, `space.200`, `space.250`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`, `type.label.lg.default`, `type.label.md.default`, `type.label.sm.default`
 
 ### badge
 
