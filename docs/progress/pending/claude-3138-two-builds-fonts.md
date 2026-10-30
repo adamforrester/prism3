@@ -34,4 +34,9 @@ serif faces move to the serif tail. CONTRACT unchanged: no token is renamed or a
 - **The Google Fonts CSS API (`/css`, not `/css2`)** answers a request for all eighteen cuts with the ones that exist,
   so one request per family also tells the preview the family's cuts.
 - **Q3138.7 and Q3138.8** (on #3138): the plugins are named "Prism3 Studio" and "Prism3 Studio Offline", keeping the
-  2026-10-04 product name, and the network build keeps the existing id; the privacy line's words are DRAFT.
+  2026-10-04 product name, and the network build keeps the existing id; the privacy line's words are DRAFT, and it
+  sits just above the Inspect menu's build stamp, because C3 A keeps the stamp last.
+- **Q3138.9:** the owner's 2026-10-02 rule (no "face" in visible copy, held by `test:chrome`) beat the drafted
+  "shown in a fallback face"; the notes say "fallback font".
+- **A new `styles.css` rule needs a `lint:live-css` re-sweep to accept,** so the type sample's note sets its small
+  text inline instead. `chrome.css` refuses raw lengths (`32ch`): its values are tokens.
