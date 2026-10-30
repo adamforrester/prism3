@@ -79,7 +79,7 @@ Each mutation was made on a committed `wip:` tree and failed by name:
 ### Not in this change
 
 - Capture baseline and Adopt still load every page and then search the whole file per set (`captureBaselines`,
-  `adoptMembers`). Filed separately.
+  `adoptMembers`). Filed as #3189.
 - The executor's `findAll` by name runs on its failure path only (a nest or swap target it cannot find), and still
   searches the whole file.
 - Nothing was run in Figma. One page's search cannot be split, so a very dense page still holds one turn for its search.
