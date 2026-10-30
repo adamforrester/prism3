@@ -71,9 +71,17 @@ fill, edge or wash as a member declared unpainted. A wash or an edge with no fil
 | empty `GROUND_HOSTS` | lint-mark-colors (h) | `BUTTON GROUND — part 'mark' carries provider-logo/button/apple-pay-black, and only  may carry a button logo` |
 | give `any` an edge and no fill | projector | `reads literal 'surface' … and its entry has no fill` |
 | retint paypal-gold's ground in the record AND the module (lint-mark-colors stays clean) | test.ts | `❌ #2343 PR 4 provider rules COLOR … {"fill":"#ffc43a"}, typed {"fill":"#ffc439"}` |
+| the same retint, through the real plugin executor | plugin test | `✗ wallet build/ground … {"fill":"#ffc43a"} vs {"fill":"#ffc439"}` |
+| the update verifier without its literal-paint read (the state before this PR) | plugin test-update-apply | `✗ def rename, single/wallet-button verified: … fills: 1 paint(s) (the plan says none)` |
 | drop `silver` from PayPal's styles | test.ts | `❌ #3174 provider rules STYLE` |
 | bind a style's medium logo to `icon.size.lg` | test.ts | `❌ #3174 provider rules LOGO HEIGHT: a style's logo binds … logo 32, want 44` |
 | move Shop Pay's logo 2px down in its file | test.ts | `❌ #3174 provider rules LOGO HEIGHT: each style's logo is its provider's ink height at 44 …` |
+
+**The plugin.** The executor already draws `literalPaints`, so it needs no change and no `EXECUTOR_REVISION`. The
+update verifier's "a paint the plan does not give" check (`update-apply.ts`, #2369) read only bound and gradient
+paints, so it reported every styled member's literal ground as unplanned. It now counts a literal fill or stroke as
+planned. SignInButton had the same shape, but no update test built it. The plugin build tests read the new axis, and
+`wallet build/ground` holds each built member's ground and edge to values typed in the test.
 
 **What the capture found that the proposal did not have.**
 - Google Pay draws a 1px inside edge on both styles: #757575 on black and #3c4043 on white. The records carry both.
