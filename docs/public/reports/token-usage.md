@@ -3232,7 +3232,7 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 18 component(s).
+Type: typography. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
