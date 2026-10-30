@@ -157,12 +157,12 @@ export const nearestCut = (cuts: readonly FaceCut[], weight: number, italic: boo
 
 /** The notes a brand-face line can carry. DRAFT under `docs/voice-standard.md` (owner decision Q5 A: as drafted). */
 export const FACE_NOTE = {
-  fallbackFigma: (family: string): string => `${family} can't load in this preview — shown in a fallback face. Figma uses ${family}.`,
+  fallbackFigma: (family: string): string => `${family} can't load in this preview — shown in a fallback font. Figma uses ${family}.`,
   /** The family is missing from this Figma too, so "Figma uses it" would be false; the Faces table says it lacks it. */
-  fallbackPreview: (family: string): string => `${family} can't load in this preview — shown in a fallback face.`,
+  fallbackPreview: (family: string): string => `${family} can't load in this preview — shown in a fallback font.`,
   fallbackFigmaCut: (family: string, w: number): string =>
-    `${family} can't load in this preview — shown in a fallback face. It has no ${w} cut, so Apply skips this style in Figma.`,
-  fallbackWeb: (family: string): string => `${family} isn't installed on this device — shown in a fallback face.`,
+    `${family} can't load in this preview — shown in a fallback font. It has no ${w} cut, so Apply skips this style in Figma.`,
+  fallbackWeb: (family: string): string => `${family} isn't installed on this device — shown in a fallback font.`,
   cutFigma: (family: string, w: number, near: number): string =>
     `${family} has no ${w} cut — shown at ${near}, its nearest. Apply skips this style in Figma.`,
   cutWeb: (family: string, w: number, near: number): string =>

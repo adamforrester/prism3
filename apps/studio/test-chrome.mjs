@@ -18031,8 +18031,8 @@ const sampleLines = async (page) => {
   await cdp.detach();
   return lines;
 };
-const FALLBACK_WEB = "Playfair Display isn't installed on this device — shown in a fallback face.";
-const FIGMA_CUT = "Playfair Display can't load in this preview — shown in a fallback face. It has no 600 cut, so Apply skips this style in Figma.";
+const FALLBACK_WEB = "Playfair Display isn't installed on this device — shown in a fallback font.";
+const FIGMA_CUT = "Playfair Display can't load in this preview — shown in a fallback font. It has no 600 cut, so Apply skips this style in Figma.";
 const WEIGHT_NOTE = 'Playfair Display has 2 styles: Regular and Italic. 500 and 600 have no cut.';
 const LOADED_CUT = 'Playfair Display has no 600 cut — shown at 400, its nearest. Browsers fake 600 by thickening 400.';
 for (const host of ['web', 'figma']) {

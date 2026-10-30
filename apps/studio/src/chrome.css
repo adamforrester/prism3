@@ -191,8 +191,10 @@
 .p3-menu-stamp { display: flex; flex-wrap: wrap; gap: var(--p3-space-050) var(--p3-space-150); margin: var(--p3-space-050) 0 0; padding: var(--p3-space-100) var(--p3-space-150) var(--p3-space-050);
   border-top: var(--p3-bw-hairline) solid var(--p3-line-1); color: var(--p3-text-2); font-size: var(--p3-fs-12); user-select: text; }
 .p3-menu-stamp-b { font-family: var(--p3-font-mono); overflow-wrap: anywhere; }
-/* #3138: the privacy note, on a line of its own under the build chip. */
-.p3-menu-stamp-n { flex-basis: 100%; }
+/* #3138: the privacy note, just above the build stamp, in the stamp's small secondary text. */
+.p3-menu-privacy { margin: var(--p3-space-050) 0 0; padding: var(--p3-space-100) var(--p3-space-150) 0; border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
+  color: var(--p3-text-2); font-size: var(--p3-fs-12); max-inline-size: 32ch; }
+.p3-menu-privacy + .p3-menu-stamp { margin-top: 0; border-top: 0; }
 .p3-menu-item > .p3-ico:last-child { visibility: hidden; color: var(--p3-icon); }
 .p3-menu-item[aria-checked="true"] { font-weight: var(--p3-fw-emphasis); }
 .p3-menu-item[aria-checked="true"] > .p3-ico:last-child { visibility: visible; }
