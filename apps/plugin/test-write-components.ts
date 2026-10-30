@@ -5788,8 +5788,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'provider-logo/provider/google', word: 'Continue with Google' },
     'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'provider-logo/provider/google', word: 'Continue with Google' },
     'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'provider-logo/provider/google', word: 'Continue with Google' },
-    'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'provider-logo/provider/facebook', word: 'Continue with Facebook', glyph: '#ffffff' },
-    'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'provider-logo/provider/facebook-blue', word: 'Continue with Facebook' },
+    'facebook.blue': { fill: '#0866ff', ink: '#ffffff', mark: 'provider-logo/provider/facebook', word: 'Continue with Facebook', glyph: '#ffffff' },
+    'facebook.white': { fill: '#ffffff', ink: '#0866ff', mark: 'provider-logo/provider/facebook-blue', word: 'Continue with Facebook' },
   };
   // An instance's vectors are reachable through `findAll`, as on the host (#2389).
   const vectorsIn = (n: Node | undefined): Node[] => typeof n?.findAll === 'function' ? (n.findAll as (p: (x: Node) => boolean) => Node[])((x) => x.type === 'VECTOR') : [];

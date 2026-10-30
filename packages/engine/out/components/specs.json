@@ -11098,7 +11098,7 @@
             }
           },
           "facebook.blue": {
-            "fill": "#1877f2",
+            "fill": "#0866ff",
             "ink": "#ffffff",
             "wash": {
               "hover": "#ffffff1a",
@@ -11109,7 +11109,7 @@
           },
           "facebook.white": {
             "fill": "#ffffff",
-            "ink": "#1877f2",
+            "ink": "#0866ff",
             "wash": {
               "hover": "#0000001a",
               "pressed": "#00000033"

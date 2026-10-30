@@ -1321,14 +1321,19 @@ const fontsDrawn = async (page) => {
   // Every probed text node: `text` (the UI face) or `mono` (the mono face, S2).
   const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-cprobe]' });
   const out = [];
+  // A node the page re-rendered between the probe and any of its three reads is gone (#3069: the page can re-render it
+  // after the font read, before its attributes or its markup): the caller reads the whole state again. Only that one
+  // error; any other still throws, and a node read whole is measured as before.
+  const read = (method, nodeId) => cdp.send(method, { nodeId }).catch((e) => (/Could not find node/.test(String(e)) ? null : Promise.reject(e)));
   for (const nodeId of nodeIds) {
-    // A node the page re-rendered between the probe and this read is gone: the caller reads the whole state again.
-    const got = await cdp.send('CSS.getPlatformFontsForNode', { nodeId }).catch((e) => (/Could not find node/.test(String(e)) ? null : Promise.reject(e)));
-    if (!got) { await cdp.detach(); await page.evaluate(() => { for (const n of document.querySelectorAll('[data-cprobe]')) n.removeAttribute('data-cprobe'); }); return null; }
+    const got = await read('CSS.getPlatformFontsForNode', nodeId);
+    const attrs = got && await read('DOM.getAttributes', nodeId);
+    const html = attrs && await read('DOM.getOuterHTML', nodeId);
+    if (!html) { await cdp.detach(); await page.evaluate(() => { for (const n of document.querySelectorAll('[data-cprobe]')) n.removeAttribute('data-cprobe'); }); return null; }
     const { fonts } = got;
-    const { attributes } = await cdp.send('DOM.getAttributes', { nodeId });
+    const { attributes } = attrs;
     const want = attributes[attributes.indexOf('data-cprobe') + 1] === 'mono' ? MONO_FONT : UI_FONT;
-    const { outerHTML } = await cdp.send('DOM.getOuterHTML', { nodeId });
+    const { outerHTML } = html;
     out.push({ el: outerHTML.slice(0, 60), fonts: fonts.map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`),
       gapFonts: fonts.filter((f) => f.familyName !== want || !f.isCustomFont).reduce((n, f) => n + f.glyphCount, 0) });
   }
@@ -15937,6 +15942,8 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //     its picker; lifted by resetting that size.
 //   · Italic only on a text type that pins a font style (S63.italicPinned): body's default weight pinned to "Medium";
 //     lifted by clearing the pin.
+// Each case also holds which chips of its group are disabled (#3121; before, the waits for them swallowed a timeout and
+// asserted nothing): the refused chip alone with the refusal showing, none once it is lifted.
 //
 // INDEPENDENCE (docs/34). EXPECTED is typed here: the three approved sentences, copied from the owner-approved strings
 // (S63.titleFloorCompact, S63.titleFloorPinned, S63.italicPinned), plus #3084's DRAFT S63.captionFloorPinned, and which chip each case refuses, worked out by hand
@@ -15954,6 +15961,10 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //     described by the reason (read {"role":"radiogroup","description":""})`, and each other case's (ii) (12);
 //   · (c) the line sent to the live region (drawn as a warning) → `§43 web light 1280 Title floor 16px under Compact: (iii) a
 //     hint doesn't announce: the drawn reason is in no live region (drawn 1, 1 live region(s) carrying it)`, each case (12).
+//   · (d) #3121: the caption floor's refusal on the 11px chip (`v: '11'` in `type.ts`), which disables the selected chip
+//     and leaves 10px live → `§43 web light 1280 Caption floor 10px with caption md at 10px: [data-p3="caption-floor-10"]
+//     is disabled, and every other chip in its group live (disabled: ["caption-floor-11"] of [...])` (4); survived before;
+//   · (e) #3121: the Compact refusal on the 18px chip → the same arm for `title-floor-16`, disabled: ["title-floor-18"] (4).
 // =============================================================================================
 if (runs('43')) {
 console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor and Italic only (#2451, #3084)\n${'='.repeat(78)}`);
@@ -15999,7 +16010,18 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor a
     if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
     await page.waitForFunction(() => !document.querySelector('[data-p3="value-picker"]'), null, BOUND).catch(() => {});
   };
-  const chipOff = (page, sel, want) => page.waitForFunction(([s, x]) => document.querySelector(s)?.disabled === x, [sel, want], BOUND).catch(() => {});
+  /** #3121: which chips of the group are disabled, asserted. Waits (bounded) for `chip` to reach the state, then reads
+   *  every chip in `group` (each button in it) and holds the disabled ones to EXPECTED, typed by hand: `chip` alone
+   *  while refused, none once lifted. So a refusal that disables the wrong chip (the selected one, or both) fails here
+   *  by name. */
+  const chipOff = async (page, group, chip, want, where) => {
+    await page.waitForFunction(([s, x]) => document.querySelector(s)?.disabled === x, [`${group} ${chip}`, want], BOUND).catch(() => {});
+    const read = await page.evaluate(([g, c]) => [...(document.querySelector(g)?.querySelectorAll('button') ?? [])]
+      .map((e) => ({ hook: e.getAttribute('data-p3'), it: e.matches(c), off: e.disabled })), [group, chip]);
+    const off = read.filter((x) => x.off);
+    ok(read.filter((x) => x.it).length === 1 && off.length === (want ? 1 : 0) && off.every((x) => x.it),
+      `${where}: ${chip} is ${want ? 'disabled, and every other chip in its group live' : 'live again, with every chip in its group'} (disabled: ${JSON.stringify(off.map((x) => x.hook))} of ${JSON.stringify(read.map((x) => x.hook))})`);
+  };
   const checked = (page, sel) => page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', sel, BOUND).catch(() => {});
   for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
     const where = `§43 ${host} light ${w}`;
@@ -16029,11 +16051,11 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor a
       step = 'Type scale Compact';
       await hooks.click(page.locator('[data-p3="type-scale-compact"]'), BOUND);
       await checked(page, '[data-p3="type-scale-compact"]');
-      await chipOff(page, '[data-p3="title-floor-16"]', true);
+      await chipOff(page, FLOOR_GROUP, '[data-p3="title-floor-16"]', true, `${where} Title floor 16px under Compact`);
       await arms('Title floor 16px under Compact', FLOOR_ROW, FLOOR_GROUP, COMPACT, async () => {
         await hooks.click(page.locator('[data-p3="type-scale-default"]'), BOUND);
         await checked(page, '[data-p3="type-scale-default"]');
-        await chipOff(page, '[data-p3="title-floor-16"]', false);
+        await chipOff(page, FLOOR_GROUP, '[data-p3="title-floor-16"]', false, `${where} Title floor 16px under Compact, lifted`);
       });
       // Title floor 18px while title 2xs is set individually.
       step = 'Expressive, title floor 16px';
@@ -16047,12 +16069,12 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor a
       const to = await firstFree(page);
       await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${to}"]`), BOUND);
       await closePicker(page);
-      await chipOff(page, '[data-p3="title-floor-18"]', true);
+      await chipOff(page, FLOOR_GROUP, '[data-p3="title-floor-18"]', true, `${where} Title floor 18px with title 2xs set`);
       await arms(`Title floor 18px with title 2xs set (${to}px)`, FLOOR_ROW, FLOOR_GROUP, PINNED18, async () => {
         await hooks.click(page.locator(T2XS), BOUND);
         await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
         await closePicker(page);
-        await chipOff(page, '[data-p3="title-floor-18"]', false);
+        await chipOff(page, FLOOR_GROUP, '[data-p3="title-floor-18"]', false, `${where} Title floor 18px with title 2xs set, lifted`);
       });
       // Caption floor 10px while caption md is set to 10px (#3084).
       step = 'set caption md to 10px';
@@ -16060,23 +16082,23 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor a
       await hooks.need(page, '[data-p3="value-picker"]', BOUND);
       await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="10"]'), BOUND);
       await closePicker(page);
-      await chipOff(page, '[data-p3="caption-floor-10"]', true);
+      await chipOff(page, CFLOOR_GROUP, '[data-p3="caption-floor-10"]', true, `${where} Caption floor 10px with caption md at 10px`);
       await arms('Caption floor 10px with caption md at 10px', CFLOOR_ROW, CFLOOR_GROUP, CAPTION10, async () => {
         await hooks.click(page.locator(CAPMD), BOUND);
         await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
         await closePicker(page);
-        await chipOff(page, '[data-p3="caption-floor-10"]', false);
+        await chipOff(page, CFLOOR_GROUP, '[data-p3="caption-floor-10"]', false, `${where} Caption floor 10px with caption md at 10px, lifted`);
       });
       // Italic only on a text type that pins a font style.
       step = 'pin body\'s font style';
       await hooks.need(page, PIN, BOUND);
       await page.locator(PIN).fill('Medium');
       await page.locator(PIN).evaluate((e) => e.blur());
-      await chipOff(page, `${ITALIC_ROW} [data-p3="italic-choice-only"]`, true);
+      await chipOff(page, ITALIC_GROUP, '[data-p3="italic-choice-only"]', true, `${where} Italic only with a pinned font style`);
       await arms('Italic only with a pinned font style', ITALIC_ROW, ITALIC_GROUP, ITALIC, async () => {
         await page.locator(PIN).fill('');
         await page.locator(PIN).evaluate((e) => e.blur());
-        await chipOff(page, `${ITALIC_ROW} [data-p3="italic-choice-only"]`, false);
+        await chipOff(page, ITALIC_GROUP, '[data-p3="italic-choice-only"]', false, `${where} Italic only with a pinned font style, lifted`);
       });
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {

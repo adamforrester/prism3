@@ -8,7 +8,7 @@
     },
     "provider-logo": {
       "members": 75,
-      "sha256": "800dfb71a445fe7a9d4bd179347f043342e3039aca3bda9c24226d576ba832c2",
+      "sha256": "f19891f13e5458032540847e5fb417d94b0f95338b1d8e86ec7a4b20e8d4d7de",
       "properties": []
     },
     "focus-ring": {
@@ -233,7 +233,7 @@
     },
     "sign-in-button": {
       "members": 96,
-      "sha256": "9d7d37cdf3bdea3318bfa66a26924a7131a4ce2f0303ad87a3c70ab1d5347e74",
+      "sha256": "9a4d39342b35aa1f46094c12968b581a9446d91eb78c0c51b873cdbee57dfbac",
       "properties": []
     },
     "icon-button": {
