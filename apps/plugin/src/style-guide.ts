@@ -1129,8 +1129,10 @@ const GRID_SPECIMEN_H = 34;
 export const OFF_SPACE_SCALE = 'off space scale';
 /** Owner-approved wording (#3171, Q3171.3 A): a gutter or margin that is a plain value, linked to no variable. */
 export const UNLINKED_PX = '⚠ unlinked px';
-/** Owner-approved wording (#3171, Q3171.3 A): the grid style holds `style` where the variable holds `variable`. */
-export const gridMismatch = (style: number, variable: number): string => `⚠ style ${trimNum(style, 2)} ≠ variable ${trimNum(variable, 2)}`;
+/** The grid style holds `style` where the variable holds `variable` (#3171, Q3171.3 A). DRAFT wording for the owner: the
+ *  wireframe's chip with a comma for its not-equal sign (U+2260), which the chrome's subset of Inter does not carry, so the
+ *  build's glyph gate (`apps/studio/chrome/glyphs.mjs`) refuses it in any string the panel can be handed. */
+export const gridMismatch = (style: number, variable: number): string => `⚠ style ${trimNum(style, 2)}, variable ${trimNum(variable, 2)}`;
 /** DRAFT wording for the owner (#3171): a breakpoint the layout variables have and no grid style is named for. */
 export const NO_GRID_STYLE = '⚠ no grid style';
 /** The width each column of a column grid takes in a frame `frame` px wide (#3171, Q3171.4 A). */

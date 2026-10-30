@@ -1384,7 +1384,7 @@ const main = async (): Promise<void> => {
     ok(hover.cells[0].contrast?.ink === 'text/primary' && hover.cells[0].contrast?.ground === 'background/primary' && contrastText(hover.cells[0].contrast).startsWith('15.42:1 — clears the 4.5:1 floor'), '3: text/primary over interactive.primary.overlay.hover on background.primary, light: 15.42:1');
     const noBrand = planStyleGuide(catalog, null);
     ok(noBrand.tables.every((t) => t.rows.every((r) => r.cells.every((c) => c.contrast === null))) && noBrand.notes.some((n) => n.startsWith('No saved brand')), '3: no saved brand — every contrast "—", said once');
-    ok(planStyleGuide(catalog, contract, { types: ['motion'] }).tables.length === 0 && planStyleGuide(catalog, contract, { types: ['motion'] }).notes.includes('motion: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography, shadow, gradient'), '3: a later-phase type is named, not drawn');
+    ok(planStyleGuide(catalog, contract, { types: ['motion'] }).tables.length === 0 && planStyleGuide(catalog, contract, { types: ['motion'] }).notes.includes('motion: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography, shadow, gradient, grid'), '3: a later-phase type is named, not drawn');
     ok(planStyleGuide(catalog, contract, { valueFormat: 'rgba' }).tables.find((t) => t.title === 'Scrim')!.rows[0].cells[0].value === 'rgba(0, 0, 0, 0.4)', '3: rgba format');
   }
 
@@ -2482,7 +2482,7 @@ const main = async (): Promise<void> => {
     ok((await draw(dup.api, contract, { tables: ['Font size'] })).unmatched.length === 1, '19: "Font size" alone matches neither disambiguated title, and is reported');
     // THE PHASE BOUNDARY: a type outside it is named, not drawn; the later-phase variables are counted.
     const out = await draw(p2.api, contract, { types: ['dimension', 'motion'] });
-    ok(out.tables.length === 6 && out.tables.every((t) => t.key.startsWith('dimension|')) && out.notes.includes('motion: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography, shadow, gradient'),
+    ok(out.tables.length === 6 && out.tables.every((t) => t.key.startsWith('dimension|')) && out.notes.includes('motion: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography, shadow, gradient, grid'),
       `19: types [dimension, motion] draws the 6 dimension tables and names motion as outside this phase (${out.notes.join(' / ')})`);
     // Since #2353 every variable phase 2's file holds is drawn: its 13 font styles in the Text styles table, its 12
     // opacities in their own. The note's counts are asserted in 21 and 35.
@@ -3532,8 +3532,9 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(d3e?.extra?.slice(1, 3)) === JSON.stringify([{ value: '500 · Medium', alias: null }, { value: 'Medium Italic', alias: 'pds3/core/font/style/display/emphasis' }]),
       `35: display/3xl/emphasis: Weight "500 · Medium", Style "Medium Italic" with its font-style variable (${JSON.stringify(d3e?.extra?.slice(1, 3))})`);
 
-    // THE LATER-PHASE NOTE: none of the four groups, and still what is left (the unbound font style, breakpoints, grid).
-    ok(plan35.notes.includes('Not drawn until a later phase: 1 font style, 5 breakpoint, 3 grid variables'),
+    // THE LATER-PHASE NOTE: none of the four groups, and still what is left: the unbound font style. The breakpoints and
+    // grid variables are printed in the Grid styles table since #3171.
+    ok(plan35.notes.includes('Not drawn until a later phase: 1 font style variable'),
       `35: the later-phase note no longer lists border width, icon size, opacity or a bound font style (${plan35.notes.join(' / ')})`);
 
     // THE PAGE'S CATALOG: each is listed under the table that draws it.
@@ -3541,13 +3542,14 @@ const main = async (): Promise<void> => {
     const tableOfItem = (name: string): string => { for (const c of cat.collections) for (const it of c.items) if (it.name === name) return it.table < 0 ? 'none' : cat.tables[it.table].title; return '?'; };
     const listed = ['pds3/border-width/thick', 'pds3/focus/ring/offset', 'pds3/icon/size/md', 'pds3/opacity/40', 'pds3/core/font/style/body/strong', 'pds3/core/font/style/unused/default', 'pds3/breakpoint/md'].map((n) => `${n}→${tableOfItem(n)}`);
     ok(JSON.stringify(listed) === JSON.stringify(['pds3/border-width/thick→Border width', 'pds3/focus/ring/offset→Border width', 'pds3/icon/size/md→Icon size', 'pds3/opacity/40→Opacity',
-      'pds3/core/font/style/body/strong→Text styles', 'pds3/core/font/style/unused/default→none', 'pds3/breakpoint/md→none']),
-      `35: the page lists each under the table that draws it, and the unbound font style and a breakpoint under none (${listed.join(', ')})`);
+      'pds3/core/font/style/body/strong→Text styles', 'pds3/core/font/style/unused/default→none', 'pds3/breakpoint/md→Grid styles']),
+      `35: the page lists each under the table that draws it, the unbound font style under none, and a breakpoint under Grid styles (#3171) (${listed.join(', ')})`);
     const opItem = cat.collections.find((c) => c.name === 'opacity')?.items.find((it) => it.name === 'pds3/opacity/40');
     ok(opItem?.value === '40%' && cat.tables.find((t) => t.title === 'Opacity')?.kind === 'dimension' && cat.tables.find((t) => t.title === 'Border width')?.kind === 'dimension',
       `35: the page prints opacity 40 as 40%, and groups Opacity and Border width with spacing and size (${opItem?.value})`);
 
-    // DRAWN.
+    // DRAWN, on a file with the Grids & layouts page the layout collection's tables are drawn on (#3171).
+    b1.pages.push(page('↳ Grids & layouts'));
     const r35 = await draw(b1.api, contract);
     ok(r35.unbound === 0 && !r35.tables.some((t) => t.status !== 'created'), `35: an open run draws every table, every specimen bound (unbound ${r35.unbound}; ${r35.misses.slice(0, 2).join(' / ')})`);
     const bwG = gridOf(tableFrame(b1.sem, 'Border width'));
@@ -3920,7 +3922,7 @@ const main = async (): Promise<void> => {
       `36: a file with no effect or gradient style draws neither table, and a collections filter leaves both out (${bare.tables.map((t) => t.title).join(', ')})`);
     // THE PHASE BOUNDARY MOVED: shadow and gradient are in it; motion still is not.
     const motion = planStyleGuide(cat36, contract, { types: ['shadow', 'gradient', 'motion'] }).notes;
-    ok(motion.includes('motion: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography, shadow, gradient')
+    ok(motion.includes('motion: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography, shadow, gradient, grid')
       && !motion.some((n) => n.startsWith('shadow:') || n.startsWith('gradient:')),
       `36: the note names shadow and gradient among the types this phase draws, and no longer either as outside it (${motion.join(' / ')})`);
 
@@ -4720,10 +4722,10 @@ const main = async (): Promise<void> => {
       const rows = planStyleGuide(catOf(f), null).tables.find((t) => t.type === 'grid')!.rows;
       const cell = rows[2].extra![1];
       const others = rows.flatMap((r, i) => (r.extra ?? []).filter((x, k) => (i !== 2 || k !== 1) && (x.alias ?? '').includes('⚠ style')).map((x) => `${r.token}: ${x.alias}`));
-      ok(want === 24 && cell.value.startsWith('24px') && cell.alias === `${chipFromCatalog(f, 'gutter', 'layout:2')} · ⚠ style 20 ≠ variable 24` && others.length === 0,
+      ok(want === 24 && cell.value.startsWith('24px') && cell.alias === `${chipFromCatalog(f, 'gutter', 'layout:2')} · ⚠ style 20, variable 24` && others.length === 0,
         `43f: the mismatch arm — lg's gutter prints the variable's 24px and its chip names the style's 20 ("${cell.value}" [${cell.alias}]; elsewhere: ${others.join('; ') || 'none'})`);
       const bare = planStyleGuide(catOf(f), null, { aliases: false }).tables.find((t) => t.type === 'grid')!.rows;
-      ok(bare[2].extra![1].alias === '⚠ style 20 ≠ variable 24' && bare[2].extra![1].always === true && bare[0].extra![1].alias === null,
+      ok(bare[2].extra![1].alias === '⚠ style 20, variable 24' && bare[2].extra![1].always === true && bare[0].extra![1].alias === null,
         `43f: with aliases off, the mismatch chip stays and the link chips go (${bare[2].extra![1].alias}; ${bare[0].extra![1].alias})`);
     }
 

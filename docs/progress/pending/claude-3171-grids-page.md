@@ -12,8 +12,8 @@ and `lint-executor-revision.ts` passes.
   modes, each matched to its grid style), Token · Specimen · Min width · Columns · Gutter · Margin · Column · Max width ·
   Description. The values are always the variables'; the style lays out the 1:8 specimen and the Column width.
 - **Chips.** A gutter or margin carries its link: the space step, else the aliased core dimension marked "off space
-  scale", else "⚠ unlinked px". A column where the grid style disagrees with the variable carries "⚠ style N ≠ variable
-  M", whatever the Aliases toggle says: the plugin-side twin of the engine's G1 gate.
+  scale", else "⚠ unlinked px". A column where the grid style disagrees with the variable carries "⚠ style N, variable M"
+  (DRAFT wording: the wireframe's not-equal sign is not in the chrome's Inter subset), whatever the Aliases toggle says: the plugin-side twin of the engine's G1 gate.
 - **The Container table** is drawn on the same page, in Containers, with its key unchanged. `container/*` is a kind of
   its own, drawn as a dimension. Breakpoint and grid variables leave the later-phase note.
 - **The move.** `FORMER_TABLE_PAGES` (beside `FORMER_PAGES`) and `relocateTables`. Update file lists the move in its dry
