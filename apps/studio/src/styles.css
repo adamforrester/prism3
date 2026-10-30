@@ -113,7 +113,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .start-go:hover{background:#000}
 
 .chrome{position:sticky;top:0;z-index:20;background:var(--paper)}
-.logo{width:18px;height:18px;border-radius:var(--r-xs);background:conic-gradient(from 210deg,#5e4bc3,#0088be,#2f6833,#a13731,#5e4bc3)}
+/* The product mark (#3164, Q3164.1 A): the same four hues lifted to OKLCH L 0.62, each stop 3:1 or more on both chrome grounds. */
+.logo{width:18px;height:18px;border-radius:var(--r-xs);background:conic-gradient(from 210deg,#7e6cf7,#0391c9,#00a22b,#e6443d,#7e6cf7)}
 
 .barbtn{display:flex;align-items:center;gap:9px;font:inherit;font-weight:560;border:1px solid var(--line2);background:var(--panel);padding:8px 13px;border-radius:var(--r-sm);font-size:13.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
 .barbtn.open,.barbtn:hover{border-color:var(--ink2)}
