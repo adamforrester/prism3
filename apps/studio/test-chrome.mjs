@@ -541,7 +541,7 @@ const enter = (id) => {
 /** Whether this run runs section `id`. Every guard of a section asks, so the section's time is the time between. */
 const runs = (id) => {
   if (!REACHED.includes(id)) REACHED.push(id);
-  const go = MODE === 'run' && (!SHARD || SHARDS[SHARD].includes(id));
+  const go = MODE === 'run' && (!SHARD || SHARDS[SHARD].includes(id)) && (!process.env.P3_ONLY || process.env.P3_ONLY.split(',').includes(id));
   enter(go ? id : null);
   return go;
 };
@@ -18013,7 +18013,7 @@ console.log(`\nA brand face the preview can't show, said (#3138)\n${'='.repeat(7
 const sampleLines = async (page) => {
   const lines = await page.evaluate(() => [...document.querySelectorAll('[data-p3="type-sample-line"]')].filter((r) => r.getClientRects().length).map((r, i) => {
     const t = r.querySelector('.tsm-text');
-    t.setAttribute('data-p3138', String(i));
+    t.setAttribute('data-face-probe', String(i));
     const cs = getComputedStyle(t);
     return { i, token: r.dataset.token, note: r.querySelector('[data-p3="type-sample-note"]')?.textContent ?? null,
       asked: cs.fontFamily.split(',')[0].replace(/["']/g, '').trim(), weight: cs.fontWeight, synthesis: cs.fontSynthesisWeight };
@@ -18022,7 +18022,7 @@ const sampleLines = async (page) => {
   await cdp.send('DOM.enable'); await cdp.send('CSS.enable');
   const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
   for (const l of lines) {
-    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `[data-p3138="${l.i}"]` });
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `[data-face-probe="${l.i}"]` });
     const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
     const top = [...fonts].sort((a, b) => b.glyphCount - a.glyphCount)[0];
     l.drawn = top?.familyName ?? ''; l.custom = !!top?.isCustomFont;
@@ -18041,8 +18041,10 @@ for (const host of ['web', 'figma']) {
   try {
     if (host === 'figma') {
       step = 'plant the font list';
-      await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'font-list', families: ['Inter', 'JetBrains Mono', 'Playfair Display'], styles: [2, 1, 2],
-        styleNames: [['Regular', 'Semi Bold Italic'], ['Regular'], ['Regular', 'Italic']] } }, '*'));
+      // Inter and JetBrains Mono with every weight upright and italic, so only Playfair Display lacks a cut.
+      const all = ['Thin', 'Extra Light', 'Light', 'Regular', 'Medium', 'Semi Bold', 'Bold', 'Extra Bold', 'Black'].flatMap((w) => [w, w === 'Regular' ? 'Italic' : `${w} Italic`]);
+      await page.evaluate((all) => window.postMessage({ pluginMessage: { type: 'font-list', families: ['Inter', 'JetBrains Mono', 'Playfair Display'], styles: [18, 18, 2],
+        styleNames: [all, all, ['Regular', 'Italic']] } }, '*'), all);
     }
     step = 'the Type page';
     await goPlace(page, 'type');
@@ -18051,7 +18053,8 @@ for (const host of ['web', 'figma']) {
     const lines = await sampleLines(page);
     ok(lines.length >= 4, `${where}: FALLBACK the type sample draws its lines (${lines.length})`);
     for (const l of lines) {
-      const real = l.drawn.toLowerCase() === l.asked.toLowerCase();
+      // A variable face reports its named instance (`Inter Medium`), so the family is the drawn name's head.
+      const real = l.drawn.toLowerCase().startsWith(l.asked.toLowerCase());
       ok(real === (l.note === null), `${where}: FALLBACK ${l.token} carries its note exactly when the face drawn is not the face asked (asked ${l.asked}, drew ${l.drawn}, note ${JSON.stringify(l.note)})`);
     }
     const display = lines.find((l) => l.token === 'type.display.md.strong');
@@ -18059,6 +18062,9 @@ for (const host of ['web', 'figma']) {
     if (host === 'web') ok(display?.note === FALLBACK_WEB, `${where}: FALLBACK the display line says the face isn't installed (${JSON.stringify(display?.note)})`);
     else {
       ok(display?.note === FIGMA_CUT, `${where}: FIGMA the display line says it falls back and Figma skips its 600 style (${JSON.stringify(display?.note)})`);
+      step = 'Show advanced, for Weights and styles';
+      await hooks.click(page.locator('[data-p3="type-sections-advanced"]'));
+      await hooks.need(page, '[data-p3="weight-cuts-note"]', { timeout: 10000 });
       const weightNotes = await page.locator('[data-p3="weight-cuts-note"]').allTextContents();
       ok(weightNotes.includes(WEIGHT_NOTE), `${where}: FIGMA the weight control names Playfair Display's two styles and the weights with no cut (${JSON.stringify(weightNotes)})`);
     }

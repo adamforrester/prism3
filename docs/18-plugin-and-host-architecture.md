@@ -60,7 +60,12 @@ Key fields (developers.figma.com/docs/plugins/manifest):
 - **`networkAccess`** — `{ allowedDomains: [...] , reasoning, devAllowedDomains }`. `allowedDomains` is
   required (`"none"` / `"*"` / wildcards / explicit URLs); `"*"` or localhost needs `reasoning`. An
   unlisted request gets a CSP error. **Theming needs none of this at runtime** — the engine is bundled
-  in, no server call — so the manifest ships `allowedDomains: ["none"]`, a real trust/reliability win.
+  in, no server call. **Two plugins since #3138** (the owner's network model): "Prism3 Studio" lists exactly
+  `https://fonts.googleapis.com` and `https://fonts.gstatic.com`, so the preview can load a brand's face from Google
+  Fonts, and "Prism3 Studio Offline" (`build.mjs --release --offline`, `release-offline/`) ships
+  `allowedDomains: ["none"]`, a real trust/reliability win for client files. Distinct names and ids, so both load at
+  once; `PRISM3_NETWORK` false drops every network branch from the offline UI. `apps/plugin/lint-network-reach.ts`
+  holds each build to its reach.
   The one exception is dev-only: the dev manifest also lists `devAllowedDomains: ["ws://localhost:17331"]`,
   the agent link's local desktop-bridge socket (`apps/plugin/src/agent-bridge-relay.ts`), which Figma
   honours only for a development import.
