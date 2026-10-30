@@ -30830,7 +30830,7 @@
           "parts": [
             {
               "part": "container/header/titleRow/titleBox/label",
-              "textStyle": "type.label.md.emphasis"
+              "textStyle": "type.label.md.default"
             },
             {
               "part": "container/content/placeholder",
@@ -30845,7 +30845,7 @@
           "parts": [
             {
               "part": "container/header/titleRow/titleBox/label",
-              "textStyle": "type.label.sm.emphasis"
+              "textStyle": "type.label.sm.default"
             },
             {
               "part": "container/content/placeholder",
@@ -30860,7 +30860,7 @@
           "parts": [
             {
               "part": "container/header/titleRow/titleBox/label",
-              "textStyle": "type.label.lg.emphasis"
+              "textStyle": "type.label.lg.default"
             },
             {
               "part": "container/content/placeholder",
