@@ -8,7 +8,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "Display font — Playfair Display; falls back to system-ui, -apple-system, Segoe UI, …",
+      "description": "Display font — Playfair Display; falls back to ui-serif, Georgia, Cambria, …",
       "value": "Playfair Display",
       "alias": null,
       "hiddenFromPublishing": true
@@ -19,7 +19,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "Title font — Playfair Display; falls back to system-ui, -apple-system, Segoe UI, Roboto, …",
+      "description": "Title font — Playfair Display; falls back to ui-serif, Georgia, Cambria, …",
       "value": "Playfair Display",
       "alias": null,
       "hiddenFromPublishing": true
