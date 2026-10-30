@@ -1292,6 +1292,10 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.050"
       },
       {
+        "key": "size.x-small.gap",
+        "ref": "space.050"
+      },
+      {
         "key": "size.small.gap",
         "ref": "space.050"
       },
@@ -1304,7 +1308,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 144,
+    "members": 192,
     "nests": [
       "icon",
       "focus-ring"
