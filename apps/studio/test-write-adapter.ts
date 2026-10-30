@@ -115,6 +115,9 @@ accepts('restore-input-error', { type: 'restore-input-error', message: 'old shap
   { kind: 'restore-input-error', message: 'old shape' });
 accepts('font-list, with a non-string family dropped together with its count', { type: 'font-list', families: ['Inter', 7, 'Roboto'], styles: [9, 3, 36] },
   { kind: 'font-list', families: ['Inter', 'Roboto'], styles: [9, 36] });
+// #3138: the style names, zipped with the families, so a dropped family takes its names with it.
+accepts('font-list with style names, a non-string family dropped together with its names', { type: 'font-list', families: ['Instrument Serif', 7, 'Inter'], styles: [2, 1, 18], styleNames: [['Regular', 'Italic'], ['X'], ['Regular', 5, 'Bold']] },
+  { kind: 'font-list', families: ['Instrument Serif', 'Inter'], styles: [2, 18], styleNames: [['Regular', 'Italic'], ['Regular', 'Bold']] });
 accepts('font-list without styles (older host)', { type: 'font-list', families: ['Inter'] },
   { kind: 'font-list', families: ['Inter'], styles: [0] });
 

@@ -71,6 +71,7 @@ import { createServer } from 'node:http';
 import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { launchWithoutWebFonts } from './test-web-fonts-stub.mjs';
 import { hookGuard } from './test-hooks.mjs';
 import { assertBundleFresh, STUDIO_SOURCE_ROOTS, PLUGIN_UI_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 
@@ -139,7 +140,8 @@ const server = createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const ORIGIN = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch();
+// #3138: Google Fonts answers every request with nothing here (`test-web-fonts-stub.mjs`), so a run never reaches it.
+const browser = await launchWithoutWebFonts(chromium);
 
 /** Open one host on its start screen, in its own storage context (the studio keeps its working brand in
  *  `localStorage`, so a shared context would carry one brand into the next). Returns the chips it offers too. */

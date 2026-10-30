@@ -12,14 +12,14 @@
  *  Stamps its root with the shared-section marker (`data-sg-section="weights-by-face"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The resolved typography, the mode and the section's copy. Nothing here reads the session. */
 import type { Theme } from '@prism3/engine/theme';
-import { knownWeightsOf, WEIGHT_NAME } from '../../ui/fonts';
+import { cutsOf, drawFace, faceDraw, WEIGHT_NAME, type HostFonts } from '../../ui/fonts';
 import { TYPE_GROUP_ORDER } from '../../state/type-input';
 import { el, hook, palSection, subHead } from './kit';
 
 /** The italic chips' words (owner decision Q6, APPROVED), as the levers name them. */
 const ITALIC_WORD = { upright: 'Upright', both: 'Upright + italic', only: 'Italic only' } as const;
 
-export const weightsByFaceSection = (ty: Theme['typography'], mode: string, copy: { title: string; desc: string }): HTMLElement => {
+export const weightsByFaceSection = (ty: Theme['typography'], mode: string, copy: { title: string; desc: string }, fonts: HostFonts): HTMLElement => {
   const wsec = palSection(copy.title, copy.desc);
   wsec.dataset.sgSection = 'weights-by-face';   // the shared-section marker (`kit.ts`'s header)
   const faces: Array<{ name: string; stack: string; roles: string[] }> = [];
@@ -56,14 +56,16 @@ export const weightsByFaceSection = (ty: Theme['typography'], mode: string, copy
     tr.append(nc);
     tr.append(hook(el('td', 'mtbl-mode', `${w.value} ${WEIGHT_NAME[w.value] ?? ''}`.trim()), 'weights-preview-value'));
     for (const f of faces) {
-      const known = knownWeightsOf(f.name);
+      // #3138: the cuts from the best source this host has (Figma's style names in the plugin), not only the
+      // advisory map; and each specimen drawn at the nearest real cut with no synthesized weight (Q3 A).
+      const known = cutsOf(f.name, fonts)?.map((x) => x.weight) ?? null;
       const ships = !known ? null : known.includes(w.value);
       const td = el('td', 'mtbl-mode');
       td.append(el('span', 'tpw-mark ' + (ships === null ? 'unknown' : ships ? 'yes' : 'no'), ships === null ? '?' : ships ? '●' : '○'));
       // `Ag 123`, the same specimen the typeface library uses, short enough for a fixed column.
       const samp = el('span', 'mtbl-spec-t tpw-samp', 'Ag 123');
-      samp.style.fontWeight = String(w.value);
       samp.style.fontFamily = f.stack;
+      drawFace(samp, faceDraw(f.name, w.value, false, fonts));
       td.append(samp);
       td.title = ships === null ? `${f.name} — unknown family, availability cannot be asserted`
         : ships ? `${f.name} ships ${w.value}` : `${f.name} may not ship ${w.value} — falls back to the nearest`;

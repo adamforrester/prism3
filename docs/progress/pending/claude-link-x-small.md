@@ -1,0 +1,10 @@
+## (2026-10-30) — Link gets an x-small size at 12px, its 24px target gated by size
+
+Owner decision D-A5 A (#3179): the reference brand's account pages set an order number and its Track order link at about 12px, below Link's smallest size (small, 14px). Link's `size` axis is now `[medium, x-small, small, large]`; x-small binds `type.body.xs.*` (12 / 18px), which every brand already emits, so no token and no `CONTRACT_VERSION` move. Engine {{ENGINE_VERSION}}.
+
+- **The name** (Q3179.1, posted on the issue, A built): `x-small`, the word Icon and Spinner already use for the rung below `small`. B was `xsmall`, after Code input's `xlarge`. If the owner picks B, it is a `COMPONENT_RENAMES` value rename.
+- **The icon** stays `icon.size.xs` (16px), small and medium's rule: it is the smallest icon rung, and it fits inside the 18px line.
+- **WCAG 2.5.8.** Link was in `lint-hit-target`'s `EXCLUDED` (its box is one text line, not a control height), so nothing measured its 24px target. A new standalone Link arm walks each size's plan to the line box it draws at every density and holds it to 24px as drawn or through a size `LINK_CODE_SIDE` names, both ways, with the codeOnly sentence checked by literal phrases. It measures 18 / 21 / 24 / 27px, so **small (21px) was already under 24px**: its code-side hit area existed only as a generic codeOnly line. Both x-small and small are now named.
+- **Update in place.** A value added to an existing axis renames nothing: an Update adds the 48 x-small members and keeps the 144 (names, ids, keys). `test-update-apply.ts` gains `published/link x-small additive` and `/in place`. The older `#2872` arm now filters x-small out, since it models the three-size set.
+- **Trap:** the update test's `world()` seeds text styles only from the `before` plans, so the new size's `body/xs/*` styles were missing and the apply silently added nothing (144 after, not 192). The arm passes `extraStyles` from the new plan.
+- Q297.1's "no 12px link" is revised by D-A5 A; the `#2580 link/body-tier` arm now holds 12 / 14 / 16 / 18px by size.

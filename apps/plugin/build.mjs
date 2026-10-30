@@ -4,8 +4,9 @@
  *   • ui/ui.ts → inlined into dist/ui.html — the iframe (manifest.ui)
  *
  * The UI must be a SINGLE self-contained HTML file: a Figma plugin iframe has no server to
- * fetch a separate .js from (and we ship `allowedDomains:["none"]`), so the bundled JS is
- * inlined into a <script> in the HTML template. iife + no network — nothing loads at runtime.
+ * fetch a separate .js from, so the bundled JS is inlined into a <script> in the HTML template.
+ * iife: no code loads at runtime. (The one runtime request, in the network build only, is a brand's
+ * web font from Google Fonts, #3138; the offline variant, `--release --offline`, makes none.)
  *
  * `--watch` keeps both rebuilding. Run: `node build.mjs` (or `npm run build` / `npm run watch`).
  */
@@ -24,7 +25,15 @@ const root = dirname(fileURLToPath(import.meta.url));
  *  dev command), and a `manifest.json` beside them with no `devAllowedDomains`. A dev build (`dist/`, the one every
  *  lane imports) keeps both. `lint-release-bundle.ts` checks the release output holds none of the dev-only code. */
 const release = process.argv.includes('--release');
-const outName = release ? 'release' : 'dist';
+/** THE OFFLINE VARIANT (#3138, the owner's network model). One codebase, two plugins: "Prism3 Studio" may reach the
+ *  domains its manifest lists (the Google Fonts hosts, for the preview's brand faces), and "Prism3 Studio Offline"
+ *  reaches none (`allowedDomains: ["none"]`), for client files and locked-down setups. `--offline` builds the second:
+ *  `PRISM3_NETWORK` false, so esbuild drops every network branch from the UI, and its manifest takes the name, id and
+ *  `networkAccess` from `manifest-offline.json`. A release variant only (`--release --offline` → `release-offline/`).
+ *  `lint-network-reach.ts` holds both: the offline build carries no network call, the other reaches only its list. */
+const offline = process.argv.includes('--offline');
+if (offline && !release) throw new Error('build.mjs: --offline is a release variant; run it with --release.');
+const outName = release ? (offline ? 'release-offline' : 'release') : 'dist';
 const out = resolve(root, outName);
 const watch = process.argv.includes('--watch');
 if (release && watch) throw new Error('build.mjs: --release builds once; it has no --watch.');
@@ -240,7 +249,8 @@ const buildUiHtml = async (id) => {
     // field unfalsifiable: `plugin` is the same string in every checkout, so the one panel chip that could
     // have answered "which tree is Figma running?" answered "a plugin" (#836).
     // PRISM3_TEST_HOOKS (#2098): the web smoke suite's hook, never in the plugin; defined so no bare identifier is left.
-    define: { PRISM3_HOST: '"figma"', PRISM3_BUILD: JSON.stringify(id), PRISM3_TEST_HOOKS: 'false', PRISM3_DEV: String(!release) },
+    // PRISM3_NETWORK (#3138): false only in the offline variant, where every network branch (the web-font loader) drops.
+    define: { PRISM3_HOST: '"figma"', PRISM3_BUILD: JSON.stringify(id), PRISM3_TEST_HOOKS: 'false', PRISM3_DEV: String(!release), PRISM3_NETWORK: String(!offline) },
     minifySyntax: release,   // as `mainOpts` (#2530): a dead dev branch is dropped, not kept as text
     // The studio chrome stylesheet is a real .css file since #769, imported by the studio's entry.ts as TEXT.
     // This loader is what keeps the UI a SINGLE self-contained document: esbuild's default `.css`
@@ -336,8 +346,10 @@ const writeReleaseManifest = async () => {
   m.main = 'main.js';
   m.ui = 'ui.html';
   if (m.networkAccess) delete m.networkAccess.devAllowedDomains;
+  // The offline variant (#3138): its own name, id and networkAccess, so both plugins can be loaded at once.
+  if (offline) Object.assign(m, JSON.parse(await readFile(resolve(root, 'manifest-offline.json'), 'utf8')));
   await writeFile(resolve(out, 'manifest.json'), `${JSON.stringify(m, null, 2)}\n`);
-  console.log('  release/manifest.json   (no devAllowedDomains)');
+  console.log(`  ${outName}/manifest.json   (no devAllowedDomains${offline ? '; offline' : ''})`);
 };
 
 if (watch) {

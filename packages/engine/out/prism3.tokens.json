@@ -3633,13 +3633,12 @@
                 "generated": true,
                 "variable": false,
                 "fallbackStack": [
-                  "system-ui",
-                  "-apple-system",
-                  "Segoe UI",
-                  "Roboto",
-                  "Helvetica",
-                  "Arial",
-                  "sans-serif"
+                  "ui-serif",
+                  "Georgia",
+                  "Cambria",
+                  "Times New Roman",
+                  "Times",
+                  "serif"
                 ],
                 "figma": {
                   "kind": "style-part",

@@ -38,7 +38,8 @@
  *                  `published/blocked`; the member-itself exclusion dropped → `published/member replaced`;
  *                  `readSingleView` carrying no status → `published/single`; `breakingSection`'s per-set cap dropped →
  *                  `published/cap`; Link's `selection` axis with `selected` first → `published/link current additive`
- *                  (#2872). #2864, a layer the update removes: `removedLayers` returning nothing → `published/layer
+ *                  (#2872); `update-plan.ts` listing no adds → `published/link x-small additive`, `/link x-small
+ *                  in place` (#3179). #2864, a layer the update removes: `removedLayers` returning nothing → `published/layer
  *                  removed`, `/layer line`, `/checklist set`; the same-parent lookup dropped → `/layer removed`,
  *                  `/layer line`; the structural-skip guard dropped → `/layer hand-added`; `breakingSummary`'s layer
  *                  clause dropped → `/checklist line`, `/checklist set`; `checkedSetOf` posting no line →
@@ -210,6 +211,11 @@
  *                  hidden description with its two properties, off by default; every key and id kept; a designer's gap
  *                  on one member's row kept and reported as a hand edit, before and after. Mutations: the description
  *                  boolean defaulting on → `rows3153/structure`, `rows3153/description`.
+ *   rows3173/…     Checkbox.Row, Radio.Row and Switch.Row built before #3173 (owner Q3173 A), the medium control-to-label
+ *                  gap on `space/100`, take one Update in place: only the medium members read update, and each one's
+ *                  `content` gap rebinds to `space/150` (12px) while small and large keep theirs; every key and id kept,
+ *                  the text column still beside the cell. Mutation: the executor skipping an in-place rebind of a node's
+ *                  existing `itemSpacing` binding → `rows3173/verdict`, `rows3173/gap`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -4196,6 +4202,53 @@ for (const [ROW, MEMBERS, STACKED] of [['checkbox-row', 6, true], ['radio-row', 
     `${ROW} rows3153/current: the next dry run reads the other ${MEMBERS - 1} current and still reports the one hand edit (${JSON.stringify(post.counts)}, ${JSON.stringify(post.handEdits).slice(0, 200)})`);
 }
 
+/* ── option rows' control-to-label gap (#3173) ──────────────────────────────────────────────────────────── */
+section('option rows — a set built before #3173 (owner Q3173 A) takes the 12px medium gap in place, every member and node kept');
+// THE FILE: each row as main built it before #3173, the medium gap on `space.100` (8px); small and large were already
+// 8 and 12. THE UPDATE: today's plans, through one Update file. EXPECTED, typed here: the gap variable per size,
+// `space/100` / `space/150` / `space/150`, so only the medium members read update; every key and id kept.
+const GAP_VAR_3173: Record<string, string> = { small: 'space/100', medium: 'space/150', large: 'space/150' };
+for (const [ROW, MEMBERS] of [['checkbox-row', 6], ['radio-row', 6], ['switch-row', 4]] as const) {
+  const def = componentDefs.find((x) => x.id === ROW)!;
+  const old = { ...def, tokens: { ...def.tokens, 'size.medium.gap': 'space.100' } } as typeof def;
+  const newPlans = plansOf(ROW);
+  const w = await world(ROW, figmaAnatomySet(old, { swapTarget: SWAP_TARGET }), {
+    extraVars: newPlans.flatMap((q) => [...planBoundVars(q.root), ...planPaintVars(q.root)]),
+    extraStyles: newPlans.flatMap((q) => planTextStyles(q.root)),
+  });
+  const sizeOf = (m: Node): string => /size=(\w+)/.exec(String(m.name))?.[1] ?? '?';
+  const gapOf = (m: Node): string | undefined => (childNamed(m, 'content').boundVariables as Record<string, { id: string }> | undefined)?.itemSpacing?.id;
+  const medium = membersOf(w.set()).filter((m) => sizeOf(m) === 'medium');
+  const v100 = await varIdOf(w, 'space/100');
+  ok(membersOf(w.set()).length === MEMBERS && medium.length > 0 && medium.every((m) => gapOf(m) === v100),
+    `${ROW} rows3173 premise: the file holds ${MEMBERS} members built before #3173, the ${medium.length} medium ones with the gap on space/100`);
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: ROW, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === medium.length && p.counts.current === MEMBERS - medium.length && p.counts.add === 0 && p.counts.drop === 0 && p.renames.length === 0 && !p.blockers.length && !p.replacements.length && p.handEdits.length === 0,
+    `${ROW} rows3173/dry run: the ${medium.length} medium members read update and the rest current, none added, dropped, renamed or replaced (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+  ok(applyVerdict(res).ok, `${ROW} rows3173/verdict: ${applyVerdict(res).headline}`);
+  const off: string[] = [];
+  for (const m of membersOf(w.set())) {
+    const want = await varIdOf(w, GAP_VAR_3173[sizeOf(m)]);
+    if (gapOf(m) !== want) off.push(`${String(m.name)}: ${gapOf(m)} (want ${GAP_VAR_3173[sizeOf(m)]})`);
+  }
+  ok(off.length === 0, `${ROW} rows3173/gap: every member's control-to-label gap binds space/100, space/150, space/150 by size (${off.slice(0, 2).join('; ') || `all ${MEMBERS}`})`);
+  const after = identityOf(w.set());
+  const lost: string[] = [];
+  for (const [name, b] of before.members) {
+    const a = after.members.get(name);
+    if (!a || a.key !== b.key || a.id !== b.id) { lost.push(`${name}: member`); continue; }
+    const now = new Set(a.kids.values());
+    const miss = [...b.kids].filter(([, id]) => !now.has(id));
+    if (miss.length) lost.push(`${name}: ${miss.map(([path]) => path).slice(0, 2).join(', ')}`);
+  }
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && lost.length === 0 && after.members.size === MEMBERS,
+    `${ROW} rows3173/kept: the set, all ${MEMBERS} members and every node keep their keys and ids (${lost.slice(0, 2).join('; ') || 'none moved'})`);
+  const post = (await previewUpdate(w.host, [{ def: ROW, plans: newPlans }])).sets[0];
+  ok(post.counts.current === MEMBERS && post.handEdits.length === 0, `${ROW} rows3173/current: the next dry run reads all ${MEMBERS} current (${JSON.stringify(post.counts)})`);
+}
+
 /* ── accordion header row (#2594) ────────────────────────────────────────────────────────────────────── */
 section('accordion — a set built before the header row (#2594, owner Q276 A) takes the row in place, every member kept');
 {
@@ -4992,9 +5045,10 @@ section('published — on a set in a team library, what breaks consumer files is
   // 96 keeps its node id and key, so consumer instances stay linked. With `selected` first, the 48 inline members would
   // land on a coordinate the set excludes and be dropped, and this arm fails. Counts and segments are typed here.
   {
-    const next = plansOf('link');
+    // The x-small size (#3179) is a later change with its own arm below, so both shapes here are the three-size Link.
+    const next = plansOf('link').filter((p) => String(p.size) !== 'x-small');
     // `before` is the pre-#2872 shape, rebuilt from this PR's unselected plans with the `selection` segment taken off. Its
-    // member names are the 96 a published Link carries today; their layers are pinned by test.ts's `#2580 link/…` and
+    // member names are the 96 a published Link carried then; their layers are pinned by test.ts's `#2580 link/…` and
     // `#2872 link bar` arms (an unselected member carries no bar).
     const before = next.filter((p) => p.coord.selection === 'unselected').map((p) => {
       const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
@@ -5020,6 +5074,32 @@ section('published — on a set in a team library, what breaks consumer files is
     const lost = [...was.members].filter(([name, m]) => { const to = unsel(name); return !to || after.members.get(to)!.id !== m.id || after.members.get(to)!.key !== m.key; }).map(([n]) => n);
     ok(!res.refusedAll && after.members.size === 144 && lost.length === 0,
       `published/link current in place: applied, the 96 existing members become selection=unselected with their node id and key kept, so consumer instances stay linked (${after.members.size} members, ${lost.length} not kept — ${lost.slice(0, 2).join('; ') || 'none'})`);
+  }
+
+  // LINK GAINS ITS X-SMALL SIZE (#3179, owner decision D-A5 A): a published Link of 144 members over three sizes, updated
+  // to the plan with `x-small` on the size axis. A value added to an axis that already exists renames nothing: the 144
+  // keep their names, node ids and keys, and the 48 x-small members are added. Nothing is dropped or replaced and nothing
+  // breaks library consumers (#2839's `breakingOf`). `before` is this PR's plan with the x-small members taken off, which
+  // is the published shape exactly: the other sizes' plans do not read the size list. Counts are typed here.
+  {
+    const next = plansOf('link');
+    const before = next.filter((p) => String(p.size) !== 'x-small');
+    // The file a brand built holds every body text style, x-small's included; the world seeds only what `before` binds.
+    const w = await world('link', before, { extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))], extraStyles: [...new Set(next.flatMap((p) => planTextStyles(p.root)))] });
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const was = identityOf(w.set());
+    ok(before.length === 144 && next.length === 192 && [...was.members.keys()].every((n) => !n.includes('size=x-small')),
+      `premise: a published Link of 144 members with no x-small, and a plan of 192 (${was.members.size} → ${next.length})`);
+    const { pre, res } = await confirm(w, [{ def: 'link', plans: next }]);
+    const p = pre.sets[0];
+    const added = p?.adds ?? [];
+    ok(p?.publish === 'CURRENT' && added.length === 48 && added.every((a) => a.includes('size=x-small'))
+      && p.drops.length === 0 && p.replacements.length === 0 && (p.breaking ?? []).length === 0,
+      `published/link x-small additive: the 48 x-small members are added, nothing is dropped or replaced, and nothing breaks library consumers (adds ${added.length}, drops ${JSON.stringify(p?.drops.slice(0, 2))}, replaced ${p?.replacements.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+    const after = identityOf(w.set());
+    const lost = [...was.members].filter(([name, m]) => { const to = after.members.get(name); return !to || to.id !== m.id || to.key !== m.key; }).map(([n]) => n);
+    ok(!res.refusedAll && after.members.size === 192 && lost.length === 0,
+      `published/link x-small in place: applied, the 144 existing members keep their names, node ids and keys, so consumer instances stay linked (${after.members.size} members, ${lost.length} not kept — ${lost.slice(0, 2).join('; ') || 'none'})`);
   }
 
   // ACCORDION GAINS ITS `indicator` AXIS (#2878, Q-block A): a published Accordion built before the axis, its 24 members

@@ -43,7 +43,7 @@ const ok = (cond: boolean, label: string): void => {
 };
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 /** A session as plain data, with the Map spelled out, so two sessions compare by value. */
-const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFontStyles], setBuilds: [...s.setBuilds], handEdits: [...s.handEdits] });
+const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFontStyles], hostFontStyleNames: [...s.hostFontStyleNames], setBuilds: [...s.setBuilds], handEdits: [...s.handEdits] });
 
 /** Every kind the UI's handler receives, written out here rather than read from the code under test. */
 const KINDS = [
@@ -70,7 +70,7 @@ const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
-  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, addQueue: null,
+  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], hostFontStyleNames: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, addQueue: null,
   handEdits: [], handPass: 'idle', updateCheck: null,
 }), 'initial session: every slot empty');
 
@@ -232,6 +232,9 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   ok(same(fonts.next.hostFonts, ['Inter', 'Roboto', 'Mystery']), 'font-list: records the families in order');
   ok(same([...fonts.next.hostFontStyles], [['Inter', 18], ['Roboto', 36], ['Mystery', 0]]), 'font-list: pairs each family with its style count, 0 where none was sent');
   ok(same(fonts.topics, ['fonts']), 'font-list: invalidates fonts');
+  ok(fonts.next.hostFontStyleNames.size === 0, 'font-list: an older host sends no style names, and none are recorded');
+  const named = step(init, { kind: 'font-list', families: ['Instrument Serif'], styles: [2], styleNames: [['Regular', 'Italic']] });
+  ok(same([...named.next.hostFontStyleNames], [['Instrument Serif', ['Regular', 'Italic']]]), 'font-list: records each family\'s style names (#3138)');
 }
 
 // ---- the agent's runs (UI redesign S11) ------------------------------------------------------------------
