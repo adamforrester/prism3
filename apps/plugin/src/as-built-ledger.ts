@@ -10,12 +10,15 @@
  * WHAT IT ANSWERS: which sets are due, with one root read and no page loaded (`dueOf`). The due check materializes
  * every def the file holds against the file's brand, hashes it and lays it against the entry:
  *   · `current`     the def, the revision and the engine all match; or (Q811 A) only `ENGINE_VERSION` moved and the
- *                   set's projected plans print as they did when it was drawn, so its drawing would not change;
+ *                   set's projected plans print as they did when it was drawn, so its drawing would not change; or
+ *                   (#3101) `EXECUTOR_REVISION` moved by revisions that do not reach the set (`executor-reach.ts`), read
+ *                   then as if it had not moved;
  *   · `due`         `definition` when the materialized def moved under the same engine (a lever the set follows);
  *                   `engine` when the engine moved and the plans with it, naming what moved (`movedOf`); or when the
  *                   engine moved past an entry from before Q811 A, which has no print to lay the plans against, so
  *                   nothing is named (`moved` absent) and the set reads due as it did before Q811 A;
- *                   `executor` when `EXECUTOR_REVISION` moved, whatever the plans say (Q811.1, below);
+ *                   `executor` when `EXECUTOR_REVISION` moved by a revision that reaches the set, whatever the plans
+ *                   say (Q811.1 and #3101, below);
  *   · `unrecorded`  no entry: a set built before the ledger existed, or by hand. Only the full check can tell.
  *
  * WHY A PRINT-LESS ENTRY UNDER A MOVED ENGINE IS DUE, NOT UNRECORDED (#3090 review, finding 1). An unrecorded set the
@@ -25,12 +28,14 @@
  * not built: the apply's hash covers only the sets it acts on, so it would record sets from a check it did not
  * re-verify, and when the check finds nothing to change there is no apply at all.
  *
- * WHY A REVISION MOVE STILL MAKES A SET DUE (Q811.1, the owner's decision Q820 A, 2026-10-27). A plan print cannot
- * see the executor: `EXECUTOR_REVISION` moves exactly when the code that turns a plan into layers moves (`executor-revision.ts`:
- * 7 of 22 pipeline commits changed the executor alone and no plan byte), and the update's own dry run reads every
- * member stamped under another revision as one to update (`update-plan.ts`, `revField !== rev`). Calling such a set
- * current would hide a drawing change and disagree with the full check. The cost is the coarse signal for those
- * releases only; narrowing it (an executor change naming the sets it reaches) is the follow-up, #3101.
+ * WHY A REVISION MOVE MAKES ONLY THE SETS IT REACHES DUE (Q811.1, the owner's decision Q820 A, 2026-10-27; #3101). A
+ * plan print cannot see the executor: `EXECUTOR_REVISION` moves exactly when the code that turns a plan into layers
+ * moves (`executor-revision.ts`: 7 of 22 pipeline commits changed the executor alone and no plan byte). So the print
+ * does not decide a revision move; the reach record does (`executor-reach.ts`): each revision names the sets whose
+ * drawing it changes, measured in CI by drawing every set with both executors (`lint-executor-reach.ts`). A set no
+ * revision in `(recorded, today]` reaches reads as if the revision had not moved, and the update's dry run reads its
+ * members the same way (`update-plan.ts`), so the two still agree. A revision with no record (at or below the
+ * record's floor) reaches every set, which is Q820 A's reading for it.
  *
  * WHAT IT CANNOT SEE: hand edits. Those need the members read, which the background pass after load does a set at a
  * time (`handEditsOf`, `update-plan.ts`), and the full check scoped to the flagged sets does again, exactly, before
@@ -43,6 +48,7 @@ import type { AnatomyPlan, FigmaNodePlan } from '@prism3/engine/anatomy-figma';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
+import { reaches } from './executor-reach';
 
 /** The root plugin-data key. */
 export const LEDGER_KEY = 'prism3:asBuilt';
@@ -174,12 +180,12 @@ export type SetDue = { readonly state: 'current' | 'unrecorded' }
   | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: Moved };
 
 /** The sets whose read needs their plans printed now: the engine moved past an entry that carries a print, and the
- *  revision did not. The caller prints only these (projecting a set is the costly part), then calls `dueOf`. */
+ *  revision did not move by one that reaches the set. The caller prints only these (projecting a set is the costly part), then calls `dueOf`. */
 export const needsPrint = (ledger: Ledger, present: readonly string[], now: (def: string) => LedgerEntry | null): string[] =>
   present.filter((id) => {
     const was = ledger[id];
     const is = was && was.print ? now(id) : null;
-    return !!is && was.rev === is.rev && was.engine !== is.engine;
+    return !!is && !reaches(id, was.rev, is.rev) && was.engine !== is.engine;
   });
 
 /**
@@ -192,7 +198,7 @@ export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: str
     const was = ledger[id];
     const is = now(id);
     if (!was || !is) { out[id] = { state: 'unrecorded' }; continue; }
-    if (was.rev !== is.rev) { out[id] = { state: 'due', reason: 'executor' }; continue; }
+    if (reaches(id, was.rev, is.rev)) { out[id] = { state: 'due', reason: 'executor' }; continue; }
     if (was.engine === is.engine) { out[id] = was.def === is.def ? { state: 'current' } : { state: 'due', reason: 'definition' }; continue; }
     // Q811 A: the engine moved. Due only when the drawing would: the print of the plans, not the version. An entry with
     // no print is due with nothing named, so the next update records it (finding 1, above).
@@ -206,8 +212,9 @@ export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: str
 };
 
 /**
- * THE QUIET RE-RECORD (Q811 A): the sets `dueOf` read `current` although their entry names another engine, or carries
- * no print yet (an entry from before Q811 A, under today's engine), each with the entry it gets now. `now` here carries the print. Recorded by the next write, never by a read
+ * THE QUIET RE-RECORD (Q811 A): the sets `dueOf` read `current` although their entry names another engine or (#3101)
+ * another revision, or carries no print yet (an entry from before Q811 A, under today's engine), each with the entry
+ * it gets now. `now` here carries the print. Recorded by the next write, never by a read
  * (`main.ts`, `restampQuiet`).
  */
 export const quietOf = (ledger: Ledger, due: Readonly<Record<string, SetDue>>, now: (def: string) => LedgerEntry | null): Record<string, LedgerEntry> => {
@@ -216,7 +223,7 @@ export const quietOf = (ledger: Ledger, due: Readonly<Record<string, SetDue>>, n
     const was = ledger[id];
     if (d.state !== 'current' || !was) continue;
     const e = now(id);
-    if (e && (e.engine !== was.engine || !was.print)) out[id] = e;
+    if (e && (e.engine !== was.engine || e.rev !== was.rev || !was.print)) out[id] = e;
   }
   return out;
 };

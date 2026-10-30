@@ -154,15 +154,16 @@ ok(pv.length === 3 && pv[0].offered === false && pv[1].offered === false,
 ok(pv[0].reason === "Can't be built yet: it binds no geometry of its own." && pv[1].reason === "Can't be built yet: the Figma build can't read its definition yet",
   `G4: each says why, the definition's own words with the id lead stripped, or the page's (${JSON.stringify(pv[0].reason)}, ${JSON.stringify(pv[1].reason)})`);
 ok(pv[0].parts === null && pv[0].last === null, 'G4: a set that can\'t be built states no part count and no build result');
-// G4 under #2700's multi-select: a box never selects a set that can't be built, whether it is the set's own box or a box
+// G4 under #3129's add queue: a box never queues a set that can't be built, whether it is the set's own box or a box
 // over a family or a section holding it; a box over only such sets reads off. The build itself refuses one too
 // (`main.ts`'s `runSets` asks the catalog again).
 const plantedIds = planted.map((e) => e.id);
-const picked = toggleSets(planted, plantedIds, new Set());
-ok([...picked].join() === 'button' && toggleSets(planted, ['planted-declared'], new Set()).size === 0,
-  `G4: a box selects only the sets that can be built (a box over all three picked ${JSON.stringify([...picked])}; the planted one alone picked none)`);
-ok(boxOfSets(planted, ['planted-declared', 'planted-thrower'], new Set()) === 'off' && boxOfSets(planted, plantedIds, picked) === 'on',
-  `G4: a box over sets that can't be built reads off, and over the rest reads on once the buildable one is selected (${boxOfSets(planted, plantedIds, picked)})`);
+const w = toggleSets(planted, plantedIds, new Set(), []);
+const picked = new Set(w.ids);
+ok(w.ids.join() === 'button' && toggleSets(planted, ['planted-declared'], new Set(), []).ids.length === 0,
+  `G4: a box queues only the sets that can be built (a box over all three queued ${JSON.stringify(w.ids)}; the planted one alone queued none)`);
+ok(boxOfSets(planted, ['planted-declared', 'planted-thrower'], new Set(), []) === 'off' && boxOfSets(planted, plantedIds, picked, []) === 'on',
+  `G4: a box over sets that can't be built reads off, and over the rest reads on once the buildable one is queued (${boxOfSets(planted, plantedIds, picked, [])})`);
 
 console.log('\n7. C2: the set list shows each size\'s padding and gap only, at the px the ENGINE builds at each density');
 // Oracle: the engine's own density output, `applySpacingDensity(def, density)` (the def a build projects), read over
@@ -173,7 +174,10 @@ const SHOWN = ['gap', 'pad-x', 'pad-y', 'padding-x', 'padding-y', 'pad'];
 const HIDDEN = ['back-gap', 'check-gap', 'dismissible.visible-gap', 'glyph-gap', 'pad-end', 'padding-x-visual', 'panel-pad-end', 'select.gap', 'select.padding-end', 'actions-gap',
   // #2343 PR 5: SignInButton's spacing, per provider (Apple's and Facebook's follow density; Google's is fixed). Not one
   // padding and gap per size, so the set list shows none for it.
-  ...['apple', 'facebook'].flatMap((p) => ['padding-x', 'padding-x-visual', 'padding-y', 'gap'].map((k) => `${p}.${k}`))];
+  ...['apple', 'facebook'].flatMap((p) => ['padding-x', 'padding-x-visual', 'padding-y', 'gap'].map((k) => `${p}.${k}`)),
+  // #3143: Divider's label-to-line gap, one per orientation (24px across a row, 12px down a column). Not one gap per
+  // size, so, as for SignInButton, the set list shows none for it.
+  'horizontal.gap', 'vertical.gap'];
 const leaf = (k: string): [string, string] => { const m = /^size\.([^.]+)\.(.+)$/.exec(k); return m ? [m[1][0].toUpperCase() + m[1].slice(1), m[2]] : ['', k]; };
 const names = new Set(componentDefs.flatMap((d) => densitySpacingKeys(d).map((k) => leaf(k)[1])));
 ok([...names].every((n) => SHOWN.includes(n) || HIDDEN.includes(n)), `C2: every spacing name is classified shown or hidden (unclassified: ${JSON.stringify([...names].filter((n) => !SHOWN.includes(n) && !HIDDEN.includes(n)))})`);

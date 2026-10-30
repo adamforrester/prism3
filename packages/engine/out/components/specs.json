@@ -29579,7 +29579,7 @@
     "divider": {
       "id": "divider",
       "name": "Divider",
-      "members": 6,
+      "members": 7,
       "axes": [
         {
           "name": "orientation",
@@ -29615,7 +29615,7 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 6
+          "members": 7
         },
         {
           "part": "container/rule",
@@ -29630,7 +29630,7 @@
         {
           "part": "container/leadingRule",
           "kind": "frame",
-          "members": 1,
+          "members": 2,
           "when": {
             "labeled": [
               "true"
@@ -29640,7 +29640,7 @@
         {
           "part": "container/label",
           "kind": "text",
-          "members": 1,
+          "members": 2,
           "when": {
             "labeled": [
               "true"
@@ -29650,7 +29650,7 @@
         {
           "part": "container/trailingRule",
           "kind": "frame",
-          "members": 1,
+          "members": 2,
           "when": {
             "labeled": [
               "true"
@@ -29843,11 +29843,59 @@
                   "token": "space.0"
                 },
                 "gap": {
-                  "token": "space.300"
+                  "token": "space.150"
                 },
                 "height": {
                   "token": "size.md.height"
                 },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "vertical",
+            "inset": "none",
+            "labeled": "true"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.150"
+                },
+                "height": {
+                  "token": "size.xl.height"
+                }
+              }
+            },
+            {
+              "part": "container/leadingRule",
+              "values": {
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/trailingRule",
+              "values": {
                 "width": {
                   "token": "border-width.hairline"
                 }
@@ -29878,7 +29926,7 @@
                   "token": "space.0"
                 },
                 "gap": {
-                  "token": "space.300"
+                  "token": "space.150"
                 },
                 "height": {
                   "token": "size.md.height"
@@ -29978,6 +30026,27 @@
           "parts": [
             {
               "part": "container/rule",
+              "fill": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "vertical",
+            "inset": "none",
+            "labeled": "true"
+          },
+          "parts": [
+            {
+              "part": "container/leadingRule",
+              "fill": "color.border.secondary"
+            },
+            {
+              "part": "container/label",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/trailingRule",
               "fill": "color.border.secondary"
             }
           ]

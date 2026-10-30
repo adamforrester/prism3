@@ -14,7 +14,10 @@
  *     it (`quietOf`); a moved plan makes it `due` for the engine, naming each part and facet that moved; an
  *     `EXECUTOR_REVISION` move makes it `due` for the executor whatever the plans say (Q811.1); an entry from before
  *     Q811 A, with no print, reads `due` for the engine with nothing named once the engine moves past it (#3090 finding
- *     1); a move in any one facet, or in the plans' own fields, makes a set due, naming it (`q811/facet …`).
+ *     1); a move in any one facet, or in the plans' own fields, makes a set due, naming it (`q811/facet …`);
+ *   · #3101: a revision move makes due only the sets a revision since the entry reaches (`executor-reach.ts`), read off
+ *     the real record's history; a set it does not reach reads as if the revision had not moved, by its print when the
+ *     engine moved too, and is re-recorded by the next write; below the record's floor every set is due (Q820 A).
  *
  * INDEPENDENCE (docs/34): the expected states are literals read off the owner's table and the planting (which lever
  * moved, which plan field the older plans carried), never computed by `dueOf`; the plans are the engine's real
@@ -26,7 +29,9 @@
  * and Checkbox are due …`; `dueOf` calling any engine move due (the pre-Q811 rule) → `q811/same-plan`; `dueOf` calling an
  * engine move current whatever the print → `q811/changed-plan`; `dueOf` reading a revision move by the print, as an
  * engine move → `q811/executor`; a print-less entry under a moved engine read `unrecorded` → `old entry`; the deciding
- * hash dropping `paints` (#3090 review M5) → `q811/facet color`.
+ * hash dropping `paints` (#3090 review M5) → `q811/facet color`; `dueOf` back to `was.rev !== is.rev` (#3101) →
+ * `reach/ledger`, `reach/range`, `reach/engine`; `reaches` ignoring the record's lists → `reach/record`, `reach/ledger`;
+ * `quietOf` without the revision → `reach/quiet`; `needsPrint` back to `was.rev === is.rev` → `reach/needs-print`.
  */
 import { componentDefs } from '@prism3/engine/components/index';
 import type { BrandInput } from '@prism3/engine/theme';
@@ -35,6 +40,7 @@ import { figmaAnatomySet, type AnatomyPlan } from '@prism3/engine/anatomy-figma'
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { LEDGER_KEY, dueOf, entryFor, needsPrint, printOf, quietOf, readLedger, recordSets } from './src/as-built-ledger';
 import { materializerFor } from './src/brand-def';
+import { EXECUTOR_REACH, reaches, type ReachTable } from './src/executor-reach';
 import { SWAP_TARGET } from './src/build-deps';
 
 let failed = 0;
@@ -164,6 +170,38 @@ recordSets(r, { button: drawn.button });
 ok(same(readLedger(r).button, drawn.button), 'q811/record: an entry with its print round-trips');
 r.data.set(LEDGER_KEY, JSON.stringify({ v: 1, sets: { button: { ...drawn.button, print: { plan: 1 } } } }));
 ok(same(readLedger(r), {}), 'q811/record: an entry with a malformed print is left out');
+
+console.log('\n4. #3101: a revision move makes due only the sets it reaches');
+// `reaches` over a record written here: the literals are the record's, read by hand.
+const fixture: ReachTable = { floor: 10, reach: { 11: ['tag'], 12: [], 13: 'all' } };
+ok(!reaches('button', 10, 12, fixture) && reaches('tag', 10, 12, fixture) && reaches('tag', 11, 11, fixture) === false,
+  'reach/record: from 10 to 12, Tag is reached (11 names it) and Button is not (11 and 12 do not)');
+ok(reaches('button', 9, 12, fixture), 'reach/floor: a set drawn at or below the floor is reached: the revision after it has no record');
+ok(reaches('button', 12, 13, fixture) && reaches('button', 12, 14, fixture), 'reach/all and missing: "all" reaches every set, and so does a revision with no entry');
+ok(reaches('tab-item', 24, 25) && !reaches('tab-item', 27, 43),
+  'reach/renamed: entry 25 names Tab, measured before it was renamed Tab item (#2759), and still reaches a Tab item set; nothing after 27 does');
+ok(reaches('button', 12, 11, fixture), 'reach/back: a revision that moved back (an older plugin on a newer file) reaches every set');
+// The ledger, against the real record's history (entries below the revision cannot change: lint-executor-reach.ts).
+// Revision 43 redrew the sign-in button alone (#3125); 42 the brand marks and the wallet button (#3142).
+const at = (rev: number) => ({ button: nowFor(pill, rev)('button'), 'sign-in-button': nowFor(pill, rev)('sign-in-button'), 'wallet-button': nowFor(pill, rev)('wallet-button') });
+const ids = ['button', 'sign-in-button', 'wallet-button'];
+const from42 = dueOf(at(42), ids, nowFor(pill, 43));
+ok(same(from42, { button: { state: 'current' }, 'sign-in-button': { state: 'due', reason: 'executor' }, 'wallet-button': { state: 'current' } }),
+  `reach/ledger: recorded at 42, read at 43: only the sign-in button is due for the executor (${JSON.stringify(from42)})`);
+const from41 = dueOf(at(41), ids, nowFor(pill, 43));
+ok(same(from41, { button: { state: 'current' }, 'sign-in-button': { state: 'due', reason: 'executor' }, 'wallet-button': { state: 'due', reason: 'executor' } }),
+  `reach/range: recorded at 41, read at 43: 42 reaches the wallet button and 43 the sign-in button (${JSON.stringify(from41)})`);
+ok(Object.values(dueOf(at(EXECUTOR_REACH.floor - 1), ids, nowFor(pill, 43))).every((d) => same(d, { state: 'due', reason: 'executor' })),
+  'reach/before the record: a set recorded below the floor is due for the executor, as before #3101 (Q820 A)');
+// With prints and today's engine, so the revision is the one thing that can make an entry quiet.
+const printed = Object.fromEntries(ids.map((id) => [id, entryFor(m(defOf(id)), plansOf(id), 42)]));
+ok(same(Object.keys(quietOf(printed, dueOf(printed, ids, nowFor(pill, 43)), (id) => nowFor(pill, 43)(id))), ['button', 'wallet-button']),
+  'reach/quiet: the sets the revision did not reach are re-recorded under it by the next write; the due one is not');
+// The engine moved too: a set the revision did not reach is read by its print, as an engine move alone is (Q811 A).
+const both = { button: entryFor(m(defOf('button')), plansOf('button'), 42, OLD), 'sign-in-button': entryFor(m(defOf('sign-in-button')), plansOf('sign-in-button'), 42, OLD) };
+ok(same(needsPrint(both, ['button', 'sign-in-button'], nowFor(pill, 43)), ['button']), 'reach/needs-print: an engine move past a set the revision did not reach prints it; the reached one is not printed');
+ok(same(dueOf(both, ['button', 'sign-in-button'], nowFor(pill, 43), printNow), { button: { state: 'current' }, 'sign-in-button': { state: 'due', reason: 'executor' } }),
+  'reach/engine: engine and revision moved, the plans did not: the unreached set is current by its print, the reached one due for the executor');
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

@@ -554,8 +554,8 @@
       ]
     },
     "divider": {
-      "members": 6,
-      "sha256": "92893c932220542e6dba78e1763449c99fdde8dc199fe404edf990d0750f6d78",
+      "members": 7,
+      "sha256": "a6a3dd582f85b13e6ebf399257eee679f83efe4d3f0ba084e40c94ff570c8998",
       "properties": [
         "label:TEXT"
       ]

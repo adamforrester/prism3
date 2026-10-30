@@ -2764,5 +2764,51 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     `#2928 CodeInput: in all ${fields.length} members the field hugs the widest of its label, cells and message, and no cell runs past it (${fieldOff.length} off${fieldOff.length ? `: ${fieldOff.slice(0, 3).join(' | ')}` : ''})`);
 }
 
+// ── THE VERTICAL LABELED DIVIDER, AS LAID OUT (#3143, owner Q3143.1–.7 all A) ────────────────────────────────────
+//
+// The diff above compares the host to the plan that built it, so a plan that turned the labeled column back into a
+// row would build and read back clean. This reads the shim's LAYOUT instead, with EXPECTED typed here from the
+// decision: the vertical labeled member is a column (Q3143.1 A, the label upright between a line above and below), as
+// wide as its label because it hugs across (Q3143.2 A), its two lines one hairline (1px) wide, and
+// 68px tall (Q3143.5 A, `size.xl.height`); the plain vertical root is a 1px by 44px column. What the shim does NOT
+// model, so this does not assert: stacking down a column (`y`), and a frame with no layout of its own filling either
+// axis (`layoutGrow` or `STRETCH`), which is every line's length and the plain rule's whole size. Mutation:
+// `directionWhen.values.vertical` → 'row' fails this by name (the root sums its cells across and the lines lose
+// their 1px width).
+{
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
+  const d = componentDefs.find((x) => x.id === 'divider');
+  ok(!!d, '#3143 divider: the def is registered');
+  const plans = d ? project(d) : [];
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(plans), page, layoutModel: true, textLineBox: { 'label/md/default': 16 },
+    varPx: { 'space/0': 0, 'space/100': 8, 'space/150': 12, 'space/300': 24, 'border-width/hairline': 1, 'size/md/height': 44, 'size/xl/height': 68, 'container/narrow': 720 } });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  if (d) await applyComponentPlan(plans, shim as any, {});
+  const members = ((page.children.find((c) => c.name === 'divider' && c.type === 'COMPONENT_SET')?.children ?? []) as Node[]);
+  const kid = (n: Node | undefined, name: string): Node | undefined => ((n?.children ?? []) as Node[]).find((c) => c.name === name);
+  const W = (n: Node | undefined): number => Number(n?.width);
+  const H = (n: Node | undefined): number => Number(n?.height);
+  const off: string[] = [];
+  let labeled = 0, plain = 0;
+  for (const m of members.filter((x) => /orientation=vertical/.test(String(x.name)))) {
+    const name = String(m.name);
+    if (m.layoutMode !== 'VERTICAL') off.push(`${name}: the root is ${String(m.layoutMode)}, not a column`);
+    if (/labeled=true/.test(name)) {
+      labeled++;
+      const lead = kid(m, 'leadingRule'), label = kid(m, 'label'), trail = kid(m, 'trailingRule');
+      if (!lead || !label || !trail) { off.push(`${name}: missing a cell`); continue; }
+      if (m.counterAxisSizingMode !== 'AUTO' || Math.abs(W(m) - W(label)) > 0.5) off.push(`${name}: the root is ${W(m)} wide (${String(m.counterAxisSizingMode)}) around a ${W(label)} label, not hugging it`);
+      if (W(lead) !== 1 || W(trail) !== 1) off.push(`${name}: the lines are ${W(lead)} and ${W(trail)} wide, not one hairline`);
+      if (H(m) !== 68) off.push(`${name}: the root is ${H(m)} tall, not 68`);
+    } else {
+      plain++;
+      if (W(m) !== 1 || H(m) !== 44 || !kid(m, 'rule')) off.push(`${name}: the root is ${W(m)}x${H(m)}${kid(m, 'rule') ? '' : ' with no rule'}, not a 1x44 column around the rule`);
+    }
+  }
+  ok(labeled === 1 && plain === 2 && off.length === 0,
+    `#3143 divider: the vertical labeled member is a 68px column as wide as its label, its two lines one hairline wide, and the two plain vertical members stay 1x44 columns around the rule, as laid out by the shim (${labeled} labeled, ${plain} plain; ${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);
