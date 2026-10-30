@@ -16,7 +16,11 @@
  *      suite spies on the table to prove the command reached the UI's own handler.
  *
  * Arms, by name: mcp · no-plugin · handshake · fragmented · ping · run · stream · progress · big-frame · timeout ·
- * unmasked · disconnect · e2e/routes · e2e/parity · e2e/link-off · e2e/switch-off
+ * unmasked · disconnect · reconnect · resend/hand · e2e/routes · e2e/parity · resend/e2e · e2e/link-off · e2e/switch-off
+ *
+ * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
+ * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
+ * posted, and asserts the result reaches the MCP client exactly once and the command ran once.
  */
 import { spawn } from 'node:child_process';
 import { connect } from 'node:net';
@@ -56,10 +60,13 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 
 /* ── the server, over stdio ─────────────────────────────────────────────────────────────────────────── */
 
-const child = spawn('npx', ['tsx', resolve(HERE, '../../tools/figma-bridge/server.ts'), '--port', '0'], { stdio: ['pipe', 'pipe', 'pipe'] });
+const GRACE_MS = 3000;
+const child = spawn('npx', ['tsx', resolve(HERE, '../../tools/figma-bridge/server.ts'), '--port', '0', '--grace-ms', String(GRACE_MS)], { stdio: ['pipe', 'pipe', 'pipe'] });
 let stderr = '';
 child.stderr.on('data', (d) => { stderr += d; });
 const replies = new Map<number, any>();
+/** How many replies arrived per request id: a result delivered twice would show here, not in `replies`. */
+const replyCount = new Map<number, number>();
 const notes: any[] = [];
 let out = '';
 // Decoded as a stream, not per chunk: a chunk boundary can fall inside a multi-byte character.
@@ -72,7 +79,7 @@ child.stdout.on('data', (d) => {
     const line = out.slice(0, nl); out = out.slice(nl + 1);
     if (!line.trim()) continue;
     const m = JSON.parse(line);
-    if (m.id !== undefined && m.id !== null) replies.set(m.id, m); else notes.push(m);
+    if (m.id !== undefined && m.id !== null) { replies.set(m.id, m); replyCount.set(m.id, (replyCount.get(m.id) ?? 0) + 1); } else notes.push(m);
   }
 });
 let rpcId = 0;
@@ -90,11 +97,12 @@ const call = async (name: string, args: unknown = {}, meta?: unknown) => {
 const callLater = (name: string, args: unknown = {}, meta?: unknown) => {
   const id = ++rpcId;
   child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args, ...(meta ? { _meta: meta } : {}) } }) + '\n');
-  return async () => {
+  const wait = async () => {
     if (!(await until(() => replies.has(id), 20000))) throw new Error(`no reply to ${name}`);
     const r = replies.get(id);
     return { isError: !!r.result?.isError, value: r.result?.structuredContent };
   };
+  return Object.assign(wait, { rpcId: id });
 };
 
 if (!(await until(() => /listening on localhost:(\d+)/.test(stderr), 60000))) {
@@ -287,7 +295,7 @@ section('disconnect + unmasked');
   c1.sock.write(frame(0x1, Buffer.from('{"type":"state"}'), true, true)); // unmasked: a protocol violation
   ok(await until(() => c1.frames.some((f) => f.op === 0x8 && f.payload.readUInt16BE(0) === 1002)), 'unmasked: the server closes with 1002');
   const r = await done();
-  ok(r.isError && /disconnected/.test(r.value?.error), 'disconnect: a run in flight fails with the disconnect, not a hang');
+  ok(r.isError && /disconnected/.test(r.value?.error) && /did not reconnect within/.test(r.value?.error), `disconnect: a run in flight fails once the grace ends with no reconnect, not a hang (${String(r.value?.error).slice(0, 80)})`);
   ok((await call('figma_status')).value?.connected === false, 'and figma_status says not connected');
 }
 
@@ -310,6 +318,38 @@ section('reconnect — a newer plugin connection replaces the older one');
   fresh.sock.destroy();
   ok(await untilAsync(async () => (await call('figma_status')).value?.connected === false),
     'drop: a plugin that goes away without a close frame is not left "connected"');
+}
+
+section('resend/hand — a result re-sent after a reconnect is delivered once (#2497)');
+{
+  const a = await openClient();
+  a.sendJson({ type: 'hello', state: state() });
+  ok(await untilAsync(async () => (await call('figma_status')).value?.connected === true), 'resend/hand: the plugin is connected');
+  const done = callLater('figma_run', { cmd: 'update-components', timeoutMs: 15000 });
+  ok(await until(() => a.texts().some((m) => m.type === 'command')), 'resend/hand: a command is in flight');
+  const cmd = a.texts().find((m) => m.type === 'command').command;
+  a.sock.destroy(); // dropped without a close frame, as a stalled iframe's socket is
+  ok(await untilAsync(async () => {
+    const s = (await call('figma_status')).value;
+    return s?.connected === false && s?.awaitingReconnect?.includes(cmd.id);
+  }), 'resend/hand: after the drop the command is awaiting the reconnect, not failed');
+  const b = await openClient();
+  b.sendJson({ type: 'hello', state: state(), held: [cmd.id] });
+  const result: AgentResult = {
+    v: 1, id: cmd.id, cmd: 'update-components', ok: true, startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(),
+    engineVersion: ENGINE_VERSION, transport: 'bridge', result: { verdict: { headline: '✓ updated in place' }, data: {}, logs: [] },
+  };
+  b.sendJson({ type: 'result', result });
+  b.sendJson({ type: 'result', result }); // the relay re-sends every kept result on each connect
+  const r = await done();
+  ok(!r.isError && JSON.stringify(r.value) === JSON.stringify(result), 'resend/hand: the re-sent result is the call\'s answer');
+  await sleep(100);
+  ok(replyCount.get(done.rpcId) === 1, `resend/hand: the call is answered exactly once (${replyCount.get(done.rpcId)})`);
+  ok(b.texts().filter((m) => m.type === 'command').length === 0, 'resend/hand: the command is not sent again to the new connection');
+  const logs = (await call('figma_logs', { since: 0, limit: 5000 })).value?.entries ?? [];
+  ok(logs.some((e: { id: string; line: string }) => e.id === cmd.id && /repeated result/.test(e.line)), 'resend/hand: the second copy is logged as a repeat and ignored');
+  b.sock.destroy();
+  ok(await untilAsync(async () => (await call('figma_status')).value?.connected === false), 'resend/hand: closed');
 }
 
 /* ── the plugin itself: real relay + real main.ts ───────────────────────────────────────────────────── */
@@ -335,8 +375,12 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
   g.PRISM3_DEV = true;   // the dev build's define (#2530): the bridge is a dev build's transport
   const main = await import('./src/main');
   const toMain = (m: unknown) => (host.ui as { onmessage: (m: unknown) => void }).onmessage(m);
+  // The socket the relay holds now, and a switch that refuses new ones: `resend/e2e` drops the first and keeps
+  // the relay off the bridge until the main thread has answered.
+  let sock: WebSocket | null = null;
+  let refuse = false;
   relay = createBridgeRelay({
-    open: (url) => new WebSocket(url) as unknown as WsLike,
+    open: (url) => { if (refuse) throw new Error('refused by the test'); sock = new WebSocket(url); return sock as unknown as WsLike; },
     post: (m) => toMain(m),
     schedule: (fn, ms) => setTimeout(fn, ms),
     cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
@@ -388,6 +432,30 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
   const rce = await call('figma_run', { cmd: 'run-code', args: { code: 'return missingName;' }, timeoutMs: 8000 });
   ok((rce.value as AgentResult).ok === false && (rce.value as AgentResult).error?.code === 'handler-threw' && /missingName/.test((rce.value as AgentResult).error?.message ?? ''),
     `e2e/run-code: a throw comes back over the bridge as handler-threw with its message (${JSON.stringify((rce.value as AgentResult).error)})`);
+
+  // #2497: a command that outlives its socket. run-code (the dev build's) waits 800 ms in the main thread;
+  // the socket drops at once and stays down until the result is posted, so the result can only reach the
+  // MCP client if the relay keeps it and re-sends it on reconnect. A counter in the code proves one run.
+  {
+    const g2 = globalThis as Record<string, unknown>;
+    g2.__resendRuns = 0;
+    const done = callLater('figma_run', { cmd: 'run-code', args: { code: 'globalThis.__resendRuns++; await new Promise((r) => setTimeout(r, 800)); return "survived";' }, timeoutMs: 10000 });
+    ok(await until(() => g2.__resendRuns === 1), 'resend/e2e: the command is running in main.ts');
+    refuse = true;
+    sock!.close();
+    ok(await until(() => relay!.connected() === false), 'resend/e2e: the socket drops mid-command');
+    ok(await until(() => posted.some((m) => m.type === 'agent-result' && m.result.cmd === 'run-code' && m.result.result?.data?.value === 'survived'), 5000),
+      'resend/e2e: the main thread finishes while the relay is disconnected');
+    refuse = false;
+    ok(await until(() => relay!.connected()), 'resend/e2e: the relay reconnects');
+    const r = await done();
+    const env = r.value as AgentResult;
+    ok(!r.isError && env.ok === true && env.cmd === 'run-code' && env.result?.data.value === 'survived',
+      `resend/e2e: the result arrives after the reconnect (${JSON.stringify(r.value).slice(0, 120)})`);
+    await sleep(200);
+    ok(replyCount.get(done.rpcId) === 1, `resend/e2e: the call is answered exactly once (${replyCount.get(done.rpcId)})`);
+    ok(g2.__resendRuns === 1, `resend/e2e: the command ran once (${g2.__resendRuns})`);
+  }
 
   toMain({ type: 'agent-link', on: false });
   ok(await until(() => relay!.connected() === false), 'e2e/switch-off: switching the link off closes the socket');

@@ -59,8 +59,18 @@ land, so read the file again before relying on its state. This server needs no c
 `cmd` through. A release build answers it `unknown-command`.
 
 One command runs at a time. `figma_run` fails as a tool error (`isError`) only when no result can
-come back: no plugin connected, a timeout (default 600 s), or the plugin disconnecting mid-run. A
-result whose `ok` is false is the action's own verdict and arrives as a normal result.
+come back: no plugin connected, a timeout (default 600 s), or the plugin not coming back after a
+mid-run disconnect. A result whose `ok` is false is the action's own verdict and arrives as a normal
+result.
+
+**A reconnect mid-run does not lose the result** (#2497). A long command (a large `update-components`
+apply runs for minutes) can outlive the plugin's socket. The server keeps the call waiting for up to
+`--grace-ms` (default 120000, or `PRISM3_BRIDGE_GRACE_MS`) for the plugin to reconnect; `figma_status`
+lists the waiting ids under `awaitingReconnect`. On reconnect the plugin names the commands it holds
+and re-sends its last results by command id. The server answers the call with the first copy and
+logs any repeat as ignored. It never sends a command twice, so nothing runs twice. A command the
+reconnected plugin does not hold (it never arrived, or the plugin was reloaded) fails at once with
+that reason. Progress and log lines streamed while the socket was down are not replayed.
 
 ## How it is built
 
