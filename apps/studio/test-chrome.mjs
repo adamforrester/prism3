@@ -999,9 +999,11 @@ const browser = MODE === 'run' ? await launchWithoutWebFonts(chromium) : null;
  *  screen's prism3 chip (or `brand`'s), the OS scheme emulated, `query` (web only) appended to the page URL.
  *  Plugin: Figma's theme stubbed, then the start screen the host asks for, then the same example. Named
  *  options, so `brand` (#2194) and `query` (#2124) can't be passed in each other's place. */
-const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3' }) => {
+const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3', prep }) => {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme });
   const page = await ctx.newPage();
+  // `prep` (#3138): runs on the page before it loads, for a section that must see every request from boot on.
+  if (prep) await prep(page);
   await hooks.watch(page);
   const errors = [];
   page.on('pageerror', (e) => errors.push(`uncaught: ${e.message}`));
@@ -18081,11 +18083,11 @@ for (const host of ['web', 'figma']) {
   // The web loader, against a fixture Google Fonts: the CSS reply declares Playfair Display at 400 and 400 italic, and
   // the face file is the chrome's own embedded Inter, renamed by the @font-face rule. Any other family is a 400.
   const where = '§3138 web light 1280 (Google Fonts fixture)';
-  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
-  let step = 'route';
   const asked = [];
-  try {
-    const woff2 = readFileSync(join(STUDIO, 'chrome/fonts/inter-latin-wght-normal.woff2'));
+  const woff2 = readFileSync(join(STUDIO, 'chrome/fonts/inter-latin-wght-normal.woff2'));
+  // The routes go in before the page loads, so every request from boot on is seen: the loader asks a family once per
+  // session, and a request made while the page boots would otherwise pass the arm unseen.
+  const prep = async (page) => {
     await page.route(/^https:\/\/fonts\.googleapis\.com\//, (r) => {
       const url = r.request().url();
       asked.push(url);
@@ -18094,6 +18096,10 @@ for (const host of ['web', 'figma']) {
       return r.fulfill({ status: 200, contentType: 'text/css', headers: { 'access-control-allow-origin': '*' }, body: `${face('normal')}\n${face('italic')}` });
     });
     await page.route(/^https:\/\/fonts\.gstatic\.com\//, (r) => r.fulfill({ status: 200, contentType: 'font/woff2', headers: { 'access-control-allow-origin': '*' }, body: woff2 }));
+  };
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900, prep });
+  let step = 'open';
+  try {
     step = 'the Type page';
     await goPlace(page, 'type');
     await page.waitForFunction(() => document.querySelector('[data-p3="type-sample-line"][data-token="type.display.md.strong"] [data-p3="type-sample-note"]')?.textContent?.includes('cut'), null, { timeout: 15000 });
