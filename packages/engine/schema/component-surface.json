@@ -7,8 +7,8 @@
       "properties": []
     },
     "provider-logo": {
-      "members": 75,
-      "sha256": "f19891f13e5458032540847e5fb417d94b0f95338b1d8e86ec7a4b20e8d4d7de",
+      "members": 86,
+      "sha256": "90929a9473907cbd61c1c46a9b448d876be551c7cea6c6647d91bbe3d967b022",
       "properties": []
     },
     "focus-ring": {
@@ -227,8 +227,8 @@
       ]
     },
     "wallet-button": {
-      "members": 20,
-      "sha256": "b253cfeaac64f0f713796691272880d39ab2beea631c0af2afec7218113fae08",
+      "members": 74,
+      "sha256": "b065f8f41c6546fe372fd54a8c68f1af4803f01470e3a05a626f8f987c2d18c5",
       "properties": []
     },
     "sign-in-button": {

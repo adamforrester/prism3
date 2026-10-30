@@ -9,7 +9,7 @@
 
 ## Overview
 
-A payment button for a wallet: Apple Pay, Google Pay, PayPal or Shop Pay. The provider draws the button itself, so its logo, colors, wording and font are the provider's and never change with the theme. The component sets the height, the width, the corner radius where the provider allows one, and the focus ring. Each provider has a smallest and a largest height, so Shop Pay starts at the medium size and PayPal stops at medium. The design file shows each button's space and logo for layout; the button the customer sees comes from the provider.
+A payment button for a wallet: Apple Pay, Google Pay, PayPal or Shop Pay. The provider draws the button itself, so its logo, colors, wording and font are the provider's and never change with the theme. The component sets the height, the width, the corner radius where the provider allows one, and the focus ring. Each provider has a smallest and a largest height, so Shop Pay starts at the medium size and PayPal stops at medium. The design file shows each provider's own button in each of its styles, and a stand-in with the provider's logo and no fill when the style is left open; the button the customer sees comes from the provider.
 
 - **Purpose:** Offer an express checkout with a wallet, drawn by the wallet provider.
 - **Use when:** On a cart, checkout or product page, for each wallet the store accepts: Apple Pay, Google Pay, PayPal or Shop Pay.
@@ -17,10 +17,10 @@ A payment button for a wallet: Apple Pay, Google Pay, PayPal or Shop Pay. The pr
 
 ## Anatomy
 
-Shown on the default member: provider `apple-pay`, size `medium`.
+Shown on the default member: provider `apple-pay`, style `any`, size `medium`.
 
-1. **Container** — The provider's area at its size and corner, with no fill and no edge: the provider draws the button inside it.
-2. **Mark** — The provider's logo, in its own colors and proportion, centered. Only its height is set.
+1. **Container** — The provider's button at its size and corner: the style's own fill, and a 1px edge where the provider draws one. With the style left open it has no fill and no edge, and the provider draws the button inside it.
+2. **Mark** — The provider's logo, in its own colors and proportion, centered: for a style, exactly as the provider draws it on that style's button, at the provider's height for the button. Only its height is set.
 3. **Focus ring** — The shared focus ring, around the provider's button while it has keyboard focus.
 
 ## Styles
@@ -28,6 +28,7 @@ Shown on the default member: provider `apple-pay`, size `medium`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `provider` | `apple-pay`, `google-pay`, `paypal`, `shop-pay` | once, when authored | Which wallet. Each needs its provider's script on the page, which draws the button. |
+| `style` | `any`, `black`, `white`, `white-outline`, `gold`, `blue`, `silver`, `purple` | once, when authored | The provider's color style, from its own list, passed to the provider: Apple Pay black, white, white-outline; Google Pay black, white; PayPal gold, blue, silver, white, black; Shop Pay purple. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style another provider uses is refused. |
 | `size` | `medium`, `small`, `large` | once, when authored | The height: 36, 44 or 56px. Shop Pay has no small size and PayPal no large one, because each provider sets a smallest and a largest height. |
 
 ### States
@@ -92,13 +93,13 @@ The provider's wording, in the provider's language handling. Nothing to write.
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `provider` | enum: 'apple-pay' \| 'google-pay' \| 'paypal' \| 'shop-pay' | — | yes | Which wallet. Each needs its provider's script on the page, which draws the button. |
+| `style` | enum: 'any' \| 'black' \| 'white' \| 'white-outline' \| 'gold' \| 'blue' \| 'silver' \| 'purple' | `any` | no | The provider's color style, from its own list, passed to the provider: Apple Pay black, white, white-outline; Google Pay black, white; PayPal gold, blue, silver, white, black; Shop Pay purple. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style another provider uses is refused. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The height: 36, 44 or 56px. Shop Pay has no small size and PayPal no large one, because each provider sets a smallest and a largest height. |
 | `type` | string | `plain` | no | The provider's wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain. |
-| `buttonStyle` | string | — | no | The provider's color style, from its own list, passed to the provider: black or white for Apple Pay and Google Pay, gold, blue, silver, white or black for PayPal. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. Unset, the provider's default. |
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 20 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 74 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -112,36 +113,155 @@ Generated from the plan that builds the design-file component: 20 members. Value
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`.
+Keyed by `size`, `style`.
 
-**size=medium**
+**size=medium, style=any**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | — | `size.md.height` | — | 120px (literal) | — |
 | `container/mark` | — | — | `icon.size.md` | — | — | — |
 
-**size=small**
+**size=small, style=any**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
 | `container/mark` | — | — | `icon.size.sm` | — | — | — |
 
-**size=large**
+**size=large, style=any**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | — | `size.lg.height` | — | 120px (literal) | — |
 | `container/mark` | — | — | `icon.size.lg` | — | — | — |
 
+**size=medium, style=black**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.md.height` | — | — | — |
+
+**size=small, style=black**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.sm.height` | — | — | — |
+
+**size=large, style=black**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.lg.height` | — | — | — |
+
+**size=medium, style=white**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.md.height` | — | — | — |
+
+**size=small, style=white**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.sm.height` | — | — | — |
+
+**size=large, style=white**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.lg.height` | — | — | — |
+
+**size=medium, style=white-outline**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.md.height` | — | — | — |
+
+**size=small, style=white-outline**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.sm.height` | — | — | — |
+
+**size=large, style=white-outline**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.lg.height` | — | — | — |
+
+**size=medium, style=gold**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.md.height` | — | — | — |
+
+**size=small, style=gold**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.sm.height` | — | — | — |
+
+**size=medium, style=blue**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.md.height` | — | — | — |
+
+**size=small, style=blue**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.sm.height` | — | — | — |
+
+**size=medium, style=silver**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.md.height` | — | — | — |
+
+**size=small, style=silver**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.sm.height` | — | — | — |
+
+**size=medium, style=purple**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.md.height` | — | — | — |
+
+**size=large, style=purple**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | — | 120px (literal) | — |
+| `container/mark` | — | — | `size.lg.height` | — | — | — |
+
 ### Color
 
-Keyed by `provider`, `state`.
+Keyed by `provider`, `style`, `state`.
 
 ### Nesting and properties
 
-- `container/mark` nests `provider-logo` at `name=logo/apple-pay`; `provider=apple-pay` takes `name=logo/apple-pay`, `provider=google-pay` takes `name=logo/google-pay`, `provider=paypal` takes `name=logo/paypal-wordmark`, `provider=shop-pay` takes `name=logo/shop-pay`
+- `container/mark` nests `provider-logo` at `name=logo/apple-pay`; `provider=apple-pay, style=any` takes `name=logo/apple-pay`, `provider=apple-pay, style=black` takes `name=button/apple-pay-black`, `provider=apple-pay, style=white` takes `name=button/apple-pay-white`, `provider=apple-pay, style=white-outline` takes `name=button/apple-pay-white-outline`, `provider=google-pay, style=any` takes `name=logo/google-pay`, `provider=google-pay, style=black` takes `name=button/google-pay-black`, `provider=google-pay, style=white` takes `name=button/google-pay-white`, `provider=paypal, style=any` takes `name=logo/paypal-wordmark`, `provider=paypal, style=gold` takes `name=button/paypal-gold`, `provider=paypal, style=blue` takes `name=button/paypal-blue`, `provider=paypal, style=silver` takes `name=button/paypal-silver`, `provider=paypal, style=white` takes `name=button/paypal-white`, `provider=paypal, style=black` takes `name=button/paypal-black`, `provider=shop-pay, style=any` takes `name=logo/shop-pay`, `provider=shop-pay, style=purple` takes `name=button/shop-pay-purple`
 - `container/focusRing` nests `focus-ring` at `surface=default`
 
 ---

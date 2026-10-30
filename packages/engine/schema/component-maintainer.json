@@ -516,32 +516,35 @@
     },
     "wallet-button": {
       "codeOnly": [
-        "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option (clamped for Google Pay, below), and type and buttonStyle through unchanged.",
+        "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option (clamped for Google Pay, below), and type and style through unchanged.",
+        "the style — passed to the provider under its own option name: Apple Pay's buttonstyle, Google Pay's buttonColor, PayPal's style.color and Shop Pay's one color. any passes nothing, so the provider draws its default. The design file's fill and edge for each style are the provider's own paint as its script draws it, so a style picked in the design file is the button the customer sees.",
         "the height limits — Shop Pay's 40px floor and PayPal's 55px ceiling: a small Shop Pay button is drawn at 40 and a large PayPal button at 55, and the design file has no member for either.",
         "the corner — Google Pay allows a radius of at most half the button's height, so the component passes min(radius, height / 2) as its buttonRadius. A soft brand's radius can pass half of a small or compact button. Apple Pay, PayPal and Shop Pay take the brand radius as it is.",
-        "the width — the container fills its column, with a 120px floor. Apple Pay's titled buttons need 140, so a titled Apple Pay button takes the larger floor; Shop Pay's \"Buy with\" button needs 193.",
-        "the provider's own states — the provider's element owns hover, pressed and disabled and draws them itself, and the design file cannot show them without copying the button. The component adds only the focus ring, outside the provider's element, at focus-visible.",
+        "the width — the container fills its column, with a 120px floor. Apple Pay's titled buttons need 140, so a titled Apple Pay button takes the larger floor; Shop Pay's \"Buy with\" button needs 193. PayPal's script holds its own frame at 150 or wider, so a PayPal button under 150 overflows its slot.",
+        "the provider's own states — the provider's element owns hover, pressed and disabled and draws them itself, and the design file does not show them. The component adds only the focus ring, outside the provider's element, at focus-visible.",
         "the accessible name — the provider's element names itself (\"Apple Pay\", \"Buy with Google Pay\"). The component adds no label, so nothing is announced twice.",
         "loading — the slot keeps its height before the provider's script has drawn the button, so the page does not move when it arrives.",
         "RTL — the provider's element lays out its own wording. The container mirrors nothing."
       ],
       "notes": {
         "contested": [
-          "Q-W1 (the Figma member): built as A, a layout stand-in with the provider's logo and no fill. B, the owner supplies each provider's own button artwork per style and the stand-in draws it, adding a style axis; C, Prism3 paints the providers' fills, which needs a literal-paint engine field and colors the providers do not publish.",
-          "Q-W2 (heights outside a provider's range): built as A, no member. B, clamp in Figma too, which needs a height that is not a token.",
           "Q-W3 (the shared factory, Q-B4 A): SignInButton is PR 5, so the factory lands with its second component rather than as an abstraction with one user.",
-          "Every logo in the owner's set is drawn for a light ground (Apple Pay and Shop Pay in one ink, Google Pay in five colors, the PayPal wordmark in three). A dark-style stand-in would need each provider's light logo, which the set does not hold.",
           "Q-W5 (shape): built as A, no shape axis, the brand's radius.md. The proposal's §2.3 gave a shape axis, rectangle or pill. B, a shape axis whose pill binds radius.capsule, clamped to half the height for Google Pay.",
-          "Q-B5 A decided valid provider × style pairs only. With the style axis held by Q-W1, the build applies it to provider × size: Shop Pay has no small member and PayPal no large one."
+          "#3175 (PayPal's width): PayPal's script holds its frame at 150px or wider, above the component's 120 floor. The floor is one number for every provider today (minWidth is keyed by size only), so a PayPal member is drawn from 120; the code admits the 150 in codeOnly. A per-provider floor is the follow-up."
         ],
         "unverified": [
-          "The provider limits typed in the gate are the proposal's reading of each provider's guidelines on 2026-10-25."
+          "The provider limits typed in the gate are the proposal's reading of each provider's guidelines on 2026-10-25.",
+          "Q3174.6 A: Apple's HIG says not to replicate its button (\"Don't create custom Apple Pay button designs or try to replicate the Apple-provided ones\"). The Apple Pay members draw Apple's own artwork, unaltered, as a design-file stand-in, on the reading that this matches the design template Apple itself publishes for designers; the code still mounts Apple's element. The license on that template (Figma Community, behind a sign-in) has not been read.",
+          "The style artwork, grounds and edges were captured from each provider's public SDK on 2026-10-30 (the records in marks/provenance.json). An SDK that changes its paint later is not seen until the artwork is captured again."
         ],
         "evolution": [
-          "Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A, read here onto provider × size while style waits on Q-W1) and the provider's own element in code (Q-B8 A). Built in PR 4 on the owner's logo marks (PR 3)."
+          "Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A) and the provider's own element in code (Q-B8 A). Built in PR 4 on the owner's logo marks (PR 3).",
+          "Q-W1 (the Figma member) was built as A, a layout stand-in with no fill, while the providers' artwork was not in. #3174 took B (Q3174.1–6, all A): a style axis in each SDK's own names, each style drawn from the provider's SDK artwork with its record's ground and edge, and the stand-in kept as the any style, so every member built before is still there at style any.",
+          "Q-W2 (heights outside a provider's range): built as A, no member, and kept by Q3174.4 A: PayPal has no large member, because 55 is its documented ceiling.",
+          "The code prop buttonStyle (a free string) became style, an enum of the providers' own names with any for the provider's default, so the code and the design file name a style the same way."
         ],
         "projection": [
-          "In Figma each member is the provider's area, a frame at the size and radius the rules allow, with the provider's logo nested as a provider-logo/logo instance whose height is bound and whose width follows its proportion, keeping its own paint."
+          "In Figma each member is the provider's area, a frame at the size and radius the rules allow, with the provider's logo nested as a provider-logo instance whose height is bound and whose width follows its proportion, keeping its own paint. At a style, the frame takes the style's ground and 1px edge as literal paint; at any it has neither."
         ]
       },
       "docGaps": [

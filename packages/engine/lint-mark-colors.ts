@@ -27,6 +27,14 @@
  *       non-provider mark, fails by name (`HOST TINT`). Every other mark keeps "never retinted". Each tint host must
  *       tint at least one member, so the arm cannot pass by reading none. WHICH members tint, and to what, is
  *       `test.ts`'s `Q846 A dark-fill styles draw white` arm, typed from the decision.
+ *   (h) THE BUTTON GROUND (#3174, owner decision Q3174.3 A) — a `button/` mark is a wallet button's logo for one style,
+ *       and its record carries the paint the provider's SDK draws under it: `ground`, and `edge` where there is one. A
+ *       host that nests a `provider-logo/button/*` mark must be in `GROUND_HOSTS` (WalletButton alone), and the button
+ *       it draws, the member's root frame, paints exactly that record's ground as its one literal fill and the edge's
+ *       color as its literal stroke, or no stroke where the record has no edge. Read from `provenance.json` here, never
+ *       from `PROVIDER_LOGO_BUTTON_PAINT`, which the def reads (docs/34 shape 1). A ground host's member that carries
+ *       any other mark (the `any` stand-in) paints nothing at all (`BUTTON GROUND`). Each ground host must paint at
+ *       least one ground, so the arm cannot pass by reading none.
  *   (e) THE PAYMENT TILE (owner decisions Q720 A, Q780 A) — a payment tile is full-bleed, and the component draws the
  *       tile's corners and edge. On every `payment/*` member, the frame that holds the artwork binds all four corner
  *       radii to a `radius/*` variable and its stroke weight to a `border-width/*` variable, strokes in a
@@ -70,6 +78,28 @@ const MARK_HOSTS = ['card-number-field', 'wallet-button', 'sign-in-button'];
 /** (g) The hosts that may tint a mark, and the marks they may tint (Q846 A), typed here. */
 const TINT_HOSTS = ['sign-in-button'];
 const TINTABLE_PREFIX = 'provider-logo/provider/';
+/** (h) The hosts that paint a button logo's ground from its record (Q3174.3 A), and the marks that carry one, typed here. */
+const GROUND_HOSTS = ['wallet-button'];
+const BUTTON_PREFIX = 'provider-logo/button/';
+
+type ButtonRecord = { ground?: string; edge?: { width?: number; color?: string } };
+/** What is wrong with a ground host's member, given the mark it carries and the record of that mark (undefined for a
+ *  mark that is not a button logo). Empty when right. Pure. */
+export const groundErrors = (root: FigmaNodePlan, target: string, rec: ButtonRecord | undefined): string[] => {
+  const fills = root.literalPaints?.fills ?? [], stroke = root.literalPaints?.strokes;
+  const lc = (c: string | undefined): string | undefined => c?.toLowerCase();
+  if (!target.startsWith(BUTTON_PREFIX)) {
+    return fills.length || stroke || root.paints?.fills || root.paints?.strokes
+      ? [`carries ${target}, which has no button under it, and paints ${JSON.stringify({ literal: root.literalPaints, paints: root.paints })}: the stand-in draws no fill and no edge`]
+      : [];
+  }
+  if (!rec?.ground) return [`carries ${target}, and its record states no ground`];
+  const out: string[] = [];
+  if (fills.length !== 1 || lc(fills[0]) !== lc(rec.ground)) out.push(`paints the fill ${JSON.stringify(fills)} under ${target}, and its record's ground is ${rec.ground}`);
+  if (lc(stroke) !== lc(rec.edge?.color)) out.push(`paints the edge ${stroke ?? 'none'} under ${target}, and its record's edge is ${rec.edge?.color ?? 'none'}`);
+  if (root.paints?.fills || root.paints?.strokes) out.push(`binds a theme paint ${JSON.stringify(root.paints)} under ${target}: the provider's ground follows no theme`);
+  return out;
+};
 
 /** The colors a document paints, in document order: each path's hex `fill` (not a `url(#…)` reference, and
  *  not the wrapper's `fill="none"`) and each gradient `stop-color`. Pure. */
@@ -166,6 +196,14 @@ const self: string[] = [];
   if (needsEdge('<svg><path d="M0 0H32V20H0Z" fill="#008CFF"/></svg>') || needsEdge('<svg><path d="M0 0Z" fill="#000000"/></svg>')) self.push('needsEdge keeps the edge on a tile whose fill is 3:1 or more against white');
   if (!isTileMark('payment/visa') || isTileMark('social/x-mono') || isTileMark('logo/visa')) self.push('isTileMark misreads a kind');
   if (carriesMark({ name: 'icon', type: 'NESTED_INSTANCE', nestTarget: 'icon/check' } as FigmaNodePlan)) self.push('carriesMark reads an icon as a mark');
+  const btn = (fills?: string[], strokes?: string): FigmaNodePlan => ({ name: 'container', type: 'FRAME', ...(fills || strokes ? { literalPaints: { ...(fills ? { fills } : {}), ...(strokes ? { strokes } : {}) } } : {}) }) as unknown as FigmaNodePlan;
+  const rec = { ground: '#ffffff', edge: { width: 1, color: '#555555' } };
+  if (groundErrors(btn(['#ffffff'], '#555555'), `${BUTTON_PREFIX}x-white`, rec).length) self.push('groundErrors rejects a button painted as its record says');
+  if (groundErrors(btn(['#000000'], '#555555'), `${BUTTON_PREFIX}x-white`, rec).length !== 1) self.push('groundErrors misses a wrong ground');
+  if (groundErrors(btn(['#ffffff']), `${BUTTON_PREFIX}x-white`, rec).length !== 1) self.push('groundErrors misses a dropped edge');
+  if (groundErrors(btn(['#ffffff'], '#555555'), `${BUTTON_PREFIX}x-white`, { ground: '#ffffff' }).length !== 1) self.push('groundErrors misses an edge the record does not state');
+  if (groundErrors(btn(), 'provider-logo/logo/x', undefined).length) self.push('groundErrors reports paint on a bare stand-in');
+  if (groundErrors(btn(['#000000']), 'provider-logo/logo/x', undefined).length !== 1) self.push('groundErrors misses a stand-in that paints');
 }
 if (self.length) {
   console.error("\n❌ lint-mark-colors' own detection is broken — it cannot see what it claims to:\n");
@@ -175,7 +213,7 @@ if (self.length) {
 
 // ---- THE REAL RUN ---------------------------------------------------------------------------------
 const failures: string[] = [];
-const records = (JSON.parse(readFileSync(join(marksDir, 'provenance.json'), 'utf8')) as { marks: Record<string, { colors?: string[] }> }).marks;
+const records = (JSON.parse(readFileSync(join(marksDir, 'provenance.json'), 'utf8')) as { marks: Record<string, { colors?: string[] } & ButtonRecord> }).marks;
 const sourceColors = new Map<string, string[]>();
 const sourceSvgs = new Map<string, string>();
 for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES)) {
@@ -237,8 +275,9 @@ else {
 }
 
 // (d) hosts, and (g) the provider tint
-let hosted = 0, tinted = 0;
+let hosted = 0, tinted = 0, grounded = 0;
 const hostTints = new Map<string, number>();
+const hostGrounds = new Map<string, number>();
 for (const def of componentDefs) {
   if (def.id === MARK_DEF || !def.figmaProperties) continue;
   let carried = 0;
@@ -247,6 +286,14 @@ for (const def of componentDefs) {
     hosted++;
     carried++;
     const at = `${def.id} ${JSON.stringify({ size: plan.size, ...plan.coord })}`;
+    // (h) the button ground: a button logo's host paints its record's ground and edge on the member's frame.
+    const markTarget = String(n.nestTarget ?? n.swapTarget);
+    if (markTarget.startsWith(BUTTON_PREFIX) && !GROUND_HOSTS.includes(def.id)) failures.push(`${at}: BUTTON GROUND — part '${n.name}' carries ${markTarget}, and only ${GROUND_HOSTS.join(', ')} may carry a button logo (Q3174.3 A)`);
+    if (GROUND_HOSTS.includes(def.id)) {
+      const source = PROVIDER_LOGO_SOURCES[markTarget.slice(MARK_PREFIX.length)];
+      for (const e of groundErrors(plan.root, markTarget, source ? records[`${source}.svg`] : undefined)) failures.push(`${at}: BUTTON GROUND — the member's frame ${e}`);
+      if (markTarget.startsWith(BUTTON_PREFIX)) { grounded++; hostGrounds.set(def.id, (hostGrounds.get(def.id) ?? 0) + 1); }
+    }
     if (n.descendantFills) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a provider logo and pushes descendantFills ${n.descendantFills} into it — the host's ink would retint the mark`);
     if (n.paints?.fills || n.paints?.strokes) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a provider logo and names paint ${JSON.stringify(n.paints)} on it`);
     for (const [k, v] of Object.entries(n.bound ?? {})) if (/fill|stroke/i.test(k)) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a provider logo and binds ${k} to ${String(v)}`);
@@ -267,8 +314,9 @@ for (const def of componentDefs) {
 }
 for (const id of MARK_HOSTS) if (!componentDefs.some((d) => d.id === id)) failures.push(`${id}: is in MARK_HOSTS and no such component is registered`);
 for (const id of TINT_HOSTS) if (!hostTints.get(id)) failures.push(`${id}: is in TINT_HOSTS and tints no provider glyph at any member — the tint arm read nothing for it`);
+for (const id of GROUND_HOSTS) if (!hostGrounds.get(id)) failures.push(`${id}: is in GROUND_HOSTS and paints no button logo's ground at any member — the ground arm read nothing for it`);
 
-console.log(`Mark colors — ${sourceColors.size} source file(s) (${derived} derived, read against their source), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} payment tile(s), ${hosted} host node(s) carrying a mark, ${tinted} of them tinted.`);
+console.log(`Mark colors — ${sourceColors.size} source file(s) (${derived} derived, read against their source), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} payment tile(s), ${hosted} host node(s) carrying a mark, ${tinted} of them tinted, ${grounded} on a button logo's ground.`);
 if (markPlans === 0 && markDef) failures.push(`'${MARK_DEF}' projected no plan — the plan arm checked nothing`);
 if (markDef && Object.keys(PROVIDER_LOGO_SOURCES).some(isTileMark) && tileMembers === 0) failures.push(`the set lists payment tiles and no '${MARK_DEF}' plan was read as a tile — the tile-edge arm checked nothing`);
 if (failures.length) {
@@ -280,4 +328,5 @@ if (failures.length) {
 }
 console.log('  ✓ clean — every mark paints its own colors, from file to record to module to plan, and no host retints one');
 console.log('    but SignInButton\'s provider glyphs (Q846 A);');
-console.log('    every payment tile\'s corners and edge are bound on its frame, and no other mark has an edge.');
+console.log('    every payment tile\'s corners and edge are bound on its frame, and no other mark has an edge;');
+console.log('    every button logo sits on its record\'s ground and edge (#3174).');
