@@ -292,7 +292,7 @@
       "type": "integer",
       "enum": [50, 60, 70, 80],
       "default": 50,
-      "description": "OPTIONAL. The radio dot (#3086): the checked radio's dot as a share of the radio's box edge, in percent, at sm, md and lg alike. 50 (default) is half the edge. Snapped to the 2px sub-grid and never wider than the box minus its 2px ring. It moves the value of `control.size.{sm,md,lg}.dot` only, which list bullets and the badge dot also bind; no token is added."
+      "description": "OPTIONAL. The radio dot (#3086): the checked radio's dot as a share of the radio's box edge, in percent, at sm, md and lg alike. 50 (default) is half the edge. Snapped to the 2px sub-grid and never wider than the box minus its 2px ring. It moves the value of `control.size.{sm,md,lg}.dot` only, which the badge dot also binds; no token is added."
     },
     "strictInteractiveContrast": {
       "type": "boolean",

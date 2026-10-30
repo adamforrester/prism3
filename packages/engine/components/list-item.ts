@@ -11,13 +11,16 @@
  * state axis and no reactions: a read list is not interactive.
  *
  * THE MARKER COLUMN. `markerBox` is a FIXED width per type (`size.{size}.{type}.marker-column`): 20/24/32 for a bullet or
- * a number (owner decision Q340 A, one step tighter than Q280.1 A's 24/32/40) and 24/32/40 for an icon (Q280.1 A, kept),
+ * a number (owner decision Q340 A, one step tighter than Q280.1 A's 24/32/40) and 32/40/48 for an icon (#3155, Q3155.2 A,
+ * one step wider than Q280.1 A's 24/32/40, so the icon sits 12/16/16 from the text instead of 4/8/8),
  * so a wrapped line and every item of one type keep one text edge: the text wraps under itself, not under the marker
  * (a hanging indent). An icon item's text edge sits further in than a bullet or number item's (Q340 A: accepted). It is ONE BODY LINE TALL (`control.size.{size}.line-box`, checkbox-row's #1201 construction) and the row is
  * top-aligned, so the marker centers on the first line of a wrapping item instead of the middle of the paragraph.
  *
- * THE MARKERS. Bullet: a round box, `control.size.{size}.dot`, `radius.round`, inked `color.icon.primary` — a drawn
- * mark, so an icon role (#1471; Q273.8). Number: a text node in the item's own type, `color.text.primary`. Icon: a
+ * THE MARKERS. Bullet: a round box, 6/8/8 (`space.075` / `100` / `100`, #3155, Q3155.1 A), `radius.round`, inked
+ * `color.icon.primary` — a drawn mark, so an icon role (#1471; Q273.8). It is sized to the text, not to the radio dot it
+ * bound until #3155 (`control.size.{size}.dot`, 12/14/16 on the reference brand), so it no longer follows density or the
+ * radio dot setting. Number: a text node in the item's own type, `color.text.primary`. Icon: a
  * swap slot starting at `check` (`swapDefault`, added here), `color.icon.primary`. One gated part per type.
  *
  * NO NEW TOKENS. Every binding is an existing role; the marker column and the List's item gap are space steps.
@@ -69,8 +72,8 @@ export const listItem: ComponentDef = {
     'radius': 'radius.round',
 
     // THE MARKER COLUMN, fixed per type. Bullet and number (owner decision Q340 A, #2727): 20/24/32, one step tighter
-    // than Q280.1 A's 24/32/40, which owner QA found too wide between the marker and the text. Icon (Q280.1 A, kept by
-    // Q340 A): 24/32/40. FIXED: not in `densitySpacing`, because the column is a width the text edge is aligned to, not
+    // than Q280.1 A's 24/32/40, which owner QA found too wide between the marker and the text. Icon (#3155, Q3155.2 A):
+    // 32/40/48, one step wider than Q280.1 A's 24/32/40, so the icon sits 12/16/16 from the text, not 4/8/8. FIXED: not in `densitySpacing`, because the column is a width the text edge is aligned to, not
     // a space between two things.
     'size.small.unordered.marker-column': 'space.250',
     'size.medium.unordered.marker-column': 'space.300',
@@ -78,19 +81,21 @@ export const listItem: ComponentDef = {
     'size.small.ordered.marker-column': 'space.250',
     'size.medium.ordered.marker-column': 'space.300',
     'size.large.ordered.marker-column': 'space.400',
-    'size.small.icon.marker-column': 'space.300',
-    'size.medium.icon.marker-column': 'space.400',
-    'size.large.icon.marker-column': 'space.500',
+    'size.small.icon.marker-column': 'space.400',
+    'size.medium.icon.marker-column': 'space.500',
+    'size.large.icon.marker-column': 'space.600',
 
     // ONE BODY LINE TALL, per rung: the baked `body.{rung}` line box (checkbox-row's #1201 construction).
     'size.small.line-box': 'control.size.sm.line-box',
     'size.medium.line-box': 'control.size.md.line-box',
     'size.large.line-box': 'control.size.lg.line-box',
 
-    // THE BULLET: the radio dot's diameter at the same rung.
-    'size.small.dot': 'control.size.sm.dot',
-    'size.medium.dot': 'control.size.md.dot',
-    'size.large.dot': 'control.size.lg.dot',
+    // THE BULLET (#3155, Q3155.1 A): 6/8/8, half the 14/16/18 body text snapped to the space ladder, which has no 10.
+    // Medium's 8 is the owner's. FIXED, like the text it sits beside: not the radio dot (`control.size.*.dot`), which
+    // follows density and the radio dot setting and is 14 at medium on the reference brand.
+    'size.small.bullet': 'space.075',
+    'size.medium.bullet': 'space.100',
+    'size.large.bullet': 'space.100',
 
     // THE ICON MARKER (owner decision Q280.5 A, noted): the icon ladder at the item's rung, 16/20/24, inside the 21/24/27 line box.
     // The proposal's one-rung-smaller 16/16/20 would be an `ICON_OFFSET_DEFS` exception, which is the owner's to grant.
@@ -137,7 +142,7 @@ export const listItem: ComponentDef = {
         kind: 'box',
         role: 'presentation',
         paintSlots: ['indicator'],
-        size: 'size.{size}.dot',
+        size: 'size.{size}.bullet',
         radius: 'radius',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         presentWhen: { type: ['unordered'] },
@@ -238,6 +243,7 @@ export const listItem: ComponentDef = {
       'Whether the number glyph and the text\'s first line share one baseline on a real host: both bind the same type style and the number sits in a box one line tall, so they should; not measured on a built file.',
     ],
     evolution: [
+      '2026-10-29 (#3155): owner decisions — the bullet smaller, 6/8/8 (`space.075` / `100` / `100`, medium 8 the owner\'s, small and large Q3155.1 A), bound to the space ladder rather than the radio dot, so it no longer follows density or the radio dot setting; and the icon column one step wider, 32/40/48 (`space.400` / `500` / `600`, medium 40 the owner\'s, small and large Q3155.2 A), revising Q280.1 A\'s 24/32/40. The bullet and number column keeps Q340 A\'s 20/24/32.',
       '2026-10-13 (#2319): owner decisions Q273 — the read list now as List and List.Item (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type starting at check (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), category data (Q273.7), markers at the text\'s strength (Q273.8), native text lists for running text (Q273.9).',
       '2026-10-15 (#2727): owner decision Q340 A — the bullet and number marker column one step tighter, 20/24/32 (`space.250` / `300` / `400`), revising Q280.1 A\'s 24/32/40 for those two types; the icon column keeps 24/32/40, so the column is fixed per type rather than in every type, and an icon item\'s text edge sits further in.',
     ],

@@ -23,7 +23,7 @@ export type BrandedSize = (typeof BRANDED_SIZES)[number];
 /** One provider's rule record, as far as the skeleton reads it: the mark it nests and the heights it allows. A
  *  component's own record extends this with what only it reads (SignInButton's paint and wording). */
 export type BrandedProviderRule = {
-  /** The mark, `<kind>/<name>` in the brand-mark vocabulary. */
+  /** The mark, `<kind>/<name>` in the provider-logo vocabulary. */
   mark: string;
   /** The provider's smallest allowed height, in px. A size rung under it has no member. */
   minHeight?: number;
@@ -52,7 +52,7 @@ export const ringTokens = (): Record<string, string> => ({
   'ring-offset': 'focus.ring.offset',
 });
 
-/** The nested brand mark: `nest-fixed`, its coordinate picked per member, its height bound and its width from its
+/** The nested provider logo: `nest-fixed`, its coordinate picked per member, its height bound and its width from its
  *  own proportion (`aspectLock`), keeping its own paint (`fixedPaint`). `nesting` carries the variant and the
  *  mapping that picks the mark per member; the caller builds it from its provider map. */
 export const markPart = (o: {
@@ -63,7 +63,7 @@ export const markPart = (o: {
   literal?: 'mark';
 }): PartDef => ({
   kind: 'nest',
-  nests: 'brand-mark',
+  nests: 'provider-logo',
   nesting: o.nesting,
   height: o.height,
   aspectLock: true,

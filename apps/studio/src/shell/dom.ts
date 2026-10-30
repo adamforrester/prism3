@@ -82,8 +82,9 @@ const GLYPHS = {
   unlock: 'lock-open',
   restore: 'arrows-diagonal',
   collapse: 'arrows-diagonal-minimize-2',
-  // The plugin rail (Q2909.14 A, Q2909.19 A): Theme, Components, Documentation, Export; the Agent link.
-  swatches: 'circles',
+  // The plugin rail (Q2909.14 A, Q2909.19 A): Theme, Components, Documentation, Export; the Agent link. Theme draws
+  // Tabler's color swatch since #3164 (the owner, 2026-10-30), three circles before.
+  swatches: 'color-swatch',
   diamonds: 'components',
   page: 'file-text',
   send: 'upload',

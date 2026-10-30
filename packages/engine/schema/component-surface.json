@@ -6,9 +6,9 @@
       "sha256": "10ad9afab46142d55db91c664d8f9806e9128069af18a4c8e68652ab71b0fc7a",
       "properties": []
     },
-    "brand-mark": {
+    "provider-logo": {
       "members": 75,
-      "sha256": "ab1eb22b6177dd6d098aafbb7eecad19bd6f78dec351058e2342d836fb2effa2",
+      "sha256": "f19891f13e5458032540847e5fb417d94b0f95338b1d8e86ec7a4b20e8d4d7de",
       "properties": []
     },
     "focus-ring": {
@@ -228,12 +228,12 @@
     },
     "wallet-button": {
       "members": 20,
-      "sha256": "69d0924b7636dec97101e0fa55b14bc813b60a09d36d8fc34a3248082c93c7c2",
+      "sha256": "b253cfeaac64f0f713796691272880d39ab2beea631c0af2afec7218113fae08",
       "properties": []
     },
     "sign-in-button": {
       "members": 96,
-      "sha256": "7855cb0dc67f91b21154eb85761c3fdb5ff609925ec8bbfa24cf4f608362742f",
+      "sha256": "9a4d39342b35aa1f46094c12968b581a9446d91eb78c0c51b873cdbee57dfbac",
       "properties": []
     },
     "icon-button": {
@@ -390,8 +390,10 @@
     },
     "checkbox-row": {
       "members": 6,
-      "sha256": "a0c81601bb38ece864dc92c88d5099fdc99ac3bd2f4c290c6babf409d52c9798",
+      "sha256": "1598c70160d4c807b952931388b0bad94c7d49d6bbc00fb459074ec9b92e4871",
       "properties": [
+        "description text:TEXT",
+        "description:BOOLEAN",
         "label:TEXT"
       ]
     },
@@ -409,8 +411,10 @@
     },
     "radio-row": {
       "members": 6,
-      "sha256": "f3e5527bb61b79bfc3d6f0cd97b5fea38f31a75ca6c2c8a1abbee903ad1cd773",
+      "sha256": "ec3ac16bd6adf545635192229bd4d79db270506ba2acabefc11cb9196e8cb8be",
       "properties": [
+        "description text:TEXT",
+        "description:BOOLEAN",
         "label:TEXT"
       ]
     },
@@ -430,7 +434,7 @@
     },
     "switch-row": {
       "members": 4,
-      "sha256": "95cca5e179164f2306dfb4774c08eb6b090eec4058342d29d19fc7f659d5399f",
+      "sha256": "5455405514687eb36a3879b272900734048cc607c2c1d0d3beaf2c8fc59494f9",
       "properties": [
         "label:TEXT"
       ]
@@ -571,7 +575,7 @@
     },
     "list-item": {
       "members": 9,
-      "sha256": "9f7d399ec74968f2d987bdb3da9f42bd5a2c40cb49776a7d1c54c83d7277b14a",
+      "sha256": "76421c43ff71bf6fb89bafe56c1602a78897a83a0c57e7ddb0883836a6698791",
       "properties": [
         "number:TEXT",
         "swap icon:INSTANCE_SWAP",
@@ -580,7 +584,7 @@
     },
     "list": {
       "members": 9,
-      "sha256": "5dd88072e139b07445f5f9b928b94a4c9303242f3a1d0d05666c58ec2a65efc5",
+      "sha256": "37e3ec6db9e9af4193d34f67c3c3d21e93300b60ade5bfae42f249fbe9008ee4",
       "properties": [
         "items:SLOT"
       ]
@@ -770,7 +774,7 @@
     },
     "card-number-field": {
       "members": 84,
-      "sha256": "778283cf9be742332b722c2d0d96fc6bee5d70370115cab74838fa23108e61fe",
+      "sha256": "1237f8df4dddfacae2695174d461845fe87cefd8e4fc053d2bafe86263696a8e",
       "properties": [
         "card mark:BOOLEAN",
         "leading icon:BOOLEAN",

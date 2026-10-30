@@ -269,7 +269,7 @@ export type LiteralEntry = {
   /** Replaces the part's `type` binding where present. */
   font?: LiteralFont;
   /** THE PROVIDER GLYPH'S TINT (owner decision Q846 A): the opaque `#rrggbb` a `literal: 'mark'` nest paints every
-   *  vector of its `brand-mark/provider/*` glyph, in place of the file's own colors. One black glyph per provider,
+   *  vector of its `provider-logo/provider/*` glyph, in place of the file's own colors. One black glyph per provider,
    *  painted white on a dark fill. Absent, the glyph keeps its own colors. Every other mark is never retinted, and
    *  `lint-mark-colors.ts` (d) holds that by name. */
   markTint?: string;
@@ -873,7 +873,7 @@ export type PartDef = {
   aspectRatio?: string;
   /** For `slot` and `nest` parts: the part's width FOLLOWS ITS CONTENT'S OWN PROPORTION (#2343 PR 2). The part
    *  binds `height` alone, and both executors lock the instance to the proportion of the component it is an
-   *  instance of, so Figma derives the width. The case is a brand mark: a payment tile is 8:5 and a logo
+   *  instance of, so Figma derives the width. The case is a provider logo: a payment tile is 8:5 and a logo
    *  is as wide as its artwork, so a square `size` binding would stretch it. The box form of the same
    *  lock is `aspectRatio`, whose proportion is a variant axis; a slot's proportion belongs to whatever the
    *  designer swaps in, so it is read from that component when the instance is built, never stated here.
@@ -883,7 +883,7 @@ export type PartDef = {
   aspectLock?: true;
   /** For `slot`, `overlay` and `nest` parts: the content keeps ITS OWN PAINT (#2343 PR 2). A slot or an overlay
    *  otherwise takes its host's icon ink on every vector inside it (`descendantFills`), which is what lets a
-   *  glyph follow its button's state; on a brand mark it is the retint the provider forbids. With this flag the
+   *  glyph follow its button's state; on a provider logo it is the retint the provider forbids. With this flag the
    *  part carries no `descendantFills` and no paint binding, and the plan says so (`FigmaNodePlan.fixedPaint`),
    *  so a gate can hold the outcome independently of the projector's branch. A `nest` takes no host ink today;
    *  the flag there is the same promise, kept if that ever changes.
@@ -893,7 +893,7 @@ export type PartDef = {
   /** READS THE DEF'S LITERAL RECORD (#2343 PR 5, `ComponentDef.literal`). `surface` on a `box`: its fills are the
    *  entry's `fill` with the entry's `wash` for the member's state laid over it, and its stroke is `edge`, drawn
    *  inside. `label` on a `text` part: its fill is `ink`, its copy `text` (no TEXT property claims it) and its font
-   *  `font` where the entry has one, else the part's `type`. `mark` on a `nest` of a brand mark that states
+   *  `font` where the entry has one, else the part's `type`. `mark` on a `nest` of a provider logo that states
    *  `fixedPaint` (owner decision Q846 A): where the entry has a `markTint`, the plan carries it as `literalTint` in
    *  place of `fixedPaint`, and every vector of the nested glyph is painted that color. Refused beside
    *  `paintSlots`/`paintSlot`, and on a def with no `literal`. */
@@ -907,7 +907,7 @@ export type PartDef = {
    *  host binds, and in every mode: a radius or a stroke baked into the SVG would scale with the artwork.
    *
    *  `when` is a presence gate in `presentWhen`'s grammar, on variant axes only: a def whose members are not all tiles
-   *  (`brand-mark`, where square marks and logos carry no edge) names the members that are. A coordinate it names
+   *  (`provider-logo`, where square marks and logos carry no edge) names the members that are. A coordinate it names
    *  must resolve a `border` paint, or the projection throws: a weight with no stroke is an edge that draws nothing.
    *  Refused on any other kind, on an icon-set glyph (an instance, whose frame is the icon component's), and beside
    *  `radius`, `strokeWidth`, `paintSlots` or `clipsContent`, which say the same things for a box.
@@ -3658,7 +3658,7 @@ export type State = (typeof STATES)[number];
  * `provider` (`apple-pay | google-pay | paypal | shop-pay`) is WHOSE BUTTON the slot holds: the payment provider that
  * draws it, and whose rules set its logo, colors, wording and height range. The proposal's axis table named it, and
  * SignInButton (PR 5) takes it for its sign-in providers. It clears the bar with the nearest defeated: `name` is which
- * glyph or mark a single-member component is (`icon`, `brand-mark`), not a third party that owns a whole control;
+ * glyph or mark a single-member component is (`icon`, `provider-logo`), not a third party that owns a whole control;
  * `type` is a content format, and on a wallet button the provider's own wording list is a code setting called type;
  * `kind` is a role a part plays by its place (a breadcrumb step). None says "this control belongs to another
  * company, under its rules". An AUTHORING axis. `lint-axis-values.ts` carries the four values as a `sole` set.
@@ -5232,7 +5232,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (!def.literal) e.push(`anatomy part '${n}' declares literal '${p.literal}' but the def carries no 'literal' record to read`);
       if (p.literal === 'surface' && p.kind !== 'box') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares literal 'surface' — only a 'box' paints a fill and an edge`);
       if (p.literal === 'label' && p.kind !== 'text') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares literal 'label' — only a 'text' part takes an ink, copy and font`);
-      if (p.literal === 'mark' && (p.kind !== 'nest' || p.nests !== 'brand-mark' || !p.fixedPaint)) e.push(`anatomy part '${n}' declares literal 'mark' but is not a 'nest' of 'brand-mark' stating fixedPaint — only a nested brand mark takes a tint, in place of its own paint`);
+      if (p.literal === 'mark' && (p.kind !== 'nest' || p.nests !== 'provider-logo' || !p.fixedPaint)) e.push(`anatomy part '${n}' declares literal 'mark' but is not a 'nest' of 'provider-logo' stating fixedPaint — only a nested provider logo takes a tint, in place of its own paint`);
       if (p.paintSlots?.length || p.paintSlot) e.push(`anatomy part '${n}' declares literal '${p.literal}' beside the paint grammar (${p.paintSlots?.length ? 'paintSlots' : 'paintSlot'}) — a node takes its paint from one place`);
     }
     // PER-INSTANCE OVERRIDES (#2645) ride an instance of a NAMED component, so only a part that builds one may carry

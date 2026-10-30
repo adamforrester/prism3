@@ -24,13 +24,13 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": []
   },
   {
-    "id": "brand-mark",
-    "name": "BrandMark",
+    "id": "provider-logo",
+    "name": "ProviderLogo",
     "category": "foundations",
     "summary": "A provider's own mark, in its own colors: sign-in, payment and social. Never retinted.",
     "unit": "components",
     "spacing": [],
-    "page": "Brand marks",
+    "page": "Icons & assets",
     "section": "Foundations",
     "buildable": true,
     "reason": null,
@@ -265,7 +265,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 20,
     "nests": [
-      "brand-mark",
+      "provider-logo",
       "focus-ring"
     ]
   },
@@ -379,7 +379,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 96,
     "nests": [
-      "brand-mark",
+      "provider-logo",
       "focus-ring"
     ]
   },
@@ -1201,15 +1201,15 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "spacing": [
       {
         "key": "size.medium.gap",
-        "ref": "space.150"
+        "ref": "space.200"
       },
       {
         "key": "size.small.gap",
-        "ref": "space.100"
+        "ref": "space.150"
       },
       {
         "key": "size.large.gap",
-        "ref": "space.200"
+        "ref": "space.250"
       }
     ],
     "page": "List",
@@ -1693,7 +1693,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "field-label",
       "icon",
-      "brand-mark",
+      "provider-logo",
       "field-message",
       "focus-ring"
     ]

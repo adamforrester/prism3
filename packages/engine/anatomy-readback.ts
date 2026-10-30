@@ -106,7 +106,8 @@ export type ReadPorts = {
   /** A set the same update renames in place (#2759): its name as the file holds it now → the def id it is renamed to.
    *  `null` for a set the run does not rename. Supplied by the update's dry run from the sets it found under an earlier
    *  id, so an instance of a member that is renamed, not swapped, reads as the planned set's. Optional: absent, a set
-   *  under its old name reads as the wrong set. */
+   *  under its old name reads as the wrong set. A single-component def's component (#3148) is named for its def, so
+   *  `<old id>/<value>` → `<new id>/<value>` the same way. */
   renamedSet?: (name: string) => string | null;
 };
 

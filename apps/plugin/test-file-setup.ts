@@ -651,5 +651,72 @@ console.log('7. relocateSets: a part\'s set leaves its former page, and no page 
   ok(pageMovesDue(children).length === 0 && (await relocateSets(api, TAXONOMY)).moved.length === 0, 'moves/idempotent: a second run has nothing to move');
 }
 
+// ── 8. The provider logos leave their "Brand marks" page for Icons & assets (#3148, owner decision on Q847) ──────────
+console.log('8. relocateSets: single components move as one, under their earlier id, and the emptied page stays');
+{
+  const { api, children, removed } = makePagesShim();
+  type N = { id: string; name: string; type: string; x: number; y: number; width: number; height: number; data: Record<string, string>; getSharedPluginData(ns: string, k: string): string };
+  const node = (id: string, name: string, type: string, x: number, y: number, data: Record<string, string> = {}): N =>
+    ({ id, name, type, x, y, width: 24, height: 24, data, getSharedPluginData(ns, k) { return ns === 'prism3' ? this.data[k] ?? '' : ''; } });
+  const STAMP = { memberStamp: '9.9.9|0123456789abcdef|1' };
+  const pageOf = (name: string): ShimPage & { children: N[] } => {
+    const p = api.createPage() as ShimPage & { children: N[] };
+    p.name = name;
+    Object.defineProperty(p, 'children', { get() { return p._kids; } });
+    p.appendChild = (c: unknown) => { for (const q of children) { const k = q._kids.indexOf(c); if (k >= 0) q._kids.splice(k, 1); } p._kids.push(c); };
+    return p;
+  };
+  await scaffoldSkeleton(api, TAXONOMY);
+  const marksPage = pageOf(`${NEST_PREFIX}Brand marks`);
+  const icons = (children.find((p) => p.name === `${NEST_PREFIX}Icons & assets`) as (ShimPage & { children: N[] }) | undefined) ?? pageOf(`${NEST_PREFIX}Icons & assets`);
+  const icon = node('i1', 'icon/check', 'COMPONENT', 0, 100, STAMP);
+  icons.appendChild(icon);
+  // A file built before #3148: the marks under their old id, each a top-level component Prism3 stamped.
+  const marks = [node('b1', 'brand-mark/payment/visa', 'COMPONENT', 0, 0, STAMP), node('b2', 'brand-mark/logo/apple-pay', 'COMPONENT', 72, 0, STAMP), node('b3', 'brand-mark/provider/google', 'COMPONENT', 0, 48, STAMP)];
+  for (const m of marks) marksPage.appendChild(m);
+  const due = pageMovesDue(children);
+  ok(JSON.stringify(due.map((m) => [m.set, m.from, m.to])) === JSON.stringify([['provider-logo', `${NEST_PREFIX}Brand marks`, `${NEST_PREFIX}Icons & assets`]]),
+    `logos/due: the marks on Brand marks move to Icons & assets, as one, under the def's current id (${JSON.stringify(due)})`);
+  const before = children.length;
+  const r = await relocateSets(api, TAXONOMY);
+  ok(r.moved.length === 1 && marks.every((m) => icons.children.includes(m)) && icons.children.includes(icon), 'logos/made: every mark now sits on Icons & assets, beside the icons');
+  ok(marks.map((m) => m.id).join() === 'b1,b2,b3' && marks.every((m) => m.data.memberStamp === STAMP.memberStamp), 'logos/kept: the same nodes, stamps as they were (moved, never rebuilt; the update renames them after)');
+  ok(marks[1].x - marks[0].x === 72 && marks[2].y - marks[0].y === 48, 'logos/places: the marks keep their grid relative to each other');
+  ok(Math.min(...marks.map((m) => m.x)) >= icon.x + icon.width + 160 && Math.min(...marks.map((m) => m.y)) === icon.y, 'logos/clear: they land past the icons, a set gap away, level with the top icon');
+  ok(removed.length === 0 && children.length === before && children.includes(marksPage) && marksPage.children.length === 0,
+    `logos/never-delete: the emptied Brand marks page is left in place${removed.length ? ` — REMOVED: ${removed.join(', ')}` : ''}`);
+  ok(JSON.stringify(r.emptied) === JSON.stringify([`${NEST_PREFIX}Brand marks`]), `logos/emptied: it is reported as safe to delete, for the owner (${JSON.stringify(r.emptied)})`);
+  ok(pageMovesDue(children).length === 0, 'logos/idempotent: a second run has nothing to move');
+  // The owner's placement (Q3148.2): the page holds Icon, then Provider logo.
+  const iconsPage = TAXONOMY.sections.flatMap((s) => s.leaves).find((l) => l.page === 'Icons & assets');
+  ok(JSON.stringify(iconsPage?.defs) === JSON.stringify(['icon', 'provider-logo']) && iconsPage?.lead === 'icon',
+    `logos/order: Icons & assets holds icon, then provider-logo, led by icon (${JSON.stringify(iconsPage)})`);
+}
+{
+  // A designer's own components under the old prefix, one in each shape (#3156 review), beside Prism3's marks: neither
+  // is stamped, so neither is Prism3's, and both stay on Brand marks, which is then not empty.
+  const { api, children } = makePagesShim();
+  type N = { id: string; name: string; type: string; x: number; y: number; width: number; height: number; data: Record<string, string>; getSharedPluginData(ns: string, k: string): string };
+  const node = (id: string, name: string, x: number, data: Record<string, string> = {}): N =>
+    ({ id, name, type: 'COMPONENT', x, y: 0, width: 24, height: 24, data, getSharedPluginData(ns, k) { return ns === 'prism3' ? this.data[k] ?? '' : ''; } });
+  const pageOf = (name: string): ShimPage & { children: N[] } => {
+    const p = api.createPage() as ShimPage & { children: N[] };
+    p.name = name;
+    Object.defineProperty(p, 'children', { get() { return p._kids; } });
+    p.appendChild = (c: unknown) => { for (const q of children) { const k = q._kids.indexOf(c); if (k >= 0) q._kids.splice(k, 1); } p._kids.push(c); };
+    return p;
+  };
+  await scaffoldSkeleton(api, TAXONOMY);
+  const marksPage = pageOf(`${NEST_PREFIX}Brand marks`);
+  const icons = (children.find((p) => p.name === `${NEST_PREFIX}Icons & assets`) as (ShimPage & { children: N[] }) | undefined) ?? pageOf(`${NEST_PREFIX}Icons & assets`);
+  const ours = node('b1', 'brand-mark/payment/visa', 0, { memberStamp: '9.9.9|0123456789abcdef|1' });
+  const theirs = [node('h1', 'brand-mark/handmade', 72), node('h2', 'brand-mark/payment/zz-own', 144)];
+  for (const m of [ours, ...theirs]) marksPage.appendChild(m);
+  const r = await relocateSets(api, TAXONOMY);
+  ok(icons.children.includes(ours) && theirs.every((m) => marksPage.children.includes(m) && !icons.children.includes(m)),
+    `logos/theirs: a designer's \`brand-mark/<value>\` and \`brand-mark/<kind>/<x>\` stay on Brand marks; Prism3's mark moves (${JSON.stringify(marksPage.children.map((m) => m.name))})`);
+  ok(r.emptied.length === 0, `logos/theirs-page: Brand marks still holds the designer's components, so it is not reported as safe to delete (${JSON.stringify(r.emptied)})`);
+}
+
 console.log(failures === 0 ? '\nfile-setup: all assertions pass' : `\nfile-setup: ${failures} FAILED`);
 if (failures > 0) process.exit(1);

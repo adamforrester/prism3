@@ -674,16 +674,16 @@ jobs:
       - name: The icon def's metadata states no stale glyph count
         run: npx --yes tsx@4 packages/engine/lint-icon-count.ts
 
-      # #2343: every brand mark under marks/ has a provenance record, and every record a file (folder vs
+      # #2343: every provider logo under marks/ has a provenance record, and every record a file (folder vs
       # provenance.json, both directions), with source, rightsHolder, dateRetrieved, terms, usage, colors,
       # allowedForms and placeholder; plus the repository-visibility note (owner decision Q-B1 B).
-      - name: Every brand mark has a provenance record and every record a file
+      - name: Every provider logo has a provenance record and every record a file
         run: npx --yes tsx@4 packages/engine/lint-mark-provenance.ts
 
-      # #2343: a brand mark is never retinted. Fills re-parsed from each source SVG (its own reader) against
-      # the record's colors, the emitted module and the brand-mark Figma plans; no variable on a mark, and no
+      # #2343: a provider logo is never retinted. Fills re-parsed from each source SVG (its own reader) against
+      # the record's colors, the emitted module and the provider-logo Figma plans; no variable on a mark, and no
       # host pushes descendantFills into one.
-      - name: A brand mark keeps its own colors from file to plan
+      - name: A provider logo keeps its own colors from file to plan
         run: npx --yes tsx@4 packages/engine/lint-mark-colors.ts
 
       # #2343 PR 4: a payment-tile slot (the Card number field's) offers exactly its listed card networks, each a tile in

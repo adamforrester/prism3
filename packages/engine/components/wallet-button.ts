@@ -35,7 +35,7 @@
  *     member draws the brand radius, which Figma caps at half the height when it renders.
  *   - no shape axis: the proposal's §2.3 gave `shape: rectangle | pill`; the build binds `radius.md` only (Q-W5 on
  *     the PR, built as A).
- *   - the mark: `brand-mark/logo/<provider>`, nested whole, height bound and width from its own proportion, keeping
+ *   - the mark: `provider-logo/logo/<provider>`, nested whole, height bound and width from its own proportion, keeping
  *     its own paint.
  */
 import { ComponentDef } from '../component-schema';
@@ -168,14 +168,14 @@ export const walletButton: ComponentDef = {
   ai: {
     primaryPurpose: 'Offer an express checkout with a wallet, drawn by the wallet provider.',
     whenToUse: 'On a cart, checkout or product page, for each wallet the store accepts: Apple Pay, Google Pay, PayPal or Shop Pay.',
-    avoidWhen: 'For a store\'s own checkout or pay action, use Button. To show which cards and wallets are accepted, use Brand mark tiles in a row. For signing in with a provider, use a sign-in button, not a wallet button.',
-    commonPartners: ['button', 'brand-mark', 'button-group', 'sign-in-button'],
+    avoidWhen: 'For a store\'s own checkout or pay action, use Button. To show which cards and wallets are accepted, use Provider logo tiles in a row. For signing in with a provider, use a sign-in button, not a wallet button.',
+    commonPartners: ['button', 'provider-logo', 'button-group', 'sign-in-button'],
     triggerKeywords: ['apple pay', 'google pay', 'paypal button', 'shop pay', 'express checkout', 'wallet button', 'pay with'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['brand-mark', 'focus-ring'],
+    composesWith: ['provider-logo', 'focus-ring'],
     alternativeTo: [],
     replacesPatterns: ['a hand-drawn wallet button', 'a wallet logo pasted into a Button'],
     planned: ['payment-field'],
@@ -203,7 +203,7 @@ export const walletButton: ComponentDef = {
       'Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A, read here onto provider × size while style waits on Q-W1) and the provider\'s own element in code (Q-B8 A). Built in PR 4 on the owner\'s logo marks (PR 3).',
     ],
     projection: [
-      'In Figma each member is the provider\'s area, a frame at the size and radius the rules allow, with the provider\'s logo nested as a brand-mark/logo instance whose height is bound and whose width follows its proportion, keeping its own paint.',
+      'In Figma each member is the provider\'s area, a frame at the size and radius the rules allow, with the provider\'s logo nested as a provider-logo/logo instance whose height is bound and whose width follows its proportion, keeping its own paint.',
     ],
   },
 };

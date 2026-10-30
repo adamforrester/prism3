@@ -143,7 +143,7 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | `space.100` / `space.0` / `space.100` / `space.0` | — | — | — | — | min height `size.md.height` |
 | `row/content` | — | `space.100` | — | — | — | — |
-| `row/content/controlCell` | — | — | `control.size.md.line-box` | — | — | — |
+| `row/content/controlCell` | — | — | `type.body.sm.line-box` | — | — | — |
 | `row/content/controlCell/control` | — | — | `control.size.md.track` | — | — | — |
 
 **size=small**
@@ -152,7 +152,7 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | `space.075` / `space.0` / `space.075` / `space.0` | — | — | — | — | min height `size.sm.height` |
 | `row/content` | — | `space.100` | — | — | — | — |
-| `row/content/controlCell` | — | — | `control.size.sm.line-box` | — | — | — |
+| `row/content/controlCell` | — | — | `type.body.xs.line-box` | — | — | — |
 | `row/content/controlCell/control` | — | — | `control.size.sm.track` | — | — | — |
 
 ### Type
@@ -161,8 +161,8 @@ Keyed by `size`.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| size=medium | `row/content/label` | `type.body.md.default` |
-| size=small | `row/content/label` | `type.body.sm.default` |
+| size=medium | `row/content/label` | `type.body.sm.default` |
+| size=small | `row/content/label` | `type.body.xs.default` |
 
 ### Color
 

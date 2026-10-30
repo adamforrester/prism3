@@ -106,6 +106,11 @@
  *                  and number (#2727): 6 members updated, the 3 icon members current, every key and id kept; the List
  *                  set, whose plan moves only by its nested-list note, updates in place too. Mutation: the def back at the old column → `list column/dry
  *                  run`, `list column/written`.
+ *   list spacing/…  a List.Item built before #3155 (the bullet on the radio dot, the icon column at 24/32/40) and a List
+ *                  built at the 8/12/16 gap update in place: 6 List.Item members and all 9 List members updated, every key
+ *                  and id kept, the bullet at 6/8/8, the icon column at 32/40/48 and the gap at 12/16/20 after. Mutations:
+ *                  the medium bullet back on the radio dot → `list spacing/written`; the medium icon column back at 32 →
+ *                  `list spacing/written`; the medium gap back at 12 → `list spacing/gap written`.
  *   display rename/…  an Accordion built while its icon axis was `position`, or `iconPosition`, updates in place to the
  *                  def's `icon position`: every member renamed, every key and id the test captured kept (#2592).
  *                  Mutation: the ledger entries dropped → `display rename/position …`, `display rename/iconPosition …`.
@@ -198,6 +203,11 @@
  *                  props taken back out) read current under today's plans, and the apply writes nothing: the props are
  *                  code API and move no Figma member (owner Q351 A). Mutation: `figmaAnatomySet` projecting a
  *                  `disabled` prop as a Figma boolean on the label → `<row>/dry run`, `<row>/nothing written`.
+ *   rows3153/…     Checkbox.Row, Radio.Row and Switch.Row built as main built them before #3153 (owner Q852, Q853 A)
+ *                  take one Update in place: the option rows gain the text column (the label MOVED into it) and the
+ *                  hidden description with its two properties, off by default; every key and id kept; a designer's gap
+ *                  on one member's row kept and reported as a hand edit, before and after. Mutations: the description
+ *                  boolean defaulting on → `rows3153/structure`, `rows3153/description`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -973,18 +983,19 @@ section('list marker column — a file built at the old 24/32/40 column updates 
   const NEXT: Record<string, Record<string, string>> = {
     unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' },
     ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' },
-    icon: { small: 'space/300', medium: 'space/400', large: 'space/500' },
+    // #3155 (Q3155.2 A) moved the icon column to 32/40/48, so every type now updates from the pre-Q340 file.
+    icon: { small: 'space/400', medium: 'space/500', large: 'space/600' },
   };
   const atOld = plansOf('list-item').map((p) => {
     const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
     (planChild(q.root, 'markerBox').bound as Record<string, string>).width = OLD[q.size!];
     return q;
   });
-  const w = await world('list-item', atOld, { extraVars: ['space/250'] });
+  const w = await world('list-item', atOld, { extraVars: ['space/250', 'space/075', 'space/100', 'space/600'] });
   const typeOf = (m: Node) => /(?:^|, )type=(\w+)/.exec(String(m.name))?.[1] ?? '';
   const sizeOf = (m: Node) => /(?:^|, )size=(\w+)/.exec(String(m.name))?.[1] ?? '';
   const ids = new Map<string, string>();
-  for (const v of ['space/250', 'space/300', 'space/400', 'space/500']) ids.set(await varIdOf(w, v), v);
+  for (const v of ['space/250', 'space/300', 'space/400', 'space/500', 'space/600']) ids.set(await varIdOf(w, v), v);
   const columnOf = (m: Node) => ids.get((childNamed(m, 'markerBox').boundVariables as Record<string, { id: string }>).width?.id) ?? 'none';
   ok(membersOf(w.set()).length === 9 && membersOf(w.set()).every((m) => columnOf(m) === OLD[sizeOf(m)]),
     `premise: the 9 members carry the old column, space/300, 400, 500 by size in every type (${membersOf(w.set()).map(columnOf).join(', ')})`);
@@ -992,15 +1003,15 @@ section('list marker column — a file built at the old 24/32/40 column updates 
   const plans = plansOf('list-item');
   const { pre, res } = await confirm(w, [{ def: 'list-item', plans }]);
   const p = pre.sets[0];
-  ok(!!p && !p.blockers.length && p.counts.update === 6 && p.counts.current === 3 && p.counts.add === 0 && p.counts.drop === 0,
-    `list column/dry run: the 6 bullet and number members to update, the 3 icon members current, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  ok(!!p && !p.blockers.length && p.counts.update === 9 && p.counts.current === 0 && p.counts.add === 0 && p.counts.drop === 0,
+    `list column/dry run: all 9 members to update (bullet and number to Q340 A's column, icon to #3155's), nothing added or dropped (${JSON.stringify(p?.counts)})`);
   const after = identityOf(w.set());
   const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
   const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
   ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 9,
     `list column/in place: every member and child keeps its key and id (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved)`);
   const wrong = membersOf(w.set()).filter((m) => columnOf(m) !== NEXT[typeOf(m)]?.[sizeOf(m)]).map((m) => `${m.name}: ${columnOf(m)}`);
-  ok(wrong.length === 0, `list column/written: bullet and number bind space/250, 300, 400 (20/24/32px), icon keeps space/300, 400, 500 (24/32/40px) (${wrong.slice(0, 3).join('; ')})`);
+  ok(wrong.length === 0, `list column/written: bullet and number bind space/250, 300, 400 (20/24/32px), icon space/400, 500, 600 (32/40/48px) (${wrong.slice(0, 3).join('; ')})`);
   const post = (await previewUpdate(w.host, [{ def: 'list-item', plans }])).sets[0];
   ok(post?.counts.current === 9, `list column/current: every member reads current after (${JSON.stringify(post?.counts)})`);
   // THE LIST holds nested List.Item instances and binds no column of its own, so its items show the new column from
@@ -1021,6 +1032,80 @@ section('list marker column — a file built at the old 24/32/40 column updates 
   const lpost = (await previewUpdate(lw.host, [{ def: 'list', plans: lplans }])).sets[0];
   ok(!l.pre.sets[0].blockers.length && l.pre.sets[0].counts.add === 0 && l.pre.sets[0].counts.drop === 0 && applyVerdict(l.res).ok && lmoved === 0 && lafter.members.size === 9 && lpost?.counts.current === 9,
     `list column/List: the List set updates in place to the new note, nothing added or dropped, every member's key and id kept, all 9 current after (${JSON.stringify(l.pre.sets[0].counts)}; ${applyVerdict(l.res).headline}; ${lmoved} moved)`);
+}
+
+section('list spacing — a file built before #3155 updates in place: the wider gap, the smaller bullet, the wider icon column');
+{
+  // The file as main built it before #3155: List.Item's bullet bound to the radio dot (control/size/*/dot) and its icon
+  // column at space/300, 400, 500 (24/32/40px); the List's item gap at space/100, 150, 200 (8/12/16px). The literals are
+  // the test's own; the plans it updates to are the engine's current ones.
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const OLD_ICON: Record<string, string> = { small: 'space/300', medium: 'space/400', large: 'space/500' };
+  const NEW_ICON: Record<string, string> = { small: 'space/400', medium: 'space/500', large: 'space/600' };
+  const NEW_BULLET: Record<string, string> = { small: 'space/075', medium: 'space/100', large: 'space/100' };
+  const atMain = plansOf('list-item').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const type = (q.coord as Record<string, string>).type, box = planChild(q.root, 'markerBox');
+    if (type === 'icon') (box.bound as Record<string, string>).width = OLD_ICON[q.size!];
+    if (type === 'unordered') { const b = planChild(box, 'bullet').bound as Record<string, string>; b.width = b.height = `control/size/${RUNG[q.size!]}/dot`; }
+    return q;
+  });
+  ok(JSON.stringify(atMain) !== JSON.stringify(plansOf('list-item')), 'premise: the List.Item built as main had it differs from the current plan');
+  const w = await world('list-item', atMain, { extraVars: ['space/075', 'space/100', 'space/600'] });
+  const typeOf = (m: Node) => /(?:^|, )type=(\w+)/.exec(String(m.name))?.[1] ?? '';
+  const sizeOf = (m: Node) => /(?:^|, )size=(\w+)/.exec(String(m.name))?.[1] ?? '';
+  const ids = new Map<string, string>();
+  for (const v of ['space/075', 'space/100', 'space/250', 'space/300', 'space/400', 'space/500', 'space/600', 'control/size/sm/dot', 'control/size/md/dot', 'control/size/lg/dot']) ids.set(await varIdOf(w, v), v);
+  const boundOf = (n: Node | undefined, f: string) => ids.get(((n?.boundVariables ?? {}) as Record<string, { id: string }>)[f]?.id) ?? 'none';
+  const before = identityOf(w.set());
+  const plans = plansOf('list-item');
+  const { pre, res } = await confirm(w, [{ def: 'list-item', plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.update === 6 && p.counts.current === 3 && p.counts.add === 0 && p.counts.drop === 0,
+    `list spacing/dry run: the 3 bullet and 3 icon members to update, the 3 number members current, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
+  ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 9,
+    `list spacing/in place: every List.Item member and child keeps its key and id (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved)`);
+  const wrong = membersOf(w.set()).flatMap((m) => {
+    const box = childNamed(m, 'markerBox'), t = typeOf(m), z = sizeOf(m);
+    if (t === 'icon' && boundOf(box, 'width') !== NEW_ICON[z]) return [`${m.name}: column ${boundOf(box, 'width')}`];
+    if (t === 'unordered') { const b = childNamed(box, 'bullet'); if (boundOf(b, 'width') !== NEW_BULLET[z] || boundOf(b, 'height') !== NEW_BULLET[z]) return [`${m.name}: bullet ${boundOf(b, 'width')}`]; }
+    return [];
+  });
+  ok(wrong.length === 0, `list spacing/written: the bullet binds space/075, 100, 100 (6/8/8px) and the icon column space/400, 500, 600 (32/40/48px) (${wrong.slice(0, 3).join('; ') || 'all 9'})`);
+  const post = (await previewUpdate(w.host, [{ def: 'list-item', plans }])).sets[0];
+  ok(post?.counts.current === 9, `list spacing/current: every List.Item member reads current after (${JSON.stringify(post?.counts)})`);
+
+  // THE LIST: built at main's 8/12/16 gap, on the slot and the container, it updates in place to 12/16/20.
+  const OLD_GAP: Record<string, string> = { small: 'space/100', medium: 'space/150', large: 'space/200' };
+  const NEW_GAP: Record<string, string> = { small: 'space/150', medium: 'space/200', large: 'space/250' };
+  const listMain = plansOf('list').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    (q.root.bound as Record<string, string>).itemSpacing = OLD_GAP[q.size!];
+    (planChild(q.root, 'items').bound as Record<string, string>).itemSpacing = OLD_GAP[q.size!];
+    return q;
+  });
+  ok(JSON.stringify(listMain) !== JSON.stringify(plansOf('list')), 'premise: the List built at the old gap differs from the current plan');
+  const lw = await world('list', listMain, { extraVars: ['space/250'], componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT', defaultValue: '1.' } } } });
+  const gids = new Map<string, string>();
+  for (const v of ['space/100', 'space/150', 'space/200', 'space/250']) gids.set(await varIdOf(lw, v), v);
+  const gapOf = (n: Node) => gids.get(((n.boundVariables ?? {}) as Record<string, { id: string }>).itemSpacing?.id) ?? 'none';
+  ok(membersOf(lw.set()).every((m) => gapOf(childNamed(m, 'items')) === OLD_GAP[sizeOf(m)]),
+    `premise: the 9 List members carry the old gap, space/100, 150, 200 by size (${membersOf(lw.set()).map((m) => gapOf(childNamed(m, 'items'))).join(', ')})`);
+  const lbefore = identityOf(lw.set());
+  const lplans = plansOf('list');
+  const l = await confirm(lw, [{ def: 'list', plans: lplans }]);
+  const lafter = identityOf(lw.set());
+  const lmoved = [...lbefore.members].filter(([name, b]) => lafter.members.get(name)?.key !== b.key || lafter.members.get(name)?.id !== b.id).length;
+  const lkids = [...lbefore.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => lafter.members.get(name)?.kids.get(path) !== id)).length;
+  ok(!l.pre.sets[0].blockers.length && l.pre.sets[0].counts.update === 9 && l.pre.sets[0].counts.add === 0 && l.pre.sets[0].counts.drop === 0 && applyVerdict(l.res).ok && lmoved === 0 && lkids === 0 && lafter.members.size === 9,
+    `list spacing/List in place: all 9 List members updated, nothing added or dropped, every member's and child's key and id kept (${JSON.stringify(l.pre.sets[0].counts)}; ${applyVerdict(l.res).headline}; ${lmoved} members, ${lkids} children moved)`);
+  const gwrong = membersOf(lw.set()).filter((m) => gapOf(m) !== NEW_GAP[sizeOf(m)] || gapOf(childNamed(m, 'items')) !== NEW_GAP[sizeOf(m)]).map((m) => `${m.name}: ${gapOf(m)}/${gapOf(childNamed(m, 'items'))}`);
+  ok(gwrong.length === 0, `list spacing/gap written: the List and its items slot bind space/150, 200, 250 (12/16/20px) (${gwrong.slice(0, 3).join('; ') || 'all 9'})`);
+  const lpost = (await previewUpdate(lw.host, [{ def: 'list', plans: lplans }])).sets[0];
+  ok(lpost?.counts.current === 9, `list spacing/List current: every List member reads current after (${JSON.stringify(lpost?.counts)})`);
 }
 
 section('accordion side padding — a file built at the old large 24px updates in place to 20px (#2726, Q338 A)');
@@ -1149,7 +1234,7 @@ section('aspect lock, in place — a square slot rebuilt under aspectLock keeps 
   // locks; left bound, the old width would stretch the mark back to square. Expected numbers are literals (docs/34).
   // Mutation: the in-place unbind in the executor's aspectLock branch dropped → `aspect lock/in place`.
   const button = componentDefs.find((d) => d.id === 'button')!;
-  const MARK = 'brand-mark/payment/visa';
+  const MARK = 'provider-logo/payment/visa';
   const locked = JSON.parse(JSON.stringify(button)) as ComponentDef;
   const lv = (locked.anatomy as unknown as { parts: Record<string, Record<string, unknown>> }).parts.leadingVisual;
   delete lv.size;
@@ -1263,29 +1348,29 @@ const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { 
   ok(applyVerdict(res).ok && dump() === before && res.outcomes[0]?.skipped.some((x) => x.member === 'name=my-logo' && x.reason === 'not built by Prism3'),
     `single/owner: the owner's hand-made icon is left exactly as it is, and named (${JSON.stringify(res.outcomes[0]?.skipped)})`);
 }
-// THE BRAND MARKS (#2343): single components too, and each value carries its kind, `brand-mark/payment/visa`, so a
+// THE PROVIDER LOGOS (#2343): single components too, and each value carries its kind, `provider-logo/payment/visa`, so a
 // value with a `/` is still a member when it is one of the def's own coordinates. The icon set cannot catch a reader
 // that drops one: an icon's name has no second slash. The read is asserted on every mark; the update on the square
 // ones, because the shim sizes a vector from the path's numbers read as alternating x and y and misreads `H`/`V`, so
 // a non-square placeholder reads back here as content drift that Figma's importer does not have.
-section('single, marks — the brand marks, read and updated in place as single components (#2343)');
+section('single, marks — the provider logos, read and updated in place as single components (#2343)');
 {
-  const plans = plansOf('brand-mark');
+  const plans = plansOf('provider-logo');
   const w = await singleWorld(plans);
-  const pre = (await previewUpdate(w.host, [{ def: 'brand-mark', plans, single: true }])).sets[0];
+  const pre = (await previewUpdate(w.host, [{ def: 'provider-logo', plans, single: true }])).sets[0];
   ok(plans.length > 0 && pre?.counts.members === plans.length && pre.counts.add === 0 && w.comps().length === plans.length,
-    `marks/read: the dry run reads every brand mark as a member, and adds none (${plans.length} planned; ${JSON.stringify(pre?.counts)})`);
+    `marks/read: the dry run reads every provider logo as a member, and adds none (${plans.length} planned; ${JSON.stringify(pre?.counts)})`);
 }
 {
   const glyphOf = (n: PlanNode): PlanNode | undefined => n.glyphSvg ? n : (n.children ?? []).map(glyphOf).find(Boolean);
-  const squareAll = plansOf('brand-mark').filter((p) => { const g = glyphOf(p.root)!; return g.glyphViewBox![0] === g.glyphViewBox![1]; });
+  const squareAll = plansOf('provider-logo').filter((p) => { const g = glyphOf(p.root)!; return g.glyphViewBox![0] === g.glyphViewBox![1]; });
   // The shim's span sizing misreads some real outlines too (relative commands, exponents), as content drift Figma's
   // importer does not have: a first build names them, and the update runs on the rest.
-  const misread = new Set((await previewUpdate((await singleWorld(squareAll)).host, [{ def: 'brand-mark', plans: squareAll, single: true }])).sets[0]?.states.map((x) => x.member) ?? []);
+  const misread = new Set((await previewUpdate((await singleWorld(squareAll)).host, [{ def: 'provider-logo', plans: squareAll, single: true }])).sets[0]?.states.map((x) => x.member) ?? []);
   const square = squareAll.filter((p) => !misread.has(`name=${p.coord.name}`));
   const MARK = 'provider/google';
   const w = await singleWorld(square);
-  const t0 = { def: 'brand-mark', plans: square, single: true };
+  const t0 = { def: 'provider-logo', plans: square, single: true };
   const pre0 = (await previewUpdate(w.host, [t0])).sets[0];
   ok(square.length >= 2 && square.some((p) => p.coord.name === MARK) && pre0?.counts.current === square.length,
     `premise: every square mark reads current as built (${square.length}; ${JSON.stringify(pre0?.counts)})`);
@@ -1298,7 +1383,7 @@ section('single, marks — the brand marks, read and updated in place as single 
     return q;
   });
   ok(JSON.stringify(next) !== JSON.stringify(square), 'premise: the recolor changes the plan');
-  const t = { def: 'brand-mark', plans: next, single: true };
+  const t = { def: 'provider-logo', plans: next, single: true };
   const pre = await previewUpdate(w.host, [t]);
   ok(pre.sets[0]?.counts.update === 1 && pre.sets[0].counts.add === 0, `marks/dry run: the recolored mark is the one read out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
@@ -1309,7 +1394,7 @@ section('single, marks — the brand marks, read and updated in place as single 
   const vectorsOf = (n: Node): Node[] => [...(n.type === 'VECTOR' ? [n] : []), ...((n.children as Node[]) ?? []).flatMap(vectorsOf)];
   const hexes = (n: Node): string[] => ((n.fills as { color?: { r: number; g: number; b: number } }[]) ?? [])
     .flatMap((f) => (f.color ? [[f.color.r, f.color.g, f.color.b].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('').toUpperCase()] : []));
-  const marked = w.comps().find((c) => String(c.name) === `brand-mark/${MARK}`);
+  const marked = w.comps().find((c) => String(c.name) === `provider-logo/${MARK}`);
   const fills = marked ? vectorsOf(marked).flatMap(hexes) : [];
   ok(fills.includes('1A73E8') && !fills.includes('4285F4'),
     `marks/apply: the recolored mark's vector carries the new fill, #1A73E8, and not the old #4285F4 (${JSON.stringify(fills)})`);
@@ -1319,7 +1404,7 @@ section('single, marks — the brand marks, read and updated in place as single 
   ok(post.counts.current === square.length, `marks/settled: a second dry run reads every mark current (${JSON.stringify(post.counts)})`);
 }
 {
-  // A GLYPH THAT KEEPS ITS OWN PAINT, RECOLORED BY THE PLAN (#2343 PR 2): a brand mark whose provider changed a color
+  // A GLYPH THAT KEEPS ITS OWN PAINT, RECOLORED BY THE PLAN (#2343 PR 2): a provider logo whose provider changed a color
   // and not a path. Its vectors take no host ink, so the in-place glyph must compare their fills too, or the update
   // keeps the old colors under a current stamp. Built on the icon set with the ink stripped and literal fills written,
   // the shape a mark's plan has. Mutation: the fills dropped from the in-place signature → `recolor/taken`.
@@ -1344,7 +1429,7 @@ const putPd = (n: Node, k: string, v: string): void => (n.setSharedPluginData as
 const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
 {
   // A MARK OR GLYPH REDRAWN IN ITS MAIN COMPONENT (#2343 PR 2, owner decision Q-B3 A): a brand swaps a mark by editing
-  // the drawing inside `brand-mark/*` in Figma, and a rebuild must keep it. The drawing is the vectors' GEOMETRY, which
+  // the drawing inside `provider-logo/*` in Figma, and a rebuild must keep it. The drawing is the vectors' GEOMETRY, which
   // no node hash reads; `Baseline.art` does. Built here on the icon set, the same standalone-component path the marks
   // take. Mutations: the artwork arm of `baselineDiff` dropped → `redraw/listed`, `redraw/kept`; the kept artwork
   // laundered in `finishUpdated` → `redraw/still listed`.
@@ -1578,7 +1663,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
 /* ── noop ────────────────────────────────────────────────────────────────────────────────────────────── */
 
 // THE KIND RENAMES (#2343 PR 3, Q780 A, Q783 A): `card/` became `payment/` and `wallet/` became `logo/`, declared in
-// COMPONENT_RENAMES. A file built before the rename holds `brand-mark/card/visa`; the reader must admit that former
+// COMPONENT_RENAMES. A file built before the rename holds `provider-logo/card/visa`; the reader must admit that former
 // value (it has a second slash and is not a plan coordinate), so the dry run renames it in place rather than building
 // a second component beside it. The old names are typed here from the ledger's decision, not read from it.
 // Mutation: the ledger values dropped from `readSingleView`'s `known` → `marks/rename: dry run`.
@@ -1590,17 +1675,17 @@ section('single, marks — a mark built under its former kind is renamed in plac
     'payment/amex': 'card/amex', 'payment/generic': 'card/generic', 'payment/mastercard': 'card/mastercard', 'payment/visa': 'card/visa',
     'logo/apple-pay': 'wallet/apple-pay-black', 'logo/google-pay': 'wallet/google-pay-black', 'logo/paypal-wordmark': 'wallet/paypal', 'logo/shop-pay': 'wallet/shop-pay',
   };
-  const all = plansOf('brand-mark').filter((p) => String(p.coord.name) in TYPED);
-  const misread = new Set((await previewUpdate((await singleWorld(all)).host, [{ def: 'brand-mark', plans: all, single: true }])).sets[0]?.states.map((x) => x.member) ?? []);
+  const all = plansOf('provider-logo').filter((p) => String(p.coord.name) in TYPED);
+  const misread = new Set((await previewUpdate((await singleWorld(all)).host, [{ def: 'provider-logo', plans: all, single: true }])).sets[0]?.states.map((x) => x.member) ?? []);
   const clean = all.filter((p) => !misread.has(`name=${p.coord.name}`)).map((p) => String(p.coord.name));
   const pick = ['payment/', 'logo/'].map((k) => clean.find((n) => n.startsWith(k))).filter((n): n is string => !!n);
-  const plans = plansOf('brand-mark').filter((p) => [...pick, 'provider/google'].includes(String(p.coord.name)));
+  const plans = plansOf('provider-logo').filter((p) => [...pick, 'provider/google'].includes(String(p.coord.name)));
   const w = await singleWorld(plans);
-  const FORMER: Record<string, string> = Object.fromEntries(pick.map((n) => [`brand-mark/${n}`, `brand-mark/${TYPED[n]}`]));
+  const FORMER: Record<string, string> = Object.fromEntries(pick.map((n) => [`provider-logo/${n}`, `provider-logo/${TYPED[n]}`]));
   for (const c of w.comps()) if (FORMER[String(c.name)]) c.name = FORMER[String(c.name)];
   const before = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
   ok(pick.length === 2 && plans.length === 3 && Object.values(FORMER).every((n) => before.has(n)), `premise: a payment tile and a logo sit under their former names (${[...before.keys()].join(', ')})`);
-  const t = { def: 'brand-mark', plans, single: true };
+  const t = { def: 'provider-logo', plans, single: true };
   const pre = await previewUpdate(w.host, [t]);
   const c = pre.sets[0]?.counts;
   ok(c?.rename === 2 && c.add === 0 && c.members === 3, `marks/rename: dry run — the two former names read as members to rename, none to add (${JSON.stringify(c)})`);
@@ -1609,6 +1694,26 @@ section('single, marks — a mark built under its former kind is renamed in plac
   const kept = Object.entries(FORMER).every(([now, was]) => after.get(now)?.key === before.get(was)?.key && after.get(now)?.id === before.get(was)?.id);
   ok(applyVerdict(res).ok && after.size === 3 && Object.values(FORMER).every((n) => !after.has(n)) && kept,
     `marks/rename: apply — each renamed in place to its new kind, keeping its key and id (${applyVerdict(res).headline}; ${[...after.keys()].join(', ')})`);
+
+  // TWO HOPS (#3156 review N2): a file built before #2343 PR 3 AND #3148 holds `brand-mark/card/<x>`, which takes the
+  // def rename and then the value rename, in one update. Every mark sits under the old id, so the reader finds them there.
+  const w2 = await singleWorld(plans);
+  const OLD2: Record<string, string> = Object.fromEntries(plans.map((p) => {
+    const now = `provider-logo/${p.coord.name}`;
+    return [now, `brand-mark/${TYPED[String(p.coord.name)] ?? p.coord.name}`];
+  }));
+  for (const x of w2.comps()) if (OLD2[String(x.name)]) x.name = OLD2[String(x.name)];
+  const before2 = new Map(w2.comps().map((x) => [String(x.name), { key: String(x.key), id: String(x.id) }] as const));
+  ok(Object.values(OLD2).every((n) => before2.has(n)) && [...before2.keys()].every((n) => n.startsWith('brand-mark/')),
+    `premise: every mark sits under the old id, the payment tile and logo under their former kinds too (${[...before2.keys()].join(', ')})`);
+  const pre2 = await previewUpdate(w2.host, [t]);
+  const c2 = pre2.sets[0]?.counts;
+  ok(pre2.sets[0]?.setRename?.from === 'brand-mark' && c2?.rename === 2 && c2.add === 0 && c2.members === 3,
+    `marks/two hops: dry run — read under brand-mark, the two former kinds to rename, none to add (${JSON.stringify({ setRename: pre2.sets[0]?.setRename, counts: c2 })})`);
+  const res2 = await applyUpdate(w2.host, w2.api as any, [t], previewHashOf(pre2));
+  const after2 = new Map(w2.comps().map((x) => [String(x.name), { key: String(x.key), id: String(x.id) }] as const));
+  ok(applyVerdict(res2).ok && after2.size === 3 && Object.entries(OLD2).every(([now, was]) => after2.get(now)?.key === before2.get(was)?.key && after2.get(now)?.id === before2.get(was)?.id),
+    `marks/two hops: apply — \`brand-mark/card/<x>\` is \`provider-logo/payment/<x>\`, each in place, keeping its key and id (${applyVerdict(res2).headline}; ${[...after2.keys()].join(', ')})`);
 }
 
 section('noop — a set already current is not written');
@@ -1784,6 +1889,119 @@ section('def rename, nested — a set renamed in the same run counts as present 
   ok(!!tabsP && wrong.length === 0, `def rename, nested/together: Tabs' items read as instances of tab-item, with no WRONG SET line (${wrong.length}: ${wrong[0] ?? 'none'})`);
   const alone = (await previewUpdate(host, [{ def: 'tabs', plans: plansOf('tabs') }])).sets[0];
   ok(alone.blockers.some((b) => b.startsWith('Not in this file: tab-item')), `def rename, nested/alone: without Tab item in the run, Tabs is refused, naming it (${JSON.stringify(alone.blockers)})`);
+}
+
+section('def rename, single — provider logos built as `brand-mark/…` are renamed in place by one update, their nests intact (#3148)');
+{
+  // A file built before #3148, by the real executor from the plans as they were: the marks are `brand-mark/<kind>/<name>`
+  // and the wallet button and card number field nest them under that name. One update with today's plans for all three.
+  const OLD = 'brand-mark', NEW = 'provider-logo';
+  const toOld = <T,>(plans: T[]): T[] => plans.map((p) => JSON.parse(JSON.stringify(p).split(NEW).join(OLD)) as T);
+  const HOSTS = ['wallet-button', 'card-number-field'];
+  // The shim sizes a vector from its path's numbers and misreads some real outlines, as drift Figma's importer does not
+  // have (see "single, marks" above). A first build of today's marks names them; the file holds every mark, the hosts
+  // nest some of those, and the verify below excuses exactly these and nothing else.
+  const misread = new Set((await previewUpdate((await singleWorld(plansOf(NEW))).host, [{ def: NEW, plans: plansOf(NEW), single: true }])).sets[0]?.states.map((x) => x.member) ?? []);
+  const kept = plansOf(NEW);
+  const oldMarks = toOld(kept), oldHosts = HOSTS.map((id) => toOld(plansOf(id)));
+  ok(oldMarks.every((p) => p.component === OLD) && JSON.stringify(oldHosts[0]).includes(`"nestTarget":"${OLD}/`) && JSON.stringify(oldHosts[1]).includes(`"swapTarget":"${OLD}/`) && !JSON.stringify(oldHosts).includes(NEW),
+    'premise: the old plans name the marks `brand-mark/…`; the wallet button nests them, and the card number field\'s tile starts at one, by that name');
+  const all = [...plansOf('field-label'), ...plansOf('field-message'), ...oldMarks, ...oldHosts.flat()];
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    // The marks are the built ones, never stand-ins: an instance of one must point at the component the update renames.
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root)).filter((c) => !c.startsWith(`${OLD}/`) && c !== 'field-label' && c !== 'field-message')])],
+    page, liveRoot: true, identities: true, liveComponents: true, scaleConstrained: true,
+  }) as any;
+  const misses: string[] = [];
+  // The field's own parts first, as a build places them: the card number field nests both.
+  for (const id of ['field-label', 'field-message']) misses.push(...(await applyComponentPlan(plansOf(id), api)).misses);
+  misses.push(...(await applyComponentPlan(oldMarks, api, { emitAsComponents: true })).misses);
+  for (const plans of oldHosts) misses.push(...(await applyComponentPlan(plans, api)).misses);
+  ok(misses.length === 0, `premise: the old file builds with no miss (${misses.length}: ${misses[0] ?? 'none'})`);
+  const every = (types: string[]): Node[] => {
+    const out: Node[] = [];
+    const walk = (n: Node): void => { if (types.includes(String(n.type))) out.push(n); if (n.type !== 'INSTANCE') for (const c of (n.children as Node[] | undefined) ?? []) walk(c); };
+    for (const n of page.children) walk(n);
+    return out;
+  };
+  // The page's own nodes, and the shim's stand-ins for the other components the file holds (focus ring, the swap target).
+  const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => [...new Set([...every(c.types), ...(c.types.includes('COMPONENT') ? api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as Node[] : [])])] } } as unknown as ApplyHost;
+  // A designer's own components under the old prefix, one in each shape (#3156 review): `<id>/<value>`, which the dry
+  // run reads as a member not built by Prism3, and `<id>/<kind>/<x>`, a value no plan holds, which it never reads as a
+  // member. Neither is stamped, so neither is Prism3's, and the update renames neither.
+  const own = (name: string): Node => {
+    const n = (api.createComponentFromNode as (n: Node) => Node)((api.createFrame as () => Node)());
+    n.name = name;
+    if (!page.children.includes(n)) page.children.push(n);
+    return n;
+  };
+  const theirs = [own(`${OLD}/handmade`), own(`${OLD}/payment/zz-own`)];
+  // A designer's Figma Duplicate of a shipped mark, renamed (#3156 delta review N1): the copy carries the original's
+  // stamp, but its record names the original's id, so `builtByPrism3` refuses it, and the rename leaves it alone.
+  const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const original = page.children.find((n) => n.type === 'COMPONENT' && n.name === `${OLD}/payment/visa`)!;
+  const copy = own(`${OLD}/payment/visa-copy`);
+  for (const k of [STAMP_KEY, BASELINE_KEY]) (copy.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, pd(original, k));
+  ok(!!pd(copy, STAMP_KEY) && JSON.parse(pd(copy, BASELINE_KEY) || '{}').id === String(original.id) && copy.id !== original.id,
+    `premise: the copy carries \`${OLD}/payment/visa\`'s stamp, and its record names that original's id, not its own`);
+  const marks = (): Node[] => page.children.filter((n) => n.type === 'COMPONENT' && !theirs.includes(n) && n !== copy);
+  // Every instance inside the two hosts' sets that points at a mark, as (instance id → its main component's id).
+  const instancesIn = (n: Node): Node[] => [...(n.type === 'INSTANCE' ? [n] : []), ...(n.type === 'INSTANCE' ? [] : ((n.children as Node[] | undefined) ?? []).flatMap(instancesIn))];
+  // Each instance in the two hosts' sets that points at a mark: instance id → its main's id, as Figma holds it.
+  const hostSets = (): Node[] => page.children.filter((n) => n.type === 'COMPONENT_SET' && HOSTS.includes(String(n.name)));
+  const nested = (): Map<string, string> => new Map(hostSets().flatMap(instancesIn).flatMap((i) => {
+    const id = (i.mainComponent as { id?: unknown } | undefined)?.id;
+    return marks().some((c) => c.id === id) ? [[String(i.id), String(id)] as const] : [];
+  }));
+  const beforeMarks = new Map(marks().map((c) => [String(c.id), { key: String(c.key), name: String(c.name) }] as const));
+  const beforeNests = nested();
+  ok(beforeMarks.size === oldMarks.length && [...beforeMarks.values()].every((m) => m.name.startsWith(`${OLD}/`)) && beforeNests.size > 0,
+    `premise: the file holds ${beforeMarks.size} marks named \`${OLD}/…\`, and ${beforeNests.size} nested instances of them in the two hosts`);
+  const targets: UpdateTarget[] = [{ def: NEW, plans: kept, single: true }, ...HOSTS.map((id) => ({ def: id, plans: plansOf(id) }))];
+  const unclaimed = await previewUpdate(host, [targets[0]], undefined, []);
+  ok(unclaimed.missing.includes(NEW), `premise: with no ledger entry the marks are not found, so an update would build a second set of them (${JSON.stringify(unclaimed.missing)})`);
+  // The engine's own ledger, so the shipped entry is what is under test.
+  const pre = await previewUpdate(host, targets);
+  const pm = pre.sets.find((x) => x.set === NEW);
+  ok(!!pm && pm.setRename?.from === OLD && pm.setRename.to === NEW && !pm.blockers.length && !pm.counts.add && !pm.counts.drop && pm.counts.members === oldMarks.length + 1,
+    `def rename, single/dry run: the marks are read under '${OLD}', to be renamed '${NEW}', with nothing added or dropped (${JSON.stringify(pm ? { setRename: pm.setRename, counts: pm.counts, blockers: pm.blockers } : null)})`);
+  ok(!!pm && pm.counts.unstamped === 1 && pm.unstamped.length === 1 && pm.unstamped[0].endsWith('=handmade') && !JSON.stringify(pm).includes('zz-own'),
+    `def rename, single/theirs, read: \`${OLD}/handmade\` is the one member not built by Prism3, and \`${OLD}/payment/zz-own\` is no member at all (${JSON.stringify(pm ? { unstamped: pm.unstamped, count: pm.counts.unstamped } : null)})`);
+  ok(!!pm && previewLine(pm).endsWith(`Renamed from ${OLD}.`), `def rename, single/line: the dry run's line says so (${pm ? previewLine(pm) : 'none'})`);
+  for (const id of HOSTS) {
+    const hp = pre.sets.find((x) => x.set === id);
+    const wrong = JSON.stringify(hp ?? null).match(/[^"]*WRONG COMPONENT[^"]*/g) ?? [];
+    ok(!!hp && !hp.blockers.length && wrong.length === 0 && !hp.counts.add && !hp.counts.drop,
+      `def rename, single/${id}: not refused, and its nested marks read as the renamed ones, with no WRONG COMPONENT line (${JSON.stringify(hp?.blockers)}; ${wrong.length}: ${wrong[0] ?? 'none'})`);
+  }
+  const res = await applyUpdate(host, api, targets, previewHashOf(pre));
+  const outOf = (id: string) => res.outcomes.find((o) => o.def === id);
+  const stray = (outOf(NEW)?.content ?? []).filter((c) => ![...misread].some((m) => c.startsWith(`${m}/`)));
+  ok(!!outOf(NEW) && outOf(NEW)!.updated.length === kept.length && outOf(NEW)!.added === 0 && stray.length === 0 && !outOf(NEW)!.misses.length,
+    `def rename, single/verdict: every mark updated in place, none added, and no field differs but the ${misread.size} the shim misreads (${outOf(NEW)?.updated.length}; ${stray.length}: ${stray[0] ?? 'none'})`);
+  for (const id of HOSTS) {
+    const o = outOf(id);
+    ok(!!o && !o.refused && !o.stopped && o.added === 0 && !o.content.length && !o.misses.length,
+      `def rename, single/${id} verified: updated in place, every field as planned, its nested marks included (${o ? `${o.updated.length} updated; ${o.content[0] ?? o.misses[0] ?? 'clean'}` : 'no outcome'})`);
+  }
+  const afterMarks = new Map(marks().map((c) => [String(c.id), { key: String(c.key), name: String(c.name) }] as const));
+  ok(afterMarks.size === beforeMarks.size && [...beforeMarks].every(([id, b]) => afterMarks.get(id)?.key === b.key && afterMarks.get(id)?.name === `${NEW}/${b.name.slice(OLD.length + 1)}`),
+    `def rename, single/in place: the same ${afterMarks.size} components, each keeping its id and key, renamed \`${NEW}/…\`, and no duplicate (${marks().length} components; ${[...afterMarks.values()].filter((m) => !m.name.startsWith(`${NEW}/`)).map((m) => m.name).slice(0, 3).join(', ') || 'none left under the old name'})`);
+  ok(JSON.stringify(theirs.map((n) => n.name)) === JSON.stringify([`${OLD}/handmade`, `${OLD}/payment/zz-own`]) && theirs.every((n) => page.children.includes(n)),
+    `def rename, single/theirs, kept: a designer's own components under the old prefix keep their names (${JSON.stringify(theirs.map((n) => n.name))})`);
+  ok(copy.name === `${OLD}/payment/visa-copy` && page.children.includes(copy),
+    `def rename, single/copy, kept: a designer's duplicate of a stamped mark (the stamp copied, the record naming the original) keeps its name (${copy.name})`);
+  const afterNests = nested();
+  ok(afterNests.size === beforeNests.size && [...beforeNests].every(([i, m]) => afterNests.get(i) === m),
+    `def rename, single/nests: every nested instance in the wallet button and card number field is the same node, pointing at the same mark (${afterNests.size} of ${beforeNests.size})`);
+  const post = await previewUpdate(host, targets);
+  const pp = post.sets.find((x) => x.set === NEW);
+  ok(!!pp && !pp.setRename && !pp.counts.add && post.missing.length === 0 && pp.counts.current + misread.size === pp.counts.members,
+    `def rename, single/settled: a second dry run finds the marks under '${NEW}', every one current but the shim's misreads, nothing to rename or add (${JSON.stringify(pp?.counts)})`);
 }
 
 /* ── part rename (#2759) ───────────────────────────────────────────────────────────────────────────────── */
@@ -3753,6 +3971,30 @@ section('icons — a set built with inline glyphs updates to icon instances, as 
   }
 }
 
+/* ── option rows before #3153 ─────────────────────────────────────────────────────────────────────────── */
+// THE ROWS AS MAIN BUILT THEM BEFORE #3153 (owner Q852, Q853 A): the label one size up (`body.sm/md/lg`), the control
+// cell a FIXED height bound to the control rung's `control.size.*.line-box`, the label straight under `content`, no
+// text column, no description and no description properties. Reconstructed from today's def by putting those facts
+// back, so the subject is the real def's projection on both sides (as the #2894 and #2594 sections do).
+const OLD_TEXT: Record<string, string> = { small: 'type.body.sm.default', medium: 'type.body.md.default', large: 'type.body.lg.default' };
+const OLD_BOX: Record<string, string> = { small: 'control.size.sm.line-box', medium: 'control.size.md.line-box', large: 'control.size.lg.line-box' };
+const before3153 = (now: ComponentDef): ComponentDef => {
+  const tokens = Object.fromEntries(Object.entries(now.tokens).filter(([k]) => !/label-inset|description|indicator/.test(k)));
+  for (const size of Object.keys(OLD_TEXT)) {
+    if (tokens[`size.${size}.text`]) tokens[`size.${size}.text`] = OLD_TEXT[size];
+    if (tokens[`size.${size}.control-box`]) tokens[`size.${size}.control-box`] = OLD_BOX[size];
+  }
+  const a = now.anatomy!;
+  const { textStack: _t, description: _d, ...parts } = a.parts;
+  const { minHeight: _m, ...cell } = parts.controlCell;
+  parts.controlCell = { ...cell, height: 'size.{size}.control-box', layout: { ...cell.layout!, sizing: { ...cell.layout!.sizing, y: 'fixed' } } };
+  parts.content = { ...parts.content, children: parts.content.children!.map((c) => (c === 'textStack' ? 'label' : c)) };
+  const fp = now.figmaProperties!;
+  const { description: _dt, ...texts } = fp.texts ?? {};
+  const { description: _db, ...booleans } = fp.booleans ?? {};
+  return { ...now, tokens, anatomy: { ...a, parts }, figmaProperties: { ...fp, texts, booleans } } as ComponentDef;
+};
+
 /* ── option rows' content box (#2894, #2933) ─────────────────────────────────────────────────────────── */
 section('option rows — a set built before the content box (#2894, owner Q539) takes the box in place, every member and node kept');
 // THE FILE AS A BUILD AT MAIN BEFORE #2894 LEFT IT: the row top-aligned with no floor, holding the control cell and the
@@ -3762,7 +4004,8 @@ section('option rows — a set built before the content box (#2894, owner Q539) 
 // and its two flow children, which the dry run lists as moving into `content`, kept. Mutations: the executor offering the
 // new frame no children → `rows/moved children`, `rows/agree`; the dry run listing no moves → `rows/dry run moves`.
 for (const [ROW, MEMBERS, FLOW] of [['radio-row', 6, ['controlCell', 'label']], ['checkbox-row', 6, ['controlCell', 'label']], ['switch-row', 4, ['label', 'controlCell']]] as const) {
-  const now = componentDefs.find((x) => x.id === ROW)!;
+  // The #2894 target is the row as #2894 built it, which #3153 has since changed: `before3153` puts that back.
+  const now = before3153(componentDefs.find((x) => x.id === ROW)!) as typeof componentDefs[number];
   const { content, ...restParts } = now.anatomy.parts;
   const padded = ROW !== 'switch-row';
   const { padding: _p, minHeight: _m, ...rowRest } = now.anatomy.parts.row;
@@ -3773,7 +4016,7 @@ for (const [ROW, MEMBERS, FLOW] of [['radio-row', 6, ['controlCell', 'label']], 
   } as typeof now;
   const kids = (n: Node | undefined): string[] => ((n?.children as Node[] | undefined) ?? []).map((c) => String(c.name));
   // The file's variables are today's (an Update follows a token sync), so it holds the ones the new plans bind.
-  const newPlans = plansOf(ROW);
+  const newPlans = figmaAnatomySet(now, { swapTarget: SWAP_TARGET });
   const w = await world(ROW, figmaAnatomySet(before2894, { swapTarget: SWAP_TARGET }), { extraVars: newPlans.flatMap((q) => [...planBoundVars(q.root), ...planPaintVars(q.root)]) });
   ok(membersOf(w.set()).length === MEMBERS && membersOf(w.set()).every((m) => JSON.stringify(kids(m)) === JSON.stringify(FLOW) && m.counterAxisAlignItems === 'MIN'),
     `${ROW} premise: the file holds ${MEMBERS} members built before #2894, each top-aligned and holding [${FLOW.join(', ')}] directly (${kids(membersOf(w.set())[0]).join(', ')}; ${String(membersOf(w.set())[0].counterAxisAlignItems)})`);
@@ -3812,6 +4055,71 @@ for (const [ROW, MEMBERS, FLOW] of [['radio-row', 6, ['controlCell', 'label']], 
   ok(shape.length === 0, `${ROW} rows/structure: every member centers content, which holds [${FLOW.join(', ')}] top-aligned (${shape.slice(0, 2).map((m) => `${String(m.name)}: ${String(m.counterAxisAlignItems)} [${kids(m).join(', ')}]`).join('; ') || `all ${MEMBERS}`})`);
   const post = (await previewUpdate(w.host, [{ def: ROW, plans: newPlans }])).sets[0];
   ok(post.counts.current === MEMBERS && post.handEdits.length === 0, `${ROW} rows/current: the next dry run reads all ${MEMBERS} current (${JSON.stringify(post.counts)})`);
+}
+
+/* ── option rows' 14px label and description (#3153) ─────────────────────────────────────────────────── */
+section('option rows — a set built before #3153 (owner Q852, Q853 A) takes the text column, the description and the line-box cell in place, every member and node kept, a hand edit reported');
+// THE FILE: each row as main built it before #3153 (`before3153`). THE UPDATE: today's plans, through one Update file.
+// EXPECTED, typed here: each row's member count; on the two option rows, `content` holding [controlCell, textStack] and
+// the text column holding [label, description] with the description hidden; Switch.Row's flow unchanged. Every node
+// that was in the member before keeps its id (the label MOVES into the text column), the set gains the description's
+// two properties (off by default), and a designer's binding on one member's label is kept and reported as a hand edit.
+// Mutation: the description boolean defaulting on → `rows3153/structure`, `rows3153/description`.
+for (const [ROW, MEMBERS, STACKED] of [['checkbox-row', 6, true], ['radio-row', 6, true], ['switch-row', 4, false]] as const) {
+  const def = componentDefs.find((x) => x.id === ROW)!;
+  const old = before3153(def);
+  const newPlans = plansOf(ROW);
+  const w = await world(ROW, figmaAnatomySet(old, { swapTarget: SWAP_TARGET }), {
+    extraVars: newPlans.flatMap((q) => [...planBoundVars(q.root), ...planPaintVars(q.root)]),
+    extraStyles: newPlans.flatMap((q) => planTextStyles(q.root)),
+  });
+  const kids = (n: Node | undefined): string[] => ((n?.children as Node[] | undefined) ?? []).map((c) => String(c.name));
+  const content0 = childNamed(membersOf(w.set())[0], 'content');
+  ok(membersOf(w.set()).length === MEMBERS && !kids(content0).includes('textStack'),
+    `${ROW} rows3153 premise: the file holds ${MEMBERS} members built before #3153, with no text column (${kids(content0).join(', ')})`);
+  // A designer's edit on one member's row: the control-to-label gap bound to `space/0`, a step the plan does not name.
+  const edited = membersOf(w.set())[1];
+  const editVar = await varIdOf(w, 'space/0');
+  (childNamed(edited, 'content').setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: editVar });
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: ROW, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update + p.counts.handEdited === MEMBERS && p.counts.add === 0 && p.counts.drop === 0 && p.renames.length === 0 && !p.blockers.length && !p.replacements.length,
+    `${ROW} rows3153/dry run: all ${MEMBERS} members read update, none added, dropped, renamed or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+  ok(p.handEdits.length === 1 && p.handEdits[0].member === edited.name && p.handEdits[0].path === 'content',
+    `${ROW} rows3153/hand edit reported: the dry run reports the designer's edit on ${String(edited.name)}'s content, and nothing else (${JSON.stringify(p.handEdits).slice(0, 240)})`);
+  ok(res.outcomes[0].kept.length === 1 && res.outcomes[0].kept[0].path === 'content' && (childNamed(edited, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === editVar,
+    `${ROW} rows3153/hand edit kept: the apply keeps the designer's gap and lists it (${JSON.stringify(res.outcomes[0].kept)})`);
+  ok(applyVerdict(res).ok, `${ROW} rows3153/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const after = identityOf(w.set());
+  const movedMembers = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && movedMembers.length === 0 && after.members.size === MEMBERS,
+    `${ROW} rows3153/members kept: the set and all ${MEMBERS} members keep their keys and ids (${movedMembers.join('; ') || 'none moved'})`);
+  // KEPT, BY ID: every node the member held before is still in it (wherever it now sits), and none was removed.
+  const lost: string[] = [];
+  for (const [name, b] of before.members) {
+    const now = new Set([...(after.members.get(name)?.kids.values() ?? [])]);
+    const miss = [...b.kids].filter(([, id]) => !now.has(id));
+    if (miss.length) lost.push(`${name}: ${miss.map(([path]) => path).slice(0, 2).join(', ')}`);
+  }
+  ok(lost.length === 0, `${ROW} rows3153/kept: every node keeps its id, the label moved rather than rebuilt (${lost.slice(0, 2).join('; ') || `all ${MEMBERS}`})`);
+  // THE NEW STRUCTURE, read off the shim's nodes.
+  const shape = membersOf(w.set()).filter((m) => {
+    const c = childNamed(m, 'content');
+    if (!STACKED) return JSON.stringify(kids(c)) !== JSON.stringify(['label', 'controlCell']);
+    const t = childNamed(c, 'textStack');
+    return !(JSON.stringify(kids(c)) === JSON.stringify(['controlCell', 'textStack']) && JSON.stringify(kids(t)) === JSON.stringify(['label', 'description']) && childNamed(t, 'description').visible === false);
+  });
+  ok(shape.length === 0, `${ROW} rows3153/structure: ${STACKED ? 'content holds [controlCell, textStack], the text column [label, description], the description hidden' : 'content still holds [label, controlCell]'} (${shape.slice(0, 2).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ') || `all ${MEMBERS}`})`);
+  if (STACKED) {
+    const defs = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+    const bool = Object.entries(defs).find(([k, d]) => d.type === 'BOOLEAN' && /^description/.test(k));
+    const text = Object.entries(defs).find(([k, d]) => d.type === 'TEXT' && /^description text/.test(k));
+    ok(!!bool && bool[1].defaultValue === false && !!text, `${ROW} rows3153/description: the set gains a description boolean, off by default, and its text property (${JSON.stringify(Object.keys(defs))})`);
+  }
+  const post = (await previewUpdate(w.host, [{ def: ROW, plans: newPlans }])).sets[0];
+  ok(post.counts.current === MEMBERS - 1 && post.handEdits.length === 1 && post.handEdits[0].member === edited.name,
+    `${ROW} rows3153/current: the next dry run reads the other ${MEMBERS - 1} current and still reports the one hand edit (${JSON.stringify(post.counts)}, ${JSON.stringify(post.handEdits).slice(0, 200)})`);
 }
 
 /* ── accordion header row (#2594) ────────────────────────────────────────────────────────────────────── */

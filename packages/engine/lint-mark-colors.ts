@@ -1,5 +1,5 @@
 /**
- * Prism3 engine — A BRAND MARK IS NEVER RETINTED (#2343 proposal §1.4).
+ * Prism3 engine — A PROVIDER LOGO IS NEVER RETINTED (#2343 proposal §1.4).
  *
  *   npx tsx packages/engine/lint-mark-colors.ts
  *
@@ -10,19 +10,19 @@
  *       `colors` its record in `marks/provenance.json` states. A file edited to another color without a new
  *       record fails, and so does a record that drifted from its file.
  *   (b) SOURCE vs MODULE — the same fills, in drawing order and spelled exactly as supplied, against the
- *       document `emit-marks.ts` wrote into `brand-mark-glyphs.ts`. An emitter that normalized, dropped or
+ *       document `emit-marks.ts` wrote into `provider-logo-glyphs.ts`. An emitter that normalized, dropped or
  *       reordered a color fails here.
- *   (c) SOURCE vs PLAN — the `brand-mark` def's projected Figma plans: every member's document carries the
+ *   (c) SOURCE vs PLAN — the `provider-logo` def's projected Figma plans: every member's document carries the
  *       source's fills in order, and no node of a mark binds a variable, names a paint, a gradient or
  *       `descendantFills`. A variable bound on a mark is a retint that follows the theme.
- *   (d) HOSTS — every node in every other def's plan that instances or swaps in a `brand-mark/*` component
+ *   (d) HOSTS — every node in every other def's plan that instances or swaps in a `provider-logo/*` component
  *       pushes no `descendantFills` into it, names no fill or stroke paint, binds no paint variable, and states
  *       `fixedPaint` (#2343 PR 2's mechanism; this is the outcome). At every member: a disabled host keeps the
  *       mark's colors too. The Card number field and WalletButton are the hosts (#2343 PR 4), and `MARK_HOSTS` lists
  *       every host by hand, both ways, so the arm cannot pass by reading no host (docs/34 shape 9). The one
  *       relaxation is (g)'s.
  *   (g) THE PROVIDER TINT (owner decision Q846 A) — a host node may carry `literalTint` in place of `fixedPaint`
- *       only where the host is in `TINT_HOSTS` (SignInButton alone) AND the mark it carries is a `brand-mark/provider/*`
+ *       only where the host is in `TINT_HOSTS` (SignInButton alone) AND the mark it carries is a `provider-logo/provider/*`
  *       glyph, and the tint is an opaque `#rrggbb`. Any other def that tints a mark, or SignInButton tinting a
  *       non-provider mark, fails by name (`HOST TINT`). Every other mark keeps "never retinted". Each tint host must
  *       tint at least one member, so the arm cannot pass by reading none. WHICH members tint, and to what, is
@@ -56,20 +56,20 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { componentDefs } from './components';
 import { figmaAnatomySet, type FigmaNodePlan } from './anatomy-figma';
-import { BRAND_MARK_DOCUMENTS } from './brand-mark-glyphs';
-import { BRAND_MARK_SOURCES } from './brand-mark-set';
+import { PROVIDER_LOGO_DOCUMENTS } from './provider-logo-glyphs';
+import { PROVIDER_LOGO_SOURCES } from './provider-logo-set';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const marksDir = resolve(here, 'marks');
 /** The def and the component prefix, as literals: the second author of what the projector names them. */
-const MARK_DEF = 'brand-mark';
-const MARK_PREFIX = 'brand-mark/';
-/** Every def that carries a brand mark in a slot or a nest, typed here: (d) reads each one, and a def that carries a
+const MARK_DEF = 'provider-logo';
+const MARK_PREFIX = 'provider-logo/';
+/** Every def that carries a provider logo in a slot or a nest, typed here: (d) reads each one, and a def that carries a
  *  mark without being listed fails. */
 const MARK_HOSTS = ['card-number-field', 'wallet-button', 'sign-in-button'];
 /** (g) The hosts that may tint a mark, and the marks they may tint (Q846 A), typed here. */
 const TINT_HOSTS = ['sign-in-button'];
-const TINTABLE_PREFIX = 'brand-mark/provider/';
+const TINTABLE_PREFIX = 'provider-logo/provider/';
 
 /** The colors a document paints, in document order: each path's hex `fill` (not a `url(#…)` reference, and
  *  not the wrapper's `fill="none"`) and each gradient `stop-color`. Pure. */
@@ -98,11 +98,11 @@ export const paintOn = (n: FigmaNodePlan): string[] => {
   return out;
 };
 const walk = (n: FigmaNodePlan, f: (n: FigmaNodePlan) => void): void => { f(n); for (const c of n.children ?? []) walk(c, f); };
-/** Does this node bring a brand mark in, as an instance or a swap? Pure. */
+/** Does this node bring a provider logo in, as an instance or a swap? Pure. */
 export const carriesMark = (n: FigmaNodePlan): boolean =>
   [n.nestTarget, n.swapTarget].some((t) => typeof t === 'string' && t.startsWith(MARK_PREFIX));
 
-/** Which members are tiles: the name's kind, typed here rather than read from `BRAND_MARK_KINDS`, which the def's
+/** Which members are tiles: the name's kind, typed here rather than read from `PROVIDER_LOGO_KINDS`, which the def's
  *  own gate reads. Pure. */
 export const isTileMark = (name: string): boolean => name.startsWith('payment/');
 /** The frame properties the tile edge binds, and the variable family each must come from (Q720 A). */
@@ -151,7 +151,7 @@ const self: string[] = [];
   if (paintOn({ name: 'x', type: 'GLYPH', descendantFills: 'color/icon/primary' } as FigmaNodePlan).length !== 1) self.push('paintOn misses a descendantFills');
   if (paintOn({ name: 'x', type: 'GLYPH', bound: { fills: 'color/text/primary' } } as unknown as FigmaNodePlan).length !== 1) self.push('paintOn misses a bound fill');
   if (paintOn({ name: 'x', type: 'GLYPH' } as FigmaNodePlan).length) self.push('paintOn reports paint on a bare node');
-  if (!carriesMark({ name: 'mark', type: 'NESTED_INSTANCE', nestTarget: 'brand-mark/provider/google' } as FigmaNodePlan)) self.push('carriesMark misses a nested mark');
+  if (!carriesMark({ name: 'mark', type: 'NESTED_INSTANCE', nestTarget: 'provider-logo/provider/google' } as FigmaNodePlan)) self.push('carriesMark misses a nested mark');
   const edge = { topLeftRadius: 'radius/sm', topRightRadius: 'radius/sm', bottomLeftRadius: 'radius/sm', bottomRightRadius: 'radius/sm', strokeWeight: 'border-width/hairline' };
   const tile = { name: 'glyph', type: 'GLYPH', clipsContent: true, bound: edge, paints: { strokes: 'color/border/primary' } } as unknown as FigmaNodePlan;
   if (tileEdgeErrors(tile, true).length) self.push(`tileEdgeErrors rejects a complete tile edge: ${tileEdgeErrors(tile, true).join('; ')}`);
@@ -178,7 +178,7 @@ const failures: string[] = [];
 const records = (JSON.parse(readFileSync(join(marksDir, 'provenance.json'), 'utf8')) as { marks: Record<string, { colors?: string[] }> }).marks;
 const sourceColors = new Map<string, string[]>();
 const sourceSvgs = new Map<string, string>();
-for (const [name, source] of Object.entries(BRAND_MARK_SOURCES)) {
+for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES)) {
   let svg = '';
   try { svg = readFileSync(join(marksDir, `${source}.svg`), 'utf8'); } catch { failures.push(`${name}: marks/${source}.svg is unreadable`); continue; }
   const colors = colorsOf(svg);
@@ -189,9 +189,9 @@ for (const [name, source] of Object.entries(BRAND_MARK_SOURCES)) {
   const rec = records[`${source}.svg`]?.colors ?? [];
   if (asSet(colors) !== asSet(rec)) failures.push(`${name}: marks/${source}.svg paints {${asSet(colors)}} and its provenance record states {${asSet(rec)}} — a retinted file, or a record that no longer describes it`);
   // (b) source vs module
-  const doc = BRAND_MARK_DOCUMENTS[name as keyof typeof BRAND_MARK_DOCUMENTS];
-  if (!doc) { failures.push(`${name}: has no document in brand-mark-glyphs.ts (run npx tsx packages/engine/emit-marks.ts)`); continue; }
-  if (!sameList(colorsOf(doc), colors)) failures.push(`${name}: brand-mark-glyphs.ts paints ${JSON.stringify(colorsOf(doc))} and the source paints ${JSON.stringify(colors)} — the emitter changed a color`);
+  const doc = PROVIDER_LOGO_DOCUMENTS[name as keyof typeof PROVIDER_LOGO_DOCUMENTS];
+  if (!doc) { failures.push(`${name}: has no document in provider-logo-glyphs.ts (run npx tsx packages/engine/emit-marks.ts)`); continue; }
+  if (!sameList(colorsOf(doc), colors)) failures.push(`${name}: provider-logo-glyphs.ts paints ${JSON.stringify(colorsOf(doc))} and the source paints ${JSON.stringify(colors)} — the emitter changed a color`);
 }
 
 // (f) derived marks: the source file, not the record, is the oracle (#3066)
@@ -247,9 +247,9 @@ for (const def of componentDefs) {
     hosted++;
     carried++;
     const at = `${def.id} ${JSON.stringify({ size: plan.size, ...plan.coord })}`;
-    if (n.descendantFills) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and pushes descendantFills ${n.descendantFills} into it — the host's ink would retint the mark`);
-    if (n.paints?.fills || n.paints?.strokes) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and names paint ${JSON.stringify(n.paints)} on it`);
-    for (const [k, v] of Object.entries(n.bound ?? {})) if (/fill|stroke/i.test(k)) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and binds ${k} to ${String(v)}`);
+    if (n.descendantFills) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a provider logo and pushes descendantFills ${n.descendantFills} into it — the host's ink would retint the mark`);
+    if (n.paints?.fills || n.paints?.strokes) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a provider logo and names paint ${JSON.stringify(n.paints)} on it`);
+    for (const [k, v] of Object.entries(n.bound ?? {})) if (/fill|stroke/i.test(k)) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a provider logo and binds ${k} to ${String(v)}`);
     const target = String(n.nestTarget ?? n.swapTarget);
     if (n.literalTint !== undefined) {
       tinted++;
@@ -260,17 +260,17 @@ for (const def of componentDefs) {
       }
       if (!/^#[0-9a-f]{6}$/.test(n.literalTint)) failures.push(`${at}: HOST TINT — part '${n.name}' paints ${target} '${n.literalTint}', which is not an opaque #rrggbb`);
       if (n.fixedPaint !== undefined) failures.push(`${at}: HOST TINT — part '${n.name}' states fixedPaint beside a tint; the plan says one or the other`);
-    } else if (n.fixedPaint !== true) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a brand mark and does not state fixedPaint, so nothing holds the host's ink off it`);
+    } else if (n.fixedPaint !== true) failures.push(`${at}: HOST RETINT — part '${n.name}' carries a provider logo and does not state fixedPaint, so nothing holds the host's ink off it`);
   });
-  if (carried && !MARK_HOSTS.includes(def.id)) failures.push(`${def.id}: carries a brand mark and is not in MARK_HOSTS — list it, so the host arm is known to read it`);
-  if (!carried && MARK_HOSTS.includes(def.id)) failures.push(`${def.id}: is in MARK_HOSTS and no member carries a brand mark — the host arm read nothing for it`);
+  if (carried && !MARK_HOSTS.includes(def.id)) failures.push(`${def.id}: carries a provider logo and is not in MARK_HOSTS — list it, so the host arm is known to read it`);
+  if (!carried && MARK_HOSTS.includes(def.id)) failures.push(`${def.id}: is in MARK_HOSTS and no member carries a provider logo — the host arm read nothing for it`);
 }
 for (const id of MARK_HOSTS) if (!componentDefs.some((d) => d.id === id)) failures.push(`${id}: is in MARK_HOSTS and no such component is registered`);
 for (const id of TINT_HOSTS) if (!hostTints.get(id)) failures.push(`${id}: is in TINT_HOSTS and tints no provider glyph at any member — the tint arm read nothing for it`);
 
 console.log(`Mark colors — ${sourceColors.size} source file(s) (${derived} derived, read against their source), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} payment tile(s), ${hosted} host node(s) carrying a mark, ${tinted} of them tinted.`);
 if (markPlans === 0 && markDef) failures.push(`'${MARK_DEF}' projected no plan — the plan arm checked nothing`);
-if (markDef && Object.keys(BRAND_MARK_SOURCES).some(isTileMark) && tileMembers === 0) failures.push(`the set lists payment tiles and no '${MARK_DEF}' plan was read as a tile — the tile-edge arm checked nothing`);
+if (markDef && Object.keys(PROVIDER_LOGO_SOURCES).some(isTileMark) && tileMembers === 0) failures.push(`the set lists payment tiles and no '${MARK_DEF}' plan was read as a tile — the tile-edge arm checked nothing`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} mark color problem(s):\n`);
   for (const f of failures) console.error(`    ${f}`);
