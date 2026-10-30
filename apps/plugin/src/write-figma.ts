@@ -583,7 +583,15 @@ const upsertCollection = async (
  * Materialise the colour write-plan into `figma.variables`. Runs the three passes in order —
  * palette first (the colour aliases target it), then the two-pass colour write.
  */
-export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: Migration): Promise<ApplyResult> => {
+/** #3170 Q3170.5 A: inside Apply Theme's color stage, the thread is handed back every this many variables written, across
+ *  the palette, the color values and the aliases. */
+export const COLOR_YIELD_EVERY = 200;
+
+export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: Migration, tick?: () => Promise<void>): Promise<ApplyResult> => {
+  // #3170: `tick` (the plugin's Apply Theme only) after every `COLOR_YIELD_EVERY`th variable, so the panel hears from the
+  // run and can repaint. A caller with none (the paste harness, the tests) writes as before, in one turn.
+  let written = 0;
+  const due = (): boolean => !!tick && ++written % COLOR_YIELD_EVERY === 0;
   // ---- pass 1: `core`'s palette slice (one Default mode, literal RGBA, hidden primitives) ----
   // The collection is `core` since #1097 — the label comes from the engine's own emission constant, so a
   // future collection rename does not need an edit here. The palette SLICE of it is derived from the
@@ -603,6 +611,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     v.description = row.description;
     v.hiddenFromPublishing = row.hidden;
     v.setValueForMode(palModeId, row.value);
+    if (due()) await tick!();
   }
 
   // ---- pass 2: color create (N modes, literal per-mode fallback values) ----
@@ -623,6 +632,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     v.scopes = row.scopes;
     v.description = row.description;
     modes.forEach((m, i) => v!.setValueForMode(modeIds[m], row.valuesByMode[i]));
+    if (due()) await tick!();
   }
 
   // ---- pass 3: color aliases (bind PER MODE — each mode to its OWN target) ----
@@ -658,6 +668,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
       } else v.setValueForMode(modeIds[m], vars.createVariableAlias(tv));
       bound++;
     });
+    if (due()) await tick!();
   }
 
   return {

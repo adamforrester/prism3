@@ -33,14 +33,14 @@ import type { PruneInput, PruneApi } from './prune-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
 import { rootOf } from '@prism3/engine/figma-names';
 import { conflictSummary } from './preflight';
-import { runApplyTheme } from './apply-theme';
+import { APPLY_STAGES, runApplyTheme, type ApplyStage, type ThemePace } from './apply-theme';
 import { fieldStyleNote, searchFieldStyleNote } from './field-style-note';
 import { tagStyleNote } from './tag-style-note';
 import { gridSkippedNote } from './write-grid-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
 import { saveBeforeBuild, saveVersion } from './version-title';
-import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost, type UpdateChoices } from './update-apply';
+import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost, type ApplyProgress, type UpdateChoices } from './update-apply';
 import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
 import { emptiedLine, pageMovesDue, pageMovesLine, relocateSets, type RelocateOutcome } from './page-moves';
 import { ensureFileComponents } from './file-components';
@@ -241,6 +241,42 @@ void (async (): Promise<void> => {
 })();
 
 /**
+ * #3170 PART 2: WHAT THE PANEL HEARS WHILE A WRITE RUNS (owner decisions Q3170.1–6, all A). The panel learns something
+ * only when this thread posts to it, and this thread can post only when the write hands it back. So each write the
+ * panel starts posts `run-progress` at every boundary it has (a page of the read after open, a set of the update, a
+ * stage of Apply Theme) and hands the thread back there, and again after about `PACE_MS` of work inside a set (Q3170.5 A)
+ * or every `COLOR_YIELD_EVERY` color variables, posting the same reading again so the panel can tell a long set from a
+ * stalled panel. Never for an agent's run: its sink collects every post as a verdict.
+ */
+const PACE_MS = 50;
+const postProgress = (run: 'read' | 'update' | 'apply-theme', p: ApplyProgress): void => postToUi({ type: 'run-progress', run, ...p });
+/** An executor `yieldTo` that hands the thread back only once about `PACE_MS` of work has run since it last did, and
+ *  then says `again` first. Asked after every member (`chunk: 1`); a wait the executor asks for (`ms`) is always kept. */
+const paced = (again: () => void): ((ms?: number) => Promise<void>) => {
+  let last = Date.now();
+  return async (ms?: number): Promise<void> => {
+    if (!ms && Date.now() - last < PACE_MS) return;
+    again();
+    await new Promise<void>((r) => setTimeout(r, ms ?? 0));
+    last = Date.now();
+  };
+};
+/** Apply Theme's pacing: a reading and a hand-back before each of its seven stages and every `COLOR_YIELD_EVERY` color
+ *  variables. The thread is handed back for an agent's apply too; only the panel's posts. */
+const themePace = (sink: ActionSink): ThemePace => {
+  const panel = sink === uiSink;
+  let at: { stage: ApplyStage; done: number } | null = null;
+  const say = (): void => { if (panel && at) postProgress('apply-theme', { phase: 'work', item: at.stage, done: at.done, total: APPLY_STAGES.length }); };
+  return {
+    check: () => { if (panel) postProgress('apply-theme', { phase: 'check', item: null, done: 0, total: APPLY_STAGES.length }); },
+    stage: async (stage, done) => { at = { stage, done }; say(); await breathe(); },
+    tick: async () => { say(); await breathe(); },
+  };
+};
+/** #3170 Q3170.4 A: the panel's "Stop after <set>" (`update-stop`), read by its running update at each set boundary. */
+let updateStopAsked = false;
+
+/**
  * Materialise a brand into `figma.variables` (#108) — the theme now comes LIVE from the shared UI's
  * knobs (a `BrandInput`), not a bundled fixture. Same pure core, same executor: only the source of
  * the theme changed (#110). Idempotent find-by-name; colour axis (`core` + `color`).
@@ -250,7 +286,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // The write sequence — fonts first, pre-flight, then the guarded executor calls — lives in
     // `apply-theme.ts` since #111, so the MCP paste harness can prove parity against this exact path. The
     // global `figma` is the host; everything below this line (the report) is unchanged.
-    const { plans, pf, guarded, before } = await runApplyTheme(input, figma, () => saveVersion(figma, { run: 'apply-theme' }).then(() => undefined));
+    const { plans, pf, guarded, before } = await runApplyTheme(input, figma, () => saveVersion(figma, { run: 'apply-theme' }).then(() => undefined), themePace(sink));
     const { colorFiles, floatPlan, fontPlan, motionPlan } = plans;
     if (!guarded.ok) {
       sink.data({ conflicts: guarded.conflicts });
@@ -1006,8 +1042,8 @@ const panelBeside = async (f: FurnitureOutcome, setId: string, defId: string): P
  * components) the file holds, by the name the build gives it (`presentNames`, the dependency walk's own search), and
  * whether Set up file has run. Never throws to the panel: an unreadable file answers with `error` and nothing present.
  */
-const presentDefs = async (): Promise<string[]> => {
-  await timed('page loads', loadPagesYielding);
+const presentDefs = async (onPage?: (done: number, total: number) => void): Promise<string[]> => {
+  await timed('page loads', () => loadPagesYielding(onPage));
   const names = await timed('file search', () => presentNames(figma as unknown as Parameters<typeof presentNames>[0]));
   presentCache = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
   return presentCache;
@@ -1025,10 +1061,13 @@ let presentCache: string[] | null = null;
  * no `loadAsync` (a Node shim) skips straight to it. Every read and write in this file that needs every page loads them
  * here, so none of them freezes the file while the read after open is still going.
  */
-const loadPagesYielding = async (): Promise<void> => {
-  for (const p of figma.root.children as readonly { loadAsync?(): Promise<void> }[]) {
-    if (typeof p.loadAsync !== 'function') continue;
-    await p.loadAsync();
+const loadPagesYielding = async (onPage?: (done: number, total: number) => void): Promise<void> => {
+  // #3170 Q3170.1 A: the read after open says how far it has got, a page at a time (`onPage`), for the status strip.
+  const pages = (figma.root.children as readonly { loadAsync?(): Promise<void> }[]).filter((p) => typeof p.loadAsync === 'function');
+  if (pages.length) onPage?.(0, pages.length);
+  for (const [i, p] of pages.entries()) {
+    await p.loadAsync!();
+    onPage?.(i + 1, pages.length);
     await breathe();
   }
   await figma.loadAllPagesAsync();
@@ -1147,7 +1186,7 @@ const thenRestamp = <A extends unknown[]>(fn: (...a: A) => Promise<void>) => asy
  *  a request asked meanwhile can be answered first; the panel tells the two apart by this. */
 const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
   try {
-    const present = await presentDefs();
+    const present = await presentDefs(atOpen ? (done, total) => postProgress('read', { phase: 'work', item: null, done, total }) : undefined);
     // #2909 Q2909.8 A: what is due, from the as-built ledger, one root read (`as-built-ledger.ts`), against the panel's brand.
     // #3082 Q811 A: a set whose engine moved is printed, a set at a time with the thread handed back, and is due only
     // when its plans moved.
@@ -1312,7 +1351,14 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // was skipped.
     const furniture: FurnitureOutcome[] = [];
     const furnish = async (def: string): Promise<void> => { furniture.push(...await furnishUpdate(figma as unknown as FurnitureApi, { outcomes: [{ def }] }, targets, panelFor)); };
-    const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, nameOf, breathe, furnish, ...(choices ? { choices } : {}) });
+    // #3170: the panel's own update reports each set boundary and hands the thread back after about `PACE_MS` inside a
+    // set (`chunk: 1`, `paced`), and reads its Stop at each boundary. An agent's update yields as before and posts nothing.
+    const panel = sink === uiSink;
+    if (panel) updateStopAsked = false;
+    let last: ApplyProgress | null = null;
+    const progress = (p: ApplyProgress): void => { last = p; postProgress('update', p); };
+    const pacing = panel ? { progress, stop: () => updateStopAsked, chunk: 1, yieldTo: paced(() => { if (last) postProgress('update', last); }) } : {};
+    const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, nameOf, breathe, furnish, ...(choices ? { choices } : {}), ...pacing });
     r.refused.push(...refused);
     // THE AS-BUILT LEDGER (#2909 Q2909.8 A): each set the apply acted on is recorded as built from today's def, under the
     // brand its plans were laid from (the panel's, which the run's Theme step applied). A refused set, or an apply
@@ -1833,6 +1879,10 @@ onUiMessage((msg: UiToMain) => {
       // #2909: Update file's in-place update of the sets its checklist ticked, under the check's hash. Guarded, as the
       // agent's confirmed `update-components` is: the same action.
       void ACTIONS.updateComponents(msg.defs, msg.previewHash, { handEdits: msg.handEdits }, msg.input, uiSink);
+      return;
+    case 'update-stop':
+      // #3170 Q3170.4 A: read by the panel's running update at its next set boundary; nothing running, nothing to stop.
+      if (guard.busy('build-components')) updateStopAsked = true;
       return;
     case 'draw-specs':
       // #2830 Q2830.3 A: Documentation › Specs, the panel's Draw specs, for the sets on the current page. The agent's

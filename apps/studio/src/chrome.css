@@ -568,7 +568,10 @@
   background: var(--p3-bg-page); border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal);
 }
-.p3-drawer[data-open="false"][data-ever="false"] { display: none; }
+.p3-drawer[data-open="false"][data-ever="false"]:not(:has(> .p3-status:not([hidden]))) { display: none; }
+/* #3170: a drawer with nothing to show yet still carries the status strip (the read after open, at 380), without its empty
+   bar row. */
+.p3-drawer[data-open="false"][data-ever="false"] > .p3-drawer-bar { display: none; }
 /* A sanctioned shadow (T5, the owner, #3113): the drawer's top edge casts a subtle shadow up over what it covers, while it
    overlays the preview: open, and at 380 as the strip and the sheet. Not the closed bar row wider. */
 .p3-drawer[data-open="true"], .p3-frame[data-w="narrow"] .p3-drawer { box-shadow: 0 calc(-1 * var(--p3-space-025)) var(--p3-space-150) calc(-1 * var(--p3-space-050)) var(--p3-scrim); }
@@ -666,6 +669,22 @@
 .p3-op-prog::-webkit-progress-bar { background: var(--p3-line-1); }
 .p3-op-prog::-webkit-progress-value { background: var(--p3-icon); }
 .p3-op-prog::-moz-progress-bar { background: var(--p3-icon); }
+/* #3170 part 2 (Q3170.1–6 A): the status strip, first in the drawer, above its bar row (`shell/status-strip.ts`). On the
+   drawer's ground; a verdict is marked as Activity marks one, its glyph in its status ink, never a filled band. The bar is
+   the drawer's own progress; with no value it is indeterminate, and it draws no motion: what moves is what the run said. */
+.p3-status { display: grid; gap: var(--p3-space-075); padding: var(--p3-space-100) var(--p3-space-300); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-status[hidden] { display: none; }
+.p3-status-top { display: flex; align-items: baseline; gap: var(--p3-space-100); min-width: 0; }
+.p3-status-top > .p3-op-mark { align-self: center; }
+.p3-status-top > [hidden], .p3-status-sub > [hidden], .p3-status-prog[hidden] { display: none; }
+.p3-status-what { flex: 1 1 auto; min-width: 0; font-weight: var(--p3-fw-strong); overflow-wrap: anywhere; }
+.p3-status[data-tone="bad"] .p3-status-what { color: var(--p3-bad-text); }
+.p3-status-n { flex: none; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.p3-status-sub { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); color: var(--p3-text-2); }
+.p3-status-sub:not(:has(> :not([hidden]))) { display: none; }
+.p3-status-line { flex: 1 1 auto; min-width: 0; }
+.p3-status-stop { flex: none; margin-inline-start: auto; }
+.p3-frame[data-w="narrow"] .p3-status { padding: var(--p3-space-075) var(--p3-space-150); }
 .p3-op-history > summary { cursor: pointer; color: var(--p3-text-2); }
 /* Q3113.6 A: one line per earlier result (its mark, time, words and Agent), each opening its own lines (#2281). */
 .p3-op-history > ul { display: grid; gap: var(--p3-space-025); margin: var(--p3-space-050) 0 0; padding: 0; list-style: none; }

@@ -36,6 +36,8 @@ export type PageLends = {
     readonly busy: () => boolean;
     /** An agent's build runs (the action bar waits and says so, #2700). */
     readonly agentBusy: () => boolean;
+    /** #3170 Q3170.3 A: why the page's writes to the file (the add queue's boxes) are off now, or null. */
+    readonly off: () => string | null;
     readonly lastOf: (id: string) => SetBuild | undefined;
     /** Build these sets, one after another (#2700). Refuses while a build runs, and drops a set that can't be built. */
     readonly run: (kind: RunKind, ids: readonly string[]) => void;

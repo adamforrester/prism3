@@ -49,6 +49,9 @@ export type HostMessage =
   // #1778 — how far a style-guide run has got: `done` of `total` tables. Non-terminal, like
   // `component-progress`, so it belongs in the style guide's pending state, never its verdict slot.
   | { kind: 'style-guide-progress'; done: number; total: number }
+  // #3170 part 2 — how far a run the panel started has got, for the status strip (`state/status-strip.ts`). Non-terminal,
+  // like `component-progress`: never a verdict.
+  | { kind: 'run-progress'; run: 'read' | 'update' | 'apply-theme'; phase: 'check' | 'work' | 'finish'; item: string | null; done: number; total: number }
   // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
   // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
   // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
@@ -193,6 +196,9 @@ export interface HostCommit {
   /** #2909 Q2909.8 A: the full check, scoped to `defs` (`update-check-request`), against the panel's brand `input`
    *  (`undefined`: the file's stored brand, as `requestFileSets`'). Figma only; inert on the web. */
   requestUpdateCheck(defs: readonly string[], input: unknown): void;
+  /** #3170 Q3170.4 A: "Stop after <set>": the running update stops at its next set boundary (`update-stop`). Figma only;
+   *  inert on the web. */
+  postUpdateStop(): void;
   /** #2909: update `defs` in place under the check's hash (`update-sets`). Figma only; inert on the web. */
   postUpdateSets(defs: readonly string[], previewHash: string, handEdits: 'keep' | 'overwrite' | 'accept', input: unknown): void;
   /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
@@ -408,6 +414,16 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
     const r = progressReading(m);
     return r ? { kind: 'component-progress', ...r, chunkMs: count(m.chunkMs) ?? 0 } : null;
   },
+  // #3170. Validated and dropped when unusable, for the `component-progress` reason above: a reading that says nothing
+  // usable leaves the strip on the last one.
+  'run-progress': (m) => {
+    const run = m.run === 'read' || m.run === 'update' || m.run === 'apply-theme' ? m.run : null;
+    const phase = m.phase === 'check' || m.phase === 'work' || m.phase === 'finish' ? m.phase : null;
+    const done = count(m.done);
+    const total = count(m.total);
+    if (!run || !phase || done === null || total === null || done > total) return null;
+    return { kind: 'run-progress', run, phase, item: isId(m.item) ? m.item : null, done, total };
+  },
   'style-guide-progress': (m) => {
     // #1778. Validated and dropped when unusable, for the `component-progress` reason above.
     const r = tableReading(m);
@@ -587,6 +603,9 @@ const figmaCommit = (): HostCommit => ({
   postUpdateSets(defs, previewHash, handEdits, input) {
     post({ type: 'update-sets', defs: [...defs], previewHash, handEdits, input: input as ApplyTheme['input'] });
   },
+  postUpdateStop() {
+    post({ type: 'update-stop' });
+  },
   saveDocSettings(settings) {
     post({ type: 'doc-settings-save', settings });
   },
@@ -627,6 +646,7 @@ const webCommit = (): HostCommit => ({
   postAddQueue() {/* no file on web (#3129 Q3129.12 A) */},
   requestUpdateCheck() {/* no file on web (#2909) */},
   postUpdateSets() {/* no file on web (#2909) */},
+  postUpdateStop() {/* no file on web (#3170) */},
   onHostMessage() {/* no host messages on web */},
   requestResize() {/* the browser window is the user's to size on web */},
 });
