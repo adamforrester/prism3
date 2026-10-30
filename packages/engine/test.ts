@@ -3659,8 +3659,10 @@ for (const b of brands) {
     // so both read the varying family and both belong here, exactly as checkbox + checkbox-control do.
     // #1348 split `radio` the same way: `radio-control` (the circle/dot, binding control+dot) and the
     // `radio` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's square).
-    // `list-item` (#2319) binds `size.*.dot` for its bullet, the radio dot's diameter, so it reads the varying family too.
-    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio-row', 'switch-control', 'switch-row', 'list-item'];
+    // `list-item` (#2319) bound `size.*.dot` for its bullet, the radio dot's diameter, until #3155 (Q3155.1 A) sized the
+    // bullet to the text on the space ladder as `size.*.bullet`: a mark beside fixed body text, not a control box, so it
+    // left this set. Its bullet is pinned by the #3155 arm below.
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio-row', 'switch-control', 'switch-row'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -4026,8 +4028,8 @@ for (const b of brands) {
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
       // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
       accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 16/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 20/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 24/20/20/32' },
-      // List (#2319, approved (Q280 A)): the item gap. Comfortable is 8/12/16.
-      list: { compact: 'small 6 · medium 8 · large 12', comfortable: 'small 8 · medium 12 · large 16', spacious: 'small 12 · medium 16 · large 20' },
+      // List (#2319, approved (Q280 A); widened one step on #3155): the item gap. Comfortable is 12/16/20.
+      list: { compact: 'small 8 · medium 12 · large 16', comfortable: 'small 12 · medium 16 · large 20', spacious: 'small 16 · medium 20 · large 24' },
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
       // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
       link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
@@ -18940,8 +18942,8 @@ arm: {
       'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
       'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google', wash: ON_DARK },
       'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google', wash: ON_LIGHT },
-      'facebook.blue': { fill: '#1877f2', ink: '#ffffff', mark: 'brand-mark/provider/facebook', wash: ON_DARK, tint: '#ffffff' },
-      'facebook.white': { fill: '#ffffff', ink: '#1877f2', mark: 'brand-mark/provider/facebook-blue', wash: ON_LIGHT },
+      'facebook.blue': { fill: '#0866ff', ink: '#ffffff', mark: 'brand-mark/provider/facebook', wash: ON_DARK, tint: '#ffffff' },
+      'facebook.white': { fill: '#ffffff', ink: '#0866ff', mark: 'brand-mark/provider/facebook-blue', wash: ON_LIGHT },
     };
     // The glyph Q831 A derived (Q846 A dropped its Apple twin). The exclusion arm below drops it from the vocabulary to
     // prove a missing glyph still removes its pairs, for a future provider whose artwork is not in yet.
@@ -19020,7 +19022,7 @@ arm: {
     ok(offMark.length === 0, `#2343 PR 5 provider rules MARK: each member nests its provider's own glyph for its style, unaltered but for the dark-fill tint (${offMark.slice(0, 3).join('; ') || 'clean'})`);
     // Q846 A — THE DARK-FILL STYLES DRAW WHITE. Typed from the decision (2026-10-29), not from RULES above or the def:
     // Apple black and Facebook blue paint their black provider glyph white, and no other style tints. A contrast floor
-    // cannot hold this alone: a black "f" on #1877f2 is about 4.95:1, over 3:1, and Facebook's rule (white on blue) is a
+    // cannot hold this alone: a black "f" on #0866ff is about 4.35:1, over 3:1, and Facebook's rule (white on blue) is a
     // brand rule, not a contrast one. Read from the plan, where the executors take it.
     const DRAWS_WHITE = ['apple.black', 'facebook.blue'];
     const offWhite = plans.flatMap((p) => {
@@ -19042,16 +19044,38 @@ arm: {
     const nameLine = (sb.anatomy?.codeOnly ?? []).find((c) => c.startsWith('the accessible name — ')) ?? '';
     ok(/named by its visible wording/.test(sb.accessibility.aria) && /Add no label of your own/.test(sb.accessibility.aria) && /No aria-label is added/.test(nameLine) && /aria-hidden/.test(nameLine) && sb.accessibility.wcag.some((w) => w.startsWith('2.5.3')),
       `#2343 PR 5 provider rules NAME: the visible wording is the accessible name, no aria-label is added and the glyph is hidden (aria '${sb.accessibility.aria.slice(0, 80)}'; codeOnly '${nameLine.slice(0, 80) || 'missing'}')`);
-    // CONTRAST, from the typed values: each style's ink on its fill clears 4.5:1, except Facebook's two styles, which
-    // measure 4.23:1 on the provider's own blue. A known shortfall, recorded rather than failed, and stated in the docs.
+    // CONTRAST, from the typed values: each style's ink on its fill clears 4.5:1. Facebook's two styles measure 4.82:1 on
+    // its current brand blue, #0866ff (Q837 A, 2026-10-28); on the old #1877f2 they measured 4.23:1, and fail here.
     const lum = (hex: string): number => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
     const ratio = (a: string, b: string): number => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
-    const SHORTFALL: Record<string, number> = { 'facebook.blue': 4.23, 'facebook.white': 4.23 };
-    const offContrast = Object.entries(RULES).flatMap(([k, r]) => {
-      const c = ratio(r.ink, r.fill);
-      return (k in SHORTFALL ? Math.abs(c - SHORTFALL[k]) < 0.01 : c >= 4.5) ? [] : [`${k}: ${c.toFixed(2)}:1`];
+    const offContrast = Object.entries(RULES).flatMap(([k, r]) => { const c = ratio(r.ink, r.fill); return c >= 4.5 ? [] : [`${k}: ${c.toFixed(2)}:1`]; });
+    // ...and from the plan: every member's label ink on its own fill, with each wash layer (Q-S13 A, a second fill such
+    // as #ffffff1a) alpha-composited over fills[0], so a state is judged on the fill it shows. Rest and focus-visible
+    // clear 4.5:1 everywhere. Facebook's hover and pressed fall short under the wash; their measured ratios are typed
+    // here (#3152's review, re-measured at the plan's exact alpha), not derived, so a wash or ink change moves them and fails by name.
+    // Composited in 0-255 floats and never rounded to a hex, so the ratio is the wash's own (0x1a is 10.2%, not 10%).
+    const rgbOf = (hex: string): number[] => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const over = (fills: readonly string[]): number[] => fills.slice(1).reduce((rgb, w) => {
+      const a = w.length === 9 ? parseInt(w.slice(7, 9), 16) / 255 : 1;
+      return rgbOf(w).map((v, k) => v * a + rgb[k] * (1 - a));
+    }, rgbOf(fills[0]));
+    const lumRgb = (rgb: number[]): number => { const c = rgb.map((v) => v / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const ratioRgb = (a: number[], b: number[]): number => { const [x, y] = [lumRgb(a), lumRgb(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+    const hexOf = (rgb: number[]): string => '#' + rgb.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+    const SHORTFALL: Record<string, number> = { 'facebook.blue.hover': 4.13, 'facebook.blue.pressed': 3.53, 'facebook.white.hover': 3.83, 'facebook.white.pressed': 3.00 };
+    let shortfallSeen = 0;
+    const offPlanContrast = plans.flatMap((p) => {
+      const fs = p.root.literalPaints?.fills, i = label(p)?.literalPaints?.fills?.[0];
+      const rgb = fs?.length ? over(fs) : undefined, f = rgb && hexOf(rgb);
+      const c = rgb && i ? ratioRgb(rgbOf(i), rgb) : 0, want = SHORTFALL[`${keyOf(p)}.${p.coord.state}`];
+      if (want !== undefined) { shortfallSeen++; return Math.abs(c - want) <= 0.02 ? [] : [`${planComponentName(p)}: ${i} on ${f} ${c.toFixed(2)}:1, documented ${want.toFixed(2)}:1`]; }
+      return c >= 4.5 ? [] : [`state=${p.coord.state}: ${planComponentName(p)}: ${i} on ${f} ${c.toFixed(2)}:1`];
     });
-    ok(offContrast.length === 0 && sb.accessibility.wcag.some((w) => /4\.23:1/.test(w)), `#2343 PR 5 provider rules CONTRAST: every style's label clears 4.5:1 on its fill, and Facebook's two styles measure the known 4.23:1, stated in the docs (${offContrast.join('; ') || 'clean'})`);
+    const contested = (sb.notes?.contested ?? []).join(' ');
+    const docsScoped = sb.accessibility.wcag.some((w) => w.startsWith('1.4.3') && /rest and focus-visible/.test(w) && /hover and pressed/.test(w))
+      && Object.values(SHORTFALL).every((v) => contested.includes(`${v.toFixed(2)}:1`)) && /Q-S13 A/.test(contested);
+    ok(offContrast.length === 0 && offPlanContrast.length === 0 && shortfallSeen === 12 && docsScoped && !sb.accessibility.wcag.some((w) => /4\.23:1/.test(w)),
+      `#2343 PR 5 provider rules CONTRAST: every style's label clears 4.5:1 at rest and focus-visible on its fill, Facebook's two styles included (Q837 A), in the typed rules and in every member's plan with the wash composited; Facebook's hover and pressed hold their documented shortfall (${shortfallSeen}/12 members), and the docs scope the claim and record it (${docsScoped ? 'scoped' : 'docs unscoped'}; ${[...offContrast, ...offPlanContrast].slice(0, 3).join('; ') || 'clean'})`);
   }
   // #2343 PR 5 — THE LITERAL RECORD STAYS WHERE IT WAS DECIDED. A literal is a value no theme moves, so a def that
   // carries one is listed here by name; a second def reaching for it fails until its own decision lands (docs/34: the
@@ -23206,10 +23230,10 @@ arm: {
       if (lowGlyphs({ ...fixture('#000000', 'apple'), children: [{ name: 'inner', children: [{ name: 'mark', swapTarget: `${PROVIDER}apple` }] }] }, docs, 'fixture').length !== 1) self.push('a swapped glyph two levels under the literal fill is not caught');
       // A themed fill nested UNDER a literal one is the nearest painted ancestor, so the glyph is skipped (review M2).
       if (lowGlyphs({ ...fixture('#000000', 'apple'), children: [{ name: 'inner', paints: { fills: 'color/surface/primary' }, children: [{ name: 'mark', nestTarget: `${PROVIDER}apple` }] }] }, docs, 'fixture').length) self.push('a themed fill under a literal one is judged against the outer literal');
-      // The tint (Q846 A) is read from the plan: white on black and on #1877f2 pass, a black tint on black fails.
+      // The tint (Q846 A) is read from the plan: white on black and on #0866ff pass, a black tint on black fails.
       const tinted = (fill: string, glyph: string, tint: string): Node => ({ name: 'container', literalPaints: { fills: [fill] }, children: [{ name: 'mark', nestTarget: `${PROVIDER}${glyph}`, literalTint: tint }] });
       if (lowGlyphs(tinted('#000000', 'apple', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on black is refused');
-      if (lowGlyphs(tinted('#1877f2', 'facebook', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on #1877f2 is refused');
+      if (lowGlyphs(tinted('#0866ff', 'facebook', '#ffffff'), docs, 'fixture').length) self.push('a glyph tinted white on #0866ff is refused');
       if (lowGlyphs(tinted('#000000', 'apple', '#000000'), docs, 'fixture').length !== 1) self.push('a glyph tinted black on black is not caught');
       if (!lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]?.includes(': brand-mark/provider/apple (')) self.push(`the failure line does not name brand-mark/provider/apple once (${lowGlyphs(fixture('#000000', 'apple'), docs, 'fixture')[0]})`);
       // The walk over every registered def: what it covered, so a vacuous pass says so.
@@ -23282,7 +23306,7 @@ arm: {
         { coord: { provider: 'google', style: 'light', state: 'hover' }, size: 'medium', fills: ['#ffffff', '#0000001a'], edge: '#747775', ink: '#1f1f1f', font: 'Google Sans', word: 'Continue with Google', glyph: undefined },
         { coord: { provider: 'apple', style: 'black', state: 'rest' }, size: 'large', fills: ['#000000'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Apple', glyph: '#ffffff' },
         { coord: { provider: 'apple', style: 'white', state: 'rest' }, size: 'medium', fills: ['#ffffff'], edge: undefined, ink: '#000000', font: undefined, word: 'Continue with Apple', glyph: undefined },
-        { coord: { provider: 'facebook', style: 'blue', state: 'pressed' }, size: 'small', fills: ['#1877f2', '#ffffff33'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Facebook', glyph: '#ffffff' },
+        { coord: { provider: 'facebook', style: 'blue', state: 'pressed' }, size: 'small', fills: ['#0866ff', '#ffffff33'], edge: undefined, ink: '#ffffff', font: undefined, word: 'Continue with Facebook', glyph: '#ffffff' },
       ];
       const MARKS = ['apple', 'facebook', 'facebook-blue', 'google'].map((g) => `brand-mark/provider/${g}`);
       const bad: string[] = [];
@@ -36925,18 +36949,19 @@ arm: {
 
   // THE MARKER COLUMN: one fixed width per size AND type, never filling or hugging, so every item of a type keeps one
   // text edge and the column never shrinks with the text. Bullet and number 20/24/32px (space.250/300/400, Q340 A,
-  // #2727, one step tighter than Q280.1 A); icon 24/32/40px (space.300/400/500, Q280.1 A, kept by Q340 A). EXPECTED is
-  // typed here in px and as the variable; ACTUAL is the projected plan's binding read through the space scale.
+  // #2727, one step tighter than Q280.1 A); icon 32/40/48px (space.400/500/600, #3155: medium 40 the owner's, small and
+  // large Q3155.2 A, one step wider than Q280.1 A's 24/32/40). EXPECTED is typed here in px and as the variable; ACTUAL
+  // is the projected plan's binding read through the space scale.
   const COLUMN_PX: Record<string, Record<string, number>> = {
-    unordered: { small: 20, medium: 24, large: 32 }, ordered: { small: 20, medium: 24, large: 32 }, icon: { small: 24, medium: 32, large: 40 },
+    unordered: { small: 20, medium: 24, large: 32 }, ordered: { small: 20, medium: 24, large: 32 }, icon: { small: 32, medium: 40, large: 48 },
   };
   const COLUMN: Record<string, Record<string, string>> = {
-    unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, icon: { small: 'space/300', medium: 'space/400', large: 'space/500' },
+    unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, icon: { small: 'space/400', medium: 'space/500', large: 'space/600' },
   };
   const COL_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
   const colBad = liPlans.filter((p) => { const c = coord(p), m = find(p.root as PN, 'markerBox'); return !(m && m.bound?.width === COLUMN[c.type]?.[c.size] && COL_PX.get(m.bound.width) === COLUMN_PX[c.type]?.[c.size] && m.primaryAxisSizingMode === 'FIXED'); });
   ok(colBad.length === 0,
-    `#2727 list-item marker column (Q340 A): a fixed width per size and type, bullet and number 20/24/32px (space/250, 300, 400), icon 24/32/40px (space/300, 400, 500), never hugging or filling, so it never shrinks with the text (${colBad.length ? `WRONG: ${colBad.map((p) => `${planComponentName(p)} ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 3).join('; ')}` : 'all 9'})`);
+    `#3155 list-item marker column (Q340 A, Q3155.2 A): a fixed width per size and type, bullet and number 20/24/32px (space/250, 300, 400), icon 32/40/48px (space/400, 500, 600), never hugging or filling, so it never shrinks with the text (${colBad.length ? `WRONG: ${colBad.map((p) => `${planComponentName(p)} ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 3).join('; ')}` : 'all 9'})`);
   // The text takes the rest of the row and wraps under itself (the hanging indent).
   ok(liPlans.every((p) => { const t = find(p.root as PN, 'label'); return t?.layoutGrow === 1 && t.textAutoResize === 'HEIGHT' && t.textStyle === `body/${RUNG[coord(p).size]}/default` && t.paints?.fills === 'color/text/primary'; }),
     `#2319 list-item text: body sm / md / lg default in text.primary, filling the rest of the row and wrapping under itself (Q273.4)`);
@@ -36947,7 +36972,12 @@ arm: {
   ok(lineBad.length === 0,
     `#2319 list-item marker box: one body line tall (control/size/*/line-box) in a top-aligned row, the marker centered in it, so a wrapping item keeps its marker on line one (${lineBad.length ? `WRONG: ${lineBad.map((p) => `${planComponentName(p)} row ${(p.root as PN).counterAxisAlignItems}, box ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 2).join('; ')}` : 'all 9'})`);
 
-  // THE MARKERS (Q273.3, Q273.8): exactly one per member, the one its type names, each on its own role.
+  // THE MARKERS (Q273.3, Q273.8): exactly one per member, the one its type names, each on its own role. The bullet is
+  // 6/8/8px (space/075, 100, 100; #3155: medium 8 the owner's, small and large Q3155.1 A), typed here in px and as the
+  // variable and read back through the space scale, so a bullet returned to the radio dot fails here by name.
+  const BULLET: Record<string, string> = { small: 'space/075', medium: 'space/100', large: 'space/100' };
+  const BULLET_PX: Record<string, number> = { small: 6, medium: 8, large: 8 };
+  const BUL_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
   const markerBad: string[] = [];
   for (const p of liPlans) {
     const c = coord(p), m = find(p.root as PN, 'markerBox')!;
@@ -36955,13 +36985,13 @@ arm: {
     const want = { unordered: 'bullet', ordered: 'number', icon: 'icon' }[c.type]!;
     const k = m.children[0];
     // A member of a type outside the three has no marker child at all, so `k` is read optionally and the arm fails, not throws.
-    const okRole = !k ? false : c.type === 'unordered' ? k.paints?.fills === 'color/icon/primary' && k.bound?.width === `control/size/${RUNG[c.size]}/dot` && k.bound?.height === `control/size/${RUNG[c.size]}/dot` && k.bound?.topLeftRadius === 'radius/round'
+    const okRole = !k ? false : c.type === 'unordered' ? k.paints?.fills === 'color/icon/primary' && k.bound?.width === BULLET[c.size] && k.bound?.height === BULLET[c.size] && BUL_PX.get(k.bound.width) === BULLET_PX[c.size] && k.bound?.topLeftRadius === 'radius/round'
       : c.type === 'ordered' ? k.paints?.fills === 'color/text/primary' && k.textStyle === `body/${RUNG[c.size]}/default`
       : c.type === 'icon' && k?.type === 'INSTANCE_SWAP' && k.swapTarget === 'icon/check' && k.bound?.width === `icon/size/${RUNG[c.size]}`;
     if (kids.length !== 1 || kids[0] !== want || !okRole) markerBad.push(`${planComponentName(p)}: ${kids.join('+')} ${JSON.stringify({ fills: k?.paints?.fills, ts: k?.textStyle, sw: k?.swapTarget, b: k?.bound?.width })}`);
   }
   ok(markerBad.length === 0,
-    `#2319 list-item markers: one per member — a round control/size/*/dot bullet in color/icon/primary, a number in the item's body style in color/text/primary, or an icon swap starting at icon/check (Q273.3, Q273.8)${markerBad.length ? ` — WRONG: ${markerBad.slice(0, 3).join('; ')}` : ''}`);
+    `#3155 list-item markers: one per member — a round 6/8/8px bullet (space/075, 100, 100; Q3155.1 A) in color/icon/primary, a number in the item's body style in color/text/primary, or an icon swap starting at icon/check (Q273.3, Q273.8)${markerBad.length ? ` — WRONG: ${markerBad.slice(0, 3).join('; ')}` : ''}`);
   // The icon marker's ink, which reaches the glyph inside the instance, is the icon role too.
   ok(li.tokens.icon === 'color.icon.primary' && li.tokens.indicator === 'color.icon.primary' && li.tokens.label === 'color.text.primary',
     `#2319 list-item inks: the bullet (indicator) and the icon on color.icon.primary, the number and text (label) on color.text.primary (Q273.8, #1471) (got ${li.tokens.indicator}, ${li.tokens.icon}, ${li.tokens.label})`);
@@ -36971,7 +37001,8 @@ arm: {
 
   // THE LIST (Q273.2; #2649, owner decision Q307 A): an "items" slot of three List.Items stretched across the list,
   // every item following the list's type and size, the item gap on the slot. No item toggles remain.
-  const GAP: Record<string, string> = { small: 'space/100', medium: 'space/150', large: 'space/200' };
+  // The gap is 12/16/20px (space/150, 200, 250; owner decision on #3155, revising Q280.2 A's 8/12/16).
+  const GAP: Record<string, string> = { small: 'space/150', medium: 'space/200', large: 'space/250' };
   const listBad = lsPlans.filter((p) => {
     const c = coord(p), r = p.root as PN;
     const slot = r.children.length === 1 ? r.children[0] : undefined;
@@ -36979,7 +37010,7 @@ arm: {
     return !(slot?.name === 'items' && slot.type === 'CONTENT_SLOT' && slot.layoutAlign === 'STRETCH' && slot.bound?.itemSpacing === GAP[c.size] && items.length === 3 && items.every((it, i) => it.name === `item${i + 1}` && it.type === 'NESTED_INSTANCE' && it.nestTarget === 'list-item' && it.nestVariant?.type === c.type && it.nestVariant?.size === c.size && it.layoutAlign === 'STRETCH' && it.visible !== false && it.visibleProp === undefined));
   });
   ok(listBad.length === 0,
-    `#2649 list: an "items" slot of three nested List.Items stretched across the list, following its type and size, none hidden, the item gap space/100, 150, 200 on the slot (${listBad.length ? `WRONG: ${listBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 9'})`);
+    `#2649 list: an "items" slot of three nested List.Items stretched across the list, following its type and size, none hidden, the item gap space/150, 200, 250 (12/16/20px, #3155) on the slot (${listBad.length ? `WRONG: ${listBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 9'})`);
   ok(JSON.stringify(planSetProperties(lsPlans).map((p) => `${p.name}:${p.type}`)) === JSON.stringify(['items:SLOT']),
     `#2649 list: the set declares one property, the "items" slot, and no item toggle (got ${JSON.stringify(planSetProperties(lsPlans))})`);
 

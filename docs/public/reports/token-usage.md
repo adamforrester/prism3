@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 272 of 802 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 273 of 802 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -2119,11 +2119,10 @@ Type: dimension. Bound by 3 component(s).
 
 ### `control.size.lg.dot`
 
-Type: dimension. Bound by 2 component(s).
+Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.large.dot` | bullet | size: large · type: unordered (1 of 9) |
 | radio-control | `size.large.dot` | dot | selection: checked · size: large (10 of 60) |
 
 ### `control.size.lg.height`
@@ -2184,11 +2183,10 @@ Type: dimension. Bound by 1 component(s).
 
 ### `control.size.md.dot`
 
-Type: dimension. Bound by 2 component(s).
+Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.medium.dot` | bullet | size: medium · type: unordered (1 of 9) |
 | radio-control | `size.medium.dot` | dot | selection: checked · size: medium (10 of 60) |
 
 ### `control.size.md.height`
@@ -2277,12 +2275,11 @@ Type: dimension. Bound by 1 component(s).
 
 ### `control.size.sm.dot`
 
-Type: dimension. Bound by 3 component(s).
+Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `dot-size` | dot | emphasis: bold · size: medium · type: dot (5 of 40) |
-| list-item | `size.small.dot` | bullet | size: small · type: unordered (1 of 9) |
 | radio-control | `size.small.dot` | dot | selection: checked · size: small (10 of 60) |
 
 ### `control.size.sm.height`
@@ -2968,7 +2965,7 @@ Type: dimension. Bound by 14 component(s).
 
 ### `space.075`
 
-Type: dimension. Bound by 19 component(s).
+Type: dimension. Bound by 20 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2979,6 +2976,7 @@ Type: dimension. Bound by 19 component(s).
 | card-number-field | `size.small.pad-y` | control | size: small (28 of 84) |
 | checkbox-row | `size.small.pad-y` | row | size: small (2 of 6) |
 | field-message | `gap` | message | every member (4 of 4) |
+| list-item | `size.small.bullet` | bullet | size: small · type: unordered (1 of 9) |
 | password-field | `size.small.pad-y` | control | size: small (28 of 84) |
 | progress | `gap` | container | every member (12 of 12) |
 | radio-row | `size.small.pad-y` | row | size: small (2 of 6) |
@@ -3021,8 +3019,7 @@ Type: dimension. Bound by 34 component(s).
 | dialog | `title-gap` | titleBox | every member (24 of 24) |
 | divider | `vertical.middle-inset.pad-block` | container | inset: middle-inset · labeled: false · orientation: vertical (1 of 7) |
 | link | `size.large.gap` | container | size: large (48 of 144) |
-| list | `size.small.gap` | container | size: small (3 of 9) |
-|  |  | items | size: small (3 of 9) |
+| list-item | `size.large.bullet`, `size.medium.bullet` | bullet | size: large, medium · type: unordered (2 of 9) |
 | pagination-item | `padding-x` | container | every member (87 of 87) |
 | password-field | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |
@@ -3078,8 +3075,8 @@ Type: dimension. Bound by 18 component(s).
 |  |  | row | size: large (2 of 6) |
 | counter | `outline.size.medium.pad-x`, `outline.size.small.pad-x` | control | appearance: outline · size: medium, small (6 of 18) |
 | divider | `vertical.gap` | container | inset: middle-inset, none · orientation: vertical (3 of 7) |
-| list | `size.medium.gap` | container | size: medium (3 of 9) |
-|  |  | items | size: medium (3 of 9) |
+| list | `size.small.gap` | container | size: small (3 of 9) |
+|  |  | items | size: small (3 of 9) |
 | radio-row | `size.large.gap`, `size.large.pad-y` | content | size: large (2 of 6) |
 |  |  | row | size: large (2 of 6) |
 | segmented-control-segment | `size.small.padding-x` | content | size: small (10 of 30) |
@@ -3109,8 +3106,8 @@ Type: dimension. Bound by 20 component(s).
 |  |  | header | every member (24 of 24) |
 |  |  | panel | every member (24 of 24) |
 | divider | `horizontal.inset.pad-start`, `horizontal.middle-inset.pad-end`, `horizontal.middle-inset.pad-start` | container | inset: inset, middle-inset · labeled: false · orientation: horizontal (2 of 7) |
-| list | `size.large.gap` | container | size: large (3 of 9) |
-|  |  | items | size: large (3 of 9) |
+| list | `size.medium.gap` | container | size: medium (3 of 9) |
+|  |  | items | size: medium (3 of 9) |
 | password-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | search-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | segmented-control-segment | `size.medium.padding-x` | content | size: medium (10 of 30) |
@@ -3124,12 +3121,14 @@ Type: dimension. Bound by 20 component(s).
 
 ### `space.250`
 
-Type: dimension. Bound by 4 component(s).
+Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.pad-x` | content | expansion: expanded · size: large (8 of 48) |
 |  |  | header | size: large (16 of 48) |
+| list | `size.large.gap` | container | size: large (3 of 9) |
+|  |  | items | size: large (3 of 9) |
 | list-item | `size.small.ordered.marker-column`, `size.small.unordered.marker-column` | markerBox | size: small · type: ordered, unordered (2 of 9) |
 | segmented-control-segment | `size.large.padding-x` | content | size: large (10 of 30) |
 | tab-item | `size.large.padding-x` | content | size: large (10 of 30) |
@@ -3150,7 +3149,7 @@ Type: dimension. Bound by 14 component(s).
 |  |  | header | placement: center, end (16 of 24) |
 |  |  | panel | placement: center, end (16 of 24) |
 | divider | `horizontal.gap` | container | orientation: horizontal (4 of 7) |
-| list-item | `size.medium.ordered.marker-column`, `size.medium.unordered.marker-column`, `size.small.icon.marker-column` | markerBox | size: medium, small (3 of 9) |
+| list-item | `size.medium.ordered.marker-column`, `size.medium.unordered.marker-column` | markerBox | size: medium · type: ordered, unordered (2 of 9) |
 | password-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | search-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | select | `size.large.pad-x` | control | size: large (28 of 84) |
@@ -3164,9 +3163,17 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.large.ordered.marker-column`, `size.large.unordered.marker-column`, `size.medium.icon.marker-column` | markerBox | size: large, medium (3 of 9) |
+| list-item | `size.large.ordered.marker-column`, `size.large.unordered.marker-column`, `size.small.icon.marker-column` | markerBox | size: large, small (3 of 9) |
 
 ### `space.500`
+
+Type: dimension. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| list-item | `size.medium.icon.marker-column` | markerBox | size: medium · type: icon (1 of 9) |
+
+### `space.600`
 
 Type: dimension. Bound by 1 component(s).
 
@@ -3847,13 +3854,13 @@ Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link
 
 3 token(s); 9 design-file member(s).
 
-`space.100`, `space.150`, `space.200`
+`space.150`, `space.200`, `space.250`
 
 ### list-item
 
 20 token(s); 9 design-file member(s).
 
-`color.icon.primary`, `color.text.primary`, `control.size.lg.dot`, `control.size.lg.line-box`, `control.size.md.dot`, `control.size.md.line-box`, `control.size.sm.dot`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `space.0`, `space.250`, `space.300`, `space.400`, `space.500`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`color.icon.primary`, `color.text.primary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `space.0`, `space.075`, `space.100`, `space.250`, `space.300`, `space.400`, `space.500`, `space.600`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### pagination
 
@@ -4017,7 +4024,7 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-250 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+249 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
@@ -4041,7 +4048,7 @@ Declared, not drawn: `color.border.focus`
 - **radius** — `radius.3xl`, `radius.hairline`
 - **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.md`, `shadow.sm`, `shadow.xs`
 - **size** — `size.xs.height`
-- **space** — `space.1000`, `space.1100`, `space.1200`, `space.600`, `space.700`, `space.800`, `space.900`
+- **space** — `space.1000`, `space.1100`, `space.1200`, `space.700`, `space.800`, `space.900`
 - **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.line-box`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.default-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.body.xs.strong-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.sm.emphasis`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
 
 ### Primitive

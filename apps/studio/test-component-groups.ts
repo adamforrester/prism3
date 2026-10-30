@@ -124,8 +124,9 @@ ok(JSON.stringify(drawn('banners')) === JSON.stringify(WIRE_BANNERS) && JSON.str
 ok(JSON.stringify(drawn('links')) === JSON.stringify(WIRE_LINKS),
   `#2942 Q3 A: Link holds its one set, for the underline's read-only line (${JSON.stringify(drawn('links'))})`);
 // #3086: Radio holds the sets Radio dot size reaches, read from the engine's defs rather than restated: the def whose dot
-// part binds `control.size.*.dot` and is named Radio, and every def that nests it, transitively. Badge and List bind the
-// same tokens but are not radios, so they stay where they are (the lever's description names them).
+// part binds `control.size.*.dot` and is named Radio, and every def that nests it, transitively. Badge binds the same
+// tokens but is not a radio, so it stays where it is (the lever's description names it). List.Item bound them too until
+// #3155 (Q3155.1 A) sized its bullet to the text on the space ladder.
 const nestsOf = (d: ComponentDef): string[] => Object.values(d.anatomy.parts).map((p: any) => p.nests).filter((x): x is string => typeof x === 'string');
 const dotDefs = componentDefs.filter((d) => Object.values(d.tokens ?? {}).some((t) => /^control\.size\.(sm|md|lg)\.dot$/.test(String(t))));
 const radioReach = new Set(dotDefs.filter((d) => d.name.startsWith('Radio')).map((d) => d.id));
@@ -133,8 +134,8 @@ for (let grew = true; grew;) { grew = false; for (const d of componentDefs) if (
 const radioIds = (groups.find((g) => g.kind === 'radios')?.rows ?? []).flatMap((r) => r.ids).sort();
 ok(JSON.stringify(drawn('radios')) === JSON.stringify(WIRE_RADIOS) && JSON.stringify(radioIds) === JSON.stringify([...radioReach].sort()),
   `#3086: Radio holds the sets Radio dot size reaches, the Radio def binding control.size.*.dot and every def nesting it (${[...radioReach].sort().join(', ')}), on the Radio page's row (${JSON.stringify(drawn('radios'))})`);
-ok(JSON.stringify(dotDefs.map((d) => d.id).sort()) === JSON.stringify(['badge', 'list-item', 'radio-control']),
-  `#3086: the defs that bind control.size.*.dot are Radio.Control, Badge and List.Item, the three Radio dot size moves (${dotDefs.map((d) => d.id).sort().join(', ')})`);
+ok(JSON.stringify(dotDefs.map((d) => d.id).sort()) === JSON.stringify(['badge', 'radio-control']),
+  `#3086, #3155: the defs that bind control.size.*.dot are Radio.Control and Badge, the two Radio dot size moves (${dotDefs.map((d) => d.id).sort().join(', ')})`);
 // #2952 (#2905 Q5 A, Q7 A): a section holds an ordered LIST of settings blocks, not one. Typed from the decisions: Fields
 // draws Field options, then Search options below it; Buttons, Tag, Dialog, Banner, Link and Radio one each; Other components and Subcomponents none.
 const WIRE_BLOCKS: Record<string, string[]> = { buttons: ['buttons'], fields: ['fields', 'search'], tags: ['tags'], dialogs: ['dialogs'], banners: ['banners'], links: ['links'], radios: ['radios'], components: [], subcomponents: [] };

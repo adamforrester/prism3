@@ -36,7 +36,7 @@
  * THE PROVIDER RULES, AS DATA THE GATE HOLDS (`test.ts`, `#2343 PR 5 provider rules`, which types each rule again from
  * the providers' guidelines, read 2026-10-27, and never reads this file's values):
  *   - colors: the fill, the 1px inside edge and the label ink of each style, as the providers publish them
- *     (Google's hex values; Apple's black and white; Facebook #1877F2, the value in its color table).
+ *     (Google's hex values; Apple's black and white; Facebook #0866FF, its current brand blue, Q837 A).
  *   - the font: Google Sans Medium 14/20 on Google members at every size, a literal with a fallback; the brand's
  *     label type on Apple and Facebook, which leave the font free.
  *   - the width floor: 140, Apple's minimum and the largest of the three.
@@ -96,8 +96,8 @@ const RULES: Record<Provider, {
     name: 'Facebook',
     wording: { continue: 'Continue with Facebook', login: 'Login with Facebook' },
     styles: {
-      blue: { fill: '#1877f2', ink: '#ffffff', wash: 'onDark', mark: 'provider/facebook', tint: '#ffffff' },
-      white: { fill: '#ffffff', ink: '#1877f2', wash: 'onLight', mark: 'provider/facebook-blue' },
+      blue: { fill: '#0866ff', ink: '#ffffff', wash: 'onDark', mark: 'provider/facebook', tint: '#ffffff' },
+      white: { fill: '#ffffff', ink: '#0866ff', wash: 'onLight', mark: 'provider/facebook-blue' },
     },
   },
 };
@@ -249,7 +249,7 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
     accessibility: {
       role: 'button',
       wcag: [
-        '1.4.3 Contrast (Minimum) (each style\'s label color on its fill is the provider\'s; the Facebook styles measure 4.23:1, under the 4.5:1 floor, and the provider\'s blue may not be changed)',
+        '1.4.3 Contrast (Minimum) (each style\'s label color on its fill is the provider\'s, and each clears 4.5:1 at rest and focus-visible; the Facebook styles fall short at hover and pressed, under the wash)',
         '1.4.11 Non-text Contrast (the provider picks each style for its ground: dark buttons on light grounds, light ones on dark grounds)',
         '2.4.7 Focus Visible (the focus ring outside the provider\'s fill)',
         '2.5.3 Label in Name (the visible wording is the accessible name)',
@@ -305,19 +305,20 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
     notes: {
       contested: [
         'Google Sans licensing: whether Google Sans may be used outside Google\'s own assets is unverified (Q-S7). The design file falls back to Roboto Medium where Google Sans is not installed, and reports the fallback.',
-        'The Facebook styles measure 4.23:1, white on #1877f2 and the reverse, under 4.5:1 for text at these sizes. The color is the provider\'s; the gate records it as a known provider shortfall.',
+        'The Facebook styles fall short of 4.5:1 at hover and pressed, where the wash (Q-S13 A) lightens the blue fill or darkens the white one: blue hover 4.13:1, blue pressed 3.53:1, white hover 3.83:1, white pressed 3.00:1. Rest and focus-visible measure 4.82:1. Whether these states should clear 4.5:1 is a follow-up owner question.',
       ],
       unverified: [
         'The provider rules typed in the gate are the proposal\'s reading of each provider\'s guidelines on 2026-10-27.',
         'The Google G on the dark style: Google says the G must appear on a white background, while its own dark asset puts it on #131314.',
         'Whether Google\'s 14/20 holds at the 36 and 56 heights; the build keeps it at every size.',
-        'Facebook\'s white-style label color is not published; the build uses #1877f2.',
+        'Facebook\'s white-style label color is not published; the build uses #0866ff.',
       ],
       evolution: [
         'Proposed on #2343 (2026-10-28, PR 5) with a wireframe of all members; the owner chose all twelve calls as A: Apple, Google and Facebook (Q-S1), Prism3 draws the button with the provider\'s fill, edge and ink as literal paint (Q-S2), a native button that calls the provider\'s sign-in (Q-S3), the providers\' style names (Q-S4), members only where the mark set holds the glyph (Q-S5), rest, hover, pressed and focus-visible (Q-S6), Google Sans as a literal font (Q-S7), the label fixed with no text property (Q-S8), no logo-only member (Q-S9), its own page (Q-S10), the shared helpers (Q-S11) and radius.md with no shape axis (Q-S12).',
         'Q831 A (2026-10-28) supersedes Q-S5 A\'s wait for artwork: Apple\'s black glyph and Facebook\'s blue one are derived from social/apple and social/facebook, scaled to the provider inset, so all eight pairs ship, 96 members. The membership stays data, for a future provider whose glyph is not in yet.',
         'The owner decided Q-S13 to Q-S17 as A (2026-10-29): a literal wash of black at 10% and 20% on a light fill and white on a dark one, which does not flip with the mode (Q-S13); Google\'s 8px gap with 12px at both sides, since its 10px gap is off the space scale (Q-S14); Continue with Facebook (Q-S15); glyph heights 16, 20 and 24 (Q-S16); and code offers only the styles whose artwork is in the design file, all eight today (Q-S17).',
         'Q846 A (2026-10-29): #3134 drew provider/apple and provider/facebook black, so each provider has one black glyph, painted white where the button\'s fill is dark (Apple black, Facebook blue). Every other mark is never retinted. The derived provider/apple-black, now a duplicate of provider/apple, was dropped; still 96 members.',
+        'Q837 A (2026-10-28): Facebook\'s blue moved from #1877f2 to its current brand blue, #0866ff, in both styles and in the facebook marks. White on it measures 4.82:1, so every style now clears 4.5:1 at rest and focus-visible; the Facebook hover and pressed states stay under it (see contested).',
       ],
       projection: [
         'In Figma the button\'s fill, edge and label color are plain colors with no variable, and the label has no text property; Google\'s label carries Google Sans Medium 14/20 directly, not a text style. The glyph is a brand-mark/provider instance, its height bound and its width from its proportion; on Apple black and Facebook blue its vectors are painted white as a plain color.',
