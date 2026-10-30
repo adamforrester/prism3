@@ -3988,7 +3988,7 @@ for (const b of brands) {
       'segmented-control-segment': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
-      link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      link: { keys: ['gap'], sizes: ['x-small', 'small', 'medium', 'large'] },
       // Banner (#2579): no size axis, so its keys are bare.
       banner: { keys: [], sizes: [], bare: ['pad', 'gap', 'actions-gap'] },
       // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
@@ -4031,8 +4031,9 @@ for (const b of brands) {
       // List (#2319, approved (Q280 A); widened one step on #3155): the item gap. Comfortable is 12/16/20.
       list: { compact: 'small 8 · medium 12 · large 16', comfortable: 'small 12 · medium 16 · large 20', spacious: 'small 16 · medium 20 · large 24' },
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
-      // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
-      link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
+      // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does. x-small (#3179)
+      // takes small's gap at every density.
+      link: { compact: 'x-small 4 · small 4 · medium 4 · large 6', comfortable: 'x-small 4 · small 4 · medium 4 · large 8', spacious: 'x-small 6 · small 6 · medium 6 · large 12' },
       // Banner (#2579, DRAFT): padding / glyph→content gap / body→actions offset / action→action gap. Comfortable is the
       // proposal's 16 / 12 / 12, and 8 between the two buttons.
       banner: { compact: 'bare 12/8/8', comfortable: 'bare 16/12/12', spacious: 'bare 20/16/16' },
@@ -4099,7 +4100,7 @@ for (const b of brands) {
       'card-number-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'sign-in-button': ['small', 'medium', 'large'].flatMap((v) => ['apple', 'google', 'facebook'].map((p) => `size.${v}.${p}.gap`)),
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
-      link: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      link: ['size.x-small.gap', 'size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2666: the label-to-separator gap inside an item, and the same gap between items.
       'breadcrumb-item': ['size.small.gap', 'size.medium.gap'],
       breadcrumbs: ['size.small.gap', 'size.medium.gap'],
@@ -20483,14 +20484,14 @@ arm: {
   //   standalone underlined at rest  → `#2580 link/standalone`;   inline not underlined at some state → `#2580 link/inline`;
   //   emphasis bound to the default weight, or default first  → `#2580 link/weight`;   a third style value → `#2580 link/style`;
   //   `{state}` allowed in a geometry key → `#2580 link/state-type-only`;
-  //   a 12px size (small bound to `type.body.xs`, or back to the label tier) → `#2580 link/body-tier` (Q297.1);
+  //   small bound to `type.body.xs`, x-small off it, or back to the label tier → `#2580 link/body-tier` (Q297.1, D-A5 A);
   //   an icon on an inline link, or a leading icon → `#2580 link/icons` (Q297.2);
   //   the `-link` suffix dropped when `weightIntent` repoints, or emphasis bound to a role nb-redesign lacks → `#2580 link/weight-intent`.
   {
     const linkDef = componentDefs.find((d) => d.id === 'link');
     ok(!!linkDef, '#2580 link: the Link component is registered');
     if (linkDef) {
-      const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+      const RUNG: Record<string, string> = { 'x-small': 'xs', small: 'sm', medium: 'md', large: 'lg' };
       // Q297.1: the body tier, the default brand's role per weight (emphasis → the heaviest body weight, `strong`).
       const ROLE: Record<string, string> = { emphasis: 'strong', default: 'default' };
       const UNDERLINED_STANDALONE = new Set(['hover', 'pressed', 'focus-visible']);
@@ -20498,17 +20499,17 @@ arm: {
       const labelStyle = (n: LN): string | undefined => (n.name === 'label' ? n.textStyle : n.children.map(labelStyle).find(Boolean));
       const plans = figmaAnatomySet(linkDef, { swapTarget: 'FPO-default-icon' });
       const rows = plans.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }));
-      ok(plans.length === 144, `#2580 link/members: style 2 × weight 2 × size 3 × surface 2 × 4 states = 96 members, plus the 48 current-page members on standalone (#2872, Q507.2 A) = 144 (got ${plans.length})`);
+      ok(plans.length === 192, `#2580 link/members: style 2 × weight 2 × size 4 × surface 2 × 4 states = 128 members, plus the 64 current-page members on standalone (#2872, Q507.2 A) = 192; size gained x-small (#3179, D-A5 A) (got ${plans.length})`);
       const want = (r: { c: Record<string, string>; size: string }, underlined: boolean) =>
         figmaTextStyleName(`type.body.${RUNG[r.size]}.${ROLE[r.c.weight]}${underlined ? '-link' : ''}`);
       // The current page (#2872) is held by its own arm; Q289.2 A is the unselected standalone link.
       const standalone = rows.filter((r) => r.c.style === 'standalone' && r.c.selection === 'unselected');
       const sOff = standalone.filter((r) => r.style !== want(r, UNDERLINED_STANDALONE.has(r.c.state)));
-      ok(standalone.length === 48 && sOff.length === 0,
+      ok(standalone.length === 64 && sOff.length === 0,
         `#2580 link/standalone (Q289.2 A): a standalone link is plain at rest and underlined at hover, pressed and focus-visible, at every weight, size and surface (${standalone.length} members${sOff.length ? `; OFF: ${sOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
       const inline = rows.filter((r) => r.c.style === 'inline');
       const iOff = inline.filter((r) => r.style !== want(r, true));
-      ok(inline.length === 48 && iOff.length === 0,
+      ok(inline.length === 64 && iOff.length === 0,
         `#2580 link/inline (Q289.2 A): an inline link is underlined at every state, weight, size and surface (${inline.length} members${iOff.length ? `; OFF: ${iOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
       const restMd = (weight: string) => rows.find((r) => r.c.style === 'standalone' && r.c.weight === weight && r.c.surface === 'default' && r.size === 'medium' && r.c.state === 'rest')?.style;
       const weightProp = linkDef.props.find((p) => p.name === 'weight');
@@ -20517,13 +20518,14 @@ arm: {
         && weightProp?.description === 'Emphasis is the starting value; choose Default for a lighter weight link.',
         `#2580 link/weight (Q289.3 B, Q297.3): two weights, emphasis first and the default, emphasis binding the heavier body role and default the reading weight, with the owner's prop wording (axis ${JSON.stringify(linkDef.variants.weight)}, prop default ${weightProp?.default}, medium rest ${restMd('emphasis')} / ${restMd('default')})`);
       // Q314 A — the owner's `size` wording, pinned as a literal: the icon sits inside the one-line box at the shipped
-      // line height, so the text no longer offers an "or as tall as the icon" case no brand reaches.
+      // line height, so the text no longer offers an "or as tall as the icon" case no brand reaches. D-A5 A (#3179) adds
+      // the 12px size to the list and to the 16px icon's sizes, and changes nothing else in the sentence.
       const sizeProp = linkDef.props.find((p) => p.name === 'size');
-      ok(sizeProp?.description === 'The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it.',
-        `#2580 link/size-wording (Q314 A): the size prop carries the owner's text verbatim (got ${JSON.stringify(sizeProp?.description)})`);
-      // Q297.1 — the body tier at 14 / 16 / 18px for both styles, and no 12px link. The font sizes are read off the
-      // committed default-brand emission and compared to literals, so a rung moved to `type.body.xs` (12px) or back to the
-      // label tier (12 / 14 / 18px) fails here by name.
+      ok(sizeProp?.description === 'The body type size: 12, 14, 16 or 18px. The box is one text line tall; the icon (16px at x-small, small and medium, 20px at large) sits inside it.',
+        `#2580 link/size-wording (Q314 A, D-A5 A): the size prop carries the owner's text verbatim, with x-small's 12px added (got ${JSON.stringify(sizeProp?.description)})`);
+      // Q297.1 — the body tier for both styles, at 14 / 16 / 18px, and (#3179, D-A5 A, revising Q297.1's "no 12px link")
+      // x-small at 12px. The font sizes are read off the committed default-brand emission and compared to literals, so
+      // small moved to `type.body.xs` (12px), x-small moved off it, or a rung back on the label tier fails here by name.
       const emitted = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8'));
       const eRoot = emitted[Object.keys(emitted).find((k) => !k.startsWith('$'))!];
       const pxOf = (styleName: string): number | undefined => {
@@ -20531,15 +20533,16 @@ arm: {
         while (typeof v === 'string' && v.startsWith('{')) v = v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value;
         return typeof v === 'string' && v.endsWith('rem') ? parseFloat(v) * 16 : typeof v === 'string' ? parseFloat(v) : undefined;
       };
-      const PX: Record<string, number> = { small: 14, medium: 16, large: 18 };
+      const PX: Record<string, number> = { 'x-small': 12, small: 14, medium: 16, large: 18 };
       const tierOff = rows.filter((r) => !r.style?.startsWith('body/') || pxOf(r.style) !== PX[r.size]);
-      ok(rows.length === 144 && tierOff.length === 0,
-        `#2580 link/body-tier (Q297.1): every member, standalone and inline, sets body type at 14 / 16 / 18px, with no 12px link${tierOff.length ? `; OFF: ${tierOff.slice(0, 4).map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style} (${pxOf(r.style ?? '')}px)`).join('; ')}` : ''}`);
+      ok(rows.length === 192 && tierOff.length === 0,
+        `#2580 link/body-tier (Q297.1, D-A5 A): every member, standalone and inline, sets body type at 12 / 14 / 16 / 18px by size, x-small the one 12px size${tierOff.length ? `; OFF: ${tierOff.slice(0, 4).map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style} (${pxOf(r.style ?? '')}px)`).join('; ')}` : ''}`);
 
       // Q297.2 — a trailing icon only, on standalone members only, 16px with 14px and 16px text and 20px with 18px text.
+      // x-small's 12px text (#3179) keeps the 16px icon: it is the smallest rung, and it fits inside the 18px line.
       type IN = { name: string; bound?: Record<string, string>; children?: IN[] };
       const nodes = (n: IN): IN[] => [n, ...(n.children ?? []).flatMap(nodes)];
-      const ICON: Record<string, string> = { small: 'icon/size/xs', medium: 'icon/size/xs', large: 'icon/size/sm' };
+      const ICON: Record<string, string> = { 'x-small': 'icon/size/xs', small: 'icon/size/xs', medium: 'icon/size/xs', large: 'icon/size/sm' };
       const emittedIconPx = ['xs', 'sm'].map((k) => eRoot.icon.size[k].$value).map((v: string) => v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value);
       const iconOff = plans.flatMap((p) => {
         const c = p.coord as Record<string, string>;
@@ -20555,14 +20558,14 @@ arm: {
       const figBools = Object.keys(linkDef.figmaProperties?.booleans ?? {});
       ok(iconOff.length === 0 && JSON.stringify(figBools) === JSON.stringify(['trailingIcon']) && !linkDef.props.some((p) => p.name === 'leadingIcon')
         && JSON.stringify(emittedIconPx) === JSON.stringify(['16px', '20px']),
-        `#2580 link/icons (Q297.2): trailing only, standalone only, 16px at small and medium and 20px at large (booleans ${JSON.stringify(figBools)}, icon xs/sm ${JSON.stringify(emittedIconPx)}${iconOff.length ? `; OFF: ${iconOff.slice(0, 4).join('; ')}` : ''})`);
+        `#2580 link/icons (Q297.2): trailing only, standalone only, 16px at x-small, small and medium and 20px at large (booleans ${JSON.stringify(figBools)}, icon xs/sm ${JSON.stringify(emittedIconPx)}${iconOff.length ? `; OFF: ${iconOff.slice(0, 4).join('; ')}` : ''})`);
 
       // Q297.1 through `weightIntent` — a brand whose body weights are [default, emphasis] (nb-redesign's shape) binds
       // its own emphasis role and keeps the underlined twin, rather than the `strong` it does not emit.
       const nbShape = figmaAnatomySet(applyWeightIntent(linkDef, { ...DEFAULT_WEIGHT_AVAILABILITY, body: ['default', 'emphasis'] }), { swapTarget: 'FPO-default-icon' });
       const nbAt = (state: string) => nbShape.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }))
         .find((r) => r.c.style === 'standalone' && r.c.selection === 'unselected' && r.c.weight === 'emphasis' && r.c.surface === 'default' && r.size === 'medium' && r.c.state === state)?.style;
-      ok(nbShape.length === 144 && nbAt('rest') === 'body/md/emphasis' && nbAt('hover') === 'body/md/emphasis-link',
+      ok(nbShape.length === 192 && nbAt('rest') === 'body/md/emphasis' && nbAt('hover') === 'body/md/emphasis-link',
         `#2580 link/weight-intent (Q297.1, #1602): in a [default, emphasis] body brand, emphasis binds body/md/emphasis at rest and body/md/emphasis-link at hover (got ${nbShape.length} members, ${nbAt('rest')} / ${nbAt('hover')})`);
 
       ok(JSON.stringify(linkDef.variants.style) === JSON.stringify(['standalone', 'inline'])
@@ -20595,6 +20598,28 @@ arm: {
       ok(realErrs.length === 0 && stateGapErrs.some((e) => e.includes(`binding key '${STATE_GAP}' names placeholder '{state}', which is not an axis`)),
         `#2580 link/state-type-only: a type key may name {state}, a geometry key may not — Link validates clean, and a clone with a state-keyed gap is refused naming the placeholder (Link: ${realErrs.join('; ') || 'no errors'}; clone: ${stateGapErrs.join('; ') || 'no errors'})`);
     }
+  }
+
+  // ---- #3179: LINK x-small, owner decision D-A5 A (2026-10-30) — held against literals typed from the issue ----
+  // EXPECTED, typed here: the value is `x-small` (Q3179.1 A), placed second, after the code default `medium` (#2752); a
+  // default-weight inline link at rest binds `type.body.xs.default-link`, the token the issue names; and the shipped
+  // usage keeps x-small for dense metadata, never running body text. ACTUAL is the def's axis, the real projection and
+  // the shipped docs. The 24px target is `lint-hit-target.ts`'s (the standalone Link arm). Mutations, each failing this
+  // arm by name: x-small spelled `xsmall`, or placed first or last; inline default bound to `type.body.sm`; the usage
+  // sentence dropped → `#3179 link x-small`.
+  {
+    const linkDef = componentDefs.find((d) => d.id === 'link')!;
+    type LN = { name: string; textStyle?: string; children: LN[] };
+    const labelStyle = (n: LN): string | undefined => (n.name === 'label' ? n.textStyle : n.children.map(labelStyle).find(Boolean));
+    const xs = figmaAnatomySet(linkDef, { swapTarget: 'FPO-default-icon' }).filter((p) => String(p.size) === 'x-small');
+    const at = (c: Record<string, string>) => xs.find((p) => Object.entries(c).every(([k, v]) => (p.coord as Record<string, string>)[k] === v));
+    const inlineRest = at({ style: 'inline', weight: 'default', surface: 'default', selection: 'unselected', state: 'rest' });
+    const inlineStyle = inlineRest ? labelStyle(inlineRest.root as unknown as LN) : undefined;
+    const usage = linkDef.docs?.usage ?? '';
+    ok(JSON.stringify(linkDef.variants.size) === JSON.stringify(['medium', 'x-small', 'small', 'large']) && xs.length === 48
+      && inlineStyle === figmaTextStyleName('type.body.xs.default-link')
+      && usage.includes('Keep x-small for dense metadata, such as an order row or a legal line, not running body text.'),
+      `#3179 link x-small (D-A5 A, Q3179.1 A): size is [medium, x-small, small, large], x-small projects 48 members, an inline default link at rest binds type.body.xs.default-link, and the usage keeps x-small for dense metadata (axis ${JSON.stringify(linkDef.variants.size)}, ${xs.length} members, inline rest ${inlineStyle})`);
   }
 
   // ---- #2666: BREADCRUMBS, the approved wireframe (every numbered call A, 2026-10-16) — each held against a literal ----
@@ -21475,7 +21500,7 @@ arm: {
       // `selection` (#2872, Q507.4) is ONE style at the rest coordinate this sweep holds: the current page and its
       // unselected twin are both plain at rest, and part only at hover, pressed and focus, where the current page stays
       // plain. That half is held by `#2872 link hover on current`, which reads every member.
-      { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, selection: 1, state: 2 } },
+      { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 4, weight: 2, style: 2, selection: 1, state: 2 } },
       // BREADCRUMBS (#2666, call 4 A): the current page binds the two default body rungs. It exists only on a current
       // member.
       { def: componentDefs.find((d) => d.id === 'breadcrumb-item')!, part: 'current', axes: { size: 2 }, at: { kind: 'current' } },
@@ -38713,18 +38738,18 @@ arm: {
     if (want !== !!ring || (ring && (ring.nestTarget !== 'focus-ring' || JSON.stringify(ring.nestVariant) !== JSON.stringify({ surface: c.surface }))))
       ringOff.push(`${planComponentName(m)}: ${ring ? `${String(ring.nestTarget)} ${JSON.stringify(ring.nestVariant)}` : 'no ring'} (want ${want ? `focus-ring {"surface":"${c.surface}"}` : 'no ring'})`);
   }
-  ok(linkMembers.length === 144 && inkOff.length === 0 && boxOff.length === 0,
-    `#2715 link paint: 144 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state; the link box paints nothing, and a current member's bar fills color/[inverse/]icon/link/<state> (#2872) (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} box(es) off — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
-  ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 36,
-    `#2715 link focus ring: a nested focus-ring on the 36 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
+  ok(linkMembers.length === 192 && inkOff.length === 0 && boxOff.length === 0,
+    `#2715 link paint: 192 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state; the link box paints nothing, and a current member's bar fills color/[inverse/]icon/link/<state> (#2872) (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} box(es) off — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
+  ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 48,
+    `#2715 link focus ring: a nested focus-ring on the 48 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
 
   // #2872 (owner decisions Q507). THE SHAPE (2 A, 3 A): `selection` on standalone links only, so the inline × selected
-  // coordinates are absent: 48 standalone selected, 48 standalone unselected, 48 inline unselected. Typed, not read
-  // off the def's `excludeCoordinates`.
+  // coordinates are absent: 64 standalone selected, 64 standalone unselected, 64 inline unselected (16 each per size,
+  // four sizes since #3179). Typed, not read off the def's `excludeCoordinates`.
   const linkCount = (f: (c: Record<string, string>) => boolean): number => linkMembers.filter((m) => f(m.coord as Record<string, string>)).length;
-  ok(linkCount((c) => c.style === 'standalone' && c.selection === 'selected') === 48 && linkCount((c) => c.style === 'standalone' && c.selection === 'unselected') === 48
-    && linkCount((c) => c.style === 'inline' && c.selection === 'unselected') === 48 && linkCount((c) => c.style === 'inline' && c.selection === 'selected') === 0,
-    `#2872 link shape: selection on standalone only — 48 standalone selected, 48 standalone unselected, 48 inline unselected, no inline selected (${linkCount((c) => c.style === 'standalone' && c.selection === 'selected')}, ${linkCount((c) => c.style === 'standalone' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'selected')})`);
+  ok(linkCount((c) => c.style === 'standalone' && c.selection === 'selected') === 64 && linkCount((c) => c.style === 'standalone' && c.selection === 'unselected') === 64
+    && linkCount((c) => c.style === 'inline' && c.selection === 'unselected') === 64 && linkCount((c) => c.style === 'inline' && c.selection === 'selected') === 0,
+    `#2872 link shape: selection on standalone only — 64 standalone selected, 64 standalone unselected, 64 inline unselected, no inline selected (${linkCount((c) => c.style === 'standalone' && c.selection === 'selected')}, ${linkCount((c) => c.style === 'standalone' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'selected')})`);
   // THE BAR (1 C): 2px at the foot of the line box. A current member carries ONE node more than its unselected twin, a
   // childless `bar` frame 2px high (border-width/thick) pinned across the box's bottom edge out of the flow (`footPin`),
   // just before the focus ring so the ring draws over it; every other member carries no bar, so the 96 members a
@@ -38744,15 +38769,15 @@ arm: {
     const want = twinNames.includes('focusRing') ? [...twinNames.slice(0, -1), 'bar', 'focusRing'] : [...twinNames, 'bar'];
     if (!twin || JSON.stringify(names) !== JSON.stringify(want)) barOff.push(`${planComponentName(m)}: children ${JSON.stringify(names)} (want ${JSON.stringify(want)})`);
   }
-  ok(barOff.length === 0 && linkMembers.filter((m) => !!findIn(m.root as PN, 'bar')).length === 48,
-    `#2872 link bar: the 48 current members carry a 2px (border-width/thick) bar frame pinned across the foot (footPin) before the focus ring, no other member carries one, and no box binds a stroke (${barOff.length} off — ${barOff.slice(0, 2).join('; ') || 'none'})`);
+  ok(barOff.length === 0 && linkMembers.filter((m) => !!findIn(m.root as PN, 'bar')).length === 64,
+    `#2872 link bar: the 64 current members carry a 2px (border-width/thick) bar frame pinned across the foot (footPin) before the focus ring, no other member carries one, and no box binds a stroke (${barOff.length} off — ${barOff.slice(0, 2).join('; ') || 'none'})`);
   // HOVER ON THE CURRENT ITEM (4): color only. A current member's label takes the PLAIN body style at every state, never
   // its `-link` twin, so no 1px underline joins the bar; an unselected standalone member still shows it at hover.
   const typeOf = (m: (typeof linkMembers)[number]): string => String((findIn(m.root as PN, 'label') as PN & { textStyle?: string })?.textStyle);
   const curUnderlined = linkMembers.filter((m) => (m.coord as Record<string, string>).selection === 'selected' && typeOf(m).endsWith('-link')).map(planComponentName);
   const restHover = linkMembers.filter((m) => { const c = m.coord as Record<string, string>; return c.style === 'standalone' && c.selection === 'unselected' && c.state === 'hover'; });
-  ok(curUnderlined.length === 0 && restHover.length === 12 && restHover.every((m) => typeOf(m).endsWith('-link')),
-    `#2872 link hover on current: no current member takes an underlined (-link) style at any state, and the 12 unselected standalone hover members still do (${curUnderlined.length} underlined current — ${curUnderlined.slice(0, 2).join('; ') || 'none'}; ${restHover.filter((m) => typeOf(m).endsWith('-link')).length}/${restHover.length})`);
+  ok(curUnderlined.length === 0 && restHover.length === 16 && restHover.every((m) => typeOf(m).endsWith('-link')),
+    `#2872 link hover on current: no current member takes an underlined (-link) style at any state, and the 16 unselected standalone hover members still do (${curUnderlined.length} underlined current — ${curUnderlined.slice(0, 2).join('; ') || 'none'}; ${restHover.filter((m) => typeOf(m).endsWith('-link')).length}/${restHover.length})`);
   // (3) MEASURED: every link ink the plan binds clears 4.5:1 (SC 1.4.3, body-size text) on its own ground, the page
   // for a default link and the inverse band for an inverse one, in all 16 brand × mode cells.
   const linkInks = new Map<string, string>();
