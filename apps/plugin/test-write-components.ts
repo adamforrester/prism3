@@ -5679,7 +5679,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const set = page.children.find((c) => c.name === 'link' && c.type === 'COMPONENT_SET') as Node | undefined;
   const members = ((set?.children as Node[] | undefined) ?? []);
   const kid = (n: Node, name: string): Node | undefined => ((n.children as Node[] | undefined) ?? []).find((c) => c.name === name);
-  ok(members.length === 144 && r.misses.length === 0, `link bar build: the set builds 144 members with 0 misses (${members.length}; ${r.misses[0] ?? 'none'})`);
+  ok(members.length === 192 && r.misses.length === 0, `link bar build: the set builds 192 members (four sizes since #3179) with 0 misses (${members.length}; ${r.misses[0] ?? 'none'})`);
   const off: string[] = [];
   const moved: string[] = [];
   let current = 0;
@@ -5695,9 +5695,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const twin = members.find((x) => String(x.name) === String(m.name).replace('selection=selected', 'selection=unselected'));
     if (!twin || twin.width !== m.width || twin.height !== m.height) moved.push(`${String(m.name)}: ${m.width}x${m.height} vs ${twin ? `${twin.width}x${twin.height}` : 'no twin'}`);
   }
-  ok(current === 48 && off.length === 0,
-    `link bar foot: on all 48 current members the bar is ABSOLUTE, STRETCH/MAX, as wide as the link, flush with its bottom and ${BAR}px high with the height still bound, and no other member has one (${current} current, ${off.length} off — ${off[0] ?? 'none'})`);
-  ok(current === 48 && moved.length === 0,
+  ok(current === 64 && off.length === 0,
+    `link bar foot: on all 64 current members the bar is ABSOLUTE, STRETCH/MAX, as wide as the link, flush with its bottom and ${BAR}px high with the height still bound, and no other member has one (${current} current, ${off.length} off — ${off[0] ?? 'none'})`);
+  ok(current === 64 && moved.length === 0,
     `link bar footprint: every current member measures what its unselected twin measures, so the bar moves no box (${moved.length} moved — ${moved[0] ?? 'none'})`);
 }
 

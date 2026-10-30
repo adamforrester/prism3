@@ -346,7 +346,7 @@ const EXCLUDED: Record<string, string> = {
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
   'pagination': 'a navigation row — its tap targets are the nested page cells, gated as pagination-item, and the previous and next IconButton.Neutral and Button.Neutral, each measured under its own name (#2665)',
   'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab',
-  'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception',
+  'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception; each size\'s line box is held to 24px below, as drawn or code-side (#3179)',
   // #2428: Code input's target is its row of cells, one target over the one input, built at the owner's literal cell
   // heights (Q330 A: 44, 56, 64, 72px; `builtSize`, no token), so there is no binding here to read. test.ts holds those
   // heights against the 44px floor as literals (`#2428 code-input: the row of cells is a target of at least 44px`).
@@ -865,6 +865,49 @@ const drawnHeight = (n: PlanBox, px: (name: string) => number): number => {
       const gap = ruleGap(codeOnly, cs.rule);
       if (cs.sizes.length && gap.length) failures.push(`tag: no codeOnly entry states the underline ${what === 'tag' ? 'box' : '× slot'}'s code-side 24px hit area at ${cs.sizes.join(' and ')} (missing: ${gap.join(', ')}) — under Tag style Underline that is the only 24px target it has (owner Q585 A, #2947).`);
     }
+  }
+}
+
+// ── THE STANDALONE LINK (#3179, owner decision D-A5 A): each size's line box against the 24px minimum ──────────
+// Link is in EXCLUDED for the 44px floor: its box is one text line by decision (Q289.4 A), not a control height. That
+// left its WCAG 2.5.8 target unmeasured, and an x-small link (12px text, an 18px line) sits well under 24px. So this arm
+// walks each size's standalone member at every density to the height its plan draws, and holds each size to 24px
+// either AS DRAWN or through a size LINK_CODE_SIDE names, both ways: a size under 24px that it does not name fails, and
+// a named size that now clears 24px is stale. A named size's `codeOnly` must state the code-side hit area in one entry,
+// by the phrases below. EXPECTED is literals here: the 24px minimum, the four sizes, and the sizes whose line the owner's
+// decisions put below it (x-small at 18px, small at 21px), never read off `link.ts` (docs/34 shape 1). ACTUAL is
+// `drawnHeight` over the real plan, from the emitted line boxes. An inline link in a sentence is exempt (2.5.8's inline
+// exception), so the arm measures the standalone style, where the target is owed.
+const LINK_SIZES = ['medium', 'x-small', 'small', 'large'];
+const LINK_CODE_SIDE = { sizes: ['x-small', 'small'], rule: [/^The hit-target expansion/, /\bx-small, 18px/, /\bsmall, 21px/, /reaches 24px on both axes/, /standalone link meets the 24px target/] };
+{
+  if (ruleGap([], LINK_CODE_SIDE.rule).length === 0) failures.push(`LINK_CODE_SIDE: an empty codeOnly states the rule — the phrase check cannot fail.`);
+  const link = componentDefs.find((d) => d.id === 'link');
+  const sizes = link?.variants?.size as string[] | undefined;
+  if (!link || !sizes) failures.push(`the standalone Link arm (#3179) found no link def with a size axis — it measures nothing.`);
+  else {
+    if (sizes.join() !== LINK_SIZES.join()) failures.push(`link: its size axis is [${sizes.join(', ')}], and the standalone Link arm (#3179) holds [${LINK_SIZES.join(', ')}] — a size arrived, left or moved unscoped.`);
+    const minAt: Record<string, { px: number; at: string }> = {};
+    for (const b of [...floorBuilds, compactBuild]) {
+      const px = (name: string): number => resolvePx(b.tree, b.root, name.replace(/\//g, '.')) ?? NaN;
+      const def = applySpacingDensity(link, b.density);
+      for (const size of LINK_SIZES) for (const weight of ['emphasis', 'default']) {
+        const plan = figmaAnatomyPlan(def, size, { style: 'standalone', weight, surface: 'default', selection: 'unselected', state: 'rest' } as never);
+        const h = drawnHeight(plan.root as unknown as PlanBox, px);
+        if (!(minAt[size]?.px <= h)) minAt[size] = { px: h, at: `${b.density} ${weight}` };
+      }
+    }
+    for (const size of LINK_SIZES) {
+      const m = minAt[size];
+      const label = `link/standalone/${size} line box`;
+      if (!m || !Number.isFinite(m.px)) { failures.push(`${label}: does not resolve to px — a bound token moved, so the standalone Link arm (#3179) measures nothing.`); continue; }
+      const named = LINK_CODE_SIDE.sizes.includes(size);
+      rows.push(`${label} = ${m.px}px (min over every density, at ${m.at}) [${named ? `below ${MIN_TARGET_PX}px; code-side hit area, Q289.4 A` : `≥ ${MIN_TARGET_PX}px as drawn`}]`);
+      if (!named && m.px < MIN_TARGET_PX) failures.push(`${label} is ${m.px}px at ${m.at}, below the ${MIN_TARGET_PX}px minimum (WCAG 2.5.8), and LINK_CODE_SIDE does not name ${size} — a standalone link below 24px with no code-side target is a target nobody owns. Name it and state it in codeOnly, or grow the line.`);
+      if (named && m.px >= MIN_TARGET_PX) failures.push(`${label} is ${m.px}px at ${m.at}, which clears ${MIN_TARGET_PX}px as drawn, and LINK_CODE_SIDE still names ${size} — a stale code-side entry. Drop it.`);
+    }
+    const gap = ruleGap(link.anatomy?.codeOnly ?? [], LINK_CODE_SIDE.rule);
+    if (gap.length) failures.push(`link: no codeOnly entry states the standalone link's code-side 24px hit area at ${LINK_CODE_SIDE.sizes.join(' and ')} (missing: ${gap.join(', ')}) — one text line tall, that is the only 24px target a standalone x-small or small link has (#3179, Q289.4 A).`);
   }
 }
 
