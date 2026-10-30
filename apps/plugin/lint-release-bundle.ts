@@ -1,7 +1,7 @@
 /**
  * THE RELEASE BUNDLE CARRIES NO DEV-ONLY CODE (#2530, owner Q239 A).
  *
- *   npx tsx apps/plugin/lint-release-bundle.ts      (after `build` AND `build:release`)
+ *   npx tsx apps/plugin/lint-release-bundle.ts      (after `build` AND `build:release`, which builds both releases)
  *
  * The plugin has two builds. `dist/` is the DEV build every lane imports: `PRISM3_DEV` true, the agent link's
  * desktop bridge relay (`ws://localhost:17331`) and the manifest's `devAllowedDomains`. `release/` is the RELEASE
@@ -26,8 +26,15 @@
  * ── THE MANIFEST ──────────────────────────────────────────────────────────────────────────────────
  *
  * `release/manifest.json` must be the plugin's own `manifest.json` with exactly two differences: the bundle paths
- * point beside it (`main.js`, `ui.html`), and `networkAccess.devAllowedDomains` is gone. `allowedDomains` stays
- * `["none"]`, written here as a literal. Anything else that differs fails by name.
+ * point beside it (`main.js`, `ui.html`), and `networkAccess.devAllowedDomains` is gone. Anything else that differs
+ * fails by name.
+ *
+ * ── TWO RELEASES (#3138) ──────────────────────────────────────────────────────────────────────────
+ *
+ * `build:release` builds "Prism3 Studio" (`release/`) and "Prism3 Studio Offline" (`release-offline/`). Both are held
+ * to the dev-only markers above. The offline manifest is the release one plus `manifest-offline.json` (its name, id
+ * and networkAccess), and its `allowedDomains` is `["none"]`, written here as a literal: the literal that held
+ * `release/` until the network build listed its domains. Those domains are `lint-network-reach.ts`'s.
  *
  * BY-NAME MUTATIONS (each proven red, then restored): the dispatcher's `PRISM3_DEV &&` guards removed (#2530 PR 2) →
  * `[dev-command-name]` and `[dev-command-eval]` fail on `release/main.js`; `dev-commands.ts` back to a DIRECT eval →
@@ -45,6 +52,8 @@ import { isDeepStrictEqual } from 'node:util';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DIST = resolve(HERE, 'dist');
 const RELEASE = resolve(HERE, 'release');
+/** The offline variant (#3138): `build.mjs --release --offline`, built by `build:release` beside `release/`. */
+const RELEASE_OFFLINE = resolve(HERE, 'release-offline');
 
 type Bundle = 'main.js' | 'ui.html';
 type Marker = { name: string; re: RegExp; in: readonly Bundle[]; positive: string; negative: string; what: string };
@@ -107,41 +116,55 @@ for (const m of DEV_ONLY) {
 }
 
 const dev: Record<Bundle, string> = { 'main.js': read(DIST, 'main.js'), 'ui.html': read(DIST, 'ui.html') };
-const rel: Record<Bundle, string> = { 'main.js': read(RELEASE, 'main.js'), 'ui.html': read(RELEASE, 'ui.html') };
+// Both release builds (#3138): "Prism3 Studio" in release/, "Prism3 Studio Offline" in release-offline/.
+const RELEASES = [['release', RELEASE], ['release-offline', RELEASE_OFFLINE]] as const;
+const rels = RELEASES.map(([name, dir]) => [name, { 'main.js': read(dir, 'main.js'), 'ui.html': read(dir, 'ui.html') }] as const);
 for (const f of ['main.js', 'ui.html'] as const) {
   ok(dev[f].length > 100_000, `dist/${f} is a real bundle (${dev[f].length} bytes)`, 'run `npm run -w @prism3/plugin build` first');
-  ok(rel[f].length > 100_000, `release/${f} is a real bundle (${rel[f].length} bytes)`, 'run `npm run -w @prism3/plugin build:release` first');
+  for (const [name, rel] of rels) {
+    ok(rel[f].length > 100_000, `${name}/${f} is a real bundle (${rel[f].length} bytes)`, 'run `npm run -w @prism3/plugin build:release` first');
+  }
 }
 
 for (const m of DEV_ONLY) {
   for (const f of m.in) {
     ok(m.re.test(dev[f]), `[${m.name}] is in the dev build's dist/${f}, so its absence from a release means something`,
       `the marker no longer names code the dev build carries (${m.what}): update DEV_ONLY with the code`);
-    ok(rel[f].length > 0 && !m.re.test(rel[f]), `[${m.name}] is absent from release/${f}: ${m.what}`, near(rel[f], m.re));
+    for (const [name, rel] of rels) ok(rel[f].length > 0 && !m.re.test(rel[f]), `[${m.name}] is absent from ${name}/${f}: ${m.what}`, near(rel[f], m.re));
   }
 }
 
-// The manifest: the plugin's own, less the dev domains, with the bundle paths beside it.
+// The manifests: the plugin's own, less the dev domains, with the bundle paths beside it; the offline one also takes
+// `manifest-offline.json`'s name, id and networkAccess (#3138).
 const devManifest = JSON.parse(read(HERE, 'manifest.json') || '{}');
-const relText = read(RELEASE, 'manifest.json');
-const relManifest = relText ? JSON.parse(relText) : null;
-ok(!!relManifest, 'release/manifest.json exists');
-ok(!!relManifest && !relText.includes('devAllowedDomains'), 'release/manifest.json carries no devAllowedDomains');
-// #2879 (Q613 1 A): the release asks Figma for the team-library list, the library home's one source for a library's name.
-// A literal, not read off `manifest.json`: the equality below is derived from the dev manifest, so it alone cannot see a
-// permission dropped from both.
-ok(!!relManifest && isDeepStrictEqual(relManifest.permissions, ['teamlibrary']),
-  `release/manifest.json asks for the teamlibrary permission and no other (got ${JSON.stringify(relManifest?.permissions)})`);
-ok(!!relManifest && isDeepStrictEqual(relManifest.networkAccess?.allowedDomains, ['none']),
-  `release/manifest.json allows no network (allowedDomains ["none"]; got ${JSON.stringify(relManifest?.networkAccess?.allowedDomains)})`);
-if (relManifest) {
-  const expected = structuredClone(devManifest);
-  expected.main = 'main.js';
-  expected.ui = 'ui.html';
-  if (expected.networkAccess) delete expected.networkAccess.devAllowedDomains;
-  ok(isDeepStrictEqual(relManifest, expected), 'release/manifest.json is manifest.json with only the bundle paths and devAllowedDomains changed',
-    `release ${JSON.stringify(relManifest)}`);
+const offlineOverlay = JSON.parse(read(HERE, 'manifest-offline.json') || '{}');
+for (const [name, dir] of RELEASES) {
+  const relText = read(dir, 'manifest.json');
+  const relManifest = relText ? JSON.parse(relText) : null;
+  ok(!!relManifest, `${name}/manifest.json exists`);
+  ok(!!relManifest && !relText.includes('devAllowedDomains'), `${name}/manifest.json carries no devAllowedDomains`);
+  // #2879 (Q613 1 A): the release asks Figma for the team-library list, the library home's one source for a library's name.
+  // A literal, not read off `manifest.json`: the equality below is derived from the dev manifest, so it alone cannot see a
+  // permission dropped from both.
+  ok(!!relManifest && isDeepStrictEqual(relManifest.permissions, ['teamlibrary']),
+    `${name}/manifest.json asks for the teamlibrary permission and no other (got ${JSON.stringify(relManifest?.permissions)})`);
+  if (relManifest) {
+    const expected = structuredClone(devManifest);
+    expected.main = 'main.js';
+    expected.ui = 'ui.html';
+    if (expected.networkAccess) delete expected.networkAccess.devAllowedDomains;
+    if (name === 'release-offline') Object.assign(expected, offlineOverlay);
+    ok(isDeepStrictEqual(relManifest, expected),
+      `${name}/manifest.json is manifest.json with only the bundle paths and devAllowedDomains changed${name === 'release-offline' ? ', plus manifest-offline.json' : ''}`,
+      `${name} ${JSON.stringify(relManifest)}`);
+  }
 }
+// `["none"]`, as a literal, now holds the OFFLINE build (#3138): "Prism3 Studio" lists its domains, and
+// `lint-network-reach.ts` holds that list. The equality above is derived from the source manifests, so it alone cannot
+// see the offline build given a domain.
+const offText = read(RELEASE_OFFLINE, 'manifest.json');
+ok(!!offText && isDeepStrictEqual(JSON.parse(offText).networkAccess?.allowedDomains, ['none']),
+  `release-offline/manifest.json allows no network (allowedDomains ["none"]; got ${offText ? JSON.stringify(JSON.parse(offText).networkAccess?.allowedDomains) : 'no manifest'})`);
 
 console.log(failed ? `\n✗ lint-release-bundle — ${failed} check(s) failed` : '\n✓ lint-release-bundle — the release build carries no dev-only code');
 process.exit(failed ? 1 : 0);

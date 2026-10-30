@@ -18,6 +18,7 @@ import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, Radi
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000, ACHROMATIC_C } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
+import { genericClassOf, SERIF_FALLBACK } from './font-class';
 
 /** The appearance modes the engine can generate. `light` is the required base; the rest
  *  are opt-in (docs/11 Pillar 1). Wireframe (docs/11 §Pillar 1b) IS a shipped mode — a
@@ -1196,6 +1197,10 @@ export type Typography = {
 
 const SANS_FALLBACK = ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'];
 const MONO_FALLBACK = ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace'];
+/** #3140 (Q3138.6 A): the tail for a lone face. A face `font-class.ts` knows as a serif takes the serif tail in place of
+ *  the sans one; every other tail (mono, and sans for an unknown family) is unchanged. */
+const tailFor = (face: string, fallback: string[]): string[] =>
+  fallback === SANS_FALLBACK && genericClassOf(face) === 'serif' ? SERIF_FALLBACK : fallback;
 // Line-height + letter-spacing are curated NAMED ramps (semantic keys → value). The key ORDER is the
 // single source: `LineHeightKey`/`LetterSpacingKey` derive from it, and per-mode overrides
 // (modeLevers.lineHeights/letterSpacings) are keyed by these names. Composites reference a key
@@ -2031,7 +2036,8 @@ const deriveFamilies = (fam: TypographyInput['families'] = {}): FontFamilyBindin
       continue;
     }
     const d = TYPE_FAMILY_DEFAULT[group];
-    out.push({ group, stack: asStack(chosen, d.face, d.fallback), variable: isVar(group) });
+    const face = (Array.isArray(chosen) ? chosen[0] : chosen) ?? d.face;
+    out.push({ group, stack: asStack(chosen, d.face, tailFor(face, d.fallback)), variable: isVar(group) });
   }
   // MONO-NESS IS DECLARED BY `code`, and this pass is what restores the signal #415 removed. The
   // fallback tail is picked per CATEGORY, so binding a mono face anywhere but `code` produced
@@ -2084,7 +2090,7 @@ const deriveTypefaces = (library: string[] = [], ...bindingSets: FontFamilyBindi
     const name = raw.trim();
     const slug = typefaceSlug(name);
     if (out.some((t) => t.slug === slug)) continue;   // already bound — the binding's stack wins
-    out.push({ slug, name, stack: asStack(name, name, SANS_FALLBACK), variable: false });
+    out.push({ slug, name, stack: asStack(name, name, tailFor(name, SANS_FALLBACK)), variable: false });
   }
   return out;
 };

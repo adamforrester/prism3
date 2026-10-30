@@ -30,7 +30,8 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 ## Scope (#107 — the scaffold)
 
 - ✅ `manifest.json` — `documentAccess: "dynamic-page"`, `networkAccess.allowedDomains: ["none"]`
-  (the engine is bundled; nothing loads at runtime), `editorType: ["figma"]`, `api: "1.0.0"`.
+  (the engine is bundled; nothing loads at runtime), `editorType: ["figma"]`, `api: "1.0.0"`. Since #3138 that
+  `["none"]` belongs to the offline build; see "Two plugins" below.
   Verified against the current Figma plugin docs (2026-07).
 - ✅ Two-context split + split tsconfigs (violations proven to fail compilation).
 - ✅ Typed `postMessage` bridge with a placeholder UI that exercises the round-trip both ways
@@ -419,7 +420,36 @@ npm test -w @prism3/plugin           # write + read + persist + float + styles +
 
 Then in Figma: **Plugins → Development → Import plugin from manifest…** → pick `apps/plugin/manifest.json`.
 The UI iframe is a single self-contained HTML file (the bundled shared UI is inlined) — required because
-the iframe has no server to fetch from and ships with no network access. Tune the brand with the knobs,
+the iframe has no server to fetch from. Its one runtime request is a brand's web font (see "Two plugins").
+
+## Two plugins: Prism3 Studio and Prism3 Studio Offline (#3138)
+
+One codebase builds two plugins, with distinct names and ids so both can be loaded at once:
+
+| Build | Folder | Name and id | Network |
+|---|---|---|---|
+| Network | `release/` | Prism3 Studio, `prism3-theming-plugin` | `fonts.googleapis.com` and `fonts.gstatic.com` only, no `*` |
+| Offline | `release-offline/` | Prism3 Studio Offline, `prism3-theming-plugin-offline` | `["none"]`, for client files and locked-down setups |
+
+`npm run build:release -w @prism3/plugin` builds both (`build.mjs --release`, then `--release --offline`). The offline
+build is the same code with `PRISM3_NETWORK` false, so esbuild drops every network branch; `manifest-offline.json` holds
+its name, id and `networkAccess`. Every network feature degrades there: today the one feature is the preview's brand
+faces, which fall back with a label. The dev build (`dist/`, `manifest.json`) is the network build plus the agent link's
+dev domain.
+
+**Privacy.** The network build sends a brand face's family name to Google Fonts when the preview can't paint that face,
+and Google receives the user's IP address with it. Nothing from the file is sent. The offline build makes no network
+calls. The panel says which at the foot of the Inspect menu, and each manifest's `reasoning` says it to Figma.
+
+**The gates.** `lint-network-reach.ts`: the offline bundles carry no request primitive and no allowed host, and the
+network build's every named host is one of its listed domains or reference-only. `lint-release-bundle.ts` holds both
+releases to the dev-only markers and the offline manifest to `["none"]`.
+
+**Installing each build.** Run `npm run build:release -w @prism3/plugin`. Then, in the Figma desktop app, **Plugins →
+Development → Import plugin from manifest…** and pick `apps/plugin/release/manifest.json` (Prism3 Studio) or
+`apps/plugin/release-offline/manifest.json` (Prism3 Studio Offline). To share one, send its folder: the three files,
+`manifest.json`, `main.js` and `ui.html`. To publish privately to an organization, publish from the imported network
+build in Figma; the manifest's `reasoning` is the text Figma shows for the network access. Tune the brand with the knobs,
 then select **Apply Theme** (on the top bar) to materialise the whole generated
 system — `core-palette` + `color`, the ten FLOAT collections (`core-dimension`, `space`, `radius`,
 `size`, `icon`, `control`, `border-width`, `focus`, `opacity`, `layout`), shadow/gradient Styles, and font variables +
@@ -429,7 +459,7 @@ found on boot.
 ## ⚠️ The plugin does NOT auto-update when the web UI changes
 
 The iframe UI is **built, not referenced** — `build.mjs` bundles + inlines the studio UI (entry `apps/studio/src/entry.ts`) into
-`dist/ui.html` at build time (it must: the iframe has no server and ships zero network access). So
+`dist/ui.html` at build time (it must: the iframe has no server to fetch code from). So
 `dist/` is a **gitignored build artifact** that only reflects `apps/studio/src` as of the last build. **Editing
 `apps/studio/src` — or pulling web-lane changes on `main` — does nothing to the plugin until you rebuild.** This
 is the #1 way the plugin drifts stale (it silently shows a week-old UI).

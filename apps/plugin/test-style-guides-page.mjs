@@ -36,6 +36,7 @@ import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { launchWithoutWebFonts } from '../studio/test-web-fonts-stub.mjs';
 import { hookGuard } from '../studio/test-hooks.mjs';
 import { P, loadModes, resolve as resolveToken } from '../studio/chrome/tokens.mjs';
 
@@ -61,7 +62,8 @@ if (!existsSync(UI)) {
 const server = createServer(async (_req, res) => { res.writeHead(200, { 'content-type': 'text/html' }); res.end(await readFile(UI)); });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const ORIGIN = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch();
+// #3138: Google Fonts answers every request with nothing here (`test-web-fonts-stub.mjs`), so a run never reaches it.
+const browser = await launchWithoutWebFonts(chromium);
 const post = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), msg);
 
 // ── the file, typed here ──────────────────────────────────────────────────────────────────────────

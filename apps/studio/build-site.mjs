@@ -49,7 +49,7 @@ await build({
   // PRISM3_TEST_HOOKS is `false` here, and only `build.mjs` (the local `dist/`) says `true` (#2098): the deployed
   // bundle carries no test hook at all, which `test-prod-bundle.ts` checks by running this file. The one option
   // that differs from `build.mjs` on purpose, beside PRISM3_BUILD.
-  define: { PRISM3_HOST: "'web'", PRISM3_BUILD: JSON.stringify(buildId), PRISM3_TEST_HOOKS: 'false' },
+  define: { PRISM3_HOST: "'web'", PRISM3_BUILD: JSON.stringify(buildId), PRISM3_TEST_HOOKS: 'false', PRISM3_NETWORK: 'true' },
   sourcemap: true,
   logLevel: 'info',
 });

@@ -1145,6 +1145,60 @@ section('accordion side padding — a file built at the old large 24px updates i
   ok(post?.counts.current === 48, `accordion pad-x/current: every member reads current after (${JSON.stringify(post?.counts)})`);
 }
 
+section('accordion title weight — a file built with the emphasis title takes the regular one in place, and 30 members hand-edited on the header\'s padding keep it (#3180, Q-ACC1 A)');
+// THE FILE: the set as main built it before #3180, its title on `label/{rung}/emphasis` (the literal is the test's own),
+// and 30 of the 48 members hand-edited on the header's block padding, as the reference brand's master is. THE UPDATE:
+// today's plans. EXPECTED, typed here: every member's title on `label/{rung}/default`, the 30 edited headers still holding
+// the designer's padding and reported as hand edits, every member and node keeping its key and id.
+// HOW A PARTLY HAND-EDITED SET UPDATES: the as-built record is per NODE, so an edit on `header` holds that node only; the
+// title is its own node, untouched by the designer, so it takes the new text style on the edited members too.
+// Mutation: the def's title back on `type.label.{rung}.emphasis` → `accordion weight/premise` (nothing to update).
+{
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const atOld = plansOf('accordion').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const label = planChild(planChild(planChild(planChild(q.root, 'header'), 'titleRow'), 'titleBox'), 'label') as PlanNode & { textStyle?: string };
+    label.textStyle = `label/${RUNG[q.size!]}/emphasis`;
+    return q;
+  });
+  const plans = plansOf('accordion');
+  const w = await world('accordion', atOld, { extraStyles: plans.flatMap((q) => planTextStyles(q.root)), extraVars: ['space/0'] });
+  const styles = new Map(((await w.api.getLocalTextStylesAsync()) as { id: string; name: string }[]).map((s) => [s.id, s.name]));
+  const labelOf = (m: Node): Node => childNamed(childNamed(childNamed(childNamed(m, 'header'), 'titleRow'), 'titleBox'), 'label');
+  const styleOf = (m: Node): string => String(styles.get(String(labelOf(m).textStyleId)) ?? labelOf(m).textStyleId);
+  const sizeOf = (m: Node): string => /(?:^|, )size=(\w+)/.exec(String(m.name))![1];
+  const members = membersOf(w.set());
+  ok(members.length === 48 && members.every((m) => styleOf(m) === `label/${RUNG[sizeOf(m)]}/emphasis`) && plans.every((p) => !/emphasis/.test(JSON.stringify(p.root))),
+    `accordion weight/premise: the file's 48 titles are on label/{rung}/emphasis, and today's plans name no emphasis style (${[...new Set(members.map(styleOf))].join(', ')})`);
+  // The designer's edit, on 30 members: the header's block padding bound to `space/0`, a step the plan does not name there.
+  const zero = await varIdOf(w, 'space/0');
+  const edited = members.slice(0, 30);
+  for (const m of edited) for (const f of ['paddingTop', 'paddingBottom']) (childNamed(m, 'header').setBoundVariable as (f: string, v: { id: string }) => void)(f, { id: zero });
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: 'accordion', plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.update === 18 && p.counts.handEdited === 30 && p.counts.add === 0 && p.counts.drop === 0 && !p.replacements.length,
+    `accordion weight/dry run: 18 members to update, 30 with a hand edit, nothing added, dropped or replaced (${JSON.stringify(p?.counts)}, ${p?.blockers.join('; ') || 'no blockers'})`);
+  ok(p.handEdits.length === 30 && p.handEdits.every((h) => h.path === 'header'),
+    `accordion weight/reported: the dry run reports exactly the 30 headers as hand edits (${[...new Set(p.handEdits.map((h) => h.path))].join(', ')}, ${p.handEdits.length})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
+  ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 48,
+    `accordion weight/in place: every member and node keeps its key and id (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} nodes moved)`);
+  const offStyle = membersOf(w.set()).filter((m) => styleOf(m) !== `label/${RUNG[sizeOf(m)]}/default`).map((m) => `${String(m.name)}: ${styleOf(m)}`);
+  ok(offStyle.length === 0,
+    `accordion weight/written: all 48 titles now on label/{sm,md,lg}/default, the 30 hand-edited members included (${offStyle.slice(0, 2).join('; ')})`);
+  const padOf = (m: Node) => ['paddingTop', 'paddingBottom'].map((f) => (childNamed(m, 'header').boundVariables as Record<string, { id: string }>)[f]?.id);
+  const lostPad = edited.filter((m) => !padOf(m).every((id) => id === zero)).map((m) => String(m.name));
+  const strayPad = membersOf(w.set()).slice(30).filter((m) => padOf(m).some((id) => id === zero)).map((m) => String(m.name));
+  ok(lostPad.length === 0 && strayPad.length === 0 && res.outcomes[0].kept.length === 30 && res.outcomes[0].kept.every((k) => k.path === 'header'),
+    `accordion weight/padding kept: the 30 edited headers keep the designer's padding and are listed as kept, and no other header took it (${lostPad.length} lost, ${strayPad.length} stray, ${res.outcomes[0].kept.length} kept)`);
+  const post = (await previewUpdate(w.host, [{ def: 'accordion', plans }])).sets[0];
+  ok(post.counts.current === 18 && post.handEdits.length === 30,
+    `accordion weight/current: the next dry run reads the other 18 current and still reports the 30 hand edits (${JSON.stringify(post.counts)})`);
+}
+
 section('min/max — a member built under one Tag style and updated under the other has a fresh build\'s min and max sizes (#2976)');
 {
   // Owner QA 2026-10-23: a file built as Pill and updated to Underline kept the pill's height and 1.5x width as plain
