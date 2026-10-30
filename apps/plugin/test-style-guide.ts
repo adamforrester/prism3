@@ -4701,6 +4701,15 @@ const main = async (): Promise<void> => {
         `43d ${who}: the Container table is drawn on Grids & layouts in Containers, keyed as before (${ct?.key}; ${ct?.page}; ${ct?.group}; notes: ${plan.notes.join(' | ') || 'none'})`);
     }
 
+    // (d2) A BREAKPOINT ALONE has no Grids row to sit in: no Grids table, and it stays in the later-phase note.
+    {
+      const lone: SgCatalog = { collections: [{ id: 'C:bp', name: 'bp', modes: [{ modeId: 'bp:0', name: 'Value' }], defaultModeId: 'bp:0' }],
+        variables: [{ id: 'V:bp', name: 'bp/breakpoint/md', variableCollectionId: 'C:bp', resolvedType: 'FLOAT', valuesByMode: { 'bp:0': 768 }, scopes: ['WIDTH_HEIGHT'] }] };
+      const p = planStyleGuide(lone, null);
+      ok(!p.tables.some((t) => t.type === 'grid') && p.notes.includes('Not drawn until a later phase: 1 breakpoint variable'),
+        `43d2: a breakpoint variable with no grid variable or grid style draws no Grids table and is named as a later phase (${p.notes.join(' | ')})`);
+    }
+
     // (e) A PLAIN VALUE IS FLAGGED: the reference brand's md margin written as a literal 44 reads "⚠ unlinked px".
     {
       const f = await layoutFile(REF[0], REF[1]);

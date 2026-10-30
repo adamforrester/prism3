@@ -623,6 +623,9 @@ const LATER_KIND: Partial<Record<VarKind, string>> = {
 };
 /** The kinds the Grids table prints (#3171): a breakpoint's min width and a grid's columns, gutter and margin, per mode. */
 const GRID_KINDS: readonly VarKind[] = ['breakpoint', 'grid'];
+/** Whether a file has a Grids table to draw (#3171): a grid style, or a `grid/*` variable whose collection's modes are the
+ *  breakpoints. A breakpoint variable alone has no row to sit in, so it stays a later phase. */
+const hasGridTable = (catalog: SgCatalog): boolean => !!catalog.gridStyles?.length || catalog.variables.some((v) => varKind(v) === 'grid');
 
 /**
  * A FLOAT or STRING variable's kind, from its SCOPES first and its NAME second (proposed, owner to confirm).
@@ -776,8 +779,8 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
       const type = typeOfKind(kind);
       if (!type) {
         if (kind === 'fontStyle' && styleBound.has(v.id)) continue;
-        // Printed in the Grids table (#3171), so no later phase.
-        if (GRID_KINDS.includes(kind)) continue;
+        // Printed in the Grids table (#3171), when the file has one, so no later phase.
+        if (GRID_KINDS.includes(kind) && hasGridTable(catalog)) continue;
         const l = LATER_KIND[kind] ?? kind; later.set(l, (later.get(l) ?? 0) + 1); continue;
       }
       if (!wantTypes.includes(type.toLowerCase())) continue;
@@ -1935,7 +1938,7 @@ const fitToContent = (f: SgNode): void => {
 
 const collectionIdsOf = (catalog: SgCatalog): Set<string> => new Set([...catalog.collections.map((c) => c.id), ...(catalog.textStyles?.length ? [TEXT_STYLES_ID] : []),
   ...(catalog.effectStyles?.length ? [EFFECT_STYLES_ID] : []), ...(catalog.paintStyles?.some((st) => st.paints.some(isGradient)) ? [GRADIENT_STYLES_ID] : []),
-  ...(catalog.gridStyles?.length || catalog.variables.some((v) => varKind(v) === 'grid') ? [GRID_STYLES_ID] : [])]);
+  ...(hasGridTable(catalog) ? [GRID_STYLES_ID] : [])]);
 
 const gridRowOf = (n: SgNode): number => num(read(n, 'gridRowAnchorIndex'));
 const gridColOf = (n: SgNode): number => num(read(n, 'gridColumnAnchorIndex'));
