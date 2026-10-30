@@ -81,6 +81,8 @@ export const typeSampleSection = (c: SgCtx, ty: Typography, mode: string, ground
       // Inked as the line above it, with the ground's own ink role, so it reads on either ground.
       const n = c.painted(specimen(hook(el('p', 'tsm-note', note), 'type-sample-note')), ground.ink, 'color');
       n.style.color = c.paint(c.cur, ground.ink);
+      // Small text, set here rather than in `styles.css`: the line's own size would make a note as large as the line.
+      Object.assign(n.style, { margin: '0', fontSize: '12.5px', lineHeight: '1.5', maxWidth: '100%', overflowWrap: 'anywhere' });
       row.append(n);
     }
     list.append(row);

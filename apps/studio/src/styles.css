@@ -713,5 +713,3 @@ label.cset-head{cursor:pointer}
 .tsm-list{display:grid;gap:18px}
 .tsm-row{display:grid;gap:6px;min-width:0;justify-items:start}
 .tsm-text{margin:0;max-width:100%;overflow-wrap:anywhere}
-/* #3138: a line whose face can't load here, or whose family lacks its weight, says so under it, in the chrome's small text */
-.tsm-note{margin:0;font-size:12.5px;line-height:1.5;max-width:100%;overflow-wrap:anywhere}
