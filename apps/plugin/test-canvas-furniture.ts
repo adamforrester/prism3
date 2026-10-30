@@ -961,11 +961,11 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
 {
   // THE SWITCH COVERS EVERY SET. The oracle is the def registry, never the engine's list: every def with Figma
   // properties builds a set, except the three that build single components (`emitAsComponents`), which have no grid:
-  // Icon, Brand mark (#2343) and Spinner.
+  // Icon, Provider logo (#2343) and Spinner.
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 57 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'brand-mark', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 57 defs that build a set have furniture; Icon, Brand mark and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 57 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'provider-logo', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 57 defs that build a set have furniture; Icon, Provider logo and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
@@ -1065,7 +1065,9 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     // #2457 Q295.2 B: the flush icon button's three families share one page, as IconButton's do.
     'Flush Icon Button': ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'],
   };
-  const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
+  // Sets only: Icons & assets holds two defs since #3148, Icon and Provider logo, and both build single components.
+  const buildsSet = (id: string): boolean => !componentDefs.find((d) => d.id === id)?.figmaProperties?.emitAsComponents;
+  const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.filter(buildsSet).length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
   ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the thirteen pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
   const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;

@@ -99,13 +99,26 @@
  *   · **Q?3 A** — centering the row's own items would float the control to the middle of a wrapped label
  *     (#1009 half-1), so the row centers ONE inner box, named `content`, and that box keeps the control and
  *     label top-aligned: Accordion's Q276 A construction.
- *   · **Q?4 A** — the block padding joins `densitySpacing`, so compact rows compact (29/36/44) and spacious rows grow.
+ *   · **Q?4 A** — the block padding joins `densitySpacing`, so compact rows compact (28/36/44 since #3153) and spacious rows grow.
  *   · **Q?6 A** — the update cost is accepted: in files that already hold the row, an Update inserts `content` and
  *     MOVES the label and the control cell (the nested control with it) into it, keeping every node's id (#2595;
  *     `test-update-apply.ts` "option rows", #2933). Whether a placed instance's override survives the move is a
  *     host question the shim cannot answer, so a dry run on a copy of a shipped file comes before any master update.
  *
  * `test.ts` #2894 measures the result in every corpus brand.
+ *
+ * ── THE 14px LABEL, THE LINE-BOX CELL AND THE DESCRIPTION (#3153, owner Q852 and Q853 A) ────────────────────
+ *
+ *   · **Q852** — the label sits one body rung below the row's size, for every brand, with no lever: a medium row is a
+ *     20px control beside a 14/21 `body.sm` label (Fluent 2's pairing); small and large keep it at 12 and 16
+ *     (Q3153.1 A). The control cell follows the LABEL's own line box (`type.body.*.line-box`): it is the cell's floor,
+ *     the cell hugs the control, and where the control outgrows the line the label is set down by half the difference
+ *     (`control.size.*.label-inset`), so the control stays centered on the label's first line.
+ *   · **Q853 A** — the description is projected: one type step under the label (floored at 12), muted ink, in the
+ *     label's text column so it starts at the label's edge, 4px under it, behind a `description` boolean, off by
+ *     default. In existing files an Update inserts the text column and MOVES the label into it, keeping its id.
+ *
+ *   `test.ts` #3153 measures the cell, the inset and the description's start edge in px in every corpus brand.
  *
  * ── THE RUNG OFFSET, WHERE I MET IT (#756, `docs/28` §5.2, `docs/40` §7 step 2) ─────────────────
  *
@@ -222,6 +235,11 @@ export const checkboxRow: ComponentDef = {
     // (field-label's pairing) and not `disabled.on-fill` (text-field's).
     'label': 'color.text.primary',
     'disabled.label': 'color.disabled.text',
+    // THE DESCRIPTION (#3153, owner Q853 A): helper text under the label in the muted ink, dimming with the label. It
+    // paints through the `indicator` slot, Dialog's slot for its own muted description: the projector's slots are a
+    // closed list, and `indicator` is the one that means secondary text beside the main one.
+    'indicator': 'color.text.secondary',
+    'disabled.indicator': 'color.disabled.text',
 
     // ── THE ROW'S TOP/BOTTOM PADDING, a MINIMUM per size (owner Q539, Q?1 A on #2894). It was Prism 2's constant
     // 12 at every size (#1433b, `reference/Prism2/component-specs/checkbox-row.json`), which put no row on the
@@ -252,9 +270,21 @@ export const checkboxRow: ComponentDef = {
     // reads centered and on a WRAPPING label it holds the first line instead of floating to the
     // paragraph's middle. #1226 step 2 kept this construction on the Row unchanged — the centring box is
     // a real `box` here, and only its CHILD became the nested control (see the anatomy).
-    'size.small.control-box': 'control.size.sm.line-box',
-    'size.medium.control-box': 'control.size.md.line-box',
-    'size.large.control-box': 'control.size.lg.line-box',
+    //
+    // #3153 (owner Q852): the box is the label's OWN line box. The label sits one body rung below the control's
+    // rung (a medium row is a 20px box beside a 14px label), so the cell reads `type.body.{label rung}.line-box`
+    // (18/21/24) and no longer the control rung's `control.size.*.line-box` (21/24/27), which would leave the box
+    // centered on a line the label does not have. It is the cell's FLOOR, not its height: the cell hugs the control,
+    // so a control taller than the line grows the cell to the control (Fluent's rule), and `label-inset` below
+    // pushes the label down by half the difference.
+    'size.small.control-box': 'type.body.xs.line-box',
+    'size.medium.control-box': 'type.body.sm.line-box',
+    'size.large.control-box': 'type.body.md.line-box',
+    // The label's top inset in the text column: max(0, (box − line) ÷ 2), baked per rung (`tree.ts`), 0 in every
+    // corpus brand at comfortable density (16/18, 20/21, 24/24), non-zero only where the box outgrows the line.
+    'size.small.label-inset': 'control.size.sm.label-inset',
+    'size.medium.label-inset': 'control.size.md.label-inset',
+    'size.large.label-inset': 'control.size.lg.label-inset',
 
     // ── THE NESTED CONTROL'S OWN SQUARE (#1226 step 2). The `control` nest part binds this so the nested
     // instance is PINNED to the control square — 16/20/24 at comfortable density, 12/16/20 at compact — and does NOT
@@ -272,9 +302,21 @@ export const checkboxRow: ComponentDef = {
     // Structurally, `type.label.*` emits only `sm` and `md`: bound there, `large` would have no rung to
     // reach and the def's own three-value ladder would be a claim the token tier cannot honor.
     // `type.body.*` is the only family in the tier with all three.
-    'size.small.text': 'type.body.sm.default',
-    'size.medium.text': 'type.body.md.default',
-    'size.large.text': 'type.body.lg.default',
+    //
+    // #3153 (owner Q852, Q3153.1 A): ONE STEP BELOW the row's size, for every brand, with no lever. The medium row is
+    // a 20px box beside 14/21 text (Fluent 2's pairing); small and large keep the relationship at 12 and 16.
+    'size.small.text': 'type.body.xs.default',
+    'size.medium.text': 'type.body.sm.default',
+    'size.large.text': 'type.body.md.default',
+    // THE DESCRIPTION'S TYPE (#3153, owner Q853 A): one step below the label, floored at `body.xs` (Q3153.1 A): the
+    // body ladder has no rung under 12, and 10px helper text is too small to read. So 12 under 12, 12 under 14, 14
+    // under 16. The gap above it is a small FIXED step, not moved by density. Keyed `description.{size}.*`, not
+    // `size.{size}.*`: `lint-rung-names` reads every `size.*` key as the size's own rung, one ladder per token family,
+    // and this is a second ladder in the label's family, deliberately one step down. `test.ts` #3153 holds it in px.
+    'description.small.text': 'type.body.xs.default',
+    'description.medium.text': 'type.body.xs.default',
+    'description.large.text': 'type.body.sm.default',
+    'description-gap': 'space.050',
   },
 
   // ── ANATOMY — THE LABELED ROW THAT NESTS THE CONTROL (#910, #1226 step 2) ──────────────────────
@@ -334,19 +376,22 @@ export const checkboxRow: ComponentDef = {
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         grow: true,
         gap: 'size.{size}.gap',
-        children: ['controlCell', 'label'],
+        children: ['controlCell', 'textStack'],
         note: 'The control and the label, side by side and top-aligned. The row centers this box in its minimum height, and the control stays beside the label\'s first line.',
       },
       // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). A structural wrapper exactly one line of
-      // the label tall (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the
+      // the label tall (`size.{size}.control-box` → the label's own `type.body.*.line-box` since #3153), centring the
       // control on its cross axis. No `paintSlots` — it draws nothing; it exists only to give the control
       // a line-tall box to center within, so the top-aligned row lands it on the FIRST line rather than
-      // mid-paragraph. Height FIXED to the line-box; width HUGs the control so the row's gap is unchanged.
+      // mid-paragraph. Since #3153 the line box is the cell's FLOOR and the cell hugs the control (below); width HUGs the control.
       controlCell: {
         kind: 'box',
         role: 'presentation',
-        height: 'size.{size}.control-box',
-        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
+        // #3153 (owner Q852): the label's line box is the cell's FLOOR and the cell HUGS the control, so the cell is
+        // max(control, line): the line where the line is taller (every corpus checkbox and radio at comfortable),
+        // the control where the control is (a spacious brand), and never a control spilling out of a short cell.
+        minHeight: 'size.{size}.control-box',
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         children: ['control'],
       },
       // THE NESTED CONTROL (#1226 step 2, #1330). Where the painted box, the two glyphs and the focus ring
@@ -365,7 +410,7 @@ export const checkboxRow: ComponentDef = {
       //
       // IT PINS ITS OWN SQUARE and does NOT stretch. `size: 'size.{size}.control'` (→ `control.size.*.height`,
       // 16/20/24 on nb) binds the instance to the control square, which is SHORTER than the `control-box`
-      // line box (21/24/27) it is centered within — so the small control reads centered on the first line
+      // line box (18/21/24 since #3153) it is centered within — so the small control reads centered on the first line
       // rather than filling the taller box. This is #1299's nest-height mechanism applied to the inner
       // control: the centring box (a real `box`, above) handles ALIGNMENT, and the nest carries the
       // control's own extent. `test.ts` #1201 asserts the pin by name, so a change binding the line box
@@ -377,6 +422,21 @@ export const checkboxRow: ComponentDef = {
         // `status` FOLLOWS (owner Q354, #2751): the Row's `status` member nests the control at the same status.
         nesting: { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest', status: 'default' }, expose: ['selection', 'state'], follow: ['size', 'status'] },
         note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size and status, and binds its own square so it is centered within the taller wrapper rather than stretched to fill it.',
+      },
+      // THE TEXT COLUMN (#3153, owner Q853 A and Q852). The label and, under it, the description, so the description
+      // starts at the label's start edge and never under the control. Its top inset is `label-inset`, half of the box
+      // less the line where the box is the taller, so the label's first line stays centered on the control when the
+      // cell grows to it. FILLS the row's width beside the hugging cell, so both texts have a bounded width to wrap
+      // in. Draws nothing.
+      textStack: {
+        kind: 'box',
+        role: 'presentation',
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        grow: true,
+        paddingTop: 'size.{size}.label-inset',
+        gap: 'description-gap',
+        children: ['label', 'description'],
+        note: 'The label and the description under it, starting at the label\'s edge. Its top inset keeps the label\'s first line centered on the control.',
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
       // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the fill and not
@@ -391,16 +451,26 @@ export const checkboxRow: ComponentDef = {
         wrap: true,
         note: 'The accessible name AND the second half of the hit target. Rich content in code (a consent line carries a link); a plain text node in Figma, where a nested link cannot exist. It WRAPS to a second line rather than overflowing (#1424) — it fills the row\'s main axis and reflows.',
       },
+      // THE DESCRIPTION (#3153, owner Q853 A). Helper text under the label: one type step below it, in the muted
+      // ink, starting at the label's edge (it is the text column's second child), a small fixed gap above it. Hidden
+      // by default behind the `description` boolean, so a row without one is unchanged.
+      description: {
+        kind: 'text',
+        type: 'description.{size}.text',
+        paintSlot: 'indicator',
+        wrap: true,
+        optional: true,
+        note: 'The optional description under the label, in the muted text color, one type step smaller and starting at the label\'s edge. Hidden by default.',
+      },
     },
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word, so a
       // passing mention inside an entry about something else does not count (#563).
       'read-only — not projected: the Row\'s Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1330 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `checkbox-control` and the consumer drives it from the Row, so no state — read-only least of all — is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code (see `states`): the brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to project at either level.',
       'states — the Row\'s per-state LABEL treatment (`disabled.label` dimming the text when the field is disabled) is the CODE projection\'s, not Figma\'s. Since #1330 the Figma set is size-only and `state` is exposed from the nested control, so a disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label. `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code; it is the Figma SET that cannot show it, because the Row no longer multiplies state. The documented cost of collapsing 54 members to 3 (the #761 reversal).',
-      'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch. Since #2894 the row\'s floor is the control-height ladder in both projections, so every row clears 24 (29px at its smallest, small at compact) and the medium row is 44 at comfortable; growing the target past the row on touch is a per-consumer decision about the surrounding layout, not the def\'s to pick.',
+      'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch. Since #2894 the row\'s floor is the control-height ladder in both projections, so every row clears 24 (28px at its smallest, small at compact) and the medium row is 44 at comfortable; growing the target past the row on touch is a per-consumer decision about the surrounding layout, not the def\'s to pick.',
       'The label\'s RICH CONTENT. `label` is typed `node` and its commonest real value is a consent line with a link in it; a Figma text node holds characters, so the projected placeholder is flat text and the link exists only in code.',
       'motion — the nested control\'s glyph micro-motion (brief §8: a stroke-dasharray draw morphing dash to check). It is `checkbox-control`\'s, stated in that def\'s `motion`; the Row carries none of its geometry or motion, and a Figma variant carries no motion at either level.',
-      'The `description` prop — helper text beneath the label, describedby-wired. It is a second text part under `label`, and adding it would double the row\'s vertical shape for content that is optional at every one of the three members. Left to the code projection, as on `radio-row`.',
       'RTL — the row mirrors through logical properties: the control moves to the right and the label flows leftward from it, with the padding flipped. The CHECK GLYPH does not mirror — the check shape is recognized as drawn in every script, so the SVG keeps its standard stroke direction (brief §9). Figma members are drawn left to right.',
       'text expansion — labels run 150-200% longer in German or Russian (brief §9). The label wraps freely and the control stays on the first line (#1201), so a long label does not break the row. The Figma members carry the English placeholder only.',
     ],
@@ -433,11 +503,16 @@ export const checkboxRow: ComponentDef = {
       // building (voice-standard §1 recessive). The `label` prop stays a node so a real consumer can still put
       // a link in a consent line — that capability is described on the prop, separate from this scaffold.
       label: { part: 'label', default: 'Checkbox label' },
+      // DRAFT copy (#3153): the description's placeholder, Dialog's.
+      description: { part: 'description', default: 'Supporting text', figmaName: 'description text' },
     },
     // No `swaps` — the Row nests `checkbox-control` and exposes its selection/state (the def picks the
     // control, the consumer drives its properties), and the two glyphs that were gated by `presentWhen`
     // live in that atom now. No `slotAxes`.
-    booleans: {},
+    // #3153 (owner Q853 A): the description is off by default.
+    booleans: {
+      description: { part: 'description', default: false },
+    },
   },
 
   accessibility: {

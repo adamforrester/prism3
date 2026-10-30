@@ -1020,17 +1020,16 @@ export const locateSets = (host: { root: { findAllWithCriteria(c: { types: strin
  *     found and updated in place, not rebuilt as a second one.
  *   - Each `<component>/<value>` is the member `<axis>=<value>`: one axis, so the mapping back is exact. A name with a
  *     further `/` is no member value, and is listed under `others`, never read, unless that value is one of the def's
- *     own plan coordinates: a brand mark's value is `<kind>/<name>` (`brand-mark/payment/visa`, #2343), or a value the
- *     ledger renamed or dropped (`brand-mark/card/visa`, #2343 PR 3), so the dry run renames or deprecates it in place.
+ *     own plan coordinates: a provider logo's value is `<kind>/<name>` (`provider-logo/payment/visa`, #2343), or a value the
+ *     ledger renamed or dropped (`provider-logo/card/visa`, #2343 PR 3), so the dry run renames or deprecates it in place.
  *   - OWNERSHIP IS THE STAMP, NEVER THE NAME: the dry run's own reading (`ownedView`, #2300) decides. A hand-made
  *     icon, even one carrying a Prism3 glyph's exact name, is unstamped: it holds its coordinate, so that glyph is
  *     never built beside it (Q109 A), and it is never written.
  *
  * `set` is a stand-in for the by-id lookups the capture and Adopt make: its children are the components read.
  */
-export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<{ view: HostSetView; set: LiveSet }> => {
+export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<{ view: HostSetView; set: LiveSet; from?: string }> => {
   const component = t.plans[0]?.component ?? t.def;
-  const prefix = `${component}/`;
   const first = t.plans[0] ? coordKey(planComponentName(t.plans[0])) : null;
   const axis = first ? coordPairs(first)[0][0] : 'name';
   const known = new Set(t.plans.map((p) => String(p.coord[axis])));
@@ -1039,12 +1038,20 @@ export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?
     if (r.kind === 'value' && r.axis === axis) known.add(r.from);
     if (r.kind === 'drop' && r.axis === axis && r.value !== undefined) known.add(r.value);
   }
-  const comps = (host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly unknown[]).filter((c) => {
-    const x = c as { name?: unknown; parent?: { type?: unknown } | null };
+  const all = (host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly unknown[]).filter((c) => {
+    const x = c as { parent?: { type?: unknown } | null };
     let parentType: unknown;
     try { parentType = x.parent?.type; } catch { parentType = undefined; }
-    return String(x.name ?? '').startsWith(prefix) && parentType !== 'COMPONENT_SET';
+    return parentType !== 'COMPONENT_SET';
   });
+  const under = (id: string): unknown[] => all.filter((c) => String((c as { name?: unknown }).name ?? '').startsWith(`${id}/`));
+  // A DEF RENAMED (#3148, as `locateSets` for a set, #2759): a file built before the rename holds the components under
+  // an earlier id. When none carries the current one, each id the ledger renames into it is tried, nearest first, and
+  // `from` names the one found; the apply renames every component in place.
+  let comps = under(component);
+  let from: string | undefined;
+  if (!comps.length) for (const id of formerDefIds(component, ledger)) { const old = under(id); if (old.length) { comps = old; from = id; break; } }
+  const prefix = `${from ?? component}/`;
   const members: HostMember[] = [];
   const others: string[] = [];
   let k = 0;
@@ -1062,15 +1069,21 @@ export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?
   return {
     view: { name: component, id: '', key: '', page, members, others, definitions: null, single: true, ...(publish ? { publish } : {}) },
     set: { name: component, children: comps } as LiveSet,
+    ...(from ? { from } : {}),
   };
 };
+
+/** A single component's name under the def's current id (#3148): `<from>/<value>` → `<to>/<value>`. Unchanged for any
+ *  other name. */
+export const renamedComponent = (name: string, rename: { from: string; to: string }): string =>
+  name.startsWith(`${rename.from}/`) ? `${rename.to}/${name.slice(rename.from.length + 1)}` : name;
 
 /** A target's view, set or single, or why there is none to read. */
 type Viewed = { kind: 'missing' } | { kind: 'refused'; reason: string } | { kind: 'found'; name: string; set: LiveSet; view: HostSetView; from?: string };
 const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<Viewed> => {
   if (t.single) {
-    const { view, set } = await readSingleView(host, t, breathe, drawVars, ledger);
-    return view.members.length + view.others.length ? { kind: 'found', name: view.name, set, view } : { kind: 'missing' };
+    const { view, set, from } = await readSingleView(host, t, breathe, drawVars, ledger);
+    return view.members.length + view.others.length ? { kind: 'found', name: view.name, set, view, ...(from ? { from } : {}) } : { kind: 'missing' };
   }
   const { found, name, from } = locateSets(host, t, ledger);
   if (found.length === 0) return { kind: 'missing' };
@@ -1230,10 +1243,19 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   // Every set first, so a set this update renames (#2759) counts as present for the sets that nest it.
   const viewed: { t: UpdateTarget; v: Viewed }[] = [];
   for (const t of targets) viewed.push({ t, v: await locateView(host, t, breathe, ports.drawVars, ledger) });
-  const renamedInto = new Set(viewed.flatMap(({ v }) => (v.kind === 'found' && v.from ? [v.name] : [])));
+  // A single-component def renamed (#3148) is present as each of its components under the new id.
+  const renamedInto = new Set(viewed.flatMap(({ t, v }) => (v.kind !== 'found' || !v.from ? []
+    : t.single ? ((v.set as { children?: readonly unknown[] }).children ?? []).map((c) => renamedComponent(String((c as { name?: unknown }).name ?? ''), { from: v.from!, to: v.name }))
+    : [v.name])));
   // Its old name → its new one, so a set nesting it reads an instance of it as the planned set's, not the wrong one.
   const renames = new Map(viewed.flatMap(({ v }) => (v.kind === 'found' && v.from ? [[v.from, v.name] as const] : [])));
-  const runPorts: UpdatePorts = renames.size ? { ...ports, renamedSet: (name) => renames.get(name) ?? null } : ports;
+  // A single-component def's nodes are `<id>/<value>` (#3148): an instance of `<old id>/<value>` is the renamed one's.
+  const singleRenames = viewed.flatMap(({ t, v }) => (t.single && v.kind === 'found' && v.from ? [{ from: v.from, to: v.name }] : []));
+  const renamedSingle = (name: string): string | null => {
+    for (const r of singleRenames) { const to = renamedComponent(name, r); if (to !== name) return to; }
+    return null;
+  };
+  const runPorts: UpdatePorts = renames.size ? { ...ports, renamedSet: (name) => renames.get(name) ?? renamedSingle(name) } : ports;
   for (const { t, v } of viewed) {
     if (v.kind === 'missing') { out.missing.push(t.def); continue; }
     if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }

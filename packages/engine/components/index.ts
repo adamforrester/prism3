@@ -48,7 +48,7 @@ import { button, buttonDestructive, buttonNeutral } from './button';
 import { iconButton, iconButtonDestructive, iconButtonNeutral } from './icon-button';
 import { flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral } from './flush-icon-button';
 import { icon } from './icon';
-import { brandMark } from './brand-mark';
+import { providerLogo } from './provider-logo';
 import { walletButton } from './wallet-button';
 import { signInButton } from './sign-in-button';
 import { focusRing } from './focus-ring';
@@ -101,7 +101,7 @@ import { progress } from './progress';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, brandMark, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider, walletButton, signInButton };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, providerLogo, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider, walletButton, signInButton };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -112,7 +112,7 @@ export const componentDefs: readonly ComponentDef[] = [
   // whose absence makes the interesting ones unmeasurable.
   icon,
   // The second icon type (#2343): provider marks in their own colors, standalone components like icon's.
-  brandMark,
+  providerLogo,
   focusRing,
   button,
   // #1223 — the two sibling button components, split from `button`'s former `intent` axis. Same factory,
@@ -120,7 +120,7 @@ export const componentDefs: readonly ComponentDef[] = [
   // because they share its composition (nest `focus-ring`, swap `icon`).
   buttonDestructive,
   buttonNeutral,
-  // #2343 PR 4 — the express-checkout button a wallet provider draws. It nests `brand-mark` (a provider's logo) and
+  // #2343 PR 4 — the express-checkout button a wallet provider draws. It nests `provider-logo` (a provider's logo) and
   // `focus-ring`.
   walletButton,
   signInButton,
@@ -258,7 +258,7 @@ export const componentDefs: readonly ComponentDef[] = [
   searchField,
   // `card-number-field` (#2343 PR 4, #2429) — TextField's third specialization, from the shared field factory. Nests
   // `field-label`, `field-message` and `focus-ring`, all above, and starts its tile slot at the generic payment tile,
-  // a `brand-mark` member built before it.
+  // a `provider-logo` member built before it.
   cardNumberField,
   // `banner` (#2579, owner Q327) — a persistent message in the page flow. Nests the neutral Button (actions) and the
   // flush neutral icon button (dismiss), so it comes after both.

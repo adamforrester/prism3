@@ -21,14 +21,10 @@
           {
             "name": "↳ Icons & assets",
             "components": [
-              "icon"
-            ]
-          },
-          {
-            "name": "↳ Brand marks",
-            "components": [
-              "brand-mark"
-            ]
+              "icon",
+              "provider-logo"
+            ],
+            "usagePanelLead": "icon"
           },
           {
             "name": "↳ Grids & layouts"
@@ -405,11 +401,11 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/icon.md"
       },
       {
-        "id": "brand-mark",
-        "name": "BrandMark",
-        "figmaName": "brand-mark",
+        "id": "provider-logo",
+        "name": "ProviderLogo",
+        "figmaName": "provider-logo",
         "kind": "component set",
-        "page": "↳ Brand marks",
+        "page": "↳ Icons & assets",
         "section": "Foundations",
         "members": 75,
         "variantProperties": [
@@ -495,7 +491,7 @@
           }
         ],
         "properties": [],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/brand-mark.md"
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/provider-logo.md"
       },
       {
         "id": "focus-ring",
@@ -1469,6 +1465,14 @@
           {
             "name": "label",
             "type": "TEXT"
+          },
+          {
+            "name": "description text",
+            "type": "TEXT"
+          },
+          {
+            "name": "description",
+            "type": "BOOLEAN"
           }
         ],
         "codeOnly": {
@@ -1585,6 +1589,14 @@
           {
             "name": "label",
             "type": "TEXT"
+          },
+          {
+            "name": "description text",
+            "type": "TEXT"
+          },
+          {
+            "name": "description",
+            "type": "BOOLEAN"
           }
         ],
         "codeOnly": {
@@ -3066,7 +3078,7 @@
           {
             "name": "↳ swap card mark",
             "type": "INSTANCE_SWAP",
-            "swapTarget": "brand-mark/payment/generic"
+            "swapTarget": "provider-logo/payment/generic"
           },
           {
             "name": "message",

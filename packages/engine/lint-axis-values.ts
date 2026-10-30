@@ -414,10 +414,10 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'social/twitch-mono', 'social/whatsapp', 'social/whatsapp-mono', 'social/x', 'social/x-mono', 'social/youtube',
       'social/youtube-mono',
     ],
-    defs: ['brand-mark'],
+    defs: ['provider-logo'],
     relation: 'disjoint',
     reason:
-      'The brand marks (#2343): `BRAND_MARK_NAMES`, spread from the mark set, the second icon type, whose names '
+      'The provider logos (#2343): `PROVIDER_LOGO_NAMES`, spread from the mark set, the second icon type, whose names '
       + 'are `<kind>/<provider>[-<style>]` and so can never collide with a glyph name. Disjoint by construction: a '
       + 'mark and a glyph are different things, and a shared value would mean one name in two vocabularies. The '
       + 'provider list is data, so a provider added to the set is a line here in the same PR, as a glyph is above.',

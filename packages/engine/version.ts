@@ -681,7 +681,14 @@ export const ENGINE_VERSION = '0.237.0';
  * the card surface's palette step unless the brand's `raisedSurface` sets it to the page or white, in light and
  * hc-light only. One added path; an added path cannot break a reference. Nothing is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.12.0';
+/**
+ * 14.13.0 (#3153, owner Q852 and Q853 A; Q3153.4 A, 2026-10-29): MINOR. `type.body.{xs,sm,md,lg}.line-box` and
+ * `control.size.{sm,md,lg}.label-inset` join the guaranteed surface. The first is one line of each body rung, the body
+ * twin of `type.label.*.line-box` (14.7.0): an option row's control cell takes its label's own line box as its floor.
+ * The second is the label's top inset in that row, max(0, box − line) ÷ 2, baked because Figma cannot take a max or a
+ * half of two variables. Seven added paths; an added path cannot break a reference. Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.13.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

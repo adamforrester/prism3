@@ -1120,10 +1120,10 @@ npx tsx packages/engine/lint-icon-count.ts          # the icon def's METADATA PR
                                                     # (version.ts, docs/00-progress.md) legitimately states
                                                     # the count of its moment and is out of scope, and so
                                                     # is field-message.ts's dated "#920 landed 39 glyphs".
-                                                    # The brand-mark def (#2343) is held one notch
+                                                    # The provider-logo def (#2343) is held one notch
                                                     # stricter: its prose states NO count of marks at all,
                                                     # because the provider list is data (Q-B7 amended).
-npx tsx packages/engine/lint-mark-provenance.ts     # every brand mark under marks/ has one record in
+npx tsx packages/engine/lint-mark-provenance.ts     # every provider logo under marks/ has one record in
                                                     # marks/provenance.json and every record a file
                                                     # (#2343): EXPECTED is the folder walked from disk,
                                                     # ACTUAL the records a person typed, both directions.
@@ -1134,14 +1134,14 @@ npx tsx packages/engine/lint-mark-provenance.ts     # every brand mark under mar
                                                     # survives in provenance.json and marks/NOTICE.md.
                                                     # A self-check feeds bad records first (docs/34
                                                     # shape 9). No count of marks is asserted anywhere.
-npx tsx packages/engine/lint-mark-colors.ts         # a brand mark is NEVER RETINTED (#2343). Fills
+npx tsx packages/engine/lint-mark-colors.ts         # a provider logo is NEVER RETINTED (#2343). Fills
                                                     # re-parsed from each source SVG by the gate's own
                                                     # reader, against (a) the record's colors, (b) the
-                                                    # emitted brand-mark-glyphs.ts, in order and spelled
-                                                    # as supplied, and (c) the brand-mark Figma plans,
+                                                    # emitted provider-logo-glyphs.ts, in order and spelled
+                                                    # as supplied, and (c) the provider-logo Figma plans,
                                                     # where no node binds a variable or names a paint;
                                                     # and (d) no host pushes descendantFills, a paint or a
-                                                    # paint variable into a brand-mark/* instance, and each
+                                                    # paint variable into a provider-logo/* instance, and each
                                                     # states fixedPaint; the hosts are listed by hand, both
                                                     # ways (the Card number field is the first).
 npx tsx packages/engine/lint-mark-slots.ts          # a PAYMENT-TILE SLOT takes card networks only (#2343
@@ -1151,7 +1151,7 @@ npx tsx packages/engine/lint-mark-slots.ts          # a PAYMENT-TILE SLOT takes 
                                                     # literal card-network list, each such a tile (never
                                                     # a wallet or pay-later tile), defaults to generic, and
                                                     # every member's slot (and the set's swap property)
-                                                    # starts at brand-mark/<tile folder>/generic, binding
+                                                    # starts at provider-logo/<tile folder>/generic, binding
                                                     # its height alone under the aspect lock.
 npx tsx packages/engine/lint-nesting.ts             # the component NESTING graph (anatomy.parts[*].nests)
                                                     # resolves and is acyclic (#1226 PR-A). Two arms,

@@ -67,7 +67,7 @@
  *   · **Q?3 A** — centering the row's own items would float the control to the middle of a wrapped label
  *     (#1009 half-1), so the row centers ONE inner box, named `content`, and that box keeps the control and
  *     label top-aligned: Accordion's Q276 A construction.
- *   · **Q?4 A** — the block padding joins `densitySpacing`, so compact rows compact (29/36) and spacious rows grow.
+ *   · **Q?4 A** — the block padding joins `densitySpacing`, so compact rows compact (28/36 since #3153) and spacious rows grow.
  *   · **Q?6 A** — the update cost is accepted: in files that already hold the row, an Update inserts `content` and
  *     MOVES the label and the control cell (the nested control with it) into it, keeping every node's id (#2595;
  *     `test-update-apply.ts` "option rows", #2933). Whether a placed instance's override survives the move is a
@@ -184,8 +184,14 @@ export const switchRow: ComponentDef = {
     // the baked `body.{rung}` line-box. The nested control centers inside a box this tall while the ROW
     // stays top-aligned, so on a single line the control reads centered and on a WRAPPING label it holds
     // the first line instead of floating to the paragraph's middle.
-    'size.small.control-box': 'control.size.sm.line-box',
-    'size.medium.control-box': 'control.size.md.line-box',
+    //
+    // #3153 (owner Q852, Q3153.2 A): the box is the label's OWN line box, `type.body.{label rung}.line-box` (18/21), as
+    // on the two option rows. It stays the cell's fixed HEIGHT here, not a floor: the track is taller than the line
+    // in every corpus brand (24/32 against 18/21), and growing the cell to it would take the medium row to 48px
+    // (32 + 8 + 8), off the 44px ladder the row floor holds. So the track stays centered on the label's first line and
+    // overhangs the cell into the row's padding, as before (#1439, still open).
+    'size.small.control-box': 'type.body.xs.line-box',
+    'size.medium.control-box': 'type.body.sm.line-box',
 
     // ── THE NESTED CONTROL'S OWN HEIGHT (#1299-style pin). The `control` nest part binds this as its
     // `height` so the nested instance is PINNED to the switch TRACK height — 24/32 on nb, 16/24 on aurora
@@ -202,8 +208,10 @@ export const switchRow: ComponentDef = {
     // ── THE ROW'S TYPE. `type.body.*` and not `type.label.*` — semantically this is a setting name
     // sitting BESIDE a control (a settings-row label), not a form field's label announcing one above it,
     // and `type.body.*` is the only family in the tier carrying every rung. Two rungs, no `large`.
-    'size.small.text': 'type.body.sm.default',
-    'size.medium.text': 'type.body.md.default',
+    //
+    // #3153 (owner Q852, Q3153.1 A and Q3153.2 A): one step below the row's size, as on the two option rows: 12 and 14.
+    'size.small.text': 'type.body.xs.default',
+    'size.medium.text': 'type.body.sm.default',
   },
 
   // ── ANATOMY — THE LABELED ROW THAT NESTS THE CONTROL (#1354) ───────────────────────────────────
@@ -296,7 +304,7 @@ export const switchRow: ComponentDef = {
       'states — the documented cost of collapsing 24 members to 2 (the #1354 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state.',
       'showStateLabel — the X/checkmark affordance is exposed from the nested `switch-control` as a consumer property (React prop, `.ai.json` option, Figma exposed property). In Figma it is the control\'s own `state icon` boolean (default on), which the exposed nested instance surfaces on the Row, so the Row declares no boolean of its own for it. See `switch-control.ts`.',
       'THE FULL-WIDTH SETTINGS ROW, this component\'s actual habitat and layout rather than anatomy. The row HUGS its children here, so `label` and the control sit adjacent with the gap between them; a settings panel stretches the row and pins the control to the trailing edge, and `justify` on a hugging row cannot express that. `labelPosition: trailing` — the control-leading order for a switch among other form controls — is the same kind of fact: a prop that reorders this row, and the reordered form is the code projection\'s.',
-      'The `description` prop — helper text beneath the label, describedby-wired, where the CONSEQUENCE of the setting goes. A second text part under `label` rather than beside it, which would change the row\'s vertical shape for content that is optional at every member.',
+      'The `description` prop — helper text beneath the label, describedby-wired, where the CONSEQUENCE of the setting goes. Checkbox.Row and Radio.Row project theirs since #3153 (owner Q853 A); this row keeps it in code (Q3153.2 A). A second text part under `label` rather than beside it, which would change the row\'s vertical shape for content that is optional at every member.',
       'RTL — the label-leading row mirrors AND the thumb travel flips (`on` sits at the inline-END). Logical properties make that automatic in CSS; a Figma projection would need it stated, and nothing does.',
     ],
   },

@@ -5534,7 +5534,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 // ── #2343 Q720 A: A PAYMENT TILE'S FRAME DRAWS ITS CORNERS AND EDGE ON THE HOST ─────────────────────────────────────
-// The payment files are full-bleed tiles, and the brand-mark component draws the tile: each built `brand-mark/payment/*` component
+// The payment files are full-bleed tiles, and the provider-logo component draws the tile: each built `provider-logo/payment/*` component
 // reads back with its four corner radii and its stroke weight bound, its stroke painted by a bound variable, and the
 // artwork clipped; every other mark reads back with none of it. Names typed from the decision (the roles held as Q-T1
 // and Q-T2 on the PR), not read from the plan. The paste executor's twin is in packages/engine/test.ts.
@@ -5543,9 +5543,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // #3134: the tiles whose own fill stands apart from a white page (3:1) keep corners and crop and draw no edge. Typed from
 // the owner's direction and the computed result on that PR, not read from the def; every other tile file draws the edge.
 {
-  const EDGELESS = new Set(['brand-mark/payment/amex', 'brand-mark/payment/generic', 'brand-mark/payment/shop-pay', 'brand-mark/payment/venmo']);
-  const cardFiles = readdirSync(new URL('../../packages/engine/marks/payment/', import.meta.url)).filter((f) => f.endsWith('.svg')).map((f) => `brand-mark/payment/${f.slice(0, -4)}`).sort();
-  const markDef = componentDefs.find((d) => d.id === 'brand-mark')!;
+  const EDGELESS = new Set(['provider-logo/payment/amex', 'provider-logo/payment/generic', 'provider-logo/payment/shop-pay', 'provider-logo/payment/venmo']);
+  const cardFiles = readdirSync(new URL('../../packages/engine/marks/payment/', import.meta.url)).filter((f) => f.endsWith('.svg')).map((f) => `provider-logo/payment/${f.slice(0, -4)}`).sort();
+  const markDef = componentDefs.find((d) => d.id === 'provider-logo')!;
   const plans = figmaAnatomySet(markDef, { swapTarget: SWAP });
   const page: Page = { children: [] };
   const r = await applyComponentPlan(plans, makeShim({ ...fullFor(plans), page }) as any, { emitAsComponents: true });
@@ -5554,14 +5554,14 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
   const off: string[] = [];
   const tiles: string[] = [];
-  for (const c of comps.filter((n) => String(n.name).startsWith('brand-mark/'))) {
+  for (const c of comps.filter((n) => String(n.name).startsWith('provider-logo/'))) {
     const bv = (c.boundVariables ?? {}) as Record<string, unknown>;
     const strokes = (c.strokes ?? []) as Array<{ boundVariables?: { color?: unknown } }>;
     // A bound weight reads back on the four per-side keys, not the scalar (host truth, #1332): one name on all four counts.
     const sides = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'].map((k) => id(bv[k]));
     const weight = id(bv.strokeWeight) ?? (sides.every((v) => v && v === sides[0]) ? sides[0] : null);
     const got = [...CORNERS.map((k) => id(bv[k])), weight, id(strokes[0]?.boundVariables?.color), String(c.clipsContent)];
-    if (String(c.name).startsWith('brand-mark/payment/')) {
+    if (String(c.name).startsWith('provider-logo/payment/')) {
       tiles.push(String(c.name));
       const want = [...CORNERS.map(() => 'radius/sm'), ...(EDGELESS.has(String(c.name)) ? [null, null] : ['border-width/hairline', 'color/border/primary']), 'true'];
       if (JSON.stringify(got) !== JSON.stringify(want)) off.push(`${c.name}: ${got.join(' / ')}`);
@@ -5571,7 +5571,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // #3134: THE CANVAS GRID IS LAID OUT FROM THE MEMBERS' REAL SIZES. Every pair of built marks is checked for overlap on
   // the page, by its own x, y, width and height; a mark wider than the old fixed 48px pitch must exist, or the arm
   // proves nothing.
-  const marks = comps.filter((n) => String(n.name).startsWith('brand-mark/'));
+  const marks = comps.filter((n) => String(n.name).startsWith('provider-logo/'));
   const boxOf = (n: Node) => ({ name: String(n.name), x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const boxes = marks.map(boxOf);
   const overlaps: string[] = [];
@@ -5581,7 +5581,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   }
   const widest = Math.max(...boxes.map((b) => b.w));
   ok(boxes.length === plans.length && widest > 48 && boxes.every((b) => Number.isFinite(b.x + b.y + b.w + b.h)) && overlaps.length === 0,
-    `#3134 brand-mark canvas: no two of the ${boxes.length} built marks overlap on the page, the widest ${widest}px wide (overlaps: ${overlaps.length}${overlaps.length ? `, e.g. ${overlaps.slice(0, 3).join(' | ')}` : ''})`);
+    `#3134 provider-logo canvas: no two of the ${boxes.length} built marks overlap on the page, the widest ${widest}px wide (overlaps: ${overlaps.length}${overlaps.length ? `, e.g. ${overlaps.slice(0, 3).join(' | ')}` : ''})`);
   const untiled = cardFiles.filter((n) => !tiles.includes(n)), unfiled = tiles.filter((n) => !cardFiles.includes(n));
   ok(cardFiles.length > 0 && untiled.length === 0 && unfiled.length === 0 && comps.length === plans.length && off.length === 0 && edgeMisses.length === 0 && [...EDGELESS].every((n) => tiles.includes(n)),
     `#2343 Q720 A plugin executor: all ${cardFiles.length} tile files in marks/payment/ build as tiles (${tiles.length} of ${comps.length} built marks) reading back with radius/sm corners, clipped, and a border-width/hairline edge in color/border/primary on every tile but amex, generic, shop-pay and venmo (#3134); no other mark has an edge (off: ${[...off, ...edgeMisses, ...untiled.map((n) => `${n}: no tile`), ...unfiled.map((n) => `${n}: no tile file`)].slice(0, 4).join(' | ') || 'none'})`);
@@ -5589,13 +5589,13 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
 // ── #3127: THE ARTBOARD READ-BACK, AT FIGMA'S PRECISION, PER KIND ─────────────────────────────────────────────────────
 // Figma stores a frame's width and height as 32-bit floats, so a logo drawn at its own width, 34.97 × 24, reads back
-// 34.970001220703125 × 24. The exact compare reported 7 BrandMark logos as "sized to its ink" on a fresh file. Here
+// 34.970001220703125 × 24. The exact compare reported 7 ProviderLogo logos as "sized to its ink" on a fresh file. Here
 // the importer stores its artboard at float32, as the host does: every mark at its own artboard reads back with no
 // `glyphViewBox` miss. Then the importer sizes the frame to its ink: a square kind (an icon-style provider mark) and a
 // logo each still miss, by name. Mutations: `atArtboard` back to an exact compare → `#3127 at its own width`; it
 // passing anything (`return true`) → `#3127 sized to its ink`.
 {
-  const markDef = componentDefs.find((d) => d.id === 'brand-mark')!;
+  const markDef = componentDefs.find((d) => d.id === 'provider-logo')!;
   const plans = figmaAnatomySet(markDef, { swapTarget: SWAP });
   const boxOf = (p: (typeof plans)[number]): [number, number] | undefined => {
     const walk = (n: { glyphViewBox?: [number, number]; children?: unknown[] }): [number, number] | undefined =>
@@ -5615,7 +5615,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const f32 = await build(plans, (n) => resize(n, Math.fround(Number(n.width)), Math.fround(Number(n.height))));
   const inexact = plans.filter((p) => { const b = boxOf(p); return !!b && (Math.fround(b[0]) !== b[0] || Math.fround(b[1]) !== b[1]); }).map((p) => String(p.coord.name));
   ok(inexact.length > 0 && inexact.every((n) => n.startsWith('logo/')) && f32.length === 0,
-    `#3127 at its own width: every brand mark imported at float32 reads back at its artboard, the ${inexact.length} logos whose width float32 cannot hold exactly among them (${inexact.join(', ')}), with no glyphViewBox miss (${f32.length} misses${f32.length ? `: ${f32[0]}` : ''})`);
+    `#3127 at its own width: every provider logo imported at float32 reads back at its artboard, the ${inexact.length} logos whose width float32 cannot hold exactly among them (${inexact.join(', ')}), with no glyphViewBox miss (${f32.length} misses${f32.length ? `: ${f32[0]}` : ''})`);
   // Sized to its ink: the frame takes its outline's box.
   const ink = (n: Node) => { const v = ((n.children as Node[]) ?? [])[0]; if (v) resize(n, Number(v.width), Number(v.height)); };
   const square = plans.filter((p) => { const b = boxOf(p); return !!b && b[0] === b[1] && !/^(logo|payment)\//.test(String(p.coord.name)); }).slice(0, 1);
@@ -5702,7 +5702,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 // #2343 PR 2 — AN ASPECT-LOCKED, FIXED-PAINT SLOT, built by the REAL executor. A Button clone whose leading slot carries
-// a brand mark: height bound alone, `aspectLock`, `fixedPaint`. The mark is a live 32×20 component in the file, so the
+// a provider logo: height bound alone, `aspectLock`, `fixedPaint`. The mark is a live 32×20 component in the file, so the
 // instance's proportion is the main's 8:5, read when it is built. Expected numbers are literals (docs/34). Mutations: the
 // executor's aspectLock branch dropped → `mark slot/locked`; the projector pushing ink into a fixedPaint slot →
 // `mark slot/own paint`.
@@ -5711,7 +5711,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const lv = host.anatomy.parts.leadingVisual;
   delete lv.size;
   Object.assign(lv, { height: 'size.{size}.icon', aspectLock: true, fixedPaint: true });
-  const MARK = 'brand-mark/payment/visa';
+  const MARK = 'provider-logo/payment/visa';
   const plans = figmaAnatomySet(host, { swapTarget: MARK }).filter((p) => p.slots?.leading).slice(0, 4);
   const page: Page = { children: [] };
   const f = fullFor(plans);
@@ -5736,14 +5736,14 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(slots.length > 0 && inked.length === 0, `mark slot/own paint: no host ink is bound onto a vector inside any mark slot (${inked.length} of ${slots.length} inked)`);
 }
 
-// #2343 PR 4 — WALLETBUTTON BUILT BY THE REAL EXECUTOR, its logos instances of the built brand marks. The projector names
-// a nest of a standalone-component def by the member component (`brand-mark/logo/<provider>`); the executor finds that
-// component by name, which the brand-mark build has just made (prebuildDependencies, as a fresh file would). Each logo
+// #2343 PR 4 — WALLETBUTTON BUILT BY THE REAL EXECUTOR, its logos instances of the built provider logos. The projector names
+// a nest of a standalone-component def by the member component (`provider-logo/logo/<provider>`); the executor finds that
+// component by name, which the provider-logo build has just made (prebuildDependencies, as a fresh file would). Each logo
 // is locked to its own mark's proportion with only its height bound. The provider → logo map is typed from the
 // decision, not read off the def. Mutation: the projector's standalone-nest resolution dropped (back to
-// `nestTarget: 'brand-mark'` + `nestVariant`) → `wallet build/logos`.
+// `nestTarget: 'provider-logo'` + `nestVariant`) → `wallet build/logos`.
 {
-  const LOGO: Record<string, string> = { 'apple-pay': 'brand-mark/logo/apple-pay', 'google-pay': 'brand-mark/logo/google-pay', paypal: 'brand-mark/logo/paypal-wordmark', 'shop-pay': 'brand-mark/logo/shop-pay' };
+  const LOGO: Record<string, string> = { 'apple-pay': 'provider-logo/logo/apple-pay', 'google-pay': 'provider-logo/logo/google-pay', paypal: 'provider-logo/logo/paypal-wordmark', 'shop-pay': 'provider-logo/logo/shop-pay' };
   const defs = componentDefs;
   const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
   const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
@@ -5758,7 +5758,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const set = page.children.find((c) => c.name === 'wallet-button' && c.type === 'COMPONENT_SET') as Node | undefined;
   const members = (set?.children as Node[] | undefined) ?? [];
   ok(members.length === 20 && misses.length === 0, `wallet build: the set builds 20 members with 0 misses (${members.length}; ${misses[0] ?? 'none'})`);
-  const marks = new Map(page.children.filter((c) => String(c.name).startsWith('brand-mark/')).map((c) => [String(c.name), c] as const));
+  const marks = new Map(page.children.filter((c) => String(c.name).startsWith('provider-logo/')).map((c) => [String(c.name), c] as const));
   const off: string[] = [];
   for (const m of members) {
     const provider = /provider=([a-z-]+)/.exec(String(m.name))?.[1] ?? '';
@@ -5771,7 +5771,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     if (!logo || logo.type !== 'INSTANCE' || String(main?.name) !== want || !t || Math.abs(t.x / t.y - ratio) > 1e-6 || !bv.height || bv.width)
       off.push(`${String(m.name)}: ${logo ? `${String(logo.type)} of ${String(main?.name)}, ratio ${t ? t.x / t.y : 'none'} vs ${ratio}, ${Object.keys(bv).join(',')}` : 'no mark'}`);
   }
-  ok(members.length === 20 && off.length === 0, `wallet build/logos: every member's logo is an instance of its provider's own brand mark, locked to that mark's proportion with only its height bound (${off.length} off — ${off[0] ?? 'none'})`);
+  ok(members.length === 20 && off.length === 0, `wallet build/logos: every member's logo is an instance of its provider's own provider logo, locked to that mark's proportion with only its height bound (${off.length} off — ${off[0] ?? 'none'})`);
 }
 
 // #2343 PR 5 — SIGNINBUTTON BUILT BY THE REAL EXECUTOR: each provider's literal fill, edge, wash, ink, wording and font
@@ -5782,14 +5782,14 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // `lint-mark-colors.ts` holds. Mutation: the executor's tint branch deleted → `sign-in build/literal` fails by name.
 {
   const RULE: Record<string, { fill: string; edge?: string; ink: string; mark: string; word: string; glyph?: string }> = {
-    'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'brand-mark/provider/apple', word: 'Continue with Apple', glyph: '#ffffff' },
-    'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'brand-mark/provider/apple', word: 'Continue with Apple' },
-    'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'brand-mark/provider/apple', word: 'Continue with Apple' },
-    'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
-    'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
-    'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'brand-mark/provider/google', word: 'Continue with Google' },
-    'facebook.blue': { fill: '#0866ff', ink: '#ffffff', mark: 'brand-mark/provider/facebook', word: 'Continue with Facebook', glyph: '#ffffff' },
-    'facebook.white': { fill: '#ffffff', ink: '#0866ff', mark: 'brand-mark/provider/facebook-blue', word: 'Continue with Facebook' },
+    'apple.black': { fill: '#000000', ink: '#ffffff', mark: 'provider-logo/provider/apple', word: 'Continue with Apple', glyph: '#ffffff' },
+    'apple.white': { fill: '#ffffff', ink: '#000000', mark: 'provider-logo/provider/apple', word: 'Continue with Apple' },
+    'apple.outline': { fill: '#ffffff', edge: '#000000', ink: '#000000', mark: 'provider-logo/provider/apple', word: 'Continue with Apple' },
+    'google.light': { fill: '#ffffff', edge: '#747775', ink: '#1f1f1f', mark: 'provider-logo/provider/google', word: 'Continue with Google' },
+    'google.dark': { fill: '#131314', edge: '#8e918f', ink: '#e3e3e3', mark: 'provider-logo/provider/google', word: 'Continue with Google' },
+    'google.neutral': { fill: '#f2f2f2', ink: '#1f1f1f', mark: 'provider-logo/provider/google', word: 'Continue with Google' },
+    'facebook.blue': { fill: '#0866ff', ink: '#ffffff', mark: 'provider-logo/provider/facebook', word: 'Continue with Facebook', glyph: '#ffffff' },
+    'facebook.white': { fill: '#ffffff', ink: '#0866ff', mark: 'provider-logo/provider/facebook-blue', word: 'Continue with Facebook' },
   };
   // An instance's vectors are reachable through `findAll`, as on the host (#2389).
   const vectorsIn = (n: Node | undefined): Node[] => typeof n?.findAll === 'function' ? (n.findAll as (p: (x: Node) => boolean) => Node[])((x) => x.type === 'VECTOR') : [];

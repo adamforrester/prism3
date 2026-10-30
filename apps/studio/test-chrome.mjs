@@ -1792,6 +1792,10 @@ if (runs('1')) for (const host of ['web', 'figma']) {
             labels: tiles.map((t) => vis(t.querySelector('.p3-tile-label'))),
             texts: tiles.map((t) => t.querySelector('.p3-tile-label')?.textContent ?? null),
             icons: tiles.map((t) => [...t.querySelectorAll('.p3-tile-mark svg')].map((g) => g.dataset.glyph ?? '?').join('+')),
+            // #3164: the Tabler icon each tile draws, and the mark's paint and the rail's ground behind it, as rendered.
+            tabler: tiles.map((t) => [...t.querySelectorAll('.p3-tile-mark svg')].map((g) => g.dataset.icon ?? '?').join('+')),
+            markPaint: mark?.querySelector('.logo') ? getComputedStyle(mark.querySelector('.logo')).backgroundImage : null,
+            railGround: rail ? getComputedStyle(rail).backgroundColor : null,
             current: cur?.getAttribute('data-p3') ?? null,
             curBg: cur ? getComputedStyle(cur.querySelector('.p3-tile-mark')).backgroundColor : null,
             mark: { shown: vis(mark), role: mark?.getAttribute('role') ?? null, label: mark?.getAttribute('aria-label') ?? null,
@@ -1834,6 +1838,25 @@ if (runs('1')) for (const host of ['web', 'figma']) {
         const Q2909_19_A = web ? ['swatches', 'diamonds', 'send', 'help', 'system'] : ['swatches', 'diamonds', 'page', 'send', 'collapse', 'help', 'system'];
         ok(JSON.stringify(rl.icons) === JSON.stringify(Q2909_19_A),
           `rail ${where}: each tile draws its Q2909.19 A icon by name, Appearance the current choice's (${web ? 'System' : 'Match Figma'}, a monitor; Q2995.3 B) (${rl.order.map((o, i) => `${o}=${rl.icons[i]}`).join(', ')})`);
+        // #3164 (the owner, 2026-10-30: "Change the icon for Theme to IconColorSwatch"): the Theme tile draws Tabler's
+        // `color-swatch`, by its Tabler name, a literal from the request, never read from `dom.ts`'s map. The arms above
+        // hold its size and the glyph arms below its paths and its 1.5 line, the same as its siblings. MUTATION: `swatches`
+        // back to `circles` in `dom.ts` → this arm, by name, at every width and theme on both hosts.
+        const themeIcon = rl.tabler[rl.order.indexOf('rail-theme')];
+        ok(themeIcon === 'color-swatch', `#3164 rail ${where}: the Theme tile draws Tabler's color-swatch (drew ${themeIcon})`);
+        // #3164 (Q3164.1 A, the owner's "brighter colors than the muted dark colors"): the mark paints the lifted set, its four
+        // stops in order and back to the first, literals from the decision, never read from `styles.css`. Each stop then holds
+        // 3:1 against the rail's ground as rendered (WCAG 1.4.11, a graphic), the WCAG formula computed here. MUTATION: the
+        // muted set back in `styles.css`'s `.logo` → `… the mark paints Q3164.1 A's stops …` at every width and theme, and
+        // `… holds 3:1 …` in dark.
+        const Q3164_1_A = ['rgb(126, 108, 247)', 'rgb(3, 145, 201)', 'rgb(0, 162, 43)', 'rgb(230, 68, 61)', 'rgb(126, 108, 247)'];
+        const stops = [...(rl.markPaint ?? '').matchAll(/rgba?\([^)]*\)/g)].map((m) => m[0]);
+        ok(JSON.stringify(stops) === JSON.stringify(Q3164_1_A), `#3164 rail ${where}: the mark paints Q3164.1 A's stops, in order (${rl.markPaint})`);
+        const lum = (c) => { const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map((v) => { const x = Number(v) / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+        const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+        const markRatios = stops.slice(0, 4).map((c) => Math.round(ratio(c, rl.railGround ?? 'rgb(0, 0, 0)') * 100) / 100);
+        ok(stops.length === 5 && /^rgb\(/.test(rl.railGround ?? '') && markRatios.every((r) => r >= 3),
+          `#3164 rail ${where}: every stop of the mark holds 3:1 against the rail's ground ${rl.railGround} (${markRatios.join(', ')})`);
         const Q2995_3_B = [['[data-p3="theme-option-light"]', 'Light', 'sun'], ['[data-p3="theme-option-dark"]', 'Dark', 'moon'], web ? ['[data-p3="theme-option-system"]', 'System', 'system'] : ['[data-p3="theme-option-figma"]', 'Match Figma', 'system']];
         const looks = [];
         for (const [option, name] of Q2995_3_B) {

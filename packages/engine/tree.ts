@@ -35,6 +35,9 @@ const alphaColorValue = (rgb: RGB, a: number, fmt: 'rgb' | 'hex') =>
   fmt === 'hex' ? `${hex(rgb)}${alphaHex(a)}` : `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${emittedAlpha(a, 'rgb')})`;
 // Shared opacity/alpha step set (percent). Ramps use 5–90; the opacity scale full.
 const ALPHA_STEPS = OPACITY_STEPS;
+/** #3153 (owner Q852, Q3153.1 A): the body rung an option row's label is set in, per control rung — one step below,
+ *  for every brand, with no lever. The `label-inset` bake pairs each control rung with it. */
+const ROW_LABEL_RUNG: Record<string, string> = { sm: 'xs', md: 'sm', lg: 'md' };
 
 
 // The order colour roles are written in — and so the order Figma lists the collection in — is `color-order.ts` (#1150, #2860).
@@ -866,12 +869,31 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const lineBox = lineBoxPx !== undefined
       ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`body.${c.name}\` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.`)
       : undefined;
+    // #3153 (owner Q852, Q3153.1 A) — the OPTION ROW's label sits one body rung below its control's rung (a medium
+    // row is a 20px box beside a 14px `body.sm` label), and the row's control cell is that label's own line box,
+    // grown to the control where the control is the taller (Fluent's rule). Where it grows, the label's first line
+    // is pushed down by half the difference so it stays centered on the control. Figma cannot take a max or a half
+    // of two variables, so the inset is BAKED here per rung, against the square box Checkbox.Row and Radio.Row
+    // nest, 0 wherever the line is the taller (every corpus brand at comfortable). Switch.Row keeps a fixed
+    // line-tall cell (Q3153.2 A), so the track has no inset of its own.
+    // A literal (`dimLeaf`) like `line-box`: a half px is a real value here (24px box, 21px line → 1.5px). And, like
+    // `line-box`, one value per rung with NO per-mode override: a literal may not re-value by mode (#296), and the
+    // Figma `control` collection is single-mode, so a `controlsByMode` brand (none in the corpus) keeps the default
+    // mode's inset in a mode whose control is a different size. The code projection can compute it there.
+    const rowLine = bodyLineBox[ROW_LABEL_RUNG[c.name] ?? ''];
+    const inset = (box: number) => Math.max(0, (box - rowLine) / 2);
+    const rowInsets: Record<string, Token> = {};
+    if (rowLine !== undefined) {
+      const lr = ROW_LABEL_RUNG[c.name];
+      const li = inset(c.height);
+      rowInsets['label-inset'] = dimLeaf(li, `control.size.${c.name} label-inset — ${li}px, how far an option row's label starts below the top of its control cell: half of the ${c.height}px box less the ${rowLine}px \`body.${lr}\` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.`);
+    }
     // #1015 — the corner, clamped to this rung's own edge (see `controlRadiusLeaf` above).
     const radiusPx = controlRadius(c.height, radiusSmPx);
     const radiusLeaf = controlRadiusLeaf(radiusPx, c.name, c.height);
     const rMods = controlRadiusModes(c.name, c.height, radiusPx);
     if (rMods) radiusLeaf.$extensions.prism3.modes = rMods;
-    controlSize[c.name] = { height: heightLeaf, width: widthLeaf, dot: dotLeaf, inset: insetLeaf, track: trackLeaf, thumb: thumbLeaf, radius: radiusLeaf, ...(lineBox ? { 'line-box': lineBox } : {}) };
+    controlSize[c.name] = { height: heightLeaf, width: widthLeaf, dot: dotLeaf, inset: insetLeaf, track: trackLeaf, thumb: thumbLeaf, radius: radiusLeaf, ...(lineBox ? { 'line-box': lineBox } : {}), ...rowInsets };
   }
   const control = { size: controlSize };
 
@@ -1136,6 +1158,13 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const [rung, px] of Object.entries(labelLineBox)) {
     if (!typeGroup.label?.[rung]) continue;
     typeGroup.label[rung]['line-box'] = dimLeaf(px, `type.label.${rung} line-box — ${px}px, the height of one line of the \`label.${rung}\` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.`);
+  }
+  // #3153 — the body twin (owner Q852): an option row's control cell is its label's OWN line box, and the label is
+  // body one rung below the control's (`ROW_LABEL_RUNG`), so the cell reads `type.body.{label rung}.line-box`
+  // rather than the control rung's `control.size.*.line-box`. Same bake, same agreement check (`bodyLineBox`).
+  for (const [rung, px] of Object.entries(bodyLineBox)) {
+    if (!typeGroup.body?.[rung]) continue;
+    typeGroup.body[rung]['line-box'] = dimLeaf(px, `type.body.${rung} line-box — ${px}px, the height of one line of the \`body.${rung}\` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.`);
   }
 
   // ---- shadow / elevation axis (Phase A) ----

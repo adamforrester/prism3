@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 266 of 795 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 273 of 802 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -22,7 +22,6 @@ Type: dimension. Bound by 25 component(s).
 |---|---|---|---|
 | badge | `border-width` | surface | every member (40 of 40) |
 | banner | `border-width`, `width.contained.edge-side` | container | every member (8 of 8) |
-| brand-mark | `tile.border-width` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 75) |
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
@@ -45,6 +44,7 @@ Type: dimension. Bound by 25 component(s).
 | password-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | every member (84 of 84) |
+| provider-logo | `tile.border-width` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 75) |
 | search-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | every member (84 of 84) |
@@ -207,7 +207,7 @@ Type: color. Bound by 3 component(s).
 |---|---|---|---|
 | _slider-thumb | `border.hover`, `border.pressed`, `fill.pressed` | hoverHalo | state: hover, pressed (6 of 15) |
 |  |  | pressHalo | state: pressed (3 of 15) |
-| brand-mark | `tile.border` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 75) |
+| provider-logo | `tile.border` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 75) |
 | tabs | `fill` | baseline | every member (6 of 6) |
 
 ### `color.border.secondary`
@@ -390,13 +390,13 @@ Type: color. Bound by 14 component(s).
 | button | `disabled.label` | label | appearance: outline, text · state: disabled · surface: default (36 of 576) |
 | button-destructive | `disabled.label` | label | appearance: outline, text · state: disabled · surface: default (36 of 576) |
 | button-neutral | `disabled.label` | label | appearance: outline, text · state: disabled · surface: default (36 of 576) |
-| checkbox-row | `disabled.label` | (not drawn) | — |
+| checkbox-row | `disabled.indicator`, `disabled.label` | (not drawn) | — |
 | counter | `disabled.label` | value | state: disabled (6 of 18) |
 | field-label | `disabled.indicator`, `disabled.label` | indicator | state: disabled (12 of 24) |
 |  |  | label | state: disabled (12 of 24) |
 | pagination-item | `disabled.label` | nextText | labeled: true · selection: unselected · state: disabled · style: border · type: next (3 of 87) |
 |  |  | previousText | labeled: true · selection: unselected · state: disabled · style: border · type: previous (3 of 87) |
-| radio-row | `disabled.label` | (not drawn) | — |
+| radio-row | `disabled.indicator`, `disabled.label` | (not drawn) | — |
 | segmented-control-segment | `disabled.label` | label | state: disabled (6 of 30) |
 |  |  | labelReserve | state: disabled (6 of 30) |
 | slider | `disabled.body`, `disabled.label` | maxLabel | state: disabled (6 of 30) |
@@ -1991,11 +1991,12 @@ Type: color. Bound by 21 component(s).
 
 ### `color.text.secondary`
 
-Type: color. Bound by 12 component(s).
+Type: color. Bound by 14 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | card-number-field | `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
+| checkbox-row | `indicator` | description | every member (6 of 6) |
 | dialog | `indicator` | description | every member (24 of 24) |
 | divider | `label` | label | inset: none · labeled: true (2 of 7) |
 | field-label | `secondary.indicator`, `secondary.label` | indicator | emphasis: secondary · state: rest (6 of 24) |
@@ -2006,6 +2007,7 @@ Type: color. Bound by 12 component(s).
 |  |  | ringValueComplete | shape: circular · status: complete · type: determinate (2 of 12) |
 |  |  | value | shape: linear · size: medium · status: active, error · type: determinate (2 of 12) |
 |  |  | valueComplete | shape: linear · size: medium · status: complete · type: determinate (1 of 12) |
+| radio-row | `indicator` | description | every member (6 of 6) |
 | search-field | `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
 | select | `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
 | slider | `body` | maxLabel | state: focus-visible, hover, pressed, rest (24 of 30) |
@@ -2117,11 +2119,10 @@ Type: dimension. Bound by 3 component(s).
 
 ### `control.size.lg.dot`
 
-Type: dimension. Bound by 2 component(s).
+Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.large.dot` | bullet | size: large · type: unordered (1 of 9) |
 | radio-control | `size.large.dot` | dot | selection: checked · size: large (10 of 60) |
 
 ### `control.size.lg.height`
@@ -2137,19 +2138,26 @@ Type: dimension. Bound by 4 component(s).
 | radio-control | `size.large.control` | control | size: large (20 of 60) |
 | radio-row | `size.large.control` | control | size: large (2 of 6) |
 
+### `control.size.lg.label-inset`
+
+Type: dimension. Bound by 2 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.large.label-inset` | textStack | size: large (2 of 6) |
+| radio-row | `size.large.label-inset` | textStack | size: large (2 of 6) |
+
 ### `control.size.lg.line-box`
 
-Type: dimension. Bound by 8 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | card-number-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: large · state: focus-visible-filled (4 of 84) |
-| checkbox-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 | list-item | `size.large.line-box` | markerBox | size: large (3 of 9) |
 | password-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: large · state: focus-visible-filled (4 of 84) |
-| radio-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 | search-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: large · state: focus-visible-filled (4 of 84) |
 | text-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
@@ -2175,11 +2183,10 @@ Type: dimension. Bound by 1 component(s).
 
 ### `control.size.md.dot`
 
-Type: dimension. Bound by 2 component(s).
+Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.medium.dot` | bullet | size: medium · type: unordered (1 of 9) |
 | radio-control | `size.medium.dot` | dot | selection: checked · size: medium (10 of 60) |
 
 ### `control.size.md.height`
@@ -2203,22 +2210,28 @@ Type: dimension. Bound by 1 component(s).
 |---|---|---|---|
 | switch-control | `size.medium.inset` | track | size: medium (20 of 40) |
 
+### `control.size.md.label-inset`
+
+Type: dimension. Bound by 2 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.medium.label-inset` | textStack | size: medium (2 of 6) |
+| radio-row | `size.medium.label-inset` | textStack | size: medium (2 of 6) |
+
 ### `control.size.md.line-box`
 
-Type: dimension. Bound by 9 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | card-number-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
-| checkbox-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | list-item | `size.medium.line-box` | markerBox | size: medium (3 of 9) |
 | password-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
-| radio-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | search-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
-| switch-row | `size.medium.control-box` | controlCell | size: medium (2 of 4) |
 | text-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
 | textarea | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
@@ -2262,12 +2275,11 @@ Type: dimension. Bound by 1 component(s).
 
 ### `control.size.sm.dot`
 
-Type: dimension. Bound by 3 component(s).
+Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `dot-size` | dot | emphasis: bold · size: medium · type: dot (5 of 40) |
-| list-item | `size.small.dot` | bullet | size: small · type: unordered (1 of 9) |
 | radio-control | `size.small.dot` | dot | selection: checked · size: small (10 of 60) |
 
 ### `control.size.sm.height`
@@ -2291,22 +2303,28 @@ Type: dimension. Bound by 1 component(s).
 |---|---|---|---|
 | switch-control | `size.small.inset` | track | size: small (20 of 40) |
 
+### `control.size.sm.label-inset`
+
+Type: dimension. Bound by 2 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.small.label-inset` | textStack | size: small (2 of 6) |
+| radio-row | `size.small.label-inset` | textStack | size: small (2 of 6) |
+
 ### `control.size.sm.line-box`
 
-Type: dimension. Bound by 9 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | card-number-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
-| checkbox-row | `size.small.control-box` | controlCell | size: small (2 of 6) |
 | list-item | `size.small.line-box` | markerBox | size: small (3 of 9) |
 | password-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
-| radio-row | `size.small.control-box` | controlCell | size: small (2 of 6) |
 | search-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
-| switch-row | `size.small.control-box` | controlCell | size: small (2 of 4) |
 | text-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
 | textarea | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
@@ -2444,7 +2462,6 @@ Type: dimension. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| brand-mark | `size.large` | (not drawn) | — |
 | icon | `size.large` | (not drawn) | — |
 | icon-button | `size.large.icon` | icon | size: large · state: disabled, focus-visible, hover, pressed, rest (60 of 216) |
 |  |  | spinner | size: large · state: pending (12 of 216) |
@@ -2453,6 +2470,7 @@ Type: dimension. Bound by 8 component(s).
 | icon-button-neutral | `size.large.icon` | icon | size: large · state: disabled, focus-visible, hover, pressed, rest (60 of 216) |
 |  |  | spinner | size: large · state: pending (12 of 216) |
 | list-item | `size.large.icon` | icon | size: large · type: icon (1 of 9) |
+| provider-logo | `size.large` | (not drawn) | — |
 | spinner | `size.large` | frame | size: large (1 of 4) |
 |  |  | ringGlyph | size: large (1 of 4) |
 | wallet-button | `size.large.mark` | mark | provider: apple-pay, google-pay, shop-pay · size: large (6 of 20) |
@@ -2472,7 +2490,6 @@ Type: dimension. Bound by 24 component(s).
 |  |  | infoGlyph | tone: info (2 of 8) |
 |  |  | successGlyph | tone: success (2 of 8) |
 |  |  | warningGlyph | tone: warning (2 of 8) |
-| brand-mark | `size.medium` | (not drawn) | — |
 | button | `size.large.icon` | leadingVisual | leading: true · size: large · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: large · state: pending (32 of 576) |
 |  |  | trailingVisual | size: large · trailing: true (88 of 576) |
@@ -2506,6 +2523,7 @@ Type: dimension. Bound by 24 component(s).
 |  |  | header | shape: linear · size: medium (4 of 12) |
 |  |  | ring | shape: circular · size: small (4 of 12) |
 |  |  | ringGlyph | shape: circular · size: small (4 of 12) |
+| provider-logo | `size.medium` | (not drawn) | — |
 | segmented-control-segment | `size.large.icon` | leadingVisual | size: large (10 of 30) |
 | sign-in-button | `size.large.mark` | mark | size: large (32 of 96) |
 | spinner | `size.medium` | frame | size: medium (1 of 4) |
@@ -2527,7 +2545,6 @@ Type: dimension. Bound by 28 component(s).
 |  |  | frame | size: medium (4 of 12) |
 |  |  | minusGlyph | expansion: expanded · indicator: plus-minus · size: medium (1 of 12) |
 |  |  | plusGlyph | expansion: collapsed · indicator: plus-minus · size: medium (1 of 12) |
-| brand-mark | `size.small` | (not drawn) | — |
 | button | `size.medium.icon` | leadingVisual | leading: true · size: medium · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: medium · state: pending (32 of 576) |
 |  |  | trailingVisual | size: medium · trailing: true (88 of 576) |
@@ -2559,6 +2576,7 @@ Type: dimension. Bound by 28 component(s).
 |  |  | nextGlyph | selection: unselected · size: medium · style: border · type: next (10 of 87) |
 |  |  | previousGlyph | selection: unselected · size: medium · style: border · type: previous (10 of 87) |
 | password-field | `icon-size` | leadingVisual | every member (84 of 84) |
+| provider-logo | `size.small` | (not drawn) | — |
 | search-field | `icon-size` | leadingVisual | every member (84 of 84) |
 |  |  | trailingVisual | every member (84 of 84) |
 | segmented-control-segment | `size.medium.icon` | leadingVisual | size: medium (10 of 30) |
@@ -2719,11 +2737,11 @@ Type: dimension. Bound by 11 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `status.radius` | surface | type: status (30 of 40) |
-| brand-mark | `tile.radius` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 75) |
 | card-number-field | `radius` | control | every member (84 of 84) |
 | code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | container | size: large, medium, small (21 of 28) |
 | counter | `radius` | control | every member (18 of 18) |
 | password-field | `radius` | control | every member (84 of 84) |
+| provider-logo | `tile.radius` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 75) |
 | search-field | `radius` | control | every member (84 of 84) |
 | segmented-control-segment | `indicator-radius` | indicator | every member (30 of 30) |
 | select | `radius` | control | every member (84 of 84) |
@@ -2920,7 +2938,7 @@ Type: dimension. Bound by 3 component(s).
 
 ### `space.050`
 
-Type: dimension. Bound by 12 component(s).
+Type: dimension. Bound by 14 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2931,6 +2949,7 @@ Type: dimension. Bound by 12 component(s).
 | breadcrumb-item | `size.small.gap` | container | size: small (5 of 10) |
 | breadcrumbs | `back-gap`, `size.small.gap` | container | every member (6 of 6) |
 |  |  | items | path: full · size: small (2 of 6) |
+| checkbox-row | `description-gap` | textStack | every member (6 of 6) |
 | counter | `size.medium.value-pad`, `size.small.value-pad` | entry | size: medium, small (12 of 18) |
 | field-label | `gap` | container | every member (24 of 24) |
 | link | `size.medium.gap`, `size.small.gap` | container | size: medium, small (96 of 144) |
@@ -2938,6 +2957,7 @@ Type: dimension. Bound by 12 component(s).
 |  |  | row | type: compact, numbered (9 of 12) |
 |  |  | simpleRow | style: border · type: simple (3 of 12) |
 | pagination-item | `gap` | container | every member (87 of 87) |
+| radio-row | `description-gap` | textStack | every member (6 of 6) |
 | segmented-control-segment | `inset` | container | every member (30 of 30) |
 | tag | `size.large.dismissible.gap`, `size.large.dismissible.label-inset`, `size.medium.dismissible.gap`, `size.medium.dismissible.label-inset`, `size.small.check-gap`, `size.small.dismissible.label-inset`, `size.small.underline.inset` | content | selection: unselected · size: large, medium · type: dismissible (10 of 45) |
 |  |  | labelCheck | every member (25 of 45) |
@@ -2945,7 +2965,7 @@ Type: dimension. Bound by 12 component(s).
 
 ### `space.075`
 
-Type: dimension. Bound by 19 component(s).
+Type: dimension. Bound by 20 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2956,6 +2976,7 @@ Type: dimension. Bound by 19 component(s).
 | card-number-field | `size.small.pad-y` | control | size: small (28 of 84) |
 | checkbox-row | `size.small.pad-y` | row | size: small (2 of 6) |
 | field-message | `gap` | message | every member (4 of 4) |
+| list-item | `size.small.bullet` | bullet | size: small · type: unordered (1 of 9) |
 | password-field | `size.small.pad-y` | control | size: small (28 of 84) |
 | progress | `gap` | container | every member (12 of 12) |
 | radio-row | `size.small.pad-y` | row | size: small (2 of 6) |
@@ -2998,8 +3019,7 @@ Type: dimension. Bound by 34 component(s).
 | dialog | `title-gap` | titleBox | every member (24 of 24) |
 | divider | `vertical.middle-inset.pad-block` | container | inset: middle-inset · labeled: false · orientation: vertical (1 of 7) |
 | link | `size.large.gap` | container | size: large (48 of 144) |
-| list | `size.small.gap` | container | size: small (3 of 9) |
-|  |  | items | size: small (3 of 9) |
+| list-item | `size.large.bullet`, `size.medium.bullet` | bullet | size: large, medium · type: unordered (2 of 9) |
 | pagination-item | `padding-x` | container | every member (87 of 87) |
 | password-field | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |
@@ -3055,8 +3075,8 @@ Type: dimension. Bound by 18 component(s).
 |  |  | row | size: large (2 of 6) |
 | counter | `outline.size.medium.pad-x`, `outline.size.small.pad-x` | control | appearance: outline · size: medium, small (6 of 18) |
 | divider | `vertical.gap` | container | inset: middle-inset, none · orientation: vertical (3 of 7) |
-| list | `size.medium.gap` | container | size: medium (3 of 9) |
-|  |  | items | size: medium (3 of 9) |
+| list | `size.small.gap` | container | size: small (3 of 9) |
+|  |  | items | size: small (3 of 9) |
 | radio-row | `size.large.gap`, `size.large.pad-y` | content | size: large (2 of 6) |
 |  |  | row | size: large (2 of 6) |
 | segmented-control-segment | `size.small.padding-x` | content | size: small (10 of 30) |
@@ -3086,8 +3106,8 @@ Type: dimension. Bound by 20 component(s).
 |  |  | header | every member (24 of 24) |
 |  |  | panel | every member (24 of 24) |
 | divider | `horizontal.inset.pad-start`, `horizontal.middle-inset.pad-end`, `horizontal.middle-inset.pad-start` | container | inset: inset, middle-inset · labeled: false · orientation: horizontal (2 of 7) |
-| list | `size.large.gap` | container | size: large (3 of 9) |
-|  |  | items | size: large (3 of 9) |
+| list | `size.medium.gap` | container | size: medium (3 of 9) |
+|  |  | items | size: medium (3 of 9) |
 | password-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | search-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | segmented-control-segment | `size.medium.padding-x` | content | size: medium (10 of 30) |
@@ -3101,12 +3121,14 @@ Type: dimension. Bound by 20 component(s).
 
 ### `space.250`
 
-Type: dimension. Bound by 4 component(s).
+Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.pad-x` | content | expansion: expanded · size: large (8 of 48) |
 |  |  | header | size: large (16 of 48) |
+| list | `size.large.gap` | container | size: large (3 of 9) |
+|  |  | items | size: large (3 of 9) |
 | list-item | `size.small.ordered.marker-column`, `size.small.unordered.marker-column` | markerBox | size: small · type: ordered, unordered (2 of 9) |
 | segmented-control-segment | `size.large.padding-x` | content | size: large (10 of 30) |
 | tab-item | `size.large.padding-x` | content | size: large (10 of 30) |
@@ -3127,7 +3149,7 @@ Type: dimension. Bound by 14 component(s).
 |  |  | header | placement: center, end (16 of 24) |
 |  |  | panel | placement: center, end (16 of 24) |
 | divider | `horizontal.gap` | container | orientation: horizontal (4 of 7) |
-| list-item | `size.medium.ordered.marker-column`, `size.medium.unordered.marker-column`, `size.small.icon.marker-column` | markerBox | size: medium, small (3 of 9) |
+| list-item | `size.medium.ordered.marker-column`, `size.medium.unordered.marker-column` | markerBox | size: medium · type: ordered, unordered (2 of 9) |
 | password-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | search-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | select | `size.large.pad-x` | control | size: large (28 of 84) |
@@ -3141,9 +3163,17 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.large.ordered.marker-column`, `size.large.unordered.marker-column`, `size.medium.icon.marker-column` | markerBox | size: large, medium (3 of 9) |
+| list-item | `size.large.ordered.marker-column`, `size.large.unordered.marker-column`, `size.small.icon.marker-column` | markerBox | size: large, small (3 of 9) |
 
 ### `space.500`
+
+Type: dimension. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| list-item | `size.medium.icon.marker-column` | markerBox | size: medium · type: icon (1 of 9) |
+
+### `space.600`
 
 Type: dimension. Bound by 1 component(s).
 
@@ -3153,21 +3183,19 @@ Type: dimension. Bound by 1 component(s).
 
 ### `type.body.lg.default`
 
-Type: typography. Bound by 12 component(s).
+Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.panel-type` | placeholder | expansion: expanded · size: large (8 of 48) |
 | card-number-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
-| checkbox-row | `size.large.text` | label | size: large (2 of 6) |
 | counter | `size.large.type` | value | size: large (6 of 18) |
 | link | `size.large.type.default.standalone.selected.focus-visible`, `size.large.type.default.standalone.selected.hover`, `size.large.type.default.standalone.selected.pressed`, `size.large.type.default.standalone.selected.rest`, `size.large.type.default.standalone.unselected.rest` | label | size: large · style: standalone · weight: default (10 of 144) |
 | list-item | `size.large.text` | label | size: large (3 of 9) |
 |  |  | number | size: large · type: ordered (1 of 9) |
 | password-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
-| radio-row | `size.large.text` | label | size: large (2 of 6) |
 | search-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
 | select | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3203,7 +3231,7 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 19 component(s).
+Type: typography. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3212,7 +3240,7 @@ Type: typography. Bound by 19 component(s).
 | breadcrumb-item | `size.medium.type` | current | kind: current · separator: chevron · size: medium (1 of 10) |
 | card-number-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
-| checkbox-row | `size.medium.text` | label | size: medium (2 of 6) |
+| checkbox-row | `size.large.text` | label | size: large (2 of 6) |
 | code-input-cell | `size.small.type` | digit | size: small · state: error, filled, focus-visible-filled (3 of 28) |
 | counter | `size.medium.type` | value | size: medium (6 of 18) |
 | dialog | `body-type`, `description-type` | description | every member (24 of 24) |
@@ -3224,12 +3252,11 @@ Type: typography. Bound by 19 component(s).
 |  |  | number | size: medium · type: ordered (1 of 9) |
 | password-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
-| radio-row | `size.medium.text` | label | size: medium (2 of 6) |
+| radio-row | `size.large.text` | label | size: large (2 of 6) |
 | search-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | select | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
-| switch-row | `size.medium.text` | label | size: medium (2 of 4) |
 | text-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | textarea | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3243,6 +3270,15 @@ Type: typography. Bound by 1 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | link | `size.medium.type.default.inline.selected.focus-visible`, `size.medium.type.default.inline.selected.hover`, `size.medium.type.default.inline.selected.pressed`, `size.medium.type.default.inline.selected.rest`, `size.medium.type.default.inline.unselected.focus-visible`, `size.medium.type.default.inline.unselected.hover`, `size.medium.type.default.inline.unselected.pressed`, `size.medium.type.default.inline.unselected.rest`, `size.medium.type.default.standalone.unselected.focus-visible`, `size.medium.type.default.standalone.unselected.hover`, `size.medium.type.default.standalone.unselected.pressed` | label | selection: unselected · size: medium · weight: default (14 of 144) |
+
+### `type.body.md.line-box`
+
+Type: dimension. Bound by 2 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
+| radio-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 
 ### `type.body.md.strong`
 
@@ -3272,7 +3308,8 @@ Type: typography. Bound by 17 component(s).
 | breadcrumb-item | `size.small.type` | current | kind: current · separator: chevron · size: small (1 of 10) |
 | card-number-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
-| checkbox-row | `size.small.text` | label | size: small (2 of 6) |
+| checkbox-row | `description.large.text`, `size.medium.text` | description | size: large (2 of 6) |
+|  |  | label | size: medium (2 of 6) |
 | counter | `size.small.type` | value | size: small (6 of 18) |
 | field-label | `size.medium.regular.text` | indicator | size: medium · weight: regular (4 of 24) |
 |  |  | label | size: medium · weight: regular (4 of 24) |
@@ -3285,14 +3322,15 @@ Type: typography. Bound by 17 component(s).
 |  |  | ringValueComplete | shape: circular · status: complete · type: determinate (2 of 12) |
 |  |  | value | shape: linear · size: medium · status: active, error · type: determinate (2 of 12) |
 |  |  | valueComplete | shape: linear · size: medium · status: complete · type: determinate (1 of 12) |
-| radio-row | `size.small.text` | label | size: small (2 of 6) |
+| radio-row | `description.large.text`, `size.medium.text` | description | size: large (2 of 6) |
+|  |  | label | size: medium (2 of 6) |
 | search-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | select | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | slider | `value-type` | valueRange | type: range (15 of 30) |
 |  |  | valueSingle | type: single (15 of 30) |
-| switch-row | `size.small.text` | label | size: small (2 of 4) |
+| switch-row | `size.medium.text` | label | size: medium (2 of 4) |
 | text-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | textarea | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3305,6 +3343,16 @@ Type: typography. Bound by 1 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | link | `size.small.type.default.inline.selected.focus-visible`, `size.small.type.default.inline.selected.hover`, `size.small.type.default.inline.selected.pressed`, `size.small.type.default.inline.selected.rest`, `size.small.type.default.inline.unselected.focus-visible`, `size.small.type.default.inline.unselected.hover`, `size.small.type.default.inline.unselected.pressed`, `size.small.type.default.inline.unselected.rest`, `size.small.type.default.standalone.unselected.focus-visible`, `size.small.type.default.standalone.unselected.hover`, `size.small.type.default.standalone.unselected.pressed` | label | selection: unselected · size: small · weight: default (14 of 144) |
+
+### `type.body.sm.line-box`
+
+Type: dimension. Bound by 3 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
+| radio-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
+| switch-row | `size.medium.control-box` | controlCell | size: medium (2 of 4) |
 
 ### `type.body.sm.strong`
 
@@ -3326,15 +3374,30 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.xs.default`
 
-Type: typography. Bound by 2 component(s).
+Type: typography. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| checkbox-row | `description.medium.text`, `description.small.text`, `size.small.text` | description | size: medium, small (4 of 6) |
+|  |  | label | size: small (2 of 6) |
 | field-label | `size.small.regular.text` | indicator | size: small · weight: regular (4 of 24) |
 |  |  | label | size: small · weight: regular (4 of 24) |
+| radio-row | `description.medium.text`, `description.small.text`, `size.small.text` | description | size: medium, small (4 of 6) |
+|  |  | label | size: small (2 of 6) |
 | slider | `milestone-type` | maxLabel | every member (30 of 30) |
 |  |  | milestone | every member (30 of 30) |
 |  |  | minLabel | every member (30 of 30) |
+| switch-row | `size.small.text` | label | size: small (2 of 4) |
+
+### `type.body.xs.line-box`
+
+Type: dimension. Bound by 3 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| checkbox-row | `size.small.control-box` | controlCell | size: small (2 of 6) |
+| radio-row | `size.small.control-box` | controlCell | size: small (2 of 6) |
+| switch-row | `size.small.control-box` | controlCell | size: small (2 of 4) |
 
 ### `type.body.xs.strong`
 
@@ -3571,14 +3634,6 @@ Declared, not drawn: `color.border.focus`
 
 `border-width.hairline`, `border-width.none`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.warning`, `color.foreground.danger-subtle`, `color.foreground.info-subtle`, `color.foreground.success-subtle`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.success`, `color.icon.warning`, `color.text.primary`, `container.min`, `icon.size.md`, `radius.md`, `radius.none`, `space.050`, `space.150`, `space.200`, `type.body.md.default`, `type.label.md.emphasis`
 
-### brand-mark
-
-6 token(s); 75 design-file member(s).
-
-`border-width.hairline`, `color.border.primary`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.sm`
-
-Declared, not drawn: `icon.size.lg`, `icon.size.md`, `icon.size.sm`
-
 ### breadcrumb-item
 
 5 token(s); 10 design-file member(s).
@@ -3649,9 +3704,9 @@ Declared, not drawn: `color.border.focus`
 
 ### checkbox-row
 
-18 token(s); 6 design-file member(s).
+23 token(s); 6 design-file member(s).
 
-`color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`color.disabled.text`, `color.text.primary`, `color.text.secondary`, `control.size.lg.height`, `control.size.lg.label-inset`, `control.size.md.height`, `control.size.md.label-inset`, `control.size.sm.height`, `control.size.sm.label-inset`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.075`, `space.100`, `space.150`, `type.body.md.default`, `type.body.md.line-box`, `type.body.sm.default`, `type.body.sm.line-box`, `type.body.xs.default`, `type.body.xs.line-box`
 
 Declared, not drawn: `color.disabled.text`
 
@@ -3791,13 +3846,13 @@ Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link
 
 3 token(s); 9 design-file member(s).
 
-`space.100`, `space.150`, `space.200`
+`space.150`, `space.200`, `space.250`
 
 ### list-item
 
 20 token(s); 9 design-file member(s).
 
-`color.icon.primary`, `color.text.primary`, `control.size.lg.dot`, `control.size.lg.line-box`, `control.size.md.dot`, `control.size.md.line-box`, `control.size.sm.dot`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `space.0`, `space.250`, `space.300`, `space.400`, `space.500`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`color.icon.primary`, `color.text.primary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `space.0`, `space.075`, `space.100`, `space.250`, `space.300`, `space.400`, `space.500`, `space.600`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### pagination
 
@@ -3825,6 +3880,14 @@ Declared, not drawn: `color.border.focus`
 
 `border-width.heavy`, `color.background.tertiary`, `color.icon.brand`, `color.icon.danger`, `color.icon.success`, `color.text.primary`, `color.text.secondary`, `icon.size.md`, `icon.size.xl`, `radius.capsule`, `space.075`, `space.100`, `type.body.sm.default`, `type.label.md.emphasis`
 
+### provider-logo
+
+6 token(s); 75 design-file member(s).
+
+`border-width.hairline`, `color.border.primary`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.sm`
+
+Declared, not drawn: `icon.size.lg`, `icon.size.md`, `icon.size.sm`
+
 ### radio-control
 
 20 token(s); 60 design-file member(s).
@@ -3841,9 +3904,9 @@ Declared, not drawn: `color.border.focus`
 
 ### radio-row
 
-18 token(s); 6 design-file member(s).
+23 token(s); 6 design-file member(s).
 
-`color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`color.disabled.text`, `color.text.primary`, `color.text.secondary`, `control.size.lg.height`, `control.size.lg.label-inset`, `control.size.md.height`, `control.size.md.label-inset`, `control.size.sm.height`, `control.size.sm.label-inset`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.075`, `space.100`, `space.150`, `type.body.md.default`, `type.body.md.line-box`, `type.body.sm.default`, `type.body.sm.line-box`, `type.body.xs.default`, `type.body.xs.line-box`
 
 Declared, not drawn: `color.disabled.text`
 
@@ -3903,7 +3966,7 @@ Declared, not drawn: `color.border.focus`
 
 13 token(s); 4 design-file member(s).
 
-`color.disabled.text`, `color.text.primary`, `control.size.md.line-box`, `control.size.md.track`, `control.size.sm.line-box`, `control.size.sm.track`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `type.body.md.default`, `type.body.sm.default`
+`color.disabled.text`, `color.text.primary`, `control.size.md.track`, `control.size.sm.track`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `type.body.sm.default`, `type.body.sm.line-box`, `type.body.xs.default`, `type.body.xs.line-box`
 
 Declared, not drawn: `color.disabled.text`
 
@@ -3985,8 +4048,8 @@ Declared, not drawn: `color.border.focus`
 - **radius** — `radius.3xl`, `radius.hairline`
 - **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.md`, `shadow.sm`, `shadow.xs`
 - **size** — `size.xs.height`
-- **space** — `space.1000`, `space.1100`, `space.1200`, `space.600`, `space.700`, `space.800`, `space.900`
-- **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.default-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.body.xs.strong-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.sm.emphasis`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
+- **space** — `space.1000`, `space.1100`, `space.1200`, `space.700`, `space.800`, `space.900`
+- **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.line-box`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.default-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.body.xs.strong-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.sm.emphasis`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
 
 ### Primitive
 

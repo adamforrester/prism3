@@ -3,7 +3,7 @@
  *
  *   npx tsx packages/engine/lint-mark-slots.ts
  *
- * The Card number field's trailing cell is a swap slot for a brand mark. Three promises make it a payment field and
+ * The Card number field's trailing cell is a swap slot for a provider logo. Three promises make it a payment field and
  * not a box that happens to hold a logo, and each is checked here against the marks FOLDER, never against the set
  * or the def that produced the plan:
  *
@@ -14,7 +14,7 @@
  *       sign-in glyph, a logo or a social mark named there fails; so does a listed network the prop forgot, and a
  *       listed network with no tile.
  *   (b) GENERIC FIRST — the prop defaults to `generic`, and on every projected member the slot's swap, and the set's
- *       swap property, start at `brand-mark/<tile folder>/generic`, a file that exists. The generic tile is what the
+ *       swap property, start at `provider-logo/<tile folder>/generic`, a file that exists. The generic tile is what the
  *       field shows before the number tells the network.
  *   (c) A TILE'S SHAPE — on every member the slot binds its height alone, to the icon rung the field's size takes (20
  *       at small and medium, 24 at large), and carries the aspect lock, so the width follows the tile and the tile is
@@ -26,8 +26,8 @@
  *
  * ── INDEPENDENCE (docs/34) ──────────────────────────────────────────────────────────────────────────
  *
- * The tile set is read from the folder with this file's own `viewBox` reader; it never imports `brand-mark-set.ts` or
- * `brand-mark-glyphs.ts`, which the def reads to check its list. The tile artboard (32×20), the generic name, the
+ * The tile set is read from the folder with this file's own `viewBox` reader; it never imports `provider-logo-set.ts` or
+ * `provider-logo-glyphs.ts`, which the def reads to check its list. The tile artboard (32×20), the generic name, the
  * hosts, their part and prop names, their card networks and the height rungs are literals typed here; the networks
  * are never imported from the def's `CARD_NETWORKS`, so a network added to (or dropped from) one list fails here. The def and its projected plans are the
  * subjects. Reading the tile list off the set would only prove the def agrees with the set it was built from.
@@ -45,7 +45,7 @@ const marksDir = resolve(here, 'marks');
 const TILE_VIEWBOX = '0 0 32 20';
 /** The tile a payment field shows before it knows the network (owner, 2026-10-27). */
 const GENERIC = 'generic';
-const MARK_PREFIX = 'brand-mark/';
+const MARK_PREFIX = 'provider-logo/';
 /** Every def with a payment-tile slot, its slot part, the code prop that names the tile, the card networks that prop
  *  offers (Q-C7 A: card networks only, never a wallet or pay-later tile), and the variable its slot's height binds at
  *  each size. */
@@ -83,9 +83,9 @@ const self: string[] = [];
 {
   if (viewBoxOf('<svg width="32" height="20" viewBox="0  0 32  20" fill="none">') !== TILE_VIEWBOX) self.push('viewBoxOf misreads a tile artboard');
   if (viewBoxOf('<svg viewBox="0 0 24 24">') === TILE_VIEWBOX) self.push('viewBoxOf reads a square as a tile');
-  const good = { name: 'cardMark', type: 'INSTANCE_SWAP', swapTarget: 'brand-mark/t/generic', propertyRef: { field: 'mainComponent', prop: 's' }, bound: { height: 'icon/size/sm' }, aspectLock: true } as unknown as FigmaNodePlan;
+  const good = { name: 'cardMark', type: 'INSTANCE_SWAP', swapTarget: 'provider-logo/t/generic', propertyRef: { field: 'mainComponent', prop: 's' }, bound: { height: 'icon/size/sm' }, aspectLock: true } as unknown as FigmaNodePlan;
   if (slotErrors(good, 't', 'icon/size/sm').length) self.push(`slotErrors rejects a good slot: ${slotErrors(good, 't', 'icon/size/sm').join('; ')}`);
-  if (slotErrors({ ...good, swapTarget: 'brand-mark/provider/google' } as FigmaNodePlan, 't', 'icon/size/sm').length !== 1) self.push('slotErrors misses a slot that starts at a non-tile');
+  if (slotErrors({ ...good, swapTarget: 'provider-logo/provider/google' } as FigmaNodePlan, 't', 'icon/size/sm').length !== 1) self.push('slotErrors misses a slot that starts at a non-tile');
   if (slotErrors({ ...good, aspectLock: undefined } as FigmaNodePlan, 't', 'icon/size/sm').length !== 1) self.push('slotErrors misses a missing aspect lock');
   if (slotErrors({ ...good, bound: { height: 'icon/size/sm', width: 'icon/size/sm' } } as unknown as FigmaNodePlan, 't', 'icon/size/sm').length !== 1) self.push('slotErrors misses a second dimension');
   if (slotErrors({ ...good, bound: { height: 'icon/size/md' } } as unknown as FigmaNodePlan, 't', 'icon/size/sm').length !== 1) self.push('slotErrors misses a wrong height rung');

@@ -14,7 +14,6 @@ Generated from the component definitions and the emission by `packages/engine/em
 | _breadcrumb-separator | breadcrumb-item | breadcrumb-item, breadcrumbs |
 | _slider-thumb | slider | slider |
 | badge | tab-item | tab-item, tabs |
-| brand-mark | sign-in-button, wallet-button | sign-in-button, wallet-button |
 | breadcrumb-item | breadcrumbs | breadcrumbs |
 | button | banner, button-group, password-field, toast | banner, button-group, dialog, password-field, toast |
 | button-group | dialog | dialog |
@@ -29,6 +28,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | link | breadcrumb-item, breadcrumbs | breadcrumb-item, breadcrumbs |
 | list-item | list | list |
 | pagination-item | pagination | pagination |
+| provider-logo | sign-in-button, wallet-button | sign-in-button, wallet-button |
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
 | segmented-control-segment | segmented-control | segmented-control |
@@ -49,7 +49,6 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | accordion | 1 | _accordion-indicator, divider, focus-ring | _accordion-indicator, divider, focus-ring |
 | badge | 0 | — | — |
 | banner | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
-| brand-mark | 0 | — | — |
 | breadcrumb-item | 2 | _breadcrumb-separator, flush-icon-button-neutral, link | _breadcrumb-separator, flush-icon-button-neutral, focus-ring, link |
 | breadcrumbs | 3 | breadcrumb-item, link | _breadcrumb-separator, breadcrumb-item, flush-icon-button-neutral, focus-ring, link |
 | button | 1 | focus-ring, spinner | focus-ring, spinner |
@@ -83,6 +82,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | pagination-item | 1 | focus-ring | focus-ring |
 | password-field | 2 | button, field-label, field-message, focus-ring | button, field-label, field-message, focus-ring, spinner |
 | progress | 1 | field-message | field-message |
+| provider-logo | 0 | — | — |
 | radio-control | 1 | focus-ring | focus-ring |
 | radio-group | 3 | field-label, field-message, radio-row | field-label, field-message, focus-ring, radio-control, radio-row |
 | radio-row | 2 | radio-control | focus-ring, radio-control |
@@ -90,7 +90,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | segmented-control | 2 | field-label, segmented-control-segment | field-label, focus-ring, segmented-control-segment |
 | segmented-control-segment | 1 | focus-ring | focus-ring |
 | select | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
-| sign-in-button | 1 | brand-mark, focus-ring | brand-mark, focus-ring |
+| sign-in-button | 1 | focus-ring, provider-logo | focus-ring, provider-logo |
 | slider | 2 | _slider-thumb, field-label, field-message, text-field | _slider-thumb, field-label, field-message, focus-ring, text-field |
 | spinner | 0 | — | — |
 | switch-control | 1 | focus-ring | focus-ring |
@@ -102,7 +102,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | textarea | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
 | toast | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
 | veil | 0 | — | — |
-| wallet-button | 1 | brand-mark, focus-ring | brand-mark, focus-ring |
+| wallet-button | 1 | focus-ring, provider-logo | focus-ring, provider-logo |
 
 Depth is 0 for a component that nests nothing, and one more than its deepest child otherwise.
 
@@ -217,7 +217,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | select | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | select | message | nest | field-message | nest-fixed | status=default | status | — |
 | sign-in-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| sign-in-button | mark | nest | brand-mark | nest-fixed | name=provider/apple | — | — |
+| sign-in-button | mark | nest | provider-logo | nest-fixed | name=provider/apple | — | — |
 | slider | inputMax | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
 | slider | inputMin | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
 | slider | inputSingle | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
@@ -242,7 +242,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | toast | action | nest | button | nest-fixed | appearance=text, size=small, surface=inverse, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
 | toast | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=inverse, state=rest | — | — |
 | wallet-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| wallet-button | mark | nest | brand-mark | nest-fixed | name=logo/apple-pay | — | — |
+| wallet-button | mark | nest | provider-logo | nest-fixed | name=logo/apple-pay | — | — |
 
 ## Inherits
 

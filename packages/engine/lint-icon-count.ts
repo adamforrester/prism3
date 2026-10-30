@@ -60,16 +60,16 @@
  * metadata — or grows the set and leaves a "43" behind — this fires by name. Proven by the mandatory
  * mutation in #1293's progress entry.
  *
- * ── AND THE BRAND-MARK DEF, WHICH STATES NO COUNT AT ALL (#2343) ────────────────────────────────────
+ * ── AND THE PROVIDER-LOGO DEF, WHICH STATES NO COUNT AT ALL (#2343) ────────────────────────────────────
  *
  * The second icon type takes the same check, one notch stricter. The owner will supply about a dozen providers
- * and the list is data (Q-B7 amended), so the `brand-mark` def's prose states NO count of marks or providers:
- * any integer bound to a mark noun fails, whether or not it matches `BRAND_MARK_SOURCES` today. The same
+ * and the list is data (Q-B7 amended), so the `provider-logo` def's prose states NO count of marks or providers:
+ * any integer bound to a mark noun fails, whether or not it matches `PROVIDER_LOGO_SOURCES` today. The same
  * self-check proves the mark detector live, and the same kind of floor proves the scope was read.
  *
  * Dependency-free per repo convention — the def is imported, the detector is a hand-rolled regex.
  */
-import { brandMark, icon } from './components';
+import { providerLogo, icon } from './components';
 import { ICON_NAMES } from './icon-glyphs';
 import type { ComponentDef } from './component-schema';
 
@@ -199,7 +199,7 @@ if (floorProblems.length) {
   process.exit(1);
 }
 
-// ---- THE BRAND-MARK DEF: NO COUNT AT ALL (#2343) ----------------------------------------------------
+// ---- THE PROVIDER-LOGO DEF: NO COUNT AT ALL (#2343) ----------------------------------------------------
 // Its own noun list: `providers`, `marks` and `logos` are what a sentence about the mark set would count, and
 // `members`/`sources` mean one member and one file per mark here as they do for the icon set.
 const MARK_NOUN = '(?:marks?|logos?|providers?|members?|sources?|networks?)';
@@ -219,22 +219,22 @@ export const markCounts = (text: string): CountClaim[] => {
   if (!markCounts('about 12 providers').some((c) => c.count === 12)) bad.push('"12 providers" is not detected');
   if (!markCounts('a 19-mark set').some((c) => c.count === 19)) bad.push('the hyphenated "19-mark" form is not detected');
   for (const clean of ['Square marks are 24 by 24, payment tiles 32 by 20', 'logos 24 high at their own width', 'The height: 20, 24 or 32px']) {
-    if (markCounts(clean).length) bad.push(`false positive on real brand-mark prose: "${clean}" → ${JSON.stringify(markCounts(clean))}`);
+    if (markCounts(clean).length) bad.push(`false positive on real provider-logo prose: "${clean}" → ${JSON.stringify(markCounts(clean))}`);
   }
   if (bad.length) {
-    console.error("\n❌ the brand-mark count check's own detection is broken:\n");
+    console.error("\n❌ the provider-logo count check's own detection is broken:\n");
     for (const b of bad) console.error(`    ${b}`);
     process.exit(1);
   }
 }
-const markProse = iconProse(brandMark);
+const markProse = iconProse(providerLogo);
 const markFloor: string[] = [];
 if (!markProse.some((f) => f.field === 'description')) markFloor.push('no description field');
 if (markProse.filter((f) => f.field.startsWith('props.')).length < 2) markFloor.push('fewer than 2 prop descriptions');
 if (!markProse.some((f) => f.field.startsWith('anatomy.parts.'))) markFloor.push('no anatomy part note');
 if (markProse.filter((f) => f.field.startsWith('anatomy.codeOnly')).length < 3) markFloor.push('fewer than 3 codeOnly entries');
 if (markFloor.length) {
-  console.error('\n❌ the brand-mark count check read less of the brand-mark def than it promised to:\n');
+  console.error('\n❌ the provider-logo count check read less of the provider-logo def than it promised to:\n');
   for (const p of markFloor) console.error(`    ${p}`);
   process.exit(1);
 }
@@ -253,12 +253,12 @@ console.log(
 );
 
 if (markFailures.length) {
-  console.error(`\n❌ ${markFailures.length} brand-mark prose field(s) state a count of marks — the provider list is data (owner decision on #2343, Q-B7 amended), so the brand-mark def states none:\n`);
-  for (const { field, claim } of markFailures) console.error(`    brand-mark.${field}: "${claim.phrase}"`);
-  console.error('\n  Name the source instead ("every mark in the set", "the BrandMarkName list").');
+  console.error(`\n❌ ${markFailures.length} provider-logo prose field(s) state a count of marks — the provider list is data (owner decision on #2343, Q-B7 amended), so the provider-logo def states none:\n`);
+  for (const { field, claim } of markFailures) console.error(`    provider-logo.${field}: "${claim.phrase}"`);
+  console.error('\n  Name the source instead ("every mark in the set", "the ProviderLogoName list").');
   process.exit(1);
 }
-console.log(`Brand-mark count check — ${markProse.length} brand-mark prose field(s) scanned; no count of marks may be stated.`);
+console.log(`Provider-logo count check — ${markProse.length} provider-logo prose field(s) scanned; no count of marks may be stated.`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} icon-metadata prose field(s) state a glyph count that disagrees with the vocabulary (${expected}):\n`);
   for (const { field, claim } of failures) {

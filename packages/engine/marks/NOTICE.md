@@ -1,4 +1,4 @@
-# Brand marks — what this set is, where the artwork comes from, and the trademark line
+# Provider logos — what this set is, where the artwork comes from, and the trademark line
 
 ## What the set is
 
@@ -8,13 +8,13 @@ are the second icon type, beside the core set in `icons/`, because they need the
 core set does: several paths, the provider's own colors, a provider-shaped artboard, and no ink from the
 component that hosts them.
 
-- **Names** are ours (`brand-mark-set.ts`), `<kind>/<provider>[-<style>]` in lowercase kebab-case (Q778 A),
+- **Names** are ours (`provider-logo-set.ts`), `<kind>/<provider>[-<style>]` in lowercase kebab-case (Q778 A),
   so swapping the artwork changes files, never names.
 - **Artboards** by kind: square 24×24 (`social`, `provider`); the payment tile, 32×20 (`payment`, Q780 A),
   one kind for every logo in an "accepted payments" row; and the logo, 24 high, hugging its artwork left
   and right, with the width per mark (`logo`, Q781 A, Q783 A). A logo's side spacing is the component's.
 - **Payment tiles are full-bleed** (owner decision Q720 A): square corners, no border, the tile's ground
-  kept, because a colored ground is part of the provider's mark. The `brand-mark` component rounds the
+  kept, because a colored ground is part of the provider's mark. The `provider-logo` component rounds the
   corners and draws the edge from tokens, the same at every size and mode, so a tile file that rounds or
   borders itself fails `lint-glyph-geometry.ts` (TILE BAKED, TILE BORDER BAKED). `payment/generic`, the
   owner's own card, is a silhouette with no ground: its record says `fullBleed: false`, which skips only
@@ -42,9 +42,9 @@ most 0.024). `social/x` was supplied as `twitter`; it is the X glyph, so it carr
 Three data edits, then the steps any new member owes the versioned surface:
 
 1. the SVG in its kind's folder;
-2. its entry in `brand-mark-set.ts`;
+2. its entry in `provider-logo-set.ts`;
 3. its record in `provenance.json`;
-4. its name in the `brand-mark` row of `lint-axis-values.ts`'s register;
+4. its name in the `provider-logo` row of `lint-axis-values.ts`'s register;
 5. after `regen.ts`, `--accept` on `lint-component-surface.ts` and `lint-component-renames.ts`;
 6. a change note for the surface drift.
 
@@ -70,4 +70,4 @@ repository is for internal use for now and marks like these are commonplace in t
 **If the repository goes public, refactor before it does**, to the Q-B1 A model: commit a mark only when
 its source's terms permit this use, recorded in `provenance.json`, and keep a same-name neutral
 placeholder for every other mark. The artwork then stays in the brand's Figma library and in its code,
-where a brand swaps marks by name (`brand-mark` docs).
+where a brand swaps marks by name (`provider-logo` docs).

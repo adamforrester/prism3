@@ -1001,12 +1001,12 @@ export const GATES: Gate[] = [
   },
   {
     id: 'lint-mark-provenance',
-    ciStep: 'Every brand mark has a provenance record and every record a file',
+    ciStep: 'Every provider logo has a provenance record and every record a file',
     cmd: engine('lint-mark-provenance.ts'),
   },
   {
     id: 'lint-mark-colors',
-    ciStep: 'A brand mark keeps its own colors from file to plan',
+    ciStep: 'A provider logo keeps its own colors from file to plan',
     cmd: engine('lint-mark-colors.ts'),
   },
   {

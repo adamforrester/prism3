@@ -120,7 +120,7 @@ Keyed by `size`, `type`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.md.line-box` | `space.300` | — | — |
-| `row/markerBox/bullet` | — | — | `control.size.md.dot` | `control.size.md.dot` | — | — |
+| `row/markerBox/bullet` | — | — | `space.100` | `space.100` | — | — |
 
 **size=small, type=unordered**
 
@@ -128,7 +128,7 @@ Keyed by `size`, `type`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.sm.line-box` | `space.250` | — | — |
-| `row/markerBox/bullet` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | — |
+| `row/markerBox/bullet` | — | — | `space.075` | `space.075` | — | — |
 
 **size=large, type=unordered**
 
@@ -136,7 +136,7 @@ Keyed by `size`, `type`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.lg.line-box` | `space.400` | — | — |
-| `row/markerBox/bullet` | — | — | `control.size.lg.dot` | `control.size.lg.dot` | — | — |
+| `row/markerBox/bullet` | — | — | `space.100` | `space.100` | — | — |
 
 **size=medium, type=ordered**
 
@@ -164,7 +164,7 @@ Keyed by `size`, `type`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
-| `row/markerBox` | — | — | `control.size.md.line-box` | `space.400` | — | — |
+| `row/markerBox` | — | — | `control.size.md.line-box` | `space.500` | — | — |
 | `row/markerBox/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
 **size=small, type=icon**
@@ -172,7 +172,7 @@ Keyed by `size`, `type`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
-| `row/markerBox` | — | — | `control.size.sm.line-box` | `space.300` | — | — |
+| `row/markerBox` | — | — | `control.size.sm.line-box` | `space.400` | — | — |
 | `row/markerBox/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=large, type=icon**
@@ -180,7 +180,7 @@ Keyed by `size`, `type`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
-| `row/markerBox` | — | — | `control.size.lg.line-box` | `space.500` | — | — |
+| `row/markerBox` | — | — | `control.size.lg.line-box` | `space.600` | — | — |
 | `row/markerBox/icon` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
 
 ### Type

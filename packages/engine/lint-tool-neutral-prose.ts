@@ -61,8 +61,8 @@
  * TOOL-NAME arm; nothing is allow-listed by word. Two textual carve-outs, stated rather than hidden. The first is a
  * FILE NAME (`<brand>.tokens.json`) is removed before matching, because the `.ai.json` file note names its
  * companion tree and one example brand's id is the product's own name.
- * The second is a BRAND-MARK NAME (`social/figma`, #2343 PR 3), the mark vocabulary's `<kind>/<name>` with its kinds
- * typed here: the owner's social set holds Figma's own mark, so the brand-mark page lists a provider's name.
+ * The second is a PROVIDER-LOGO NAME (`social/figma`, #2343 PR 3), the mark vocabulary's `<kind>/<name>` with its kinds
+ * typed here: the owner's social set holds Figma's own mark, so the provider-logo page lists a provider's name.
  *
  * ── THE WORD LIST, AND ITS TRAPS ────────────────────────────────────────────────────────────────
  *
@@ -92,7 +92,7 @@ const TOOL_WORDS: readonly string[] = [
 const TOOL_PHRASES: readonly string[] = ['engine-generated'];
 const TOOL_RE = new RegExp(`\\b(?:${TOOL_WORDS.join('|')})\\b|${TOOL_PHRASES.join('|')}`, 'i');
 const FILE_NAME_RE = /[\w.-]+\.json\b/g;
-/** A BRAND-MARK NAME (#2343 PR 3): `<kind>/<provider>[-<style>]`, the kinds typed here. The owner's full social set
+/** A PROVIDER-LOGO NAME (#2343 PR 3): `<kind>/<provider>[-<style>]`, the kinds typed here. The owner's full social set
  *  holds Figma's own mark, `social/figma`, which names a provider, not a tool this prose addresses. */
 const MARK_NAME_RE = /\b(?:payment|logo|provider|social)\/[a-z0-9]+(?:-[a-z0-9]+)*/g;
 /** WCAG 1.4.3 body text. Typed here; the emitter's own constant is not read. */

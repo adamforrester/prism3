@@ -22,7 +22,9 @@ Shown on the default member: size `medium`, status `default`.
 
 1. **Content** — The control and the label, side by side and top-aligned. The row centers this box in its minimum height, and the control stays beside the label's first line.
 2. **Control**
-3. **Label**
+3. **Text stack** — The label and the description under it, starting at the label's edge. Its top inset keeps the label's first line centered on the control.
+4. **Label**
+5. **Description** (optional) — The optional description under the label, in the muted text color, one type step smaller and starting at the label's edge. Hidden by default.
 
 ## Styles
 
@@ -126,7 +128,9 @@ Generated from the plan that builds the design-file component: 6 members. Values
 | `row/content` | frame | every member |
 | `row/content/controlCell` | frame | every member |
 | `row/content/controlCell/control` | instance | every member |
-| `row/content/label` | text | every member |
+| `row/content/textStack` | frame | every member |
+| `row/content/textStack/label` | text | every member |
+| `row/content/textStack/description` | text | every member |
 
 ### Spacing and size
 
@@ -140,8 +144,9 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | `space.100` / `space.0` / `space.100` / `space.0` | — | — | — | 120px (literal) | min height `size.md.height`; build width 320px (literal) |
 | `row/content` | — | `space.100` | — | — | — | — |
-| `row/content/controlCell` | — | — | `control.size.md.line-box` | — | — | — |
+| `row/content/controlCell` | — | — | — | — | — | min height `type.body.sm.line-box` |
 | `row/content/controlCell/control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+| `row/content/textStack` | `control.size.md.label-inset` / — / — / — | `space.050` | — | — | — | — |
 
 **size=small**
 
@@ -149,8 +154,9 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | `space.075` / `space.0` / `space.075` / `space.0` | — | — | — | 120px (literal) | min height `size.sm.height`; build width 320px (literal) |
 | `row/content` | — | `space.100` | — | — | — | — |
-| `row/content/controlCell` | — | — | `control.size.sm.line-box` | — | — | — |
+| `row/content/controlCell` | — | — | — | — | — | min height `type.body.xs.line-box` |
 | `row/content/controlCell/control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+| `row/content/textStack` | `control.size.sm.label-inset` / — / — / — | `space.050` | — | — | — | — |
 
 **size=large**
 
@@ -158,8 +164,9 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | `space.150` / `space.0` / `space.150` / `space.0` | — | — | — | 120px (literal) | min height `size.lg.height`; build width 320px (literal) |
 | `row/content` | — | `space.150` | — | — | — | — |
-| `row/content/controlCell` | — | — | `control.size.lg.line-box` | — | — | — |
+| `row/content/controlCell` | — | — | — | — | — | min height `type.body.md.line-box` |
 | `row/content/controlCell/control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+| `row/content/textStack` | `control.size.lg.label-inset` / — / — / — | `space.050` | — | — | — | — |
 
 ### Type
 
@@ -167,9 +174,12 @@ Keyed by `size`.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| size=medium | `row/content/label` | `type.body.md.default` |
-| size=small | `row/content/label` | `type.body.sm.default` |
-| size=large | `row/content/label` | `type.body.lg.default` |
+| size=medium | `row/content/textStack/label` | `type.body.sm.default` |
+| size=medium | `row/content/textStack/description` | `type.body.xs.default` |
+| size=small | `row/content/textStack/label` | `type.body.xs.default` |
+| size=small | `row/content/textStack/description` | `type.body.xs.default` |
+| size=large | `row/content/textStack/label` | `type.body.md.default` |
+| size=large | `row/content/textStack/description` | `type.body.sm.default` |
 
 ### Color
 
@@ -179,13 +189,15 @@ Keyed by `status`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `row/content/label` | — | — | `color.text.primary` | — |
+| `row/content/textStack/label` | — | — | `color.text.primary` | — |
+| `row/content/textStack/description` | — | — | `color.text.secondary` | — |
 
 **status=error**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `row/content/label` | — | — | `color.text.primary` | — |
+| `row/content/textStack/label` | — | — | `color.text.primary` | — |
+| `row/content/textStack/description` | — | — | `color.text.secondary` | — |
 
 ### Nesting and properties
 
@@ -194,6 +206,8 @@ Keyed by `status`.
 | Property | Type | Default |
 | --- | --- | --- |
 | `label` | text | `Checkbox label` |
+| `description text` | text | `Supporting text` |
+| `description` | boolean | `false` |
 
 ---
 
