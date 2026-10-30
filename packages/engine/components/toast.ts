@@ -31,6 +31,17 @@
  * as Dialog's backdrop is not in Dialog (Q303.3). Figma shows the resting toast, built 360 wide (call 11 A) and hugging
  * its height. Everything Figma cannot express is in `codeOnly`, stated plainly as code-side. The proposal's canvas
  * furniture (a phone frame and a desktop frame) is filed as a follow-up, not built here.
+ *
+ * ── THE MESSAGE AT 14PX, ON THE LADDER (#3165, Q3165.1 A) ─────────────────────────────────────────────────────
+ *
+ * The message is `type.body.sm.default` (14px), one body step below the 16px it was built at, after the option rows'
+ * 14px label (#3153). Its line box is 21px where it was 24, so a toast with no action would have measured 8 + 21 + 8 =
+ * 37px, off the control-height ladder. The card takes a floor instead, `size.md.height` (the ladder's medium rung, 44
+ * at comfortable, 36 compact, 56 spacious), as the option rows' medium row does (#2894), and centers its one line in
+ * it. A toast with the action measures 8 + 36 + 8 = 52 at comfortable, as before: the small Button sets it, not the
+ * message. The glyph sits in #3153's line-box cell, as Checkbox.Row's and Radio.Row's control does: a cell whose floor
+ * is the message's own line box (`type.body.sm.line-box`, 21px), centring the glyph, inside a `content` that stays
+ * top-aligned. So the glyph is exactly centered on line one, and on a wrapped message it stays beside line one.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -71,8 +82,11 @@ export const toast: ComponentDef = {
     'shadow': 'shadow.lg',
     'radius': 'radius.xl',
     // ── TYPE AND GLYPH.
-    'type': 'type.body.md.default',
+    // 14px (#3165): one body step below the 16px the toast was built at, after the option rows' label (#3153).
+    'type': 'type.body.sm.default',
     'glyph-size': 'icon.size.sm',
+    // The glyph cell's floor (#3165, #3153's rule): the message's own line box, so the glyph centers on line one.
+    'glyph-cell': 'type.body.sm.line-box',
     // ── SPACE (the proposal's §8, DRAFT, approved by call 13 A): block 8, inline start 16, inline end 8; the glyph to
     // the message 12; the action to the close 4. The message to the controls is this build's, 8 (the wireframe's).
     'pad-y': 'space.100',
@@ -81,6 +95,8 @@ export const toast: ComponentDef = {
     'gap': 'space.100',
     'glyph-gap': 'space.150',
     'controls-gap': 'space.050',
+    // ── FLOOR (#3165, Q3165.1 A): the ladder's medium rung, so a one-line toast with no action lands on it.
+    'min-height': 'size.md.height',
   },
 
   // The paddings and the two content gaps follow density. The 4px between the action and the close does not: it is
@@ -100,10 +116,11 @@ export const toast: ComponentDef = {
         // Built 360 wide (call 11 A), a small phone's width less nothing: in code it is the viewport less the grid
         // margins below 768px, and 320 to 480px from 768px.
         placementWidth: 360,
+        minHeight: 'min-height',
         padding: { block: 'pad-y', inlineLabel: 'pad-x', inlineEnd: 'pad-end' },
         gap: 'gap',
         children: ['content', 'controls'],
-        note: 'The toast: the inverse surface, its shadow and its corners. It holds the message on the start side and the action and close button on the end side.',
+        note: 'The toast: the inverse surface, its shadow and its corners. It is never shorter than a medium control, and holds the message on the start side and the action and close button on the end side.',
       },
       content: {
         kind: 'box',
@@ -112,8 +129,20 @@ export const toast: ComponentDef = {
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         grow: true,
         gap: 'glyph-gap',
-        children: ['checkCircleGlyph', 'message'],
+        children: ['glyphCell', 'message'],
         note: 'The glyph and the message. It takes the width the action and close button do not.',
+      },
+      // THE LINE-BOX CELL (#3165, #3153's rule as Checkbox.Row and Radio.Row build it). One line of the message tall
+      // as its floor, hugging the glyph, so the glyph centers on line one while `content` stays top-aligned. Draws
+      // nothing. On the success member only: a neutral toast has no glyph, so no cell and no gap before the message.
+      glyphCell: {
+        kind: 'box',
+        role: 'presentation',
+        minHeight: 'glyph-cell',
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
+        presentWhen: { intent: ['success'] },
+        children: ['checkCircleGlyph'],
+        note: 'One line of the message tall, centering the glyph on the message\'s first line.',
       },
       checkCircleGlyph: {
         kind: 'vector',
@@ -250,6 +279,7 @@ export const toast: ComponentDef = {
   notes: {
     contested: [
       'Decided: Q436 (a) (#2668): the close nests FlushIconButton.Neutral (Q386, as Dialog), not the proposal\'s IconButton.Neutral; FlushIconButton gains a `surface` axis (`default | inverse`, appended last, following IconButton\'s) so the glyph reads on the inverse card, with Counter and Dialog naming `surface: default` on their nests. Decided: Q367 (c): the action label stays the nested Button\'s text, as Dialog\'s footer, not a toast text property. Decided: Q532.1 A: the 8px gap between the message and the controls stays as built (the proposal leaves it open; the wireframe uses 8px).',
+      'Decided: Q3165.1 A (#3165): with the message at 14px, the card takes a floor at `size.md.height`, so a one-line toast with no action measures 44 at comfortable rather than 37; the alternatives were holding 40 with a 24px floor on the message row, or no floor.',
     ],
     unverified: [
       'That the nested Button and FlushIconButton.Neutral carry their prototype reactions into the toast\'s instances on the canvas, as they do inside Dialog.',
@@ -257,6 +287,7 @@ export const toast: ComponentDef = {
     ],
     evolution: [
       'Owner decisions: the proposal and wireframe on #2668, every numbered call A (2026-10-16): toast for the user\'s own action and safe to miss, errors to a banner; intents neutral and success; no glyph on neutral; bottom center below 768px and the bottom inline-end corner from 768px; one at a time, the newest replacing; 6s with a 5s floor and pauses, no timer with an action; at most one action that also exists elsewhere; close on by default; the inverse surface; F6 in, Escape out; built at 360; named Toast with its aliases; the wording as drafted.',
+      'Owner request (#3165, 2026-10-30): the message moves from `type.body.md` (16px) to `type.body.sm` (14px), after the option rows\' 14px label (#3153).',
       'The brief\'s severity set (info, success, warning, error, loading), its stacked toaster, its timeout bar and its swipe are not built: errors and warnings go to a banner (call 1 A), one toast shows at a time (call 5 A), and the rest is out of scope (the proposal\'s §11).',
     ],
   },

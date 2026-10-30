@@ -37710,9 +37710,9 @@ arm: {
   }).map(planComponentName);
   ok(glyphBad.length === 0, `#2668 toast glyph: success shows check-circle on inverse.icon.success at icon.size.sm, 12px from the message; neutral shows no glyph (call 3 A)${glyphBad.length ? ` — WRONG: ${glyphBad.join(', ')}` : ''}`);
 
-  // THE MESSAGE: inverse.text.primary in type.body.md.default, wrapping, the "Status message" placeholder.
+  // THE MESSAGE: inverse.text.primary, wrapping, the "Status message" placeholder. Its size is #3165's arm, below.
   const msgBad = plans.filter((p) => { const m = find(p.root as TN, 'message'); return !(m && m.paints?.fills === 'color/inverse/text/primary' && m.layoutGrow === 1); }).map(planComponentName);
-  ok(msgBad.length === 0 && td.tokens.type === 'type.body.md.default', `#2668 toast message: inverse.text.primary, body.md, wrapping across the row${msgBad.length ? ` — WRONG: ${msgBad.join(', ')}` : ''}`);
+  ok(msgBad.length === 0, `#2668 toast message: inverse.text.primary, wrapping across the row${msgBad.length ? ` — WRONG: ${msgBad.join(', ')}` : ''}`);
 
   // THE CONTROLS (calls 7, 8, 9): the action a text Button, small, inverse, off, reading "Action"; the close an
   // FlushIconButton.Neutral, flush, small, on, showing the close glyph (Q386); 4px apart, at the end edge.
@@ -37813,6 +37813,76 @@ arm: {
   }
 
   ok(validateComponentDef(td).errors.length === 0, `#2668 toast validates clean (${validateComponentDef(td).errors.slice(0, 2).join('; ')})`);
+}
+
+// ------------------------------------------------------------------- #3165: the toast's message at 14px
+// Owner request (#3165): the message is 14px, `type.body.sm`, not 16. Q3165.1 A: the card takes a floor at the
+// ladder's medium rung, so a one-line toast with no action still lands on the control-height ladder rather than at
+// 8 + 21 + 8 = 37. EXPECTED is typed here: the message's px, and the heights 36/44/56 (compact/comfortable/spacious) for
+// one line with no action and 52 at comfortable with the action. ACTUAL is the projected plan, its text style read as
+// the EMITTED composite and its bound variables resolved through each brand's emitted tree, never through the def's
+// tokens. Mutation: the message back to `type.body.md.default` → `#3165 toast message size`.
+// The glyph takes #3153's line-box cell (the #3169 review, option a): a cell whose floor is the message's own line box,
+// centring the glyph, inside a top-aligned `content`. EXPECTED: the cell's floor equals the line the message's emitted
+// composite resolves to, so the glyph's middle IS line one's. Mutation: the cell's floor bound to a size step instead of
+// the line box → `#3165 toast glyph`.
+{
+  type PN = { name: string; type?: string; children: PN[]; bound?: Record<string, string>; counterAxisAlignItems?: string; textStyle?: string; nestTarget?: string; visible?: boolean };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+  const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); return parseFloat(String(leaf)); };
+  const treeOf = (t: any) => t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+  const td = componentDefs.find((d) => d.id === 'toast')!;
+  const button = componentDefs.find((d) => d.id === 'button')!;
+  // The action's height is the small Button's own bound height, read off Button's plan (the nest's variant), not typed.
+  const actionPlan = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }).find((p) => p.size === 'small' && (p.coord as Record<string, string>).appearance === 'text');
+  const actionHeightVar = (actionPlan?.root as PN | undefined)?.bound?.height;
+  const EXPECT: Record<string, number> = { compact: 36, comfortable: 44, spacious: 56 };
+  const worlds: { brand: string; density: 'compact' | 'comfortable' | 'spacious'; root: any }[] = [];
+  const corpus = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
+  for (const b of corpus) worlds.push({ brand: b, density: 'comfortable', root: treeOf(JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'))) });
+  for (const f of readdirSync(resolve(HERE, 'examples')).filter((x) => x.endsWith('.design.md'))) {
+    const text = readFileSync(resolve(HERE, 'examples', f), 'utf8');
+    const std = parseStandardDesignMd(text);
+    const input = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+    if (!corpus.includes(input.id)) continue;
+    for (const density of ['compact', 'spacious'] as const) worlds.push({ brand: input.id, density, root: treeOf(buildTree(brandTheme({ ...input, density })).tree) });
+  }
+  const sizeBad: string[] = [], offLadder: string[] = [], offLine: string[] = [], withAction: string[] = [];
+  let measured = 0;
+  for (const density of ['compact', 'comfortable', 'spacious'] as const) {
+    const plans = figmaAnatomySet(applySpacingDensity(td, density), { swapTarget: 'FPO-default-icon' });
+    for (const p of plans) {
+      const r = p.root as PN, msg = find(r, 'message'), glyph = find(r, 'checkCircleGlyph'), close = find(r, 'close'), content = find(r, 'content'), cell = find(r, 'glyphCell');
+      for (const w of worlds.filter((x) => x.density === density)) {
+        const v = (name: string | undefined) => (name ? num(w.root, at(w.root, name.replace(/\//g, '.'))) : 0);
+        const at1 = `${planComponentName(p)} ${w.brand} ${density}`;
+        const style = at(w.root, `type.${(msg?.textStyle ?? '').replace(/\//g, '.')}`)?.$value;
+        const fontSize = style ? num(w.root, style.fontSize) : NaN, line = style ? fontSize * num(w.root, style.lineHeight) : NaN;
+        if (fontSize !== 14) sizeBad.push(`${at1}: ${msg?.textStyle} is ${fontSize}px`);
+        // The close is a flush glyph at the small rung (the FlushIconButton plan's own box), the glyph its bound width.
+        const closeH = close ? v('icon/size/sm') : 0, glyphH = glyph ? v(glyph.bound?.height) : 0;
+        // The cell hugs the glyph over its floor, so it is max(floor, glyph) tall; the glyph centers in it.
+        const cellFloor = cell ? v(cell.bound?.minHeight) : 0, cellH = cell ? Math.max(cellFloor, glyphH) : glyphH;
+        const padT = v(r.bound?.paddingTop), padB = v(r.bound?.paddingBottom), floor = v(r.bound?.minHeight);
+        const height = (lines: number, controls: number) => Math.max(floor, padT + Math.max(cellH, lines * line, controls) + padB);
+        measured++;
+        const one = height(1, closeH);
+        if (Math.abs(one - EXPECT[density]) > 0.5) offLadder.push(`${at1}: ${one.toFixed(1)} (want ${EXPECT[density]})`);
+        // The glyph sits in the line-box cell, the cell top-aligned in `content` beside line one: the cell's floor is the
+        // line, so the glyph's middle is line one's, on two lines too.
+        const inCell = !!cell && cell.children.includes(glyph!) && content?.children.includes(cell);
+        if (glyph && !(inCell && content?.counterAxisAlignItems === 'MIN' && cell?.counterAxisAlignItems === 'CENTER' && Math.abs(cellFloor - line) < 0.01 && Math.abs(cellH / 2 - line / 2) < 0.01)) offLine.push(`${at1}: glyph ${glyphH} in a ${cell ? `${cellFloor}px cell (${cell.bound?.minHeight}), ${cell.counterAxisAlignItems}` : 'no cell'} beside a ${line}px line, content ${content?.counterAxisAlignItems}`);
+        if (!glyph && cell) offLine.push(`${at1}: a glyph cell with no glyph`);
+        if (density === 'comfortable') { const a = height(1, v(actionHeightVar)); if (Math.abs(a - 52) > 0.5) withAction.push(`${at1}: ${a.toFixed(1)}`); }
+      }
+    }
+  }
+  ok(measured === 2 * worlds.length && worlds.length >= 13, `#3165: both toast members measured in every world (${measured} of ${2 * worlds.length}, ${worlds.length} worlds)`);
+  ok(sizeBad.length === 0, `#3165 toast message size: the message's text style is 14px (body.sm) in every brand and density${sizeBad.length ? ` — WRONG: ${sizeBad.slice(0, 4).join('; ')}` : ''}`);
+  ok(offLadder.length === 0, `#3165 toast height: a one-line toast with no action measures 36/44/56 (compact/comfortable/spacious), on the ladder (Q3165.1 A)${offLadder.length ? ` — OFF: ${offLadder.slice(0, 4).join('; ')}` : ''}`);
+  ok(!!actionHeightVar && withAction.length === 0, `#3165 toast height: with the action, 52 at comfortable, as built (the small Button sets it, ${actionHeightVar})${withAction.length ? ` — OFF: ${withAction.slice(0, 4).join('; ')}` : ''}`);
+  ok(offLine.length === 0, `#3165 toast glyph: the success glyph centers in a cell one message line tall (type.body.sm.line-box), top-aligned beside line one, its middle exactly the line's${offLine.length ? ` — OFF: ${offLine.slice(0, 4).join('; ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #2877: the dialog's end placement
