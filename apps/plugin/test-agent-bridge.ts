@@ -15,7 +15,7 @@
  *      then travels MCP → server → socket → relay → main thread → the `ACTIONS` table → back, and the
  *      suite spies on the table to prove the command reached the UI's own handler.
  *
- * Arms, by name: mcp · relay/url · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-evict ·
+ * Arms, by name: mcp · relay/url · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-request · pair/no-evict ·
  * handshake · fragmented · ping · run · stream · progress · big-frame · timeout · unmasked · disconnect · reconnect ·
  * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
  * e2e/link-off · e2e/switch-off
@@ -37,7 +37,10 @@
  * `pair/not-in-file`; one nonce for every connection (`nonce: () => 'ab'.repeat(32)`) → `pair/replay`; the wrong-code
  * count reset on every attempt (`fails = 0` before the check) → `pair/limit` (both from the #3204 delta review, B2).
  * The code's window (the owner's Q3204.5 A): no expiry → `pair/expiry`; a code issued at start → `pair/on-demand`; no
- * cap on retirements → `pair/cap`. The window arms drive `createPairing` in process on an injected clock.
+ * cap on retirements → `pair/cap`; `request()` not resetting the retirement count, so a reopened window closes after
+ * its first retirement → `pair/cap` (review S3). The window arms drive `createPairing` in process on an injected clock.
+ * Only the stdio agent opens a window (review B3): a `pair` message on the socket issuing a code when none is live
+ * (`if (pairing.code() === null) pairing.request();` before `pairOk`) → `pair/no-request`, against the spawned server.
  *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
@@ -418,8 +421,15 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
   ok(q.code() === null && issued() === before && !q.pairOk(nonce, provePair([...seen][RETIREMENTS - 1], nonce)),
     `pair/cap: while closed, more guesses issue no new code (${issued() - before} issued)`);
   const next = q.request();
+  // The new window has the full allowance again (review S3): its first retirement issues a new code, it does not close.
+  const atOpen = issued();
+  const saidAtOpen = said.length;
+  for (let i = 0; i < FAILS; i++) { nonce = n(); q.pairOk(nonce, provePair(wrongFor(q.code()), nonce)); }
+  const renewed = q.code();
+  ok(!seen.has(next) && renewed !== null && renewed !== next && issued() === atOpen + 1 && !said.slice(saidAtOpen).some((s) => /pairing is closed/.test(s)),
+    `pair/cap: the next request opens a new window, and its first ${FAILS} wrong guesses issue a new code rather than close pairing (code ${renewed}, ${issued() - atOpen} issued)`);
   nonce = n();
-  ok(!seen.has(next) && q.pairOk(nonce, provePair(next, nonce)), 'pair/cap: the next request opens a new window, and its code pairs');
+  ok(renewed !== null && q.pairOk(nonce, provePair(renewed, nonce)), 'pair/cap: and the new window\'s code pairs');
 }
 {
   ok(CODE.length === 9 && (await call('figma_status')).value?.pairingCode === CODE, `pair: figma_status keeps the live code rather than replacing it (${CODE ? 'named' : 'missing'})`);
@@ -493,6 +503,52 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
     `pair/limit: the retired code no longer pairs (close ${stale.closeCode()})`);
   stale.sock.destroy();
   CODE = typeof now === 'string' ? now : CODE;
+}
+{
+  // ONLY THE STDIO AGENT OPENS A WINDOW (#3204 delta review, B3). With no code live, `pair` messages on the socket issue
+  // none, so a page cannot reopen pairing on a paired machine, or after the cap has closed it. figma_status is NOT called
+  // between the steps, since it issues a code itself; it is called once at the end of each, and must issue the next one.
+  // Written here, not imported (docs/34 shape 1): 5 wrong codes retire a code, 3 retirements close pairing.
+  const MAX_PAIR_FAILS = 5;
+  const MAX_RETIREMENTS = 3;
+  const printed = () => [...stderr.matchAll(/pairing code: ([2-9A-Z]{4}-[2-9A-Z]{4})/g)].map((m) => m[1]);
+  const wrongBut = (...avoid: string[]) => ['ZZZZ-ZZZZ', 'YYYY-YYYY', 'XXXX-XXXX'].find((w) => !avoid.includes(w))!;
+  /** One `pair` attempt on a fresh connection: whether it was given a token. */
+  const tryPair = async (code: string): Promise<boolean> => {
+    const g = await openClient();
+    g.sendJson({ type: 'pair', proof: provePair(code, await g.nonce()) });
+    await until(() => g.closeCode() !== null || g.texts().some((m) => m.type === 'paired'));
+    const paired = g.texts().some((m) => m.type === 'paired');
+    g.sock.destroy();
+    return paired;
+  };
+  /** A few wrong codes and the last code, with no code live: no new code is printed and no one is paired. */
+  const probe = async (label: string, last: string) => {
+    const before = printed().length;
+    const results = [];
+    for (let i = 0; i < 3; i++) results.push(await tryPair(wrongBut(last)));
+    results.push(await tryPair(last));
+    await until(() => false, 200);
+    const issued = printed().length - before;
+    ok(issued === 0 && !results.some(Boolean),
+      `pair/no-request: ${label}, pair messages on the socket issue no code and pair no one (${issued} printed, ${results.filter(Boolean).length} paired)`);
+    const asked = (await call('figma_status')).value?.pairingCode;
+    ok(typeof asked === 'string' && asked !== last && printed().length === before + 1 && printed()[printed().length - 1] === asked,
+      `pair/no-request: ${label}, figma_status then issues the next code (${asked === last ? 'the old one' : asked ? 'a new one' : 'none'})`);
+    return asked as string;
+  };
+
+  // 1. A pair spends the live code, so none is live.
+  ok(await tryPair(CODE), 'pair/no-request: the live code pairs, and is spent');
+  CODE = await probe('after a pair has spent the code', CODE);
+
+  // 2. MAX_RETIREMENTS codes retired by wrong guesses close pairing, so none is live.
+  const closings = () => (stderr.match(/codes retired: pairing is closed/g) ?? []).length;
+  const closedBefore = closings();
+  for (let i = 0; i < MAX_PAIR_FAILS * MAX_RETIREMENTS; i++) await tryPair(wrongBut(printed()[printed().length - 1]));
+  const lastCode = printed()[printed().length - 1];
+  ok(await until(() => closings() === closedBefore + 1), `pair/no-request: ${MAX_PAIR_FAILS * MAX_RETIREMENTS} wrong codes on the socket close pairing`);
+  CODE = await probe('after the cap has closed pairing', lastCode);
 }
 {
   // A live, PAIRED plugin and an unpaired newcomer: the newcomer is closed and the plugin keeps the slot and its commands.

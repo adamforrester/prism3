@@ -47,7 +47,8 @@ section 31. ENGINE patch (change note). CONTRACT unchanged. `AGENT_PROTOCOL_VERS
   never receive a command. `pair/*`: the secret file's mode and rotation, a wrong code refused, a hello or pair proof
   captured on one connection refused on the next (`pair/replay`), 5 wrong codes on 5 connections retiring the code
   (`pair/limit`), a code issued only on demand (`pair/on-demand`), expired after 10 minutes on an injected clock
-  (`pair/expiry`), pairing closed after 3 retirements (`pair/cap`), a paired plugin not evicted by an unpaired one, the real relay pairing with the printed code to the token the test derived itself from
+  (`pair/expiry`), pairing closed after 3 retirements and the next request reopening it with the full allowance (`pair/cap`),
+  no code issued by a `pair` message on the socket, only by `figma_status` (`pair/no-request`), a paired plugin not evicted by an unpaired one, the real relay pairing with the printed code to the token the test derived itself from
   the secret it wrote, and the token never written to the file's plugin data. The plugin's shim tests now run after
   the Chromium install in `ci.yml`, since this arm drives a browser.
 - `test-agent-link.ts` `link/word-offline`: the offline build's word.
