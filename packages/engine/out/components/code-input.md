@@ -187,7 +187,7 @@ Keyed by `status`, `state`.
 
 ### Nesting and properties
 
-- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; exposes `emphasis`, `weight`
+- `container/label` nests `field-label` at `size=medium, emphasis=primary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; exposes `emphasis`, `weight`
 - `container/items` is a slot, preferring `code-input-cell`
 - `container/items/cell1` nests `code-input-cell` at `size=medium, state=rest`; `state=hover` takes `state=hover`, `state=filled` takes `state=filled`, `state=focus-visible` takes `state=focus-visible`, `state=focus-visible-filled` takes `state=filled`, `state=disabled` takes `state=disabled`; follows `size`
 - `container/items/cell2` nests `code-input-cell` at `size=medium, state=rest`; `state=hover` takes `state=hover`, `state=filled` takes `state=filled`, `state=focus-visible` takes `state=rest`, `state=focus-visible-filled` takes `state=filled`, `state=disabled` takes `state=disabled`; follows `size`

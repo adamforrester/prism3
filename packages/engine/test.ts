@@ -18764,16 +18764,16 @@ arm: {
 
   // ---- Q348 A: the GROUP labels are nest-exposed like the fields' (owner-decided) ----
   // Checkbox group, Radio group and Segmented control expose FieldLabel's emphasis and weight, follow size, and start
-  // secondary and bold. EXPECTED typed from the decision, never read off a def: the surface baseline is re-accepted with
+  // primary and bold (#3200, owner Q-PH1 A; secondary from Q348 A until then). EXPECTED typed from the decision, never read off a def: the surface baseline is re-accepted with
   // any change note, so it does not remember which axes were listed. Mutation: one def's `expose` cut to ['emphasis'],
-  // or its starting `emphasis` moved to primary → this line.
+  // or its starting `emphasis` moved back to secondary → this line.
   for (const id of ['checkbox-group', 'radio-group', 'segmented-control']) {
     const n = componentDefs.find((d) => d.id === id)?.anatomy?.parts.label?.nesting;
     const got = n?.kind === 'nest-exposed'
       ? `expose ${[...n.expose].sort().join(', ')}, follow ${(n.follow ?? []).join(', ')}, emphasis ${n.variant?.emphasis}, weight ${n.variant?.weight}`
       : `kind ${n?.kind ?? 'MISSING'}`;
-    ok(got === 'expose emphasis, weight, follow size, emphasis secondary, weight bold',
-      `Q348 A ${id}'s label is nest-exposed: exposes [emphasis, weight], follows [size], starts secondary and bold (got ${got})`);
+    ok(got === 'expose emphasis, weight, follow size, emphasis primary, weight bold',
+      `Q348 A ${id}'s label is nest-exposed: exposes [emphasis, weight], follows [size], starts primary and bold (#3200) (got ${got})`);
   }
 
   // ---- Q399 A: the COUNTER's label is nest-exposed like the fields' (owner-decided, on #2693) ----
@@ -18785,8 +18785,8 @@ arm: {
     const got = n?.kind === 'nest-exposed'
       ? `expose ${[...n.expose].sort().join(', ')}, follow ${(n.follow ?? []).join(', ')}, emphasis ${n.variant?.emphasis}, weight ${n.variant?.weight}`
       : `kind ${n?.kind ?? 'MISSING'}`;
-    ok(got === 'expose emphasis, weight, follow size, emphasis secondary, weight regular',
-      `Q399 A counter's label is nest-exposed: exposes [emphasis, weight], follows [size], starts secondary and regular (got ${got})`);
+    ok(got === 'expose emphasis, weight, follow size, emphasis primary, weight regular',
+      `Q399 A counter's label is nest-exposed: exposes [emphasis, weight], follows [size], starts primary and regular (#3200) (got ${got})`);
   }
 
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
@@ -19577,7 +19577,7 @@ arm: {
       // against a literal as well as in the roundtrip and the surface digest.
       const findPart = (n: typeof p.root | undefined, nm: string): typeof p.root | undefined => !n ? undefined : n.name === nm ? n : n.children.map((c) => findPart(c, nm)).find(Boolean);
       const lab = findPart(p.root, 'label');
-      const wantLabel = { size: sz, emphasis: 'secondary', weight: 'regular', state: st === 'disabled' ? 'disabled' : 'rest' };
+      const wantLabel = { size: sz, emphasis: 'primary', weight: 'regular', state: st === 'disabled' ? 'disabled' : 'rest' };
       if (lab?.nestTarget !== 'field-label' || JSON.stringify(lab?.nestVariant) !== JSON.stringify(wantLabel))
         offLabel.push(`${name}/label: ${lab?.nestTarget} ${JSON.stringify(lab?.nestVariant)}, want ${JSON.stringify(wantLabel)}`);
       const entry = control?.children.find((c) => c.name === 'entry');
@@ -19593,7 +19593,7 @@ arm: {
       if ((st === 'focus-visible') !== !!ring || (ring && ring.absoluteInset !== RING[ap])) offRing.push(`${name}: ring ${ring ? ring.absoluteInset : 'absent'}`);
     }
     ok(offNest.length === 0, `#2427 counter/nests: both buttons nest FlushIconButton.Neutral exposing [state], outline → flush and ghost → round (Q287 A), at rest unless the Counter is disabled (Q283.7)${offNest.length ? ` — ${offNest.slice(0, 3).join('; ')}` : ''}`);
-    ok(offLabel.length === 0, `#2427 counter/label-dims: the nested FieldLabel is secondary and regular at the Counter's size, disabled on the Counter's disabled members and at rest on the rest${offLabel.length ? ` — ${offLabel.slice(0, 3).join('; ')}` : ''}`);
+    ok(offLabel.length === 0, `#2427 counter/label-dims: the nested FieldLabel is primary and regular (#3200) at the Counter's size, disabled on the Counter's disabled members and at rest on the rest${offLabel.length ? ` — ${offLabel.slice(0, 3).join('; ')}` : ''}`);
     ok(offRow.length === 0, `#2427 counter/row: the row is 36 / 44 / 56 tall (Q287 A), inset 12 / 12 / 16 on outline and 0 on ghost, the value at least 32 wide (Q283.13 A)${offRow.length ? ` — ${offRow.slice(0, 3).join('; ')}` : ''}`);
     ok(offPaint.length === 0, `#2427 counter/paint: outline draws the field fill and edge (the disabled edge at disabled), ghost paints no box at any state, the value full contrast until disabled${offPaint.length ? ` — ${offPaint.slice(0, 3).join('; ')}` : ''}`);
     ok(offRing.length === 0, `#2427 counter/ring: the ring at focus-visible only, at the control offset on ghost (Q283.10 A) and the field offset on outline${offRing.length ? ` — ${offRing.slice(0, 3).join('; ')}` : ''}`);
@@ -20313,13 +20313,13 @@ arm: {
     'component: FieldLabel requires text + binds a semantic text ROLE per emphasis (and no bare `label` key survives)');
   // #1334: field-label's prominence axis is `emphasis` (renamed from `tone`), and its ink-emphasis prop is
   // `emphasis` too. Hand-written literals, not derived — reverting the def's axis rename fails this by name
-  // (alongside lint-component-surface's planStamp and lint-axis-values' register). `secondary` FIRST since
-  // #1699 decision 4: the first value is the set's first member, Figma's default variant.
-  ok(JSON.stringify(fieldLabel.variants.emphasis) === JSON.stringify(['secondary', 'primary'])
+  // (alongside lint-component-surface's planStamp and lint-axis-values' register). `primary` FIRST since
+  // #3200 (owner Q-PH1 A; `secondary` from #1699 decision 4 until then): the first value is the set's first member, Figma's default variant.
+  ok(JSON.stringify(fieldLabel.variants.emphasis) === JSON.stringify(['primary', 'secondary'])
     && fieldLabel.variants.tone === undefined
     && !!fieldLabel.props.find((p) => p.name === 'emphasis')
     && !fieldLabel.props.some((p) => p.name === 'tone'),
-    'component: FieldLabel emphasis axis is [secondary, primary] and `tone` is retired (#1334, #1699)');
+    'component: FieldLabel emphasis axis is [primary, secondary] and `tone` is retired (#1334, #1699, #3200)');
   // …and TYPE follows size across three rungs, on `type.body.*` — the tier #862 predicted and the one
   // that matches Prism 2's 14/16/18 ladder. `type.label.*` is 12/14/18 (its `lg` was minted at 18 by
   // #1260) but emphasis-only and its middle rung is 14 not 16, so it matches neither Prism 2's sizes nor
@@ -20455,12 +20455,12 @@ arm: {
     ok(findPart(roErr, 'control')?.paints?.strokes === 'color/border/danger',
       `#1699 select's error status keeps the danger border at read-only (got ${String(findPart(roErr, 'control')?.paints?.strokes)})`);
 
-    // (C) DECISION 4 — field-label's defaults follow its hosts: required off, small, secondary. The host side
+    // (C) DECISION 4 — field-label's defaults follow its hosts: required off, small, primary (#3200; secondary until then). The host side
     //     is read off the HOSTS' own nest coordinates (a separate authored place), so the two halves are
     //     independent: a label default that drifts from how the hosts nest it fails here by name.
     const flDefault = (name: string) => fieldLabel.props.find((p) => p.name === name)?.default;
-    ok(flDefault('required') === false && flDefault('size') === 'small' && flDefault('emphasis') === 'secondary',
-      `#1699 field-label defaults are required=false, size=small, emphasis=secondary (got ${String(flDefault('required'))} / ${String(flDefault('size'))} / ${String(flDefault('emphasis'))})`);
+    ok(flDefault('required') === false && flDefault('size') === 'small' && flDefault('emphasis') === 'primary',
+      `#1699 field-label defaults are required=false, size=small, emphasis=primary (#3200) (got ${String(flDefault('required'))} / ${String(flDefault('size'))} / ${String(flDefault('emphasis'))})`);
     // The two GROUPS nest field-label without overriding `required`, so their Figma marker IS field-label's
     // default. Their own code `required` must agree with it — and with the brief (§15: `false`), the literal
     // expected here. A group left at `true` builds a hidden marker under a code default that says required:
@@ -20481,9 +20481,9 @@ arm: {
     //     And the FIGMA default (the set's first member — Figma's default variant is the first child) is the
     //     same cell, with the marker built hidden.
     const flFirst = figmaAnatomySet(fieldLabel)[0];
-    ok(planComponentName(flFirst) === 'emphasis=secondary, weight=regular, size=small, state=rest'
+    ok(planComponentName(flFirst) === 'emphasis=primary, weight=regular, size=small, state=rest'
       && findPart(flFirst.root, 'indicator')?.visible === false,
-      `#1699 field-label's first member (the Figma default) is small / secondary / regular / rest with the marker hidden (got "${planComponentName(flFirst)}")`);
+      `#1699 field-label's first member (the Figma default) is small / primary / regular / rest (#3200) with the marker hidden (got "${planComponentName(flFirst)}")`);
 
     // (D) DECISION 3 — text-field has one prop per slot: two glyph slots and two TEXT affixes.
     const tfType = (name: string) => textField.props.find((p) => p.name === name)?.type;
@@ -32862,7 +32862,7 @@ arm: {
     const want = status === 'error' ? ['label', 'items', 'message'] : ['label', 'items'];
     if (JSON.stringify(root.children.map((c) => c.name)) !== JSON.stringify(want)) bad.push(`children ${root.children.map((c) => c.name).join(',')}`);
     const label = root.children.find((c) => c.name === 'label');
-    if (label?.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted({ size, emphasis: 'secondary', weight: 'bold', state: 'rest' }))
+    if (label?.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted({ size, emphasis: 'primary', weight: 'bold', state: 'rest' }))
       bad.push(`label ${String(label?.nestTarget)} ${JSON.stringify(label?.nestVariant)}`);
     const items = root.children.find((c) => c.name === 'items');
     if (items?.type !== 'CONTENT_SLOT' || items.layoutAlign !== 'STRETCH') bad.push(`items ${String(items?.type)} ${String(items?.layoutAlign)}`);
@@ -32877,7 +32877,7 @@ arm: {
     return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
   });
   ok(off.length === 0,
-    `#2715 radio-group nesting: on every member, one FieldLabel (secondary, bold, rest) then an items slot (at least one, preferred-only Radio.Row, stretched) holding three Radio.Rows, each following the group's size and status, none behind a boolean (${off.length} off — ${off[0] ?? 'none'})`);
+    `#2715 radio-group nesting: on every member, one FieldLabel (primary, bold, rest) then an items slot (at least one, preferred-only Radio.Row, stretched) holding three Radio.Rows, each following the group's size and status, none behind a boolean (${off.length} off — ${off[0] ?? 'none'})`);
   const parts = Object.values(g!.anatomy!.parts);
   ok(parts.filter((p) => p.kind === 'nest' && p.nests === 'radio-row').every((p) => p.nesting?.kind === 'nest-fixed')
     && !parts.some((p) => p.nests === 'radio-control'),
@@ -38907,7 +38907,7 @@ arm: {
     let dimmed = 0;
     for (const p of plans) {
       const c = p.coord as Record<string, string>;
-      const want = { size: p.size!, emphasis: 'secondary', weight: 'regular', state: c.state === 'disabled' ? 'disabled' : 'rest' };
+      const want = { size: p.size!, emphasis: 'primary', weight: 'regular', state: c.state === 'disabled' ? 'disabled' : 'rest' };
       const label = find(p.root as PN, 'label');
       const member = label?.nestVariant ? nestVariantMatch(label.nestVariant, labelNames) : null;
       if (!label || label.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted(want) || !member || !member.split(', ').includes(`state=${want.state}`))
@@ -38990,10 +38990,10 @@ arm: {
     `#2830 spec: Button filled at rest fills color.interactive.primary.fill.rest under on-fill ink (${JSON.stringify(rest?.parts)})`);
   ok(rest?.parts.find((p) => p.part === 'container/leadingVisual')?.icon === 'color.interactive.primary.on-fill' && rest?.parts.find((p) => p.part === 'container/trailingVisual')?.icon === 'color.interactive.primary.on-fill',
     `#2830 spec: Button filled at rest inks both visuals color.interactive.primary.on-fill (${JSON.stringify(rest?.parts.filter((p) => p.part.endsWith('Visual')))})`);
-  // A nest's fixed variant and the host values that move it: Text field's label rests at secondary, regular, and
+  // A nest's fixed variant and the host values that move it: Text field's label rests at primary (#3200), regular, and
   // dims with the field; Counter's ghost members nest the round shape, its outline ones the flush (Q287 A).
-  ok(JSON.stringify(label?.kind === 'instance' && label.variant) === '{"size":"medium","emphasis":"secondary","weight":"regular","state":"rest"}' && JSON.stringify(label?.kind === 'instance' && label.when) === '{"state":{"disabled":{"state":"disabled"}}}',
-    `#2830 spec: Text field's label nests field-label at secondary, regular, rest, and takes state=disabled on a disabled field (${JSON.stringify(label)})`);
+  ok(JSON.stringify(label?.kind === 'instance' && label.variant) === '{"size":"medium","emphasis":"primary","weight":"regular","state":"rest"}' && JSON.stringify(label?.kind === 'instance' && label.when) === '{"state":{"disabled":{"state":"disabled"}}}',
+    `#2830 spec: Text field's label nests field-label at primary, regular, rest, and takes state=disabled on a disabled field (${JSON.stringify(label)})`);
   const dec = specOf('counter').nesting.find((n) => n.part === 'container/control/decrement');
   ok(dec?.kind === 'instance' && dec.variant.shape === 'flush' && dec.when?.appearance?.ghost?.shape === 'round' && dec.when?.appearance?.outline?.shape === 'flush',
     `#2830 spec: Counter's minus nests the flush shape, and the round one on a ghost Counter (${JSON.stringify(dec)})`);

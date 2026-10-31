@@ -20,7 +20,7 @@ A control for free-form text expected to wrap across multiple lines — comments
 
 Shown on the default member: size `medium`, style `outline`, status `default`.
 
-1. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts secondary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
+1. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts primary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
 2. **Caret**
 3. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. Wraps across the field width and reserves the default rows of its own line height.
 4. **Value** — The entered value, in the value ink. Shown on the filled, focused filled and read-only field. Wraps across the field width and reserves the default rows of its own line height.
@@ -478,7 +478,7 @@ Keyed by `status`, `state`.
 
 ### Nesting and properties
 
-- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
+- `container/label` nests `field-label` at `size=medium, emphasis=primary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
 - `container/body/control/gripGlyph` nests `icon/resize-grip`
 - `container/body/messageRow/messageCell/message` nests `field-message` at `status=default`; follows `status`
 - `container/body/control/focusRing` nests `focus-ring` at `surface=default`
