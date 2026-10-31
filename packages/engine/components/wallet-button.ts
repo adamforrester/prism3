@@ -137,7 +137,7 @@ export const walletButton: ComponentDef = {
     // height and keeps the provider's logo-to-height ratio at every rung.
     ...Object.fromEntries((['small', 'medium', 'large'] as const).flatMap((size) => STYLE_VALUES.map((style) => [`size.${size}.${style}.mark`, style === ANY ? SIZE_MARK[size] : SIZE_HEIGHT[size]]))),
     ...radiusToken(),
-    // The edge's weight where a style draws one: the 1px its record states.
+    // The edge's weight where a style draws one: the 1px its record states, held against it by lint-mark-colors (h).
     'border-width': 'border-width.hairline',
     ...ringTokens(),
   },

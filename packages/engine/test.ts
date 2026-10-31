@@ -21827,6 +21827,13 @@ arm: {
     };
     throws('an undeclared appearance throws', () => figmaAnatomyPlan(button, 'medium', { appearance: 'nope' }));
     throws('an undeclared state throws', () => figmaAnatomyPlan(button, 'medium', { appearance: 'filled', state: 'nope' }));
+    // #3174 / #3195 — a literal 'surface' entry naming no paint is a member the def declares unpainted; an edge with no
+    // fill under it, or no entry at all, is the silent-loss shape and throws. Pinned apart on a copy of WalletButton.
+    const wbLit = componentDefs.find((d) => d.id === 'wallet-button')!, anyAt = { provider: 'apple-pay', style: 'any' };
+    const withAny = (e: Record<string, string> | undefined) => ({ ...wbLit, literal: { ...wbLit.literal!, entries: { ...wbLit.literal!.entries, 'apple-pay.any': e } } }) as typeof wbLit;
+    ok(!figmaAnatomyPlan(withAny({}), 'medium', anyAt).root.literalPaints?.fills, 'anatomy: a literal surface entry naming no paint is unpainted (#3174)');
+    throws('a literal surface entry with an edge and no fill throws (#3174)', () => figmaAnatomyPlan(withAny({ edge: '#000000' }), 'medium', anyAt));
+    throws('a literal surface with no entry for the member throws (#3174)', () => figmaAnatomyPlan(withAny(undefined), 'medium', anyAt));
     // #1223 — intent is no longer a coordinate. The def keys paint as `{appearance}.{slot}.*`, so
     // `{appearance}` alone RESOLVES (it used to be half a coordinate under the `{intent}.{appearance}`
     // grammar and threw); the state suffix is still tried first and falls back to the rest key.

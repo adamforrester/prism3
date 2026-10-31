@@ -31,8 +31,9 @@
  *       and its record carries the paint the provider's SDK draws under it: `ground`, and `edge` where there is one. A
  *       host that nests a `provider-logo/button/*` mark must be in `GROUND_HOSTS` (WalletButton alone), and the button
  *       it draws, the member's root frame, paints exactly that record's ground as its one literal fill and the edge's
- *       color as its literal stroke, or no stroke where the record has no edge. Read from `provenance.json` here, never
- *       from `PROVIDER_LOGO_BUTTON_PAINT`, which the def reads (docs/34 shape 1). A ground host's member that carries
+ *       color as its literal stroke at the edge's width (the weight variable's px typed in `EDGE_WEIGHT_PX`), or no
+ *       stroke where the record has no edge. Read from `provenance.json` here, never from `PROVIDER_LOGO_BUTTON_PAINT`,
+ *       which the def reads (docs/34 shape 1). A ground host's member that carries
  *       any other mark (the `any` stand-in) paints nothing at all (`BUTTON GROUND`). Each ground host must paint at
  *       least one ground, so the arm cannot pass by reading none.
  *   (e) THE PAYMENT TILE (owner decisions Q720 A, Q780 A) — a payment tile is full-bleed, and the component draws the
@@ -81,6 +82,9 @@ const TINTABLE_PREFIX = 'provider-logo/provider/';
 /** (h) The hosts that paint a button logo's ground from its record (Q3174.3 A), and the marks that carry one, typed here. */
 const GROUND_HOSTS = ['wallet-button'];
 const BUTTON_PREFIX = 'provider-logo/button/';
+/** (h) The px each edge-weight variable a ground host may bind resolves to, typed here rather than read from the token
+ *  layer the member binds: the record's `edge.width` is held against this, so a recaptured 2px edge cannot draw 1px. */
+const EDGE_WEIGHT_PX: Record<string, number> = { 'border-width/hairline': 1 };
 
 type ButtonRecord = { ground?: string; edge?: { width?: number; color?: string } };
 /** What is wrong with a ground host's member, given the mark it carries and the record of that mark (undefined for a
@@ -97,6 +101,10 @@ export const groundErrors = (root: FigmaNodePlan, target: string, rec: ButtonRec
   const out: string[] = [];
   if (fills.length !== 1 || lc(fills[0]) !== lc(rec.ground)) out.push(`paints the fill ${JSON.stringify(fills)} under ${target}, and its record's ground is ${rec.ground}`);
   if (lc(stroke) !== lc(rec.edge?.color)) out.push(`paints the edge ${stroke ?? 'none'} under ${target}, and its record's edge is ${rec.edge?.color ?? 'none'}`);
+  if (rec.edge) {
+    const weight = root.bound?.strokeWeight, px = typeof weight === 'string' ? EDGE_WEIGHT_PX[weight] : undefined;
+    if (px !== rec.edge.width) out.push(`draws the edge ${px === undefined ? `at '${String(weight ?? 'no weight')}', which resolves to no known px,` : `${px}px wide`} under ${target}, and its record's edge is ${rec.edge.width ?? 'no'}px wide`);
+  }
   if (root.paints?.fills || root.paints?.strokes) out.push(`binds a theme paint ${JSON.stringify(root.paints)} under ${target}: the provider's ground follows no theme`);
   return out;
 };
@@ -196,11 +204,13 @@ const self: string[] = [];
   if (needsEdge('<svg><path d="M0 0H32V20H0Z" fill="#008CFF"/></svg>') || needsEdge('<svg><path d="M0 0Z" fill="#000000"/></svg>')) self.push('needsEdge keeps the edge on a tile whose fill is 3:1 or more against white');
   if (!isTileMark('payment/visa') || isTileMark('social/x-mono') || isTileMark('logo/visa')) self.push('isTileMark misreads a kind');
   if (carriesMark({ name: 'icon', type: 'NESTED_INSTANCE', nestTarget: 'icon/check' } as FigmaNodePlan)) self.push('carriesMark reads an icon as a mark');
-  const btn = (fills?: string[], strokes?: string): FigmaNodePlan => ({ name: 'container', type: 'FRAME', ...(fills || strokes ? { literalPaints: { ...(fills ? { fills } : {}), ...(strokes ? { strokes } : {}) } } : {}) }) as unknown as FigmaNodePlan;
+  const btn = (fills?: string[], strokes?: string, strokeWeight = 'border-width/hairline'): FigmaNodePlan => ({ name: 'container', type: 'FRAME', bound: { strokeWeight }, ...(fills || strokes ? { literalPaints: { ...(fills ? { fills } : {}), ...(strokes ? { strokes } : {}) } } : {}) }) as unknown as FigmaNodePlan;
   const rec = { ground: '#ffffff', edge: { width: 1, color: '#555555' } };
   if (groundErrors(btn(['#ffffff'], '#555555'), `${BUTTON_PREFIX}x-white`, rec).length) self.push('groundErrors rejects a button painted as its record says');
   if (groundErrors(btn(['#000000'], '#555555'), `${BUTTON_PREFIX}x-white`, rec).length !== 1) self.push('groundErrors misses a wrong ground');
   if (groundErrors(btn(['#ffffff']), `${BUTTON_PREFIX}x-white`, rec).length !== 1) self.push('groundErrors misses a dropped edge');
+  if (groundErrors(btn(['#ffffff'], '#555555'), `${BUTTON_PREFIX}x-white`, { ...rec, edge: { ...rec.edge, width: 3 } }).length !== 1) self.push('groundErrors misses an edge drawn thinner than its record');
+  if (groundErrors(btn(['#ffffff'], '#555555', 'border-width/thick'), `${BUTTON_PREFIX}x-white`, rec).length !== 1) self.push('groundErrors misses an edge weight it cannot resolve');
   if (groundErrors(btn(['#ffffff'], '#555555'), `${BUTTON_PREFIX}x-white`, { ground: '#ffffff' }).length !== 1) self.push('groundErrors misses an edge the record does not state');
   if (groundErrors(btn(), 'provider-logo/logo/x', undefined).length) self.push('groundErrors reports paint on a bare stand-in');
   if (groundErrors(btn(['#000000']), 'provider-logo/logo/x', undefined).length !== 1) self.push('groundErrors misses a stand-in that paints');
@@ -329,4 +339,4 @@ if (failures.length) {
 console.log('  ✓ clean — every mark paints its own colors, from file to record to module to plan, and no host retints one');
 console.log('    but SignInButton\'s provider glyphs (Q846 A);');
 console.log('    every payment tile\'s corners and edge are bound on its frame, and no other mark has an edge;');
-console.log('    every button logo sits on its record\'s ground and edge (#3174).');
+console.log('    every button logo sits on its record\'s ground and edge, at the edge\'s width (#3174).');
