@@ -252,6 +252,7 @@ export const USED_BY = {
       "Tab.Item",
       "Divider",
       "SegmentedControl",
+      "Toast",
       "Counter",
       "Pagination"
     ],
