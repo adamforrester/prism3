@@ -37169,6 +37169,17 @@ arm: {
   }
   ok(corpus().length >= 4 && offBox.length === 0,
     `#3180 accordion title line box (#2586 kept): the regular title composite is one line of type.label.{rung}.line-box at every size, in every brand` + (offBox.length ? ` — OFF: ${offBox.join('; ')}` : ''));
+
+  // THE DIVIDER TOGGLE (#3198, owner Q-ACC2 A): one BOOLEAN named `divider`, default on, wired to the nested Divider's
+  // visibility in every member, and a code prop of the same name and default. EXPECTED is typed here; ACTUAL is the
+  // projected set's properties and each member's `divider` node. The boolean dropped, unwired or defaulted off fails here.
+  const divProp = planSetProperties(plans).filter((q) => q.name === 'divider');
+  const unwired = plans.filter((p) => { const d = find(p.root as PN, 'divider') as PN & { visibleProp?: string; visible?: boolean } | undefined; return !d || d.visibleProp !== 'divider' || d.visible === false; }).map((p) => planComponentName(p));
+  ok(plans.length === 48 && divProp.length === 1 && divProp[0].type === 'BOOLEAN' && unwired.length === 0,
+    `#3198 accordion divider wired (Q-ACC2 A): the set declares one BOOLEAN 'divider', and all 48 members' nested Divider is built visible with its visibility bound to it (got ${JSON.stringify(divProp)}${unwired.length ? `; UNWIRED: ${unwired.slice(0, 4).join(', ')}` : ''})`);
+  const divCode = acc.props.find((q) => q.name === 'divider');
+  ok(divProp[0]?.default === true && divCode?.type === 'boolean' && divCode.default === true,
+    `#3198 accordion divider default on (Q-ACC2 A): the Figma property and the code prop 'divider' both default to true (Figma ${JSON.stringify(divProp[0]?.default)}, code ${JSON.stringify(divCode && { type: divCode.type, default: divCode.default })})`);
 }
 
 // ------------------------------------------------------------------- #2319: the list and its item

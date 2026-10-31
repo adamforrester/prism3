@@ -111,7 +111,9 @@ export type HostTopic =
   /** #2909: the file's Documentation settings (`doc-settings`). */
   | 'host:docs'
   /** #2909: Update file's checklist read (`file-sets`). */
-  | 'host:update';
+  | 'host:update'
+  /** #3170: the status strip's reading (`run-progress`), and Update file's run starting, moving and ending. */
+  | 'host:run';
 
 /** What changed. `brand`: the working input, the resolved theme or the error (every `rebuild`, and a
  *  wholesale load). `origin`: the provenance was reassigned. `mode`: the mode being viewed. `page`: the

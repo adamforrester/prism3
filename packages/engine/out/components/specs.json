@@ -32125,6 +32125,11 @@
           "default": "Section title"
         },
         {
+          "name": "divider",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
           "name": "content",
           "type": "SLOT"
         }

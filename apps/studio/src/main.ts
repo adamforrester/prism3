@@ -34,6 +34,8 @@ import { isNewPage, pageOfTab } from './shell/pages';
 import type { StyleGuidesLend } from './shell/style-guides';
 import type { ActivityLend, ActivityReading, OpReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
+import type { StatusLend } from './shell/status-strip';
+import { heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
 import type { DocumentationLend } from './shell/documentation';
 import { brandFor, DUE_DEBOUNCE_MS, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
 import { readSaved, savedDrawOptions } from './state/style-guides';
@@ -60,7 +62,7 @@ import {
 // itself lists it, from `preview/components.ts`; the Button options moved to `domains/components.ts`).
 import { componentCatalog } from './state/component-catalog';
 import { currentOf, positionOf, record, runVerdict, RUN_COPY, startRun, stopRun, type BuildRun, type RunKind } from './state/build-queue';
-import { entryOf } from './state/component-groups';
+import { displayNameOf, entryOf } from './state/component-groups';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
 import { shownName } from './state/brand-input';
@@ -374,6 +376,8 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   if (m.kind === 'component-result' && prev.componentState === 'pending') runAfterResult(m, prev.componentDef);
   // #3128: a set the run posted that the host refused gets no verdict, so the run ends on the refusal.
   if (m.kind === 'refused' && !m.agent && AGENT_OP[m.cmd] === 'components') runRefused(m.message);
+  // #3170 part 2: the status strip hears the run, and the read after open, before the step can end.
+  stripHears(m);
   // #2909: Update file's run moves to its next step on the verdict of the one out, before this message's topics fire.
   advanceUpdate(m, prev);
   // #3081 Q810 A: a write's verdict, or a fresh read of the file's sets, may change what Update file would change.
@@ -1124,13 +1128,14 @@ const mountView = (view: RootView): void => {
         // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
         updateFile: commit.isFigma ? updateFileLend : null,
         documentation: commit.isFigma ? documentationLend : null,
+        status: commit.isFigma ? statusLend : null,
         // #2637 Q384: the bar's Docs. In the plugin the main thread opens the docs in the browser; on the web it is a link.
         openDocs: commit.isFigma ? () => commit.openDocs() : null,
         // S3: Brand's preview is the Style guide, lent the same way until a slice replaces it.
         // S6.2 lent Type's levers the legacy Text styles controls; S6.3 replaced them, so only the fonts are lent.
         // S8.2: the Components page's set builds, lent so that page never imports this file.
         lend: { styleGuide: renderPreviewStyleGuide, fonts: () => host, sets: {
-          busy: componentBusy, agentBusy: () => agentRunning('components'), lastOf: (id) => host.setBuilds.get(id),
+          busy: componentBusy, agentBusy: () => agentRunning('components'), lastOf: (id) => host.setBuilds.get(id), off: () => writeOff(),
           run: runSets, stop: stopSets, current: () => run, last: () => lastRun,
           showResult: () => { setHost({ openDetail: 'components' }); hostChanged(); },
           status: (id) => (commit.isFigma ? statusesOf(id, host.fileSets, host.handEdits, host.handPass, host.addQueue) : []),
@@ -1760,6 +1765,7 @@ const runApply = (): void => {
 const runPrune = (): void => {
   // #2909: never after a failed restore either, when the brand on screen is the demo's, not the file's (#1989).
   if (pruneBlocked() || restoreFailure) return;
+  clearStripLine();
   setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, false);
 };
 /** Set up file (#1558). `openDetail` is cleared for the reason the build clears it: the previous run's
@@ -1796,6 +1802,7 @@ const runSets = (kind: RunKind, ids: readonly string[]): void => {
   if (!ok.length) return;
   run = startRun(kind, ok);
   lastRun = null;
+  if (!updateRun) clearStripLine();
   postCurrent();
   hostChanged();
   invalidate('host:components');
@@ -1842,11 +1849,13 @@ const styleGuidesLend: StyleGuidesLend = {
     progress: host.styleGuideState === 'pending' ? host.styleGuideProgress : null,
     setupBusy: fileSetupBusy(),
     writes: [host.applyState, host.fileSetupState],
+    off: writeOff(),
     retired: host.styleGuideRetired,
     cleanup: host.styleGuideCleanup,
   }),
   request: () => commit.requestStyleGuideCatalog(),
   draw: (o) => {
+    if (!updateRun) clearStripLine();
     // The previous run's list goes with the state, so the next one's starts empty (P1).
     setHost({ styleGuideState: 'pending', styleGuideProgress: null, styleGuideRun: null, openDetail: null });
     hostChanged();
@@ -1854,6 +1863,7 @@ const styleGuidesLend: StyleGuidesLend = {
   },
   cancel: () => commit.cancelStyleGuide(),
   cleanUp: (ids) => {
+    clearStripLine();
     setHost({ styleGuideCleanup: 'pending' });
     hostChanged();
     commit.cleanUpStyleGuide(ids);
@@ -1867,13 +1877,15 @@ const styleGuidesLend: StyleGuidesLend = {
 /** #2909: Documentation's reads and writes, plugin only: the file's settings, kept in the file through the host. */
 const documentationLend: DocumentationLend = {
   read: () => host.docSettings,
+  off: () => writeOff(),
   save: (next) => commit.saveDocSettings(next),
   styleGuides: styleGuidesLend,
   // #2830 Q2830.3 A: Draw specs, for the current page, under the build's guard: never beside another components write.
   specs: {
-    read: () => ({ state: host.specsState, busy: componentBusy() || !!updateRun, off: restoreFailure ? RESTORE_OFF_HINT : null }),
+    read: () => ({ state: host.specsState, busy: componentBusy() || !!updateRun, off: writeOff() }),
     draw: () => {
       if (componentBusy() || updateRun || restoreFailure) return;
+      clearStripLine();
       setHost({ specsState: 'pending' });
       hostChanged();
       commit.postDrawSpecs();
@@ -1916,9 +1928,14 @@ const endStep = (ok: boolean, headline: string): void => {
   const steps = updateRun.steps;
   updateRun = stepDone(updateRun, ok, headline);
   if (!ok && step) updateStopped = { step, headline };
+  if (stripRun) stripRun = stepEnded(stripRun, Date.now());
   if (updateRun.done) {
+    // #3170 Q3170.6 A: the strip becomes the verdict line, until the next action.
+    if (stripRun) stripLine = stripVerdict({ results: updateRun.results, steps, stopped: updateRun.stopping, run: stripRun, now: Date.now(), nameOf: setName });
+    stripRun = null;
     updateRun = null;
     updatePhase = null;
+    writesMoved();
     // Q2909.8 A: what is due now, and the hand edits after it, so the badge and the statuses follow the run.
     setHost({ handPass: 'running', handEdits: new Map(), updateCheck: null });
     // #3129 Q3129.2 A, Q3129.3 A: the run ends with a queue write of no ids, which clears the keys of the sets the file
@@ -1936,6 +1953,7 @@ const endStep = (ok: boolean, headline: string): void => {
 const startStep = (): void => {
   const step = updateRun ? stepOf(updateRun) : null;
   if (!step || !updateRun) return;
+  if (stripRun) stripRun = heard(stripRun, Date.now());
   const busy = 'Another run of this step is out. Try again when it ends.';
   if (step === 'setup') { runFileSetup(); if (host.fileSetupState !== 'pending') { endStep(false, busy); return; } }
   else if (step === 'theme') { runApply(); if (host.applyState !== 'pending') { endStep(false, busy); return; } }
@@ -2003,13 +2021,52 @@ const recountDue = (): void => {
 };
 subscribe('brand', recountDue);
 subscribe('identity', recountDue);
+// ---- the status strip (#3170 part 2, Q3170.1–6 A) -----------------------------------------------------------
+// What the strip says is `state/status-strip.ts`; here are the readings it is fed. The read after open, a page at a time
+// (cleared by the host's full read at open); Update file's run, from its start to its verdict line; and the line kept
+// until the next action the panel starts (`clearStripLine`).
+let stripRead: StripRead = null;
+let stripRun: StripRun | null = null;
+let stripLine: StripVerdict | null = null;
+const setName = (id: string): string => displayNameOf(componentCatalog(), id);
+/** A reading the host posted, or a message that tells the strip the run is still answering. The update's and Apply
+ *  Theme's readings count only while the panel's own step of that kind is out: an agent's run posts none, and a reading
+ *  queued behind a step's verdict belongs to no step. */
+const stripHears = (m: Parameters<typeof reduce>[1]): void => {
+  const step = updateRun ? stepOf(updateRun) : null;
+  if (m.kind === 'run-progress') {
+    if (m.run === 'read') stripRead = { done: m.done, total: m.total };
+    else if (stripRun && ((m.run === 'update' && step === 'update' && updatePhase === 'apply') || (m.run === 'apply-theme' && step === 'theme')))
+      stripRun = withReading(stripRun, { run: m.run, phase: m.phase, item: m.item, done: m.done, total: m.total }, Date.now());
+    invalidate('host:run');
+    return;
+  }
+  if (m.kind === 'file-sets' && m.atOpen && !m.partial && stripRead) { stripRead = null; invalidate('host:run'); return; }
+  if (stripRun && (m.kind === 'component-progress' || m.kind === 'style-guide-progress' || m.kind === 'update-check')) { stripRun = heard(stripRun, Date.now()); invalidate('host:run'); }
+};
+/** The next action the panel starts ends the verdict line (Q3170.6 A). */
+const clearStripLine = (): void => { if (stripLine) { stripLine = null; invalidate('host:run'); } };
+/** Q3170.3 A: why every control that writes to the file is off now, or null: after a failed restore (#1989), or while
+ *  Update file's run is out. The hover reason says which. */
+const writeOff = (): string | null => (restoreFailure ? RESTORE_OFF_HINT : updateRun ? STRIP_COPY.busy : null);
+/** Update file's run started or ended: the writing controls repaint, on every page that draws one. */
+const writesMoved = (): void => { invalidate('host:run'); invalidate('host:components'); invalidate('host'); };
+const statusLend: StatusLend = {
+  read: () => stripView({
+    read: stripRead, run: stripRun, verdict: stripLine, now: Date.now(), nameOf: setName,
+    step: updateRun && stepOf(updateRun) ? { step: stepOf(updateRun)!, stopping: updateRun.stopping, queue: run && currentOf(run) ? { id: currentOf(run)!, at: run.results.length + 1, of: run.ids.length } : null } : null,
+  }),
+  stop: () => updateFileLend.stop(),
+};
+
 /** Update file's reads and writes, lent to the shell (`shell/update-file.ts`). */
 const updateFileLend: UpdateFileLend = {
   read: () => ({
-    fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: restoreFailure ? RESTORE_OFF_HINT : null,
+    fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: writeOff(),
     prune: { busy: host.pruneBusy, preview: host.prunePreview, verdict: host.pruneVerdict },
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
     handEdits: host.handEdits, updateCheck: host.updateCheck, queue: host.addQueue,
+    rowState: (id) => rowState(stripRun, id), stopLabel: () => { const v = statusLend.read(); return v.kind === 'running' ? v.stop.label : null; },
   }),
   queueSets,
   check: (theme) => commit.requestFileSets(panelBrand(theme)),
@@ -2019,13 +2076,19 @@ const updateFileLend: UpdateFileLend = {
     updateStopped = null;
     updateReviewed = update?.checked ?? [];
     updateRun = startUpdate(steps, sets, update ? { defs: update.defs, previewHash: update.previewHash, handEdits: update.handEdits } : null);
+    stripRun = startStripRun(Date.now());
+    stripLine = null;
+    writesMoved();
     startStep();
   },
   stop: () => {
     if (!updateRun) return;
     updateRun = stopUpdate(updateRun);
     if (stepOf(updateRun) === 'sets') stopSets();
+    // #3170 Q3170.4 A: inside the in-place update, the host stops at its next set boundary.
+    if (stepOf(updateRun) === 'update' && updatePhase === 'apply') commit.postUpdateStop();
     updateChanged();
+    invalidate('host:run');
   },
   pruneCheck: () => runPrune(),
   pruneDelete: deletePrune,

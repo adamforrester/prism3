@@ -88,7 +88,7 @@ console.log('\nboxes, counts and words');
 const sel1 = new Set([1]);
 ok(same([boxOf(trees[0].tables, sel1), boxOf([0, 1], sel1), boxOf([1], sel1), boxOf([2], sel1)], ['mixed', 'mixed', 'on', 'off']), 'box: mixed while part of its tables are selected, on, off');
 const every = new Set(CAT.tables.map((_, i) => i));
-ok(same(countsOf(CAT, every), { tables: 6, variables: 10, textStyles: 2, effectStyles: 0, gradientStyles: 0 }), `counts: every table draws 10 variables and 2 text styles, never the later-phase ones (${JSON.stringify(countsOf(CAT, every))})`);
+ok(same(countsOf(CAT, every), { tables: 6, variables: 10, textStyles: 2, effectStyles: 0, gradientStyles: 0, gridStyles: 0 }), `counts: every table draws 10 variables and 2 text styles, never the later-phase ones (${JSON.stringify(countsOf(CAT, every))})`);
 ok(same(summaryText(countsOf(CAT, every)), { lead: '6 tables', rest: '10 variables, 2 text styles' }) && same(summaryText(countsOf(CAT, new Set([5]))), { lead: '1 table', rest: '2 text styles' })
   && same(summaryText(countsOf(CAT, new Set([3]))), { lead: '1 table', rest: '2 variables' }) && summaryText(countsOf(CAT, new Set())) === null,
   'summary: "6 tables · 10 variables, 2 text styles", singular for one, none for nothing selected');
@@ -98,7 +98,7 @@ const CAT2A: StyleGuideCatalog = { ...CAT, collections: [...CAT.collections,
   { id: 'gradient-styles', name: 'Gradient styles', modes: [], gradientStyles: true, items: [{ name: 'gradient/brand', table: 7, value: '' }] }],
   tables: [...CAT.tables, { key: 'shadow|effect-styles|', title: 'Effect styles', kind: 'effect', page: 'Semantic tokens', rows: 3 },
     { key: 'gradient|gradient-styles|gradient', title: 'Gradient styles', kind: 'gradient', page: 'Semantic tokens', rows: 1 }] };
-ok(same(countsOf(CAT2A, new Set([5, 6, 7])), { tables: 3, variables: 0, textStyles: 2, effectStyles: 3, gradientStyles: 1 })
+ok(same(countsOf(CAT2A, new Set([5, 6, 7])), { tables: 3, variables: 0, textStyles: 2, effectStyles: 3, gradientStyles: 1, gridStyles: 0 })
   && same(summaryText(countsOf(CAT2A, new Set([5, 6, 7]))), { lead: '3 tables', rest: '2 text styles, 3 effect styles, 1 gradient style' }),
   `summary: effect and gradient styles are counted as such, never as variables or text styles (${JSON.stringify(summaryText(countsOf(CAT2A, new Set([5, 6, 7]))))})`);
 ok(drawLabel(32) === 'Draw 32 tables' && drawLabel(1) === 'Draw 1 table' && drawLabel(0) === 'Draw', `draw: "Draw 32 tables", "Draw 1 table", "Draw" (${drawLabel(32)})`);

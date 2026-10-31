@@ -304,6 +304,12 @@ ok(full !== undefined && full.msg.partial === undefined && full.msg.present?.len
   `open/full: the full read follows, tagged as the read after open, and finds all ${SETS} sets, the ${SETS - RECORDED} the ledger does not name included (${full ? `${full.msg.present?.length} present, partial ${full.msg.partial}, error ${full.msg.error ?? 'none'}` : 'no answer'})`);
 const fullDue = Object.entries((full?.msg?.due ?? {}) as Record<string, { state: string }>).filter(([, d]) => d.state === 'due').map(([id]) => id);
 ok(JSON.stringify(fullDue) === JSON.stringify(firstDue), `open/agree: the ledger's answer and the full read agree on what is due (${JSON.stringify(firstDue)} vs ${JSON.stringify(fullDue)})`);
+// #3170 Q3170.1 A: the read after open says how far it has got, a page at a time, for the panel's status strip: page 0 of
+// N as it starts (the strip's indeterminate "Reading this file…"), then each page once, in order, all before the full read.
+const reads = posted.filter((p) => p.msg?.type === 'run-progress' && p.msg.run === 'read');
+ok(JSON.stringify(reads.map((p) => p.msg.done)) === JSON.stringify(Array.from({ length: PAGES + 1 }, (_, i) => i)) && reads.every((p) => p.msg.total === PAGES && p.msg.phase === 'work')
+  && !!full && reads.every((p) => posted.indexOf(p) < posted.indexOf(full)),
+  `open/read-progress: the read after open posts page 0 to ${PAGES} of ${PAGES}, once each, in order, before its answer; the reads asked mid-read post none (${reads.length} readings, ${JSON.stringify(reads.slice(0, 3).map((p) => p.msg.done))}…)`);
 ok(loads === PAGES, `open/control: the read after the answer does load every page, once (${loads} page loads)`);
 ok(worstTurn <= 1, `open/yields: no turn of the event loop loads more than one page, the reads asked mid-read included (worst ${worstTurn})`);
 ok(done() !== undefined, `open/pass: the hand-edit pass runs after the read and ends (${done() ? `at ${done()!.at} ms` : 'no end in 10 s'})`);

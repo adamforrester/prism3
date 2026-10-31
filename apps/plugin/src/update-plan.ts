@@ -65,7 +65,7 @@ import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, read
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
-import { pageMovesDue, pageMovesLine, type PageMove } from './page-moves';
+import { pageMovesDue, pageMovesLine, tableMovesDue, type PageMove, type TableMove } from './page-moves';
 import { blockHeadersDue, blockHeadersLines, type BlockHeaderDue } from './page-header';
 import { SECTION_HEADER_SET, isTemplateSet } from './file-components';
 import { whatChangedLines } from './release-summary';
@@ -1144,6 +1144,9 @@ export type UpdatePreview = {
   /** #2989, owner decision Q656 A — the sets on a page an earlier taxonomy placed them on, which the apply moves to the
    *  page it names now (`pageMovesDue`). Read for the file, like `pages`. Absent when none. */
   pageMoves?: PageMove[];
+  /** #3171, owner decision Q3171.7 A — the style-guide tables on a page an earlier build drew them on, which the apply
+   *  moves to the page they are drawn on now (`tableMovesDue`). Listed on the set moves' line. Absent when none. */
+  tableMoves?: TableMove[];
   /** #3172, owner decisions Q3172.1–3 A — the block headers the apply places or moves (`blockHeadersDue`). Read for the
    *  file, like `pageMoves`. Absent when none. */
   blockHeaders?: BlockHeaderDue[];
@@ -1343,6 +1346,8 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   // THE SETS ON A FORMER PAGE (#2989): read once for the file, like the page order.
   const pageMoves = host.root.children ? pageMovesDue(host.root.children) : [];
   if (pageMoves.length) out.pageMoves = pageMoves;
+  const tableMoves = host.root.children ? tableMovesDue(host.root.children) : [];
+  if (tableMoves.length) out.tableMoves = tableMoves;
   // THE BLOCK HEADERS (#3172): read once for the file, like the moves they can follow.
   const blockHeaders = host.root.children
     ? blockHeadersDue(host.root.children, () => host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }).some((n) => isTemplateSet((n as { name?: unknown }).name, SECTION_HEADER_SET)))
@@ -1672,7 +1677,7 @@ export const variablesLine = (variables: readonly string[] | undefined): string 
  *  set to move and no page to reorder. A set that can't be checked is refused by the confirm, so it adds no work. The
  *  apply then saves no named version, and the dry run says so. */
 export const aboutOnly = (r: UpdatePreview): boolean =>
-  (aboutIsWork(r.about) || coverIsWork(r.cover)) && !r.pages?.length && !r.pageMoves?.length && !r.blockHeaders?.length && r.sets.every((p) => p.blockers.length > 0 || (noChanges(p) && !p.counts.revisionUnknown));
+  (aboutIsWork(r.about) || coverIsWork(r.cover)) && !r.pages?.length && !r.pageMoves?.length && !r.tableMoves?.length && !r.blockHeaders?.length && r.sets.every((p) => p.blockers.length > 0 || (noChanges(p) && !p.counts.revisionUnknown));
 
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
@@ -1709,7 +1714,7 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...breakingSection(r.sets, false),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
-    pageMovesLine(r.pageMoves, false),
+    pageMovesLine([...(r.pageMoves ?? []), ...(r.tableMoves ?? [])], false),
     ...blockHeadersLines(r.blockHeaders, false),
     coverDueLine(r.cover),
     aboutDueLine(r.about),

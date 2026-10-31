@@ -210,6 +210,10 @@
           ]
         },
         {
+          "name": "divider",
+          "default": true
+        },
+        {
           "name": "size",
           "default": "medium",
           "values": [
@@ -6900,6 +6904,12 @@
       },
       {
         "id": "toast",
+        "default": true
+      }
+    ],
+    "divider": [
+      {
+        "id": "accordion",
         "default": true
       }
     ],
