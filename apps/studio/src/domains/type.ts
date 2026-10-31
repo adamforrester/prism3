@@ -64,7 +64,7 @@ import { valuePicker, type ValuePickerOpts } from '../ui/value-picker';
 import { emToPercentLabel } from '../em-percent';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
-import { glyph, h, hook } from '../shell/dom';
+import { armEnter, enterMark, glyph, h, hook } from '../shell/dom';
 import { chipChoice, choice, leverBlock, leverOf, promoteLever, refuseOption, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock, keepFocus, pageEdit, wordsOf } from '../ui/lever-kit';
 import type { PageLends } from '../preview/brand';
 
@@ -553,8 +553,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     btn.setAttribute('aria-expanded', String(open));
     btn.setAttribute('aria-controls', `p3-advb-${id}`);
     btn.append(glyph(open ? 'chev' : 'chevr'), h('span', 'p3-btn-label', `${open ? 'Hide' : 'Show'} ${n} advanced`));
-    btn.onclick = toggle;
-    const b = h('div', 'p3-advbody');
+    btn.onclick = () => { if (!open) armEnter(`p3-advb-${id}`); toggle(); };
+    const b = enterMark(h('div', 'p3-advbody'), `p3-advb-${id}`);
     b.id = `p3-advb-${id}`;
     b.hidden = !open;
     if (open) b.append(...body());

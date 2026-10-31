@@ -994,13 +994,38 @@ const ORIGIN = `http://127.0.0.1:${server.address().port}`;
 // #3138: Google Fonts answers every request with nothing here (`test-web-fonts-stub.mjs`), so a run never reaches it;
 // §3138 serves its own fixture by `page.route`.
 const browser = MODE === 'run' ? await launchWithoutWebFonts(chromium) : null;
+/** #3150, MOTION SETTLED AT ONCE. The chrome's surfaces move on three mapped durations (`--p3-motion-panel`,
+ *  `--p3-motion-fast`, `--p3-motion-reduced`; `chrome.css`, chrome motion). Every page this suite opens sets those three
+ *  to 0s before the app boots, so each surface lands on its end state in the frame it changes and every measurement
+ *  reads that end state, never a frame mid-move: no wait to tune, and no flake. Nothing else is touched: the spinner's
+ *  and the switch's timings are their own variables. Section 3150 opens its pages with `liveMotion: true`, where the
+ *  real durations run, holds each surface's timing and curve, waits for each to finish, and holds the end state it
+ *  settles on; and it holds that this override reaches only those three. */
+const SETTLED_MOTION = ['--p3-motion-panel', '--p3-motion-fast', '--p3-motion-reduced'];
+if (browser) {
+  const withFonts = browser.newContext.bind(browser);
+  browser.newContext = async ({ liveMotion = false, ...o } = {}) => {
+    const ctx = await withFonts(o);
+    if (!liveMotion) await ctx.addInitScript((names) => {
+      const put = () => {
+        const s = document.createElement('style');
+        s.dataset.testMotion = 'settled';
+        s.textContent = `* { ${names.map((n) => `${n}: 0s !important;`).join(' ')} }`;
+        (document.head ?? document.documentElement).append(s);
+      };
+      if (document.documentElement) put();
+      else new MutationObserver((_, o) => { if (document.documentElement) { o.disconnect(); put(); } }).observe(document, { childList: true });
+    }, SETTLED_MOTION);
+    return ctx;
+  };
+}
 
 /** A booted app on the opening page, Color › Palettes (the two panes, from S2). Studio: from the start
  *  screen's prism3 chip (or `brand`'s), the OS scheme emulated, `query` (web only) appended to the page URL.
  *  Plugin: Figma's theme stubbed, then the start screen the host asks for, then the same example. Named
  *  options, so `brand` (#2194) and `query` (#2124) can't be passed in each other's place. */
-const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3', prep }) => {
-  const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme });
+const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3', prep, liveMotion = false }) => {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme, liveMotion });
   const page = await ctx.newPage();
   // `prep` (#3138): runs on the page before it loads, for a section that must see every request from boot on.
   if (prep) await prep(page);
@@ -18381,6 +18406,424 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
   } finally { await ctx.close(); }
 }
 } // 3170
+// =============================================================================================
+// #3150 — THE CHROME'S MOTION (part 2; the owner's Q3150.1–11 A, 2026-10-31). Every other section runs with the motion
+// durations at 0s (SETTLED_MOTION, beside `browser`), so it measures end states; this one runs them live.
+//
+//   · DECLARED: the rules in the shipped stylesheet that declare a transition or an animation (in the normal cascade, in
+//     `@starting-style`, and under reduced motion) are exactly the listed surfaces' and the switch's and spinner's that
+//     were there before, each by selector. A listed surface with no rule fails by name; a rule on anything else fails by
+//     name.
+//   · LIVE, on the plugin at 1280 and 380 (the page's animation clock slowed through CDP, so a 100ms move is read whole,
+//     then restored before the wait): each surface moves on its kind's timing, curve and properties when it changes;
+//     then the page waits for every animation to finish and the surface sits on its end state (no transform, full
+//     opacity; a closed drawer's body undrawn). What must not move does not: a repaint of an open dialog (`data-still`),
+//     a fold-out drawn again by a page change, and a fold-out's collapse.
+//   · REDUCED: under `prefers-reduced-motion: reduce` the same changes animate no transform, translate or scale, and every
+//     surface's crossfade lasts 100ms.
+//   · SETTLED: every other section's pages read the three motion durations as 0s, and nothing else moved: the spinner's
+//     `--p3-dur-fast` keeps its 100ms.
+//
+//   Independence (docs/34): the timings are literals typed from the owner's decisions (a panel in at 200ms, every exit and
+//   a small surface at 100ms, the reduced crossfade at 100ms), and the curves are the default theme's enter and exit
+//   roles as the proposal measured them from the emission (decelerate 0, 0, 0.2, 1; accelerate 0.4, 0, 1, 1), typed
+//   here. The rule list is typed here from the owner's surface list. What moved is read from the page's own animations.
+//
+//   Mutations this fails by name: a transition dropped from a surface → `#3150 DECLARED: … declares no motion` (and its
+//   LIVE arm); a transition added to an unlisted rule → `#3150 DECLARED: … is not a listed surface`; the panel duration
+//   mapped to `duration.fast` → `#3150 LIVE … the drawer slides up on 200ms`; the reduced block's `animation: none` dropped
+//   → `#3150 REDUCED … no transform moves`; `data-still` not set on a repaint → `#3150 LIVE … a repaint of the open dialog
+//   does not scale in again`; the fold-out's focus gate dropped → `#3150 LIVE … a page change does not replay`.
+// =============================================================================================
+if (runs('3150')) {
+console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n${'='.repeat(78)}`);
+{
+  const IN = 200, OUT = 100, SMALL = 100, REDUCED = 100;
+  const ENTER = 'cubic-bezier(0, 0, 0.2, 1)', EXIT = 'cubic-bezier(0.4, 0, 1, 1)';
+  const MOVES = ['transform', 'translate', 'scale', 'rotate'];
+  // The rules that may declare motion, by selector as the stylesheet's object model spells it: [context, selector].
+  // `rule` is the normal cascade, `start` an `@starting-style` block, `reduced` the reduced-motion block.
+  const DECLARED = [
+    // Unchanged (Q3150.1 A keeps them as they are): the spinner (S11) and the switch's knob (QA-B9, #2183).
+    ['rule', '.p3-spin'], ['rule', '.p3-spin::before'],
+    ['rule', ':is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin, :is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin::before'],
+    ['reduced', '.p3-spin::before'], ['rule', '.p3-switch-knob'], ['reduced', '.p3-switch-knob'],
+    // Slide up: the Activity drawer at every width, its body held through the exit, its chevron turning with it.
+    ['rule', '.p3-drawer[data-open="true"]'], ['rule', '.p3-frame:not([data-w="narrow"]) .p3-drawer[data-open="false"]'],
+    ['rule', '.p3-frame[data-w="narrow"] .p3-drawer[data-open="false"]'], ['rule', '.p3-drawer-body'],
+    ['rule', '.p3-drawer-bar > .p3-ico:last-of-type'], ['rule', '.p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type'],
+    // Shift: the 380 strip.
+    ['rule', '.p3-frame[data-w="narrow"] .p3-drawer'], ['start', '.p3-frame[data-w="narrow"] .p3-drawer'],
+    // Pop: the status dot on the drawer's bar row (a result nobody has opened).
+    ['rule', '.p3-drawer-bar .p3-status-dot[data-state="unread"]'], ['start', '.p3-drawer-bar .p3-status-dot[data-enter="true"]'],
+    // Shift: a menu.
+    ['rule', '.p3-menu'], ['start', '.p3-menu'],
+    // Fade: a tooltip; the error strip and the notices row it sits in; the Update file rows that land.
+    ['rule', '.p3-tile-tip'], ['start', '.p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip'],
+    ['rule', '.p3-notices'], ['rule', '.p3-errstrip'], ['rule', '.p3-errstrip[hidden]'], ['start', '.p3-errstrip'],
+    ['rule', '.p3-upd [data-land="true"]'], ['start', '.p3-upd [data-land="true"]'],
+    // Scale in: a dialog and its scrim.
+    ['rule', ':is(.p3-bardlg-scrim, .p3-scrim)'], ['rule', ':is(.p3-bardlg-scrim, .p3-scrim) > :is(.p3-bardlg, .p3-dialog)'],
+    ['start', ':is(.p3-bardlg-scrim, .p3-scrim):not([data-still="true"])'], ['start', ':is(.p3-bardlg-scrim, .p3-scrim):not([data-still="true"]) > :is(.p3-bardlg, .p3-dialog)'],
+    // Expand: fold-out content, moving only in the frame its toggle opened it.
+    ['rule', ':is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body)'],
+    ['start', ':is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body)[data-enter="true"]'],
+    // Reduced motion: the drawer's slide and the transforms drop; every surface crossfades.
+    ['reduced', '.p3-frame[data-w] .p3-drawer[data-open]'],
+    ['reduced', '.p3-drawer-bar > .p3-ico:last-of-type, .p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type, :is(.p3-bardlg-scrim, .p3-scrim) > :is(.p3-bardlg, .p3-dialog)'],
+    ['reduced-start', '.p3-drawer-body'],
+    ['reduced', ':is(.p3-drawer-body, .p3-errstrip, .p3-errstrip[hidden])'],
+    ['reduced', ':is(.p3-frame[data-w="narrow"] .p3-drawer, .p3-drawer-bar .p3-status-dot[data-state="unread"], .p3-menu, .p3-tile-tip, .p3-upd [data-land="true"], :is(.p3-bardlg-scrim, .p3-scrim), :is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body))'],
+  ];
+  /** Every rule in the chrome's stylesheet that declares a transition or an animation, with its context. */
+  const declared = (page) => page.evaluate(() => {
+    const out = [];
+    const sheet = [...document.styleSheets].find((s) => { try { return [...s.cssRules].some((r) => r.selectorText === '.p3-drawer-body'); } catch { return false; } });
+    if (!sheet) return null;
+    // The shorthands too: a shorthand that reads a variable leaves its longhands empty in the object model.
+    const PROPS = ['transition', 'animation', 'transition-property', 'transition-duration', 'transition-timing-function', 'transition-behavior', 'animation-name', 'animation-duration'];
+    const walk = (rules, ctx) => {
+      for (const r of rules) {
+        if (r instanceof CSSMediaRule) { walk(r.cssRules, r.conditionText.includes('prefers-reduced-motion') ? 'reduced' : ctx); continue; }
+        if (typeof CSSStartingStyleRule !== 'undefined' && r instanceof CSSStartingStyleRule) {
+          for (const s of r.cssRules) out.push([ctx === 'reduced' ? 'reduced-start' : 'start', s.selectorText]);
+          continue;
+        }
+        // The chrome's rules only (the class-scope law: every chrome class takes `p3-`); the legacy views' `styles.css` shares the sheet.
+        if (r instanceof CSSStyleRule && r.selectorText.includes('.p3-') && PROPS.some((p) => r.style.getPropertyValue(p) !== '')) out.push([ctx, r.selectorText]);
+        if (r.cssRules?.length) walk(r.cssRules, ctx);
+      }
+    };
+    walk(sheet.cssRules, 'rule');
+    return out;
+  });
+  /** What moves on the element `sel` now: each running animation's kind, name, duration, curve and animated properties. */
+  const movesOf = (page, sel) => page.evaluate(([s, MV]) => {
+    const el = typeof s === 'string' ? document.querySelector(s) : null;
+    if (!el) return null;
+    return el.getAnimations().map((a) => {
+      const kf = a.effect.getKeyframes();
+      const t = a.effect.getTiming();
+      const props = [...new Set(kf.flatMap((k) => Object.keys(k).filter((x) => !['offset', 'computedOffset', 'easing', 'composite'].includes(x))))]
+        .map((p) => p.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`));
+      return { kind: a.constructor.name, name: a.animationName ?? a.transitionProperty, dur: t.duration,
+        ease: t.easing !== 'linear' ? t.easing : (kf.find((k) => k.easing && k.easing !== 'linear')?.easing ?? 'linear'),
+        moves: props.filter((p) => MV.includes(p)), props };
+    });
+  }, [sel, MOVES]);
+  /** Run `fn` in the page: a state change the shell would make, driven directly (the clock is slowed, so it is read whole). */
+  const change = (page, fn, arg) => page.evaluate(fn, arg);
+  /** Restore the clock and wait for every finite animation in the page to finish. */
+  const settleAll = async (page, cdp) => {
+    await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });
+    // Every animation with an end (the spinner and a running mark turn for as long as a write runs), bounded.
+    const left = await page.evaluate(() => Promise.race([
+      Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))).then(() => []),
+      new Promise((r) => setTimeout(() => r(document.getAnimations().filter((a) => a.playState === 'running' && a.effect?.getTiming().iterations !== Infinity)
+        .map((a) => `${a.animationName ?? a.transitionProperty} on ${a.effect?.target?.className}`)), 5000)),
+    ]));
+    ok(left.length === 0, `#3150: every finite animation settles within 5s once the clock is restored (still running: ${JSON.stringify(left)})`);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  };
+  /** The end state of `sel`: no transform of any kind, full opacity, and whether it is drawn. */
+  const restOf = (page, sel) => page.evaluate((s) => {
+    const el = document.querySelector(s);
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    return { transform: cs.transform, translate: cs.translate, scale: cs.scale, opacity: cs.opacity, display: cs.display, moving: el.getAnimations().length };
+  }, sel);
+  const atRest = (r) => !!r && r.transform === 'none' && r.translate === 'none' && r.scale === 'none' && r.opacity === '1' && r.moving === 0;
+  const one = (list, name) => (list ?? []).find((a) => a.name === name);
+  const fmt = (x) => JSON.stringify(x);
+
+  // ── DECLARED ──
+  {
+    const { ctx, page } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900, liveMotion: true });
+    try {
+      const got = await declared(page);
+      ok(Array.isArray(got), '#3150 DECLARED: the chrome\'s stylesheet is found in the page (by its `.p3-drawer-body` rule)');
+      const key = ([c, s]) => `${c} ${s}`;
+      const have = new Set((got ?? []).map(key));
+      const want = new Set(DECLARED.map(key));
+      for (const d of DECLARED) ok(have.has(key(d)), `#3150 DECLARED: ${d[0]} \`${d[1]}\` declares motion — a listed surface with no transition or animation`);
+      for (const g of got ?? []) ok(want.has(key(g)), `#3150 DECLARED: ${g[0]} \`${g[1]}\` declares motion and is not a listed surface (Q3150.1 A names which surfaces move)`);
+    } finally { await ctx.close(); }
+  }
+
+  // ── LIVE and REDUCED, on the plugin at 1280 ──
+  for (const reduced of [false, true]) {
+    const arm = reduced ? 'REDUCED' : 'LIVE';
+    const where = `#3150 ${arm} figma light 1280`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900, liveMotion: true });
+    const cdp = await ctx.newCDPSession(page);
+    let step = 'open';
+    try {
+      if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
+      await cdp.send('Animation.enable');
+      const slow = () => cdp.send('Animation.setPlaybackRate', { playbackRate: 0.02 });
+      /** Under reduced motion: nothing moves a transform, and every crossfade lasts the reduced duration. */
+      const reducedOk = (list, what) => {
+        ok(!!list && list.every((a) => a.moves.length === 0 && a.kind !== 'CSSAnimation'), `${where}: ${what}: no transform moves under reduced motion (read ${fmt(list)})`);
+        ok(!!list && list.some((a) => a.props.includes('opacity')) && list.every((a) => a.dur === REDUCED), `${where}: ${what}: it crossfades on ${REDUCED}ms (read ${fmt(list)})`);
+      };
+
+      // The drawer: Slide up at 1280, the chevron turning with it; the exit keeps the body drawn while it sinks.
+      step = 'the drawer opens';
+      await slow();
+      await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+      const dOpen = await movesOf(page, '[data-p3="activity-drawer"]');
+      const chev = await movesOf(page, '[data-p3="activity-toggle"] > .p3-ico:last-of-type');
+      const bOpen = await movesOf(page, '[data-p3="activity-body"]');
+      if (!reduced) {
+        const up = one(dOpen, 'p3-drawer-up');
+        ok(!!up && up.dur === IN && up.ease === ENTER && fmt(up.moves) === '["transform"]', `${where}: the drawer slides up on ${IN}ms, the enter curve, moving its transform (read ${fmt(dOpen)})`);
+        const turn = one(chev, 'transform');
+        ok(!!turn && turn.dur === IN && turn.ease === ENTER, `${where}: the drawer's chevron turns with it, ${IN}ms on the enter curve (read ${fmt(chev)})`);
+      } else {
+        reducedOk([...(dOpen ?? []), ...(chev ?? []), ...(bOpen ?? [])].filter((a) => a.name !== 'display'), 'the drawer opening');
+      }
+      await settleAll(page, cdp);
+      const dRest = await restOf(page, '[data-p3="activity-drawer"]');
+      const bRest = await restOf(page, '[data-p3="activity-body"]');
+      ok(atRest(dRest) && atRest(bRest) && bRest.display !== 'none', `${where}: settled, the open drawer sits at rest with its body drawn (drawer ${fmt(dRest)}, body ${fmt(bRest)})`);
+
+      step = 'the drawer closes';
+      await slow();
+      await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+      const closing = await page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="activity-body"]')).display);
+      const dClose = await movesOf(page, '[data-p3="activity-drawer"]');
+      const bClose = await movesOf(page, '[data-p3="activity-body"]');
+      if (!reduced) {
+        const down = one(dClose, 'p3-drawer-down');
+        ok(!!down && down.dur === OUT && down.ease === EXIT && fmt(down.moves) === '["transform"]', `${where}: the drawer sinks on ${OUT}ms, the exit curve (read ${fmt(dClose)})`);
+        ok(closing !== 'none' && one(bClose, 'display')?.dur === OUT, `${where}: the body stays drawn through the drawer's exit (display ${closing}; ${fmt(bClose)})`);
+      } else {
+        reducedOk([...(dClose ?? []), ...(bClose ?? [])].filter((a) => a.name !== 'display'), 'the drawer closing');
+      }
+      await settleAll(page, cdp);
+      const cRest = await restOf(page, '[data-p3="activity-drawer"]');
+      const cBody = await restOf(page, '[data-p3="activity-body"]');
+      ok(atRest(cRest) && cBody?.display === 'none', `${where}: settled, the closed drawer sits at rest and its body is undrawn (drawer ${fmt(cRest)}, body ${fmt(cBody)})`);
+
+      // The error strip: Fade in and out, the notices row holding through the exit.
+      step = 'the error strip';
+      await slow();
+      await change(page, () => { const e = document.querySelector('[data-p3="error-bar"]'); e.querySelector('.p3-errstrip-text').textContent = 'A refused edit.'; e.hidden = false; });
+      const eIn = (await movesOf(page, '[data-p3="error-bar"]'))?.filter((a) => a.name !== 'display');
+      if (!reduced) ok(!!eIn && eIn.length === 1 && eIn[0].name === 'opacity' && eIn[0].dur === SMALL && eIn[0].ease === ENTER, `${where}: the error strip fades in on ${SMALL}ms, the enter curve (read ${fmt(eIn)})`);
+      else reducedOk(eIn, 'the error strip appearing');
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, '[data-p3="error-bar"]')), `${where}: settled, the error strip sits at full opacity (${fmt(await restOf(page, '[data-p3="error-bar"]'))})`);
+      await slow();
+      const eDrawn = await change(page, () => { const e = document.querySelector('[data-p3="error-bar"]'); e.hidden = true; return [getComputedStyle(e).display, getComputedStyle(e.parentElement).display]; });
+      const eOut = (await movesOf(page, '[data-p3="error-bar"]'))?.filter((a) => a.name !== 'display');
+      if (!reduced) ok(eDrawn[0] !== 'none' && eDrawn[1] !== 'none' && eOut?.[0]?.name === 'opacity' && eOut[0].dur === OUT && eOut[0].ease === EXIT, `${where}: the error strip fades out on ${OUT}ms, the exit curve, its row held through it (display ${fmt(eDrawn)}; ${fmt(eOut)})`);
+      else reducedOk(eOut, 'the error strip leaving');
+      await settleAll(page, cdp);
+      ok((await restOf(page, '[data-p3="error-bar"]'))?.display === 'none', `${where}: settled, the error strip is undrawn`);
+
+      // A menu: Shift.
+      step = 'the Inspect menu';
+      await slow();
+      await hooks.click(page.locator('[data-p3="inspect-open"]'));
+      const mIn = await movesOf(page, '[data-p3="inspect-menu"]');
+      if (!reduced) {
+        const o = one(mIn, 'opacity'), t = one(mIn, 'translate');
+        ok(!!o && !!t && o.dur === SMALL && t.dur === SMALL && o.ease === ENTER && t.ease === ENTER, `${where}: the Inspect menu shifts in, opacity and a short offset on ${SMALL}ms, the enter curve (read ${fmt(mIn)})`);
+      } else reducedOk(mIn, 'the Inspect menu opening');
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, '[data-p3="inspect-menu"]')), `${where}: settled, the Inspect menu sits at rest (${fmt(await restOf(page, '[data-p3="inspect-menu"]'))})`);
+      await page.keyboard.press('Escape');
+
+      // A dialog: Scale in; a repaint of the open dialog does not scale it again; the checklist fades in when it lands.
+      step = 'the Update file dialog';
+      await slow();
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      const sIn = await movesOf(page, '[data-p3="update-layer"] > .p3-bardlg-scrim');
+      const gIn = await movesOf(page, '[data-p3="update-dialog"]');
+      if (!reduced) {
+        ok(one(sIn, 'opacity')?.dur === IN && one(sIn, 'opacity')?.ease === ENTER, `${where}: the dialog's scrim fades in on ${IN}ms, the enter curve (read ${fmt(sIn)})`);
+        ok(one(gIn, 'scale')?.dur === IN && one(gIn, 'scale')?.ease === ENTER, `${where}: the Update file dialog scales in on ${IN}ms, the enter curve (read ${fmt(gIn)})`);
+      } else reducedOk([...(sIn ?? []), ...(gIn ?? [])], 'the Update file dialog opening');
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, '[data-p3="update-dialog"]')) && atRest(await restOf(page, '[data-p3="update-layer"] > .p3-bardlg-scrim')),
+        `${where}: settled, the dialog and its scrim sit at rest (${fmt(await restOf(page, '[data-p3="update-dialog"]'))})`);
+      await slow();
+      await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]'), null, { timeout: 5000 }).catch(() => {});
+      const landed = await page.evaluate(() => {
+        const s = document.querySelector('[data-p3="update-layer"] > .p3-bardlg-scrim');
+        const body = document.querySelector('[data-p3="update-body"]');
+        return { still: s?.dataset.still ?? null, scrim: s?.getAnimations().length ?? -1, dialog: document.querySelector('[data-p3="update-dialog"]')?.getAnimations().length ?? -1,
+          rows: [...(body?.children ?? [])].map((n) => ({ land: n.dataset.land ?? null, fades: n.getAnimations().map((a) => [a.transitionProperty, a.effect.getTiming().duration]) })) };
+      });
+      ok(landed.still === 'true' && landed.scrim === 0 && landed.dialog === 0, `${where}: a repaint of the open dialog does not scale in again (data-still ${landed.still}; ${landed.scrim} scrim and ${landed.dialog} dialog animations)`);
+      const rowFade = reduced ? REDUCED : SMALL;
+      ok(landed.rows.length > 0 && landed.rows.every((r) => r.land === 'true' && r.fades.some(([p, d]) => p === 'opacity' && d === rowFade)),
+        `${where}: once the file is read the checklist lands, each row fading in on ${rowFade}ms (read ${fmt(landed.rows)})`);
+      await settleAll(page, cdp);
+      await page.keyboard.press('Escape');
+
+      // Fold-out content: Expand, gated on its toggle; a page change that draws it again does not replay it; collapse at once.
+      step = 'the advanced fold-out';
+      await slow();
+      await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+      const fIn = await movesOf(page, '#p3-advb-palettes');
+      if (!reduced) {
+        ok(one(fIn, 'opacity')?.dur === SMALL && one(fIn, 'translate')?.dur === SMALL && one(fIn, 'opacity')?.ease === ENTER,
+          `${where}: Show advanced's content fades in a short step down on ${SMALL}ms, the enter curve (read ${fmt(fIn)})`);
+      } else reducedOk(fIn, 'Show advanced opening');
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, '#p3-advb-palettes')), `${where}: settled, the advanced content sits at rest (${fmt(await restOf(page, '#p3-advb-palettes'))})`);
+      await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+      const fShut = await page.evaluate(() => { const b = document.querySelector('#p3-advb-palettes'); return b ? { display: getComputedStyle(b).display, moving: b.getAnimations().length } : { display: 'gone', moving: 0 }; });
+      ok(fShut.display === 'none' || fShut.display === 'gone', `${where}: Show advanced collapses at once (read ${fmt(fShut)})`);
+      await settleAll(page, cdp);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+
+  // ── LIVE and REDUCED at 380: the strip shifts in with the first run, the dot pops when it lands, the sheet slides up and sinks back ──
+  for (const reduced of [false, true]) {
+    const where = `#3150 ${reduced ? 'REDUCED' : 'LIVE'} figma light 380`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 380, h: 760, liveMotion: true });
+    const cdp = await ctx.newCDPSession(page);
+    let step = 'open';
+    try {
+      if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
+      await cdp.send('Animation.enable');
+      await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 });
+      const slow = () => cdp.send('Animation.setPlaybackRate', { playbackRate: 0.02 });
+      step = 'the strip appears';
+      // The strip waits for the first run (Q3113.9 A): Update file's theme step starts one.
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await hooks.need(page, '[data-p3="update-dialog"]');
+      await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+      await hooks.need(page, '[data-p3="update-go"]');
+      await settleAll(page, cdp);
+      await slow();
+      await hooks.click(page.locator('[data-p3="update-go"]'));
+      await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-p3="activity-drawer"]')).display !== 'none', null, { timeout: 5000 });
+      const sIn = await movesOf(page, '[data-p3="activity-drawer"]');
+      const sNoDown = (sIn ?? []).filter((a) => a.kind === 'CSSTransition');
+      if (!reduced) ok(one(sNoDown, 'opacity')?.dur === SMALL && one(sNoDown, 'translate')?.dur === SMALL && one(sNoDown, 'translate')?.ease === ENTER,
+        `${where}: the strip shifts in, opacity and a short rise on ${SMALL}ms, the enter curve (read ${fmt(sIn)})`);
+      else ok((sIn ?? []).every((a) => a.moves.length === 0 || a.name === 'p3-strip-down') && (sIn ?? []).every((a) => a.kind === 'CSSTransition') && one(sIn, 'opacity')?.dur === REDUCED,
+        `${where}: the strip crossfades in on ${REDUCED}ms and moves no transform (read ${fmt(sIn)})`);
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, '[data-p3="activity-drawer"]')), `${where}: settled, the strip sits at rest (${fmt(await restOf(page, '[data-p3="activity-drawer"]'))})`);
+      // Pop: the write lands while the strip is closed, so the bar row's dot marks a result nobody has opened.
+      step = 'the status dot';
+      await slow();
+      await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-unread"]'), null, { timeout: 5000 });
+      const dotSel = '[data-p3="activity-toggle"] [data-p3="activity-unread"]';
+      const pIn = await movesOf(page, dotSel);
+      if (!reduced) ok(one(pIn, 'scale')?.dur === SMALL && one(pIn, 'scale')?.ease === ENTER && one(pIn, 'opacity')?.dur === SMALL, `${where}: the status dot pops in, scale and opacity on ${SMALL}ms, the enter curve (read ${fmt(pIn)})`);
+      else ok(!!pIn && pIn.every((a) => a.moves.length === 0) && one(pIn, 'opacity')?.dur === REDUCED, `${where}: the status dot crossfades in on ${REDUCED}ms and scales nothing (read ${fmt(pIn)})`);
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, dotSel)), `${where}: settled, the status dot sits at rest (${fmt(await restOf(page, dotSel))})`);
+      // A repaint while it stays draws it afresh, still: it does not pop again. The old node is tagged, so the arm knows the
+      // bar row really was drawn again (the agent link turning on repaints it).
+      await slow();
+      await page.evaluate((sel) => { document.querySelector(sel).p3Old = true; }, dotSel);
+      await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
+      await page.waitForFunction((sel) => !document.querySelector(sel)?.p3Old, dotSel, { timeout: 5000 }).catch(() => {});
+      const redrawn = await page.evaluate((sel) => !!document.querySelector(sel) && !document.querySelector(sel).p3Old, dotSel);
+      const pAgain = await movesOf(page, dotSel);
+      ok(redrawn && Array.isArray(pAgain) && pAgain.length === 0, `${where}: a repaint of the bar row draws the dot again without popping it (redrawn ${redrawn}; read ${fmt(pAgain)})`);
+      await settleAll(page, cdp);
+      step = 'the sheet opens';
+      await slow();
+      await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+      const up = await movesOf(page, '[data-p3="activity-drawer"]');
+      if (!reduced) ok(one(up, 'p3-drawer-up')?.dur === IN && one(up, 'p3-drawer-up')?.ease === ENTER, `${where}: the sheet slides up on ${IN}ms, the enter curve (read ${fmt(up)})`);
+      else ok((up ?? []).every((a) => a.moves.length === 0 && a.kind !== 'CSSAnimation'), `${where}: the sheet moves no transform under reduced motion (read ${fmt(up)})`);
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, '[data-p3="activity-drawer"]')), `${where}: settled, the sheet sits at rest (${fmt(await restOf(page, '[data-p3="activity-drawer"]'))})`);
+      // Expand: an operation's row opens its lines; the sheet closed and opened again draws the open row without replaying it.
+      step = 'an operation row';
+      const opBody = '[data-p3="activity-op"][data-op="apply"] [data-p3="op-body"]';
+      const opHead = '[data-p3="activity-op"][data-op="apply"] [data-p3="op-head"]';
+      if (await page.evaluate((sel) => getComputedStyle(document.querySelector(sel)).display !== 'none', opBody)) await hooks.click(page.locator(opHead));
+      await settleAll(page, cdp);
+      await slow();
+      await hooks.click(page.locator(opHead));
+      const oIn = await movesOf(page, opBody);
+      if (!reduced) ok(one(oIn, 'opacity')?.dur === SMALL && one(oIn, 'translate')?.dur === SMALL && one(oIn, 'translate')?.ease === ENTER,
+        `${where}: an operation's lines fade in a short step down on ${SMALL}ms, the enter curve (read ${fmt(oIn)})`);
+      else ok(!!oIn && oIn.every((a) => a.moves.length === 0) && one(oIn, 'opacity')?.dur === REDUCED, `${where}: an operation's lines crossfade in on ${REDUCED}ms and move no transform (read ${fmt(oIn)})`);
+      await settleAll(page, cdp);
+      await hooks.click(page.locator('[data-p3="activity-close"]'));
+      await settleAll(page, cdp);
+      await slow();
+      await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+      const oAgain = await movesOf(page, opBody);
+      const oShown = await page.evaluate((sel) => getComputedStyle(document.querySelector(sel)).display, opBody);
+      ok(oShown !== 'none' && Array.isArray(oAgain) && oAgain.length === 0, `${where}: the sheet opened again draws the open row's lines without replaying them (display ${oShown}; read ${fmt(oAgain)})`);
+      await settleAll(page, cdp);
+      step = 'the sheet closes';
+      await slow();
+      await hooks.click(page.locator('[data-p3="activity-close"]'));
+      const down = await movesOf(page, '[data-p3="activity-drawer"]');
+      if (!reduced) ok(one(down, 'p3-strip-down')?.dur === OUT && one(down, 'p3-strip-down')?.ease === EXIT, `${where}: the sheet sinks back into the strip on ${OUT}ms, the exit curve (read ${fmt(down)})`);
+      else ok((down ?? []).every((a) => a.moves.length === 0 && a.kind !== 'CSSAnimation'), `${where}: the sheet's close moves no transform under reduced motion (read ${fmt(down)})`);
+      await settleAll(page, cdp);
+      const sRest = await restOf(page, '[data-p3="activity-drawer"]');
+      const sBody = await restOf(page, '[data-p3="activity-body"]');
+      ok(atRest(sRest) && sBody?.display === 'none', `${where}: settled, the strip sits at rest with the body undrawn (${fmt(sRest)}, body ${fmt(sBody)})`);
+      // The link turned on above opens the dev build's bridge socket, which nothing answers here (the agent switch's cases skip it too).
+      const own = errors.filter((x) => !/ws:\/\/localhost:17331/.test(x));
+      ok(own.length === 0, `${where}: 0 console errors${own.length ? ` — ${own.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+
+  // ── a tooltip (Fade), on the web at 1280 ──
+  for (const reduced of [false, true]) {
+    const where = `#3150 ${reduced ? 'REDUCED' : 'LIVE'} web light 1280`;
+    const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900, liveMotion: true });
+    const cdp = await ctx.newCDPSession(page);
+    let step = 'open';
+    try {
+      if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
+      await cdp.send('Animation.enable');
+      const slow = () => cdp.send('Animation.setPlaybackRate', { playbackRate: 0.02 });
+      step = 'a tooltip';
+      const tile = page.locator('.p3-tile:has(> .p3-tile-tip)').first();
+      await slow();
+      await tile.hover();
+      const tIn = await page.evaluate(() => [...document.querySelectorAll('.p3-tile-tip')].find((t) => getComputedStyle(t).display !== 'none')?.getAnimations()
+        .map((a) => ({ name: a.transitionProperty, dur: a.effect.getTiming().duration, ease: a.effect.getTiming().easing })) ?? null);
+      ok(!!tIn && tIn.length === 1 && tIn[0].name === 'opacity' && tIn[0].dur === (reduced ? REDUCED : SMALL) && (reduced || tIn[0].ease === ENTER),
+        `${where}: a tile's tooltip fades in on ${reduced ? REDUCED : SMALL}ms${reduced ? '' : ', the enter curve'} (read ${fmt(tIn)})`);
+      await settleAll(page, cdp);
+      await page.mouse.move(640, 600);
+      const tOut = await page.evaluate(() => [...document.querySelectorAll('.p3-tile-tip')].filter((t) => getComputedStyle(t).display !== 'none').length);
+      ok(tOut === 0, `${where}: the tooltip goes at once (${tOut} still drawn)`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+
+  // ── SETTLED: every other section's pages read the three durations as 0s, and only those ──
+  {
+    const { ctx, page } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+    const live = await open({ host: 'web', theme: 'light', w: 1280, h: 900, liveMotion: true });
+    try {
+      const read = (p) => p.evaluate(() => { const cs = getComputedStyle(document.querySelector('[data-p3="frame"]'));
+        return ['--p3-motion-panel', '--p3-motion-fast', '--p3-motion-reduced', '--p3-dur-fast', '--p3-transition-dur'].map((n) => cs.getPropertyValue(n).trim()); });
+      const s = await read(page), l = await read(live.page);
+      ok(fmt(s) === fmt(['0s', '0s', '0s', '100ms', '200ms']), `#3150 SETTLED: the sweep's pages read the three motion durations as 0s and leave the spinner's and the switch's (read ${fmt(s)})`);
+      ok(fmt(l) === fmt(['200ms', '100ms', '100ms', '100ms', '200ms']), `#3150 SETTLED: a live page reads the default theme's 200ms, 100ms and 100ms (read ${fmt(l)})`);
+    } finally { await ctx.close(); await live.ctx.close(); }
+  }
+}
+} // 3150
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

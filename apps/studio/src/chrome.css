@@ -1984,3 +1984,102 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
     forced-color-adjust: none;
   }
 }
+
+/* ── chrome motion (#3150, the owner's Q3150.1–11 A, 2026-10-31) ─────────────────────────────────────────────────── */
+/* The motion kinds, each named once and applied to the surfaces the owner chose. Timings come from Prism3's default
+   theme (`spec.mjs`): a panel enters on `motion-panel`, a small surface on `motion-fast`, and every exit leaves on
+   `motion-fast`, on the enter and exit curves only. Transform and opacity move; layout never does.
+   · Slide up: the Activity drawer at every width, its chevron turning with it.
+   · Shift: a menu (Theme, Inspect, the brand menu) and the 380 strip, a fade and a short offset toward the anchor.
+   · Pop: the status dot on the drawer's bar row.
+   · Fade: a tooltip, the error strip, and the Update file rows that land after the file is read.
+   · Scale in: a dialog (Update file, the start window and its guard), its scrim fading with it.
+   · Expand: fold-out content fades in under its toggle; its height snaps, and a collapse is at once.
+   What does not move: resize, live text, minimize and restore, tabs and page changes. A surface the shell draws fresh on
+   every repaint marks the repaint (`data-still`), and fold-out content moves only in the frame its toggle opened it
+   (`data-enter`), so a page or tab change that draws an open fold does not replay it. A surface hidden with `display: none` keeps its exit through
+   `transition-behavior: allow-discrete`; a surface the shell removes leaves at once. `test:chrome` measures every end
+   state after the motion settles, and its motion section holds this list, the timings and the reduced path. */
+
+/* Slide up. The drawer rises from the bottom edge with its bar row leading, and sinks back on close. Its body stays
+   drawn through the exit (`allow-discrete`), so the drawer keeps its height while it leaves. At rest the offset is
+   none: a closed drawer is its bar row, so the exit's end is where it already sits. */
+.p3-drawer[data-open="true"] { animation: p3-drawer-up var(--p3-motion-panel) var(--p3-ease-enter); }
+.p3-frame:not([data-w="narrow"]) .p3-drawer[data-open="false"] { animation: p3-drawer-down var(--p3-motion-fast) var(--p3-ease-exit); }
+.p3-frame[data-w="narrow"] .p3-drawer[data-open="false"] { animation: p3-strip-down var(--p3-motion-fast) var(--p3-ease-exit); }
+@keyframes p3-drawer-up { from { transform: translateY(calc(100% - var(--p3-bar-h) - var(--p3-bw-hairline))); } }
+@keyframes p3-drawer-down { to { transform: translateY(calc(100% - var(--p3-bar-h) - var(--p3-bw-hairline))); } }
+@keyframes p3-strip-down { to { transform: translateY(calc(100% - var(--p3-ctl-h-sm) - var(--p3-bw-hairline))); } }
+.p3-drawer-body { transition-property: display; transition-duration: var(--p3-motion-fast); transition-behavior: allow-discrete; }
+.p3-drawer-bar > .p3-ico:last-of-type { transition: transform var(--p3-motion-fast) var(--p3-ease-exit); }
+.p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type { transition-duration: var(--p3-motion-panel); transition-timing-function: var(--p3-ease-enter); }
+/* Shift, at 380: the strip rises into the bottom edge the first time an operation starts. */
+.p3-frame[data-w="narrow"] .p3-drawer {
+  transition-property: opacity, translate; transition-duration: var(--p3-motion-fast); transition-timing-function: var(--p3-ease-enter);
+}
+@starting-style { .p3-frame[data-w="narrow"] .p3-drawer { opacity: 0; translate: 0 var(--p3-space-050); } }
+
+/* Pop. The status dot on the drawer's bar row (a result nobody has opened; Q3113.9 A moved it there from the Activity
+   tile) grows from nothing in the frame it first appears (`data-enter`). Opening the drawer reads it and removes it. */
+.p3-drawer-bar .p3-status-dot[data-state="unread"] {
+  transition-property: scale, opacity; transition-duration: var(--p3-motion-fast); transition-timing-function: var(--p3-ease-enter);
+}
+@starting-style { .p3-drawer-bar .p3-status-dot[data-enter="true"] { scale: 0; opacity: 0; } }
+
+/* Shift. A menu fades in a short step down from its button. The shell removes it on close, so it leaves at once. */
+.p3-menu {
+  transition-property: opacity, translate; transition-duration: var(--p3-motion-fast); transition-timing-function: var(--p3-ease-enter);
+}
+@starting-style { .p3-menu { opacity: 0; translate: 0 calc(-1 * var(--p3-space-050)); } }
+
+/* Fade. A tooltip fades in and goes at once. */
+.p3-tile-tip { transition: opacity var(--p3-motion-fast) var(--p3-ease-enter); }
+@starting-style { .p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip { opacity: 0; } }
+/* Fade. The error strip fades in and out; the notices row holds through the exit, and its height snaps. */
+.p3-notices { transition-property: display; transition-duration: var(--p3-motion-fast); transition-behavior: allow-discrete; }
+.p3-errstrip {
+  transition-property: opacity, display; transition-duration: var(--p3-motion-fast); transition-timing-function: var(--p3-ease-enter);
+  transition-behavior: allow-discrete;
+}
+.p3-errstrip[hidden] { opacity: 0; transition-timing-function: var(--p3-ease-exit); }
+@starting-style { .p3-errstrip { opacity: 0; } }
+/* Fade. Update file's rows that land once the file is read, and a set's line once its check comes back (`data-land`). */
+.p3-upd [data-land="true"] { transition: opacity var(--p3-motion-fast) var(--p3-ease-enter); }
+@starting-style { .p3-upd [data-land="true"] { opacity: 0; } }
+
+/* Scale in. The scrim fades, and the dialog on it grows from just under its size. */
+:is(.p3-bardlg-scrim, .p3-scrim) { transition: opacity var(--p3-motion-panel) var(--p3-ease-enter); }
+:is(.p3-bardlg-scrim, .p3-scrim) > :is(.p3-bardlg, .p3-dialog) { transition: scale var(--p3-motion-panel) var(--p3-ease-enter); }
+@starting-style {
+  :is(.p3-bardlg-scrim, .p3-scrim):not([data-still="true"]) { opacity: 0; }
+  :is(.p3-bardlg-scrim, .p3-scrim):not([data-still="true"]) > :is(.p3-bardlg, .p3-dialog) { scale: 0.96; }
+}
+
+/* Expand. The content fades in a short step down under its toggle; the height snaps. The toggle marks it `data-enter` for
+   the frame it opens in (`armEnter`, `shell/dom.ts`), so a page change or a redraw that draws it open does not replay it. */
+:is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body) {
+  transition-property: opacity, translate; transition-duration: var(--p3-motion-fast); transition-timing-function: var(--p3-ease-enter);
+}
+@starting-style {
+  :is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body)[data-enter="true"] {
+    opacity: 0; translate: 0 calc(-1 * var(--p3-space-050));
+  }
+}
+
+/* Reduced motion (Q3150.3 A): every transform drops, and every moving surface crossfades on the reduced duration. */
+@media (prefers-reduced-motion: reduce) {
+  .p3-frame[data-w] .p3-drawer[data-open] { animation: none; }
+  .p3-drawer-bar > .p3-ico:last-of-type, .p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type,
+  :is(.p3-bardlg-scrim, .p3-scrim) > :is(.p3-bardlg, .p3-dialog) { transition: none; }
+  .p3-drawer-body[hidden] { opacity: 0; }
+  @starting-style { .p3-drawer-body { opacity: 0; } }
+  /* A surface with an exit keeps it, as a fade. */
+  :is(.p3-drawer-body, .p3-errstrip, .p3-errstrip[hidden]) {
+    transition-property: opacity, display; transition-duration: var(--p3-motion-reduced); transition-behavior: allow-discrete;
+  }
+  /* A surface that enters only fades in; it still goes at once. */
+  :is(.p3-frame[data-w="narrow"] .p3-drawer, .p3-drawer-bar .p3-status-dot[data-state="unread"], .p3-menu, .p3-tile-tip, .p3-upd [data-land="true"], :is(.p3-bardlg-scrim, .p3-scrim),
+    :is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body)) {
+    transition-property: opacity; transition-duration: var(--p3-motion-reduced);
+  }
+}
