@@ -107,6 +107,20 @@ const sendThemePref = async (): Promise<void> => {
     /* storage unavailable: Match Figma */
   }
 };
+/** The desktop bridge's pairing token (#3204, the owner's Q3204.1 A): per person and per machine in `clientStorage`, the
+ *  only place it is kept. Never written to the file, its plugin data or shared plugin data, which travel with the file. */
+const BRIDGE_TOKEN_KEY = 'prism3:bridge-token';
+/** Send the kept token, or null: the relay waits for this answer before it connects, so it never asks for a code it has. */
+const sendBridgeToken = async (): Promise<void> => {
+  let token: string | null = null;
+  try {
+    const v: unknown = await figma.clientStorage.getAsync(BRIDGE_TOKEN_KEY);
+    if (typeof v === 'string' && v) token = v;
+  } catch {
+    /* storage unavailable: no token, so the panel asks for a code */
+  }
+  postToUi({ type: 'agent-bridge-token', token });
+};
 /** The open Activity drawer's height, as the person dragged it (#2176, the owner's AD1): kept like the Theme choice. */
 const ACTIVITY_HEIGHT_KEY = 'prism3:activity-height';
 /** Where the bar's Docs opens (#2637, owner decision Q384 A): the docs landing page on the studio's web address, which
@@ -1918,6 +1932,7 @@ onUiMessage((msg: UiToMain) => {
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
       void sendThemePref();
       void sendActivityHeight();
+      void sendBridgeToken();
       postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root) });
       // #3170: the panel paints first. This turn posts only what one root read answers; the reads below each start in a
       // turn of their own, so the panel has its brand and settings before any of them holds the thread.
@@ -2041,6 +2056,12 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'agent-bridge':
       agentLink.setBridge(msg.connected);
+      return;
+    case 'agent-bridge-paired':
+      if (typeof msg.token === 'string' && msg.token) void figma.clientStorage.setAsync(BRIDGE_TOKEN_KEY, msg.token).catch(() => {/* best-effort: asked again next time */});
+      return;
+    case 'agent-bridge-unpaired':
+      void Promise.resolve().then(() => figma.clientStorage.deleteAsync(BRIDGE_TOKEN_KEY)).catch(() => {/* best-effort */});
       return;
     case 'resize-ui': {
       // Resize on every drag message so the window tracks the pointer; persist only on the

@@ -402,8 +402,11 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   to the same dispatcher the mailbox uses. It streams progress and console lines back. Since #3147 the
   relay ships in the network build ("Prism3 Studio"), whose manifest lists that one origin in
   `networkAccess.allowedDomains`; "Prism3 Studio Offline" carries no socket and offers the mailbox only.
-  The server refuses an upgrade whose `Origin` is not the iframe's (`null`). Gates: `test-agent-bridge.ts`
-  (`origin/refused`), `lint-release-bundle.ts` and `lint-network-reach.ts`.
+  A connection becomes the plugin only by proving a pairing token (#3204): the server prints a one-time
+  code, the panel asks for it once per machine, and the token it gets back is kept in `figma.clientStorage`
+  (`src/bridge-auth.ts`). The server also refuses an upgrade whose `Origin` is not `null`, as defense in depth:
+  a web page's sandboxed iframe sends `null` too. Gates: `test-agent-bridge.ts` (`origin/refused`, `pair/*`),
+  `lint-release-bundle.ts` and `lint-network-reach.ts`.
 - ⏭ **No `cleanup` command** — no panel action removes components, and the link routes only to those.
 
 The iframe entry is now `src/ui/entry.ts`: it imports the studio entry `apps/studio/src/entry.ts` (which mounts `apps/studio/src/main.ts`) whole and unchanged (one UI,

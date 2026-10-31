@@ -1006,10 +1006,6 @@ jobs:
       - name: Typecheck plugin
         run: npm run -w @prism3/plugin typecheck
 
-      # write / readback / persist / float / styles shims against an in-memory Figma API shim.
-      - name: Plugin shim tests
-        run: npm run -w @prism3/plugin test
-
       - name: Build plugin
         run: npm run -w @prism3/plugin build
 
@@ -1078,6 +1074,11 @@ jobs:
       - name: "Install Chromium for the browser gates (#2323)"
         timeout-minutes: 15
         run: bash .github/scripts/install-chromium.sh
+
+      # write / readback / persist / float / styles shims against an in-memory Figma API shim. After the Chromium install
+      # since #3204: `test-agent-bridge.ts` opens a web page whose sandboxed iframe tries to pose as the plugin.
+      - name: Plugin shim tests
+        run: npm run -w @prism3/plugin test
 
       # The panel's own browser suite (#870) — the SECOND step in this workflow that runs a browser,
       # and it has to be separate from the studio one below. A component build's verdict line is the

@@ -362,7 +362,7 @@
       "tools": [
         {
           "name": "figma_status",
-          "description": "Whether the Prism3 plugin in the owner's Figma is connected to this bridge, the link state it last reported, and any command in flight. Call first. For the file's own state, run the `status` command with figma_run.",
+          "description": "Whether the Prism3 plugin in the owner's Figma is connected to this bridge, the link state it last reported, and any command in flight. Call first. Not connected while `pairingCode` is set: the owner enters that code in the plugin once per machine. For the file's own state, run the `status` command with figma_run.",
           "inputSchema": {
             "type": "object",
             "properties": {},
@@ -971,17 +971,25 @@
       "summary": "figma-bridge — the agent link's TRANSPORT B: a local MCP server that drives the RUNNING Prism3 plugin in the owner's Figma desktop app over a localhost WebSocket.",
       "usage": [
         {
-          "text": "npx tsx tools/figma-bridge/server.ts [--port 17331] [--grace-ms 120000]   (or PRISM3_BRIDGE_PORT, PRISM3_BRIDGE_GRACE_MS)",
+          "text": "npx tsx tools/figma-bridge/server.ts [--port 17331] [--grace-ms 120000] [--config <file>] [--rotate]   (or PRISM3_BRIDGE_PORT, PRISM3_BRIDGE_GRACE_MS, PRISM3_BRIDGE_CONFIG)",
           "source": "tools/figma-bridge/server.ts#header"
         }
       ],
       "flags": [
+        {
+          "flag": "--config",
+          "source": "tools/figma-bridge/server.ts#argv"
+        },
         {
           "flag": "--grace-ms",
           "source": "tools/figma-bridge/server.ts#argv"
         },
         {
           "flag": "--port",
+          "source": "tools/figma-bridge/server.ts#argv"
+        },
+        {
+          "flag": "--rotate",
           "source": "tools/figma-bridge/server.ts#argv"
         }
       ]

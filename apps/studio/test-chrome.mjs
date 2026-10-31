@@ -13074,6 +13074,7 @@ const LINK_TEXT = await (async () => {
 const LINK_STATES = {
   off: { ...AGENT_ON, on: false, since: null, transports: { mailbox: false, bridge: false } },
   listening: { ...AGENT_ON, lastCommand: { id: 'c1', cmd: 'status', ok: true, finishedAt: '2026-10-06T16:35:12.000Z', headline: '✓ done' } },
+  listeningBridge: { ...AGENT_ON, transports: { mailbox: true, bridge: true }, lastCommand: { id: 'c1', cmd: 'status', ok: true, finishedAt: '2026-10-06T16:35:12.000Z', headline: '✓ done' } },
   notListening: { ...AGENT_ON, transports: { mailbox: false, bridge: false } },
   error: { ...AGENT_ON, inboxError: 'the inbox is not a JSON array' },
   offStale: { ...AGENT_ON, on: false, since: null, transports: { mailbox: false, bridge: false }, inboxError: 'the inbox is not a JSON array' },
@@ -13082,11 +13083,14 @@ const LINK_STATES = {
  *  ink (the chrome tokens' roles, resolved below from the committed emission, never the stylesheet), or none; and
  *  whether the open drawer's first line shows the full line (while the link is on, or while it holds an inbox error).
  *  Literals. MUTATION: `agentLinkWord`'s "Listening" changed in `agent-link-ui.ts` → the listening arm, by name.
- *  #3147 Phase 1: the word names the transport (DRAFT), and this state's is the mailbox: "Listening · mailbox". */
+ *  #3147 Phase 1: the word names the transport (approved, Q3204.3 A): "Listening · mailbox", and "Listening · bridge"
+ *  while the desktop bridge is connected (the review's nit on #3204). MUTATION: the word's transport suffix fixed to
+ *  "mailbox" → `… listeningBridge: the bar row's agent status is the link's glyph, a dot and "Listening · bridge"`. */
 if (runs('31')) {
 const LINK_WANT = {
   off: { short: null, full: false },
   listening: { short: 'Listening · mailbox', ink: 'color.text.secondary', dot: 'color.icon.success', full: true },
+  listeningBridge: { short: 'Listening · bridge', ink: 'color.text.secondary', dot: 'color.icon.success', full: true },
   notListening: { short: 'Not listening', ink: 'color.text.danger', dot: 'color.icon.danger', full: true },
   error: { short: 'Error', ink: 'color.text.danger', dot: 'color.icon.danger', full: true },
   offStale: { short: null, full: true },

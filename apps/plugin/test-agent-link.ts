@@ -942,6 +942,12 @@ section('state — what the panel shows');
     && agentLinkWord({ ...s, transports: { mailbox: false, bridge: false } })?.text === 'Not listening'
     && agentLinkWord({ ...s, on: false }) === null,
     `link/word-transport: the word names the transport (bridge: "${agentLinkWord({ ...s, transports: { mailbox: true, bridge: true } })?.text}", mailbox: "${agentLinkWord({ ...s, transports: { mailbox: true, bridge: false } })?.text}")`);
+  // #3204 (Q3204.2 A): "Prism3 Studio Offline" carries no bridge, so its word says the mailbox is all there is. Literals.
+  // MUTATION: the offline arm dropped from `agentLinkWord` → this arm fails by name.
+  ok(agentLinkWord({ ...s, transports: { mailbox: true, bridge: false } }, false)?.text === 'Listening · mailbox only'
+    && agentLinkWord({ ...s, transports: { mailbox: true, bridge: false } }, true)?.text === 'Listening · mailbox'
+    && agentLinkWord({ ...s, inboxError: 'x' }, false)?.text === 'Error',
+    `link/word-offline: the offline build's word is "Listening · mailbox only" (read "${agentLinkWord({ ...s, transports: { mailbox: true, bridge: false } }, false)?.text}")`);
 }
 
 /* ── the short status (#2213, the owner's AS1 A): the Activity drawer's bar row ─────────────────────────── */

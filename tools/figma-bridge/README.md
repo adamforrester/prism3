@@ -23,18 +23,34 @@ it does not list. `--port` (or
 connects to 17331 unless the manifest entry and `BRIDGE_PORT` in
 `apps/plugin/src/agent-bridge-relay.ts` change with it.
 
-**Who may connect (#3147, the owner's Q3147.2 A revised).** No pairing. The server refuses, with 403
-and before the handshake, any upgrade whose `Origin` is not `null`, the opaque origin of the plugin's
-sandboxed iframe, so a web page open in a browser cannot drive it; a request with no `Origin` is refused
-too. The loopback bind, that check and the owner's Agent link switch are the gate. `run-code` stays in
-the dev build only (Q3147.4 A): a release build answers it `unknown-command`.
+**Who may connect: pairing (#3204, the owner's Q3204.1 A).** A connection is not the plugin until it
+proves a pairing token. When the server starts it prints a one-time pairing code on stderr, such as
+`pairing code: 7KQ4-M2XR`; `figma_status` names it too (`pairingCode`), since an MCP host may not show
+stderr. The first time the plugin connects on a machine it asks for that code, and the server answers
+with a token the plugin keeps in `figma.clientStorage` (per person, per machine; never in the file or
+its plugin data). From then on every connection opens with the server's challenge, and the plugin's
+hello carries an HMAC of the token over the challenge's nonce. A connection without a valid proof is
+closed (4401) before it is sent any command, and it never replaces a paired plugin that is connected.
+A wrong code is closed with 4403; after 5 wrong codes the server retires the code and prints a new one.
+
+The token comes from a random secret the server keeps in a user-only file (mode 0600, in a 0700
+directory): `$PRISM3_BRIDGE_CONFIG`, else `~/.config/prism3/figma-bridge.json` (`$XDG_CONFIG_HOME`
+when set, `%APPDATA%` on Windows), or the path given with `--config`. Pairing survives a restart.
+`--rotate` writes a new secret: every paired plugin then asks for a code again.
+
+The other two checks stay as defense in depth. The server binds loopback only, and it refuses with 403,
+before the handshake, any upgrade whose `Origin` is not `null` (#3147); a request with no `Origin` is
+refused too. That keeps out a page's own script, but not a page's sandboxed iframe, whose origin is
+`null` as well: the review of #3204 drove the bridge from one, which is why pairing exists. `run-code`
+stays in the dev build only (Q3147.4 A): a release build answers it `unknown-command`.
 
 ## Use
 
 1. The owner opens the file, runs the Prism3 plugin (a development import of
-   `apps/plugin/manifest.json`, freshly built), and switches **Agent link** on. The chip reads
-   `+ desktop bridge` once the plugin has connected. It retries every 2 s, so the server can start
-   before or after the plugin.
+   `apps/plugin/manifest.json`, freshly built), and switches **Agent link** on. The first time on a
+   machine, the plugin asks for the server's pairing code under the Agent switch. The Activity drawer
+   reads `Listening · bridge` once the plugin has connected. It retries every 2 s, so the server can
+   start before or after the plugin.
 2. `figma_status` — `connected: true`, plus the link state the plugin last reported.
 3. `figma_run { cmd: "status" }` — confirms the round trip, the engine version and the plugin build.
 4. `figma_run { cmd, args, timeoutMs }` for each command. The result is the protocol's result
@@ -91,7 +107,9 @@ harmless.
   server, speaks MCP to it over stdio (including the shared `initialize` probes in
   `packages/engine/mcp-handshake-probes.ts`), drives its socket with a hand-rolled client (fragmented,
   64-bit-length, ping, unmasked and disconnect cases), then connects the real relay to the real
-  `main.ts` and proves a `figma_run` reaches the panel's own handler.
+  `main.ts` and proves a `figma_run` reaches the panel's own handler. Its pairing arms run the server
+  on a secret the test writes itself, so the token is derived there independently, and include the
+  review's reproduction: a web page in Chromium whose sandboxed iframe opens the socket, refused.
 
 **Not yet verified live:** that Figma's desktop app lets the plugin's iframe open
 `ws://localhost:17331` from `allowedDomains`, in a development import and in the org-private
