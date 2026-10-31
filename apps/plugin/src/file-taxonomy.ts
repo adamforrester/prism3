@@ -40,6 +40,9 @@ export interface TaxonomyLeaf {
    *  its overview and anatomy and sits beside its set. Named on every page with more than one def (`assertCoverage`);
    *  a page with one def is led by it. */
   readonly lead?: string;
+  /** A def on a shared page that is not its lead and gets a section header of its own over its block, by its title
+   *  (#3172, owner decisions Q3172.1 A and Q3172.2 A): the page's one header (`page-header.ts`) stays the lead's. */
+  readonly blockHeaders?: Readonly<Record<string, string>>;
   /** True for the one leaf that holds the plugin-only template assets (`_Section-header`, `_Headings`),
    *  which are built by a targeted constructor rather than projected from a def. */
   readonly fileComponents?: boolean;
@@ -80,7 +83,8 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Semantic tokens', defs: [] },
         // Provider logos (#3148, owner decision on Q847): the second icon type, beside the icon set on its page. They had a
         // "Brand marks" page of their own (#2343); a file built then has its marks moved here (`FORMER_PAGES`).
-        { page: 'Icons & assets', defs: ['icon', 'provider-logo'], lead: 'icon' },
+        // Their own header over their block, "Provider logos" (#3172, Q3172.1 A, Q3172.2 A).
+        { page: 'Icons & assets', defs: ['icon', 'provider-logo'], lead: 'icon', blockHeaders: { 'provider-logo': 'Provider logos' } },
         { page: 'Grids & layouts', defs: [] },
       ],
     },

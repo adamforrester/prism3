@@ -50,7 +50,7 @@ import { runStyleGuide, removeRetiredTables, styleGuideSummary, readCatalog, cat
 import type { SgContract } from './style-guide';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
-import { ensurePageHeader, pageHeaderCopy, pageHeaderItems } from './page-header';
+import { blockHeadersLines, headerFor, pageHeaderItems, placeBlockHeaders } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
 import { withPanel, hasFurniture, clearFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
 import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
@@ -711,10 +711,11 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // THE CANVAS FURNITURE (#2406, #2188), one entry per piloted set this run built, dependencies included.
     const furniture: FurnitureOutcome[] = [];
     const placeHeader = async (page: HeaderPage, defId: string): Promise<void> => {
-      const copy = pageHeaderCopy(defId, componentDefs);
-      if (!copy) return;
+      // The page's header, or a block's own on a shared page (#3172).
+      const header = headerFor(defId, page.name, componentDefs);
+      if (!header) return;
       // CAUGHT HERE, never rethrown: the set is already built, and a header is labeling, not the build.
-      try { headers.push(await ensurePageHeader(figma, page, copy)); }
+      try { headers.push(await header.label(figma, page)); }
       catch (e) { headers.push({ page: page.name, status: 'failed', message: (e as Error)?.message ?? String(e) }); }
     };
     // #1750 — HEADERS ARE PLACED ONCE THE RUN'S BUILDS ARE DONE, not after each one (`labelAfterBuilds`,
@@ -788,7 +789,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // #2909: unless Documentation has the usage panels off for this file.
       if (drawn && readDocSettings(figma.root).panels) await panelBeside(drawn, built.id, target.id);
       // The real `PageNode` (same #1561 reasoning as `targetPage` above), which satisfies `HeaderPage`.
-      if (page) landed(page.name, { page: page as unknown as PageNode, defId: target.id });
+      // Keyed by the header it labels (#3172): a block with its own header is labeled beside its page's.
+      if (page) landed(headerFor(target.id, page.name, componentDefs)?.key ?? page.name, { page: page as unknown as PageNode, defId: target.id });
       return built;
     };
     // NESTED COMPONENTS FIRST (#1633) — every def this one nests or swaps to that the file does not hold yet
@@ -1497,7 +1499,11 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
       catch (e) { movesNote = `\nSets not moved to their pages: the named version could not be saved (${(e as Error)?.message ?? String(e)}).`; }
       if (saved) {
         relocated = await relocateSets(figma, TAXONOMY);
-        movesNote = ['', pageMovesLine(relocated.moved, true), emptiedLine(relocated.emptied)].filter((l, i) => i === 0 || l).join('\n');
+        // A moved block's header goes with it (#3172), and the page it leaves is named too.
+        const hdr = await placeBlockHeaders(figma);
+        const done = hdr.placed.filter((p) => p.outcome.status === 'placed' || (p.from && p.outcome.status === 'present'));
+        const emptied = [...relocated.emptied, ...hdr.emptied];
+        movesNote = ['', pageMovesLine(relocated.moved, true), ...blockHeadersLines(done, true), emptiedLine(emptied)].filter((l, i) => i === 0 || l).join('\n');
       }
     }
     const page = scaffold.fileComponentsPage;

@@ -57,6 +57,7 @@ import { baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, 
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
 import { emptiedLine, pageMovesLine, relocateSets, relocateTables, type PageMove, type TableMove } from './page-moves';
+import { blockHeadersLines, placeBlockHeaders, type BlockHeaderApi, type BlockHeaderDue } from './page-header';
 import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furniture';
 import { docPanelReaches, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import { rereadAfter, withRoot } from './run-read';
@@ -90,6 +91,8 @@ export const previewHashOf = (r: UpdatePreview): string =>
     ...(r.pageMoves ? [{ pageMoves: r.pageMoves }] : []),
     // #3171: the style-guide tables to move, the same way.
     ...(r.tableMoves ? [{ tableMoves: r.tableMoves }] : []),
+    // #3172: the block headers, the same way.
+    ...(r.blockHeaders ? [{ blockHeaders: r.blockHeaders }] : []),
     // #2858: the About frame, only while it is work, so a file whose frame is current hashes as it did before it.
     ...(aboutIsWork(r.about) ? [r.about] : []),
     // #2859: the library cover, the same way.
@@ -186,6 +189,8 @@ export type ApplyResult = {
   /** #3171 — the style-guide tables moved to the page they are drawn on now. Absent when none. */
   relocatedTables?: TableMove[];
   emptied?: string[];
+  /** #3172 — the block headers placed, or moved from a former page. Absent when none. */
+  headers?: BlockHeaderDue[];
   /** #2858 — the Cover page's "About this library" frame, drawn after the sets. Absent when the run wrote nothing. */
   about?: AboutOutcome;
   /** #2858 — the library publish description, offered with a Copy button: no Plugin API call sets it. Absent when the
@@ -813,11 +818,13 @@ export const applyUpdate = async (
   const retable = !!preview.tableMoves?.length && !!host.root.children && typeof (host as unknown as { loadAllPagesAsync?: unknown }).loadAllPagesAsync === 'function';
   // THE ABOUT FRAME (#2858) is work of its own when it is missing or drawn for another engine.
   // …and the library cover (#2859), when it is missing or behind.
+  // THE BLOCK HEADERS (#3172) are work of their own too, on a host that can search the file and load a font.
+  const headering = !!preview.blockHeaders?.length && !!host.root.children && typeof host.loadFontAsync === 'function';
   const about = aboutIsWork(preview.about) || coverIsWork(preview.cover);
-  if (!ready.length && !moving.length && !reorder && !relocate && !retable && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
+  if (!ready.length && !moving.length && !reorder && !relocate && !retable && !headering && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
   // THE ABOUT FRAME ALONE SAVES NO VERSION (owner decision Q498 B): no set changes, so Q7's way back has nothing to
   // cover. `settle` still saves one before any re-spacing it finds, as for any other second write.
-  if (!ready.length && !moving.length && !reorder && !relocate && !retable && !furnishing.length) {
+  if (!ready.length && !moving.length && !reorder && !relocate && !retable && !headering && !furnishing.length) {
     res.aboutOnly = true;
     await settle(host, targets, preview, res, opts);
     if (res.version) delete res.aboutOnly;
@@ -828,7 +835,7 @@ export const applyUpdate = async (
   // Refused or unavailable, nothing is written.
   const setIds = [...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set), ...furnishing.map((p) => p.set), ...(relocate ? preview.pageMoves!.map((m) => m.set) : [])])];
   try {
-    res.version = (await saveVersion(host, { run: 'update', sets: setIds.map((set) => ({ set, name: opts.nameOf?.(set) })), pageOrder: reorder, about: aboutIsWork(preview.about), cover: coverIsWork(preview.cover), pageMoves: relocate })).title;
+    res.version = (await saveVersion(host, { run: 'update', sets: setIds.map((set) => ({ set, name: opts.nameOf?.(set) })), pageOrder: reorder, about: aboutIsWork(preview.about), cover: coverIsWork(preview.cover), pageMoves: relocate, headers: headering })).title;
   } catch (err) {
     res.refusedAll = `the named version could not be saved (${(err as Error)?.message ?? String(err)}), so nothing was written`;
     return res;
@@ -852,6 +859,14 @@ export const applyUpdate = async (
   if (retable) {
     const t = await relocateTables(host as unknown as Parameters<typeof relocateTables>[0]);
     if (t.moved.length) res.relocatedTables = t.moved;
+  }
+  // A MOVED BLOCK'S HEADER GOES WITH IT, and a block with none gets one (#3172), before any set is written: the header is
+  // placed over the block where the move left it. Read again here, from the file as the move left it.
+  if (headering) {
+    const h = await placeBlockHeaders(host as unknown as BlockHeaderApi);
+    const done = h.placed.filter((p) => p.outcome.status === 'placed' || (p.from && p.outcome.status === 'present'));
+    if (done.length) res.headers = done.map(({ outcome: _o, ...d }) => d);
+    if (h.emptied.length) res.emptied = [...(res.emptied ?? []), ...h.emptied];
   }
   for (const { t, p, live, stampOnly } of ready) {
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
@@ -963,6 +978,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   const reordered = r.reordered?.length ?? 0;
   const relocated = r.relocated?.length ?? 0;
   const tablesMoved = r.relocatedTables?.length ?? 0;
+  const headers = r.headers?.length ?? 0;
   const lines: string[] = [];
   for (const o of r.outcomes) {
     if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); continue; }
@@ -1010,6 +1026,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
   // #2989: the sets moved to their pages, and any page the move left empty, for the owner to delete by hand.
   if (relocated || tablesMoved) lines.push(pageMovesLine([...(r.relocated ?? []), ...(r.relocatedTables ?? [])], true));
+  lines.push(...blockHeadersLines(r.headers, true));
   if (r.emptied?.length) lines.push(emptiedLine(r.emptied));
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   // #2858: the Cover page's About frame, drawn last.
@@ -1034,6 +1051,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                       : relocated ? `✓ ${n(relocated, 'set')} moved to ${relocated === 1 ? 'its page' : 'their pages'}`
                       // DRAFT wording for the owner (#3171): the same, for style-guide tables.
                       : tablesMoved ? `✓ ${n(tablesMoved, 'table')} moved to ${tablesMoved === 1 ? 'its page' : 'their pages'}`
+                      // DRAFT wording for the owner (#3172): a run whose only work was a block header.
+                      : headers ? `✓ ${n(headers, 'section header')} placed`
                       // DRAFT wording for the owner (#2803, Q379 A): a run whose only work was the canvas furniture.
                       : furnished ? `✓ canvas furniture drawn for ${n(furnished, 'set')}`
                         // DRAFT wording for the owner (#2858): a run whose only work was the About frame.

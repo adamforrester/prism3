@@ -66,6 +66,8 @@ import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 import { pageMovesDue, pageMovesLine, tableMovesDue, type PageMove, type TableMove } from './page-moves';
+import { blockHeadersDue, blockHeadersLines, type BlockHeaderDue } from './page-header';
+import { SECTION_HEADER_SET, isTemplateSet } from './file-components';
 import { whatChangedLines } from './release-summary';
 import { ABOUT_NAME, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from './about-frame';
 import { readDocSettings } from './doc-settings';
@@ -1145,6 +1147,9 @@ export type UpdatePreview = {
   /** #3171, owner decision Q3171.7 A — the style-guide tables on a page an earlier build drew them on, which the apply
    *  moves to the page they are drawn on now (`tableMovesDue`). Listed on the set moves' line. Absent when none. */
   tableMoves?: TableMove[];
+  /** #3172, owner decisions Q3172.1–3 A — the block headers the apply places or moves (`blockHeadersDue`). Read for the
+   *  file, like `pageMoves`. Absent when none. */
+  blockHeaders?: BlockHeaderDue[];
   /** #2858 — what the Update owes the Cover page's "About this library" frame (`about-frame.ts`). Absent for a host
    *  with no page list. */
   about?: AboutDue;
@@ -1343,6 +1348,11 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   if (pageMoves.length) out.pageMoves = pageMoves;
   const tableMoves = host.root.children ? tableMovesDue(host.root.children) : [];
   if (tableMoves.length) out.tableMoves = tableMoves;
+  // THE BLOCK HEADERS (#3172): read once for the file, like the moves they can follow.
+  const blockHeaders = host.root.children
+    ? blockHeadersDue(host.root.children, () => host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }).some((n) => isTemplateSet((n as { name?: unknown }).name, SECTION_HEADER_SET)))
+    : [];
+  if (blockHeaders.length) out.blockHeaders = blockHeaders;
   // THE ABOUT FRAME (#2858): read once for the file, like the page order.
   const about = await aboutDue(host.root);
   if (about) out.about = about;
@@ -1667,7 +1677,7 @@ export const variablesLine = (variables: readonly string[] | undefined): string 
  *  set to move and no page to reorder. A set that can't be checked is refused by the confirm, so it adds no work. The
  *  apply then saves no named version, and the dry run says so. */
 export const aboutOnly = (r: UpdatePreview): boolean =>
-  (aboutIsWork(r.about) || coverIsWork(r.cover)) && !r.pages?.length && !r.pageMoves?.length && !r.tableMoves?.length && r.sets.every((p) => p.blockers.length > 0 || (noChanges(p) && !p.counts.revisionUnknown));
+  (aboutIsWork(r.about) || coverIsWork(r.cover)) && !r.pages?.length && !r.pageMoves?.length && !r.tableMoves?.length && !r.blockHeaders?.length && r.sets.every((p) => p.blockers.length > 0 || (noChanges(p) && !p.counts.revisionUnknown));
 
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
@@ -1686,7 +1696,9 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
   // DRAFT wording for the owner (#2859): the cover the same way, when the About frame is not also due.
   const about = aboutIsWork(r.about) ? `Would ${r.about!.state === 'stale' ? 'redraw' : 'draw'} ${ABOUT_NAME}`
     : coverIsWork(r.cover) ? `Would ${r.cover!.state === 'stale' ? 'update' : 'draw'} the ${COVER_NAME.toLowerCase()}` : '';
-  const moveTo = relocate ? `Would move ${n(relocate, 'set')} to ${relocate === 1 ? 'its page' : 'their pages'}` : '';
+  // DRAFT wording for the owner (#3172): a block header to place, when no set moves.
+  const headers = r.blockHeaders?.length ?? 0;
+  const moveTo = relocate ? `Would move ${n(relocate, 'set')} to ${relocate === 1 ? 'its page' : 'their pages'}` : headers ? `Would place ${n(headers, 'section header')}` : '';
   const headline = r.sets.length + r.refused.length === 0 ? (reorder ? `Would reorder ${n(reorder, 'page')}` : moveTo || about || 'No sets to check')
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
       : changing ? `Would change ${changing} of ${r.sets.length}` : reorder ? `Would reorder ${n(reorder, 'page')}` : moveTo ? moveTo : about ? about
@@ -1703,6 +1715,7 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
     pageMovesLine([...(r.pageMoves ?? []), ...(r.tableMoves ?? [])], false),
+    ...blockHeadersLines(r.blockHeaders, false),
     coverDueLine(r.cover),
     aboutDueLine(r.about),
     aboutOnly(r) ? coverPageOnlyLine({ about: aboutIsWork(r.about), cover: coverIsWork(r.cover) }, false) : '',
