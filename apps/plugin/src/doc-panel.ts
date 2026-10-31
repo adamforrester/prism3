@@ -121,8 +121,8 @@ const SIZE: DocBlockSize = 'sm';
 /** Raise when the panel's layout moves without its plan moving, so every drawn panel reads as due again. 2: one panel
  *  per family, and the anatomy markers with their leaders (#2927). 3: the title sizes, the space above Do and Don't, and
  *  Related as linked lists (#2970). 4: each specimen at its member's own width, the panel widening to fit (#2970 items 1
- *  and 4, #2916). */
-const PANEL_FORMAT = 4;
+ *  and 4, #2916). 5: a specimen never under what its def declares, so Dialog's anatomy no longer collapses (#3205). */
+const PANEL_FORMAT = 5;
 /** THE TITLES (#2970 item 5, owner decision): the panel's title and each section's, in px, with their letter-spacing
  *  in percent. The tracking is the studio's: its 20px page titles take `ls-tightest` (−4%) and its 16px section titles
  *  `ls-tighter` (−3%), the default theme's values (`theme.ts` `LETTER_SPACINGS`). Written over the block's text style,
@@ -361,6 +361,8 @@ export interface PNode {
   layoutSizingHorizontal?: unknown;
   layoutSizingVertical?: unknown;
   layoutGrow?: unknown;
+  /** Figma's auto-layout floor (#3205): the specimen of a member built at a width never goes under it. */
+  minWidth?: unknown;
   itemSpacing?: unknown;
   paddingTop?: unknown;
   paddingRight?: unknown;
@@ -781,6 +783,32 @@ const bracketTiers = (member: PNode, marks: readonly AnatomyMark[]): number => {
 const stageFor = (w: number, tiers: number): number =>
   w + STAGE_PAD + Math.max(STAGE_PAD, tiers ? MARK_GAP + tiers * (MARK_ROOM + 2 * MARK_SEP) + LEADER : 0);
 /**
+ * THE NARROWEST AN EXAMPLE MAY BE (#3205). Whether a member is `built` comes from the def alone, never from the sizing
+ * the member reports: a root the def builds at a width (`placementWidth`, `builtSize` naming the member's value on its
+ * axis, or `center` naming it, as Pagination's simple member at 428) is `built`. Its floor's width comes from the member:
+ * the width the executor built it at; Dialog's center member 560, Banner's 480. Otherwise the root's literal `minWidth`,
+ * per size where it is one per size (the member's `size`, else the def's default); else 0.
+ */
+export const exampleFloor = (def: ComponentDef | undefined, m: PNode | undefined): { built: boolean; width: number } => {
+  const a = def?.anatomy;
+  const root = a?.parts[a.root] as { kind?: string; placementWidth?: number; builtSize?: { axis: string; widths: Record<string, unknown> }; center?: { axis: string; value: string; placementWidth?: number }; minWidth?: number | Record<string, number> } | undefined;
+  if (!root || root.kind !== 'box' || !m) return { built: false, width: 0 };
+  const v = variantValues(m.name);
+  const size = v.size ?? String(def?.props?.find((p) => p.name === 'size')?.default ?? '');
+  const b = root.builtSize;
+  const axisValue = b ? (b.axis === 'size' ? size : v[b.axis]) : undefined;
+  // A member whose name does not carry the axis (a set built before it was one) is read as built: the def builds every
+  // listed value at a width, so a fixed specimen at the member's width is right for each.
+  // A `center` root is built at its width only at the member it names (#2518, #3211); every other member hugs as declared.
+  const c = root.center;
+  const built = typeof root.placementWidth === 'number' || (!!b && (axisValue === undefined || axisValue in b.widths))
+    || (!!c && typeof c.placementWidth === 'number' && v[c.axis] === c.value);
+  if (built) return { built, width: Math.round(Number(m.width ?? 0)) };
+  const min = root.minWidth;
+  const w = typeof min === 'number' ? min : min && size in min ? min[size] : 0;
+  return { built: false, width: w > 0 ? w : 0 };
+};
+/**
  * HOW WIDE A SET'S PANEL IS (#2970 Q1 A, Q2 A): every specimen at its member's own width, so the panel is as wide as its
  * widest stage needs plus its padding, never narrower than `PANEL_WIDTH`. Theming shows the default member twice side by
  * side, unless that row would make the panel `THEMING_ROW_MAX` or wider: then the two stack (`stack`). Pure on the set,
@@ -879,20 +907,26 @@ export const drawDocPanel = async (
   panel.layoutSizingVertical = 'HUG';
   // The anatomy's specimens, each with the marks whose parts it shows (#2916).
   const anatomy: { spec: PNode; stage?: PNode; marks: AnatomyMark[] }[] = [];
-  /** THE SPECIMEN AT ITS MEMBER'S OWN WIDTH (#2970 Q1 A). The swap keeps the sizing the template's placeholder had, a
-   *  Badge's hug, so a member built at a fixed width hugged its content instead: Banner's text went one letter per line
-   *  and Checkbox.Row's label wrapped. A fixed member is sized to its width, a hugging one hugs. */
+  /** THE SPECIMEN AT ITS MEMBER'S OWN WIDTH (#2970 Q1 A), NEVER UNDER WHAT THE DEF DECLARES (#3205). The swap keeps the
+   *  sizing the template's placeholder had, a Badge's hug, so a member built at a width that hugs its content instead
+   *  lays its fill-width text out at its narrowest: Banner's text went one letter per line, Checkbox.Row's label
+   *  wrapped, and Dialog's anatomy drew about 60px wide, its title one letter per line (#3205). One rule
+   *  (`exampleFloor`): a def that builds its root at a width (`placementWidth`, `builtSize`, `center`) gets a fixed specimen at
+   *  its member's width, with that width as the specimen's `minWidth` too, whatever sizing the member reports, so
+   *  nothing that sets the instance back to hug can collapse it; a def that declares a literal minimum (`minWidth`)
+   *  gets that floor on a specimen that hugs. Any other member: fixed at its width when it is fixed, hugging when it hugs. */
   const sizeSpecimen = (i: PNode, m: PNode): void => {
     const sp = find(i, 'specimen');
     if (!sp) return;
+    const floor = exampleFloor(def, m);
     try {
-      if (m.layoutSizingHorizontal === 'HUG') sp.layoutSizingHorizontal = 'HUG';
-      else {
+      if (floor.built || m.layoutSizingHorizontal !== 'HUG') {
         sp.layoutSizingHorizontal = 'FIXED';
         sp.resize?.(m.width ?? sp.width ?? 0, sp.height ?? 0);
-        if (m.layoutSizingVertical === 'HUG') sp.layoutSizingVertical = 'HUG';
-      }
+        if (m.layoutSizingVertical === 'HUG' || floor.built) sp.layoutSizingVertical = 'HUG';
+      } else sp.layoutSizingHorizontal = 'HUG';
     } catch { out.misses.push(`the specimen of ${def.id} could not take its member's width`); }
+    if (floor.width > 0) { try { sp.minWidth = floor.width; } catch { out.misses.push(`the specimen of ${def.id} could not take its ${floor.width}px floor`); } }
   };
   const showSpecimen = async (i: PNode, m: PNode | undefined, mode?: string, caption?: string): Promise<void> => {
     const key = propKey(i, SPECIMEN);
