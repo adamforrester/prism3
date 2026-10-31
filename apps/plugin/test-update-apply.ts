@@ -589,6 +589,18 @@ section('block headers — the provider logos\' own header, moved with them from
   await update(s);
   ok(titleOf(s.old) === 'Provider logos', `blocks/title singular: "Brand mark" is the old name too, rewritten (${titleOf(s.old)})`);
 
+  {
+    const e = await file();
+    e.marks.children.push({ ...comp('dz', 'Designer note', 0, 600, 100), type: 'FRAME' } as K);
+    const er = await update(e);
+    const nh = tagged(e.icons)[0];
+    ok(e.marks.children.includes(e.old) && headersOn(e.marks).length === 1 && !e.old.data?.headerFor && !!nh && nh !== e.old
+      && titleOf(nh) === 'Provider logos' && descOf(nh) === SUMMARY && !(er.res.emptied ?? []).includes('↳ Brand marks'),
+      `blocks/designer page: a Brand marks page with designer content keeps its header; the logos get a new one (${e.marks.children.map((c) => c.id).join(', ')} | ${JSON.stringify(er.res.emptied)})`);
+    const yy = await file(); yy.old.y = 500; yy.old.x = 333; await update(yy);
+    ok(yy.old.y === 0 && yy.old.x === Math.min(...yy.logos.map((m) => m.x)), `blocks/apply place moved: the header moves from 333,500 to over the block (${yy.old.x},${yy.old.y})`);
+  }
+
   // The fresh-build arm: the build labels Icons & assets with each def's header, logos built first. The page gets the
   // icons' header and the logos' own, and the logos' matches the one Update moved, relative to the block.
   const n = await file({ moved: true });
