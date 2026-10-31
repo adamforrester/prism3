@@ -43,6 +43,7 @@ import { fontPreloadApiOf, preflightApiOf, textApiOf } from './theme-ports';
 import type { ThemeHost } from './theme-ports';
 import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/write-plan';
 import type { BrandInput } from '@prism3/engine/theme';
+import { facade } from './host-facade';
 
 /* ── transport ─────────────────────────────────────────────────────────────────────────────────────── */
 
@@ -492,22 +493,12 @@ export const componentFigma = (host: PluginAPI, notes: { loadAllPages?: string; 
       }
     }
   };
-  const root = new Proxy(host.root, {
-    get(t, p) {
-      if (!native && p === 'findAllWithCriteria') return (c: unknown) => pages().flatMap((pg) => pg.findAllWithCriteria(c));
-      if (!native && p === 'findAll') return (fn: (n: unknown) => boolean) => pages().flatMap((pg) => pg.findAll(fn));
-      const v = Reflect.get(t, p);
-      return typeof v === 'function' ? v.bind(t) : v;
-    },
+  // Facades, not `Proxy`s (#3209): `figma`'s members are fixed, and a trap's substitute for one throws.
+  const root = facade(host.root, {
+    findAllWithCriteria: (c: unknown) => (native ? host.root.findAllWithCriteria(c as never) : pages().flatMap((pg) => pg.findAllWithCriteria(c))),
+    findAll: (fn: (n: unknown) => boolean) => (native ? host.root.findAll(fn as never) : pages().flatMap((pg) => pg.findAll(fn))),
   });
-  return new Proxy(host, {
-    get(t, p) {
-      if (p === 'loadAllPagesAsync') return loadAll;
-      if (p === 'root') return root;
-      const v = Reflect.get(t, p);
-      return typeof v === 'function' ? v.bind(t) : v;
-    },
-  });
+  return facade(host, { loadAllPagesAsync: loadAll, root });
 };
 
 /** The page port `resolveComponentPage` needs, over the real host — with `loadAllPagesAsync` made

@@ -12,6 +12,9 @@
  *                  rebuilt instead of configured → `keys/members`.
  *   apply/…        the plan's change reaches the host, and the next dry run reads every member current.
  *   hash/…         a confirm whose hash the file no longer matches writes nothing.
+ *   fixed/…        the check and the apply run on a host whose methods are fixed, own data properties neither
+ *                  writable nor configurable, as Figma's are (#3209). Mutation: `withRoot` put back as a `Proxy` →
+ *                  `fixed/check`.
  *   pages/…        component pages out of alphabetical order are listed by the dry run and put in order by the apply,
  *                  a designer's page never moved (#2568).
  *   hand/…         a hand edit is kept, and still reported by the next dry run. Mutation: the record of an
@@ -235,7 +238,7 @@ import { NS } from './src/persist-figma';
 import { EXECUTOR_REACH } from './src/executor-reach';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
-import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
+import { fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
 import { adoptMembers, breakingLine, breakingOf, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
@@ -369,6 +372,31 @@ section('keys — a plan change is written in place: every key and id stays');
   // not tell it from a copy.
   const ids = membersOf(w.set()).map((m) => [String(m.id), JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY) || '{}').id] as const);
   ok(ids.every(([id, rec]) => rec === id), `keys/record id: every updated member's record names its own node (${ids.filter(([id, rec]) => rec !== id).length} do not)`);
+}
+
+/* ── fixed ─────────────────────────────────────────────────────────────────────────────────────────── */
+// #3209: ON FIGMA, THE HOST'S METHODS ARE FIXED, own data properties neither writable nor configurable, so a `Proxy`
+// over `figma` whose `get` trap hands back anything but the property's own value throws on the first read. #3177 wrapped
+// the host so, and every check and apply on real Figma failed on `getLocalTextStylesAsync` while every shim test passed.
+// Here the host and the executor are copies of the world's with every method fixed (`fixHostMethods`), their roots too,
+// as strict as the host can be. Mutation: `withRoot` (or `readRun`'s root) put back as a `Proxy` → `fixed/check`.
+section("fixed — the check and the apply run on a host whose methods are fixed, as Figma's are (#3209)");
+{
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const host = fixHostMethods({ ...w.host, root: fixHostMethods({ ...w.host.root }) }) as unknown as ApplyHost;
+  const api = fixHostMethods({ ...w.api });
+  ok(Object.getOwnPropertyDescriptor(host, 'getLocalTextStylesAsync')?.configurable === false && Object.getOwnPropertyDescriptor(api, 'getLocalTextStylesAsync')?.writable === false,
+    'premise: the host and the executor carry getLocalTextStylesAsync fixed, as Figma does');
+  const next = moveGap(w.plans);
+  const targets = [{ def: TAG, plans: next }];
+  const attempt = async <T,>(f: () => Promise<T>): Promise<T | string> => { try { return await f(); } catch (e) { return `THREW: ${(e as Error).message}`; } };
+  const pre = await attempt(() => previewUpdate(host, targets));
+  ok(typeof pre !== 'string' && pre.sets[0]?.counts.update === 45, `fixed/check: the dry run reads all 45 out of date (${typeof pre === 'string' ? pre.slice(0, 300) : JSON.stringify(pre.sets[0]?.counts)})`);
+  const res = typeof pre === 'string' ? pre : await attempt(() => applyUpdate(host, api as any, targets, previewHashOf(pre)));
+  const v = typeof res === 'string' ? null : applyVerdict(res);
+  ok(!!v && v.ok && v.headline === '✓ updated 45 in place', `fixed/apply: ${v ? v.headline : String(res).slice(0, 300)}`);
+  const post = await attempt(() => previewUpdate(host, targets));
+  ok(typeof post !== 'string' && post.sets[0]?.counts.current === 45, `fixed/current: the next dry run reads all 45 current (${typeof post === 'string' ? post.slice(0, 300) : JSON.stringify(post.sets[0]?.counts)})`);
 }
 
 /* ── hash ────────────────────────────────────────────────────────────────────────────────────────────── */
