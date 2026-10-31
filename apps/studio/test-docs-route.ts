@@ -156,6 +156,9 @@ try {
     if (!misnested.length && stack.length) misnested.push(`<${stack.join('>, <')}> never closed`);
     ok(misnested.length === 0, `guides/${n}.html's article tags nest well formed`, misnested.join('; '));
     const bare = md.replace(/<!--[\s\S]*?-->/g, '');
+    const spans = (bare.match(/`[^`\n]+`/g) ?? []).length;
+    const codes = (main.match(/<code>/g) ?? []).length;
+    ok(codes === spans, `guides/${n}.html draws its ${spans} inline code span(s) as <code>`, `got ${codes} <code>${main.includes('&lt;code&gt;') ? ', and <code> escaped as text' : ''}`);
     const steps = (bare.match(/^\d+\. /gm) ?? []).length;
     const olItems = [...main.matchAll(/<ol>([\s\S]*?)<\/ol>/g)].reduce((t, m) => t + (m[1].match(/<li>/g) ?? []).length, 0);
     ok(olItems === steps, `guides/${n}.html draws its ${steps} numbered step(s) in an <ol>`, `got ${olItems} <li> in <ol>`);

@@ -19,7 +19,12 @@ import { join } from 'node:path';
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/** A heading's anchor, the way GitHub makes it, so `file.md#anchor` links keep working on the page. */
+/**
+ * A heading's anchor, the way GitHub makes it, so `file.md#anchor` links keep working on the page.
+ * Three known divergences, none reached by a current heading: `.trim()` runs after punctuation is
+ * stripped (`& more` gives `more`, GitHub `-more`); a duplicate heading gets no `-1` suffix; and
+ * combining marks (`\p{M}`) are stripped, which GitHub keeps.
+ */
 export const slug = (text) => text.toLowerCase().replace(/<[^>]+>/g, '').replace(/&(amp|lt|gt|quot);/g, '').replace(/[^\p{L}\p{N}\s_-]/gu, '').trim().replace(/\s/g, '-');
 
 /** A link to a guide's `.md` points at its page; every other link is left as written. */
