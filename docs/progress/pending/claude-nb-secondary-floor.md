@@ -32,7 +32,7 @@ clears 4.5:1 on `background.secondary` in this brand.
   Divider's 1.4.3 line now reads "clears 4.5:1 on the page backgrounds its color's metadata lists", and the #3051
   arm covers the reference brand with one declared cell, light `background.secondary` (B2, Q3212.6 A). Doc 06 names
   the exception (S1). `levers.ts` says why it is not a lever (Q3212.7 A). Follow-ups filed for the redesign seed
-  (Q3212.4 A) and `field.placeholder` (Q3212.5 A).
+  (Q3212.4 A, #3219) and `field.placeholder` (Q3212.5 A, #3220); the decision itself is recorded in #3221.
 - **Held for the owner (resolved on the PR: Q3212.1 A, Q3212.4 A, Q3212.5 A).** (1) The card: secondary body copy on this brand's card is 3.78:1 in light. (2) The redesign
   seed (`nb-redesign.design.md`) does not set the input, so its secondary stays #696869 (4.57:1 on its floor); setting
   it there is one line. (3) `field.placeholder` keeps its floor fit at #636A6F. The text field and select defs bind
