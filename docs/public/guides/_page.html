@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}} · Prism3 docs</title>
+<!--
+  The page around every guide (#3176, owner decision Q3176.3 A). apps/studio/docs-markdown.mjs fills each {{slot}}
+  from guides/<name>.md, cuts out each part:name fragment below to draw it where the guide needs it, and drops every
+  comment here, so this one never reaches a page. Every string a guide page adds lives in this file, so the
+  US-English and voice gates scan them. Styles: ../docs.css (lint-ecosystem.ts's DOCS arm).
+-->
+<link rel="stylesheet" href="../docs.css">
+<script src="../docs.js"></script>
+</head>
+<body>
+<header class="dhead">
+  <a class="mark" href="../">Prism3 docs</a>
+  <span class="crumb">/ {{crumb}}</span>
+  <span class="seg" role="group" aria-label="Appearance">
+    <button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button>
+  </span>
+</header>
+<div class="guide">
+  <nav class="gnav" aria-label="Guides">
+    <details open>
+      <summary>All guides</summary>
+      <ol>{{guides}}</ol>
+      <p class="eyebrow">Reference</p>
+      <ol>{{reference}}</ol>
+    </details>
+  </nav>
+  <main class="art">
+{{article}}
+<!-- pager -->
+    <nav class="pager" aria-label="Previous and next guide">{{prev}}{{next}}</nav>
+<!-- /pager -->
+    <p class="foot">Source: <a href="{{source}}">guides/{{source}}</a>. AI agents read the markdown file; this page is drawn from it.</p>
+  </main>
+<!-- toc -->
+  <aside class="toc" aria-labelledby="toc-h">
+    <p class="eyebrow" id="toc-h">On this page</p>
+    <ol>{{toc}}</ol>
+  </aside>
+<!-- /toc -->
+</div>
+<!-- part:crumb-index -->Guides<!-- /part -->
+<!-- part:crumb-guide --><a href="index.html">Guides</a> / {{text}}<!-- /part -->
+<!-- part:prev --><a class="prev" href="{{href}}"><small>Previous</small>{{text}}</a><!-- /part -->
+<!-- part:next --><a class="next" href="{{href}}"><small>Next</small>{{text}}</a><!-- /part -->
+<!-- part:shot --><figure class="shot"><div class="shot-frame" role="img" aria-label="{{label}}">Screenshot to come</div><figcaption>{{text}}</figcaption></figure><!-- /part -->
+<!-- part:message --><figure class="uimsg"><figcaption>Plugin message</figcaption><blockquote>{{text}}</blockquote></figure><!-- /part -->
+<script>
+  // Under 760px the guide list folds into "All guides", closed; wider, it stays open.
+  if (matchMedia('(max-width: 760px)').matches) document.querySelector('.gnav details').removeAttribute('open');
+</script>
+</body>
+</html>

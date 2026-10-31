@@ -8,10 +8,15 @@
  * `REQUIRED_DOCS` names the two files an agent is pointed at, the guides' index (#2662) and the landing page the
  * studio's and the plugin's Docs links open (`index.html`, served at `/docs/`, #2637 Q384); the site build fails
  * without any of them.
+ *
+ * Guide pages (#3176, Q3176.3 A): `guides/<name>.html` is not a file. Both hosts draw it from `guides/<name>.md` with
+ * `renderGuide` (`docs-markdown.mjs`): `serveDocs` on request, and the site build through `guidePages()`, so the two
+ * answer the same bytes. A file whose name starts with `_` (the page template) is neither served nor copied.
  */
 import { createReadStream, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { renderGuide } from './docs-markdown.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 export const DOCS_DIR = resolve(root, '../../docs/public');
@@ -29,11 +34,28 @@ const TYPES = {
 };
 export const contentType = (file) => TYPES[extname(file)] ?? 'application/octet-stream';
 
-/** Every file under `docs/public/`, as paths relative to it with `/` separators, sorted. */
+/** Every file under `docs/public/`, as paths relative to it with `/` separators, sorted. A `_`-named file is a
+ *  template, not a page, and is left out. */
 export const docsFiles = () => readdirSync(DOCS_DIR, { recursive: true, withFileTypes: true })
-  .filter((e) => e.isFile())
+  .filter((e) => e.isFile() && !e.name.startsWith('_'))
   .map((e) => relative(DOCS_DIR, join(e.parentPath, e.name)).split(sep).join('/'))
   .sort();
+
+const GUIDES_DIR = join(DOCS_DIR, 'guides');
+
+/** Every guide page the site build writes, as `{ path, html }`, `path` relative to `docs/public/`: one per
+ *  `guides/<name>.md`. */
+export const guidePages = () => readdirSync(GUIDES_DIR)
+  .filter((f) => f.endsWith('.md') && !f.startsWith('_'))
+  .map((f) => f.slice(0, -3))
+  .sort()
+  .map((name) => ({ path: `guides/${name}.html`, html: renderGuide(GUIDES_DIR, name) }));
+
+/** The guide page a request path names, as HTML, or null. */
+const guidePage = (urlPath) => {
+  const m = /^\/docs\/guides\/([\w-]+)\.html$/.exec(decodeURIComponent(urlPath.split('?')[0]));
+  return m ? renderGuide(GUIDES_DIR, m[1]) : null;
+};
 
 /** What a request path names under `docs/public/`, or null when it is outside the route or outside the directory. */
 const docsTarget = (urlPath) => {
@@ -59,7 +81,7 @@ export const docsRedirect = (urlPath) => {
  *  A directory answers with its `index.html` when it has one. */
 export const docsPath = (urlPath) => {
   const file = docsTarget(urlPath);
-  if (!file) return null;
+  if (!file || file.split(sep).pop().startsWith('_')) return null;
   try {
     const st = statSync(file);
     if (st.isFile()) return file;
@@ -74,6 +96,8 @@ export const serveDocs = (req, res) => {
   if (path !== '/docs' && !path.startsWith(DOCS_ROUTE)) return false;
   const moved = docsRedirect(req.url);
   if (moved) { res.writeHead(301, { location: moved }); res.end(); return true; }
+  const page = guidePage(req.url);
+  if (page !== null) { res.writeHead(200, { 'content-type': TYPES['.html'], 'cache-control': 'no-store' }); res.end(page); return true; }
   const file = docsPath(req.url);
   if (!file) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end(`not found: ${path}\n`); return true; }
   res.writeHead(200, { 'content-type': contentType(file), 'cache-control': 'no-store' });

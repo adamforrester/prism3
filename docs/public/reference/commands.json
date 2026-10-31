@@ -971,11 +971,15 @@
       "summary": "figma-bridge — the agent link's TRANSPORT B: a local MCP server that drives the RUNNING Prism3 plugin in the owner's Figma desktop app over a localhost WebSocket.",
       "usage": [
         {
-          "text": "npx tsx tools/figma-bridge/server.ts [--port 17331]      (or PRISM3_BRIDGE_PORT)",
+          "text": "npx tsx tools/figma-bridge/server.ts [--port 17331] [--grace-ms 120000]   (or PRISM3_BRIDGE_PORT, PRISM3_BRIDGE_GRACE_MS)",
           "source": "tools/figma-bridge/server.ts#header"
         }
       ],
       "flags": [
+        {
+          "flag": "--grace-ms",
+          "source": "tools/figma-bridge/server.ts#argv"
+        },
         {
           "flag": "--port",
           "source": "tools/figma-bridge/server.ts#argv"
