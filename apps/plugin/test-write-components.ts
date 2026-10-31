@@ -5587,6 +5587,26 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#2343 Q720 A plugin executor: all ${cardFiles.length} tile files in marks/payment/ build as tiles (${tiles.length} of ${comps.length} built marks) reading back with radius/sm corners, clipped, and a border-width/hairline edge in color/border/primary on every tile but amex, generic, shop-pay and venmo (#3134); no other mark has an edge (off: ${[...off, ...edgeMisses, ...untiled.map((n) => `${n}: no tile`), ...unfiled.map((n) => `${n}: no tile file`)].slice(0, 4).join(' | ') || 'none'})`);
 }
 
+// ── #3192: A FRESH SINGLE-COMPONENT BLOCK IS PLACED CLEAR OF WHAT THE PAGE HOLDS ─────────────────────────────────────
+// `icon` and `provider-logo` share a page (#3148). Build the icons, then the provider logos onto the same page: no logo may
+// overlap an icon, or another logo. Before #3192 the second grid started at the page origin, over the first. Mutations:
+// the fresh block's placement dropped (`fromPage` null) → `#3192 fresh build`; the executor as it stood
+// before #3192 → the same.
+{
+  const page: Page = { children: [] };
+  const iconPlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'icon')!, { swapTarget: SWAP });
+  const markPlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'provider-logo')!, { swapTarget: SWAP });
+  await applyComponentPlan(iconPlans, makeShim({ ...fullFor(iconPlans), page }) as any, { emitAsComponents: true });
+  await applyComponentPlan(markPlans, makeShim({ ...fullFor(markPlans), page }) as any, { emitAsComponents: true });
+  const box = (n: Node) => ({ name: String(n.name), x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
+  const top = page.children.filter((n) => n.type === 'COMPONENT').map(box);
+  const icons = top.filter((b) => b.name.startsWith('icon/')), marks = top.filter((b) => b.name.startsWith('provider-logo/'));
+  const hits: string[] = [];
+  for (const m of marks) for (const o of top) if (o !== m && m.x < o.x + o.w && o.x < m.x + m.w && m.y < o.y + o.h && o.y < m.y + m.h) hits.push(`${m.name} over ${o.name}`);
+  ok(icons.length === iconPlans.length && marks.length === markPlans.length && hits.length === 0,
+    `#3192 fresh build: the ${marks.length} provider logos built onto a page holding the ${icons.length} icons overlap nothing (overlaps: ${hits.length}${hits.length ? `, e.g. ${hits.slice(0, 3).join(' | ')}` : ''})`);
+}
+
 // ── #3127: THE ARTBOARD READ-BACK, AT FIGMA'S PRECISION, PER KIND ─────────────────────────────────────────────────────
 // Figma stores a frame's width and height as 32-bit floats, so a logo drawn at its own width, 34.97 × 24, reads back
 // 34.970001220703125 × 24. The exact compare reported 7 ProviderLogo logos as "sized to its ink" on a fresh file. Here
