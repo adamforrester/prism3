@@ -40,7 +40,7 @@ strip claims nothing more until the first set boundary. Inside one member a writ
 ### Tests
 
 - `apps/plugin/test-run-progress.ts` (new, in the plugin's `test`): through the real `main.ts` over the component shim,
-  the check reading, one reading per set boundary, the finish reading, the readings inside a long set under a stepped
+  the check reading (posted before the run's first page read, `progress/check-first`), one reading per set boundary, the finish reading, the readings inside a long set under a stepped
   clock and none under a still one, no reading for an agent's run, Stop at a boundary (the next sets' stamps and records
   untouched), Stop before the first write (no version saved), and a stray Stop stopping nothing. Over the file shim:
   Apply Theme's seven stages in order, one hand-back per 200 color rows, and a paced apply writing exactly what an

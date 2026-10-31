@@ -12,6 +12,8 @@
  * as `test-update-apply.ts`'s corpus does), the scoped check is asked for its hash, and `update-sets` is posted as the
  * panel posts it. What `main.ts` posts back is read off the UI channel.
  *   · `progress/check`: the first reading is the check before any write, naming no set, over the three sets;
+ *   · `progress/check-first`: with pages that answer a search of their own (the run's paged read, #3177), the check
+ *     reading is posted before the host's first page read, so the strip speaks for the whole read;
  *   · `progress/boundaries`: then one `work` reading per set, each naming its set, `done` counting the sets before it;
  *   · `progress/finish`: the last reading says the three are done, before the verdict;
  *   · `progress/inside`: a long set (Tag, 45 members) is heard from again inside it, with its own reading, once about
@@ -38,7 +40,8 @@
  * budget test dropped) → `progress/paced`; `paced` never saying `again` → `progress/inside`; the reading posted for an
  * agent's run (`panel` true) → `progress/agent`; the boundary stop read dropped → `stop/boundary`; the stop before the
  * version dropped → `stop/before`; `update-stop` setting the flag with nothing running → `stop/idle`; a stage not
- * announced → `apply/stages`; the color tick dropped → `apply/color ticks`.
+ * announced → `apply/stages`; the color tick dropped → `apply/color ticks`; the check reading moved after `runHost`
+ * → `progress/check-first`.
  */
 import { makeShim } from './component-shim';
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
@@ -90,6 +93,8 @@ const STAGES = ['float', 'color', 'styles', 'grid', 'type-vars', 'text-styles', 
 
 type ShimPage = { id: string; name: string; type: 'PAGE'; isPageDivider: boolean; children: Node[]; appendChild(c: Node): void; insertChild(i: number, c: Node): void; findOne(p: (n: unknown) => boolean): unknown };
 const pages: ShimPage[] = [];
+/** Set while `progress/check-first` runs: a page made then answers a search of its own, as every other page does. */
+let pagedSearch: ((this: ShimPage, c?: { types?: string[] }) => Node[]) | null = null;
 let pageSeq = 0;
 const mkPage = (divider: boolean): ShimPage => {
   const p: ShimPage = {
@@ -98,6 +103,7 @@ const mkPage = (divider: boolean): ShimPage => {
     insertChild(at, c) { const i = this.children.indexOf(c); if (i >= 0) this.children.splice(i, 1); c.parent = this as unknown as Node; this.children.splice(Math.max(0, Math.min(at, this.children.length)), 0, c); },
     findOne(pred) { return this.children.find(pred) ?? null; },
   };
+  if (pagedSearch) (p as ShimPage & { findAllWithCriteria?: unknown }).findAllWithCriteria = pagedSearch;
   pages.push(p);
   return p;
 };
@@ -228,6 +234,39 @@ ok(J(SETS.map((id) => membersOf(id).length)) === J([7, 40, 45]), `premise: the t
   // A reading inside a set repeats that set's own: never the set before's after the next has started.
   const order = rs.filter((m) => m.phase === 'work').map((m) => m.item);
   ok(order.every((x, i) => i === 0 || x === order[i - 1] || !order.slice(0, i).includes(x)), `progress/inside: each set's readings come together, between its boundary and the next (${J(order.filter((x, i) => x !== order[i - 1]))})`);
+}
+
+// ── the check reading comes before the run's read of the file (#3177's paged read, from #3190) ──
+// The pages answer a search of their own here, so the run's host reads the file a page per turn, as it does in Figma; each
+// page search and each check reading lands on one timeline, and the check must come before the first page is searched.
+// Posted after that read, the strip would say nothing for the whole read.
+{
+  const timeline: string[] = [];
+  let recording = false;
+  const pageSearch = function (this: ShimPage, c?: { types?: string[] }): Node[] {
+    if (recording) timeline.push('read');
+    const out: Node[] = [];
+    const walk = (n: Node) => { out.push(n); for (const k of (n.children as Node[] | undefined) ?? []) walk(k); };
+    for (const k of this.children) walk(k);
+    // The shim's own nodes (the components and styles the plans name) sit on no page here: the first page holds them.
+    if (this === pages[0]) out.unshift(...(shimFind(c) as Node[]));
+    return out.filter((n) => !c?.types || c.types.includes(n.type as string));
+  };
+  pagedSearch = pageSearch;
+  for (const pg of pages) (pg as ShimPage & { findAllWithCriteria?: unknown }).findAllWithCriteria = pageSearch;
+  outOfDate();
+  const hash = await hashFor();
+  onPost = (m) => { if (recording && m?.type === 'run-progress' && m.run === 'update' && m.phase === 'check') timeline.push('check'); };
+  recording = true;
+  const v = await send({ type: 'update-sets', defs: SETS, previewHash: hash, handEdits: 'keep' }, ['component-update-result']);
+  recording = false;
+  onPost = null;
+  pagedSearch = null;
+  for (const pg of pages) delete (pg as ShimPage & { findAllWithCriteria?: unknown }).findAllWithCriteria;
+  const firstRead = timeline.indexOf('read');
+  ok(wroteAll(v) && firstRead >= 0, `progress/check-first control: the update ran over a paged host and read its pages (${v?.headline}; ${timeline.filter((x) => x === 'read').length} page searches)`);
+  ok(timeline[0] === 'check' && timeline.indexOf('check') < firstRead,
+    `progress/check-first: the check reading is posted before the host's first page read (${J(timeline.slice(0, 4))})`);
 }
 
 // ── the budget: a clock that does not move hands back at no point inside a set ──

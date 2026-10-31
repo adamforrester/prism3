@@ -18232,7 +18232,8 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
     await postMsg(page, T_FILE);
     await postMsg(page, T_CHECK);
-    await page.waitForFunction(() => !document.querySelector('[data-p3="update-go"]')?.disabled, null, WAIT).catch(() => {});
+    // The premise's rows, waited for and never swallowed: a slow runner waits for them, and a real absence fails by name.
+    await hooks.need(page, '[data-p3="update-dialog"] [role="checkbox"][data-key="due=tag"][aria-checked="true"]', WAIT);
     // The update alone: Style guides off too, so the run is one step.
     if ((await page.evaluate(() => document.querySelector('[data-p3="update-check-guides"]')?.getAttribute('aria-checked'))) === 'true') await hooks.click(page.locator('[data-p3="update-check-guides"]'), WAIT);
     const ticks = await page.evaluate(() => [...document.querySelectorAll('[data-p3="update-dialog"] [role="checkbox"]')].map((n) => `${n.dataset.key}=${n.getAttribute('aria-checked')}`));
