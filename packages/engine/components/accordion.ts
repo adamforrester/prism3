@@ -43,7 +43,8 @@
  *
  * `divider` nests the Divider, stretched across the item (`crossAxisFill`). Measured on a real host: the stretch
  * overrides the Divider's 720px standalone length, and the stretched instance drops that width binding, so the
- * read-back expects none on it.
+ * read-back expects none on it. A `divider` boolean (#3198, owner Q-ACC2 A), on by default, hides it in every member: a
+ * design with no rules between items (the reference brand's FAQ list) needed a layer override on each instance before.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -65,6 +66,8 @@ export const accordion: ComponentDef = {
     { name: 'headingLevel', type: "enum: 2 | 3 | 4 | 5 | 6", values: ['2', '3', '4', '5', '6'], default: '3', required: false, description: 'The level of the heading that wraps the header button. Set it one below the heading the accordion sits under, so the page outline stays intact.' },
     { name: 'indicator', type: "enum: 'chevron' | 'plus-minus'", values: ['chevron', 'plus-minus'], default: 'chevron', required: false, description: 'The open and closed glyph: a chevron that points down when closed and up when open, or a plus that becomes a minus.' },
     { name: 'iconPosition', type: "enum: 'leading' | 'trailing'", values: ['leading', 'trailing'], default: 'leading', required: false, description: 'Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge.' },
+    // #3198 (Q-ACC2 A): the rule under the section, on by default so existing files and code don't move. DRAFT prose.
+    { name: 'divider', type: 'boolean', default: true, required: false, description: 'Shows the rule under the section. On by default. Turn it off when the design separates sections another way, such as spacing, a card or a background, so the page does not draw two separators.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The header\'s type, padding and indicator size. Every size keeps the header at least 44px tall.' },
   ],
 
@@ -248,6 +251,7 @@ export const accordion: ComponentDef = {
         nests: 'divider',
         nesting: { kind: 'nest-fixed', variant: { orientation: 'horizontal', inset: 'none', labeled: 'false' } },
         crossAxisFill: true,
+        optional: true,
         note: 'The rule under the section, separating it from the next. It spans the section\'s width.',
       },
     },
@@ -275,7 +279,9 @@ export const accordion: ComponentDef = {
     texts: {
       title: { part: 'label', default: 'Section title' },
     },
-    booleans: {},
+    // #3198 (Q-ACC2 A): one toggle on the nested Divider in every member, on by default, so a file built before it keeps
+    // its rule and an Update adds the property in place.
+    booleans: { divider: { part: 'divider', default: true } },
   },
 
   accessibility: {
@@ -306,6 +312,7 @@ export const accordion: ComponentDef = {
       'Write titles that say what the section holds',
       'Let a long title wrap',
       'Let every section be closed',
+      'Turn the divider off when the sections are already separated by spacing, a card or a background',
     ],
     dont: [
       'Hide content most users need. Show it instead.',
@@ -343,6 +350,7 @@ export const accordion: ComponentDef = {
     contested: [
       'PENDING THE OWNER\'S VISUAL QA (Q241): the block padding (8/12/16), the gap (8/12/16) and the panel\'s bottom inset (12/16/24). Decided since: the inline padding steps 12/16/20 at the header and the panel alike (Q338 A, revising 24 at large; the fields keep 24), and the panel keeps its own padding, aligned to the header edge rather than to the title (Q339 A). Approved in Q241: the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder), the Figma copy ("Section title", and the panel placeholder), the property names, the page placement and the prose.',
       'A flush style only: the brief\'s contained (boxed card) variant is not built.',
+      'DRAFT (#3198, Q-ACC2 A), for the owner: the `divider` prop\'s description and the docs\' "Turn the divider off when the sections are already separated by spacing, a card or a background". The property itself is decided: a boolean named `divider`, on by default, on the nested Divider in every member.',
       'DRAFT (#2646), for the owner: the panel slot (`content`) declares no constraint. No minimum or maximum child count, no preferred components and not preferred-only, and a new instance shows the placeholder. A section holds whatever its content is (text, a list, a form, an image), so any limit here would flag ordinary use.',
     ],
     unverified: [
@@ -351,6 +359,7 @@ export const accordion: ComponentDef = {
     evolution: [
       'Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header\'s focus ring on its edge, `focus.ring.offset-field`), and the owner\'s QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header\'s edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title\'s first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size); Q338 A (the large inline padding 24 → 20, `space.250`, so the side padding steps 12/16/20) and Q339 A (no change: the panel keeps its own padding). #2878 (Q-block A, 2026-10-25): the indicator pair is an `indicator` axis on the Accordion, which the nested indicator follows, so the set is 48 members and the nested instance is no longer exposed.',
       '#3180 (Q-ACC1 A, 2026-10-30): the title moved from the emphasis label composite to the default (regular) one at every size, for every brand. The reference brand\'s FAQ accordion sets its title at 14px regular, and field practice is split between regular and medium. The line box is unmoved, and an Update rewrites the title\'s text style in place, keeping a hand edit on the header\'s padding.',
+      '#3198 (Q-ACC2 A, 2026-10-31): a `divider` boolean, on by default, shows or hides the nested Divider in every member, with a code prop of the same name. A rebuild of the reference brand\'s FAQ list, which has no rules between items, could only hide the rule with a layer override on each instance. An Update adds the property in place: no member id changes, and hand edits are kept.',
     ],
   },
 };

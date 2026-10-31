@@ -73,6 +73,7 @@
     "members": 48,
     "properties": {
       "content": "SLOT",
+      "divider": "BOOLEAN",
       "title": "TEXT"
     }
   },

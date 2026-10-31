@@ -567,9 +567,10 @@
     },
     "accordion": {
       "members": 48,
-      "sha256": "6eec54e75fcaa62d3a41e7418421e165c08f3a75a0389b6f022ffb6821e202af",
+      "sha256": "145b52647b4b5b9799b8395690a7023ef31ba57d7c891b8675d1ab56d49caa48",
       "properties": [
         "content:SLOT",
+        "divider:BOOLEAN",
         "title:TEXT"
       ]
     },
