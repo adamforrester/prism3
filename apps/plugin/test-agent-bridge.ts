@@ -15,7 +15,7 @@
  *      then travels MCP → server → socket → relay → main thread → the `ACTIONS` table → back, and the
  *      suite spies on the table to prove the command reached the UI's own handler.
  *
- * Arms, by name: mcp · relay/url · no-plugin · origin/refused · pair/secret-file · pair/challenge · pair/wrong-code · pair/no-evict ·
+ * Arms, by name: mcp · relay/url · no-plugin · origin/refused · pair/secret-file · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-evict ·
  * handshake · fragmented · ping · run · stream · progress · big-frame · timeout · unmasked · disconnect · reconnect ·
  * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
  * e2e/link-off · e2e/switch-off
@@ -34,7 +34,8 @@
  * MUTATIONS, each failing by name: `createBridge`'s hello check accepting any proof → `origin/refused: … a sandboxed
  * iframe on a web page …` and `… an Origin: null client with no token …`; `attach` called before the proof → `pair/no-evict`;
  * `pairOk` accepting any code → `pair/wrong-code`; the main thread keeping the token with `setSharedPluginData` →
- * `pair/not-in-file`.
+ * `pair/not-in-file`; one nonce for every connection (`nonce: () => 'ab'.repeat(32)`) → `pair/replay`; the wrong-code
+ * count reset on every attempt (`fails = 0` before the check) → `pair/limit` (both from the #3204 delta review, B2).
  *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
@@ -143,8 +144,8 @@ if (!(await until(() => /listening on localhost:(\d+)/.test(stderr), 60000))) {
   process.exit(1);
 }
 const PORT = Number(/listening on localhost:(\d+)/.exec(stderr)![1]);
-/** The one-time pairing code the server printed. */
-const CODE = /pairing code: ([2-9A-Z]{4}-[2-9A-Z]{4})/.exec(stderr)?.[1] ?? '';
+/** The one-time pairing code the server printed. `pair/limit` retires it, and then reads the new one. */
+let CODE = /pairing code: ([2-9A-Z]{4}-[2-9A-Z]{4})/.exec(stderr)?.[1] ?? '';
 
 /* ── a hand-rolled WebSocket client ─────────────────────────────────────────────────────────────────── */
 
@@ -346,6 +347,65 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
     `pair/wrong-code: a wrong code is refused with 4403 and given no token (close ${w.closeCode()})`);
   ok((await call('figma_status')).value?.connected === false, 'pair/wrong-code: a wrong code never becomes the plugin');
   w.sock.destroy();
+}
+{
+  // REPLAY (#3204 review B2 a): a proof is bound to the nonce of the connection it was made on. A hello proof captured on
+  // connection 1 (which it pairs: it becomes the plugin) is refused on connection 2, and the plugin keeps the slot.
+  const first = await openClient();
+  const captured = proveHello(await first.nonce());
+  first.sendJson({ type: 'hello', state: state(), proof: captured });
+  ok(await until(() => first.texts().some((m) => m.type === 'welcome')), 'pair/replay: the hello proof is welcomed on the connection it was made for');
+  const second = await openClient();
+  await second.nonce();
+  second.sendJson({ type: 'hello', state: state(), proof: captured });
+  ok(await until(() => second.closeCode() === 4401) && !second.texts().some((m) => m.type === 'welcome'),
+    `pair/replay: a hello proof captured on one connection is closed with 4401 on the next (close ${second.closeCode()})`);
+  ok(!first.closed() && first.closeCode() === null && (await call('figma_status')).value?.connected === true,
+    'pair/replay: the replayed hello never becomes the plugin: the first connection keeps the slot');
+  second.sock.destroy();
+  first.sock.destroy();
+  ok(await untilAsync(async () => (await call('figma_status')).value?.connected === false), 'pair/replay: closed');
+  // A pair proof made with the RIGHT code on connection 1's nonce, sent on connection 2: refused with 4403, no token,
+  // and the code stays open. (Sending it on connection 1 would spend the code, so a later replay could fail for that
+  // reason alone; this way only the nonce binding refuses it.)
+  const p1 = await openClient();
+  const pairProof = provePair(CODE, await p1.nonce());
+  const p2 = await openClient();
+  await p2.nonce();
+  p2.sendJson({ type: 'pair', proof: pairProof });
+  ok(await until(() => p2.closeCode() === 4403) && !p2.texts().some((m) => m.type === 'paired'),
+    `pair/replay: a pair proof made on another connection's nonce is refused with 4403 and given no token (close ${p2.closeCode()})`);
+  ok((await call('figma_status')).value?.pairingCode === CODE, 'pair/replay: and the code is not spent by it');
+  p1.sock.destroy();
+  p2.sock.destroy();
+}
+{
+  // THE WRONG-CODE LIMIT (#3204 review B2 b): the count is the server's, not the connection's. MAX_PAIR_FAILS wrong
+  // codes, each on its own connection, retire the code: figma_status and stderr name a new one, and the old one no
+  // longer pairs. (The arms above spent some of the count already, so the retirement lands inside this run.)
+  // Written here, not imported: the promise in the prompt and the README is "5 wrong tries" (docs/34 shape 1).
+  const MAX_PAIR_FAILS = 5;
+  const old = CODE;
+  const before = (stderr.match(/pairing code: /g) ?? []).length;
+  for (let i = 0; i < MAX_PAIR_FAILS; i++) {
+    const current = (await call('figma_status')).value?.pairingCode;
+    const wrong = current === 'ZZZZ-ZZZZ' || old === 'ZZZZ-ZZZZ' ? 'YYYY-YYYY' : 'ZZZZ-ZZZZ';
+    const g = await openClient();
+    g.sendJson({ type: 'pair', proof: provePair(wrong, await g.nonce()) });
+    await until(() => g.closeCode() !== null);
+    g.sock.destroy();
+  }
+  const now = (await call('figma_status')).value?.pairingCode;
+  const printed = [...stderr.matchAll(/pairing code: ([2-9A-Z]{4}-[2-9A-Z]{4})/g)].map((m) => m[1]);
+  ok(typeof now === 'string' && now !== old && /wrong pairing codes: that code is retired/.test(stderr),
+    `pair/limit: ${MAX_PAIR_FAILS} wrong codes, each on its own connection, retire the code (figma_status ${now === old ? 'unchanged' : 'changed'})`);
+  ok(printed.length > before && printed[printed.length - 1] === now, 'pair/limit: stderr prints the new code, the one figma_status names');
+  const stale = await openClient();
+  stale.sendJson({ type: 'pair', proof: provePair(old, await stale.nonce()) });
+  ok(await until(() => stale.closeCode() === 4403) && !stale.texts().some((m) => m.type === 'paired'),
+    `pair/limit: the retired code no longer pairs (close ${stale.closeCode()})`);
+  stale.sock.destroy();
+  CODE = typeof now === 'string' ? now : CODE;
 }
 {
   // A live, PAIRED plugin and an unpaired newcomer: the newcomer is closed and the plugin keeps the slot and its commands.

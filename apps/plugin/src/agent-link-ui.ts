@@ -108,9 +108,9 @@ export const agentLinkStatusText = (s: AgentLinkState | null, now: number = Date
 
 /** #3113 (Q3113.7 A): the bar row's one word for the link, beside its glyph and dot: nothing while it is off, "Error" for
  *  an inbox error, "Not listening" while it is on with no transport listening, otherwise "Listening". The error states
- *  draw in the chrome's error inks. DRAFT wording, except "Listening". Since #3147 Phase 1 the listening word names the
- *  transport commands arrive by: "Listening · bridge" while the desktop bridge is connected (the mailbox is still read;
- *  the full line names both), otherwise "Listening · mailbox" (approved, Q3204.3 A). `bridgeBuilt` is whether this build
+ *  draw in the chrome's error inks. Since #3147 Phase 1 the listening word names the transport commands arrive by:
+ *  "Listening · bridge" while the desktop bridge is connected (the mailbox is still read; the full line names both),
+ *  otherwise "Listening · mailbox". Both are approved (Q3204.3 A), as is the Offline word below. `bridgeBuilt` is whether this build
  *  carries the bridge at all (`PRISM3_NETWORK`): "Prism3 Studio Offline" has none, so its word is "Listening · mailbox
  *  only" (Q3204.2 A). Pure. */
 export const agentLinkWord = (s: AgentLinkState | null, bridgeBuilt = true): { readonly text: string; readonly error: boolean } | null => {
