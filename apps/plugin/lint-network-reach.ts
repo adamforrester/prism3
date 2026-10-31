@@ -4,7 +4,8 @@
  *   npx tsx apps/plugin/lint-network-reach.ts      (after `build:release`, which builds both)
  *
  * One codebase builds two plugins. "Prism3 Studio" (`release/`) may reach the domains its manifest lists, today the
- * two Google Fonts hosts the preview loads a brand's face from. "Prism3 Studio Offline" (`release-offline/`,
+ * two Google Fonts hosts the preview loads a brand's face from and the agent link's local desktop bridge,
+ * `ws://localhost:17331` (#3147). "Prism3 Studio Offline" (`release-offline/`,
  * `build.mjs --release --offline`) reaches none: `allowedDomains: ["none"]`, for client files and locked-down setups.
  * Figma enforces a manifest's list with a CSP, but nothing in Figma says the list is the one we meant, or that the
  * offline build degrades rather than tries. This gate does, by reading the bytes each build hands Figma.
@@ -30,8 +31,9 @@
  *
  * BY-NAME MUTATIONS (each proven red, then restored; the PR's table records them): a `fetch` outside the
  * `PRISM3_NETWORK` gate in `web-fonts.ts` → `[fetch] is absent from release-offline/ui.html`; the offline manifest's
- * `allowedDomains` set to `["*"]` → `release-offline/manifest.json allows no network`; a third domain added to
- * `manifest.json` → `release/manifest.json allows exactly the listed domains`; a request to an unlisted host in the
+ * `allowedDomains` set to `["*"]` → `release-offline/manifest.json allows no network`; a fourth domain added to
+ * `manifest.json` → `release/manifest.json allows exactly the listed domains`; the relay's `if (PRISM3_NETWORK)` in
+ * `agent-link-ui.ts` turned off → `release/ui.html carries the desktop bridge relay's socket` (#3147); a request to an unlisted host in the
  * loader → `[host example.com] in release/ui.html is allowed or reference-only`; an offline-only `new Image().src` to an
  * unlisted host → `[host tracker.example.net] in release-offline/ui.html is reference-only`.
  */
@@ -47,8 +49,10 @@ const BUILDS = {
   offline: { dir: resolve(HERE, 'release-offline'), name: 'release-offline', label: 'Prism3 Studio Offline', id: 'prism3-theming-plugin-offline' },
 } as const;
 
-/** The network build's domains (#3138, owner decision: explicit domains, no `*`, starting with the Google Fonts hosts). */
-const ALLOWED = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'] as const;
+/** The network build's domains (#3138, owner decision: explicit domains, no `*`, starting with the Google Fonts hosts),
+ *  plus the agent link's local desktop bridge (#3147, the owner's Q3147.3 A). An authored literal, never read from the
+ *  manifest: a domain added to the manifest and not here fails `release/manifest.json allows exactly the listed domains`. */
+const ALLOWED = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com', 'ws://localhost:17331'] as const;
 const ALLOWED_HOSTS = ALLOWED.map((d) => new URL(d).host);
 
 /** Hosts a bundle names without requesting them, each with its reason. A new one is added here with its reason. */
@@ -131,6 +135,11 @@ ok(!!netM && !JSON.stringify(netM.networkAccess ?? {}).includes('*'), 'release/m
 ok(/\bfetch\s*\(/.test(net['ui.html']) && net['ui.html'].includes('fonts.googleapis.com'),
   "release/ui.html carries the web-font loader's request (`fetch(` and the Google Fonts host), so the offline absence means something",
   'the loader (apps/studio/src/ui/web-fonts.ts) moved or was renamed: update this gate with it');
+// Vacuity for the socket (#3147): the desktop bridge relay ships in the network build, so `new WebSocket` and the bridge's
+// origin are in `release/ui.html`, and their absence from the offline build (above) means something.
+ok(/\bnew\s+WebSocket\b/.test(net['ui.html']) && net['ui.html'].includes('localhost:17331'),
+  "release/ui.html carries the desktop bridge relay's socket (`new WebSocket` and `localhost:17331`), so the offline absence means something",
+  'the relay (apps/plugin/src/agent-bridge-relay.ts) is not in the network build: it ships there since #3147');
 for (const p of PRIMITIVES) ok(!p.re.test(net['main.js']), `[${p.name}] is absent from release/main.js (the main thread makes no request)`, near(net['main.js'], p.re));
 for (const [f, text] of Object.entries(net)) {
   const hosts = new Set([...text.matchAll(URL_HOST)].map((m) => m[1].toLowerCase()));

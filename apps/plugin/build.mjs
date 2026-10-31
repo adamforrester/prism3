@@ -21,9 +21,10 @@ import { chromeCss } from '../studio/chrome/esbuild-plugin.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 /** THE RELEASE BUILD (#2530, owner Q239 A). `--release` writes `release/` instead of `dist/`: the same two bundles
- *  with `PRISM3_DEV` false, so esbuild drops every dev-only branch (the agent link's desktop bridge relay, and any
- *  dev command), and a `manifest.json` beside them with no `devAllowedDomains`. A dev build (`dist/`, the one every
- *  lane imports) keeps both. `lint-release-bundle.ts` checks the release output holds none of the dev-only code. */
+ *  with `PRISM3_DEV` false, so esbuild drops every dev-only branch (any dev command, `run-code`), and a `manifest.json`
+ *  beside them with no `devAllowedDomains`. A dev build (`dist/`, the one every lane imports) keeps the dev code. The
+ *  agent link's desktop bridge relay was dev-only too until #3147; it now sits behind `PRISM3_NETWORK` (below), so it
+ *  ships in "Prism3 Studio" and drops from the offline variant. `lint-release-bundle.ts` checks the release output holds none of the dev-only code. */
 const release = process.argv.includes('--release');
 /** THE OFFLINE VARIANT (#3138, the owner's network model). One codebase, two plugins: "Prism3 Studio" may reach the
  *  domains its manifest lists (the Google Fonts hosts, for the preview's brand faces), and "Prism3 Studio Offline"

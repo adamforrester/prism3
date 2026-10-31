@@ -78,7 +78,7 @@ import { MAILBOX, AGENT_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes, 
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
-import { agentLinkShortStatus, agentLinkStatusText, agentStripText, agentAge } from './src/agent-link-ui';
+import { agentLinkShortStatus, agentLinkStatusText, agentLinkWord, agentStripText, agentAge } from './src/agent-link-ui';
 import { createRunGuard, TITLE } from './src/run-guard';
 import { createDispatcher, ROUTES } from './src/agent-dispatch';
 import { OP_TITLE } from '../studio/src/shell/activity';
@@ -935,6 +935,13 @@ section('state — what the panel shows');
     && agentLinkStatusText({ ...s, inboxError: 'the inbox is not a JSON array' }, at).endsWith(' Inbox error: the inbox is not a JSON array.'),
     'the bridge, no transport and an inbox error each read in words');
   ok(agentLinkStatusText(null) === agentLinkStatusText({ ...s, on: false }), 'and reads off before the first state arrives');
+  // #3147 Phase 1: the bar row's word names the transport (DRAFT wording). Literals: the bridge while it is connected,
+  // the mailbox otherwise; the error words are unchanged. MUTATION: the suffix dropped → this arm fails by name.
+  ok(agentLinkWord({ ...s, transports: { mailbox: true, bridge: true } })?.text === 'Listening · bridge'
+    && agentLinkWord({ ...s, transports: { mailbox: true, bridge: false } })?.text === 'Listening · mailbox'
+    && agentLinkWord({ ...s, transports: { mailbox: false, bridge: false } })?.text === 'Not listening'
+    && agentLinkWord({ ...s, on: false }) === null,
+    `link/word-transport: the word names the transport (bridge: "${agentLinkWord({ ...s, transports: { mailbox: true, bridge: true } })?.text}", mailbox: "${agentLinkWord({ ...s, transports: { mailbox: true, bridge: false } })?.text}")`);
 }
 
 /* ── the short status (#2213, the owner's AS1 A): the Activity drawer's bar row ─────────────────────────── */

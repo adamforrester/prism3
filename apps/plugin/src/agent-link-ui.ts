@@ -49,7 +49,8 @@
  *     main thread is the authority on whether the link is on;
  *   · it renders every `agent-link-state` the main thread posts, and tells Activity whether the link is on;
  *   · and, while the link is on, the socket to the local desktop bridge (transport B) — the main thread has
- *     no network, so the iframe holds it and relays envelopes (`agent-bridge-relay.ts`).
+ *     no network, so the iframe holds it and relays envelopes (`agent-bridge-relay.ts`). In the network build and the
+ *     dev build only (#3147): "Prism3 Studio Offline" carries no socket and offers the mailbox only.
  *
  * Compiled under `tsconfig.ui.json` (DOM, no plugin typings); reaches the main thread only by
  * `parent.postMessage`, like `apps/studio/src/write-adapter.ts`.
@@ -106,12 +107,14 @@ export const agentLinkStatusText = (s: AgentLinkState | null, now: number = Date
 
 /** #3113 (Q3113.7 A): the bar row's one word for the link, beside its glyph and dot: nothing while it is off, "Error" for
  *  an inbox error, "Not listening" while it is on with no transport listening, otherwise "Listening". The error states
- *  draw in the chrome's error inks. DRAFT wording, except "Listening". Pure. */
+ *  draw in the chrome's error inks. DRAFT wording, except "Listening". Since #3147 Phase 1 the listening word names the
+ *  transport commands arrive by: "Listening · bridge" while the desktop bridge is connected (the mailbox is still read;
+ *  the full line names both), otherwise "Listening · mailbox". DRAFT wording for the suffix. Pure. */
 export const agentLinkWord = (s: AgentLinkState | null): { readonly text: string; readonly error: boolean } | null => {
   if (!s || !s.on) return null;
   if (s.inboxError) return { text: 'Error', error: true };
   if (!s.transports.mailbox && !s.transports.bridge) return { text: 'Not listening', error: true };
-  return { text: 'Listening', error: false };
+  return { text: `Listening · ${s.transports.bridge ? 'bridge' : 'mailbox'}`, error: false };
 };
 
 /** The link's short status for the Activity drawer's bar row (#2213, the owner's AS1 A, 2026-10-06): nothing while the
@@ -294,10 +297,12 @@ export const mountAgentLink = (): void => {
 
   // Transport B: while the link is on, hold a socket to the local desktop bridge and relay its commands
   // to the main thread (`agent-bridge-relay.ts`). Nothing connects while the link is off.
-  // DEV BUILDS ONLY (#2530): the socket's one origin is listed under `devAllowedDomains`, which Figma honours only
-  // for a development import, so the release build (`PRISM3_DEV` false) drops the relay and its URL entirely.
+  // THE NETWORK BUILD ONLY (#3147, the owner's Q3147.1 A and Q3147.5 A): "Prism3 Studio" lists the socket's one origin
+  // in `allowedDomains`, so the relay ships in it and in the dev build. "Prism3 Studio Offline" (`PRISM3_NETWORK` false)
+  // drops the relay and its URL entirely and offers the mailbox only. Until #3147 this was `PRISM3_DEV` (#2530): the
+  // origin sat under `devAllowedDomains`, which Figma honours only for a development import.
   let relay: ReturnType<typeof createBridgeRelay> | null = null;
-  if (PRISM3_DEV) {
+  if (PRISM3_NETWORK) {
     relay = createBridgeRelay({
       open: (url) => new WebSocket(url) as unknown as WsLike,
       post,

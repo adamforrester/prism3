@@ -15,14 +15,19 @@ Register the server with Claude Code as a stdio MCP server:
 claude mcp add prism3-figma -- npx tsx /path/to/prism3/tools/figma-bridge/server.ts
 ```
 
-It listens on `ws://localhost:17331`. That is the one origin the plugin manifest lists under
-`networkAccess.devAllowedDomains`, and Figma refuses any origin it does not list. `--port` (or
+It listens on `ws://localhost:17331`, bound to loopback only. That is the origin the plugin manifest
+lists in `networkAccess.allowedDomains` (since #3147 the relay ships in the network build, "Prism3
+Studio"; "Prism3 Studio Offline" has no socket and offers the mailbox only), and Figma refuses any origin
+it does not list. `--port` (or
 `PRISM3_BRIDGE_PORT`) changes the server's port for tests or a collision, but the plugin still
 connects to 17331 unless the manifest entry and `BRIDGE_PORT` in
 `apps/plugin/src/agent-bridge-relay.ts` change with it.
 
-The shipped `allowedDomains: ["none"]` is unchanged. `devAllowedDomains` applies only to a plugin
-imported from its manifest for development.
+**Who may connect (#3147, the owner's Q3147.2 A revised).** No pairing. The server refuses, with 403
+and before the handshake, any upgrade whose `Origin` is not `null`, the opaque origin of the plugin's
+sandboxed iframe, so a web page open in a browser cannot drive it; a request with no `Origin` is refused
+too. The loopback bind, that check and the owner's Agent link switch are the gate. `run-code` stays in
+the dev build only (Q3147.4 A): a release build answers it `unknown-command`.
 
 ## Use
 
@@ -88,6 +93,7 @@ harmless.
   64-bit-length, ping, unmasked and disconnect cases), then connects the real relay to the real
   `main.ts` and proves a `figma_run` reaches the panel's own handler.
 
-**Not yet verified live:** that Figma's desktop app lets a development plugin's iframe open
-`ws://localhost:17331` under `devAllowedDomains`. Confirm this on the first run: switch the link on
+**Not yet verified live:** that Figma's desktop app lets the plugin's iframe open
+`ws://localhost:17331` from `allowedDomains`, in a development import and in the org-private
+published build (the owner's Phase 1 live checks on #3147). Confirm this on the first run: switch the link on
 with the server running, then check that `figma_status` reports `connected: true`.

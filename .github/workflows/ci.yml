@@ -1013,8 +1013,8 @@ jobs:
       - name: Build plugin
         run: npm run -w @prism3/plugin build
 
-      # THE RELEASE BUILD (#2530, owner Q239 A): `release/`, with `PRISM3_DEV` false, so every dev-only branch (the
-      # agent link's desktop bridge relay, any dev command) is dropped, and a manifest with no devAllowedDomains.
+      # THE RELEASE BUILD (#2530, owner Q239 A): `release/`, with `PRISM3_DEV` false, so every dev-only branch (any dev
+      # command; the desktop bridge relay ships in the network build since #3147) is dropped, and a manifest with no devAllowedDomains.
       # Since #3138 it also builds the offline plugin, `release-offline/`, with `PRISM3_NETWORK` false.
       # `lint-release-bundle.ts` below checks it carries none of the dev-only code; `lint-sandbox-reject.ts` scans its
       # main.js too.
@@ -1185,7 +1185,7 @@ jobs:
         run: npx --yes tsx@4 apps/plugin/lint-release-bundle.ts
 
       # #3138 (THE OWNER'S NETWORK MODEL): one codebase, two plugins. "Prism3 Studio" (release/) reaches only the domains
-      # its manifest lists, the two Google Fonts hosts; "Prism3 Studio Offline" (release-offline/) carries no network call
+      # its manifest lists, the two Google Fonts hosts and the local desktop bridge (#3147); "Prism3 Studio Offline" (release-offline/) carries no network call
       # at all. The domains, the reference-only hosts and the request primitives are authored in the gate (docs/34). Runs
       # after the release build, which builds both.
       - name: Each plugin build reaches only what its manifest allows (#3138)
