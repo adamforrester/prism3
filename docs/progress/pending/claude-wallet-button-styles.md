@@ -48,6 +48,8 @@ fill, edge or wash as a member declared unpainted. A wash or an edge with no fil
   - a host carrying a `button/` mark must be in `GROUND_HOSTS`;
   - the member's frame paints exactly its record's ground and edge, read from `provenance.json`, never from the module
     the def reads;
+  - the edge is drawn at its record's `width`: the member's stroke weight resolves through a px map typed in the gate
+    (`border-width/hairline` is 1), so a recaptured 2px edge cannot draw 1px (#3195 review);
   - a ground host's `any` member paints nothing.
 - `test.ts`, `#2343 PR 4 provider rules COLOR`, is flipped:
   - `any` paints nothing;
@@ -59,6 +61,8 @@ fill, edge or wash as a member declared unpainted. A wash or an edge with no fil
     button height.
   - GOOGLE PAY SMALL (#3195): Google Pay has no small member, typed by size name; the HEIGHT range gains its 40 floor.
 - `LITERAL_DEFS` adds wallet-button.
+- The projector's literal-surface refusal has its own test beside `figmaAnatomyPlan`'s other refusals: an empty entry
+  is unpainted, an edge-only entry throws, and a missing entry throws (#3195 review).
 
 **Mutations, each failing by name:**
 
@@ -79,6 +83,8 @@ fill, edge or wash as a member declared unpainted. A wash or an edge with no fil
 | bind a style's medium logo to `icon.size.lg` | test.ts | `❌ #3174 provider rules LOGO HEIGHT: a style's logo binds … logo 32, want 44` |
 | move Shop Pay's logo 2px down in its file | test.ts | `❌ #3174 provider rules LOGO HEIGHT: each style's logo is its provider's ink height at 44 …` |
 | drop Google Pay's 40 floor from the def (its small members return) | test.ts | `❌ #3195 provider rules GOOGLE PAY SMALL` |
+| `button/paypal-white`'s record `edge.width` 1 → 3, module re-emitted | lint-mark-colors (h) | `BUTTON GROUND — the member's frame draws the edge 1px wide under provider-logo/button/paypal-white, and its record's edge is 3px wide` |
+| the projector's unpainted guard set to `true` | test.ts | `❌ anatomy: a literal surface entry with an edge and no fill throws (#3174)` |
 
 **The plugin.** The executor already draws `literalPaints`, so it needs no change and no `EXECUTOR_REVISION`. The
 update verifier's "a paint the plan does not give" check (`update-apply.ts`, #2369) read only bound and gradient
