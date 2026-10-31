@@ -38,7 +38,7 @@ import {
 } from '../state/depth-motion-input';
 import { DOMAINS, pageOfTab, type PageData } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
-import { glyph, h, hook } from '../shell/dom';
+import { armEnter, enterMark, glyph, h, hook } from '../shell/dom';
 import { valuePicker } from '../ui/value-picker';
 import { choice, leverBlock, leverOf, setText, slider, sliderReadout, stateLine, subLine, tokenLabel, type LeverBlock, keepFocus, pageEdit, filterLevers } from '../ui/lever-kit';
 
@@ -330,8 +330,8 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     btn.setAttribute('aria-controls', 'p3-advb-depth-tint');
     const n = section('Shadow tint').rows.length;
     btn.append(glyph(open ? 'chev' : 'chevr'), h('span', 'p3-btn-label', `${open ? 'Hide' : 'Show'} ${n} advanced`));
-    btn.onclick = () => { tintOpen = !tintOpen; render(); };
-    const body = h('div', 'p3-advbody');
+    btn.onclick = () => { tintOpen = !tintOpen; if (tintOpen) armEnter('p3-advb-depth-tint'); render(); };
+    const body = enterMark(h('div', 'p3-advbody'), 'p3-advb-depth-tint');
     body.id = 'p3-advb-depth-tint';
     body.hidden = !open;
     let item: Item | null = null;

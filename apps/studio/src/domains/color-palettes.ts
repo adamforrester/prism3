@@ -30,7 +30,7 @@ import {
 } from '../state/palette-input';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { dangerSubstitution, gamutWarning } from '../state/engine-warnings';
-import { glyph, h, hook } from '../shell/dom';
+import { armEnter, enterMark, glyph, h, hook } from '../shell/dom';
 import { noteEdit } from '../preview/follow-edit';
 import { choice, colorField, inlineConfirm, leverBlock, onCommitted, perFrame, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, type LeverBlock, keepFocus } from '../ui/lever-kit';
 
@@ -317,8 +317,8 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
       btn.setAttribute('aria-expanded', String(showAll));
       btn.setAttribute('aria-controls', 'p3-advb-palettes');
       btn.append(glyph(showAll ? 'chev' : 'chevr'), h('span', 'p3-btn-label', `${advOpen ? 'Hide' : 'Show'} ${n} advanced`));
-      btn.onclick = () => { advOpen = !advOpen; render(); };
-      const body = h('div', 'p3-advbody');
+      btn.onclick = () => { advOpen = !advOpen; if (advOpen) armEnter('p3-advb-palettes'); render(); };
+      const body = enterMark(h('div', 'p3-advbody'), 'p3-advb-palettes');
       body.id = 'p3-advb-palettes';
       if (showAll) PAGE.sections.forEach((s, i) => { if (!s.advanced) return; const x = section(s, i); body.append(x.el); drawn.push(...x.drawn); });
       body.hidden = !showAll;
