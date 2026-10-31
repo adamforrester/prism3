@@ -124,6 +124,11 @@
  * gate that was DELETED names no step, so all five pass over it. `RETIRED_GATES` is a literal register of
  * deleted gates' tokens, and none may appear in `ci.yml`, `verify.ts` or the three checklist regions.
  *
+ * ARM 7 — THE SHARDS (#3216). Since #3216 `verify.ts` runs the chrome suite in CI's shards, side by side. Arm 5
+ * holds the command, and the command is the same in every shard; which shards run is the job's matrix in `ci.yml`
+ * and the gate's `shards.ids` in `verify.ts`. `shardMapProblems` (in `verify.ts`, beside the list it checks) holds
+ * the two to each other and to the shard map, so a shard dropped from or doubled in either fails here by name.
+ *
  * WHY IMPORTING `verify.ts` IS SAFE: it runs its gates only under a main-module guard, so importing
  * `GATES` costs nothing. It does run its own self-checks at import time, which is deliberate — this
  * gate then fails if the runner's checks are broken, rather than reporting on a list produced by a
@@ -157,7 +162,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GATES, orphanGateFiles, trackedGateFiles } from '../../verify.ts';
+import { GATES, SHARD_MAPS, orphanGateFiles, shardMapProblems, trackedGateFiles } from '../../verify.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -1295,6 +1300,17 @@ if (lostPointers.length) {
   console.error('  every step — but a summary that no longer points at the authority is how it drifted to');
   console.error('  4 gates against CI\'s 21. Keep the pointers, or move the README into GATE_REGIONS and');
   console.error('  accept the full enumeration.');
+  process.exit(1);
+}
+// ARM 7 (#3216), on the real files: each sharded gate in `verify.ts` runs exactly the shards CI's matrix runs.
+const shardProblems = shardMapProblems(GATES, ciText, SHARD_MAPS);
+const shardedGates = GATES.filter((g) => g.shards);
+console.log(`    shards: ${shardedGates.map((g) => `${g.id} (${g.shards!.ids.join(', ')})`).join('; ') || 'none'} checked against ci.yml's matrix`);
+if (shardProblems.length) {
+  console.error(`\n❌ ${shardProblems.length} problem(s) with the shards verify.ts runs (#3216):\n`);
+  for (const p of shardProblems) console.error(`    ${p}`);
+  console.error('\n  `npm run verify` runs the chrome suite in the shards CI runs, so the two runs check the same sections.');
+  console.error('  Make the gate\'s `shards.ids`, ci.yml\'s `shard: [...]` matrix and the shard map name the same shards, once each.');
   process.exit(1);
 }
 // ARM 6, on the real files: `ci.yml` and `verify.ts` whole, and the three checklist regions.

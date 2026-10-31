@@ -117,6 +117,9 @@ import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// The chrome suite's shard map (#2898, #3216): the file CI's shards read through `test-chrome.mjs`. Read here, not
+// copied, so a local run and CI run the same shards; `shardMapProblems` holds it to CI's matrix.
+import { SHARDS as CHROME_SHARDS } from './apps/studio/chrome-shards.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const repoRoot = here;
@@ -171,6 +174,14 @@ export type Gate = {
   /** This gate's time limit in seconds, when `DEFAULT_TIMEOUT_S` is wrong for it (point 5). Scaled by
    *  `VERIFY_TIMEOUT_SCALE` like the default. Set it only from a measured duration, and say which. */
   timeoutS?: number;
+  /**
+   * Run `cmd` once per shard, side by side, the shard named in the environment variable `env` (#3216). One row in
+   * the table, and the row is a PASS only when every shard passed (`combineShards`). `ids` is the shard map's keys,
+   * read from the file CI's own shards read, never copied here; `shardMapProblems` holds it to CI's matrix by name.
+   * `clean` is a directory emptied first, so a shard record left by an earlier run cannot stand in for one this run
+   * did not write. `--unsharded` runs the command once, whole, as before.
+   */
+  shards?: { env: string; ids: string[]; clean?: string };
 };
 
 /**
@@ -182,7 +193,7 @@ export type Gate = {
  *
  * THE NUMBERS, measured from 131 full verify logs on the shared development machine (2026-08..10), the
  * worst healthy duration of each gate: chrome 1965s, plugin-test 440s, smoke 360s, engine-test 348s,
- * studio-test 234s, and every other gate under 160s. The default is 1200s: 2.7x the slowest gate it
+ * studio-test 234s, and every other gate under 160s. `plugin-test` has its own limit since #3183 (below, at the gate). The default is 1200s: 2.7x the slowest gate it
  * covers, and still a sixth of the hang that motivated it. `chrome` gets 5400s: 2.7x its worst run
  * inside verify, and 1.6x the 55 minutes one standalone `test:chrome` once took under load.
  *
@@ -347,6 +358,75 @@ export const rowOf = (r: Result, timedOut = false): string => {
   const mark = { PASS: '✓', FAIL: '✗', SKIP: '⊘', ADVISORY: '⚠' }[r.outcome];
   return `  ${mark} ${r.outcome.padEnd(8)} ${r.gate.id.padEnd(26)} ${(r.ms / 1000).toFixed(1)}s${timedOut ? '  timed out' : ''}`;
 };
+
+/** One shard's run, classified (#3216). */
+export type ShardRun = { id: string; outcome: GateOutcome; output: string; ms: number; timedOut: boolean };
+
+/**
+ * A sharded gate's one table row, from its shards' runs (#3216). Point 4 one level in: the row is a PASS only when
+ * every shard ran and passed. A FAIL in any shard is the row's FAIL; failing that, a shard that did not run (SKIP)
+ * makes the row a SKIP, never a pass; no shards at all is a FAIL, since a map with nothing in it runs nothing. Each
+ * shard's output is kept under a line naming it, so a failure reads as "shard 2", not as the suite.
+ */
+export const combineShards = (gate: Gate, runs: ShardRun[]): { outcome: GateOutcome; output: string } => {
+  const env = gate.shards?.env ?? 'SHARD';
+  if (!runs.length) return { outcome: 'FAIL', output: `${gate.id} has no shards to run — its shard map is empty, so nothing ran` };
+  const has = (o: GateOutcome) => runs.some((r) => r.outcome === o);
+  const outcome: GateOutcome = has('FAIL') ? 'FAIL' : has('SKIP') ? 'SKIP' : has('ADVISORY') ? 'ADVISORY' : 'PASS';
+  const output = runs.map((r) =>
+    `── shard ${r.id} (${env}=${r.id}): ${r.outcome}${r.timedOut ? ', timed out' : ''}, ${(r.ms / 1000).toFixed(1)}s ──\n${r.output || '(no output)'}`,
+  ).join('\n\n');
+  return { outcome, output };
+};
+
+/**
+ * The shard ids a CI job's matrix lists, read from `ci.yml`'s text (#3216): the `shard: [ ... ]` line inside the job
+ * named `job`. `null` when the job or its matrix line is not there, which `shardMapProblems` reports by name rather
+ * than reading as an empty matrix.
+ */
+export const ciShardMatrix = (ciText: string, job: string): string[] | null => {
+  const lines = ciText.split('\n');
+  const start = lines.findIndex((l) => l === `  ${job}:`);
+  if (start < 0) return null;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^  \S/.test(lines[i])) break; // the next job
+    const m = /^\s+shard:\s*\[([^\]]*)\]\s*$/.exec(lines[i]);
+    if (m) return m[1].split(',').map((x) => x.trim()).filter(Boolean);
+  }
+  return null;
+};
+
+/**
+ * THE SHARD MAP CHECK (#3216): a sharded gate in `GATES` runs exactly the shards CI's matrix runs, each once, and
+ * each one the map gives sections. Three readers, and the one that keeps it a comparison is CI's matrix, written by
+ * hand in `ci.yml` and read as text here (`docs/34`): `ids` comes from the map's keys, so it cannot disagree with
+ * the map unless someone edits the gate, which is the mutation this exists for, while the matrix disagrees with
+ * both the moment the map gains or loses a shard. Fails by name: a shard dropped, a shard run twice, a shard CI
+ * does not run, a shard the map does not have. Driven by `lint-doc-gates.ts` in CI and before every local run.
+ */
+export const shardMapProblems = (gates: Gate[], ciText: string, maps: Record<string, Record<string, unknown>>): string[] => {
+  const problems: string[] = [];
+  const sharded = gates.filter((g) => g.shards);
+  if (!sharded.length) problems.push('no gate in GATES is sharded — the chrome suite runs whole, so a local run no longer matches CI\'s shards');
+  for (const g of sharded) {
+    const ids = g.shards!.ids;
+    const map = maps[g.id];
+    if (!map) { problems.push(`\`${g.id}\` is sharded, and no shard map is known for it`); continue; }
+    const job = g.id;
+    const matrix = ciShardMatrix(ciText, job);
+    if (!matrix) { problems.push(`\`${g.id}\` is sharded, and ci.yml's \`${job}\` job has no \`shard: [...]\` matrix line to hold it to`); continue; }
+    const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
+    for (const id of new Set(dupes)) problems.push(`\`${g.id}\` runs shard ${id} more than once — its sections would run twice and write one record`);
+    for (const id of matrix) if (!ids.includes(id)) problems.push(`\`${g.id}\` does not run shard ${id}, which ci.yml's \`${job}\` matrix runs — its sections would run nowhere locally`);
+    for (const id of new Set(ids)) if (!matrix.includes(id)) problems.push(`\`${g.id}\` runs shard ${id}, which ci.yml's \`${job}\` matrix does not run`);
+    for (const id of new Set(ids)) if (!Object.hasOwn(map, id)) problems.push(`\`${g.id}\` runs shard ${id}, which its shard map does not have`);
+    for (const id of Object.keys(map)) if (!ids.includes(id)) problems.push(`\`${g.id}\`'s shard map has shard ${id}, which \`${g.id}\` does not run`);
+  }
+  return problems;
+};
+
+/** The shard maps `shardMapProblems` holds each sharded gate to, by gate id. */
+export const SHARD_MAPS: Record<string, Record<string, unknown>> = { chrome: CHROME_SHARDS };
 
 /**
  * `regen.ts --check` compares the generated output against WHAT IS ON DISK. That is a statement about
@@ -691,6 +771,11 @@ export const GATES: Gate[] = [
     id: 'plugin-test',
     ciStep: 'Plugin shim tests',
     cmd: ws('@prism3/plugin', 'test'),
+    // #3183: its healthy runs span 440s (the shared machine, point 5) to 708s (a cloud container, #3216), 810s (one
+    // author's machine) and 1211-1292s run alone on two review machines, so the default 1200s timed a healthy run
+    // out. 3500s is 2.7x the slowest healthy run, the same margin point 5 gives the default and `chrome`. Raised
+    // rather than split: splitting needs new CI steps, and the suite's own CI step is unchanged either way.
+    timeoutS: 3500,
   },
   {
     id: 'build-plugin',
@@ -762,13 +847,21 @@ export const GATES: Gate[] = [
     after: ['build-web', 'build-plugin'],
     why: 'it drives the built dist/main.js and dist/ui.html in a browser',
     precondition: chromiumPrecondition,
-    // Measured: 1965s at worst inside verify, and one standalone run took 55 minutes under load (point 5).
+    // Measured: 1965s at worst inside verify, and one standalone run took 55 minutes under load (point 5). Each shard
+    // gets the whole suite's limit: a shard is a third of the work, so the limit only grows more generous (#3216).
     timeoutS: 5400,
+    // #3216: CI's shards, side by side, each writing `chrome-record/shard-<n>.json` for `chrome-shards` to read.
+    // PARALLEL BY DEFAULT, from one measurement on one tree in a cloud container (4 CPUs, 15 GB, 2026-10-31): whole,
+    // 1755s; as three shards side by side, 709s for the row (shards 666s, 589s, 709s), every shard PASS, load average
+    // about 4.3 at its peak. The full list went from 3729s to 2705s wall. Three browsers at once can contend on a smaller
+    // machine; `--unsharded` is the one run, as before.
+    shards: { env: 'CHROME_SHARD', ids: Object.keys(CHROME_SHARDS), clean: 'apps/studio/chrome-record' },
   },
   {
     // #2898: CI runs the suite above in shards; this holds what they ran to the sections the unsharded suite lists,
-    // each exactly once, then runs the suite's end-of-run checks over every shard. Here it reads the whole run's
-    // record (`apps/studio/chrome-record/all.json`), which must name every section once and its own end-of-run checks.
+    // each exactly once, then runs the suite's end-of-run checks over every shard. Since #3216 a local run is sharded
+    // the same way, so it reads the same `shard-<n>.json` records CI's job collects; under `--unsharded` it reads the
+    // whole run's record (`all.json`), which must name every section once and its own end-of-run checks.
     id: 'chrome-shards',
     ciStep: 'Every chrome section ran in exactly one shard (#2898)',
     cmd: ws('@prism3/studio', 'test:chrome-shards'),
@@ -1323,6 +1416,37 @@ if (driftCoverage(new Map([['drift', { gate: GATES[0], outcome: 'FAIL', output: 
   selfFails.push('the artifact-coverage check softens a genuinely FAILED drift gate into a skip');
 }
 
+// #3216: a sharded gate's row, and the shard map check, each able to fail, against hand-made inputs.
+{
+  const g: Gate = { id: 'sharded', ciStep: 'S', cmd: ['true'], shards: { env: 'X_SHARD', ids: ['1', '2'] } };
+  const run = (id: string, outcome: GateOutcome): ShardRun => ({ id, outcome, output: `out ${id}`, ms: 1000, timedOut: false });
+  if (combineShards(g, [run('1', 'PASS'), run('2', 'PASS')]).outcome !== 'PASS') selfFails.push('combineShards fails a gate whose every shard passed (false failure)');
+  if (combineShards(g, [run('1', 'PASS'), run('2', 'FAIL')]).outcome !== 'FAIL') selfFails.push('combineShards passes a gate one of whose shards FAILED');
+  if (combineShards(g, [run('1', 'SKIP'), run('2', 'PASS')]).outcome !== 'SKIP') selfFails.push('combineShards reads a shard that did not run as a pass');
+  if (combineShards(g, [run('1', 'SKIP'), run('2', 'FAIL')]).outcome !== 'FAIL') selfFails.push('combineShards softens a FAILED shard into a skip because another did not run');
+  if (combineShards(g, []).outcome !== 'FAIL') selfFails.push('combineShards passes a gate with no shards — an empty map runs nothing');
+  if (!combineShards(g, [run('1', 'PASS'), run('2', 'FAIL')]).output.includes('── shard 2 (X_SHARD=2): FAIL, 1.0s ──\nout 2')) {
+    selfFails.push('combineShards loses which shard printed what');
+  }
+  const ci = ['jobs:', '  sharded:', '    strategy:', '      matrix:', '        shard: [1, 2]', '    steps:', '  other:', '    strategy:', '      matrix:', '        shard: [9]'].join('\n');
+  const maps = { sharded: { 1: [], 2: [] } };
+  const probs = (ids: string[], text = ci, m: Record<string, Record<string, unknown>> = maps) => shardMapProblems([{ ...g, shards: { env: 'X_SHARD', ids } }], text, m);
+  if (JSON.stringify(ciShardMatrix(ci, 'sharded')) !== '["1","2"]' || JSON.stringify(ciShardMatrix(ci, 'other')) !== '["9"]') selfFails.push('ciShardMatrix misreads a job\'s `shard: [...]` line');
+  if (probs(['1', '2']).length) selfFails.push(`shardMapProblems flags a sharded gate that matches CI's matrix and its map (false positive): ${probs(['1', '2']).join('; ')}`);
+  if (!probs(['1']).some((p) => p.includes('does not run shard 2, which ci.yml'))) selfFails.push('shardMapProblems misses a shard dropped from the gate');
+  if (!probs(['1', '2', '2']).some((p) => p.includes('runs shard 2 more than once'))) selfFails.push('shardMapProblems misses a shard run twice');
+  if (!probs(['1', '2', '3'], ci, { sharded: { 1: [], 2: [], 3: [] } }).some((p) => p.includes('runs shard 3, which ci.yml'))) selfFails.push('shardMapProblems misses a shard CI\'s matrix does not run');
+  if (!probs(['1', '2'], ci, { sharded: { 1: [] } }).some((p) => p.includes('runs shard 2, which its shard map does not have'))) selfFails.push('shardMapProblems misses a shard the map does not have');
+  if (!probs(['1', '2'], ci.replace('shard: [1, 2]', 'os: [linux]')).some((p) => p.includes('has no `shard: [...]` matrix line'))) selfFails.push('shardMapProblems reads a missing CI matrix as agreement');
+  if (!shardMapProblems([], ci, maps).some((p) => p.includes('no gate in GATES is sharded'))) selfFails.push('shardMapProblems accepts a GATES with no sharded gate');
+}
+
+// #3183: plugin-test's limit clears its slowest healthy run on record, 1292s (a literal here, not read from the gate).
+{
+  const pt = GATES.find((g) => g.id === 'plugin-test');
+  if (!pt || timeoutMsOf(pt, 1) <= 1292 * 1000) selfFails.push('plugin-test\'s time limit is at or under 1292s, its slowest healthy run on record (#3183): a healthy run would time out');
+}
+
 // Point 4, as an assertion about the summary rather than a promise in prose: a run containing a SKIP
 // must not be reported as a pass, and must not exit 0.
 const withSkip: Result[] = [
@@ -1520,6 +1644,8 @@ const isMain = (() => {
 if (isMain) {
   const argv = process.argv.slice(2);
   const verbose = argv.includes('--verbose');
+  // #3216: a sharded gate (the chrome suite) runs its shards side by side unless this asks for the one whole run.
+  const unsharded = argv.includes('--unsharded');
   const only = argv.filter((a) => !a.startsWith('-'));
 
   let scale: number;
@@ -1541,6 +1667,14 @@ if (isMain) {
     process.exit(1);
   }
 
+  // #3216: the sharded gates run CI's shards, each once. Checked before anything runs, as the order is.
+  const shardProblems = shardMapProblems(GATES, readFileSync(resolve(repoRoot, '.github/workflows/ci.yml'), 'utf8'), SHARD_MAPS);
+  if (shardProblems.length) {
+    console.error('\n❌ a sharded gate does not run the shards CI runs — refusing to run:\n');
+    for (const p of shardProblems) console.error(`    ${p}`);
+    process.exit(1);
+  }
+
   // Before the first gate, and only for a real run of this file (#2547, #2550): see `keepAwake`.
   const awake = keepAwake();
   if (awake) console.log('  (macOS: caffeinate holds the display and the system awake until this run exits)');
@@ -1549,7 +1683,8 @@ if (isMain) {
     console.log(`${GATES.length} gates, in run order:\n`);
     for (const g of GATES) {
       const cmd = g.cmd ? g.cmd.join(' ') : '(derived from an earlier gate)';
-      console.log(`  ${g.id.padEnd(26)} ${cmd}`);
+      const sharded = g.shards && !unsharded ? `   (shards ${g.shards.ids.join(', ')} side by side, ${g.shards.env}=<n>)` : '';
+      console.log(`  ${g.id.padEnd(26)} ${cmd}${sharded}`);
     }
     process.exit(0);
   }
@@ -1577,6 +1712,7 @@ if (isMain) {
 
   const results: Result[] = [];
   const byId = new Map<string, Result>();
+  const shardRows = new Map<string, ShardRun[]>();
   const started = Date.now();
 
   // The in-progress line is a TTY affordance: a gate can run for a minute with nothing to show, and a
@@ -1588,10 +1724,11 @@ if (isMain) {
 
   // A gate runs in a process group of its own (point 5), so Ctrl-C at the terminal no longer reaches
   // it. Pass it on: stop the running gate's tree, then exit as interrupted.
-  let running: number | undefined;
+  // A sharded gate has one running tree per shard (#3216), so this is a set.
+  const running = new Set<number>();
   for (const sig of ['SIGINT', 'SIGTERM'] as const) {
     process.on(sig, async () => {
-      if (running !== undefined) await killTree(running, 2000);
+      await Promise.all([...running].map((pid) => killTree(pid, 2000)));
       process.exit(130);
     });
   }
@@ -1608,14 +1745,34 @@ if (isMain) {
     } else if (gate.derive) {
       const d = gate.derive(byId);
       result = { gate, outcome: d.outcome === 'FAIL' && gate.advisory ? 'ADVISORY' : d.outcome, output: d.output, ms: Date.now() - t0 };
+    } else if (gate.shards && !unsharded) {
+      // #3216: every shard at once, each its own process tree under the gate's limit, each classified as a whole
+      // gate would be (points 1 and 5), then one row (`combineShards`). The record directory is emptied first.
+      const { env: shardEnv, ids, clean } = gate.shards;
+      if (clean) rmSync(resolve(repoRoot, clean), { recursive: true, force: true });
+      const runs = await Promise.all(ids.map(async (id): Promise<ShardRun> => {
+        let pid: number | undefined;
+        const r = await runGateCommand(gate.cmd!, {
+          cwd: repoRoot, env: { ...process.env, FORCE_COLOR: '0', CI: '1', [shardEnv]: id }, timeoutMs: timeoutMsOf(gate, scale),
+          onSpawn: (p) => { pid = p; running.add(p); },
+        });
+        if (pid !== undefined) running.delete(pid);
+        const c = classifyRun(r, gate);
+        return { id, outcome: c.outcome, output: c.output, ms: r.ms, timedOut: r.timedOut };
+      }));
+      timedOut = runs.some((r) => r.timedOut);
+      const c = combineShards(gate, runs);
+      result = { gate, outcome: c.outcome, output: c.output, ms: Date.now() - t0 };
+      shardRows.set(gate.id, runs);
     } else {
       // POINT 1: status and output in ONE object from ONE call, with no shell and no pipeline between
       // them. POINT 5: under a time limit, and a gate past it is killed with everything it started.
+      let pid: number | undefined;
       const r = await runGateCommand(gate.cmd!, {
         cwd: repoRoot, env: { ...process.env, FORCE_COLOR: '0', CI: '1' }, timeoutMs: timeoutMsOf(gate, scale),
-        onSpawn: (pid) => { running = pid; },
+        onSpawn: (p) => { pid = p; running.add(p); },
       });
-      running = undefined;
+      if (pid !== undefined) running.delete(pid);
       timedOut = r.timedOut;
       const c = classifyRun(r, gate);
       result = { gate, outcome: c.outcome, output: c.output, ms: Date.now() - t0 };
@@ -1625,6 +1782,10 @@ if (isMain) {
     byId.set(gate.id, result);
     progress(`${' '.repeat(40)}\r`);
     console.log(rowOf(result, timedOut));
+    // Under a sharded gate's row, one line per shard, so the table says which shard was slow or red.
+    for (const r of shardRows.get(gate.id) ?? []) {
+      console.log(`      ${`shard ${r.id}`.padEnd(10)} ${r.outcome.padEnd(8)} ${(r.ms / 1000).toFixed(1)}s${r.timedOut ? '  timed out' : ''}`);
+    }
   }
 
   // POINT 2: the buffered output, printed only where it is wanted.
@@ -1632,7 +1793,7 @@ if (isMain) {
     if (verbose || r.outcome === 'FAIL' || r.outcome === 'ADVISORY' || r.outcome === 'SKIP') {
       const head = r.outcome === 'SKIP' ? `⊘ SKIPPED — ${r.gate.id}` : `${r.outcome === 'PASS' ? '✓' : r.outcome === 'ADVISORY' ? '⚠ ADVISORY' : '✗ FAILED'} — ${r.gate.id}`;
       console.log(`\n${'─'.repeat(96)}\n${head}`);
-      if (r.gate.cmd) console.log(`  $ ${r.gate.cmd.join(' ')}`);
+      if (r.gate.cmd) console.log(`  $ ${r.gate.shards && !unsharded ? `${r.gate.shards.env}=<${r.gate.shards.ids.join('|')}> ` : ''}${r.gate.cmd.join(' ')}`);
       console.log(r.output || '(no output)');
     }
   }
