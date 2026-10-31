@@ -437,6 +437,17 @@
               "where": {}
             }
           }
+        },
+        "wallet-button": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 68,
+              "where": {}
+            }
+          }
         }
       }
     },
@@ -17607,7 +17618,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 10,
+              "members": 34,
               "where": {
                 "state": [
                   "focus-visible"
@@ -18222,7 +18233,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 10,
+              "members": 34,
               "where": {
                 "state": [
                   "focus-visible"
@@ -18390,7 +18401,7 @@
         },
         "wallet-button": {
           "keys": [
-            "size.large.mark"
+            "size.large.any.mark"
           ],
           "parts": {
             "mark": {
@@ -18403,6 +18414,9 @@
                 ],
                 "size": [
                   "large"
+                ],
+                "style": [
+                  "any"
                 ]
               }
             }
@@ -19157,7 +19171,7 @@
         },
         "wallet-button": {
           "keys": [
-            "size.medium.mark"
+            "size.medium.any.mark"
           ],
           "parts": {
             "mark": {
@@ -19165,6 +19179,9 @@
               "where": {
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "any"
                 ]
               }
             }
@@ -19915,19 +19932,21 @@
         },
         "wallet-button": {
           "keys": [
-            "size.small.mark"
+            "size.small.any.mark"
           ],
           "parts": {
             "mark": {
-              "members": 6,
+              "members": 4,
               "where": {
                 "provider": [
                   "apple-pay",
-                  "google-pay",
                   "paypal"
                 ],
                 "size": [
                   "small"
+                ],
+                "style": [
+                  "any"
                 ]
               }
             }
@@ -20760,7 +20779,7 @@
           ],
           "parts": {
             "container": {
-              "members": 20,
+              "members": 68,
               "where": {}
             }
           }
@@ -21645,11 +21664,18 @@
         },
         "wallet-button": {
           "keys": [
-            "size.large.height"
+            "size.large.black.mark",
+            "size.large.blue.mark",
+            "size.large.gold.mark",
+            "size.large.height",
+            "size.large.purple.mark",
+            "size.large.silver.mark",
+            "size.large.white-outline.mark",
+            "size.large.white.mark"
           ],
           "parts": {
             "container": {
-              "members": 6,
+              "members": 18,
               "where": {
                 "provider": [
                   "apple-pay",
@@ -21658,6 +21684,32 @@
                 ],
                 "size": [
                   "large"
+                ],
+                "style": [
+                  "any",
+                  "black",
+                  "purple",
+                  "white",
+                  "white-outline"
+                ]
+              }
+            },
+            "mark": {
+              "members": 12,
+              "where": {
+                "provider": [
+                  "apple-pay",
+                  "google-pay",
+                  "shop-pay"
+                ],
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "black",
+                  "purple",
+                  "white",
+                  "white-outline"
                 ]
               }
             }
@@ -22007,14 +22059,38 @@
         },
         "wallet-button": {
           "keys": [
-            "size.medium.height"
+            "size.medium.black.mark",
+            "size.medium.blue.mark",
+            "size.medium.gold.mark",
+            "size.medium.height",
+            "size.medium.purple.mark",
+            "size.medium.silver.mark",
+            "size.medium.white-outline.mark",
+            "size.medium.white.mark"
           ],
           "parts": {
             "container": {
-              "members": 8,
+              "members": 30,
               "where": {
                 "size": [
                   "medium"
+                ]
+              }
+            },
+            "mark": {
+              "members": 22,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "black",
+                  "blue",
+                  "gold",
+                  "purple",
+                  "silver",
+                  "white",
+                  "white-outline"
                 ]
               }
             }
@@ -22438,19 +22514,54 @@
         },
         "wallet-button": {
           "keys": [
-            "size.small.height"
+            "size.small.black.mark",
+            "size.small.blue.mark",
+            "size.small.gold.mark",
+            "size.small.height",
+            "size.small.purple.mark",
+            "size.small.silver.mark",
+            "size.small.white-outline.mark",
+            "size.small.white.mark"
           ],
           "parts": {
             "container": {
-              "members": 6,
+              "members": 20,
               "where": {
                 "provider": [
                   "apple-pay",
-                  "google-pay",
                   "paypal"
                 ],
                 "size": [
                   "small"
+                ],
+                "style": [
+                  "any",
+                  "black",
+                  "blue",
+                  "gold",
+                  "silver",
+                  "white",
+                  "white-outline"
+                ]
+              }
+            },
+            "mark": {
+              "members": 16,
+              "where": {
+                "provider": [
+                  "apple-pay",
+                  "paypal"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "black",
+                  "blue",
+                  "gold",
+                  "silver",
+                  "white",
+                  "white-outline"
                 ]
               }
             }
@@ -31072,9 +31183,20 @@
       "drawnNotDeclared": []
     },
     "provider-logo": {
-      "members": 75,
+      "members": 86,
       "axes": {
         "name": [
+          "button/apple-pay-black",
+          "button/apple-pay-white",
+          "button/apple-pay-white-outline",
+          "button/google-pay-black",
+          "button/google-pay-white",
+          "button/paypal-black",
+          "button/paypal-blue",
+          "button/paypal-gold",
+          "button/paypal-silver",
+          "button/paypal-white",
+          "button/shop-pay-purple",
           "logo/affirm",
           "logo/amazon-pay",
           "logo/amex",
@@ -32016,7 +32138,7 @@
       "drawnNotDeclared": []
     },
     "wallet-button": {
-      "members": 20,
+      "members": 68,
       "axes": {
         "provider": [
           "apple-pay",
@@ -32032,9 +32154,20 @@
         "state": [
           "focus-visible",
           "rest"
+        ],
+        "style": [
+          "any",
+          "black",
+          "blue",
+          "gold",
+          "purple",
+          "silver",
+          "white",
+          "white-outline"
         ]
       },
       "tokens": [
+        "border-width.hairline",
         "focus.ring.offset",
         "focus.ring.width",
         "icon.size.lg",

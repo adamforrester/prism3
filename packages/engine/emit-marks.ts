@@ -78,7 +78,7 @@ for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES)) {
 }
 
 // Provenance as a build input: a file with no record does not build.
-type Record_ = { width?: number };
+type Record_ = { width?: number; ground?: string; edge?: { width: number; color: string } };
 let provenance: Record<string, Record_> = {};
 try { provenance = (JSON.parse(readFileSync(join(marksDir, 'provenance.json'), 'utf8')) as { marks: Record<string, Record_> }).marks ?? {}; }
 catch (err) { errors.push(`marks/provenance.json does not parse (${(err as Error).message}) — no record, no build`); }
@@ -130,6 +130,22 @@ const WHY_REFUSED: Record<string, string> = {
 type Mark = { name: string; source: string; width: number; height: number; doc: string; fills: string[] };
 const marks: Mark[] = [];
 const shapeErrors: string[] = [];
+
+// A `button/` mark's paint (#3174, Q3174.3 A): the ground and edge its provider's SDK paints under the logo, from its
+// record. Emitted for that kind alone, so it is the one literal paint a host can read off a mark; a `ground` or `edge`
+// on any other kind is refused here, and `lint-mark-provenance.ts` checks the values' shape independently.
+const BUTTON_KIND = 'button';
+const buttonPaint: Array<[string, { ground: string; edge?: { width: number; color: string } }]> = [];
+for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES).sort(([a], [b]) => a.localeCompare(b))) {
+  const r = provenance[`${source}.svg`] ?? {};
+  if (name.split('/')[0] !== BUTTON_KIND) {
+    if (r.ground !== undefined || r.edge !== undefined) shapeErrors.push(`${source}.svg: its record carries a ground or an edge, and only a ${BUTTON_KIND}/ mark has a button under it`);
+    continue;
+  }
+  if (typeof r.ground !== 'string' || !/^#[0-9a-f]{6}$/.test(r.ground)) { shapeErrors.push(`${source}.svg: a ${BUTTON_KIND}/ mark's record needs its 'ground' as a lowercase #rrggbb, and has '${String(r.ground)}'`); continue; }
+  if (r.edge !== undefined && !(typeof r.edge?.width === 'number' && r.edge.width > 0 && /^#[0-9a-f]{6}$/.test(String(r.edge?.color)))) { shapeErrors.push(`${source}.svg: its 'edge' is not { width > 0, color: lowercase #rrggbb }`); continue; }
+  buttonPaint.push([name, { ground: r.ground, ...(r.edge ? { edge: { width: r.edge.width, color: r.edge.color } } : {}) }]);
+}
 
 for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES).sort(([a], [b]) => a.localeCompare(b))) {
   const where = `${source}.svg`;
@@ -256,6 +272,12 @@ ${marks.map((m) => `  '${m.name}': ${JSON.stringify(m.doc)},`).join('\n')}
 /** Mark name → its artboard, \`[width, height]\`. */
 export const PROVIDER_LOGO_BOXES: Record<ProviderLogoName, readonly [number, number]> = {
 ${marks.map((m) => `  '${m.name}': [${m.width}, ${m.height}],`).join('\n')}
+};
+
+/** A \`button/\` mark → the ground and edge its provider's SDK paints under it, from its provenance record (#3174). The one
+ *  literal paint a host may read off a mark: WalletButton paints it on the button that carries the mark. */
+export const PROVIDER_LOGO_BUTTON_PAINT: Partial<Record<ProviderLogoName, { readonly ground: string; readonly edge?: { readonly width: number; readonly color: string } }>> = {
+${buttonPaint.map(([n, v]) => `  '${n}': ${JSON.stringify(v).replace(/"([a-z]+)":/g, '$1: ').replace(/"/g, "'").replace(/,/g, ', ')},`).join('\n')}
 };
 
 /** Every mark name, sorted — the one thing a projection should iterate. */

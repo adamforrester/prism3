@@ -22,7 +22,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis shape** — the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress
 - **axis size** — the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, x-small] in link, spinner; [large, medium, small, xlarge] in code-input, code-input-cell
 - **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
-- **axis style** — the style axis takes 4 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [inline, standalone] in link
+- **axis style** — the style axis takes 5 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [inline, standalone] in link
 - **axis tone** — the tone axis takes 3 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge; [danger, info, success, warning] in banner
 - **axis type** — the type axis takes 8 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [range, single] in slider
 - **axis weight** — the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link
@@ -296,6 +296,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | active, complete, error | progress |
 | style | outline | card-number-field, password-field, search-field, text-field, textarea |
 |  | border, underline | pagination, pagination-item |
+|  | any, black, blue, gold, purple, silver, white, white-outline | wallet-button |
 |  | black, blue, dark, light, neutral, outline, white | sign-in-button |
 |  | inline, standalone | link |
 | surface | default, inverse | button, button-destructive, button-neutral, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, focus-ring, icon-button, icon-button-destructive, icon-button-neutral, link |
@@ -603,7 +604,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | counter | — | — |
 |  | icon | — | 46 values |
 |  | password-field | — | — |
-|  | provider-logo | — | 75 values |
+|  | provider-logo | — | 86 values |
 |  | radio-group | — | — |
 |  | search-field | — | — |
 |  | segmented-control | — | — |
@@ -752,6 +753,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | pagination | border | border, underline |
 |  | pagination-item | border | border, underline |
 |  | sign-in-button | — | black, white, outline, light, dark, neutral, blue |
+|  | wallet-button | any | any, black, white, white-outline, gold, blue, silver, purple |
 | surface | button | default | default, inverse |
 |  | button-destructive | default | default, inverse |
 |  | button-neutral | default | default, inverse |

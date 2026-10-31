@@ -270,13 +270,24 @@
       "category": "foundations",
       "status": "draft",
       "summary": "A provider's own mark, in its own colors: sign-in, payment and social. Never retinted.",
-      "description": "A provider's mark, drawn as the provider supplies it: the glyph a sign-in button carries, a payment provider's tile or logo, a social network's mark in a footer link. The colors are the provider's and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, payment tiles 32 by 20, and logos 24 high at their own width. A payment tile's corners and its edge come from the theme, the same at every size.",
+      "description": "A provider's mark, drawn as the provider supplies it: the glyph a sign-in button carries, a payment provider's tile or logo, a social network's mark in a footer link. The colors are the provider's and never change with the theme. A one-color form is its own mark, drawn by the provider, and exists only where the provider publishes one. Square marks are 24 by 24, payment tiles 32 by 20, and logos 24 high at their own width. A wallet button's logo for one of its styles is 44 high, the button's height, with the logo where the provider places it on that button. A payment tile's corners and its edge come from the theme, the same at every size.",
       "props": [
         {
           "name": "name",
           "type": "enum: ProviderLogoName",
           "required": true,
           "values": [
+            "button/apple-pay-black",
+            "button/apple-pay-white",
+            "button/apple-pay-white-outline",
+            "button/google-pay-black",
+            "button/google-pay-white",
+            "button/paypal-black",
+            "button/paypal-blue",
+            "button/paypal-gold",
+            "button/paypal-silver",
+            "button/paypal-white",
+            "button/shop-pay-purple",
             "logo/affirm",
             "logo/amazon-pay",
             "logo/amex",
@@ -353,7 +364,7 @@
             "social/youtube",
             "social/youtube-mono"
           ],
-          "description": "Which mark, as kind and provider: payment/visa, logo/apple-pay, provider/google, social/instagram-mono. The list is generated from the mark set, so an unknown name fails at compile time, and a provider added to the set reaches the list the day it lands."
+          "description": "Which mark, as kind and provider: payment/visa, logo/apple-pay, button/paypal-gold, provider/google, social/instagram-mono. The list is generated from the mark set, so an unknown name fails at compile time, and a provider added to the set reaches the list the day it lands."
         },
         {
           "name": "size",
@@ -378,6 +389,17 @@
       "variants": {
         "name": {
           "values": [
+            "button/apple-pay-black",
+            "button/apple-pay-white",
+            "button/apple-pay-white-outline",
+            "button/google-pay-black",
+            "button/google-pay-white",
+            "button/paypal-black",
+            "button/paypal-blue",
+            "button/paypal-gold",
+            "button/paypal-silver",
+            "button/paypal-white",
+            "button/shop-pay-purple",
             "logo/affirm",
             "logo/amazon-pay",
             "logo/amex",
@@ -1502,7 +1524,7 @@
       "category": "form",
       "status": "draft",
       "summary": "Express checkout with Apple Pay, Google Pay, PayPal or Shop Pay, drawn by the provider.",
-      "description": "A payment button for a wallet: Apple Pay, Google Pay, PayPal or Shop Pay. The provider draws the button itself, so its logo, colors, wording and font are the provider's and never change with the theme. The component sets the height, the width, the corner radius where the provider allows one, and the focus ring. Each provider has a smallest and a largest height, so Shop Pay starts at the medium size and PayPal stops at medium. The design file shows each button's space and logo for layout; the button the customer sees comes from the provider.",
+      "description": "A payment button for a wallet: Apple Pay, Google Pay, PayPal or Shop Pay. The provider draws the button itself, so its logo, colors, wording and font are the provider's and never change with the theme. The component sets the height, the width, the corner radius where the provider allows one, and the focus ring. Each provider has a smallest and a largest height, so Google Pay and Shop Pay start at the medium size and PayPal stops at medium. The design file shows each provider's own button in each of its styles, and a stand-in with the provider's logo and no fill when the style is left open; the button the customer sees comes from the provider.",
       "props": [
         {
           "name": "provider",
@@ -1517,6 +1539,23 @@
           "description": "Which wallet. Each needs its provider's script on the page, which draws the button."
         },
         {
+          "name": "style",
+          "type": "enum: 'any' | 'black' | 'white' | 'white-outline' | 'gold' | 'blue' | 'silver' | 'purple'",
+          "default": "any",
+          "required": false,
+          "values": [
+            "any",
+            "black",
+            "white",
+            "white-outline",
+            "gold",
+            "blue",
+            "silver",
+            "purple"
+          ],
+          "description": "The provider's color style, from its own list, passed to the provider: Apple Pay black, white, white-outline; Google Pay black, white; PayPal gold, blue, silver, white, black; Shop Pay purple. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style the provider does not offer is refused."
+        },
+        {
           "name": "size",
           "type": "enum: 'small' | 'medium' | 'large'",
           "default": "medium",
@@ -1526,7 +1565,7 @@
             "medium",
             "large"
           ],
-          "description": "The height: 36, 44 or 56px. Shop Pay has no small size and PayPal no large one, because each provider sets a smallest and a largest height."
+          "description": "The height: 36, 44 or 56px. Google Pay and Shop Pay have no small size and PayPal no large one, because each provider sets a smallest and a largest height."
         },
         {
           "name": "type",
@@ -1534,12 +1573,6 @@
           "default": "plain",
           "required": false,
           "description": "The provider's wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain."
-        },
-        {
-          "name": "buttonStyle",
-          "type": "string",
-          "required": false,
-          "description": "The provider's color style, from its own list, passed to the provider: black or white for Apple Pay and Google Pay, gold, blue, silver, white or black for PayPal. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. Unset, the provider's default."
         }
       ],
       "states": [
@@ -1553,6 +1586,19 @@
             "google-pay",
             "paypal",
             "shop-pay"
+          ],
+          "kind": "authoring"
+        },
+        "style": {
+          "values": [
+            "any",
+            "black",
+            "white",
+            "white-outline",
+            "gold",
+            "blue",
+            "silver",
+            "purple"
           ],
           "kind": "authoring"
         },
@@ -7271,6 +7317,13 @@
           "description": "Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge."
         },
         {
+          "name": "divider",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Shows the divider under the section. Turn it off when the design separates sections another way, such as spacing, a card or a background, so the page does not draw two separators."
+        },
+        {
           "name": "size",
           "type": "enum: 'small' | 'medium' | 'large'",
           "default": "medium",
@@ -7343,7 +7396,8 @@
           "Make the whole header row the button, so the hit target is the full width",
           "Write titles that say what the section holds",
           "Let a long title wrap",
-          "Let every section be closed"
+          "Let every section be closed",
+          "Turn the divider off when the sections are already separated by spacing, a card or a background."
         ],
         "dont": [
           "Hide content most users need. Show it instead.",
