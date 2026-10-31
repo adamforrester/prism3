@@ -52,12 +52,22 @@ export const themePlans = (input: BrandInput) => {
 };
 export type ThemePlans = ReturnType<typeof themePlans>;
 
+/** #3170 Q3170.5 A: Apply Theme's seven write stages, in the order `runApplyTheme` writes them. The panel's status strip
+ *  counts them (n of 7) and names each (`apps/studio/src/state/status-strip.ts`). */
+export const APPLY_STAGES = ['float', 'color', 'styles', 'grid', 'type-vars', 'text-styles', 'motion'] as const;
+export type ApplyStage = (typeof APPLY_STAGES)[number];
+/** How an apply reports and hands the thread back (#3170, the plugin's alone: the paste harness passes none). `check`
+ *  before the first read; `stage` before each write stage, `done` of 7 finished, awaited so the thread is handed back
+ *  between stages; `tick` inside the color stage, every `COLOR_YIELD_EVERY` variables (`write-figma.ts`). */
+export type ThemePace = { check: () => void; stage: (stage: ApplyStage, done: number) => Promise<void>; tick: () => Promise<void> };
+
 /**
  * Preload fonts, pre-flight, then the guarded write — exactly `main.ts`'s sequence before #111 moved it.
  * Returns the plans alongside so the caller's report reads the same objects that were written. `beforeWrite` runs once
  * between the two, which is where the plugin saves its named version.
  */
-export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWrite?: () => Promise<void>) => {
+export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWrite?: () => Promise<void>, pace?: ThemePace) => {
+  pace?.check();
   const plans = themePlans(input);
   const { textPlan, colorPlan, floatPlan, fontPlan, motionPlan, stylesPlan, gridPlan } = plans;
   // FONTS FIRST (#680), before ANY variable write. Writing a `font/family/*` variable makes Figma
@@ -97,27 +107,34 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // the tinted wash moved into its variable (#1614, #1646): a wash's color value aliases an `opacity/<n>`
       // variable, so the opacity collection must exist before the color pass binds it. Nothing in the FLOAT
       // axes reads a color variable, so nothing depends on the old order.
+      await pace?.stage('float', 0);
       const f = await applyFloatPlan(floatPlan, host.variables, mig);
       // Colour axis (#108): the `core` palette slice + the one `color` collection, per-mode alias-bound.
       // The pointer-tier executor that used to run next went with the tier (#1148) — there is no second
       // collection to alias into, so the cross-call ordering dependency it existed for is gone too.
-      const r = await applyWritePlan(colorPlan, host.variables, mig);
+      await pace?.stage('color', 1);
+      const r = await applyWritePlan(colorPlan, host.variables, mig, pace?.tick);
       // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
       // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
+      await pace?.stage('styles', 2);
       const s = await applyStylesPlan(stylesPlan, host);
       // GRID STYLES (#1480): one reusable Figma Grid Style per breakpoint (`sm`, …; renamed in place from `Grid / sm`, #2467), sourced from
       // the same layout data as the numeric `layout` collection. STATIC — a grid style cannot mode-switch
       // off a variable — so N breakpoints = N styles, coexisting with the variables (the responsive source
       // of truth). The global `figma` structurally satisfies the GridStylesApi port (createGridStyle +
       // getLocalGridStylesAsync). No binding, so nothing here can miss.
+      await pace?.stage('grid', 3);
       const gs = await applyGridStylePlan(gridPlan, host);
       // TYPOGRAPHY (#237): core/font + type-sets variables first (bound targets must exist), then Text
       // Styles.
+      await pace?.stage('type-vars', 4);
       const tv = await applyVarCollectionPlan(fontPlan, host.variables, mig);
       // The Text Style port needs figma's style/font surface + figma.variables' getter (`theme-ports.ts`).
+      await pace?.stage('text-styles', 5);
       const ts = await applyTextStylePlan(textPlan, textApiOf(host));
       // MOTION (#2412): TIMING durations + EASING curves, roles and springs, through the same mixed-type
       // executor. Independent of every other axis: nothing aliases into or out of `motion`.
+      await pace?.stage('motion', 6);
       const mv = await applyVarCollectionPlan(motionPlan, host.variables, mig);
       // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
       // the UI to THIS brand, not the default. Only after a real materialisation (inside the try).

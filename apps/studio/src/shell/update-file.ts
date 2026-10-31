@@ -73,6 +73,10 @@ export type UpdateFileLend = {
     /** #3129 Q833 A: the file's add queue, as the host last read it or the panel last wrote it; null before the host has
      *  said. */
     readonly queue: readonly string[] | null;
+    /** #3170 Q3170.2 A: a due set's state in the run out (`rowState`): Updating, Updated, or null while not reached. */
+    readonly rowState: (id: string) => 'updating' | 'updated' | null;
+    /** #3170 Q3170.4 A: the run's Stop, "Stop after <set>", as the status strip words it; null with no run. */
+    readonly stopLabel: () => string | null;
   };
   /** #3129: queue `ids` in the file (`on`), or take them out (`add-queue`). */
   readonly queueSets: (ids: readonly string[], on: boolean) => void;
@@ -176,9 +180,24 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (run) {
       const step = stepOf(run);
       const line = hook(h('p', 'p3-upd-line', step ? UPDATE_COPY.running(STEP_TITLE[step], run.results.length + 1, run.steps.length) : ''), 'update-running');
-      const stop = btn('p3-btn p3-btn-page', 'update-stop', 'stop', UPDATE_COPY.stop, () => lend.stop());
+      const body: HTMLElement[] = [line];
+      // #3170 Q3170.2 A: the sets the run updates in place, each Due until the update reaches it, then Updating, then Updated.
+      if (run.update?.defs.length) {
+        const list = hook(h('div', 'p3-upd-sets'), 'update-run-sets');
+        for (const id of run.update.defs) {
+          const row = hook(h('div', 'p3-upd-addrow'), 'update-run-row');
+          row.dataset.id = id;
+          const st = r.rowState(id);
+          const tag = hook(h('span', 'p3-sg-tag', st ? UPDATE_COPY.runState[st] : UPDATE_COPY.status.due), 'update-run-state');
+          tag.dataset.state = st ?? 'due';
+          row.append(h('span', 'p3-upd-setname', displayNameOf(r.catalog, id)), tag);
+          list.append(row);
+        }
+        body.push(list);
+      }
+      const stop = btn('p3-btn p3-btn-page', 'update-stop', 'stop', r.stopLabel() ?? UPDATE_COPY.stop, () => lend.stop());
       if (run.stopping) stop.disabled = true;
-      return { body: [line], foot: [btn('p3-btn p3-btn-page', 'update-close', 'close', UPDATE_COPY.close, close), stop] };
+      return { body, foot: [btn('p3-btn p3-btn-page', 'update-close', 'close', UPDATE_COPY.close, close), stop] };
     }
     const f = r.fileSets;
     if (awaitingRead(f, asked)) return { body: [hook(h('p', 'p3-upd-line', UPDATE_COPY.checking), 'update-checking')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
@@ -379,7 +398,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       box.append(h('p', 'p3-upd-summary', UPDATE_COPY.cleanRetired(r.retired.length)), ul);
       body.push(box);
       const rm = btn('p3-btn p3-btn-primary', 'clean-tables-confirm', 'tables', UPDATE_COPY.removeTables(r.retired.length), () => lend.cleanUp(r.retired.map((t) => t.id)));
-      rm.disabled = r.cleanupBusy;
+      rm.disabled = r.cleanupBusy || !!r.off;
+      if (r.off) rm.title = r.off;
       foot.push(rm);
     }
     return { body, foot };
@@ -458,7 +478,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (focused) (layer.querySelector<HTMLElement>(`[data-key="${CSS.escape(focused)}"]`) ?? dlg).focus({ preventScroll: true });
     else if (!dlg.contains(document.activeElement)) (focusables(dlg)[0] ?? dlg).focus({ preventScroll: true });
   };
-  for (const t of ['host', 'host:update', 'host:components', 'host:filesetup', 'host:styleguide', 'host:sgpage'] as const) cleanups.push(subscribe(t, paint));
+  for (const t of ['host', 'host:update', 'host:components', 'host:filesetup', 'host:styleguide', 'host:sgpage', 'host:run'] as const) cleanups.push(subscribe(t, paint));
   cleanups.push(() => layer.replaceChildren());
   paint();
   return { button, layer };

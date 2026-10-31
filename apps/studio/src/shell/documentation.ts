@@ -27,6 +27,8 @@ import { mountStyleGuides, type StyleGuidesLend } from './style-guides';
 export type DocumentationLend = {
   /** The file's settings as the host last said them; `null` until it has. */
   readonly read: () => DocSettingsView | null;
+  /** #3170 Q3170.3 A: why a save to the file is off now (Update file's run is out, or the brand did not restore), or null. */
+  readonly off: () => string | null;
   /** Keep the whole record in the file. */
   readonly save: (next: { readonly panels: boolean; readonly cover: boolean; readonly styleGuide: unknown }) => void;
   /** The style-guides page's reads and writes (`shell/style-guides.ts`), without its `settings`, which this adds. */
@@ -133,7 +135,10 @@ export const mountDocumentation = (root: HTMLElement, lend: DocumentationLend, n
     const paint = (): void => {
       const d = lend.read();
       sw.set(on());
-      sw.el.disabled = d === null;
+      // Q3170.3 A: a save writes to the file, so it waits while a run is out, and says why on hover.
+      const why = lend.off();
+      sw.el.disabled = d === null || why !== null;
+      if (why) sw.el.title = why; else sw.el.removeAttribute('title');
       off.hidden = on();
       err.textContent = d?.error ? DOCS_COPY.saveError : '';
       err.hidden = !d?.error;
@@ -150,12 +155,12 @@ export const mountDocumentation = (root: HTMLElement, lend: DocumentationLend, n
     }
     if (id === 'panels') {
       const paint = switchCard('panels', DOCS_COPY.panels, DOCS_COPY.panelsDesc, DOCS_COPY.panelsOff, () => known().panels, (v) => saveWith({ panels: v }));
-      tabCleanups.push(subscribe('host:docs', paint));
+      tabCleanups.push(subscribe('host:docs', paint), subscribe('host:run', paint));
       return;
     }
     if (id === 'cover') {
       const paint = switchCard('cover', DOCS_COPY.cover, DOCS_COPY.coverDesc, DOCS_COPY.coverOff, () => known().cover, (v) => saveWith({ cover: v }));
-      tabCleanups.push(subscribe('host:docs', paint));
+      tabCleanups.push(subscribe('host:docs', paint), subscribe('host:run', paint));
       return;
     }
     // Specs (Q2830.3 A): Draw specs for the current page, and its result line under it.
@@ -174,6 +179,7 @@ export const mountDocumentation = (root: HTMLElement, lend: DocumentationLend, n
       setBusy(draw, pending);
       // Another write out, or no brand: unavailable, and named so; drawing, it says so in its own label.
       if (!pending && (busy || off)) draw.setAttribute('aria-disabled', 'true');
+      else draw.removeAttribute('aria-disabled');
       draw.title = off ?? '';
       const v = state && state !== 'pending' ? state : null;
       result.textContent = v ? `${v.headline}. ${v.summary}` : '';

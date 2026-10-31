@@ -409,6 +409,9 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       // would otherwise bring back the fraction the verdict just cleared.
       if (s.componentState !== 'pending') return s;
       return { ...s, componentProgress: { phase: m.phase, done: m.done, total: m.total } };
+    case 'run-progress':
+      // #3170: the status strip's reading. It belongs to the panel's run, which `main.ts` holds, so it moves no host slot.
+      return s;
     case 'style-guide-progress':
       // #1778. The `component-progress` rule: accepted only while the panel's own run is in flight, so a reading
       // still queued behind the verdict cannot bring a finished run's count back.
@@ -502,6 +505,8 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'style-guide-result': return ['host', 'host:detail', 'host:styleguide'];
     case 'component-progress': return next === prev ? [] : ['host:progress'];
     case 'style-guide-progress': return next === prev ? [] : ['host:progress'];
+    // #3170: `main.ts` takes it to the status strip, which repaints on its own topic.
+    case 'run-progress': return [];
     case 'style-guide-catalog': return ['host:sgpage'];
     case 'style-guide-cleanup-result': return ['host:sgpage'];
     case 'style-guide-tables': return next === prev ? [] : ['host:sgpage'];
