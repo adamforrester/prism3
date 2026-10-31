@@ -328,7 +328,7 @@ const checkedSet = (x: unknown): CheckedSetView[] => {
   const [members, update, add, drop, handEdited, noBaseline] = n as number[];
   return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(str(c.breaks) ? { breaks: c.breaks } : {}) }];
 };
-const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient'];
+const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient', 'grid'];
 /** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and
  *  an item whose table index points at no table reads as one no phase draws (-1), so the page never offers a table
  *  the host did not name. `null` when the shape is not a catalog at all. */
@@ -352,7 +352,8 @@ const catalogOf = (c: unknown): StyleGuideCatalog | null => {
     });
     const modes = Array.isArray(x.modes) ? (x.modes as unknown[]).filter(str) : [];
     return [{ id: x.id, name: x.name, modes, ...(x.textStyles === true ? { textStyles: true as const } : {}),
-      ...(x.effectStyles === true ? { effectStyles: true as const } : {}), ...(x.gradientStyles === true ? { gradientStyles: true as const } : {}), items }];
+      ...(x.effectStyles === true ? { effectStyles: true as const } : {}), ...(x.gradientStyles === true ? { gradientStyles: true as const } : {}),
+      ...(x.gridStyles === true ? { gridStyles: true as const } : {}), items }];
   });
   const notes = Array.isArray(o.notes) ? (o.notes as unknown[]).filter(str) : [];
   return { setUp: o.setUp === true, collections, tables, notes };

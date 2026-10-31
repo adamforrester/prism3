@@ -76,8 +76,8 @@ const DOCS_INTRO = 'Update file draws a table for each group of tokens in this f
 const DOCS_NOT_SET_UP = 'This file isn’t set up yet. The first Update file sets it up, then draws these tables.';
 /** A catalog the host could not read (owner decision SG4). */
 const READ_ERROR = "Couldn't read this file's variables. Close the page and open it again.";
-const KIND_LABEL: Record<StyleGuideKind, string> = { color: 'Color', dimension: 'Spacing and size', font: 'Font variables', text: 'Text styles', effect: 'Effect styles', gradient: 'Gradient styles' };
-const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient'];
+const KIND_LABEL: Record<StyleGuideKind, string> = { color: 'Color', dimension: 'Spacing and size', font: 'Font variables', text: 'Text styles', effect: 'Effect styles', gradient: 'Gradient styles', grid: 'Grid styles' };
+const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient', 'grid'];
 const STATUS: Record<SgRunTable['status'] | 'stopped', string> = { waiting: 'Waiting', drawing: 'Drawing', done: 'Done', failed: 'Not drawn', stopped: 'Not drawn' };
 
 /** The page's own state, kept for the session (not persisted): the selection survives leaving and coming back. */
@@ -479,7 +479,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
   const runbar = (cat: StyleGuideCatalog | null, setUp: boolean): HTMLElement => {
     const r = lend.read();
     const bar = hook(h('div', 'p3-sg-runbar'), 'sg-runbar');
-    const c = cat ? countsOf(cat, S.sel) : { tables: 0, variables: 0, textStyles: 0, effectStyles: 0, gradientStyles: 0 };
+    const c = cat ? countsOf(cat, S.sel) : { tables: 0, variables: 0, textStyles: 0, effectStyles: 0, gradientStyles: 0, gridStyles: 0 };
     const verdict = r.state && r.state !== 'pending' && r.run ? r.state : null;
     if (verdict) {
       const pill = hook(h('button', verdict.ok ? 'p3-pill' : 'p3-pill p3-pill-bad'), 'sg-verdict');

@@ -241,9 +241,9 @@ export interface StyleGuideOptions {
 }
 
 /** The kinds of table the Build style guides page groups by (owner decision H8): color; spacing and size (every
- *  `dimension` table, radius included); the five font-variable kinds; the text styles; and (#2353 batch 2a) the effect
- *  styles and the gradient paint styles. */
-export type StyleGuideKind = 'color' | 'dimension' | 'font' | 'text' | 'effect' | 'gradient';
+ *  `dimension` table, radius included); the five font-variable kinds; the text styles; (#2353 batch 2a) the effect
+ *  styles and the gradient paint styles; and (#3171) the grid styles. */
+export type StyleGuideKind = 'color' | 'dimension' | 'font' | 'text' | 'effect' | 'gradient' | 'grid';
 /** One table a run with no filter would draw, in the order it draws them. */
 export interface StyleGuideCatalogTable {
   /** The table's key (`<type>|<collection id>|<group path>`): what the `tables` option matches besides the title. */
@@ -275,6 +275,8 @@ export interface StyleGuideCatalogCollection {
   textStyles?: true;
   effectStyles?: true;
   gradientStyles?: true;
+  /** #3171: the file's grid styles, as one more entry. */
+  gridStyles?: true;
 }
 /** What the Build style guides page shows before a run (S11.2). */
 export interface StyleGuideCatalog {

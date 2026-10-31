@@ -21,7 +21,12 @@
  * WHERE IT LANDS: right of everything on the destination page, `SET_GAP` past it, level with the page's top set, so it
  * overlaps nothing. The Update's re-spacing (#2542) then tidies the row where every set on the page is one it reads.
  */
-import { FORMER_PAGES, NEST_PREFIX, leafForDef, leafPageName, TAXONOMY, type Taxonomy } from './file-taxonomy';
+import { FORMER_PAGES, NEST_PREFIX, leafForDef, leafPageName, movesClause, TAXONOMY, type Taxonomy } from './file-taxonomy';
+import type { TableMove } from './style-guide';
+
+/** THE STYLE-GUIDE TABLES ON A FORMER PAGE (#3171): the same page-move path for a table, which lives with the style guide's
+ *  own plugin data (`style-guide.ts`), since the style-guide run calls it too (owner decision Q3171.7 A). */
+export { tableMovesDue, relocateTables, type TableMove } from './style-guide';
 import { resolveComponentPage, type PagesApi, type PageLike } from './file-setup';
 import { ownerSet, prism3Set, type PNode } from './doc-panel';
 import { SET_GAP, STAMP_KEY } from './write-components';
@@ -118,9 +123,12 @@ export const relocateSets = async (api: PagesApi, t: Taxonomy = TAXONOMY): Promi
   return { moved, emptied: [...left].filter((p) => !(p.children ?? []).length).map((p) => p.name) };
 };
 
-/** Owner-approved wording (#2989, Q3 A, 2026-10-24): the moves, as the dry run lists them and as the apply reports them done. */
-export const pageMovesLine = (moves: readonly PageMove[] | undefined, done: boolean): string =>
-  moves?.length ? `${done ? 'Moved' : 'To move'} to ${moves.length === 1 ? 'its page' : 'their pages'}: ${moves.map((m) => `${m.set} (${m.from.slice(NEST_PREFIX.length)} to ${m.to.slice(NEST_PREFIX.length)})`).join(', ')}.` : '';
+/** Owner-approved wording (#2989, Q3 A, 2026-10-24): the moves, as the dry run lists them and as the apply reports them done.
+ *  A style-guide table Update file moves (#3171, `relocateTables`) is listed on the same line, by its frame's name. */
+export const pageMovesLine = (moves: readonly (PageMove | TableMove)[] | undefined, done: boolean): string => {
+  const clause = movesClause(moves?.map((m) => ({ name: 'set' in m ? m.set : m.table, from: m.from, to: m.to })), done);
+  return clause ? `${clause}.` : '';
+};
 
 /** Owner-approved wording (#2989, Q3 A, 2026-10-24): a page the move left empty. The plugin never deletes a page. */
 export const emptiedLine = (pages: readonly string[] | undefined): string =>

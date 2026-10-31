@@ -5,7 +5,8 @@
  * *containing* dist/ — index.html loads `/dist/main.js` by absolute path. Publishing web/
  * itself would expose DESIGN-REVIEW.md at the site root (the sourcemap ships source deliberately),
  * so this assembles a clean apps/studio/public/ holding only the three files the site actually needs,
- * plus the repo's `docs/public/` at `public/docs/`, served at `/docs` (#2637).
+ * plus the repo's `docs/public/` at `public/docs/`, served at `/docs` (#2637), and a page drawn from each guide's
+ * markdown at `public/docs/guides/<name>.html` (#3176).
  *
  * index.html is copied VERBATIM: its absolute `/dist/main.js` resolves identically under
  * esbuild's `--servedir=.` locally and under Vercel's output root. One file, two hosts, no
@@ -16,8 +17,8 @@
  */
 import { build } from 'esbuild';
 import { chromeCss } from './chrome/esbuild-plugin.mjs';
-import { DOCS_DIR, REQUIRED_DOCS, docsFiles } from './docs-route.mjs';
-import { cp, mkdir, readdir, rm } from 'node:fs/promises';
+import { DOCS_DIR, REQUIRED_DOCS, docsFiles, guidePages } from './docs-route.mjs';
+import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -64,7 +65,11 @@ if (missingDocs.length) {
   console.error(`site build FAILED — docs/public/ is missing ${missingDocs.join(', ')}, which /docs promises.`);
   process.exit(1);
 }
-await cp(DOCS_DIR, resolve(pub, 'docs'), { recursive: true });
+await cp(DOCS_DIR, resolve(pub, 'docs'), { recursive: true, filter: (src) => !src.split(/[\\/]/).pop().startsWith('_') });
+// The guide pages (#3176, Q3176.3 A): drawn from each `guides/<name>.md` by the same function the dev server answers
+// with, so `/docs/guides/<name>.html` is the same bytes on both. Not committed: the `.md` stays canonical.
+const GUIDES = guidePages();
+for (const g of GUIDES) await writeFile(resolve(pub, 'docs', g.path), g.html);
 
 // Enforce the manifest rather than assume it. index.html is copied verbatim and references
 // only /dist/main.js, so an emitted-but-unreferenced asset would deploy a broken site on a green
@@ -73,7 +78,7 @@ await cp(DOCS_DIR, resolve(pub, 'docs'), { recursive: true });
 // this check is what stands between a dropped `loader` above and a deployed page with no styles at
 // all. `build:site` is NOT in ci.yml (it runs on Vercel's preview deploy), so run it by hand.
 // The docs are listed from `docs/public/` itself, so this checks the copy landed whole, not which docs exist.
-const EXPECTED = ['dist/main.js', 'dist/main.js.map', 'index.html', ...DOCS.map((f) => `docs/${f}`)];
+const EXPECTED = ['dist/main.js', 'dist/main.js.map', 'index.html', ...DOCS.map((f) => `docs/${f}`), ...GUIDES.map((g) => `docs/${g.path}`)];
 const found = (await readdir(pub, { recursive: true, withFileTypes: true }))
   .filter((e) => e.isFile())
   .map((e) => relative(pub, resolve(e.parentPath, e.name)).split('\\').join('/'))

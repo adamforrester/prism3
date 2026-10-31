@@ -6,7 +6,7 @@
  * adds nothing to it: it builds the command envelope, hands it to the plugin, and returns the plugin's
  * result envelope unchanged.
  *
- *   npx tsx tools/figma-bridge/server.ts [--port 17331]      (or PRISM3_BRIDGE_PORT)
+ *   npx tsx tools/figma-bridge/server.ts [--port 17331] [--grace-ms 120000]   (or PRISM3_BRIDGE_PORT, PRISM3_BRIDGE_GRACE_MS)
  *
  * TWO SIDES, ONE PROCESS:
  *   · stdio MCP (newline-delimited JSON-RPC, hand-rolled like `packages/engine/mcp.ts`, whose protocol
@@ -22,10 +22,19 @@
  *
  * WIRE between this server and the plugin (JSON text frames):
  *   server → plugin   { type: 'command', command: AgentCommand }
- *   plugin → server   { type: 'hello', state } · { type: 'state', state } · { type: 'result', result }
+ *   plugin → server   { type: 'hello', state, held? } · { type: 'state', state } · { type: 'result', result }
  *                     { type: 'progress', id, progress } · { type: 'log', id, line }
  *
  * One plugin connection at a time (a newer one replaces the older), one command in flight at a time.
+ *
+ * A RECONNECT KEEPS A COMMAND IN FLIGHT (#2497). The plugin's socket can drop while a long command runs (a
+ * ~6-minute update-components did). The waiting call is not failed: it waits `graceMs` for the plugin to come
+ * back. The relay's `hello` names the ids it `held` (running, or a result kept for re-sending) and then re-sends
+ * its kept results; a result is matched by id, resolves the call once, and a repeat is logged and ignored. A
+ * command is never sent twice. One the new connection does not hold (it never reached the plugin, or the
+ * plugin reloaded) fails at the hello with the reason, and one whose plugin does not come back fails at the
+ * end of the grace. The wire gains only the optional `held`; the command and result envelopes are
+ * unchanged, so `AGENT_PROTOCOL_VERSION` stays 1.
  * Bound to the loopback addresses only — 127.0.0.1, and ::1 where the host has it, because `localhost`
  * resolves to either depending on the machine. stdout is the MCP channel; everything human-readable goes to stderr.
  */
@@ -134,13 +143,21 @@ export const createDecoder = (on: {
 type Conn = { socket: Duplex; send(obj: unknown): void; close(code: number, why: string): void; connectedAt: string };
 type LogEntry = { seq: number; at: string; id: string | null; kind: 'log' | 'progress' | 'bridge'; line: string };
 const LOG_KEEP = 5000;
+/** How long a command in flight waits for a dropped plugin to reconnect before it fails (#2497). */
+export const DEFAULT_GRACE_MS = 120_000;
+/** Ids whose result was already delivered, so a re-sent copy is named a repeat rather than a stranger. */
+const DELIVERED_KEEP = 200;
 
-export const createBridge = (opts: { now?: () => Date; log?: (s: string) => void } = {}) => {
+export const createBridge = (opts: { now?: () => Date; log?: (s: string) => void; graceMs?: number } = {}) => {
   const now = opts.now ?? (() => new Date());
   const say = opts.log ?? ((s: string) => process.stderr.write(`[figma-bridge] ${s}\n`));
+  const graceMs = opts.graceMs ?? DEFAULT_GRACE_MS;
   let plugin: Conn | null = null;
   let pluginState: AgentLinkState | null = null;
-  const pending = new Map<string, { resolve(r: AgentResult): void; reject(e: Error): void; timer: NodeJS.Timeout; onProgress?(p: AgentProgress): void; onLog?(line: string): void }>();
+  /** `conn` is the connection the command was sent on, or the later one whose hello said it holds it. */
+  const pending = new Map<string, { conn: Conn; resolve(r: AgentResult): void; reject(e: Error): void; timer: NodeJS.Timeout; onProgress?(p: AgentProgress): void; onLog?(line: string): void }>();
+  const delivered = new Set<string>();
+  let grace: NodeJS.Timeout | null = null;
   const logs: LogEntry[] = [];
   let seq = 0;
   let queue: Promise<unknown> = Promise.resolve();
@@ -151,13 +168,20 @@ export const createBridge = (opts: { now?: () => Date; log?: (s: string) => void
     if (logs.length > LOG_KEEP) logs.splice(0, logs.length - LOG_KEEP);
   };
 
-  const failAll = (why: string) => {
-    for (const [id, p] of pending) { clearTimeout(p.timer); p.reject(new Error(why)); pending.delete(id); }
+  const fail = (id: string, why: string) => {
+    const p = pending.get(id);
+    if (!p) return;
+    clearTimeout(p.timer);
+    pending.delete(id);
+    record(id, 'bridge', why);
+    p.reject(new Error(why));
   };
+  /** Commands sent on a connection that is no longer the plugin's, still waiting for it to come back. */
+  const orphans = () => [...pending].filter(([, p]) => p.conn !== plugin).map(([id]) => id);
 
-  /** A new plugin connection (after the handshake). Replaces any earlier one. */
+  /** A new plugin connection (after the handshake). Replaces any earlier one; its commands wait for the hello. */
   const attach = (conn: Conn) => {
-    if (plugin) { plugin.close(1000, 'replaced by a newer connection'); failAll('the plugin reconnected while this command was running'); }
+    if (plugin) plugin.close(1000, 'replaced by a newer connection');
     plugin = conn;
     pluginState = null;
     record(null, 'bridge', 'plugin connected');
@@ -168,18 +192,43 @@ export const createBridge = (opts: { now?: () => Date; log?: (s: string) => void
     plugin = null;
     record(null, 'bridge', 'plugin disconnected');
     say('plugin disconnected');
-    failAll('the plugin disconnected while this command was running');
+    if (!pending.size) return;
+    if (grace) clearTimeout(grace);
+    grace = setTimeout(() => {
+      grace = null;
+      for (const id of orphans()) fail(id, `the plugin disconnected while this command was running and did not reconnect within ${graceMs} ms`);
+    }, graceMs);
+  };
+  /** The plugin's hello: adopt the commands it holds, fail the ones it does not. Nothing is re-sent. */
+  const onHello = (held: unknown) => {
+    const ids = new Set(Array.isArray(held) ? held.filter((x): x is string => typeof x === 'string') : []);
+    for (const id of orphans()) {
+      if (ids.has(id)) { pending.get(id)!.conn = plugin!; record(id, 'bridge', 'the reconnected plugin holds this command'); }
+      else fail(id, 'the plugin reconnected while this command was running, and does not hold it: it never reached the plugin, or the plugin was reloaded');
+    }
+    if (grace && !orphans().length) { clearTimeout(grace); grace = null; }
   };
   /** One text message from the plugin. */
   const onPluginMessage = (text: string) => {
-    let m: { type?: string; state?: AgentLinkState; result?: AgentResult; id?: string; progress?: AgentProgress; line?: string };
+    let m: { type?: string; state?: AgentLinkState; held?: unknown; result?: AgentResult; id?: string; progress?: AgentProgress; line?: string };
     try { m = JSON.parse(text); } catch { record(null, 'bridge', 'unparseable message from the plugin'); return; }
-    if (m.type === 'hello' || m.type === 'state') { if (m.state) pluginState = m.state; return; }
+    if (m.type === 'hello' || m.type === 'state') {
+      if (m.state) pluginState = m.state;
+      if (m.type === 'hello') onHello(m.held);
+      return;
+    }
     if (m.type === 'result' && m.result && typeof m.result.id === 'string') {
-      const p = pending.get(m.result.id);
-      if (!p) { record(m.result.id, 'bridge', 'a result for a command this bridge is not waiting on'); return; }
+      const id = m.result.id;
+      const p = pending.get(id);
+      if (!p) {
+        record(id, 'bridge', delivered.has(id) ? 'a repeated result, already delivered: ignored' : 'a result for a command this bridge is not waiting on');
+        return;
+      }
       clearTimeout(p.timer);
-      pending.delete(m.result.id);
+      pending.delete(id);
+      delivered.add(id);
+      if (delivered.size > DELIVERED_KEEP) delivered.delete(delivered.values().next().value as string);
+      if (grace && !orphans().length) { clearTimeout(grace); grace = null; }
       p.resolve(m.result);
       return;
     }
@@ -205,7 +254,7 @@ export const createBridge = (opts: { now?: () => Date; log?: (s: string) => void
         pending.delete(id);
         rej(new Error(`no result for '${cmd}' (${id}) within ${timeoutMs} ms — the plugin may still be running it; figma_logs shows its last lines`));
       }, timeoutMs);
-      pending.set(id, { resolve: res, reject: rej, timer, ...hooks });
+      pending.set(id, { conn: plugin, resolve: res, reject: rej, timer, ...hooks });
       record(id, 'bridge', `sent ${cmd}`);
       plugin.send({ type: 'command', command });
     });
@@ -218,7 +267,7 @@ export const createBridge = (opts: { now?: () => Date; log?: (s: string) => void
     attach, detach, onPluginMessage, run,
     status: () => ({
       connected: !!plugin, connectedAt: plugin?.connectedAt ?? null, plugin: pluginState,
-      running: [...pending.keys()], bridge: SERVER_INFO, protocol: AGENT_PROTOCOL_VERSION, commands: [...AGENT_COMMANDS],
+      running: [...pending.keys()], awaitingReconnect: orphans(), bridge: SERVER_INFO, protocol: AGENT_PROTOCOL_VERSION, commands: [...AGENT_COMMANDS],
     }),
     logs: (since = 0, limit = 200) => {
       const out = logs.filter((l) => l.seq > since);
@@ -406,7 +455,10 @@ if (isMain) {
   const i = argv.indexOf('--port');
   const port = i >= 0 ? Number(argv[i + 1]) : process.env.PRISM3_BRIDGE_PORT ? Number(process.env.PRISM3_BRIDGE_PORT) : DEFAULT_PORT;
   if (!Number.isInteger(port) || port < 0 || port > 65535) { process.stderr.write(`[figma-bridge] bad port ${argv[i + 1]}\n`); process.exit(2); }
-  const bridge = createBridge();
+  const g = argv.indexOf('--grace-ms');
+  const graceMs = g >= 0 ? Number(argv[g + 1]) : process.env.PRISM3_BRIDGE_GRACE_MS ? Number(process.env.PRISM3_BRIDGE_GRACE_MS) : DEFAULT_GRACE_MS;
+  if (!Number.isInteger(graceMs) || graceMs < 0) { process.stderr.write(`[figma-bridge] bad grace ${argv[g + 1]}\n`); process.exit(2); }
+  const bridge = createBridge({ graceMs });
   const send = (msg: unknown) => process.stdout.write(JSON.stringify(msg) + '\n');
   const notify = (method: string, params: unknown) => send({ jsonrpc: '2.0', method, params });
   const bound = await listen(bridge, port).catch((e: Error) => {
