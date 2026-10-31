@@ -18846,9 +18846,55 @@ arm: {
   {
     const wb = componentDefs.find((d) => d.id === 'wallet-button')!;
     type Rule = { minH?: number; maxH?: number; minW?: number; halfHeightRadius?: true; logo: string };
+    // #3174: each provider's own styles, in the SDK's value names (Q3174.2 A), from Apple Pay JS's buttonstyle, Google
+    // Pay's buttonColor, PayPal's style.color and Shop Pay's guidelines ("Button color must be Shop purple").
+    const STYLES: Record<string, readonly string[]> = {
+      'apple-pay': ['black', 'white', 'white-outline'],
+      'google-pay': ['black', 'white'],
+      paypal: ['gold', 'blue', 'silver', 'white', 'black'],
+      'shop-pay': ['purple'],
+    };
+    // Each style's ground and edge as the provider's SDK paints it, typed from the capture of 2026-10-30 (the SDK's
+    // computed style) and, for Shop Pay, its guidelines' #5433EB. Lowercase, as the plan carries them.
+    const STYLE_PAINT: Record<string, { fill?: string; edge?: string }> = {
+      'apple-pay.black': { fill: '#000000' }, 'apple-pay.white': { fill: '#ffffff' }, 'apple-pay.white-outline': { fill: '#ffffff', edge: '#000000' },
+      // Google draws a 1px inside outline on both styles (the capture; the proposal's table had none).
+      'google-pay.black': { fill: '#000000', edge: '#757575' }, 'google-pay.white': { fill: '#ffffff', edge: '#3c4043' },
+      'paypal.gold': { fill: '#ffc439' }, 'paypal.blue': { fill: '#0070ba' }, 'paypal.silver': { fill: '#eeeeee' },
+      'paypal.white': { fill: '#ffffff', edge: '#555555' }, 'paypal.black': { fill: '#2c2e2f' },
+      'shop-pay.purple': { fill: '#5433eb' },
+    };
+    // The logo's INK height at a 44px button, measured from each SDK's render at 44 (Q3174.3 A). The proposal gave the
+    // SDK's logo element box (Google 22, PayPal 20); the ink inside it is what a file carries: Google's 41×17 image at
+    // 22 high draws 20.9 of ink, PayPal's 101×32 at 20 high draws 16.6.
+    const LOGO_AT_44: Record<string, number> = { 'apple-pay': 21.5, 'google-pay': 20.9, paypal: 16.6, 'shop-pay': 21.1 };
+    // ...and the ink's vertical center at 44, as each SDK places it: Shop Pay's logo sits 2px low (its own translate-y).
+    const MID_AT_44: Record<string, number> = { 'apple-pay': 22.1, 'google-pay': 22.8, paypal: 22.1, 'shop-pay': 24.1 };
+    // The ink box over every path in a file, curves sampled (a control-point hull overstates the ink). The files are
+    // absolute M L C Q Z (marks/NOTICE.md, button/); any other command throws rather than being skipped.
+    const svgInkBox = (svg: string): { y: number; h: number } => {
+      let minY = Infinity, maxY = -Infinity;
+      for (const [, d] of svg.matchAll(/<path\b[^>]*\sd="([^"]*)"/g)) {
+        const t = d.match(/[A-Za-z]|-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g) ?? [];
+        let i = 0, x = 0, y = 0, cmd = '';
+        const n = (): number => Number(t[i++]);
+        const see = (py: number): void => { minY = Math.min(minY, py); maxY = Math.max(maxY, py); };
+        const cubic = (ys: number[]): void => { for (let k = 0; k <= 32; k++) { const u = k / 32, v = 1 - u; see(v * v * v * ys[0] + 3 * v * v * u * ys[1] + 3 * v * u * u * ys[2] + u * u * u * ys[3]); } };
+        while (i < t.length) {
+          if (/[A-Za-z]/.test(t[i])) cmd = t[i++];
+          if (cmd === 'M' || cmd === 'L') { x = n(); y = n(); see(y); }
+          else if (cmd === 'C') { const a = [n(), n(), n(), n(), n(), n()]; cubic([y, a[1], a[3], a[5]]); x = a[4]; y = a[5]; }
+          else if (cmd === 'Q') { const a = [n(), n(), n(), n()]; cubic([y, y + (2 / 3) * (a[1] - y), a[3] + (2 / 3) * (a[1] - a[3]), a[3]]); x = a[2]; y = a[3]; }
+          else if (cmd === 'Z') { /* closes to the subpath start, already seen */ }
+          else throw new Error(`#3174 LOGO HEIGHT: unmodelled path command '${cmd}'`);
+        }
+        void x;
+      }
+      return { y: minY, h: maxY - minY };
+    };
     const RULES: Record<string, Rule> = {
       'apple-pay': { minH: 30, minW: 100, logo: 'provider-logo/logo/apple-pay' },
-      'google-pay': { halfHeightRadius: true, logo: 'provider-logo/logo/google-pay' },
+      'google-pay': { minH: 40, halfHeightRadius: true, logo: 'provider-logo/logo/google-pay' },
       paypal: { minH: 25, maxH: 55, logo: 'provider-logo/logo/paypal-wordmark' },
       'shop-pay': { minH: 40, minW: 120, logo: 'provider-logo/logo/shop-pay' },
     };
@@ -18894,16 +18940,59 @@ arm: {
     const clamped = (wb.anatomy.codeOnly ?? []).some((c) => /Google Pay/.test(c) && /min\(radius, height \/ 2\)/.test(c));
     ok(Number.isFinite(leverMax('radiusScale')) && Number.isFinite(leverMax('baseMd')) && (softOver.length === 0 || clamped),
       `#2343 PR 4 provider rules RADIUS (every brand): where the softest brand's corner passes half the height, the code clamps Google Pay's radius to min(radius, height / 2) (over half at radiusScale ${leverMax('radiusScale')} × baseMd ${leverMax('baseMd')}: ${softOver.length}, e.g. ${softOver[0] ?? 'none'}; clamp in codeOnly: ${clamped})`);
-    // Colors not retinted: no node of a member paints, and the logo keeps its own paint.
+    // Colors (#3174, flipped from "no member paints", Q3174.3 A): the `any` stand-in paints nothing; every other style
+    // paints exactly its provider's ground and 1px edge, typed in STYLE_PAINT below from the providers' docs and the
+    // SDK capture of 2026-10-30, never read from the mark records or the def (docs/34). No member binds a theme paint,
+    // and the logo keeps its own paint.
     type N = AnatomyPlan['root'];
     const nodes = (n: N): N[] => [n, ...(n.children ?? []).flatMap(nodes)];
-    const painted = plans.flatMap((p) => nodes(p.root).filter((n) => n.paints?.fills || n.paints?.strokes || n.descendantFills || n.gradientFill).map((n) => `${planComponentName(p)}.${n.name}`));
     const logoOf = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.nestTarget?.startsWith('provider-logo/'));
+    const themed = plans.flatMap((p) => nodes(p.root).filter((n) => n.paints?.fills || n.paints?.strokes || n.descendantFills || n.gradientFill).map((n) => `${planComponentName(p)}.${n.name}`));
+    const offPaint = plans.flatMap((p) => {
+      const want = p.coord.style === 'any' ? {} : STYLE_PAINT[`${p.coord.provider}.${p.coord.style}`];
+      if (!want) return [`${planComponentName(p)}: no typed paint for this style`];
+      const got = { fill: p.root.literalPaints?.fills?.join('+'), edge: p.root.literalPaints?.strokes };
+      const others = nodes(p.root).filter((n) => n !== p.root && n.literalPaints).map((n) => n.name);
+      return got.fill === want.fill && got.edge === want.edge && !others.length ? [] : [`${planComponentName(p)}: ${JSON.stringify(got)}${others.length ? ` and literal paint on ${others.join(', ')}` : ''}, typed ${JSON.stringify(want)}`];
+    });
     const unfixed = plans.filter((p) => !logoOf(p)?.fixedPaint).map(planComponentName);
-    ok(painted.length === 0 && unfixed.length === 0, `#2343 PR 4 provider rules COLOR: no member paints over or under the provider's area, and its logo keeps its own paint (painted: ${painted.slice(0, 3).join(', ') || 'none'}; logo without fixedPaint: ${unfixed.slice(0, 3).join(', ') || 'none'})`);
+    const styled = plans.filter((p) => p.coord.style !== 'any').length;
+    ok(themed.length === 0 && offPaint.length === 0 && unfixed.length === 0 && styled > 0 && plans.some((p) => p.coord.style === 'any'),
+      `#2343 PR 4 provider rules COLOR: any paints nothing, every other style paints exactly its provider's ground and edge (${styled} styled members), no member binds a theme paint, and the logo keeps its own paint (theme paint: ${themed.slice(0, 3).join(', ') || 'none'}; off: ${offPaint.slice(0, 3).join('; ') || 'none'}; logo without fixedPaint: ${unfixed.slice(0, 3).join(', ') || 'none'})`);
+    // The edge's weight: the providers' 1px, where a style draws an edge (border-width.hairline, measured on harbor).
+    const edgeWeights = [...new Set(plans.filter((p) => p.root.literalPaints?.strokes).map((p) => comfortable.px(p.root.bound?.strokeWeight)))];
+    ok(edgeWeights.length === 1 && edgeWeights[0] === 1, `#2343 PR 4 provider rules EDGE: every edged style draws its edge at 1px (got ${JSON.stringify(edgeWeights)})`);
+    // The styles (Q3174.1 A, Q3174.2 A): any first and the code default, then each provider's own styles in the SDK's
+    // names, valid pairs only.
+    const styleSets = Object.fromEntries(providers.map((prov) => [prov, [...new Set(plans.filter((p) => p.coord.provider === prov).map((p) => String(p.coord.style)))].sort()]));
+    const wantSets = Object.fromEntries(Object.entries(STYLES).map(([prov, ss]) => [prov, ['any', ...ss].sort()]));
+    const styleProp = wb.props.find((pr) => pr.name === 'style');
+    ok(JSON.stringify(styleSets) === JSON.stringify(wantSets) && wb.variants.style?.[0] === 'any' && styleProp?.default === 'any',
+      `#3174 provider rules STYLE: each provider's members are any plus exactly its SDK's own styles, any first and the default (got ${JSON.stringify(styleSets)}; axis ${JSON.stringify(wb.variants.style)}; default ${styleProp?.default})`);
+    // Google Pay small (Q3195.3 A): its SDK draws nothing under 40px, so a 36 request renders 40, and the design file
+    // has no small member, at any style. Typed here by size name, apart from the HEIGHT arm's ranges.
+    const googleSmall = plans.filter((p) => p.coord.provider === 'google-pay' && p.size === 'small').map(planComponentName);
+    ok(googleSmall.length === 0 && plans.some((p) => p.coord.provider === 'google-pay' && p.size === 'medium'),
+      `#3195 provider rules GOOGLE PAY SMALL: Google Pay has no small member, because its SDK draws nothing under 40 (got ${googleSmall.join(', ') || 'none'})`);
+    // The logo's height (#3174): each provider's logo-to-height ratio, typed from the SDK render at 44, measured as the
+    // ink height of each style's file over its 44-high artboard, with the logo where the SDK places it (centered).
+    const ratioOff = Object.entries(STYLES).flatMap(([prov, ss]) => ss.flatMap((st) => {
+      let svg = '';
+      try { svg = readFileSync(new URL(`./marks/button/${prov}-${st}.svg`, import.meta.url), 'utf8'); } catch { return [`button/${prov}-${st}: no file`]; }
+      const box = svgInkBox(svg), h = Number(/<svg\b[^>]*\sheight="([\d.]+)"/.exec(svg)?.[1]);
+      const at44 = (box.h / h) * 44, mid = ((box.y + box.h / 2) / h) * 44;
+      return h === 44 && Math.abs(at44 - LOGO_AT_44[prov]) <= 0.1 && Math.abs(mid - MID_AT_44[prov]) <= 0.1 ? [] : [`button/${prov}-${st}: logo ${at44.toFixed(2)} high at 44, centered at ${mid.toFixed(2)} (typed ${LOGO_AT_44[prov]} at ${MID_AT_44[prov]})`];
+    }));
+    ok(ratioOff.length === 0, `#3174 provider rules LOGO HEIGHT: each style's logo is its provider's ink height at 44 (${Object.entries(LOGO_AT_44).map(([k, v]) => `${k} ${v}`).join(', ')}), where its SDK places it (${ratioOff.slice(0, 3).join('; ') || 'clean'})`);
+    // ...and the mark binds the button's own height, so the ratio holds at every rung; the any stand-in keeps the icon rung.
+    const markHeight = plans.flatMap((p) => {
+      const n = logoOf(p), want = p.coord.style === 'any' ? comfortable.px(`icon/size/${({ small: 'sm', medium: 'md', large: 'lg' } as Record<string, string>)[String(p.size)]}`) : height(p);
+      return n && comfortable.px(n.bound?.height) === want ? [] : [`${planComponentName(p)}: logo ${comfortable.px(n?.bound?.height)}, want ${want}`];
+    });
+    ok(markHeight.length === 0, `#3174 provider rules LOGO HEIGHT: a style's logo binds the button's height and the any stand-in's the icon height (${markHeight.slice(0, 3).join('; ') || 'clean'})`);
     // The mark unaltered: the provider's own logo, nested whole, its height set and its width from its proportion.
     const altered = plans.flatMap((p) => {
-      const n = logoOf(p), want = RULES[String(p.coord.provider)]?.logo;
+      const n = logoOf(p), want = p.coord.style === 'any' ? RULES[String(p.coord.provider)]?.logo : `provider-logo/button/${p.coord.provider}-${p.coord.style}`;
       const why = !n ? 'no logo' : n.nestTarget !== want ? `nests ${n.nestTarget}, not ${want}` : n.nestOverrides?.length ? 'carries overrides' : !n.aspectLock ? 'no aspect lock' : n.bound?.width ? 'binds a width' : !n.bound?.height ? 'binds no height' : '';
       return why ? [`${planComponentName(p)}: ${why}`] : [];
     });
@@ -19108,7 +19197,7 @@ arm: {
   // carries one is listed here by name; a second def reaching for it fails until its own decision lands (docs/34: the
   // list is the owner's, not derived). The validator's refusals are driven on a copy of SignInButton.
   {
-    const LITERAL_DEFS = ['sign-in-button'];
+    const LITERAL_DEFS = ['sign-in-button', 'wallet-button'];
     const carrying = componentDefs.filter((d) => d.literal || Object.values(d.anatomy?.parts ?? {}).some((p) => p.literal)).map((d) => d.id).sort();
     ok(JSON.stringify(carrying) === JSON.stringify(LITERAL_DEFS), `#2343 PR 5 literal paint: only the defs the owner decided carry a literal record (${carrying.join(', ') || 'none'})`);
     const sb = componentDefs.find((d) => d.id === 'sign-in-button')!;
@@ -21738,6 +21827,13 @@ arm: {
     };
     throws('an undeclared appearance throws', () => figmaAnatomyPlan(button, 'medium', { appearance: 'nope' }));
     throws('an undeclared state throws', () => figmaAnatomyPlan(button, 'medium', { appearance: 'filled', state: 'nope' }));
+    // #3174 / #3195 — a literal 'surface' entry naming no paint is a member the def declares unpainted; an edge with no
+    // fill under it, or no entry at all, is the silent-loss shape and throws. Pinned apart on a copy of WalletButton.
+    const wbLit = componentDefs.find((d) => d.id === 'wallet-button')!, anyAt = { provider: 'apple-pay', style: 'any' };
+    const withAny = (e: Record<string, string> | undefined) => ({ ...wbLit, literal: { ...wbLit.literal!, entries: { ...wbLit.literal!.entries, 'apple-pay.any': e } } }) as typeof wbLit;
+    ok(!figmaAnatomyPlan(withAny({}), 'medium', anyAt).root.literalPaints?.fills, 'anatomy: a literal surface entry naming no paint is unpainted (#3174)');
+    throws('a literal surface entry with an edge and no fill throws (#3174)', () => figmaAnatomyPlan(withAny({ edge: '#000000' }), 'medium', anyAt));
+    throws('a literal surface with no entry for the member throws (#3174)', () => figmaAnatomyPlan(withAny(undefined), 'medium', anyAt));
     // #1223 — intent is no longer a coordinate. The def keys paint as `{appearance}.{slot}.*`, so
     // `{appearance}` alone RESOLVES (it used to be half a coordinate under the `{intent}.{appearance}`
     // grammar and threw); the state suffix is still tried first and falls back to the rest key.

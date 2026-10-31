@@ -3349,6 +3349,17 @@
       "projectedStates": [],
       "axes": {
         "name": [
+          "button/apple-pay-black",
+          "button/apple-pay-white",
+          "button/apple-pay-white-outline",
+          "button/google-pay-black",
+          "button/google-pay-white",
+          "button/paypal-black",
+          "button/paypal-blue",
+          "button/paypal-gold",
+          "button/paypal-silver",
+          "button/paypal-white",
+          "button/shop-pay-purple",
           "logo/affirm",
           "logo/amazon-pay",
           "logo/amex",
@@ -3430,6 +3441,17 @@
         {
           "name": "name",
           "values": [
+            "button/apple-pay-black",
+            "button/apple-pay-white",
+            "button/apple-pay-white-outline",
+            "button/google-pay-black",
+            "button/google-pay-white",
+            "button/paypal-black",
+            "button/paypal-blue",
+            "button/paypal-gold",
+            "button/paypal-silver",
+            "button/paypal-white",
+            "button/shop-pay-purple",
             "logo/affirm",
             "logo/amazon-pay",
             "logo/amex",
@@ -5160,6 +5182,16 @@
           "paypal",
           "shop-pay"
         ],
+        "style": [
+          "any",
+          "black",
+          "white",
+          "white-outline",
+          "gold",
+          "blue",
+          "silver",
+          "purple"
+        ],
         "size": [
           "medium",
           "small",
@@ -5177,6 +5209,20 @@
           ]
         },
         {
+          "name": "style",
+          "default": "any",
+          "values": [
+            "any",
+            "black",
+            "white",
+            "white-outline",
+            "gold",
+            "blue",
+            "silver",
+            "purple"
+          ]
+        },
+        {
           "name": "size",
           "default": "medium",
           "values": [
@@ -5188,9 +5234,6 @@
         {
           "name": "type",
           "default": "plain"
-        },
-        {
-          "name": "buttonStyle"
         }
       ],
       "sizes": [
@@ -6110,6 +6153,21 @@
       },
       {
         "values": [
+          "any",
+          "black",
+          "blue",
+          "gold",
+          "purple",
+          "silver",
+          "white",
+          "white-outline"
+        ],
+        "components": [
+          "wallet-button"
+        ]
+      },
+      {
+        "values": [
           "black",
           "blue",
           "dark",
@@ -6545,11 +6603,6 @@
     "brandName": [
       {
         "id": "card-number-field"
-      }
-    ],
-    "buttonStyle": [
-      {
-        "id": "wallet-button"
       }
     ],
     "checked": [
@@ -7684,6 +7737,17 @@
       {
         "id": "provider-logo",
         "values": [
+          "button/apple-pay-black",
+          "button/apple-pay-white",
+          "button/apple-pay-white-outline",
+          "button/google-pay-black",
+          "button/google-pay-white",
+          "button/paypal-black",
+          "button/paypal-blue",
+          "button/paypal-gold",
+          "button/paypal-silver",
+          "button/paypal-white",
+          "button/shop-pay-purple",
           "logo/affirm",
           "logo/amazon-pay",
           "logo/amex",
@@ -8904,6 +8968,20 @@
           "neutral",
           "blue"
         ]
+      },
+      {
+        "id": "wallet-button",
+        "default": "any",
+        "values": [
+          "any",
+          "black",
+          "white",
+          "white-outline",
+          "gold",
+          "blue",
+          "silver",
+          "purple"
+        ]
       }
     ],
     "submitOnEnter": [
@@ -9917,9 +9995,10 @@
         "search-field",
         "sign-in-button",
         "text-field",
-        "textarea"
+        "textarea",
+        "wallet-button"
       ],
-      "detail": "the style axis takes 4 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [inline, standalone] in link"
+      "detail": "the style axis takes 5 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [inline, standalone] in link"
     },
     {
       "kind": "axis values",

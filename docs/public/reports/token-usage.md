@@ -16,7 +16,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### `border-width.hairline`
 
-Type: dimension. Bound by 25 component(s).
+Type: dimension. Bound by 26 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -44,7 +44,7 @@ Type: dimension. Bound by 25 component(s).
 | password-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | every member (84 of 84) |
-| provider-logo | `tile.border-width` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 75) |
+| provider-logo | `tile.border-width` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 86) |
 | search-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | every member (84 of 84) |
@@ -59,6 +59,7 @@ Type: dimension. Bound by 25 component(s).
 | textarea | `border-width`, `caret-width`, `grip-inset` | caret | state: focus-visible (12 of 84) |
 |  |  | control | every member (84 of 84) |
 |  |  | gripGlyph | every member (84 of 84) |
+| wallet-button | `border-width` | container | every member (68 of 68) |
 
 ### `border-width.heavy`
 
@@ -207,7 +208,7 @@ Type: color. Bound by 3 component(s).
 |---|---|---|---|
 | _slider-thumb | `border.hover`, `border.pressed`, `fill.pressed` | hoverHalo | state: hover, pressed (6 of 15) |
 |  |  | pressHalo | state: pressed (3 of 15) |
-| provider-logo | `tile.border` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 75) |
+| provider-logo | `tile.border` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 86) |
 | tabs | `fill` | baseline | every member (6 of 6) |
 
 ### `color.border.secondary`
@@ -2393,7 +2394,7 @@ Type: dimension. Bound by 22 component(s).
 | switch-control | `ring-offset` | focusRing | state: focus-visible (8 of 40) |
 | tab-item | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
 | tag | `ring-offset` | focusRing | state: focus-visible (9 of 45) |
-| wallet-button | `ring-offset` | focusRing | state: focus-visible (10 of 20) |
+| wallet-button | `ring-offset` | focusRing | state: focus-visible (34 of 68) |
 
 ### `focus.ring.offset-field`
 
@@ -2454,7 +2455,7 @@ Type: dimension. Bound by 29 component(s).
 | tag | `ring-width` | focusRing | state: focus-visible (9 of 45) |
 | text-field | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | textarea | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| wallet-button | `ring-width` | focusRing | state: focus-visible (10 of 20) |
+| wallet-button | `ring-width` | focusRing | state: focus-visible (34 of 68) |
 
 ### `icon.size.lg`
 
@@ -2473,7 +2474,7 @@ Type: dimension. Bound by 8 component(s).
 | provider-logo | `size.large` | (not drawn) | — |
 | spinner | `size.large` | frame | size: large (1 of 4) |
 |  |  | ringGlyph | size: large (1 of 4) |
-| wallet-button | `size.large.mark` | mark | provider: apple-pay, google-pay, shop-pay · size: large (6 of 20) |
+| wallet-button | `size.large.any.mark` | mark | provider: apple-pay, google-pay, shop-pay · size: large · style: any (6 of 68) |
 
 ### `icon.size.md`
 
@@ -2532,7 +2533,7 @@ Type: dimension. Bound by 24 component(s).
 | tag | `size.large.icon` | checkGlyph | selection: selected · size: large · type: select (5 of 45) |
 |  |  | dismissGlyph | selection: unselected · size: large · type: dismissible (5 of 45) |
 |  |  | leadingVisual | size: large (15 of 45) |
-| wallet-button | `size.medium.mark` | mark | size: medium (8 of 20) |
+| wallet-button | `size.medium.any.mark` | mark | size: medium · style: any (8 of 68) |
 
 ### `icon.size.sm`
 
@@ -2592,7 +2593,7 @@ Type: dimension. Bound by 28 component(s).
 | text-field | `icon-size` | leadingVisual | every member (84 of 84) |
 |  |  | trailingVisual | every member (84 of 84) |
 | toast | `glyph-size` | checkCircleGlyph | intent: success (1 of 2) |
-| wallet-button | `size.small.mark` | mark | provider: apple-pay, google-pay, paypal · size: small (6 of 20) |
+| wallet-button | `size.small.any.mark` | mark | provider: apple-pay, paypal · size: small · style: any (4 of 68) |
 
 ### `icon.size.xl`
 
@@ -2691,7 +2692,7 @@ Type: dimension. Bound by 11 component(s).
 | pagination-item | `radius` | container | every member (87 of 87) |
 | segmented-control | `radius` | track | every member (3 of 3) |
 | sign-in-button | `radius` | container | every member (96 of 96) |
-| wallet-button | `radius` | container | every member (20 of 20) |
+| wallet-button | `radius` | container | every member (68 of 68) |
 
 ### `radius.none`
 
@@ -2741,7 +2742,7 @@ Type: dimension. Bound by 11 component(s).
 | code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | container | size: large, medium, small (21 of 28) |
 | counter | `radius` | control | every member (18 of 18) |
 | password-field | `radius` | control | every member (84 of 84) |
-| provider-logo | `tile.radius` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 75) |
+| provider-logo | `tile.radius` | glyph | name: payment/affirm, payment/amazon-pay, payment/amex, payment/apple-pay, payment/diners-club, payment/discover, payment/generic, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/shop-pay, payment/venmo, payment/visa (15 of 86) |
 | search-field | `radius` | control | every member (84 of 84) |
 | segmented-control-segment | `indicator-radius` | indicator | every member (30 of 30) |
 | select | `radius` | control | every member (84 of 84) |
@@ -2802,7 +2803,8 @@ Type: dimension. Bound by 24 component(s).
 | tag | `size.large.height` | container | size: large (15 of 45) |
 |  |  | dismiss | selection: unselected · size: large · type: dismissible (5 of 45) |
 | text-field | `size.large.height` | control | size: large (28 of 84) |
-| wallet-button | `size.large.height` | container | provider: apple-pay, google-pay, shop-pay · size: large (6 of 20) |
+| wallet-button | `size.large.black.mark`, `size.large.blue.mark`, `size.large.gold.mark`, `size.large.height`, `size.large.purple.mark`, `size.large.silver.mark`, `size.large.white-outline.mark`, `size.large.white.mark` | container | provider: apple-pay, google-pay, shop-pay · size: large · style: any, black, purple, white, white-outline (18 of 68) |
+|  |  | mark | provider: apple-pay, google-pay, shop-pay · size: large · style: black, purple, white, white-outline (12 of 68) |
 
 ### `size.md.height`
 
@@ -2832,7 +2834,8 @@ Type: dimension. Bound by 22 component(s).
 | tag | `size.medium.height` | container | size: medium (15 of 45) |
 |  |  | dismiss | selection: unselected · size: medium · type: dismissible (5 of 45) |
 | toast | `min-height` | container | every member (2 of 2) |
-| wallet-button | `size.medium.height` | container | size: medium (8 of 20) |
+| wallet-button | `size.medium.black.mark`, `size.medium.blue.mark`, `size.medium.gold.mark`, `size.medium.height`, `size.medium.purple.mark`, `size.medium.silver.mark`, `size.medium.white-outline.mark`, `size.medium.white.mark` | container | size: medium (30 of 68) |
+|  |  | mark | size: medium · style: black, blue, gold, purple, silver, white, white-outline (22 of 68) |
 
 ### `size.md.min-height`
 
@@ -2873,7 +2876,8 @@ Type: dimension. Bound by 19 component(s).
 | tab-item | `size.small.height` | container | size: small (10 of 30) |
 | tag | `size.small.height` | container | size: small (15 of 45) |
 |  |  | dismiss | selection: unselected · size: small · type: dismissible (5 of 45) |
-| wallet-button | `size.small.height` | container | provider: apple-pay, google-pay, paypal · size: small (6 of 20) |
+| wallet-button | `size.small.black.mark`, `size.small.blue.mark`, `size.small.gold.mark`, `size.small.height`, `size.small.purple.mark`, `size.small.silver.mark`, `size.small.white-outline.mark`, `size.small.white.mark` | container | provider: apple-pay, paypal · size: small · style: any, black, blue, gold, silver, white, white-outline (20 of 68) |
+|  |  | mark | provider: apple-pay, paypal · size: small · style: black, blue, gold, silver, white, white-outline (16 of 68) |
 
 ### `size.xl.height`
 
@@ -3903,7 +3907,7 @@ Declared, not drawn: `color.border.focus`
 
 ### provider-logo
 
-6 token(s); 75 design-file member(s).
+6 token(s); 86 design-file member(s).
 
 `border-width.hairline`, `color.border.primary`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.sm`
 
@@ -4039,9 +4043,9 @@ Declared, not drawn: `color.border.focus`
 
 ### wallet-button
 
-9 token(s); 20 design-file member(s).
+10 token(s); 68 design-file member(s).
 
-`focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`
+`border-width.hairline`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`
 
 ## Tokens no component binds
 
