@@ -14,16 +14,21 @@ set: `lint-component-surface` moved only the twelve hosts, and `lint-component-r
 
 **Update.** No executor change: the in-place path already swaps a nested instance to the member its plan resolves
 (`write-components.ts`, the `NESTED_INSTANCE` branch), and skips a node the designer edited. So `EXECUTOR_REVISION` stays
-at 43, and a placed label moves to primary on the next Update, its id kept. A label a designer edited by hand stays as it
+at its prior number, and a placed label moves to primary on the next Update, its id kept. A label a designer edited by hand stays as it
 is and is reported.
 
 **Arms.** `apps/plugin/test-write-components.ts` `#3200 label leads` and `#3200 placeholder stays secondary`: built as
 the plugin builds, in all five corpus brands, read back off the shim. `apps/plugin/test-update-apply.ts` `<host> leads/…`:
-a file built at secondary takes primary in place for all twelve hosts. Four of those hosts (Card number field, Code input,
+a file built at secondary takes primary in place for all twelve hosts. `#3200 label leads` counts per brand/host cell
+and requires all 60 (5 brands × 12 hosts) to read at least one label, naming any empty cell: a total count passed with a
+host's label part renamed (review mutation D). Four of those hosts (Card number field, Code input,
 Counter, Slider) carry nested overrides the harness file cannot hold, so their verdict arm asserts only that no listed
 field is the label's.
 
 **Trap for whoever re-verifies.** The placeholder layer's ink is `label.rest` / `.hover` / `.focus-visible`, not
 `label.empty`: `empty` is a code-only state. Mutating `label.empty` moves nothing in Figma.
 
-**Held for the owner.** Whether this stays a global default (A, recommended) or becomes a brand lever (B).
+**Prose is DRAFT.** FieldLabel's new `emphasis` description and the sentence added to its `docs.usage` are unapproved
+wording, marked `// DRAFT wording for the owner (#3200)` beside each string in `field-label.ts`; the owner reviews voice.
+
+**Decided.** The label default is global, not a brand lever (owner Q3203.1 A).

@@ -38883,7 +38883,7 @@ arm: {
     `#2830 spec: Button filled at rest fills color.interactive.primary.fill.rest under on-fill ink (${JSON.stringify(rest?.parts)})`);
   ok(rest?.parts.find((p) => p.part === 'container/leadingVisual')?.icon === 'color.interactive.primary.on-fill' && rest?.parts.find((p) => p.part === 'container/trailingVisual')?.icon === 'color.interactive.primary.on-fill',
     `#2830 spec: Button filled at rest inks both visuals color.interactive.primary.on-fill (${JSON.stringify(rest?.parts.filter((p) => p.part.endsWith('Visual')))})`);
-  // A nest's fixed variant and the host values that move it: Text field's label rests at secondary, regular, and
+  // A nest's fixed variant and the host values that move it: Text field's label rests at primary (#3200), regular, and
   // dims with the field; Counter's ghost members nest the round shape, its outline ones the flush (Q287 A).
   ok(JSON.stringify(label?.kind === 'instance' && label.variant) === '{"size":"medium","emphasis":"primary","weight":"regular","state":"rest"}' && JSON.stringify(label?.kind === 'instance' && label.when) === '{"state":{"disabled":{"state":"disabled"}}}',
     `#2830 spec: Text field's label nests field-label at primary, regular, rest, and takes state=disabled on a disabled field (${JSON.stringify(label)})`);

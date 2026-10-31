@@ -5898,6 +5898,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const flat = (n: Node): Node[] => [n, ...((n.children as Node[] | undefined) ?? []).flatMap(flat)];
   const leadOff: string[] = [], phOff: string[] = [], phSeen = new Set<string>();
   let leadChecked = 0;
+  // Counted per brand/host cell, not in total: a host that contributes no label in one brand (its label part renamed,
+  // its nest dropped) leaves that cell at zero and fails by name, however many labels the other 59 cells read.
+  const leadCells = new Map<string, number>(brands.flatMap(([brand]) => HOSTS.map((id) => [`${brand}/${id}`, 0] as const)));
   for (const [brand, input] of brands) {
     const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input as BrandInput), { swapTarget: SWAP });
     // Every name any def reaches for in this brand, so each host's dependencies build clean: once per brand.
@@ -5917,6 +5920,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
         const main = label?.mainComponent as Node | undefined;
         if (!label || !main || !/(^|, )state=rest(,|$)/.test(String(main.name))) continue;
         leadChecked++;
+        leadCells.set(`${brand}/${id}`, (leadCells.get(`${brand}/${id}`) ?? 0) + 1);
         // THE BUILT FieldLabel member the instance points at, found in the file's own FieldLabel set by its name.
         const built = ((labelSet?.children as Node[] | undefined) ?? []).find((c) => c.name === main.name);
         const ink = inkOf(built && flat(built).find((n) => n.name === 'label' && n.type === 'TEXT'));
@@ -5926,8 +5930,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       }
     }
   }
-  ok(leadChecked >= brands.length * HOSTS.length && leadOff.length === 0,
-    `#3200 label leads: in every corpus brand, every host member's nested FieldLabel at rest is the emphasis=primary member and its label inks color.text.primary (${leadChecked} labels across ${brands.length} brands × ${HOSTS.length} hosts${leadOff.length ? `; WRONG on ${leadOff.length}: ${leadOff.slice(0, 3).join(' | ')}` : ''})`);
+  const leadEmpty = [...leadCells].filter(([, n]) => n === 0).map(([cell]) => cell);
+  ok(leadCells.size === brands.length * HOSTS.length && leadEmpty.length === 0 && leadOff.length === 0,
+    `#3200 label leads: in every corpus brand, every host member's nested FieldLabel at rest is the emphasis=primary member and its label inks color.text.primary (${leadChecked} labels; ${leadCells.size - leadEmpty.length}/${brands.length * HOSTS.length} brand/host cells read at least one${leadEmpty.length ? `; EMPTY: ${leadEmpty.join(', ')}` : ''}${leadOff.length ? `; WRONG on ${leadOff.length}: ${leadOff.slice(0, 3).join(' | ')}` : ''})`);
   ok([...phSeen].sort().join() === WITH_PLACEHOLDER.join() && phOff.length === 0,
     `#3200 placeholder stays secondary: every shown placeholder inks color.text.secondary, under the primary label (hosts with one: ${[...phSeen].sort().join(', ')}${phOff.length ? `; WRONG on ${phOff.length}: ${phOff.slice(0, 3).join(' | ')}` : ''})`);
 }

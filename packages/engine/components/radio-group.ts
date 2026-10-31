@@ -194,8 +194,8 @@ export const radioGroup: ComponentDef = {
         children: ['label', 'items', 'message'],
       },
       // THE NESTED GROUP LABEL (nest-exposed, FOLLOWING size; owner decision Q348 A). An in-flow instance of
-      // `field-label`, starting at Prism 2's group `formLabel`: emphasis SECONDARY, weight BOLD, and `required` at its
-      // own default (off since #1699). `size` is `follow`ed from the group so the heading scales with the set.
+      // `field-label`, starting at emphasis PRIMARY (#3200: the label leads; Prism 2's group `formLabel` was secondary),
+      // weight BOLD, and `required` at its own default (off since #1699). `size` is `follow`ed from the group so the heading scales with the set.
       // `emphasis` and `weight` are EXPOSED, as on the four fields and `checkbox-group`; bold stays the starting
       // weight. `variant` names every axis field-label projects (size, emphasis, weight, state), as
       // `nestVariantMatch` requires; `state` stays fixed at rest.

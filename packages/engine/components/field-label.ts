@@ -71,6 +71,7 @@ export const fieldLabel: ComponentDef = {
     // marker's BUILT visibility, so no inverted-boolean mechanism is needed (see `figmaProperties`).
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Whether the field is required. On shows the marker beside the label; off, the default, hides it, and the host\'s own required prop defaults off too. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'small', required: false, description: 'Three steps. Scales the type (type.body.xs, sm and md: 12, 14 and 16px), not padding alone, one body step below the input of the same field size. Every field host passes its own size through, so a small field nests the small label. small, the default, is the 12px label.' },
+    // DRAFT wording for the owner (#3200): this `emphasis` description awaits voice review.
     { name: 'emphasis', type: "enum: 'primary' | 'secondary'", values: ['primary', 'secondary'], default: 'primary', required: false, description: 'The label\'s ink. primary, the default, is the full-strength ink every field host nests: the label leads, and the placeholder below it is the quieter hint. secondary is the de-emphasized ink, for a label that should step back. Semantic roles, never shades (color.text.primary and color.text.secondary), so a brand that changes its text palette carries the label with it.' },
     { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads. These are intents, not role names: regular resolves the brand\'s default body weight, bold the heaviest body weight the brand ships — Bold (700) on a brand that ships it, Medium (500) where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
     // #1339 — DISABLED IS A STATE, NOT A PROP. The old `disabled` boolean prop duplicated the `disabled`
@@ -443,6 +444,7 @@ export const fieldLabel: ComponentDef = {
   },
 
   docs: {
+    // DRAFT wording for the owner (#3200): the sentence "The label reads in full-strength ink by default, …" awaits voice review.
     usage: 'Place above every field as its accessible name. Wire htmlFor to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. The label reads in full-strength ink by default, so it leads and the placeholder in the field reads as the quieter hint; secondary steps it back where a label should not lead. In code the marker flows inline after the name, and the name wraps at the field\'s width.',
     do: [
       'Always render a label, even for search (visually-hidden, still in the DOM)',
