@@ -19,7 +19,7 @@ A single-line field for a query the user types to find something — a site sear
 
 Shown on the default member: size `medium`, style `outline`, status `default`.
 
-1. **Label** (optional) — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the text-field. A fix to FieldLabel still reaches this without a copy. Starts secondary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
+1. **Label** (optional) — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the text-field. A fix to FieldLabel still reaches this without a copy. Starts primary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
 2. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
 3. **Caret**
 4. **Caret end** — The insertion point on the focused field that holds a value, immediately after the value, in the value ink. Code draws the native caret where the user is typing.
@@ -475,7 +475,7 @@ Keyed by `status`, `state`.
 
 ### Nesting and properties
 
-- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
+- `container/label` nests `field-label` at `size=medium, emphasis=primary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
 - `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`, default `search`
 - `container/control/trailingVisual` is a swap slot, property `↳ swap trailing icon`, shown by `trailing icon`, default `close-filled`
 - `container/message` nests `field-message` at `status=default`; follows `status`

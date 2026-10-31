@@ -5914,4 +5914,69 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   }
 }
 
+// =============================================================================================
+// #3200 (owner decision Q-PH1 A) — EVERY FIELD HOST'S LABEL LEADS: color.text.primary by default, in every corpus brand
+// =============================================================================================
+// The label and the placeholder used to be the same gray: every host nested FieldLabel at emphasis=secondary, and the
+// placeholder is color.text.secondary (#1518). The owner moved the label to primary at the source. Built here as the
+// plugin builds a file — each corpus brand materialized (`materializeForBrand`), FieldLabel prebuilt (`prebuildDependencies`),
+// then the host — and read back off the shim: each member's nested label instance, its MAIN (the built FieldLabel
+// member), and that main's `label` text node's bound fill. The expected roles are literals typed from the decision, and
+// the host list is a literal, so a host that drops out (or a new one that joins without being listed) fails by name.
+// Mutations, each failing the arm it names: one host's nested `emphasis` back to secondary → `#3200 label leads`;
+// FieldLabel's `primary.label` repointed to color.text.secondary → `#3200 label leads`; Text field's rest placeholder ink
+// (`label.rest`) repointed to color.text.primary → `#3200 placeholder stays secondary`.
+{
+  const HOSTS = ['text-field', 'password-field', 'search-field', 'card-number-field', 'textarea', 'select', 'code-input', 'counter', 'checkbox-group', 'radio-group', 'segmented-control', 'slider'];
+  // The hosts that draw a placeholder layer, typed here: an empty field shows it in the quieter ink.
+  const WITH_PLACEHOLDER = ['card-number-field', 'password-field', 'search-field', 'select', 'text-field', 'textarea'];
+  // The corpus: every example brand the engine emits, the public three (`exampleBrands`) and the two client fixtures.
+  const brands = readdirSync(new URL('../../packages/engine/examples/', import.meta.url)).filter((f) => f.endsWith('.design.md')).sort()
+    .map((f) => [f.replace(/\.design\.md$/, ''), parseDesignMd(readFileSync(new URL(`../../packages/engine/examples/${f}`, import.meta.url), 'utf8')).input] as const);
+  ok(brands.length === 5, `#3200 corpus: the five corpus brands are represented (${brands.map(([id]) => id).join(', ')})`);
+  const byDef = (id: string) => componentDefs.find((d) => d.id === id)!;
+  ok(HOSTS.every((id) => !!byDef(id)) && componentDefs.filter((d) => d.id !== 'field-label' && JSON.stringify(d.anatomy ?? {}).includes('"nests":"field-label"')).map((d) => d.id).sort().join() === [...HOSTS].sort().join(),
+    `#3200 hosts: every def that nests FieldLabel is in the list (the three built on Text field through its factory included)`);
+  const flat = (n: Node): Node[] => [n, ...((n.children as Node[] | undefined) ?? []).flatMap(flat)];
+  const leadOff: string[] = [], phOff: string[] = [], phSeen = new Set<string>();
+  let leadChecked = 0;
+  // Counted per brand/host cell, not in total: a host that contributes no label in one brand (its label part renamed,
+  // its nest dropped) leaves that cell at zero and fails by name, however many labels the other 59 cells read.
+  const leadCells = new Map<string, number>(brands.flatMap(([brand]) => HOSTS.map((id) => [`${brand}/${id}`, 0] as const)));
+  for (const [brand, input] of brands) {
+    const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input as BrandInput), { swapTarget: SWAP });
+    // Every name any def reaches for in this brand, so each host's dependencies build clean: once per brand.
+    const f = fullFor(componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } }));
+    for (const id of HOSTS) {
+      const page: Page = { children: [] };
+      const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, identities: true, nestedItems: true }) as any;
+      const build = async (d: ComponentDef) => applyComponentPlan(project(d), shim, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+      await prebuildDependencies(byDef(id), { defs: componentDefs, project, host: shim, build });
+      await build(byDef(id));
+      const varName = new Map(((await shim.variables.getLocalVariablesAsync()) as { id: string; name: string }[]).map((v) => [v.id, v.name]));
+      const inkOf = (t: Node | undefined): string => String(varName.get(String(((t?.fills as { boundVariables?: { color?: { id?: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id)) ?? '(unbound)');
+      const set = page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET') as Node | undefined;
+      const labelSet = page.children.find((c) => c.name === 'field-label' && c.type === 'COMPONENT_SET') as Node | undefined;
+      for (const m of ((set?.children as Node[] | undefined) ?? [])) {
+        const label = flat(m).find((n) => n.name === 'label' && n.type === 'INSTANCE');
+        const main = label?.mainComponent as Node | undefined;
+        if (!label || !main || !/(^|, )state=rest(,|$)/.test(String(main.name))) continue;
+        leadChecked++;
+        leadCells.set(`${brand}/${id}`, (leadCells.get(`${brand}/${id}`) ?? 0) + 1);
+        // THE BUILT FieldLabel member the instance points at, found in the file's own FieldLabel set by its name.
+        const built = ((labelSet?.children as Node[] | undefined) ?? []).find((c) => c.name === main.name);
+        const ink = inkOf(built && flat(built).find((n) => n.name === 'label' && n.type === 'TEXT'));
+        if (!/(^|\/)color\/text\/primary$/.test(ink) || !/(^|, )emphasis=primary(,|$)/.test(String(main.name))) leadOff.push(`${brand}/${id}/${String(m.name)}: ${String(main.name)} → ${ink}`);
+        const ph = flat(m).find((n) => n.name === 'placeholder' && n.type === 'TEXT' && n.visible !== false);
+        if (ph) { phSeen.add(id); const pi = inkOf(ph); if (!/(^|\/)color\/text\/secondary$/.test(pi)) phOff.push(`${brand}/${id}/${String(m.name)}: ${pi}`); }
+      }
+    }
+  }
+  const leadEmpty = [...leadCells].filter(([, n]) => n === 0).map(([cell]) => cell);
+  ok(leadCells.size === brands.length * HOSTS.length && leadEmpty.length === 0 && leadOff.length === 0,
+    `#3200 label leads: in every corpus brand, every host member's nested FieldLabel at rest is the emphasis=primary member and its label inks color.text.primary (${leadChecked} labels; ${leadCells.size - leadEmpty.length}/${brands.length * HOSTS.length} brand/host cells read at least one${leadEmpty.length ? `; EMPTY: ${leadEmpty.join(', ')}` : ''}${leadOff.length ? `; WRONG on ${leadOff.length}: ${leadOff.slice(0, 3).join(' | ')}` : ''})`);
+  ok([...phSeen].sort().join() === WITH_PLACEHOLDER.join() && phOff.length === 0,
+    `#3200 placeholder stays secondary: every shown placeholder inks color.text.secondary, under the primary label (hosts with one: ${[...phSeen].sort().join(', ')}${phOff.length ? `; WRONG on ${phOff.length}: ${phOff.slice(0, 3).join(' | ')}` : ''})`);
+}
+
 if (failed) process.exit(1);

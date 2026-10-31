@@ -19,7 +19,7 @@ A labeled set for choosing exactly one from a small set of mutually exclusive, a
 
 Shown on the default member: size `medium`, status `default`.
 
-1. **Label** — The group heading and accessible name, composed rather than re-declared. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group's width; a long heading wraps at FieldLabel's max width. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.
+1. **Label** — The group heading and accessible name, composed rather than re-declared. Starts primary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group's width; a long heading wraps at FieldLabel's max width. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.
 2. **Items** — The items: a native slot holding the Radio.Row instances, three by default. A designer adds, removes and reorders rows in place.
 3. **Row1**
 4. **Row2** — The second default item: a Radio.Row, the same nest configuration as the first, including the group-width fill.
@@ -162,7 +162,7 @@ Keyed by `status`.
 
 ### Nesting and properties
 
-- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; follows `size`; exposes `emphasis`, `weight`
+- `container/label` nests `field-label` at `size=medium, emphasis=primary, weight=bold, state=rest`; follows `size`; exposes `emphasis`, `weight`
 - `container/items` is a slot, preferring `radio-row`
 - `container/items/row1` nests `radio-row` at `size=medium, status=default`; follows `size`, `status`
 - `container/items/row2` nests `radio-row` at `size=medium, status=default`; follows `size`, `status`

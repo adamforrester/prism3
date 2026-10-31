@@ -33,15 +33,19 @@
  *
  * ── THE DEFAULTS FOLLOW THE HOSTS (#1699 decision 4, owner-delegated) ────────────────────────────
  *
- * `required: false`, `size: small`, `emphasis: secondary` — the configuration the hosts nested at #1699
- * (select, text-field and textarea at small / secondary; the two groups at secondary; since #2266 every host
- * passes its own size through, so the size default is only the standalone label's), and a host's own
- * `required` prop defaults false. The code defaults and the Figma set's default member now agree: the
- * `emphasis` values are ordered `[secondary, primary]` so the set's FIRST member (Figma's default variant
- * is the set's first child) is small / secondary / regular / rest, and the `required` boolean builds the
- * marker hidden. `lint-rung-names` admits the `small` default by name (it is one rung below the `md`
- * rule every other sized def follows). Against Prism 2 this now agrees on size and emphasis (Small,
- * Secondary) and diverges on the marker (Prism 2's `Required` defaults on).
+ * `required: false`, `size: small`, `emphasis: primary` — the configuration the hosts nest (since #2266 every
+ * host passes its own size through, so the size default is only the standalone label's), and a host's own
+ * `required` prop defaults false. The code defaults and the Figma set's default member agree: the
+ * `emphasis` values are ordered `[primary, secondary]` so the set's FIRST member is small / primary /
+ * regular / rest, and the `required` boolean builds the marker hidden. `lint-rung-names` admits the `small`
+ * default by name (it is one rung below the `md` rule every other sized def follows).
+ *
+ * EMPHASIS MOVED TO PRIMARY (#3200, owner decision Q-PH1 A). #1699 set it to `secondary`, the cell every host
+ * nested then and Prism 2's own; that left the label and the placeholder (`color.text.secondary`, #1518) the
+ * same gray. The owner's call: the label leads at full strength and the placeholder is the quieter hint, set
+ * at the source so every host gets it. Every host now nests `emphasis: primary`, so by this section's rule the
+ * standalone default follows them. `secondary` stays a value. Against Prism 2 this agrees on size (Small) and
+ * diverges on emphasis (Prism 2: Secondary) and on the marker (Prism 2's `Required` defaults on).
  */
 import { ComponentDef } from '../component-schema';
 
@@ -67,7 +71,8 @@ export const fieldLabel: ComponentDef = {
     // marker's BUILT visibility, so no inverted-boolean mechanism is needed (see `figmaProperties`).
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Whether the field is required. On shows the marker beside the label; off, the default, hides it, and the host\'s own required prop defaults off too. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'small', required: false, description: 'Three steps. Scales the type (type.body.xs, sm and md: 12, 14 and 16px), not padding alone, one body step below the input of the same field size. Every field host passes its own size through, so a small field nests the small label. small, the default, is the 12px label.' },
-    { name: 'emphasis', type: "enum: 'secondary' | 'primary'", values: ['secondary', 'primary'], default: 'secondary', required: false, description: 'The label\'s ink. secondary, the default, is the de-emphasized label every field host nests; primary is the full-strength ink for a label that has to lead. Semantic roles, never shades (color.text.primary and color.text.secondary), so a brand that changes its text palette carries the label with it.' },
+    // DRAFT wording for the owner (#3200): this `emphasis` description awaits voice review.
+    { name: 'emphasis', type: "enum: 'primary' | 'secondary'", values: ['primary', 'secondary'], default: 'primary', required: false, description: 'The label\'s ink. primary, the default, is the full-strength ink every field host nests: the label leads, and the placeholder below it is the quieter hint. secondary is the de-emphasized ink, for a label that should step back. Semantic roles, never shades (color.text.primary and color.text.secondary), so a brand that changes its text palette carries the label with it.' },
     { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads. These are intents, not role names: regular resolves the brand\'s default body weight, bold the heaviest body weight the brand ships — Bold (700) on a brand that ships it, Medium (500) where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
     // #1339 — DISABLED IS A STATE, NOT A PROP. The old `disabled` boolean prop duplicated the `disabled`
     // state axis; the owner decision (2026-09-13) collapses that to ONE mechanism. The label dims via the
@@ -82,9 +87,9 @@ export const fieldLabel: ComponentDef = {
   states: ['rest', 'disabled'],
   variants: {
     size: ['small', 'medium', 'large'],
-    // `secondary` FIRST (#1699 decision 4): the first value of each axis is the set's first member, which Figma
-    // takes as the default variant, so the Figma default matches the code default.
-    emphasis: ['secondary', 'primary'],
+    // `primary` FIRST (#3200; `secondary` led from #1699 until then): the first value of each axis is the set's
+    // first member, so the inserted member carries the code default.
+    emphasis: ['primary', 'secondary'],
     // PRISM 2'S THIRD CONTROL, and the last of the three (#1248, completing #872). Its enum is
     // `["Regular", "Bold"]` with `Regular` the default, and these are those two values in this repo's
     // casing. It crosses `size` in full over there — `{size: Medium, weight: Bold}` and
@@ -385,9 +390,9 @@ export const fieldLabel: ComponentDef = {
     // DO NOT READ THAT AS "the same set". The DEFAULTS were a real divergence until #1699: this def
     // defaulted to `emphasis: primary` and `size: medium` where Prism 2 defaults to Secondary and Small.
     // #1699 (owner-delegated) moved them to how every host nests the label — small / secondary / regular —
-    // which is Prism 2's cell too, and ordered `emphasis` [secondary, primary] so the set's first member (the
-    // Figma default variant) is that cell. The one default that still differs is the marker: `required`
-    // defaults OFF here and Prism 2's `Required` defaults on.
+    // which is Prism 2's cell too. #3200 (owner Q-PH1 A) then moved emphasis to primary in every host and here,
+    // ordered [primary, secondary] so the set's first member is that cell. So two defaults differ from Prism 2
+    // now: emphasis, and the marker (`required` defaults OFF here and Prism 2's `Required` defaults on).
     //
     // THE STATE AXIS IS THIS DEF'S, NOT PRISM 2'S, and the matching member counts hide that rather than
     // show it. Both sets are 24, and they get there differently: Prism 2 is size x weight x color, no
@@ -439,7 +444,8 @@ export const fieldLabel: ComponentDef = {
   },
 
   docs: {
-    usage: 'Place above every field as its accessible name. Wire htmlFor to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. In code the marker flows inline after the name, and the name wraps at the field\'s width.',
+    // DRAFT wording for the owner (#3200): the sentence "The label reads in full-strength ink by default, …" awaits voice review.
+    usage: 'Place above every field as its accessible name. Wire htmlFor to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. The label reads in full-strength ink by default, so it leads and the placeholder in the field reads as the quieter hint; secondary steps it back where a label should not lead. In code the marker flows inline after the name, and the name wraps at the field\'s width.',
     do: [
       'Always render a label, even for search (visually-hidden, still in the DOM)',
       'Keep it a short noun phrase in sentence case, no trailing colon',
