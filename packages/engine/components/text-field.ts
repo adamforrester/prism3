@@ -399,13 +399,13 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         nests: 'field-label',
         // `size` FOLLOWS the field's (#2266): a small field nests the small label, so the pair stays one body step
         // apart at every size. `emphasis` and `weight` stay the consumer's.
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'primary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // FILLS the field's width (#1757, select's #1503 shape): the label stretches across the column the
         // control holds at 320. The name wraps at field-label's own max width (#1762), not the field's.
         crossAxisFill: true,
         // The Search field's `label` switch (#2888, Q?4 A) hides it; `optional` is the anatomy half of that boolean.
         ...(spec.labelSwitch ? { optional: true } : {}),
-        note: `The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the ${toggle ? 'field' : 'text-field'}. A fix to FieldLabel still reaches this without a copy. Starts secondary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.`,
+        note: `The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the ${toggle ? 'field' : 'text-field'}. A fix to FieldLabel still reaches this without a copy. Starts primary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.`,
       },
       // THE SHOW/HIDE BUTTON (`edge: 'toggle'` only; owner decisions Q301.2 B and Q301.3 B). A nested Button, not a
       // copy of one: the text appearance, flush (#2350, so its label lines up with the field's end edge and its

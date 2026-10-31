@@ -7,8 +7,8 @@
       "properties": []
     },
     "provider-logo": {
-      "members": 75,
-      "sha256": "f19891f13e5458032540847e5fb417d94b0f95338b1d8e86ec7a4b20e8d4d7de",
+      "members": 86,
+      "sha256": "90929a9473907cbd61c1c46a9b448d876be551c7cea6c6647d91bbe3d967b022",
       "properties": []
     },
     "focus-ring": {
@@ -227,8 +227,8 @@
       ]
     },
     "wallet-button": {
-      "members": 20,
-      "sha256": "b253cfeaac64f0f713796691272880d39ab2beea631c0af2afec7218113fae08",
+      "members": 68,
+      "sha256": "13313fc87691c779609542aef13b5c88c010371bba48e776ed11ae520dc87d2c",
       "properties": []
     },
     "sign-in-button": {
@@ -362,7 +362,7 @@
     },
     "text-field": {
       "members": 84,
-      "sha256": "3e12bdae965b2358779c7c78d99f6e225fcfb8cbe01bab5fc8a296e7fabb7b1f",
+      "sha256": "a2f7b5fa5c8970da392b8e022fe3859d9d3aaba5cb935fa3e8e085bc1d3c5c7e",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -373,7 +373,7 @@
     },
     "textarea": {
       "members": 84,
-      "sha256": "e8b82d2b0e730afefdd8df658edbf9a439e162bd699196f40b94dcae673962ec",
+      "sha256": "71897667be64123d6b0ae27f05fe6422437567fc7679c0ac617fc960edf7bb8f",
       "properties": [
         "character count:BOOLEAN",
         "count:TEXT",
@@ -399,7 +399,7 @@
     },
     "checkbox-group": {
       "members": 6,
-      "sha256": "220cfdff8d8cdb09fb6a4d35aedc91804aa872b5bd05619374ef8a08581dc2bc",
+      "sha256": "98391fd511ae2bc992b5d602cc881fdb9fcfb096e126c7b9ed084d064f81db76",
       "properties": [
         "items:SLOT"
       ]
@@ -420,7 +420,7 @@
     },
     "radio-group": {
       "members": 6,
-      "sha256": "ba35f07868d2e5c07b727e5fa183e5768c345ca85667b08cb91f6117f1804869",
+      "sha256": "bdb8c6cb1928f97a1a8208b6f48d7f617d01790d4b9371a3506f136a95fcd0d9",
       "properties": [
         "items:SLOT"
       ]
@@ -441,7 +441,7 @@
     },
     "select": {
       "members": 84,
-      "sha256": "af84c5102cb1bbe8430a44766fe1a6d5cac7544c3829ee677c4b6200f29ed1c8",
+      "sha256": "81e921bc18aa1a1eef9a77d2660ec589f6246125f3de141db3dba63d947562c4",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -567,9 +567,10 @@
     },
     "accordion": {
       "members": 48,
-      "sha256": "6eec54e75fcaa62d3a41e7418421e165c08f3a75a0389b6f022ffb6821e202af",
+      "sha256": "145b52647b4b5b9799b8395690a7023ef31ba57d7c891b8675d1ab56d49caa48",
       "properties": [
         "content:SLOT",
+        "divider:BOOLEAN",
         "title:TEXT"
       ]
     },
@@ -615,7 +616,7 @@
     },
     "segmented-control": {
       "members": 3,
-      "sha256": "1a2b9e95b0419bec38ebec4a33cf6cdb4d10c886886ffffcb603ccdab4b9906b",
+      "sha256": "82eedef5fa8f38b1abd41bf3c961340411127ff8c67d32d48c514755601dd7a4",
       "properties": [
         "items:SLOT",
         "label:BOOLEAN"
@@ -666,7 +667,7 @@
     },
     "password-field": {
       "members": 84,
-      "sha256": "9ecf84ba37b1e0b0edf906e5f0cf78b79929ac782ef6226e309f112de59f3f8a",
+      "sha256": "c53426c642663867cb53df341716812c44809ff15902048fbf069ba4d6273473",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -704,7 +705,7 @@
     },
     "counter": {
       "members": 18,
-      "sha256": "1f534456377e288873a351331de1d5b8eb53426b7e2256c5aee78c8c8e6ca2a1",
+      "sha256": "ba061ee86d211d3de5b59170cd60faeb94bf74e01f362b81332f4162b8657ca8",
       "properties": [
         "label:BOOLEAN",
         "message:BOOLEAN",
@@ -760,7 +761,7 @@
     },
     "search-field": {
       "members": 84,
-      "sha256": "5b2a706e4b3e264d4c08d72e12621f657d06897e24429c36f75fd567c0bdfac5",
+      "sha256": "465e4d96d49234b950663b0dd5e43d4cd61b62bb911d8476127525be0dbaba61",
       "properties": [
         "label:BOOLEAN",
         "leading icon:BOOLEAN",
@@ -774,7 +775,7 @@
     },
     "card-number-field": {
       "members": 84,
-      "sha256": "1237f8df4dddfacae2695174d461845fe87cefd8e4fc053d2bafe86263696a8e",
+      "sha256": "388d02b2941b0ababd49438fbd0762cc7b1ea88649125afb53c4df2bc215797c",
       "properties": [
         "card mark:BOOLEAN",
         "leading icon:BOOLEAN",
@@ -803,7 +804,7 @@
     },
     "slider": {
       "members": 30,
-      "sha256": "76f82ee3be7f7c2d90667311d83bb3456465e2d7f0bad923c9ec55877a735e2d",
+      "sha256": "db34f8aee7c07e6a742d6729edc04a8fd4c9ca23c355ca9258dbf7b95ed06c33",
       "properties": [
         "helper:BOOLEAN",
         "inputs:BOOLEAN",
@@ -826,7 +827,7 @@
     },
     "code-input": {
       "members": 48,
-      "sha256": "001335284f5f57a8188a87595827172d9d90e4bf800f6d203fc62f129e94e89b",
+      "sha256": "ba90c9b8a9063a665ea77bf43ac7806d98c3c4b13dd4a108ae22f59b943adecd",
       "properties": [
         "items:SLOT",
         "message:BOOLEAN"

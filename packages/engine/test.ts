@@ -18764,16 +18764,16 @@ arm: {
 
   // ---- Q348 A: the GROUP labels are nest-exposed like the fields' (owner-decided) ----
   // Checkbox group, Radio group and Segmented control expose FieldLabel's emphasis and weight, follow size, and start
-  // secondary and bold. EXPECTED typed from the decision, never read off a def: the surface baseline is re-accepted with
+  // primary and bold (#3200, owner Q-PH1 A; secondary from Q348 A until then). EXPECTED typed from the decision, never read off a def: the surface baseline is re-accepted with
   // any change note, so it does not remember which axes were listed. Mutation: one def's `expose` cut to ['emphasis'],
-  // or its starting `emphasis` moved to primary → this line.
+  // or its starting `emphasis` moved back to secondary → this line.
   for (const id of ['checkbox-group', 'radio-group', 'segmented-control']) {
     const n = componentDefs.find((d) => d.id === id)?.anatomy?.parts.label?.nesting;
     const got = n?.kind === 'nest-exposed'
       ? `expose ${[...n.expose].sort().join(', ')}, follow ${(n.follow ?? []).join(', ')}, emphasis ${n.variant?.emphasis}, weight ${n.variant?.weight}`
       : `kind ${n?.kind ?? 'MISSING'}`;
-    ok(got === 'expose emphasis, weight, follow size, emphasis secondary, weight bold',
-      `Q348 A ${id}'s label is nest-exposed: exposes [emphasis, weight], follows [size], starts secondary and bold (got ${got})`);
+    ok(got === 'expose emphasis, weight, follow size, emphasis primary, weight bold',
+      `Q348 A ${id}'s label is nest-exposed: exposes [emphasis, weight], follows [size], starts primary and bold (#3200) (got ${got})`);
   }
 
   // ---- Q399 A: the COUNTER's label is nest-exposed like the fields' (owner-decided, on #2693) ----
@@ -18785,8 +18785,8 @@ arm: {
     const got = n?.kind === 'nest-exposed'
       ? `expose ${[...n.expose].sort().join(', ')}, follow ${(n.follow ?? []).join(', ')}, emphasis ${n.variant?.emphasis}, weight ${n.variant?.weight}`
       : `kind ${n?.kind ?? 'MISSING'}`;
-    ok(got === 'expose emphasis, weight, follow size, emphasis secondary, weight regular',
-      `Q399 A counter's label is nest-exposed: exposes [emphasis, weight], follows [size], starts secondary and regular (got ${got})`);
+    ok(got === 'expose emphasis, weight, follow size, emphasis primary, weight regular',
+      `Q399 A counter's label is nest-exposed: exposes [emphasis, weight], follows [size], starts primary and regular (#3200) (got ${got})`);
   }
 
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
@@ -18846,9 +18846,55 @@ arm: {
   {
     const wb = componentDefs.find((d) => d.id === 'wallet-button')!;
     type Rule = { minH?: number; maxH?: number; minW?: number; halfHeightRadius?: true; logo: string };
+    // #3174: each provider's own styles, in the SDK's value names (Q3174.2 A), from Apple Pay JS's buttonstyle, Google
+    // Pay's buttonColor, PayPal's style.color and Shop Pay's guidelines ("Button color must be Shop purple").
+    const STYLES: Record<string, readonly string[]> = {
+      'apple-pay': ['black', 'white', 'white-outline'],
+      'google-pay': ['black', 'white'],
+      paypal: ['gold', 'blue', 'silver', 'white', 'black'],
+      'shop-pay': ['purple'],
+    };
+    // Each style's ground and edge as the provider's SDK paints it, typed from the capture of 2026-10-30 (the SDK's
+    // computed style) and, for Shop Pay, its guidelines' #5433EB. Lowercase, as the plan carries them.
+    const STYLE_PAINT: Record<string, { fill?: string; edge?: string }> = {
+      'apple-pay.black': { fill: '#000000' }, 'apple-pay.white': { fill: '#ffffff' }, 'apple-pay.white-outline': { fill: '#ffffff', edge: '#000000' },
+      // Google draws a 1px inside outline on both styles (the capture; the proposal's table had none).
+      'google-pay.black': { fill: '#000000', edge: '#757575' }, 'google-pay.white': { fill: '#ffffff', edge: '#3c4043' },
+      'paypal.gold': { fill: '#ffc439' }, 'paypal.blue': { fill: '#0070ba' }, 'paypal.silver': { fill: '#eeeeee' },
+      'paypal.white': { fill: '#ffffff', edge: '#555555' }, 'paypal.black': { fill: '#2c2e2f' },
+      'shop-pay.purple': { fill: '#5433eb' },
+    };
+    // The logo's INK height at a 44px button, measured from each SDK's render at 44 (Q3174.3 A). The proposal gave the
+    // SDK's logo element box (Google 22, PayPal 20); the ink inside it is what a file carries: Google's 41×17 image at
+    // 22 high draws 20.9 of ink, PayPal's 101×32 at 20 high draws 16.6.
+    const LOGO_AT_44: Record<string, number> = { 'apple-pay': 21.5, 'google-pay': 20.9, paypal: 16.6, 'shop-pay': 21.1 };
+    // ...and the ink's vertical center at 44, as each SDK places it: Shop Pay's logo sits 2px low (its own translate-y).
+    const MID_AT_44: Record<string, number> = { 'apple-pay': 22.1, 'google-pay': 22.8, paypal: 22.1, 'shop-pay': 24.1 };
+    // The ink box over every path in a file, curves sampled (a control-point hull overstates the ink). The files are
+    // absolute M L C Q Z (marks/NOTICE.md, button/); any other command throws rather than being skipped.
+    const svgInkBox = (svg: string): { y: number; h: number } => {
+      let minY = Infinity, maxY = -Infinity;
+      for (const [, d] of svg.matchAll(/<path\b[^>]*\sd="([^"]*)"/g)) {
+        const t = d.match(/[A-Za-z]|-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g) ?? [];
+        let i = 0, x = 0, y = 0, cmd = '';
+        const n = (): number => Number(t[i++]);
+        const see = (py: number): void => { minY = Math.min(minY, py); maxY = Math.max(maxY, py); };
+        const cubic = (ys: number[]): void => { for (let k = 0; k <= 32; k++) { const u = k / 32, v = 1 - u; see(v * v * v * ys[0] + 3 * v * v * u * ys[1] + 3 * v * u * u * ys[2] + u * u * u * ys[3]); } };
+        while (i < t.length) {
+          if (/[A-Za-z]/.test(t[i])) cmd = t[i++];
+          if (cmd === 'M' || cmd === 'L') { x = n(); y = n(); see(y); }
+          else if (cmd === 'C') { const a = [n(), n(), n(), n(), n(), n()]; cubic([y, a[1], a[3], a[5]]); x = a[4]; y = a[5]; }
+          else if (cmd === 'Q') { const a = [n(), n(), n(), n()]; cubic([y, y + (2 / 3) * (a[1] - y), a[3] + (2 / 3) * (a[1] - a[3]), a[3]]); x = a[2]; y = a[3]; }
+          else if (cmd === 'Z') { /* closes to the subpath start, already seen */ }
+          else throw new Error(`#3174 LOGO HEIGHT: unmodelled path command '${cmd}'`);
+        }
+        void x;
+      }
+      return { y: minY, h: maxY - minY };
+    };
     const RULES: Record<string, Rule> = {
       'apple-pay': { minH: 30, minW: 100, logo: 'provider-logo/logo/apple-pay' },
-      'google-pay': { halfHeightRadius: true, logo: 'provider-logo/logo/google-pay' },
+      'google-pay': { minH: 40, halfHeightRadius: true, logo: 'provider-logo/logo/google-pay' },
       paypal: { minH: 25, maxH: 55, logo: 'provider-logo/logo/paypal-wordmark' },
       'shop-pay': { minH: 40, minW: 120, logo: 'provider-logo/logo/shop-pay' },
     };
@@ -18894,16 +18940,59 @@ arm: {
     const clamped = (wb.anatomy.codeOnly ?? []).some((c) => /Google Pay/.test(c) && /min\(radius, height \/ 2\)/.test(c));
     ok(Number.isFinite(leverMax('radiusScale')) && Number.isFinite(leverMax('baseMd')) && (softOver.length === 0 || clamped),
       `#2343 PR 4 provider rules RADIUS (every brand): where the softest brand's corner passes half the height, the code clamps Google Pay's radius to min(radius, height / 2) (over half at radiusScale ${leverMax('radiusScale')} × baseMd ${leverMax('baseMd')}: ${softOver.length}, e.g. ${softOver[0] ?? 'none'}; clamp in codeOnly: ${clamped})`);
-    // Colors not retinted: no node of a member paints, and the logo keeps its own paint.
+    // Colors (#3174, flipped from "no member paints", Q3174.3 A): the `any` stand-in paints nothing; every other style
+    // paints exactly its provider's ground and 1px edge, typed in STYLE_PAINT below from the providers' docs and the
+    // SDK capture of 2026-10-30, never read from the mark records or the def (docs/34). No member binds a theme paint,
+    // and the logo keeps its own paint.
     type N = AnatomyPlan['root'];
     const nodes = (n: N): N[] => [n, ...(n.children ?? []).flatMap(nodes)];
-    const painted = plans.flatMap((p) => nodes(p.root).filter((n) => n.paints?.fills || n.paints?.strokes || n.descendantFills || n.gradientFill).map((n) => `${planComponentName(p)}.${n.name}`));
     const logoOf = (p: AnatomyPlan): N | undefined => nodes(p.root).find((n) => n.nestTarget?.startsWith('provider-logo/'));
+    const themed = plans.flatMap((p) => nodes(p.root).filter((n) => n.paints?.fills || n.paints?.strokes || n.descendantFills || n.gradientFill).map((n) => `${planComponentName(p)}.${n.name}`));
+    const offPaint = plans.flatMap((p) => {
+      const want = p.coord.style === 'any' ? {} : STYLE_PAINT[`${p.coord.provider}.${p.coord.style}`];
+      if (!want) return [`${planComponentName(p)}: no typed paint for this style`];
+      const got = { fill: p.root.literalPaints?.fills?.join('+'), edge: p.root.literalPaints?.strokes };
+      const others = nodes(p.root).filter((n) => n !== p.root && n.literalPaints).map((n) => n.name);
+      return got.fill === want.fill && got.edge === want.edge && !others.length ? [] : [`${planComponentName(p)}: ${JSON.stringify(got)}${others.length ? ` and literal paint on ${others.join(', ')}` : ''}, typed ${JSON.stringify(want)}`];
+    });
     const unfixed = plans.filter((p) => !logoOf(p)?.fixedPaint).map(planComponentName);
-    ok(painted.length === 0 && unfixed.length === 0, `#2343 PR 4 provider rules COLOR: no member paints over or under the provider's area, and its logo keeps its own paint (painted: ${painted.slice(0, 3).join(', ') || 'none'}; logo without fixedPaint: ${unfixed.slice(0, 3).join(', ') || 'none'})`);
+    const styled = plans.filter((p) => p.coord.style !== 'any').length;
+    ok(themed.length === 0 && offPaint.length === 0 && unfixed.length === 0 && styled > 0 && plans.some((p) => p.coord.style === 'any'),
+      `#2343 PR 4 provider rules COLOR: any paints nothing, every other style paints exactly its provider's ground and edge (${styled} styled members), no member binds a theme paint, and the logo keeps its own paint (theme paint: ${themed.slice(0, 3).join(', ') || 'none'}; off: ${offPaint.slice(0, 3).join('; ') || 'none'}; logo without fixedPaint: ${unfixed.slice(0, 3).join(', ') || 'none'})`);
+    // The edge's weight: the providers' 1px, where a style draws an edge (border-width.hairline, measured on harbor).
+    const edgeWeights = [...new Set(plans.filter((p) => p.root.literalPaints?.strokes).map((p) => comfortable.px(p.root.bound?.strokeWeight)))];
+    ok(edgeWeights.length === 1 && edgeWeights[0] === 1, `#2343 PR 4 provider rules EDGE: every edged style draws its edge at 1px (got ${JSON.stringify(edgeWeights)})`);
+    // The styles (Q3174.1 A, Q3174.2 A): any first and the code default, then each provider's own styles in the SDK's
+    // names, valid pairs only.
+    const styleSets = Object.fromEntries(providers.map((prov) => [prov, [...new Set(plans.filter((p) => p.coord.provider === prov).map((p) => String(p.coord.style)))].sort()]));
+    const wantSets = Object.fromEntries(Object.entries(STYLES).map(([prov, ss]) => [prov, ['any', ...ss].sort()]));
+    const styleProp = wb.props.find((pr) => pr.name === 'style');
+    ok(JSON.stringify(styleSets) === JSON.stringify(wantSets) && wb.variants.style?.[0] === 'any' && styleProp?.default === 'any',
+      `#3174 provider rules STYLE: each provider's members are any plus exactly its SDK's own styles, any first and the default (got ${JSON.stringify(styleSets)}; axis ${JSON.stringify(wb.variants.style)}; default ${styleProp?.default})`);
+    // Google Pay small (Q3195.3 A): its SDK draws nothing under 40px, so a 36 request renders 40, and the design file
+    // has no small member, at any style. Typed here by size name, apart from the HEIGHT arm's ranges.
+    const googleSmall = plans.filter((p) => p.coord.provider === 'google-pay' && p.size === 'small').map(planComponentName);
+    ok(googleSmall.length === 0 && plans.some((p) => p.coord.provider === 'google-pay' && p.size === 'medium'),
+      `#3195 provider rules GOOGLE PAY SMALL: Google Pay has no small member, because its SDK draws nothing under 40 (got ${googleSmall.join(', ') || 'none'})`);
+    // The logo's height (#3174): each provider's logo-to-height ratio, typed from the SDK render at 44, measured as the
+    // ink height of each style's file over its 44-high artboard, with the logo where the SDK places it (centered).
+    const ratioOff = Object.entries(STYLES).flatMap(([prov, ss]) => ss.flatMap((st) => {
+      let svg = '';
+      try { svg = readFileSync(new URL(`./marks/button/${prov}-${st}.svg`, import.meta.url), 'utf8'); } catch { return [`button/${prov}-${st}: no file`]; }
+      const box = svgInkBox(svg), h = Number(/<svg\b[^>]*\sheight="([\d.]+)"/.exec(svg)?.[1]);
+      const at44 = (box.h / h) * 44, mid = ((box.y + box.h / 2) / h) * 44;
+      return h === 44 && Math.abs(at44 - LOGO_AT_44[prov]) <= 0.1 && Math.abs(mid - MID_AT_44[prov]) <= 0.1 ? [] : [`button/${prov}-${st}: logo ${at44.toFixed(2)} high at 44, centered at ${mid.toFixed(2)} (typed ${LOGO_AT_44[prov]} at ${MID_AT_44[prov]})`];
+    }));
+    ok(ratioOff.length === 0, `#3174 provider rules LOGO HEIGHT: each style's logo is its provider's ink height at 44 (${Object.entries(LOGO_AT_44).map(([k, v]) => `${k} ${v}`).join(', ')}), where its SDK places it (${ratioOff.slice(0, 3).join('; ') || 'clean'})`);
+    // ...and the mark binds the button's own height, so the ratio holds at every rung; the any stand-in keeps the icon rung.
+    const markHeight = plans.flatMap((p) => {
+      const n = logoOf(p), want = p.coord.style === 'any' ? comfortable.px(`icon/size/${({ small: 'sm', medium: 'md', large: 'lg' } as Record<string, string>)[String(p.size)]}`) : height(p);
+      return n && comfortable.px(n.bound?.height) === want ? [] : [`${planComponentName(p)}: logo ${comfortable.px(n?.bound?.height)}, want ${want}`];
+    });
+    ok(markHeight.length === 0, `#3174 provider rules LOGO HEIGHT: a style's logo binds the button's height and the any stand-in's the icon height (${markHeight.slice(0, 3).join('; ') || 'clean'})`);
     // The mark unaltered: the provider's own logo, nested whole, its height set and its width from its proportion.
     const altered = plans.flatMap((p) => {
-      const n = logoOf(p), want = RULES[String(p.coord.provider)]?.logo;
+      const n = logoOf(p), want = p.coord.style === 'any' ? RULES[String(p.coord.provider)]?.logo : `provider-logo/button/${p.coord.provider}-${p.coord.style}`;
       const why = !n ? 'no logo' : n.nestTarget !== want ? `nests ${n.nestTarget}, not ${want}` : n.nestOverrides?.length ? 'carries overrides' : !n.aspectLock ? 'no aspect lock' : n.bound?.width ? 'binds a width' : !n.bound?.height ? 'binds no height' : '';
       return why ? [`${planComponentName(p)}: ${why}`] : [];
     });
@@ -19108,7 +19197,7 @@ arm: {
   // carries one is listed here by name; a second def reaching for it fails until its own decision lands (docs/34: the
   // list is the owner's, not derived). The validator's refusals are driven on a copy of SignInButton.
   {
-    const LITERAL_DEFS = ['sign-in-button'];
+    const LITERAL_DEFS = ['sign-in-button', 'wallet-button'];
     const carrying = componentDefs.filter((d) => d.literal || Object.values(d.anatomy?.parts ?? {}).some((p) => p.literal)).map((d) => d.id).sort();
     ok(JSON.stringify(carrying) === JSON.stringify(LITERAL_DEFS), `#2343 PR 5 literal paint: only the defs the owner decided carry a literal record (${carrying.join(', ') || 'none'})`);
     const sb = componentDefs.find((d) => d.id === 'sign-in-button')!;
@@ -19488,7 +19577,7 @@ arm: {
       // against a literal as well as in the roundtrip and the surface digest.
       const findPart = (n: typeof p.root | undefined, nm: string): typeof p.root | undefined => !n ? undefined : n.name === nm ? n : n.children.map((c) => findPart(c, nm)).find(Boolean);
       const lab = findPart(p.root, 'label');
-      const wantLabel = { size: sz, emphasis: 'secondary', weight: 'regular', state: st === 'disabled' ? 'disabled' : 'rest' };
+      const wantLabel = { size: sz, emphasis: 'primary', weight: 'regular', state: st === 'disabled' ? 'disabled' : 'rest' };
       if (lab?.nestTarget !== 'field-label' || JSON.stringify(lab?.nestVariant) !== JSON.stringify(wantLabel))
         offLabel.push(`${name}/label: ${lab?.nestTarget} ${JSON.stringify(lab?.nestVariant)}, want ${JSON.stringify(wantLabel)}`);
       const entry = control?.children.find((c) => c.name === 'entry');
@@ -19504,7 +19593,7 @@ arm: {
       if ((st === 'focus-visible') !== !!ring || (ring && ring.absoluteInset !== RING[ap])) offRing.push(`${name}: ring ${ring ? ring.absoluteInset : 'absent'}`);
     }
     ok(offNest.length === 0, `#2427 counter/nests: both buttons nest FlushIconButton.Neutral exposing [state], outline → flush and ghost → round (Q287 A), at rest unless the Counter is disabled (Q283.7)${offNest.length ? ` — ${offNest.slice(0, 3).join('; ')}` : ''}`);
-    ok(offLabel.length === 0, `#2427 counter/label-dims: the nested FieldLabel is secondary and regular at the Counter's size, disabled on the Counter's disabled members and at rest on the rest${offLabel.length ? ` — ${offLabel.slice(0, 3).join('; ')}` : ''}`);
+    ok(offLabel.length === 0, `#2427 counter/label-dims: the nested FieldLabel is primary and regular (#3200) at the Counter's size, disabled on the Counter's disabled members and at rest on the rest${offLabel.length ? ` — ${offLabel.slice(0, 3).join('; ')}` : ''}`);
     ok(offRow.length === 0, `#2427 counter/row: the row is 36 / 44 / 56 tall (Q287 A), inset 12 / 12 / 16 on outline and 0 on ghost, the value at least 32 wide (Q283.13 A)${offRow.length ? ` — ${offRow.slice(0, 3).join('; ')}` : ''}`);
     ok(offPaint.length === 0, `#2427 counter/paint: outline draws the field fill and edge (the disabled edge at disabled), ghost paints no box at any state, the value full contrast until disabled${offPaint.length ? ` — ${offPaint.slice(0, 3).join('; ')}` : ''}`);
     ok(offRing.length === 0, `#2427 counter/ring: the ring at focus-visible only, at the control offset on ghost (Q283.10 A) and the field offset on outline${offRing.length ? ` — ${offRing.slice(0, 3).join('; ')}` : ''}`);
@@ -20224,13 +20313,13 @@ arm: {
     'component: FieldLabel requires text + binds a semantic text ROLE per emphasis (and no bare `label` key survives)');
   // #1334: field-label's prominence axis is `emphasis` (renamed from `tone`), and its ink-emphasis prop is
   // `emphasis` too. Hand-written literals, not derived — reverting the def's axis rename fails this by name
-  // (alongside lint-component-surface's planStamp and lint-axis-values' register). `secondary` FIRST since
-  // #1699 decision 4: the first value is the set's first member, Figma's default variant.
-  ok(JSON.stringify(fieldLabel.variants.emphasis) === JSON.stringify(['secondary', 'primary'])
+  // (alongside lint-component-surface's planStamp and lint-axis-values' register). `primary` FIRST since
+  // #3200 (owner Q-PH1 A; `secondary` from #1699 decision 4 until then): the first value is the set's first member, Figma's default variant.
+  ok(JSON.stringify(fieldLabel.variants.emphasis) === JSON.stringify(['primary', 'secondary'])
     && fieldLabel.variants.tone === undefined
     && !!fieldLabel.props.find((p) => p.name === 'emphasis')
     && !fieldLabel.props.some((p) => p.name === 'tone'),
-    'component: FieldLabel emphasis axis is [secondary, primary] and `tone` is retired (#1334, #1699)');
+    'component: FieldLabel emphasis axis is [primary, secondary] and `tone` is retired (#1334, #1699, #3200)');
   // …and TYPE follows size across three rungs, on `type.body.*` — the tier #862 predicted and the one
   // that matches Prism 2's 14/16/18 ladder. `type.label.*` is 12/14/18 (its `lg` was minted at 18 by
   // #1260) but emphasis-only and its middle rung is 14 not 16, so it matches neither Prism 2's sizes nor
@@ -20366,12 +20455,12 @@ arm: {
     ok(findPart(roErr, 'control')?.paints?.strokes === 'color/border/danger',
       `#1699 select's error status keeps the danger border at read-only (got ${String(findPart(roErr, 'control')?.paints?.strokes)})`);
 
-    // (C) DECISION 4 — field-label's defaults follow its hosts: required off, small, secondary. The host side
+    // (C) DECISION 4 — field-label's defaults follow its hosts: required off, small, primary (#3200; secondary until then). The host side
     //     is read off the HOSTS' own nest coordinates (a separate authored place), so the two halves are
     //     independent: a label default that drifts from how the hosts nest it fails here by name.
     const flDefault = (name: string) => fieldLabel.props.find((p) => p.name === name)?.default;
-    ok(flDefault('required') === false && flDefault('size') === 'small' && flDefault('emphasis') === 'secondary',
-      `#1699 field-label defaults are required=false, size=small, emphasis=secondary (got ${String(flDefault('required'))} / ${String(flDefault('size'))} / ${String(flDefault('emphasis'))})`);
+    ok(flDefault('required') === false && flDefault('size') === 'small' && flDefault('emphasis') === 'primary',
+      `#1699 field-label defaults are required=false, size=small, emphasis=primary (#3200) (got ${String(flDefault('required'))} / ${String(flDefault('size'))} / ${String(flDefault('emphasis'))})`);
     // The two GROUPS nest field-label without overriding `required`, so their Figma marker IS field-label's
     // default. Their own code `required` must agree with it — and with the brief (§15: `false`), the literal
     // expected here. A group left at `true` builds a hidden marker under a code default that says required:
@@ -20392,9 +20481,9 @@ arm: {
     //     And the FIGMA default (the set's first member — Figma's default variant is the first child) is the
     //     same cell, with the marker built hidden.
     const flFirst = figmaAnatomySet(fieldLabel)[0];
-    ok(planComponentName(flFirst) === 'emphasis=secondary, weight=regular, size=small, state=rest'
+    ok(planComponentName(flFirst) === 'emphasis=primary, weight=regular, size=small, state=rest'
       && findPart(flFirst.root, 'indicator')?.visible === false,
-      `#1699 field-label's first member (the Figma default) is small / secondary / regular / rest with the marker hidden (got "${planComponentName(flFirst)}")`);
+      `#1699 field-label's first member (the Figma default) is small / primary / regular / rest (#3200) with the marker hidden (got "${planComponentName(flFirst)}")`);
 
     // (D) DECISION 3 — text-field has one prop per slot: two glyph slots and two TEXT affixes.
     const tfType = (name: string) => textField.props.find((p) => p.name === name)?.type;
@@ -21738,6 +21827,13 @@ arm: {
     };
     throws('an undeclared appearance throws', () => figmaAnatomyPlan(button, 'medium', { appearance: 'nope' }));
     throws('an undeclared state throws', () => figmaAnatomyPlan(button, 'medium', { appearance: 'filled', state: 'nope' }));
+    // #3174 / #3195 — a literal 'surface' entry naming no paint is a member the def declares unpainted; an edge with no
+    // fill under it, or no entry at all, is the silent-loss shape and throws. Pinned apart on a copy of WalletButton.
+    const wbLit = componentDefs.find((d) => d.id === 'wallet-button')!, anyAt = { provider: 'apple-pay', style: 'any' };
+    const withAny = (e: Record<string, string> | undefined) => ({ ...wbLit, literal: { ...wbLit.literal!, entries: { ...wbLit.literal!.entries, 'apple-pay.any': e } } }) as typeof wbLit;
+    ok(!figmaAnatomyPlan(withAny({}), 'medium', anyAt).root.literalPaints?.fills, 'anatomy: a literal surface entry naming no paint is unpainted (#3174)');
+    throws('a literal surface entry with an edge and no fill throws (#3174)', () => figmaAnatomyPlan(withAny({ edge: '#000000' }), 'medium', anyAt));
+    throws('a literal surface with no entry for the member throws (#3174)', () => figmaAnatomyPlan(withAny(undefined), 'medium', anyAt));
     // #1223 — intent is no longer a coordinate. The def keys paint as `{appearance}.{slot}.*`, so
     // `{appearance}` alone RESOLVES (it used to be half a coordinate under the `{intent}.{appearance}`
     // grammar and threw); the state suffix is still tried first and falls back to the rest key.
@@ -32766,7 +32862,7 @@ arm: {
     const want = status === 'error' ? ['label', 'items', 'message'] : ['label', 'items'];
     if (JSON.stringify(root.children.map((c) => c.name)) !== JSON.stringify(want)) bad.push(`children ${root.children.map((c) => c.name).join(',')}`);
     const label = root.children.find((c) => c.name === 'label');
-    if (label?.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted({ size, emphasis: 'secondary', weight: 'bold', state: 'rest' }))
+    if (label?.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted({ size, emphasis: 'primary', weight: 'bold', state: 'rest' }))
       bad.push(`label ${String(label?.nestTarget)} ${JSON.stringify(label?.nestVariant)}`);
     const items = root.children.find((c) => c.name === 'items');
     if (items?.type !== 'CONTENT_SLOT' || items.layoutAlign !== 'STRETCH') bad.push(`items ${String(items?.type)} ${String(items?.layoutAlign)}`);
@@ -32781,7 +32877,7 @@ arm: {
     return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
   });
   ok(off.length === 0,
-    `#2715 radio-group nesting: on every member, one FieldLabel (secondary, bold, rest) then an items slot (at least one, preferred-only Radio.Row, stretched) holding three Radio.Rows, each following the group's size and status, none behind a boolean (${off.length} off — ${off[0] ?? 'none'})`);
+    `#2715 radio-group nesting: on every member, one FieldLabel (primary, bold, rest) then an items slot (at least one, preferred-only Radio.Row, stretched) holding three Radio.Rows, each following the group's size and status, none behind a boolean (${off.length} off — ${off[0] ?? 'none'})`);
   const parts = Object.values(g!.anatomy!.parts);
   ok(parts.filter((p) => p.kind === 'nest' && p.nests === 'radio-row').every((p) => p.nesting?.kind === 'nest-fixed')
     && !parts.some((p) => p.nests === 'radio-control'),
@@ -37073,6 +37169,17 @@ arm: {
   }
   ok(corpus().length >= 4 && offBox.length === 0,
     `#3180 accordion title line box (#2586 kept): the regular title composite is one line of type.label.{rung}.line-box at every size, in every brand` + (offBox.length ? ` — OFF: ${offBox.join('; ')}` : ''));
+
+  // THE DIVIDER TOGGLE (#3198, owner Q-ACC2 A): one BOOLEAN named `divider`, default on, wired to the nested Divider's
+  // visibility in every member, and a code prop of the same name and default. EXPECTED is typed here; ACTUAL is the
+  // projected set's properties and each member's `divider` node. The boolean dropped, unwired or defaulted off fails here.
+  const divProp = planSetProperties(plans).filter((q) => q.name === 'divider');
+  const unwired = plans.filter((p) => { const d = find(p.root as PN, 'divider') as PN & { visibleProp?: string; visible?: boolean } | undefined; return !d || d.visibleProp !== 'divider' || d.visible === false; }).map((p) => planComponentName(p));
+  ok(plans.length === 48 && divProp.length === 1 && divProp[0].type === 'BOOLEAN' && unwired.length === 0,
+    `#3198 accordion divider wired (Q-ACC2 A): the set declares one BOOLEAN 'divider', and all 48 members' nested Divider is built visible with its visibility bound to it (got ${JSON.stringify(divProp)}${unwired.length ? `; UNWIRED: ${unwired.slice(0, 4).join(', ')}` : ''})`);
+  const divCode = acc.props.find((q) => q.name === 'divider');
+  ok(divProp[0]?.default === true && divCode?.type === 'boolean' && divCode.default === true,
+    `#3198 accordion divider default on (Q-ACC2 A): the Figma property and the code prop 'divider' both default to true (Figma ${JSON.stringify(divProp[0]?.default)}, code ${JSON.stringify(divCode && { type: divCode.type, default: divCode.default })})`);
 }
 
 // ------------------------------------------------------------------- #2319: the list and its item
@@ -38800,7 +38907,7 @@ arm: {
     let dimmed = 0;
     for (const p of plans) {
       const c = p.coord as Record<string, string>;
-      const want = { size: p.size!, emphasis: 'secondary', weight: 'regular', state: c.state === 'disabled' ? 'disabled' : 'rest' };
+      const want = { size: p.size!, emphasis: 'primary', weight: 'regular', state: c.state === 'disabled' ? 'disabled' : 'rest' };
       const label = find(p.root as PN, 'label');
       const member = label?.nestVariant ? nestVariantMatch(label.nestVariant, labelNames) : null;
       if (!label || label.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted(want) || !member || !member.split(', ').includes(`state=${want.state}`))
@@ -38883,10 +38990,10 @@ arm: {
     `#2830 spec: Button filled at rest fills color.interactive.primary.fill.rest under on-fill ink (${JSON.stringify(rest?.parts)})`);
   ok(rest?.parts.find((p) => p.part === 'container/leadingVisual')?.icon === 'color.interactive.primary.on-fill' && rest?.parts.find((p) => p.part === 'container/trailingVisual')?.icon === 'color.interactive.primary.on-fill',
     `#2830 spec: Button filled at rest inks both visuals color.interactive.primary.on-fill (${JSON.stringify(rest?.parts.filter((p) => p.part.endsWith('Visual')))})`);
-  // A nest's fixed variant and the host values that move it: Text field's label rests at secondary, regular, and
+  // A nest's fixed variant and the host values that move it: Text field's label rests at primary (#3200), regular, and
   // dims with the field; Counter's ghost members nest the round shape, its outline ones the flush (Q287 A).
-  ok(JSON.stringify(label?.kind === 'instance' && label.variant) === '{"size":"medium","emphasis":"secondary","weight":"regular","state":"rest"}' && JSON.stringify(label?.kind === 'instance' && label.when) === '{"state":{"disabled":{"state":"disabled"}}}',
-    `#2830 spec: Text field's label nests field-label at secondary, regular, rest, and takes state=disabled on a disabled field (${JSON.stringify(label)})`);
+  ok(JSON.stringify(label?.kind === 'instance' && label.variant) === '{"size":"medium","emphasis":"primary","weight":"regular","state":"rest"}' && JSON.stringify(label?.kind === 'instance' && label.when) === '{"state":{"disabled":{"state":"disabled"}}}',
+    `#2830 spec: Text field's label nests field-label at primary, regular, rest, and takes state=disabled on a disabled field (${JSON.stringify(label)})`);
   const dec = specOf('counter').nesting.find((n) => n.part === 'container/control/decrement');
   ok(dec?.kind === 'instance' && dec.variant.shape === 'flush' && dec.when?.appearance?.ghost?.shape === 'round' && dec.when?.appearance?.outline?.shape === 'flush',
     `#2830 spec: Counter's minus nests the flush shape, and the round one on a ghost Counter (${JSON.stringify(dec)})`);

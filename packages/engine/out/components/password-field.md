@@ -21,7 +21,7 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 1. **Label row** — The label and the Show/Hide button on one row, the button at the end. The row is as tall as the label's line; the button stretches to it.
 2. **Label cell** — The label's cell. It fills the row up to the button, so a long label wraps before it reaches the button.
-3. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the field. A fix to FieldLabel still reaches this without a copy. Starts secondary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
+3. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the field. A fix to FieldLabel still reaches this without a copy. Starts primary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
 4. **Toggle** — The Show/Hide button: a small flush text Button in the emphasis weight, at the end of the label row, at every field size. It reads "Show" on every member; set it to "Hide" for the shown look. Disabled with the field, live when read-only, never colored by status. It stretches to the row, so the row is as tall as the label.
 5. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
 6. **Caret**
@@ -448,7 +448,7 @@ Keyed by `status`, `state`.
 
 ### Nesting and properties
 
-- `container/labelRow/labelCell/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
+- `container/labelRow/labelCell/label` nests `field-label` at `size=medium, emphasis=primary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
 - `container/labelRow/toggle` nests `button` at `appearance=text, size=small, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false`; `state=disabled` takes `state=disabled`; exposes `label`
 - `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
 - `container/message` nests `field-message` at `status=default`; follows `status`

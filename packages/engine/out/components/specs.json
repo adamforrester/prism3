@@ -601,12 +601,23 @@
     "provider-logo": {
       "id": "provider-logo",
       "name": "ProviderLogo",
-      "members": 75,
+      "members": 86,
       "axes": [
         {
           "name": "name",
           "figmaName": "name",
           "values": [
+            "button/apple-pay-black",
+            "button/apple-pay-white",
+            "button/apple-pay-white-outline",
+            "button/google-pay-black",
+            "button/google-pay-white",
+            "button/paypal-black",
+            "button/paypal-blue",
+            "button/paypal-gold",
+            "button/paypal-silver",
+            "button/paypal-white",
+            "button/shop-pay-purple",
             "logo/affirm",
             "logo/amazon-pay",
             "logo/amex",
@@ -691,7 +702,7 @@
         {
           "part": "glyph",
           "kind": "glyph",
-          "members": 75
+          "members": 86
         }
       ],
       "redlineKey": [],
@@ -712,6 +723,72 @@
         "name"
       ],
       "colors": [
+        {
+          "where": {
+            "name": "button/apple-pay-black"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "button/apple-pay-white"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "button/apple-pay-white-outline"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "button/google-pay-black"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "button/google-pay-white"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "button/paypal-black"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "button/paypal-blue"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "button/paypal-gold"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "button/paypal-silver"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "button/paypal-white"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "name": "button/shop-pay-purple"
+          },
+          "parts": []
+        },
         {
           "where": {
             "name": "logo/affirm"
@@ -9808,7 +9885,7 @@
     "wallet-button": {
       "id": "wallet-button",
       "name": "WalletButton",
-      "members": 20,
+      "members": 68,
       "axes": [
         {
           "name": "provider",
@@ -9818,6 +9895,21 @@
             "google-pay",
             "paypal",
             "shop-pay"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "style",
+          "figmaName": "style",
+          "values": [
+            "any",
+            "black",
+            "white",
+            "white-outline",
+            "gold",
+            "blue",
+            "silver",
+            "purple"
           ],
           "kind": "variant"
         },
@@ -9846,17 +9938,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 20
+          "members": 68
         },
         {
           "part": "container/mark",
           "kind": "instance",
-          "members": 20
+          "members": 68
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 10,
+          "members": 34,
           "when": {
             "state": [
               "focus-visible"
@@ -9865,12 +9957,14 @@
         }
       ],
       "redlineKey": [
-        "size"
+        "size",
+        "style"
       ],
       "redlines": [
         {
           "where": {
-            "size": "medium"
+            "size": "medium",
+            "style": "any"
           },
           "parts": [
             {
@@ -9897,7 +9991,8 @@
         },
         {
           "where": {
-            "size": "small"
+            "size": "small",
+            "style": "any"
           },
           "parts": [
             {
@@ -9924,7 +10019,8 @@
         },
         {
           "where": {
-            "size": "large"
+            "size": "large",
+            "style": "any"
           },
           "parts": [
             {
@@ -9944,6 +10040,482 @@
               "values": {
                 "height": {
                   "token": "icon.size.lg"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "black"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "black"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "black"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.lg.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "white"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "white"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "white"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.lg.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "white-outline"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "white-outline"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "white-outline"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.lg.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "gold"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "gold"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "blue"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "blue"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "silver"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "silver"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.sm.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "purple"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.md.height"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "purple"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/mark",
+              "values": {
+                "height": {
+                  "token": "size.lg.height"
                 }
               }
             }
@@ -9975,12 +10547,14 @@
       ],
       "colorKey": [
         "provider",
+        "style",
         "state"
       ],
       "colors": [
         {
           "where": {
             "provider": "apple-pay",
+            "style": "any",
             "state": "rest"
           },
           "parts": []
@@ -9988,6 +10562,55 @@
         {
           "where": {
             "provider": "apple-pay",
+            "style": "any",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple-pay",
+            "style": "black",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple-pay",
+            "style": "black",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple-pay",
+            "style": "white",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple-pay",
+            "style": "white",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple-pay",
+            "style": "white-outline",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "apple-pay",
+            "style": "white-outline",
             "state": "focus-visible"
           },
           "parts": []
@@ -9995,6 +10618,7 @@
         {
           "where": {
             "provider": "google-pay",
+            "style": "any",
             "state": "rest"
           },
           "parts": []
@@ -10002,6 +10626,39 @@
         {
           "where": {
             "provider": "google-pay",
+            "style": "any",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google-pay",
+            "style": "black",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google-pay",
+            "style": "black",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google-pay",
+            "style": "white",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "google-pay",
+            "style": "white",
             "state": "focus-visible"
           },
           "parts": []
@@ -10009,6 +10666,7 @@
         {
           "where": {
             "provider": "paypal",
+            "style": "any",
             "state": "rest"
           },
           "parts": []
@@ -10016,6 +10674,87 @@
         {
           "where": {
             "provider": "paypal",
+            "style": "any",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "style": "black",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "style": "black",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "style": "white",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "style": "white",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "style": "gold",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "style": "gold",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "style": "blue",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "style": "blue",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "style": "silver",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "paypal",
+            "style": "silver",
             "state": "focus-visible"
           },
           "parts": []
@@ -10023,6 +10762,7 @@
         {
           "where": {
             "provider": "shop-pay",
+            "style": "any",
             "state": "rest"
           },
           "parts": []
@@ -10030,6 +10770,23 @@
         {
           "where": {
             "provider": "shop-pay",
+            "style": "any",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "shop-pay",
+            "style": "purple",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "provider": "shop-pay",
+            "style": "purple",
             "state": "focus-visible"
           },
           "parts": []
@@ -10043,22 +10800,143 @@
           "variant": {
             "name": "logo/apple-pay"
           },
-          "when": {
-            "provider": {
-              "apple-pay": {
+          "where": [
+            {
+              "when": {
+                "provider": "apple-pay",
+                "style": "any"
+              },
+              "set": {
                 "name": "logo/apple-pay"
+              }
+            },
+            {
+              "when": {
+                "provider": "apple-pay",
+                "style": "black"
               },
-              "google-pay": {
+              "set": {
+                "name": "button/apple-pay-black"
+              }
+            },
+            {
+              "when": {
+                "provider": "apple-pay",
+                "style": "white"
+              },
+              "set": {
+                "name": "button/apple-pay-white"
+              }
+            },
+            {
+              "when": {
+                "provider": "apple-pay",
+                "style": "white-outline"
+              },
+              "set": {
+                "name": "button/apple-pay-white-outline"
+              }
+            },
+            {
+              "when": {
+                "provider": "google-pay",
+                "style": "any"
+              },
+              "set": {
                 "name": "logo/google-pay"
+              }
+            },
+            {
+              "when": {
+                "provider": "google-pay",
+                "style": "black"
               },
-              "paypal": {
+              "set": {
+                "name": "button/google-pay-black"
+              }
+            },
+            {
+              "when": {
+                "provider": "google-pay",
+                "style": "white"
+              },
+              "set": {
+                "name": "button/google-pay-white"
+              }
+            },
+            {
+              "when": {
+                "provider": "paypal",
+                "style": "any"
+              },
+              "set": {
                 "name": "logo/paypal-wordmark"
+              }
+            },
+            {
+              "when": {
+                "provider": "paypal",
+                "style": "gold"
               },
-              "shop-pay": {
+              "set": {
+                "name": "button/paypal-gold"
+              }
+            },
+            {
+              "when": {
+                "provider": "paypal",
+                "style": "blue"
+              },
+              "set": {
+                "name": "button/paypal-blue"
+              }
+            },
+            {
+              "when": {
+                "provider": "paypal",
+                "style": "silver"
+              },
+              "set": {
+                "name": "button/paypal-silver"
+              }
+            },
+            {
+              "when": {
+                "provider": "paypal",
+                "style": "white"
+              },
+              "set": {
+                "name": "button/paypal-white"
+              }
+            },
+            {
+              "when": {
+                "provider": "paypal",
+                "style": "black"
+              },
+              "set": {
+                "name": "button/paypal-black"
+              }
+            },
+            {
+              "when": {
+                "provider": "shop-pay",
+                "style": "any"
+              },
+              "set": {
                 "name": "logo/shop-pay"
               }
+            },
+            {
+              "when": {
+                "provider": "shop-pay",
+                "style": "purple"
+              },
+              "set": {
+                "name": "button/shop-pay-purple"
+              }
             }
-          },
+          ],
           "follows": [],
           "exposes": []
         },
@@ -10073,7 +10951,53 @@
           "exposes": []
         }
       ],
-      "properties": []
+      "properties": [],
+      "literal": {
+        "key": "{provider}.{style}",
+        "entries": {
+          "apple-pay.any": {},
+          "apple-pay.black": {
+            "fill": "#000000"
+          },
+          "apple-pay.white": {
+            "fill": "#ffffff"
+          },
+          "apple-pay.white-outline": {
+            "fill": "#ffffff",
+            "edge": "#000000"
+          },
+          "google-pay.any": {},
+          "google-pay.black": {
+            "fill": "#000000",
+            "edge": "#757575"
+          },
+          "google-pay.white": {
+            "fill": "#ffffff",
+            "edge": "#3c4043"
+          },
+          "paypal.any": {},
+          "paypal.gold": {
+            "fill": "#ffc439"
+          },
+          "paypal.blue": {
+            "fill": "#0070ba"
+          },
+          "paypal.silver": {
+            "fill": "#eeeeee"
+          },
+          "paypal.white": {
+            "fill": "#ffffff",
+            "edge": "#555555"
+          },
+          "paypal.black": {
+            "fill": "#2c2e2f"
+          },
+          "shop-pay.any": {},
+          "shop-pay.purple": {
+            "fill": "#5433eb"
+          }
+        }
+      }
     },
     "sign-in-button": {
       "id": "sign-in-button",
@@ -17569,8 +18493,8 @@
           "name": "emphasis",
           "figmaName": "emphasis",
           "values": [
-            "secondary",
-            "primary"
+            "primary",
+            "secondary"
           ],
           "kind": "variant"
         },
@@ -17820,74 +18744,6 @@
       "colors": [
         {
           "where": {
-            "emphasis": "secondary",
-            "weight": "regular",
-            "state": "rest"
-          },
-          "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.text.secondary"
-            },
-            {
-              "part": "container/indicator",
-              "ink": "color.text.secondary"
-            }
-          ]
-        },
-        {
-          "where": {
-            "emphasis": "secondary",
-            "weight": "regular",
-            "state": "disabled"
-          },
-          "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.disabled.text"
-            },
-            {
-              "part": "container/indicator",
-              "ink": "color.disabled.text"
-            }
-          ]
-        },
-        {
-          "where": {
-            "emphasis": "secondary",
-            "weight": "bold",
-            "state": "rest"
-          },
-          "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.text.secondary"
-            },
-            {
-              "part": "container/indicator",
-              "ink": "color.text.secondary"
-            }
-          ]
-        },
-        {
-          "where": {
-            "emphasis": "secondary",
-            "weight": "bold",
-            "state": "disabled"
-          },
-          "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.disabled.text"
-            },
-            {
-              "part": "container/indicator",
-              "ink": "color.disabled.text"
-            }
-          ]
-        },
-        {
-          "where": {
             "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
@@ -17940,6 +18796,74 @@
         {
           "where": {
             "emphasis": "primary",
+            "weight": "bold",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/indicator",
+              "ink": "color.disabled.text"
+            }
+          ]
+        },
+        {
+          "where": {
+            "emphasis": "secondary",
+            "weight": "regular",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/indicator",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "emphasis": "secondary",
+            "weight": "regular",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/indicator",
+              "ink": "color.disabled.text"
+            }
+          ]
+        },
+        {
+          "where": {
+            "emphasis": "secondary",
+            "weight": "bold",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/indicator",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "emphasis": "secondary",
             "weight": "bold",
             "state": "disabled"
           },
@@ -19434,7 +20358,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -20721,7 +21645,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -22231,7 +23155,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "bold",
             "state": "rest"
           },
@@ -23481,7 +24405,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "bold",
             "state": "rest"
           },
@@ -25631,7 +26555,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -31201,6 +32125,11 @@
           "default": "Section title"
         },
         {
+          "name": "divider",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
           "name": "content",
           "type": "SLOT"
         }
@@ -32966,7 +33895,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "bold",
             "state": "rest"
           },
@@ -38405,7 +39334,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -40031,7 +40960,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -44032,7 +44961,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -45245,7 +46174,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -47179,7 +48108,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "bold",
             "state": "rest"
           },
@@ -48144,7 +49073,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
