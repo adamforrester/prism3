@@ -1172,8 +1172,8 @@
           {
             "name": "emphasis",
             "values": [
-              "secondary",
-              "primary"
+              "primary",
+              "secondary"
             ]
           },
           {

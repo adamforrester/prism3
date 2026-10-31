@@ -53,13 +53,6 @@ const topNodes = (page: MovePage | undefined, def: string): PNode[] => {
   return sets.length ? sets.slice(0, 1) : topSingles(page, def);
 };
 
-/** What stays on `page` once `def`'s nodes and their own furniture move off it (#3172): the whole page when none move. */
-export const stayingOn = (page: MovePage | undefined, def: string): PNode[] => {
-  const nodes = topNodes(page, def);
-  const kids = [...(page?.children ?? [])];
-  return kids.filter((k) => !nodes.includes(k) && !nodes.includes(ownerSet(k, kids) as PNode));
-};
-
 /** THE MOVES DUE, read off the page list and writing nothing, in `FORMER_PAGES` order (a part before the part that nests
  *  it). Empty on a file with no former page, or whose former pages hold no Prism3 set the taxonomy now places elsewhere. */
 export const pageMovesDue = (children: readonly PageLike[], t: Taxonomy = TAXONOMY): PageMove[] => {

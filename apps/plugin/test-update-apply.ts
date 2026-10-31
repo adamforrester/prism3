@@ -56,6 +56,10 @@
  *   edge/…         a file built when the disabled edge bound `color.disabled.icon` (#1349, #1697) is corrected in
  *                  place to `color.disabled.border` (Q346, #2749): Tag, Button and IconButton, every key and id kept,
  *                  current after. Mutation: the def's binding reverted → `edge/<def> rebound`.
+ *   <host> leads/… a field host built with its FieldLabel at emphasis=secondary takes primary in place on Update (#3200,
+ *                  owner Q-PH1 A), every key and id kept, a hand edit on the label and one on the member root kept.
+ *                  Mutations: the in-place swap skipped → `<host> leads/primary`; the `kept` check dropped from the
+ *                  nested path → `<host> leads/hand edit kept`.
  *   reach/…        a member stamped under a revision that did not redraw its set reads current; below the record's
  *                  floor it is to update (#3101). Mutation: `update-plan.ts` without `reaches` → `reach/dry run 42`.
  *   corpus/…       every def, re-applied in place by an executor revision bump, keeps every key and id, reads
@@ -240,7 +244,6 @@ import { adoptMembers, breakingLine, breakingOf, breakingSection, breakingSummar
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
-import { headerFor } from './src/page-header';
 
 let failed = 0;
 let executed = 0;
@@ -467,152 +470,6 @@ section('page moves — a set on its former page moves to the page the taxonomy 
   ok(w.api._versions.length === 1 && w.api._versions[0] === 'Saved before Prism3 updated breadcrumb-item', `moves/version: one named version before the move (${JSON.stringify(w.api._versions)})`);
   const again = await previewUpdate(host, targets);
   ok(!again.pageMoves && previewVerdict(again).headline === '✓ All sets up to date', `moves/converges: the next dry run lists no move (${previewVerdict(again).headline})`);
-}
-
-/* ── block headers ────────────────────────────────────────────────────────────────────────────────────── */
-// #3172, owner decisions Q3172.1–3, all A: the provider logos get a Size=Medium header of their own on Icons & assets,
-// 80px over their block. On a file built when they had their own page, Update moves that page's header with them (the
-// same node), titles it "Provider logos" while it still reads the old name or the placeholder, keeps any other text a
-// designer typed, and reports the page it leaves as safe to delete, never deleting it. A second Update does nothing, and
-// the header is the one a fresh build draws. Every expected value is a literal here: "Provider logos", the 80px gap, the
-// shim's 120px header height and 1000px variant width, the summary copied from `provider-logo.ts`.
-// Mutations, each failing the arm it names: the apply's `placeBlockHeaders` call dropped → `blocks/apply`; the dry run's
-// read dropped → `blocks/dry run`, `blocks/apply`; the earlier-name rewrite (`also`) dropped → `blocks/title`; every
-// Title rewritten → `blocks/designer`; the tag check in `blockHeadersDue` dropped → `blocks/idempotent`; the block's own
-// header untagged → `blocks/idempotent`, `blocks/fresh lead`; `headerFor`'s block arm dropped → `blocks/fresh`; the
-// blocks left in the lead header's measure → `blocks/fresh lead`; the lead's present-check counting a tagged header →
-// `blocks/fresh`, `blocks/fresh lead`; the emptied former page not reported → `blocks/page kept`, `/verdict`, `/rerun`.
-// The moved header left untagged → `blocks/apply`, `/idempotent`, `/rerun`, `/designer`.
-section('block headers — the provider logos\' own header, moved with them from their old page, or drawn');
-{
-  const SUMMARY = 'A provider\'s own mark, in its own colors: sign-in, payment and social. Never retinted.';
-  type K = { id: string; name: string; type: string; x: number; y: number; width: number; height: number; visible?: boolean; children?: K[]; characters?: string; fontName?: unknown;
-    data?: Record<string, string>; getSharedPluginData(ns: string, k: string): string; setSharedPluginData?(ns: string, k: string, v: string): void; [k: string]: unknown };
-  type P = { name: string; isPageDivider?: boolean; children: K[]; appendChild(c: K): void; remove(): void };
-  const findIn = (n: K, f: (x: K) => boolean): K | null => { for (const c of n.children ?? []) { if (f(c)) return c; const d = findIn(c, f); if (d) return d; } return null; };
-  const text = (name: string, characters: string): K => ({ id: `t:${name}`, type: 'TEXT', name, characters, fontName: { family: 'Inter', style: 'Regular' }, x: 0, y: 0, width: 0, height: 0, getSharedPluginData: () => '' });
-  // The `_Section-header` set, one Size=Medium variant authored 1000 wide, its text the placeholder.
-  const hset: K = { id: 'hset', type: 'COMPONENT_SET', name: '_Section-header', x: 0, y: 0, width: 1000, height: 120, children: [], getSharedPluginData: () => '' };
-  const variant: K = { id: 'hv', type: 'COMPONENT', name: 'Size=Medium', x: 0, y: 0, width: 1000, height: 120, parent: hset,
-    children: [{ ...text('Text', ''), type: 'FRAME', children: [text('Title', 'Section header'), text('Description', 'Descriptive Text')] }], getSharedPluginData: () => '' };
-  variant.findOne = (f: (x: K) => boolean) => findIn(variant, f);
-  hset.children!.push(variant);
-  let made = 0;
-  // An instance of it: 120 tall, its text and plugin data its own.
-  const header = (id: string, title: string, description: string, x: number, y: number, width = 1000): K => {
-    const h: K = { id, type: 'INSTANCE', name: '_Section-header', x, y, width, height: 120, data: {},
-      children: [{ ...text('Text', ''), type: 'FRAME', children: [text('Title', title), text('Description', description)] }],
-      componentProperties: {}, getSharedPluginData(ns, k) { return ns === NS ? h.data![k] ?? '' : ''; }, setSharedPluginData(ns, k, v) { if (ns === NS) h.data![k] = v; } };
-    h.findOne = (f: (x: K) => boolean) => findIn(h, f);
-    h.getMainComponentAsync = async () => variant;
-    h.resize = (w: number) => { h.width = w; };
-    h.setProperties = () => {};
-    return h;
-  };
-  variant.createInstance = () => header(`new${++made}`, 'Section header', 'Descriptive Text', 0, 0);
-  const comp = (id: string, name: string, x: number, y: number, width: number): K =>
-    ({ id, name, type: 'COMPONENT', x, y, width, height: 24, getSharedPluginData: (ns, k) => (ns === NS && k === STAMP_KEY ? '9.9.9|0123456789abcdef|1' : '') });
-  const titleOf = (h: K) => findIn(h, (n) => n.name === 'Title')!.characters;
-  const descOf = (h: K) => findIn(h, (n) => n.name === 'Description')!.characters;
-  const headersOn = (p: P) => p.children.filter((n) => n.type === 'INSTANCE' && n.name === '_Section-header');
-  const tagged = (p: P) => headersOn(p).filter((h) => h.data?.headerFor === 'provider-logo');
-  // A file of Icons & assets (the icons and their header) and, before #3148, Brand marks: the marks and their header.
-  const file = async (o: { moved?: boolean; title?: string; description?: string } = {}) => {
-    const w = await world(TAG);
-    const pages: P[] = [];
-    const removed: string[] = [];
-    const pg = (name: string, isPageDivider = false): P => {
-      const p: P = { name, isPageDivider, children: [], appendChild(c: K) { for (const q of pages) { const i = q.children.indexOf(c); if (i >= 0) q.children.splice(i, 1); } p.children.push(c); },
-        remove() { removed.push(p.name); const i = pages.indexOf(p); if (i >= 0) pages.splice(i, 1); } };
-      return p;
-    };
-    pages.push(pg('Cover'), pg('---', true), pg('Foundations'), pg('↳ Icons & assets'), pg('↳ Brand marks'));
-    const [icons, marks] = [pages[3], pages[4]];
-    icons.children.push(header('h-icon', 'Icon', 'An icon.', 0, 0), comp('i1', 'icon/check', 0, 200, 24), comp('i2', 'icon/close', 48, 200, 24));
-    // Pre-#3172 Update had moved the marks, left the header (the owner's file), or nothing had moved yet.
-    const logos = o.moved
-      ? [comp('b1', 'provider-logo/payment/visa', 1160, 200, 54), comp('b2', 'provider-logo/logo/apple-pay', 1238, 200, 54)]
-      : [comp('b1', 'brand-mark/payment/visa', 0, 200, 54), comp('b2', 'brand-mark/logo/apple-pay', 78, 200, 54)];
-    (o.moved ? icons : marks).children.push(...logos);
-    const old = header('h-bm', o.title ?? 'Brand marks', o.description ?? 'Descriptive Text', 0, 0);
-    marks.children.push(old);
-    const host = { ...w.host, createPage() { const p = pg(''); pages.push(p); return p; }, async loadAllPagesAsync() {},
-      root: { ...w.host.root, get children() { return pages; }, insertChild(i: number, p: P) { const at = pages.indexOf(p); if (at >= 0) pages.splice(at, 1); pages.splice(i, 0, p); }, appendChild(p: P) { pages.push(p); },
-        findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? [...w.host.root.findAllWithCriteria(c), hset] : w.host.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
-    return { w, host, pages, removed, icons, marks, logos, old };
-  };
-  const targets = (w: Awaited<ReturnType<typeof world>>) => [{ def: TAG, plans: w.plans }];
-  const update = async (f: Awaited<ReturnType<typeof file>>) => {
-    const pre = await previewUpdate(f.host, targets(f.w));
-    return { pre, res: await applyUpdate(f.host, f.w.api as any, targets(f.w), previewHashOf(pre)) };
-  };
-
-  // The update-in-place arm the issue asks for: the old layout with its header, then Update.
-  const f = await file();
-  const { pre, res } = await update(f);
-  const v = previewVerdict(pre);
-  ok(JSON.stringify(pre.blockHeaders) === JSON.stringify([{ def: 'provider-logo', title: 'Provider logos', page: '↳ Icons & assets', from: '↳ Brand marks' }])
-    && v.lines.includes('Provider logos header: to move from Brand marks to Icons & assets.'),
-    `blocks/dry run: the header on Brand marks is listed to move with the marks (${JSON.stringify(pre.blockHeaders)}; ${v.lines.join(' | ')})`);
-  const av = applyVerdict(res);
-  const box = { left: Math.min(...f.logos.map((m) => m.x)), top: Math.min(...f.logos.map((m) => m.y)) };
-  ok(tagged(f.icons).length === 1 && tagged(f.icons)[0] === f.old && f.old.id === 'h-bm' && headersOn(f.icons).length === 2 && headersOn(f.marks).length === 0,
-    `blocks/apply: exactly one provider-logos header on Icons & assets, the same node as Brand marks' (id kept), beside the icons' own, and none left on Brand marks (${f.icons.children.map((n) => n.id).join(', ')} | ${f.marks.children.map((n) => n.id).join(', ')})`);
-  ok(f.old.x === box.left && f.old.y === box.top - 80 - 120 && f.old.y === 0,
-    `blocks/apply place: on the block's left edge, its bottom 80px above the block, level with the icons' header (${f.old.x},${f.old.y} over ${box.left},${box.top})`);
-  ok(titleOf(f.old) === 'Provider logos' && descOf(f.old) === SUMMARY, `blocks/title: "Brand marks" and the placeholder rewritten (${titleOf(f.old)} / ${descOf(f.old)})`);
-  ok(f.pages.includes(f.marks) && f.removed.length === 0 && f.marks.children.length === 0 && JSON.stringify(res.emptied) === JSON.stringify(['↳ Brand marks']),
-    `blocks/page kept: Brand marks is empty, still there, and reported (${JSON.stringify(res.emptied)})${f.removed.length ? ` — REMOVED: ${f.removed.join(', ')}` : ''}`);
-  ok(av.lines.includes('Provider logos header: moved from Brand marks to Icons & assets.') && av.lines.includes('Brand marks is now empty, safe to delete.'),
-    `blocks/verdict: the move and the emptied page named (${av.lines.join(' | ')})`);
-  // The idempotence arm: a second Update finds nothing to do, and writes nothing.
-  const versions = f.w.api._versions.length;
-  const at = f.icons.children.map((n) => `${n.id}@${n.x},${n.y}`).join();
-  const again = await update(f);
-  ok(!again.pre.blockHeaders && !again.pre.pageMoves && previewVerdict(again.pre).headline === '✓ All sets up to date' && f.w.api._versions.length === versions
-    && f.icons.children.map((n) => `${n.id}@${n.x},${n.y}`).join() === at && headersOn(f.icons).length === 2,
-    `blocks/idempotent: a second Update lists nothing, saves no version and moves nothing (${previewVerdict(again.pre).headline}; ${JSON.stringify(again.pre.blockHeaders)})`);
-
-  // The owner's file: an Update before #3172 had moved the marks and left the header. Running Update again fixes it.
-  const g = await file({ moved: true });
-  const gr = await update(g);
-  ok(tagged(g.icons).length === 1 && tagged(g.icons)[0] === g.old && g.marks.children.length === 0 && JSON.stringify(gr.res.emptied) === JSON.stringify(['↳ Brand marks'])
-    && applyVerdict(gr.res).headline === '✓ 1 section header placed',
-    `blocks/rerun: on a file whose marks moved without their header, Update moves it now (${applyVerdict(gr.res).headline}; ${JSON.stringify(gr.res.emptied)})`);
-
-  // The designer-edited arm: a Title and Description they typed are kept; the header still moves.
-  const d = await file({ title: 'Our partners', description: 'Wallets and sign-in, as each provider draws them.' });
-  await update(d);
-  ok(tagged(d.icons)[0] === d.old && titleOf(d.old) === 'Our partners' && descOf(d.old) === 'Wallets and sign-in, as each provider draws them.',
-    `blocks/designer: a Title and Description a designer typed are kept (${titleOf(d.old)} / ${descOf(d.old)})`);
-  const s = await file({ title: 'Brand mark' });
-  await update(s);
-  ok(titleOf(s.old) === 'Provider logos', `blocks/title singular: "Brand mark" is the old name too, rewritten (${titleOf(s.old)})`);
-
-  {
-    const e = await file();
-    e.marks.children.push({ ...comp('dz', 'Designer note', 0, 600, 100), type: 'FRAME' } as K);
-    const er = await update(e);
-    const nh = tagged(e.icons)[0];
-    ok(e.marks.children.includes(e.old) && headersOn(e.marks).length === 1 && !e.old.data?.headerFor && !!nh && nh !== e.old
-      && titleOf(nh) === 'Provider logos' && descOf(nh) === SUMMARY && !(er.res.emptied ?? []).includes('↳ Brand marks'),
-      `blocks/designer page: a Brand marks page with designer content keeps its header; the logos get a new one (${e.marks.children.map((c) => c.id).join(', ')} | ${JSON.stringify(er.res.emptied)})`);
-    const yy = await file(); yy.old.y = 500; yy.old.x = 333; await update(yy);
-    ok(yy.old.y === 0 && yy.old.x === Math.min(...yy.logos.map((m) => m.x)), `blocks/apply place moved: the header moves from 333,500 to over the block (${yy.old.x},${yy.old.y})`);
-  }
-
-  // The fresh-build arm: the build labels Icons & assets with each def's header, logos built first. The page gets the
-  // icons' header and the logos' own, and the logos' matches the one Update moved, relative to the block.
-  const n = await file({ moved: true });
-  n.icons.children.splice(n.icons.children.findIndex((c) => c.id === 'h-icon'), 1);
-  for (const def of ['provider-logo', 'icon']) await headerFor(def, n.icons.name, componentDefs)!.label(n.host as never, n.icons as never);
-  const lead = headersOn(n.icons).find((h) => !h.data?.headerFor);
-  const mine = tagged(n.icons)[0];
-  ok(headersOn(n.icons).length === 2 && !!mine && titleOf(mine) === 'Provider logos' && descOf(mine) === SUMMARY
-    && mine.x - 1160 === f.old.x - box.left && mine.y - 200 === f.old.y - box.top && mine.width === f.old.width,
-    `blocks/fresh: a fresh build draws the same header Update leaves, the same text, gap, edge and width (${mine ? `${titleOf(mine)} ${mine.x},${mine.y} ${mine.width}` : 'none'})`);
-  ok(!!lead && titleOf(lead) === 'Icon' && lead.x === 0 && lead.width === 1000 && lead.y === 0,
-    `blocks/fresh lead: the page's own header is placed beside it, over the icons alone (${lead ? `${titleOf(lead)} ${lead.x},${lead.y} ${lead.width}` : 'none'})`);
 }
 
 /* ── hand ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -4730,8 +4587,8 @@ for (const G of ['checkbox-group', 'radio-group', 'segmented-control']) {
   // The exposure and the look, read off the shim's nodes. The weight is typed here from Q348 A: bold stays.
   const read = membersOf(w.set()).map((m) => ({ m: String(m.name), exposed: labelOf(m).isExposedInstance, main: String((labelOf(m).mainComponent as { name?: string } | undefined)?.name) }));
   ok(read.every((x) => x.exposed === true), `${G}/exposed: every member's nested label is now an exposed instance (${read.filter((x) => x.exposed !== true).map((x) => x.m).join('; ') || `all ${N}`})`);
-  ok(read.every((x) => /emphasis=secondary/.test(x.main) && /weight=bold/.test(x.main) && x.main.includes(`size=${/size=(\w+)/.exec(x.m)?.[1]}`)),
-    `${G}/bold kept: every label still instances the secondary, bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
+  ok(read.every((x) => /emphasis=primary/.test(x.main) && /weight=bold/.test(x.main) && x.main.includes(`size=${/size=(\w+)/.exec(x.m)?.[1]}`)),
+    `${G}/bold kept: every label instances the primary (#3200), bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
   const post = (await previewUpdate(w.host, [{ def: G, plans: newPlans }])).sets[0];
   ok(post.counts.current === N && post.handEdits.length === 0, `${G}/current: the next dry run reads all ${N} current (${JSON.stringify(post.counts)})`);
 }
@@ -4914,6 +4771,69 @@ section("label dims — a field built while its label read at rest on every memb
       `${id} label/in place: the set, every member's key and every label instance's id are kept, so the label was swapped, not rebuilt (${moved.slice(0, 2).join('; ') || 'all 84'})`);
     const post = (await previewUpdate(w.host, [{ def: id, plans: planned }])).sets[0];
     ok(post.counts.current === 84, `${id} label/current: the next dry run reads all 84 current (${JSON.stringify(post.counts)})`);
+  }
+}
+
+section('label leads — every field host built with its FieldLabel at emphasis=secondary takes primary in place, ids and hand edits kept (#3200, owner Q-PH1 A)');
+{
+  // THE FILE AS A BUILD BEFORE #3200 LEFT IT: every host's nested FieldLabel at `emphasis=secondary`. Reconstructed from
+  // today's plans by putting that one fact back, so both sides are the real def's projection. FieldLabel is in the file
+  // as a SET, its members under their coordinates, so the instance resolves to a member and an update can reach the
+  // primary one only by swapping it. TWO HAND EDITS, on two members: the label instance itself (its opacity), which the
+  // update must leave as the designer left it (owner decision Q1: keep and report), and the member's own root, which
+  // holds that node only, so the label under it still takes primary. Expected values are literals typed here.
+  // Mutations, each failing the arm it names: the def's nested emphasis left at secondary → `<host> leads/premise`
+  // (nothing to update); the executor's in-place `swapComponent` skipped → `<host> leads/primary`; the `kept` check
+  // dropped from the nested-instance path → `<host> leads/hand edit kept`.
+  const HOSTS = ['text-field', 'password-field', 'search-field', 'card-number-field', 'textarea', 'select', 'code-input', 'counter', 'checkbox-group', 'radio-group', 'segmented-control', 'slider'];
+  const LABEL_MEMBERS = plansOf('field-label').map(planComponentName);
+  const HARNESS_LIMITED = ['card-number-field', 'code-input', 'counter', 'slider'];
+  const atSecondary = (n: PlanNode): PlanNode => ({
+    ...n,
+    ...((n as { nestTarget?: string }).nestTarget === 'field-label' ? { nestVariant: { ...(n as { nestVariant: Record<string, string> }).nestVariant, emphasis: 'secondary' } } : {}),
+    children: (n.children ?? []).map(atSecondary),
+  } as PlanNode);
+  const labelOf = (m: Node): Node | undefined => {
+    const walk = (n: Node): Node | undefined => n.name === 'label' && n.type === 'INSTANCE' ? n : ((n.children as Node[] | undefined) ?? []).map(walk).find(Boolean);
+    return walk(m);
+  };
+  const emphasisOf = (n: Node | undefined): string => /emphasis=([a-z]+)/.exec(String((n?.mainComponent as { name?: string } | undefined)?.name ?? ''))?.[1] ?? '(none)';
+  for (const id of HOSTS) {
+    const planned = plansOf(id);
+    const old = planned.map((p) => ({ ...p, root: atSecondary(p.root) }));
+    const componentProps = id === 'password-field' ? { button: { 'label#7:1': { type: 'TEXT', defaultValue: 'Button' } } } : undefined;
+    const allowMisses: string[] = [];
+    const w = await world(id, old, { fileSets: [{ name: 'field-label', variants: LABEL_MEMBERS }], componentProps, allowMisses });
+    const members = membersOf(w.set());
+    const labelled = members.filter((m) => !!labelOf(m));
+    ok(labelled.length > 0 && labelled.every((m) => emphasisOf(labelOf(m)) === 'secondary') && planned.some((p) => /"emphasis":"primary"/.test(JSON.stringify(p.root))),
+      `${id} leads/premise: the file's ${labelled.length} labels instance FieldLabel at emphasis=secondary, and today's plans nest it at primary (${[...new Set(labelled.map((m) => emphasisOf(labelOf(m))))].join(', ')}; ${allowMisses.length} build misses)`);
+    // The two hand edits, on the first two labelled members.
+    const [onLabel, onRoot] = labelled;
+    (labelOf(onLabel) as Record<string, unknown>).opacity = 0.5;
+    if (onRoot) (onRoot as Record<string, unknown>).opacity = 0.9;
+    const labelIds = new Map(labelled.map((m) => [String(m.name), String(labelOf(m)?.id)] as const));
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: planned }]);
+    const p = pre.sets[0];
+    ok(!!p && !p.blockers.length && p.counts.add + p.counts.drop === 0 && !p.replacements.length && p.counts.update + p.counts.handEdited === labelled.length,
+      `${id} leads/dry run: every labelled member reads update or hand-edited, nothing added, dropped, replaced or refused (${JSON.stringify(p?.counts)}; ${p?.blockers.join('; ') || 'no blockers'})`);
+    // FOUR HOSTS' NESTED PARTS take overrides this harness's file cannot hold (a nested set's own TEXT and SWAP
+    // properties, the card mark's aspect lock), so their verify lists those fields on every member, before and after
+    // this change alike. For them the arm is that no listed field is the label's; for the other eight, a clean verdict.
+    const v = applyVerdict(res);
+    const labelFaults = res.outcomes[0].content.filter((c) => /(^|\/)label[./]/.test(c.split(':')[0]));
+    ok(HARNESS_LIMITED.includes(id) ? labelFaults.length === 0 && res.outcomes[0].content.length > 0 : v.ok && res.outcomes[0].content.length === 0,
+      `${id} leads/verdict: ${HARNESS_LIMITED.includes(id) ? `no field the verify lists is the label's (${res.outcomes[0].content.length} listed, ${labelFaults.length} on the label${labelFaults.length ? `: ${labelFaults[0]}` : ''})` : `${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`}`);
+    const wrong = labelled.filter((m) => m !== onLabel && emphasisOf(labelOf(m)) !== 'primary').map((m) => `${String(m.name)}=${emphasisOf(labelOf(m))}`);
+    ok(wrong.length === 0 && labelled.length > 1, `${id} leads/primary: every other member's label now instances FieldLabel at emphasis=primary, the root-edited member's included (${wrong.length} off: ${wrong.slice(0, 2).join('; ')})`);
+    ok(emphasisOf(labelOf(onLabel)) === 'secondary' && labelOf(onLabel)?.opacity === 0.5 && (onRoot as Record<string, unknown>).opacity === 0.9
+      && res.outcomes[0].kept.some((k) => k.member === String(onLabel.name)) && res.outcomes[0].kept.some((k) => k.member === String(onRoot.name) && k.path === '.'),
+      `${id} leads/hand edit kept: the hand-edited label keeps its opacity and its secondary member, the hand-edited root keeps its opacity, and both are listed as kept (${emphasisOf(labelOf(onLabel))}, ${String(labelOf(onLabel)?.opacity)}, ${String((onRoot as Record<string, unknown>).opacity)}; kept ${JSON.stringify(res.outcomes[0].kept.map((k) => `${k.member}:${k.path}`)).slice(0, 200)})`);
+    const after = identityOf(w.set());
+    const moved = labelled.filter((m) => String(labelOf(m)?.id) !== labelIds.get(String(m.name)) || after.members.get(String(m.name))?.key !== before.members.get(String(m.name))?.key || after.members.get(String(m.name))?.id !== before.members.get(String(m.name))?.id).map((m) => String(m.name));
+    ok(moved.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set) && after.members.size === before.members.size,
+      `${id} leads/in place: the set, every member's key and id, and every label instance's id are kept, so the label was swapped, not rebuilt (${moved.slice(0, 2).join('; ') || `all ${labelled.length}`})`);
   }
 }
 

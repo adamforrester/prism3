@@ -368,10 +368,10 @@ export const segmentedControl: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'primary', weight: 'bold', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
         crossAxisFill: true,
         optional: true,
-        note: 'The visible label, naming what is being chosen. Shown by default. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the control (Q348 A).',
+        note: 'The visible label, naming what is being chosen. Shown by default. Starts primary and bold; its label text, required marker, emphasis and weight surface on the control (Q348 A).',
       },
       track: {
         kind: 'box',

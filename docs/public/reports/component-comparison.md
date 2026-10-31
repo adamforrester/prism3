@@ -465,7 +465,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | dismissible | banner | false | — |
 |  | toast | true | — |
 | emphasis | badge | subtle | subtle, bold, surface |
-|  | field-label | secondary | secondary, primary |
+|  | field-label | primary | primary, secondary |
 | fullWidth | button | false | — |
 |  | button-destructive | false | — |
 |  | button-neutral | false | — |

@@ -17569,8 +17569,8 @@
           "name": "emphasis",
           "figmaName": "emphasis",
           "values": [
-            "secondary",
-            "primary"
+            "primary",
+            "secondary"
           ],
           "kind": "variant"
         },
@@ -17820,74 +17820,6 @@
       "colors": [
         {
           "where": {
-            "emphasis": "secondary",
-            "weight": "regular",
-            "state": "rest"
-          },
-          "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.text.secondary"
-            },
-            {
-              "part": "container/indicator",
-              "ink": "color.text.secondary"
-            }
-          ]
-        },
-        {
-          "where": {
-            "emphasis": "secondary",
-            "weight": "regular",
-            "state": "disabled"
-          },
-          "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.disabled.text"
-            },
-            {
-              "part": "container/indicator",
-              "ink": "color.disabled.text"
-            }
-          ]
-        },
-        {
-          "where": {
-            "emphasis": "secondary",
-            "weight": "bold",
-            "state": "rest"
-          },
-          "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.text.secondary"
-            },
-            {
-              "part": "container/indicator",
-              "ink": "color.text.secondary"
-            }
-          ]
-        },
-        {
-          "where": {
-            "emphasis": "secondary",
-            "weight": "bold",
-            "state": "disabled"
-          },
-          "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.disabled.text"
-            },
-            {
-              "part": "container/indicator",
-              "ink": "color.disabled.text"
-            }
-          ]
-        },
-        {
-          "where": {
             "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
@@ -17940,6 +17872,74 @@
         {
           "where": {
             "emphasis": "primary",
+            "weight": "bold",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/indicator",
+              "ink": "color.disabled.text"
+            }
+          ]
+        },
+        {
+          "where": {
+            "emphasis": "secondary",
+            "weight": "regular",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/indicator",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "emphasis": "secondary",
+            "weight": "regular",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/indicator",
+              "ink": "color.disabled.text"
+            }
+          ]
+        },
+        {
+          "where": {
+            "emphasis": "secondary",
+            "weight": "bold",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/indicator",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "emphasis": "secondary",
             "weight": "bold",
             "state": "disabled"
           },
@@ -19434,7 +19434,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -20721,7 +20721,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -22231,7 +22231,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "bold",
             "state": "rest"
           },
@@ -23481,7 +23481,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "bold",
             "state": "rest"
           },
@@ -25631,7 +25631,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -32966,7 +32966,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "bold",
             "state": "rest"
           },
@@ -38405,7 +38405,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -40031,7 +40031,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -44032,7 +44032,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -45245,7 +45245,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },
@@ -47179,7 +47179,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "bold",
             "state": "rest"
           },
@@ -48144,7 +48144,7 @@
           "component": "field-label",
           "variant": {
             "size": "medium",
-            "emphasis": "secondary",
+            "emphasis": "primary",
             "weight": "regular",
             "state": "rest"
           },

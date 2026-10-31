@@ -188,11 +188,11 @@ export const checkboxGroup: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'primary', weight: 'bold', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
         // FILLS the group's width (#1757, select's label): the heading stretches across the 320 container, and
         // a long one wraps at field-label's own max width (#1762) instead of running past it.
         crossAxisFill: true,
-        note: 'The group heading and accessible name, composed rather than re-declared. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group\'s width; a long heading wraps at FieldLabel\'s max width.',
+        note: 'The group heading and accessible name, composed rather than re-declared. Starts primary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group\'s width; a long heading wraps at FieldLabel\'s max width.',
       },
       // THE STACKED ROWS (nest-fixed, FOLLOWING size). Three in-flow instances of `checkbox-row`, each
       // `follow`ing the group's size (a `large` group nests `large` rows). `nest-fixed`, NOT `nest-exposed`:

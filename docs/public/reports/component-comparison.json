@@ -1772,8 +1772,8 @@
           "large"
         ],
         "emphasis": [
-          "secondary",
-          "primary"
+          "primary",
+          "secondary"
         ],
         "weight": [
           "regular",
@@ -1802,10 +1802,10 @@
         },
         {
           "name": "emphasis",
-          "default": "secondary",
+          "default": "primary",
           "values": [
-            "secondary",
-            "primary"
+            "primary",
+            "secondary"
           ]
         },
         {
@@ -6868,10 +6868,10 @@
       },
       {
         "id": "field-label",
-        "default": "secondary",
+        "default": "primary",
         "values": [
-          "secondary",
-          "primary"
+          "primary",
+          "secondary"
         ]
       }
     ],

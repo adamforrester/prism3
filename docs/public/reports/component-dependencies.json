@@ -402,7 +402,7 @@
       "relation": "nest-exposed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "regular",
         "state": "rest"
       },
@@ -445,7 +445,7 @@
       "relation": "nest-exposed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "bold",
         "state": "rest"
       },
@@ -627,7 +627,7 @@
       "relation": "nest-exposed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "regular",
         "state": "rest"
       },
@@ -715,7 +715,7 @@
       "relation": "nest-exposed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "regular",
         "state": "rest"
       },
@@ -1200,7 +1200,7 @@
       "relation": "nest-exposed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "regular",
         "state": "rest"
       },
@@ -1282,7 +1282,7 @@
       "relation": "nest-exposed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "bold",
         "state": "rest"
       },
@@ -1390,7 +1390,7 @@
       "relation": "nest-exposed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "regular",
         "state": "rest"
       },
@@ -1423,7 +1423,7 @@
       "relation": "nest-exposed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "bold",
         "state": "rest"
       },
@@ -1508,7 +1508,7 @@
       "relation": "nest-exposed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "regular",
         "state": "rest"
       },
@@ -1597,7 +1597,7 @@
       "relation": "nest-fixed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "bold",
         "state": "rest"
       }
@@ -1767,7 +1767,7 @@
       "relation": "nest-exposed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "regular",
         "state": "rest"
       },
@@ -1810,7 +1810,7 @@
       "relation": "nest-exposed",
       "variant": {
         "size": "medium",
-        "emphasis": "secondary",
+        "emphasis": "primary",
         "weight": "regular",
         "state": "rest"
       },
