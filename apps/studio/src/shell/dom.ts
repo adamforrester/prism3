@@ -33,6 +33,22 @@ export const h = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: P3Class, 
  *  locate elements by it, no style rule keys on it, and it does not change across a redesign. */
 export const hook = <E extends Element>(n: E, role: string): E => { n.setAttribute('data-p3', role); return n; };
 
+/**
+ * #3150, the chrome's motion: a mark that lasts until the next frame. A toggle that opens its content (a fold-out, Expand)
+ * or a host answer that lands rows in a dialog calls `armEnter(key)`; every redraw before the next frame passes what it
+ * draws for that key through `enterMark`, which marks it `data-enter="true"`, and `chrome.css` fades it in once. A redraw
+ * after that frame (an edit, a run's progress, a page change) draws it unmarked, so nothing replays. A frame, not one
+ * redraw, because a change often repaints twice in one task.
+ */
+const armed = new Set<string>();
+export const armEnter = (key: string): void => { armed.add(key); requestAnimationFrame(() => { armed.delete(key); }); };
+export const enterMark = <E extends HTMLElement>(el: E, key: string): E => {
+  if (armed.has(key)) el.dataset.enter = 'true'; else delete el.dataset.enter;
+  return el;
+};
+/** Whether `key` was armed this frame. */
+export const entering = (key: string): boolean => armed.has(key);
+
 /** THE CHROME'S ONE SWITCH (SG5 A, #2183; concept v6's track and knob): a button with `role="switch"` holding a track
  *  and a knob, named by `label`. Its state is `aria-checked` alone, with no state words (the owner, 2026-10-08), and its
  *  focus ring is its own outline (FR1 A). Disabled, it draws Prism3's own disabled switch roles (#2237, `chrome.css`).

@@ -402,6 +402,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     const err = hook(h('p', 'p3-sg-err', unknown.length ? `No table is titled ${unknown.map((n) => `“${n}”`).join(', ')}.` : ''), 'sg-titles-error');
     err.id = 'p3-sg-titles-e';
     const tb = h('div', 'p3-sg-titles-body');
+    sum.addEventListener('click', () => { if (!det.open) tb.dataset.enter = 'true'; });
     tb.append(ta, hint, err);
     det.append(sum, tb);
     body.append(det);

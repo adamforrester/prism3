@@ -43,7 +43,7 @@ import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
 import { awaitingRead, badgeParts, defaultTicks, dueSetsOf, newSetsOf, queuedOf, stepOf, stepsOf, unrecordedOf, updatableOf, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
-import { focusables, glyph, h, hook, pendingLabel, setBusy, trapTab } from './dom';
+import { armEnter, entering, focusables, glyph, h, hook, pendingLabel, setBusy, trapTab } from './dom';
 
 export type UpdateFileLend = {
   readonly read: () => {
@@ -122,6 +122,12 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   const seen = new Set<string>();
   /** #3129: the control the next repaint focuses, set by a removal whose own button the repaint drops. */
   let refocus: string | null = null;
+  /** #3150, the chrome's motion: a frame has shown the open overlay, so a repaint marks its scrim `data-still` and the
+   *  dialog does not scale in again; the last repaint was still reading the file; the sets whose check line was still
+   *  pending. What lands after a wait is armed for a frame (`armEnter`) and marked `data-land`, and fades in. */
+  let shown = false;
+  let waited = false;
+  let pendingLines = new Set<string>();
 
   const show = (): void => {
     if (open) return;
@@ -292,6 +298,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (updating.length) {
       sets.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.dueSub(updating.length)), 'update-due-line'));
       const list = hook(h('div', 'p3-upd-sets'), 'update-due-sets');
+      const pending = new Set<string>();
       for (const id of updating) {
         const on = t.update.has(id);
         const d = f.due[id];
@@ -305,12 +312,17 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         });
         box.dataset.id = id;
         const row = h('div', 'p3-upd-setrow');
-        row.append(box, hook(h('p', 'p3-sub p3-upd-setline', c ? UPDATE_COPY.checked(c) : chk === 'pending' ? UPDATE_COPY.checkingSets : ''), 'update-set-check'));
+        const line = hook(h('p', 'p3-sub p3-upd-setline', c ? UPDATE_COPY.checked(c) : chk === 'pending' ? UPDATE_COPY.checkingSets : ''), 'update-set-check');
+        if (c && pendingLines.has(id)) armEnter(`update-line=${id}`);
+        if (entering(`update-line=${id}`)) line.dataset.land = 'true';
+        if (!c && chk === 'pending') pending.add(id);
+        row.append(box, line);
         list.append(row);
         // #2831: on a published set, what the update breaks for library consumers, beside the set.
         if (c?.breaks && !c.blocked) list.append(hook(h('p', 'p3-sub p3-upd-setline', c.breaks), 'update-set-breaks'));
       }
       sets.append(list);
+      pendingLines = pending;
       if (chk && chk !== 'pending' && chk.error) sets.append(hook(h('p', 'p3-sg-error', UPDATE_COPY.checkError), 'update-check-error'));
       // One choice for every hand edit the update meets (the owner's starter-kit posture: Keep, by default). Since #3083
       // (the owner's Q3083.3 A) a compact select in the foot, before Cancel and Update file, built below.
@@ -415,13 +427,15 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (n) button.setAttribute('aria-label', UPDATE_COPY.badgeName(parts)); else button.removeAttribute('aria-label');
     // Busy, it still opens the overlay (the step running, and Stop), so it is not announced as unavailable.
     button.removeAttribute('aria-disabled');
-    if (!open) { if (layer.firstChild) layer.replaceChildren(); return; }
+    if (!open) { shown = false; waited = false; pendingLines = new Set(); if (layer.firstChild) layer.replaceChildren(); return; }
     const focused = refocus ?? (document.activeElement instanceof HTMLElement && layer.contains(document.activeElement) ? document.activeElement.dataset.key ?? null : null);
     refocus = null;
     // #3082: a repaint (a tick, a host answer) keeps where the body was scrolled, on the same tab; a new tab starts at the top.
     const was = layer.querySelector<HTMLElement>('[data-p3="update-body"]');
     const scrolled = was && was.dataset.tab === tab ? was.scrollTop : 0;
     const scrim = h('div', 'p3-bardlg-scrim');
+    if (shown) scrim.dataset.still = 'true';
+    else requestAnimationFrame(() => { shown = open; });
     const dlg = hook(h('div', 'p3-bardlg p3-upd'), 'update-dialog');
     dlg.setAttribute('role', 'dialog');
     dlg.setAttribute('aria-modal', 'true');
@@ -462,6 +476,11 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     });
     tabs.append(...tabBtns);
     const { body, foot } = tab === 'update' ? updateBody() : cleanBody();
+    // #3150: the checklist lands once the file is read; it fades in where "Checking the file…" stood.
+    const waiting = body.some((n) => n.dataset.p3 === 'update-checking');
+    if (waited && !waiting) armEnter('update-rows');
+    if (entering('update-rows')) for (const n of body) n.dataset.land = 'true';
+    waited = waiting;
     const bodyEl = hook(h('div', 'p3-bardlg-col p3-upd-body'), 'update-body');
     bodyEl.setAttribute('role', 'tabpanel');
     bodyEl.dataset.tab = tab;
