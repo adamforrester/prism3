@@ -39,17 +39,19 @@ const section = (s: string) => console.log(`\n${s}`);
 /* ── the host model ─────────────────────────────────────────────────────────────────────────────────── */
 const PRIM = '↳ Primitive tokens';
 const SEM = '↳ Semantic tokens';
-const pageNode = (name: string) => ({ name, type: 'PAGE', children: [] as unknown[], appendChild: () => undefined, findAllWithCriteria: () => [] });
 const SETS = [{ name: '_style-guide-swatches', type: 'COMPONENT_SET', children: [] }, { name: '_style-guide-text-cells', type: 'COMPONENT_SET', children: [] }];
 /** Which cell sets the file holds: both, one of the two, or none. */
 const file = { sets: true as boolean | 'swatch' | 'text', pages: [] as string[], throwOnRead: false, versions: [] as string[][] };
+const cellSets = (): unknown[] => (file.sets === true ? SETS : file.sets === 'swatch' ? [SETS[0]] : file.sets === 'text' ? [SETS[1]] : []);
+// The cell sets sit on the first page, so a page-by-page search (#3170, the catalog's read) finds what the root's does.
+const pageNode = (name: string, i: number) => ({ name, type: 'PAGE', children: [] as unknown[], appendChild: () => undefined, findAllWithCriteria: () => (i === 0 ? cellSets() : []) });
 const root = {
   name: 'style guide page test file',
   type: 'DOCUMENT',
-  get children() { return file.pages.map(pageNode); },
+  get children() { return file.pages.map((n, i) => pageNode(n, i)); },
   getSharedPluginData: () => '',
   setSharedPluginData: () => undefined,
-  findAllWithCriteria: () => (file.sets === true ? SETS : file.sets === 'swatch' ? [SETS[0]] : file.sets === 'text' ? [SETS[1]] : []),
+  findAllWithCriteria: cellSets,
 };
 const cols = [
   { id: 'C:ramp', name: 'ramp', modes: [{ modeId: 'r:0', name: 'Value' }], defaultModeId: 'r:0' },
@@ -115,7 +117,7 @@ section('catalog — what the page is told before a run');
 {
   file.sets = true; file.pages = ['Cover', PRIM, SEM];
   posted.length = 0;
-  await toMain({ type: 'style-guide-catalog-request' });
+  await toMain({ type: 'style-guide-catalog-request' }); await release();
   const got = ofType('style-guide-catalog');
   const c = got[0]?.catalog;
   ok(got.length === 1 && posted.length === 1 && !('error' in got[0]), `catalog/request: one style-guide-catalog answers the request, and nothing else is posted (${posted.map((m) => m.type).join(', ')})`);
@@ -141,7 +143,7 @@ section('catalog — what the page is told before a run');
   const setUpWith = async (sets: boolean | 'swatch' | 'text', pages: string[]): Promise<unknown> => {
     file.sets = sets; file.pages = pages;
     posted.length = 0;
-    await toMain({ type: 'style-guide-catalog-request' });
+    await toMain({ type: 'style-guide-catalog-request' }); await release();
     return ofType('style-guide-catalog')[0]?.catalog?.setUp;
   };
   const none = await setUpWith(false, ['Cover']);
@@ -161,7 +163,7 @@ section('catalog — what the page is told before a run');
 
   file.throwOnRead = true;
   posted.length = 0;
-  await toMain({ type: 'style-guide-catalog-request' });
+  await toMain({ type: 'style-guide-catalog-request' }); await release();
   file.throwOnRead = false;
   const err = ofType('style-guide-catalog')[0];
   ok(err?.error === 'the file could not be read' && JSON.stringify(err.catalog) === JSON.stringify({ setUp: false, collections: [], tables: [], notes: [] }),
