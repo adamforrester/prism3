@@ -54,11 +54,11 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { reaches } from './executor-reach';
 import { adoptions, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
-import { furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
+import { FURNITURE_KEY, FURNITURE_NS, furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
 import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
-import { PANEL_GAP, SPEC_GAP, SPEC_WIDTH, docPanelBlockers, docPanelDue, docPanelReaches, ownerSet, type PanelReach, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
+import { DOC_PANEL_KEY, DOC_PANEL_NS, PANEL_GAP, SPEC_GAP, SPEC_WIDTH, docPanelBlockers, docPanelDue, docPanelReaches, ownerSet, type PanelReach, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import type { CheckedSet } from './messages';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
@@ -71,6 +71,7 @@ import { ABOUT_NAME, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from '
 import { readDocSettings } from './doc-settings';
 import { COVER_NAME, coverDue, coverDueLine, coverIsWork, coverPageOnlyLine, type CoverDue } from './cover-frame';
 import { colorVariablesOutOfOrder } from '@prism3/engine/color-order';
+import { isRunRoot, readRun, withRoot, type Criteria } from './run-read';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -935,6 +936,28 @@ export type UpdateHost = {
   loadFontAsync?(font: { family: string; style: string }): Promise<void>;
 };
 
+/**
+ * WHAT AN UPDATE RUN SEARCHES THE FILE FOR (#3177): the components and sets (`locateSets`, `readSingleView`,
+ * `hostPorts`, `fileBlockers`, the templates, the executor's own lookups), the canvas furniture by its tag, and the usage
+ * panels by theirs. Read once per run (`runHost`); a lookup outside these is passed to the file and searches all of it.
+ */
+export const UPDATE_READ: readonly Criteria[] = [
+  { types: ['COMPONENT_SET', 'COMPONENT'] },
+  { types: ['INSTANCE'], sharedPluginData: { namespace: FURNITURE_NS, keys: [FURNITURE_KEY] } },
+  { types: ['FRAME'], sharedPluginData: { namespace: DOC_PANEL_NS, keys: [DOC_PANEL_KEY] } },
+];
+/**
+ * `host`, its lookups answered from ONE READ OF THE FILE (#3177, `run-read.ts`): every page loaded and searched a page
+ * per turn, then shared by every set the run reads. A host already reading a run's is returned as it is, so the apply's
+ * dry run shares the apply's read. Under `dynamic-page` a document-wide call still needs `loadAllPagesAsync` called; the
+ * pages are loaded by then, so it loads nothing.
+ */
+export const runHost = async <H extends { root: object }>(host: H, breathe?: () => Promise<void>): Promise<H> => {
+  if (isRunRoot(host.root)) return host;
+  const all = (host as { loadAllPagesAsync?: () => Promise<void> }).loadAllPagesAsync;
+  return withRoot(host, await readRun(host.root, UPDATE_READ, breathe, typeof all === 'function' ? () => all.call(host) : undefined));
+};
+
 /** One def to check: its id and the plans the engine would build for it today. */
 export type UpdateTarget = {
   def: string; plans: AnatomyPlan[];
@@ -1232,7 +1255,9 @@ const pageViews = (found: readonly PageSet[], reach: PanelReach = 0) => {
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
  *  nothing. A def with no set in the file is `missing`; a def with two sets of its name is `refused`,
  *  because which one an update should touch is not this command's call. */
-export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<UpdatePreview> => {
+export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<UpdatePreview> => {
+  // #3177: every set below is found in one read of the file, never by a search of the whole file per set.
+  const host = await runHost(file, breathe);
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
   const found: { preview: SetPreview; set: LiveSet; lead: boolean }[] = [];

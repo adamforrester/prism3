@@ -216,6 +216,10 @@ export const verdictButton = (open: (opener: HTMLElement) => void, cleanups: (()
   return b;
 };
 
+/** The privacy note at the foot of the Inspect menu (#3138). DRAFT under `docs/voice-standard.md` (Q3138.8). */
+export const PRIVACY_NETWORK = 'Brand fonts load from Google Fonts, which receives the font name and your IP address.';
+export const PRIVACY_OFFLINE = 'Offline: makes no network calls.';
+
 // ── the Inspect menu, in the preview header ────────────────────────────────────────────────────────
 /** "Inspect", a button that opens a menu of the three views (concept v6). Contrast's item says how the
  *  verdict stands. */
@@ -250,7 +254,12 @@ export const inspectMenu = (open: (v: InspectId, opener: HTMLElement) => void, c
   stamp.setAttribute('role', 'none');
   stamp.append(h('span', undefined, `engine ${ENGINE_VERSION}`), h('span', 'p3-menu-stamp-b', buildChip(PRISM3_BUILD)));
   stamp.title = buildTitle(PRISM3_BUILD);
-  menu.append(stamp);
+  // THE PRIVACY NOTE (#3138, the owner's network model): what this build sends where, just above which build it is (C3 A
+  // keeps the stamp last). A build with network loads a brand's fonts from Google Fonts; the offline plugin makes no
+  // calls. Read, never chosen, so arrow keys pass it by, as the stamp. DRAFT (Q3138.8).
+  const privacy = hook(h('p', 'p3-menu-privacy', PRISM3_NETWORK ? PRIVACY_NETWORK : PRIVACY_OFFLINE), 'privacy-note');
+  privacy.setAttribute('role', 'none');
+  menu.append(privacy, stamp);
   const note = items[0].querySelector('.p3-menu-note')!;
   const paint = (): void => { const v = verdict(); note.textContent = v.fail ? `${v.fail} below floor` : 'all pass'; };
   // Open, close and keys: the shared menu button (#2487 B5), which now opens on ArrowDown.

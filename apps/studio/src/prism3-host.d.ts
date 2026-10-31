@@ -44,6 +44,16 @@ declare const PRISM3_BUILD: string;
 declare const PRISM3_TEST_HOOKS: boolean;
 
 /**
+ * Whether this bundle may make network calls (#3138, the owner's network model). `true` on the web (`build.mjs`,
+ * `build-site.mjs`, `vercel-ignore-check.mjs`) and in the "Prism3 Studio" plugin; `false` in the "Prism3 Studio Offline"
+ * plugin (`apps/plugin/build.mjs --release --offline`), where esbuild drops every network branch. Today that is one:
+ * the brand-face web-font loader (`ui/web-fonts.ts`). Every network feature degrades without it. `lint-network-reach.ts`
+ * checks the offline bundle carries no network call. A test that imports a module reading it sets
+ * `globalThis.PRISM3_NETWORK`.
+ */
+declare const PRISM3_NETWORK: boolean;
+
+/**
  * `.css` imported as TEXT (#769). The chrome stylesheet moved out of a template literal in
  * `main.ts` into `styles.css`, and it is pulled back in as a string rather than emitted as a
  * separate asset — the bundle has to stay self-contained for the Figma plugin iframe, which ships

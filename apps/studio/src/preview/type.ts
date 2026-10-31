@@ -54,10 +54,10 @@ export const mountTypePreview = (host: HTMLElement, cleanups: (() => void)[], le
     const ty = theme.typography;
     const fonts = lend.fonts();
     const secs = [
-      typeSampleSection(c, ty, cur, { ink: page.ink }),
-      facesSection(c, ty, cur, { title: 'Font families', desc: FACES_DESC }, (f) => faceStatus(f, fonts)),
-      typeScaleSection(c, ty, cur, copyOf('Scale')),
-      weightsByFaceSection(ty, cur, copyOf('Weights and styles')),
+      typeSampleSection(c, ty, cur, { ink: page.ink }, fonts),
+      facesSection(c, ty, cur, { title: 'Font families', desc: FACES_DESC }, (f) => faceStatus(f, fonts), fonts),
+      typeScaleSection(c, ty, cur, copyOf('Scale'), fonts),
+      weightsByFaceSection(ty, cur, copyOf('Weights and styles'), fonts),
       lineSpacingSection(c, ty, cur, copyOf('Line height and letter spacing')),
       buildingBlocksSection(c, ty, cur, BUILDING_BLOCKS),
     ];
