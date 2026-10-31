@@ -379,7 +379,7 @@ export const slider: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, variantWhen: { state: { disabled: { state: 'disabled' } } } },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'primary', weight: 'bold', state: 'rest' }, variantWhen: { state: { disabled: { state: 'disabled' } } } },
         optional: true,
         // The nested FieldLabel is built at its own 320, so left to hug it fills the header and pushes the value out of the
         // component to the right. It grows into what the value leaves instead, so the value sits at the header's end.

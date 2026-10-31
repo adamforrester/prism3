@@ -384,7 +384,7 @@ export const select: ComponentDef = {
       // THE NESTED LABEL (nest-exposed, #1438 — owner-decided 2026-09-15). An in-flow instance of
       // `field-label`, whose properties the consumer drives FROM the select. All four field-label axes
       // (size, emphasis, weight, state) are named in the `variant` coordinate — the DEFAULT the instance
-      // starts at (Prism2's select label: small / secondary / regular / rest), and `nestVariantMatch`
+      // starts at (primary since #3200; Prism2's select label is small / secondary / regular), and `nestVariantMatch`
       // requires the coordinate to account for EVERY axis the member name carries. `expose` surfaces the
       // three AUTHOR axes (size / emphasis / weight) as consumer-driven exposed nested-instance properties;
       // marking the instance exposed (`isExposedInstance`) ALSO surfaces field-label's `label` TEXT and
@@ -404,13 +404,13 @@ export const select: ComponentDef = {
         nests: 'field-label',
         // `size` FOLLOWS the select's (#2266), so the label stays one body step below the value at every size;
         // `emphasis` and `weight` stay the consumer's.
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'primary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // #1503 — FILLS the field's width (`layoutAlign: STRETCH`, with the instance's own FIXED mode since
         // #1751), so the label spans the 320 control rather than hugging narrower above it (Prism 2's inner
         // containers FILL). Field-label's name wraps at its own max width inside it (#1762, owner; it wrapped at
         // the field's width under #1757), so a long name wraps instead of running past the field.
         crossAxisFill: true,
-        note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts at the select default (small / secondary / regular). Fills the field\'s width (#1503); a long name wraps at FieldLabel\'s max width.',
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts primary and regular. Fills the field\'s width (#1503); a long name wraps at FieldLabel\'s max width.',
       },
       // THE CONTROL — the bordered, interactive box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill and border (`paintSlots`; no hover wash since #2926);

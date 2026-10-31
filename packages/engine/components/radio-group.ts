@@ -27,7 +27,7 @@
  *   · root `container`, VERTICAL, `sizing: { x: 'fill', y: 'hug' }`, `align/justify: start`;
  *   · `gap: 'gap'` = `space.0` — the rows self-space with their own block padding (#1623 sign-off);
  *   · block padding `pad-y` = `space.100` (Prism 2's 8px), inline padding `pad-x` = `space.0` (its 0px);
- *   · a nested `field-label` starting at Prism 2's group `formLabel` (secondary · bold, emphasis and weight exposed per Q348 A; the required marker follows the group's `required`),
+ *   · a nested `field-label` starting primary · bold (#3200; Prism 2's group `formLabel` is secondary · bold), emphasis and weight exposed per Q348 A; the required marker follows the group's `required`),
  *     size-followed; then a stack of size-followed `nest-fixed` rows.
  *
  * ── WHAT RADIO'S SINGLE-SELECT SEMANTICS FORCE (the required half, and it is NOT design) ────────────────
@@ -194,19 +194,19 @@ export const radioGroup: ComponentDef = {
         children: ['label', 'items', 'message'],
       },
       // THE NESTED GROUP LABEL (nest-exposed, FOLLOWING size; owner decision Q348 A). An in-flow instance of
-      // `field-label`, starting at Prism 2's group `formLabel`: emphasis SECONDARY, weight BOLD, and `required` at its
-      // own default (off since #1699). `size` is `follow`ed from the group so the heading scales with the set.
+      // `field-label`, starting at emphasis PRIMARY (#3200: the label leads; Prism 2's group `formLabel` was secondary),
+      // weight BOLD, and `required` at its own default (off since #1699). `size` is `follow`ed from the group so the heading scales with the set.
       // `emphasis` and `weight` are EXPOSED, as on the four fields and `checkbox-group`; bold stays the starting
       // weight. `variant` names every axis field-label projects (size, emphasis, weight, state), as
       // `nestVariantMatch` requires; `state` stays fixed at rest.
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'primary', weight: 'bold', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
         // FILLS the group's width (#1757), `checkbox-group`'s label copied (#1475): a long heading wraps at
         // field-label's own max width (#1762) instead of running past it.
         crossAxisFill: true,
-        note: 'The group heading and accessible name, composed rather than re-declared. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group\'s width; a long heading wraps at FieldLabel\'s max width. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.',
+        note: 'The group heading and accessible name, composed rather than re-declared. Starts primary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group\'s width; a long heading wraps at FieldLabel\'s max width. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.',
       },
       // THE STACKED ROWS (nest-fixed, FOLLOWING size). Three in-flow instances of `radio-row`, each
       // `follow`ing the group's size (a `large` group nests `large` rows). `nest-fixed`, NOT `nest-exposed`:

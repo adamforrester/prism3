@@ -333,10 +333,10 @@ export const textarea: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'primary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // FILLS the field's width (#1757, select's label); a long name wraps at field-label's max width (#1762).
         crossAxisFill: true,
-        note: 'The accessible name, composed rather than re-declared. Its size follows the field\'s, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts secondary and regular. Fills the field\'s width; a long name wraps at FieldLabel\'s max width.',
+        note: 'The accessible name, composed rather than re-declared. Its size follows the field\'s, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts primary and regular. Fills the field\'s width; a long name wraps at FieldLabel\'s max width.',
       },
       // THE BODY — the control and the message row in a GAP-0 column. The stack gap between them is carried
       // by the message and counter CELLS instead (their `paddingTop`), so it hides with them: a column gap

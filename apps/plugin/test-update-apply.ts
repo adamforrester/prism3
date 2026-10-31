@@ -12,6 +12,9 @@
  *                  rebuilt instead of configured → `keys/members`.
  *   apply/…        the plan's change reaches the host, and the next dry run reads every member current.
  *   hash/…         a confirm whose hash the file no longer matches writes nothing.
+ *   fixed/…        the check and the apply run on a host whose methods are fixed, own data properties neither
+ *                  writable nor configurable, as Figma's are (#3209). Mutation: `withRoot` put back as a `Proxy` →
+ *                  `fixed/check`.
  *   pages/…        component pages out of alphabetical order are listed by the dry run and put in order by the apply,
  *                  a designer's page never moved (#2568).
  *   hand/…         a hand edit is kept, and still reported by the next dry run. Mutation: the record of an
@@ -56,6 +59,10 @@
  *   edge/…         a file built when the disabled edge bound `color.disabled.icon` (#1349, #1697) is corrected in
  *                  place to `color.disabled.border` (Q346, #2749): Tag, Button and IconButton, every key and id kept,
  *                  current after. Mutation: the def's binding reverted → `edge/<def> rebound`.
+ *   <host> leads/… a field host built with its FieldLabel at emphasis=secondary takes primary in place on Update (#3200,
+ *                  owner Q-PH1 A), every key and id kept, a hand edit on the label and one on the member root kept.
+ *                  Mutations: the in-place swap skipped → `<host> leads/primary`; the `kept` check dropped from the
+ *                  nested path → `<host> leads/hand edit kept`.
  *   reach/…        a member stamped under a revision that did not redraw its set reads current; below the record's
  *                  floor it is to update (#3101). Mutation: `update-plan.ts` without `reaches` → `reach/dry run 42`.
  *   corpus/…       every def, re-applied in place by an executor revision bump, keeps every key and id, reads
@@ -235,7 +242,7 @@ import { NS } from './src/persist-figma';
 import { EXECUTOR_REACH } from './src/executor-reach';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
-import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
+import { fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
 import { adoptMembers, breakingLine, breakingOf, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
@@ -369,6 +376,31 @@ section('keys — a plan change is written in place: every key and id stays');
   // not tell it from a copy.
   const ids = membersOf(w.set()).map((m) => [String(m.id), JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY) || '{}').id] as const);
   ok(ids.every(([id, rec]) => rec === id), `keys/record id: every updated member's record names its own node (${ids.filter(([id, rec]) => rec !== id).length} do not)`);
+}
+
+/* ── fixed ─────────────────────────────────────────────────────────────────────────────────────────── */
+// #3209: ON FIGMA, THE HOST'S METHODS ARE FIXED, own data properties neither writable nor configurable, so a `Proxy`
+// over `figma` whose `get` trap hands back anything but the property's own value throws on the first read. #3177 wrapped
+// the host so, and every check and apply on real Figma failed on `getLocalTextStylesAsync` while every shim test passed.
+// Here the host and the executor are copies of the world's with every method fixed (`fixHostMethods`), their roots too,
+// as strict as the host can be. Mutation: `withRoot` (or `readRun`'s root) put back as a `Proxy` → `fixed/check`.
+section("fixed — the check and the apply run on a host whose methods are fixed, as Figma's are (#3209)");
+{
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const host = fixHostMethods({ ...w.host, root: fixHostMethods({ ...w.host.root }) }) as unknown as ApplyHost;
+  const api = fixHostMethods({ ...w.api });
+  ok(Object.getOwnPropertyDescriptor(host, 'getLocalTextStylesAsync')?.configurable === false && Object.getOwnPropertyDescriptor(api, 'getLocalTextStylesAsync')?.writable === false,
+    'premise: the host and the executor carry getLocalTextStylesAsync fixed, as Figma does');
+  const next = moveGap(w.plans);
+  const targets = [{ def: TAG, plans: next }];
+  const attempt = async <T,>(f: () => Promise<T>): Promise<T | string> => { try { return await f(); } catch (e) { return `THREW: ${(e as Error).message}`; } };
+  const pre = await attempt(() => previewUpdate(host, targets));
+  ok(typeof pre !== 'string' && pre.sets[0]?.counts.update === 45, `fixed/check: the dry run reads all 45 out of date (${typeof pre === 'string' ? pre.slice(0, 300) : JSON.stringify(pre.sets[0]?.counts)})`);
+  const res = typeof pre === 'string' ? pre : await attempt(() => applyUpdate(host, api as any, targets, previewHashOf(pre)));
+  const v = typeof res === 'string' ? null : applyVerdict(res);
+  ok(!!v && v.ok && v.headline === '✓ updated 45 in place', `fixed/apply: ${v ? v.headline : String(res).slice(0, 300)}`);
+  const post = await attempt(() => previewUpdate(host, targets));
+  ok(typeof post !== 'string' && post.sets[0]?.counts.current === 45, `fixed/current: the next dry run reads all 45 current (${typeof post === 'string' ? post.slice(0, 300) : JSON.stringify(post.sets[0]?.counts)})`);
 }
 
 /* ── hash ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -4883,8 +4915,8 @@ for (const G of ['checkbox-group', 'radio-group', 'segmented-control']) {
   // The exposure and the look, read off the shim's nodes. The weight is typed here from Q348 A: bold stays.
   const read = membersOf(w.set()).map((m) => ({ m: String(m.name), exposed: labelOf(m).isExposedInstance, main: String((labelOf(m).mainComponent as { name?: string } | undefined)?.name) }));
   ok(read.every((x) => x.exposed === true), `${G}/exposed: every member's nested label is now an exposed instance (${read.filter((x) => x.exposed !== true).map((x) => x.m).join('; ') || `all ${N}`})`);
-  ok(read.every((x) => /emphasis=secondary/.test(x.main) && /weight=bold/.test(x.main) && x.main.includes(`size=${/size=(\w+)/.exec(x.m)?.[1]}`)),
-    `${G}/bold kept: every label still instances the secondary, bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
+  ok(read.every((x) => /emphasis=primary/.test(x.main) && /weight=bold/.test(x.main) && x.main.includes(`size=${/size=(\w+)/.exec(x.m)?.[1]}`)),
+    `${G}/bold kept: every label instances the primary (#3200), bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
   const post = (await previewUpdate(w.host, [{ def: G, plans: newPlans }])).sets[0];
   ok(post.counts.current === N && post.handEdits.length === 0, `${G}/current: the next dry run reads all ${N} current (${JSON.stringify(post.counts)})`);
 }
@@ -5067,6 +5099,69 @@ section("label dims — a field built while its label read at rest on every memb
       `${id} label/in place: the set, every member's key and every label instance's id are kept, so the label was swapped, not rebuilt (${moved.slice(0, 2).join('; ') || 'all 84'})`);
     const post = (await previewUpdate(w.host, [{ def: id, plans: planned }])).sets[0];
     ok(post.counts.current === 84, `${id} label/current: the next dry run reads all 84 current (${JSON.stringify(post.counts)})`);
+  }
+}
+
+section('label leads — every field host built with its FieldLabel at emphasis=secondary takes primary in place, ids and hand edits kept (#3200, owner Q-PH1 A)');
+{
+  // THE FILE AS A BUILD BEFORE #3200 LEFT IT: every host's nested FieldLabel at `emphasis=secondary`. Reconstructed from
+  // today's plans by putting that one fact back, so both sides are the real def's projection. FieldLabel is in the file
+  // as a SET, its members under their coordinates, so the instance resolves to a member and an update can reach the
+  // primary one only by swapping it. TWO HAND EDITS, on two members: the label instance itself (its opacity), which the
+  // update must leave as the designer left it (owner decision Q1: keep and report), and the member's own root, which
+  // holds that node only, so the label under it still takes primary. Expected values are literals typed here.
+  // Mutations, each failing the arm it names: the def's nested emphasis left at secondary → `<host> leads/premise`
+  // (nothing to update); the executor's in-place `swapComponent` skipped → `<host> leads/primary`; the `kept` check
+  // dropped from the nested-instance path → `<host> leads/hand edit kept`.
+  const HOSTS = ['text-field', 'password-field', 'search-field', 'card-number-field', 'textarea', 'select', 'code-input', 'counter', 'checkbox-group', 'radio-group', 'segmented-control', 'slider'];
+  const LABEL_MEMBERS = plansOf('field-label').map(planComponentName);
+  const HARNESS_LIMITED = ['card-number-field', 'code-input', 'counter', 'slider'];
+  const atSecondary = (n: PlanNode): PlanNode => ({
+    ...n,
+    ...((n as { nestTarget?: string }).nestTarget === 'field-label' ? { nestVariant: { ...(n as { nestVariant: Record<string, string> }).nestVariant, emphasis: 'secondary' } } : {}),
+    children: (n.children ?? []).map(atSecondary),
+  } as PlanNode);
+  const labelOf = (m: Node): Node | undefined => {
+    const walk = (n: Node): Node | undefined => n.name === 'label' && n.type === 'INSTANCE' ? n : ((n.children as Node[] | undefined) ?? []).map(walk).find(Boolean);
+    return walk(m);
+  };
+  const emphasisOf = (n: Node | undefined): string => /emphasis=([a-z]+)/.exec(String((n?.mainComponent as { name?: string } | undefined)?.name ?? ''))?.[1] ?? '(none)';
+  for (const id of HOSTS) {
+    const planned = plansOf(id);
+    const old = planned.map((p) => ({ ...p, root: atSecondary(p.root) }));
+    const componentProps = id === 'password-field' ? { button: { 'label#7:1': { type: 'TEXT', defaultValue: 'Button' } } } : undefined;
+    const allowMisses: string[] = [];
+    const w = await world(id, old, { fileSets: [{ name: 'field-label', variants: LABEL_MEMBERS }], componentProps, allowMisses });
+    const members = membersOf(w.set());
+    const labelled = members.filter((m) => !!labelOf(m));
+    ok(labelled.length > 0 && labelled.every((m) => emphasisOf(labelOf(m)) === 'secondary') && planned.some((p) => /"emphasis":"primary"/.test(JSON.stringify(p.root))),
+      `${id} leads/premise: the file's ${labelled.length} labels instance FieldLabel at emphasis=secondary, and today's plans nest it at primary (${[...new Set(labelled.map((m) => emphasisOf(labelOf(m))))].join(', ')}; ${allowMisses.length} build misses)`);
+    // The two hand edits, on the first two labelled members.
+    const [onLabel, onRoot] = labelled;
+    (labelOf(onLabel) as Record<string, unknown>).opacity = 0.5;
+    if (onRoot) (onRoot as Record<string, unknown>).opacity = 0.9;
+    const labelIds = new Map(labelled.map((m) => [String(m.name), String(labelOf(m)?.id)] as const));
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: planned }]);
+    const p = pre.sets[0];
+    ok(!!p && !p.blockers.length && p.counts.add + p.counts.drop === 0 && !p.replacements.length && p.counts.update + p.counts.handEdited === labelled.length,
+      `${id} leads/dry run: every labelled member reads update or hand-edited, nothing added, dropped, replaced or refused (${JSON.stringify(p?.counts)}; ${p?.blockers.join('; ') || 'no blockers'})`);
+    // FOUR HOSTS' NESTED PARTS take overrides this harness's file cannot hold (a nested set's own TEXT and SWAP
+    // properties, the card mark's aspect lock), so their verify lists those fields on every member, before and after
+    // this change alike. For them the arm is that no listed field is the label's; for the other eight, a clean verdict.
+    const v = applyVerdict(res);
+    const labelFaults = res.outcomes[0].content.filter((c) => /(^|\/)label[./]/.test(c.split(':')[0]));
+    ok(HARNESS_LIMITED.includes(id) ? labelFaults.length === 0 && res.outcomes[0].content.length > 0 : v.ok && res.outcomes[0].content.length === 0,
+      `${id} leads/verdict: ${HARNESS_LIMITED.includes(id) ? `no field the verify lists is the label's (${res.outcomes[0].content.length} listed, ${labelFaults.length} on the label${labelFaults.length ? `: ${labelFaults[0]}` : ''})` : `${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`}`);
+    const wrong = labelled.filter((m) => m !== onLabel && emphasisOf(labelOf(m)) !== 'primary').map((m) => `${String(m.name)}=${emphasisOf(labelOf(m))}`);
+    ok(wrong.length === 0 && labelled.length > 1, `${id} leads/primary: every other member's label now instances FieldLabel at emphasis=primary, the root-edited member's included (${wrong.length} off: ${wrong.slice(0, 2).join('; ')})`);
+    ok(emphasisOf(labelOf(onLabel)) === 'secondary' && labelOf(onLabel)?.opacity === 0.5 && (onRoot as Record<string, unknown>).opacity === 0.9
+      && res.outcomes[0].kept.some((k) => k.member === String(onLabel.name)) && res.outcomes[0].kept.some((k) => k.member === String(onRoot.name) && k.path === '.'),
+      `${id} leads/hand edit kept: the hand-edited label keeps its opacity and its secondary member, the hand-edited root keeps its opacity, and both are listed as kept (${emphasisOf(labelOf(onLabel))}, ${String(labelOf(onLabel)?.opacity)}, ${String((onRoot as Record<string, unknown>).opacity)}; kept ${JSON.stringify(res.outcomes[0].kept.map((k) => `${k.member}:${k.path}`)).slice(0, 200)})`);
+    const after = identityOf(w.set());
+    const moved = labelled.filter((m) => String(labelOf(m)?.id) !== labelIds.get(String(m.name)) || after.members.get(String(m.name))?.key !== before.members.get(String(m.name))?.key || after.members.get(String(m.name))?.id !== before.members.get(String(m.name))?.id).map((m) => String(m.name));
+    ok(moved.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set) && after.members.size === before.members.size,
+      `${id} leads/in place: the set, every member's key and id, and every label instance's id are kept, so the label was swapped, not rebuilt (${moved.slice(0, 2).join('; ') || `all ${labelled.length}`})`);
   }
 }
 

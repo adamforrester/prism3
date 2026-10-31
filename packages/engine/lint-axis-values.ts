@@ -224,13 +224,13 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'emphasis',
-    values: ['secondary', 'primary'],
+    values: ['primary', 'secondary'],
     defs: ['field-label'],
     relation: 'canonical',
     reason:
-      '`secondary` FIRST since #1699 (owner-delegated): the first value is the set\'s first member, which '
-      + 'Figma takes as the default variant, and every field host nests the secondary label, so the Figma '
-      + 'default now matches the code default. '
+      '`primary` FIRST since #3200 (owner decision Q-PH1 A): every field host nests the label at primary, so the '
+      + 'label leads and the placeholder is the quieter hint, and the first value is the set\'s first member, '
+      + 'which carries the code default. `secondary` led from #1699 (owner-delegated) until then. '
       + 'The de-emphasized label (#872; Prism 2 calls the control "color"). RENAMED from `tone` to '
       + '`emphasis` in #1334, which split the overloaded `tone` name — this was recorded here as a SUBSET '
       + 'of `icon`\'s `tone` ink vocabulary, and the owner\'s split makes label prominence its own axis '

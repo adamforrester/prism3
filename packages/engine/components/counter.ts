@@ -169,10 +169,10 @@ export const counter: ComponentDef = {
         kind: 'nest',
         nests: 'field-label',
         // Nested as the fields nest it (owner decision Q399 A on #2693): `emphasis` and `weight` are EXPOSED and start
-        // secondary and regular. Follows the size, and dims with a disabled Counter (`variantWhen` on the state).
+        // primary and regular (#3200). Follows the size, and dims with a disabled Counter (`variantWhen` on the state).
         nesting: {
           kind: 'nest-exposed',
-          variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' },
+          variant: { size: 'medium', emphasis: 'primary', weight: 'regular', state: 'rest' },
           expose: ['emphasis', 'weight'],
           follow: ['size'],
           variantWhen: { state: { disabled: { state: 'disabled' } } },

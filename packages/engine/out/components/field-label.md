@@ -17,7 +17,7 @@ The visible, persistent label above a form field — the field's accessible name
 
 ## Anatomy
 
-Shown on the default member: size `small`, emphasis `secondary`, weight `regular`.
+Shown on the default member: size `small`, emphasis `primary`, weight `regular`.
 
 1. **Label**
 2. **Indicator** (optional)
@@ -27,7 +27,7 @@ Shown on the default member: size `small`, emphasis `secondary`, weight `regular
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `size` | `small`, `medium`, `large` | once, when authored | Three steps. Scales the type (type.body.xs, sm and md: 12, 14 and 16px), not padding alone, one body step below the input of the same field size. Every field host passes its own size through, so a small field nests the small label. small, the default, is the 12px label. |
-| `emphasis` | `secondary`, `primary` | once, when authored | The label's ink. secondary, the default, is the de-emphasized label every field host nests; primary is the full-strength ink for a label that has to lead. Semantic roles, never shades (color.text.primary and color.text.secondary), so a brand that changes its text palette carries the label with it. |
+| `emphasis` | `primary`, `secondary` | once, when authored | The label's ink. primary, the default, is the full-strength ink every field host nests: the label leads, and the placeholder below it is the quieter hint. secondary is the de-emphasized ink, for a label that should step back. Semantic roles, never shades (color.text.primary and color.text.secondary), so a brand that changes its text palette carries the label with it. |
 | `weight` | `regular`, `bold` | once, when authored | How heavy the label reads. These are intents, not role names: regular resolves the brand's default body weight, bold the heaviest body weight the brand ships — Bold (700) on a brand that ships it, Medium (500) where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it. |
 
 ### States
@@ -36,7 +36,7 @@ Shown on the default member: size `small`, emphasis `secondary`, weight `regular
 
 ## Usage guidelines
 
-Place above every field as its accessible name. Wire htmlFor to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. In code the marker flows inline after the name, and the name wraps at the field's width.
+Place above every field as its accessible name. Wire htmlFor to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. The label reads in full-strength ink by default, so it leads and the placeholder in the field reads as the quieter hint; secondary steps it back where a label should not lead. In code the marker flows inline after the name, and the name wraps at the field's width.
 
 ### Do
 
@@ -90,7 +90,7 @@ Write the label as a noun or noun phrase in sentence case, three words or fewer,
 | `htmlFor` | string | — | yes | The id of the field it names — a native \<label for>. Set by the host when composed inside a field component (useId). |
 | `required` | boolean | `false` | no | Whether the field is required. On shows the marker beside the label; off, the default, hides it, and the host's own required prop defaults off too. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `small` | no | Three steps. Scales the type (type.body.xs, sm and md: 12, 14 and 16px), not padding alone, one body step below the input of the same field size. Every field host passes its own size through, so a small field nests the small label. small, the default, is the 12px label. |
-| `emphasis` | enum: 'secondary' \| 'primary' | `secondary` | no | The label's ink. secondary, the default, is the de-emphasized label every field host nests; primary is the full-strength ink for a label that has to lead. Semantic roles, never shades (color.text.primary and color.text.secondary), so a brand that changes its text palette carries the label with it. |
+| `emphasis` | enum: 'primary' \| 'secondary' | `primary` | no | The label's ink. primary, the default, is the full-strength ink every field host nests: the label leads, and the placeholder below it is the quieter hint. secondary is the de-emphasized ink, for a label that should step back. Semantic roles, never shades (color.text.primary and color.text.secondary), so a brand that changes its text palette carries the label with it. |
 | `weight` | enum: 'regular' \| 'bold' | `regular` | no | How heavy the label reads. These are intents, not role names: regular resolves the brand's default body weight, bold the heaviest body weight the brand ships — Bold (700) on a brand that ships it, Medium (500) where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it. |
 
 ## Specs
@@ -155,34 +155,6 @@ Keyed by `size`, `weight`.
 
 Keyed by `emphasis`, `weight`, `state`.
 
-**emphasis=secondary, weight=regular, state=rest**
-
-| Part | Fill | Stroke | Ink | Icon |
-| --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.text.secondary` | — |
-| `container/indicator` | — | — | `color.text.secondary` | — |
-
-**emphasis=secondary, weight=regular, state=disabled**
-
-| Part | Fill | Stroke | Ink | Icon |
-| --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.disabled.text` | — |
-| `container/indicator` | — | — | `color.disabled.text` | — |
-
-**emphasis=secondary, weight=bold, state=rest**
-
-| Part | Fill | Stroke | Ink | Icon |
-| --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.text.secondary` | — |
-| `container/indicator` | — | — | `color.text.secondary` | — |
-
-**emphasis=secondary, weight=bold, state=disabled**
-
-| Part | Fill | Stroke | Ink | Icon |
-| --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.disabled.text` | — |
-| `container/indicator` | — | — | `color.disabled.text` | — |
-
 **emphasis=primary, weight=regular, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
@@ -205,6 +177,34 @@ Keyed by `emphasis`, `weight`, `state`.
 | `container/indicator` | — | — | `color.text.primary` | — |
 
 **emphasis=primary, weight=bold, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.disabled.text` | — |
+| `container/indicator` | — | — | `color.disabled.text` | — |
+
+**emphasis=secondary, weight=regular, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.secondary` | — |
+| `container/indicator` | — | — | `color.text.secondary` | — |
+
+**emphasis=secondary, weight=regular, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.disabled.text` | — |
+| `container/indicator` | — | — | `color.disabled.text` | — |
+
+**emphasis=secondary, weight=bold, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.secondary` | — |
+| `container/indicator` | — | — | `color.text.secondary` | — |
+
+**emphasis=secondary, weight=bold, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
