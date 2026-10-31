@@ -2008,11 +2008,8 @@ export const figmaAnatomyPlan = (
     if (p.literal === 'surface') {
       const wash = literal?.wash?.[paintCoord.state ?? 'rest'];
       const fills = [literal?.fill, wash].filter((c): c is string => !!c);
-      // An entry that names no paint at all is a member the def declares UNPAINTED (#3174: WalletButton's `any` style,
-      // the provider's area with no fill). A wash or an edge with no fill under it is still the silent-loss shape.
-      const unpainted = literal !== undefined && !literal.fill && !literal.edge && !Object.keys(literal.wash ?? {}).length;
-      if (!fills.length && !unpainted) throw new Error(`${def.id}: anatomy part '${name}' reads literal 'surface' at ${JSON.stringify(paintCoord)} and its entry has no fill`);
-      if (fills.length) literalPaints.fills = fills;
+      if (!fills.length) throw new Error(`${def.id}: anatomy part '${name}' reads literal 'surface' at ${JSON.stringify(paintCoord)} and its entry has no fill`);
+      literalPaints.fills = fills;
       if (literal?.edge) literalPaints.strokes = literal.edge;
     } else if (p.literal === 'label') {
       if (!literal?.ink || literal.text === undefined) throw new Error(`${def.id}: anatomy part '${name}' reads literal 'label' at ${JSON.stringify(paintCoord)} and its entry lacks an ink or a text`);

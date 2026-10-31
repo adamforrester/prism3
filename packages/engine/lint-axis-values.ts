@@ -397,9 +397,6 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'name',
     values: [
-      'button/apple-pay-black', 'button/apple-pay-white', 'button/apple-pay-white-outline', 'button/google-pay-black',
-      'button/google-pay-white', 'button/paypal-black', 'button/paypal-blue', 'button/paypal-gold', 'button/paypal-silver',
-      'button/paypal-white', 'button/shop-pay-purple',
       'logo/affirm', 'logo/amazon-pay', 'logo/amex', 'logo/apple-pay', 'logo/diners-club', 'logo/discover',
       'logo/google-pay', 'logo/klarna', 'logo/mastercard', 'logo/paypal', 'logo/paypal-wordmark', 'logo/shop-pay',
       'logo/venmo', 'logo/visa',
@@ -447,21 +444,6 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + '`apple-pay` and `apple` are different products with different rules, so no value is shared and no paint key '
       + 'crosses the sets. `apple` LEADS only because Figma needs a first member; the code prop has no default, a '
       + 'sign-in button always names its provider. The list is data: a provider joins with a rule record and its glyph.',
-  },
-  {
-    axis: 'style',
-    values: ['any', 'black', 'white', 'white-outline', 'gold', 'blue', 'silver', 'purple'],
-    defs: ['wallet-button'],
-    relation: 'disjoint',
-    reason:
-      'The wallet provider\'s own button style, in each SDK\'s own value names (#3174, owner decisions Q3174.1 A and '
-      + 'Q3174.2 A): Apple Pay black, white and white-outline (its buttonstyle), Google Pay black and white (buttonColor), '
-      + 'PayPal gold, blue, silver, white and black (style.color), Shop Pay purple. `any` LEADS: the stand-in that draws '
-      + 'the provider\'s area and logo with no fill, the code default that passes no style, and the coordinate every '
-      + 'member built before #3174 keeps. DISJOINT from the field\'s canonical `outline`: Apple\'s edged button is '
-      + '`white-outline`, the SDK\'s word, so no value is shared. It shares `black`, `white` and `blue` with '
-      + 'SignInButton\'s set, meaning the same thing in both (the provider\'s fill of that color), and the two never '
-      + 'meet on one def. Only valid provider × style pairs are members (`excludeCoordinates`).',
   },
   {
     axis: 'style',

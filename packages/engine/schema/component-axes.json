@@ -73,7 +73,6 @@
     "members": 48,
     "properties": {
       "content": "SLOT",
-      "divider": "BOOLEAN",
       "title": "TEXT"
     }
   },
@@ -1050,17 +1049,6 @@
   "provider-logo": {
     "axes": {
       "name": [
-        "button/apple-pay-black",
-        "button/apple-pay-white",
-        "button/apple-pay-white-outline",
-        "button/google-pay-black",
-        "button/google-pay-white",
-        "button/paypal-black",
-        "button/paypal-blue",
-        "button/paypal-gold",
-        "button/paypal-silver",
-        "button/paypal-white",
-        "button/shop-pay-purple",
         "logo/affirm",
         "logo/amazon-pay",
         "logo/amex",
@@ -1138,7 +1126,7 @@
         "social/youtube-mono"
       ]
     },
-    "members": 86,
+    "members": 75,
     "properties": {}
   },
   "radio-control": {
@@ -1623,19 +1611,9 @@
       "state": [
         "focus-visible",
         "rest"
-      ],
-      "style": [
-        "any",
-        "black",
-        "blue",
-        "gold",
-        "purple",
-        "silver",
-        "white",
-        "white-outline"
       ]
     },
-    "members": 68,
+    "members": 20,
     "properties": {}
   }
 }

@@ -578,8 +578,6 @@ const inkBox = (d: string): Box => {
 const MARK_DEF = 'provider-logo';
 const MARK_ARTBOARD: Record<string, readonly [number | null, number]> = {
   social: [24, 24], provider: [24, 24], payment: [32, 20], logo: [null, 24],
-  // #3174: a wallet button's logo per style, on the 44-high button it was captured from, hugging the logo across.
-  button: [null, 44],
 };
 const MARKS_DIR = new URL('./marks/', import.meta.url);
 /** How far inside the tile artboard, on every side, a later path's ink box may sit and still read as a baked edge
@@ -776,7 +774,7 @@ for (const def of componentDefs as ComponentDef[]) {
         try { srcText = readFileSync(new URL(`${source}.svg`, MARKS_DIR), 'utf8'); src = dimsOf(srcText); } catch { failures.push(`${MARK_DEF}/${nm}: marks/${source}.svg is unreadable`); continue; }
         const wantW = board[0] ?? records[`${source}.svg`]?.width;
         if (doc.h !== board[1] || doc.w !== wantW)
-          failures.push(`${MARK_DEF}/${nm}: the document is ${doc.w}×${doc.h}, and a ${kind} mark is ${wantW ?? '(no width recorded)'}×${board[1]}${board[0] === null ? ` (${board[1]} high, at the width its provenance record states)` : ''}`);
+          failures.push(`${MARK_DEF}/${nm}: the document is ${doc.w}×${doc.h}, and a ${kind} mark is ${wantW ?? '(no width recorded)'}×${board[1]}${board[0] === null ? ' (24 high, at the width its provenance record states)' : ''}`);
         if (doc.vb.join(' ') !== `0 0 ${doc.w} ${doc.h}`)
           failures.push(`${MARK_DEF}/${nm}: the document's viewBox '${doc.vb.join(' ')}' is not its own artboard 0 0 ${doc.w} ${doc.h}, so the importer would scale the mark out of proportion`);
         if (src.w !== doc.w || src.h !== doc.h)

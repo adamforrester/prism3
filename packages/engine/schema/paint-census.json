@@ -15,12 +15,12 @@
     },
     "provider-logo": {
       "set": {
-        "members": 86,
+        "members": 75,
         "assignments": 11,
         "sha256": "0e7da302ee0302a8fb9e71c67608dc38e12c9677bef98fde1bea7d2d070af914"
       },
       "grid": {
-        "members": 86,
+        "members": 75,
         "assignments": 11,
         "sha256": "8877f40573d1a86982d3d37435bad179d1e03e013c8514d05320091085e76159"
       }
@@ -75,12 +75,12 @@
     },
     "wallet-button": {
       "set": {
-        "members": 68,
+        "members": 20,
         "assignments": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       "grid": {
-        "members": 68,
+        "members": 20,
         "assignments": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }

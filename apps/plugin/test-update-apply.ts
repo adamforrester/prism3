@@ -12,6 +12,9 @@
  *                  rebuilt instead of configured → `keys/members`.
  *   apply/…        the plan's change reaches the host, and the next dry run reads every member current.
  *   hash/…         a confirm whose hash the file no longer matches writes nothing.
+ *   fixed/…        the check and the apply run on a host whose methods are fixed, own data properties neither
+ *                  writable nor configurable, as Figma's are (#3209). Mutation: `withRoot` put back as a `Proxy` →
+ *                  `fixed/check`.
  *   pages/…        component pages out of alphabetical order are listed by the dry run and put in order by the apply,
  *                  a designer's page never moved (#2568).
  *   hand/…         a hand edit is kept, and still reported by the next dry run. Mutation: the record of an
@@ -235,7 +238,7 @@ import { NS } from './src/persist-figma';
 import { EXECUTOR_REACH } from './src/executor-reach';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
-import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
+import { fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
 import { adoptMembers, breakingLine, breakingOf, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
@@ -369,6 +372,31 @@ section('keys — a plan change is written in place: every key and id stays');
   // not tell it from a copy.
   const ids = membersOf(w.set()).map((m) => [String(m.id), JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY) || '{}').id] as const);
   ok(ids.every(([id, rec]) => rec === id), `keys/record id: every updated member's record names its own node (${ids.filter(([id, rec]) => rec !== id).length} do not)`);
+}
+
+/* ── fixed ─────────────────────────────────────────────────────────────────────────────────────────── */
+// #3209: ON FIGMA, THE HOST'S METHODS ARE FIXED, own data properties neither writable nor configurable, so a `Proxy`
+// over `figma` whose `get` trap hands back anything but the property's own value throws on the first read. #3177 wrapped
+// the host so, and every check and apply on real Figma failed on `getLocalTextStylesAsync` while every shim test passed.
+// Here the host and the executor are copies of the world's with every method fixed (`fixHostMethods`), their roots too,
+// as strict as the host can be. Mutation: `withRoot` (or `readRun`'s root) put back as a `Proxy` → `fixed/check`.
+section("fixed — the check and the apply run on a host whose methods are fixed, as Figma's are (#3209)");
+{
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const host = fixHostMethods({ ...w.host, root: fixHostMethods({ ...w.host.root }) }) as unknown as ApplyHost;
+  const api = fixHostMethods({ ...w.api });
+  ok(Object.getOwnPropertyDescriptor(host, 'getLocalTextStylesAsync')?.configurable === false && Object.getOwnPropertyDescriptor(api, 'getLocalTextStylesAsync')?.writable === false,
+    'premise: the host and the executor carry getLocalTextStylesAsync fixed, as Figma does');
+  const next = moveGap(w.plans);
+  const targets = [{ def: TAG, plans: next }];
+  const attempt = async <T,>(f: () => Promise<T>): Promise<T | string> => { try { return await f(); } catch (e) { return `THREW: ${(e as Error).message}`; } };
+  const pre = await attempt(() => previewUpdate(host, targets));
+  ok(typeof pre !== 'string' && pre.sets[0]?.counts.update === 45, `fixed/check: the dry run reads all 45 out of date (${typeof pre === 'string' ? pre.slice(0, 300) : JSON.stringify(pre.sets[0]?.counts)})`);
+  const res = typeof pre === 'string' ? pre : await attempt(() => applyUpdate(host, api as any, targets, previewHashOf(pre)));
+  const v = typeof res === 'string' ? null : applyVerdict(res);
+  ok(!!v && v.ok && v.headline === '✓ updated 45 in place', `fixed/apply: ${v ? v.headline : String(res).slice(0, 300)}`);
+  const post = await attempt(() => previewUpdate(host, targets));
+  ok(typeof post !== 'string' && post.sets[0]?.counts.current === 45, `fixed/current: the next dry run reads all 45 current (${typeof post === 'string' ? post.slice(0, 300) : JSON.stringify(post.sets[0]?.counts)})`);
 }
 
 /* ── hash ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -1470,62 +1498,6 @@ section('accordion title weight — a file built with the emphasis title takes t
   const post = (await previewUpdate(w.host, [{ def: 'accordion', plans }])).sets[0];
   ok(post.counts.current === 18 && post.handEdits.length === 30,
     `accordion weight/current: the next dry run reads the other 18 current and still reports the 30 hand edits (${JSON.stringify(post.counts)})`);
-}
-
-section('accordion divider — a file built before the `divider` boolean takes it in place, member ids kept, and 30 members hand-edited on the header\'s padding keep it (#3198, Q-ACC2 A)');
-// THE FILE: the set as main built it before #3198 — the nested Divider in every member, no property on it — rebuilt from
-// today's def by taking the boolean back out, so both sides are the real def's projection. 30 of the 48 members carry a
-// hand edit on the header's block padding. THE UPDATE: today's plans. EXPECTED, typed here: the set declares one BOOLEAN
-// `divider`, default on; every member's Divider is visible and wired to it; every member and node keeps its key and id;
-// the 30 edited headers keep the designer's padding.
-// Mutation: the def's `divider` boolean removed → `accordion divider/dry run` (nothing to update), `accordion divider/property`.
-{
-  const ACC = 'accordion';
-  const now = componentDefs.find((x) => x.id === ACC)!;
-  const { optional: _opt, ...oldDivider } = now.anatomy.parts.divider;
-  void _opt;
-  const { divider: _b, ...oldBooleans } = now.figmaProperties!.booleans ?? {};
-  void _b;
-  const before3198 = {
-    ...now,
-    props: now.props.filter((q) => q.name !== 'divider'),
-    anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, divider: oldDivider } },
-    figmaProperties: { ...now.figmaProperties, booleans: oldBooleans },
-  } as typeof now;
-  const oldPlans = figmaAnatomySet(before3198, { swapTarget: SWAP_TARGET });
-  const plans = plansOf(ACC);
-  const w = await world(ACC, oldPlans, { extraVars: ['space/0'] });
-  const propsOf = () => Object.entries((w.set().componentPropertyDefinitions ?? {}) as Record<string, { type: string; defaultValue: unknown }>).filter(([k]) => k.split('#')[0] === 'divider');
-  const wiredTo = (m: Node): string => String(((childNamed(m, 'divider')?.componentPropertyReferences ?? {}) as Record<string, string>).visible ?? '').split('#')[0];
-  const members = membersOf(w.set());
-  ok(members.length === 48 && propsOf().length === 0 && members.every((m) => !!childNamed(m, 'divider') && wiredTo(m) === ''),
-    `accordion divider/premise: the file's 48 members each nest a Divider, and the set has no 'divider' property (${propsOf().length} properties, ${members.filter((m) => wiredTo(m) !== '').length} wired)`);
-  const zero = await varIdOf(w, 'space/0');
-  const edited = members.slice(0, 30);
-  for (const m of edited) for (const f of ['paddingTop', 'paddingBottom']) (childNamed(m, 'header').setBoundVariable as (f: string, v: { id: string }) => void)(f, { id: zero });
-  const before = identityOf(w.set());
-  const { pre, res } = await confirm(w, [{ def: ACC, plans }]);
-  const p = pre.sets[0];
-  ok(!!p && !p.blockers.length && p.counts.update + p.counts.handEdited === 48 && p.counts.handEdited === 30 && p.counts.add === 0 && p.counts.drop === 0 && !p.replacements.length && !p.renames.length,
-    `accordion divider/dry run: all 48 members to update, 30 of them with a hand edit, nothing added, dropped, renamed or replaced (${JSON.stringify(p?.counts)}, ${p?.blockers.join('; ') || 'no blockers'})`);
-  const v = applyVerdict(res);
-  const after = identityOf(w.set());
-  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
-  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
-  ok(v.ok && JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 48,
-    `accordion divider/in place: the set, every member and every node keep their keys and ids (${v.headline}; ${moved.length} members, ${kidsMoved.length} nodes moved)`);
-  const props = propsOf();
-  ok(props.length === 1 && props[0][1].type === 'BOOLEAN' && props[0][1].defaultValue === true,
-    `accordion divider/property: the set declares one BOOLEAN 'divider', default on (${JSON.stringify(props)})`);
-  const unwired = membersOf(w.set()).filter((m) => wiredTo(m) !== 'divider' || childNamed(m, 'divider')?.visible === false).map((m) => String(m.name));
-  ok(unwired.length === 0, `accordion divider/wired: all 48 members' Divider is visible and its visibility follows 'divider' (${unwired.slice(0, 3).join('; ') || 'all 48'})`);
-  const padOf = (m: Node) => ['paddingTop', 'paddingBottom'].map((f) => (childNamed(m, 'header').boundVariables as Record<string, { id: string }>)[f]?.id);
-  const lostPad = edited.filter((m) => !padOf(m).every((id) => id === zero)).map((m) => String(m.name));
-  ok(lostPad.length === 0 && res.outcomes[0].kept.length === 30 && res.outcomes[0].kept.every((k) => k.path === 'header'),
-    `accordion divider/hand edits kept: the 30 edited headers keep the designer's padding and are listed as kept (${lostPad.length} lost, ${res.outcomes[0].kept.length} kept)`);
-  const post = (await previewUpdate(w.host, [{ def: ACC, plans }])).sets[0];
-  ok(post.counts.current === 18 && post.handEdits.length === 30,
-    `accordion divider/current: the next dry run reads the other 18 current and still reports the 30 hand edits (${JSON.stringify(post.counts)})`);
 }
 
 section('min/max — a member built under one Tag style and updated under the other has a fresh build\'s min and max sizes (#2976)');

@@ -34,7 +34,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Foundations",
     "buildable": true,
     "reason": null,
-    "members": 86,
+    "members": 75,
     "nests": []
   },
   {
@@ -263,7 +263,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 68,
+    "members": 20,
     "nests": [
       "provider-logo",
       "focus-ring"

@@ -257,9 +257,7 @@ export type LiteralFont = {
 
 /** One coordinate's literals (#2343 PR 5, Q-S2 A): what a third party fixes and the brand may not theme. Colors are
  *  `#rrggbb`, or `#rrggbbaa` for a wash. A `literal: 'surface'` box reads `fill`, `edge` and `wash[state]`; a
- *  `literal: 'label'` text part reads `ink`, `text` and `font`; a `literal: 'mark'` nest reads `markTint`. A surface
- *  entry with no `fill`, `edge` or `wash` at all declares that member UNPAINTED (#3174: WalletButton's `any` style);
- *  a wash or an edge with no fill under it still throws at projection. */
+ *  `literal: 'label'` text part reads `ink`, `text` and `font`; a `literal: 'mark'` nest reads `markTint`. */
 export type LiteralEntry = {
   fill?: string;
   edge?: string;

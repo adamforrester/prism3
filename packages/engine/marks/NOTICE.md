@@ -2,9 +2,8 @@
 
 ## What the set is
 
-Provider marks, in five kinds (owner decisions on #2343, 2026-10-27, and #3174, 2026-10-30): payment tiles
-(`payment/`), standalone payment logos (`logo/`), a wallet button's logo per style (`button/`), the glyph a sign-in
-button carries (`provider/`) and social marks (`social/`). They
+Provider marks, in four kinds (owner decisions on #2343, 2026-10-27): payment tiles (`payment/`), standalone
+payment logos (`logo/`), the glyph a sign-in button carries (`provider/`) and social marks (`social/`). They
 are the second icon type, beside the core set in `icons/`, because they need the opposite of everything the
 core set does: several paths, the provider's own colors, a provider-shaped artboard, and no ink from the
 component that hosts them.
@@ -14,13 +13,6 @@ component that hosts them.
 - **Artboards** by kind: square 24×24 (`social`, `provider`); the payment tile, 32×20 (`payment`, Q780 A),
   one kind for every logo in an "accepted payments" row; and the logo, 24 high, hugging its artwork left
   and right, with the width per mark (`logo`, Q781 A, Q783 A). A logo's side spacing is the component's.
-- **Button logos** (`button/<provider>-<style>`, owner decision Q3174.3 A) are the logo exactly as the provider's
-  own SDK draws it on that style's button, captured from the SDK's render. The artboard is the 44px button height
-  the SDK was captured at, with the logo at the height and the vertical place the SDK gives it, hugging the logo
-  across; so a host that binds the artboard to its button height keeps the provider's logo-to-height ratio. The
-  ground and the edge under the logo are not in the file: the record carries them (`ground`, `edge`), measured
-  from the SDK's computed paint, and WalletButton paints them. `lint-mark-provenance.ts` refuses either field on
-  any other kind.
 - **Payment tiles are full-bleed** (owner decision Q720 A): square corners, no border, the tile's ground
   kept, because a colored ground is part of the provider's mark. The `provider-logo` component rounds the
   corners and draws the edge from tokens, the same at every size and mode, so a tile file that rounds or
@@ -44,14 +36,6 @@ rectangle written as a path, color keywords written as their hex, `<use>` refere
 gradient transform folded into its circle, gradient definitions moved before the paths, and, on two
 social marks, the few coordinates that spilled past the dropped clip clamped to the artboard (by at
 most 0.024). `social/x` was supplied as `twitter`; it is the X glyph, so it carries X's name.
-
-**The button logos** (#3174, 2026-10-30), captured from each provider's public SDK, loaded from the
-provider's own servers into headless Chromium: Apple Pay JS, Google Pay's pay.js, PayPal's JS SDK and
-Shopify's Shop Pay element. No terms were accepted and nothing was signed in to. Each record names the SDK
-URL and version, the guideline that governs the button, and each normalization step: the SDK's own drawing
-moved onto the 44-high artboard (one uniform scale and a translation, written into the coordinates, since
-the emitter refuses a transform), relative and shorthand path commands written as absolute curves, and the
-SDK's shapes and color keywords written as paths and hex. No step changes a color or the proportion.
 
 ## Adding a provider
 

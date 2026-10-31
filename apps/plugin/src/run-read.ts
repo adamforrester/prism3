@@ -25,6 +25,8 @@
  *     invalidation the plugin does.
  */
 
+import { facade } from './host-facade';
+
 /** A search's criteria, as `findAllWithCriteria` takes them. */
 export type Criteria = { types: readonly string[]; sharedPluginData?: { namespace: string; keys: readonly string[] } };
 type Searchable = { findAllWithCriteria(c: Criteria): readonly unknown[]; findAll?(p: (n: unknown) => boolean): readonly unknown[] };
@@ -102,26 +104,17 @@ export const readRun = async <R extends object>(real: R, criteria: readonly Crit
     }
     return out;
   };
-  const proxy = new Proxy(real, {
-    get(t, p) {
-      if (p === 'findAllWithCriteria') return (c: Criteria) => answer(c);
-      if (p === 'findAll') return (fn: (n: unknown) => boolean) => root.findAll!(fn);
-      const v = Reflect.get(t, p);
-      return typeof v === 'function' ? v.bind(t) : v;
-    },
+  // A facade, not a `Proxy` (#3209): a host whose members are fixed would throw on a trap's substitute.
+  const stand = facade(real, {
+    findAllWithCriteria: (c: Criteria) => answer(c),
+    findAll: (fn: (n: unknown) => boolean) => root.findAll!(fn),
   });
-  RUNS.set(proxy, run);
-  return proxy;
+  RUNS.set(stand, run);
+  return stand;
 };
 
 /** `host` with its root standing in for the file's from `root`, a run's (`readRun`); every other member is `host`'s. */
-export const withRoot = <H extends object>(host: H, root: object): H => new Proxy(host, {
-  get(t, p) {
-    if (p === 'root') return root;
-    const v = Reflect.get(t, p);
-    return typeof v === 'function' ? v.bind(t) : v;
-  },
-});
+export const withRoot = <H extends object>(host: H, root: object): H => facade(host, { root });
 
 /** The page `node` sits on, or `undefined` for a node on no page (or one the host will not walk). */
 const pageOf = (node: unknown): PageLike | undefined => {
