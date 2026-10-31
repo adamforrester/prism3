@@ -13,7 +13,10 @@
  *   - "Still working on <set>" after `SILENCE_MS` with no reading. It claims only that the panel has not heard from the
  *     run since;
  *   - "Stop after <set>" (Q3170.4 A): the run finishes the set it is on and stops at the boundary;
- *   - when the run ends, the verdict line, which stays until the next action (Q3170.6 A). Details stay in Activity.
+ *   - when the run ends, the verdict line, which stays until the next action (Q3170.6 A). Details stay in Activity;
+ *   - #3189: an agent's Capture baseline or Adopt, which the panel never starts: the command's own Activity words, the
+ *     def it has reached and n of N, a bar by defs done, indeterminate while it reads the file. No Stop and no clock:
+ *     the panel holds no run of its own to stop or time. Cleared when the agent's command ends (`agent-finished`).
  * No time remaining and no percent inside a set: set costs vary by 10× and more, and a set's member writes are not counted.
  *
  * Pure: `main.ts` holds the run and the readings and calls `stripView` with the clock; `shell/status-strip.ts` draws it.
@@ -67,6 +70,9 @@ export const rowState = (r: StripRun | null, id: string): 'updating' | 'updated'
   const now = r.reading?.run === 'update' ? r.reading : null;
   return now && now.phase === 'work' && now.item === id ? 'updating' : 'updated';
 };
+
+/** #3189: an agent's Capture baseline (`capture`) or Adopt (`adopt`), its last reading, or null when none runs. */
+export type StripAgent = { readonly run: 'capture' | 'adopt'; readonly phase: 'check' | 'work' | 'finish'; readonly done: number; readonly total: number } | null;
 
 /** The read after open (Q3170.1 A): `done` of `total` pages, or null when no read is going. */
 export type StripRead = { readonly done: number; readonly total: number } | null;
@@ -125,6 +131,10 @@ export const STRIP_COPY = {
   updatedOf: (n: number, of: number): string => `${n} of ${of} updated`,
   kept: (n: number, rest: number): string => `${n === 1 ? 'The 1 set updated keeps its changes' : `The ${n} sets updated keep their changes`}; the other ${rest} ${rest === 1 ? 'is' : 'are'} unchanged.`,
   details: 'Details in Activity.',
+  /** #3189: an agent's Capture baseline and Adopt, in the words Activity already gives them (Q114 A). */
+  agentRun: { capture: 'Recording the sets as built…', adopt: 'Adopting members…' } as Record<'capture' | 'adopt', string>,
+  /** #3189: the line under an agent's run. */
+  agentSub: 'An agent runs this. Details in Activity.',
   /** The writing controls' reason while a run is out (Q3170.3 A), on hover. */
   busy: 'Update is running',
 } as const;
@@ -146,9 +156,12 @@ export type StripStep = {
   readonly queue: { readonly id: string; readonly at: number; readonly of: number } | null;
 };
 
-/** The strip, from what the panel holds now. Running wins over the read after open, which wins over a verdict. */
+/** The strip, from what the panel holds now. Running wins over an agent's run (#3189), which wins over the read after
+ *  open, which wins over a verdict. */
 export const stripView = (x: {
   readonly read: StripRead;
+  /** #3189: an agent's Capture baseline or Adopt. Absent is none. */
+  readonly agent?: StripAgent;
   readonly run: StripRun | null;
   readonly step: StripStep | null;
   readonly verdict: StripVerdict | null;
@@ -192,6 +205,12 @@ export const stripView = (x: {
     const still = x.now - run.heardAt >= SILENCE_MS ? STRIP_COPY.still(on) : null;
     return { kind: 'running', what, n: count ? `${count} · ${clock}` : clock, fill, still,
       stop: { label: step.stopping ? STRIP_COPY.stopping(stopOn) : STRIP_COPY.stopAfter(stopOn), disabled: step.stopping } };
+  }
+  if (x.agent) {
+    const { run: kind, phase, done, total } = x.agent;
+    const n = phase === 'work' ? STRIP_COPY.of(Math.min(done + 1, total), total) : phase === 'finish' ? STRIP_COPY.of(done, total) : null;
+    const fill = phase === 'finish' ? 1 : phase === 'work' && total ? done / total : null;
+    return { kind: 'reading', what: STRIP_COPY.agentRun[kind], n, fill, sub: STRIP_COPY.agentSub };
   }
   if (x.read) {
     const { done, total } = x.read;

@@ -293,6 +293,9 @@ export interface StyleGuideCatalog {
 export type StyleGuideTableStatus = 'waiting' | 'drawing' | 'done' | 'failed';
 
 /** Messages the main thread sends TO the UI iframe. */
+/** #3170, #3189: the runs a `run-progress` reading can be from. */
+export type RunProgressKind = 'read' | 'update' | 'apply-theme' | 'capture' | 'adopt';
+
 export type MainToUi =
   /** Result of an `apply-theme` write: ok + a human summary (counts / any misses) for the UI.
    *
@@ -419,8 +422,10 @@ export type MainToUi =
    *  `done` of `total` finished before it; `finish`, the run's work items are done (`done` of them), its closing writes
    *  remain. `item`: the def id an update is writing, the stage key Apply Theme is writing (`APPLY_STAGES`), or null.
    *  Posted at every boundary and again at each yield inside one, so the panel hears from a long set. Its own kind for
-   *  the `component-progress` reason: a reading is not a verdict. Never sent for an agent's run. */
-  | { type: 'run-progress'; run: 'read' | 'update' | 'apply-theme'; phase: 'check' | 'work' | 'finish'; item: string | null; done: number; total: number }
+   *  the `component-progress` reason: a reading is not a verdict. Never sent for an agent's update or Apply Theme.
+   *  #3189: also an agent's Capture baseline (`capture`) and Adopt (`adopt`), which the panel never starts: `check`, the
+   *  file being read; `work`, the def `item` reached, `done` of `total` before it; `finish`, every def done. */
+  | { type: 'run-progress'; run: RunProgressKind; phase: 'check' | 'work' | 'finish'; item: string | null; done: number; total: number }
   /** Boot read-back (#109): whether an existing Prism3 theme in the file passes the contract, plus a
    *  human summary. Informational — the actual knob-rehydration is `restore-input` below.
    *
