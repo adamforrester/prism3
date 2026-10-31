@@ -349,16 +349,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Secondary text — 4.5:1 on background/secondary",
+      "description": "Secondary text — 4.5:1 on background/primary",
       "value": {
-        "r": 0.24705882370471954,
-        "g": 0.2666666805744171,
-        "b": 0.2862745225429535,
+        "r": 0.29411765933036804,
+        "g": 0.3137255012989044,
+        "b": 0.3333333432674408,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/700"
+        "name": "nbds/core/palette/neutral/650"
       }
     },
     {
@@ -927,16 +927,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Secondary icon — 4.5:1 on background/secondary",
+      "description": "Secondary icon — 4.5:1 on background/primary",
       "value": {
-        "r": 0.24705882370471954,
-        "g": 0.2666666805744171,
-        "b": 0.2862745225429535,
+        "r": 0.29411765933036804,
+        "g": 0.3137255012989044,
+        "b": 0.3333333432674408,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/700"
+        "name": "nbds/core/palette/neutral/650"
       }
     },
     {

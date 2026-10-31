@@ -4839,38 +4839,38 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{nbds.core.palette.neutral.550}",
-          "$description": "Secondary text — 4.5:1 on background.secondary",
+          "$value": "{nbds.core.palette.neutral.500}",
+          "$description": "Secondary text — 4.5:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.core.palette.neutral.550",
-              "contrast": 4.52,
-              "against": "neutral.050",
+              "aliasOf": "nbds.core.palette.neutral.500",
+              "contrast": 4.59,
+              "against": "background.primary",
               "min": 4.5,
               "modes": {
                 "dark": {
                   "$value": "{nbds.core.palette.neutral.450}",
                   "aliasOf": "nbds.core.palette.neutral.450",
-                  "contrast": 4.68,
-                  "against": "neutral.900",
+                  "contrast": 5.06,
+                  "against": "background.primary",
                   "min": 4.5
                 },
                 "hc-light": {
-                  "$value": "{nbds.core.palette.neutral.700}",
-                  "aliasOf": "nbds.core.palette.neutral.700",
-                  "contrast": 8.09,
-                  "against": "neutral.050",
+                  "$value": "{nbds.core.palette.neutral.650}",
+                  "aliasOf": "nbds.core.palette.neutral.650",
+                  "contrast": 8.15,
+                  "against": "background.primary",
                   "min": 7,
-                  "description": "Secondary text — 7:1 on background.secondary"
+                  "description": "Secondary text — 7:1 on background.primary"
                 },
                 "hc-dark": {
-                  "$value": "{nbds.core.palette.neutral.300}",
-                  "aliasOf": "nbds.core.palette.neutral.300",
+                  "$value": "{nbds.core.palette.neutral.350}",
+                  "aliasOf": "nbds.core.palette.neutral.350",
                   "contrast": 7.49,
-                  "against": "neutral.900",
+                  "against": "background.primary",
                   "min": 7,
-                  "description": "Secondary text — 7:1 on background.secondary"
+                  "description": "Secondary text — 7:1 on background.primary"
                 }
               },
               "figma": {
@@ -6363,38 +6363,38 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{nbds.core.palette.neutral.550}",
-          "$description": "Secondary icon — 4.5:1 on background.secondary",
+          "$value": "{nbds.core.palette.neutral.500}",
+          "$description": "Secondary icon — 4.5:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.core.palette.neutral.550",
-              "contrast": 4.52,
-              "against": "neutral.050",
+              "aliasOf": "nbds.core.palette.neutral.500",
+              "contrast": 4.59,
+              "against": "background.primary",
               "min": 4.5,
               "modes": {
                 "dark": {
                   "$value": "{nbds.core.palette.neutral.450}",
                   "aliasOf": "nbds.core.palette.neutral.450",
-                  "contrast": 4.68,
-                  "against": "neutral.900",
+                  "contrast": 5.06,
+                  "against": "background.primary",
                   "min": 4.5
                 },
                 "hc-light": {
-                  "$value": "{nbds.core.palette.neutral.700}",
-                  "aliasOf": "nbds.core.palette.neutral.700",
-                  "contrast": 8.09,
-                  "against": "neutral.050",
+                  "$value": "{nbds.core.palette.neutral.650}",
+                  "aliasOf": "nbds.core.palette.neutral.650",
+                  "contrast": 8.15,
+                  "against": "background.primary",
                   "min": 7,
-                  "description": "Secondary icon — 7:1 on background.secondary"
+                  "description": "Secondary icon — 7:1 on background.primary"
                 },
                 "hc-dark": {
-                  "$value": "{nbds.core.palette.neutral.300}",
-                  "aliasOf": "nbds.core.palette.neutral.300",
+                  "$value": "{nbds.core.palette.neutral.350}",
+                  "aliasOf": "nbds.core.palette.neutral.350",
                   "contrast": 7.49,
-                  "against": "neutral.900",
+                  "against": "background.primary",
                   "min": 7,
-                  "description": "Secondary icon — 7:1 on background.secondary"
+                  "description": "Secondary icon — 7:1 on background.primary"
                 }
               },
               "figma": {
