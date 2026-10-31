@@ -43,6 +43,7 @@ import type { BrandInput } from '@prism3/engine/theme';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { runApplyTheme, themePlans } from './src/apply-theme';
 import { pack, unpack, componentFigma } from './src/mcp-steps';
+import { fixHostMethods } from './component-shim';
 import { FileShim } from './file-shim';
 import type { FileShimOpts as Opts } from './file-shim';
 import type { StepReport, Ledger } from './src/mcp-steps';
@@ -477,6 +478,13 @@ await section('components', async () => {
   const fn = componentFigma(native, n2);
   await fn.loadAllPagesAsync();
   ok(J((fn.root as any).findAllWithCriteria({ types: ['COMPONENT'] })) === J([{ name: 'native' }]) && n2.loadAllPages === 'native', 'components: where loadAllPagesAsync works, nothing is adapted — the native root search runs');
+  // #3209: on Figma the host's methods are fixed, own data properties neither writable nor configurable, and a `Proxy`
+  // over the host whose trap returns anything but their own value throws. The same refusing host, its methods fixed.
+  // Mutation: `componentFigma` put back as a `Proxy` over `host` → `components/fixed`.
+  const fixedHost: any = fixHostMethods({ ...refusing, root: fixHostMethods({ ...refusing.root, children: [page('A', [{ name: 'icon/x', type: 'COMPONENT' }])] }) });
+  const n3: { loadAllPages?: string } = {};
+  const fixedFound = await (async () => { try { const f = componentFigma(fixedHost, n3); await f.loadAllPagesAsync(); return (f.root as any).findAllWithCriteria({ types: ['COMPONENT'] }).map((n: any) => n.name); } catch (e) { return [`THREW: ${(e as Error).message}`]; } })();
+  ok(J(fixedFound) === J(['icon/x']), `components/fixed: over a host whose methods are fixed, as Figma's are, the adapter loads and searches (${fixedFound.join(', ')})`);
 });
 
 /* ── size ───────────────────────────────────────────────────────────────────────────────────────────── */

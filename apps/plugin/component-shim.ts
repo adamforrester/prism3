@@ -468,6 +468,24 @@ export type ShimOpts = {
 };
 
 
+/**
+ * #3209 — THE REAL HOST'S METHODS ARE FIXED. On Figma, `figma.getLocalTextStylesAsync` and its siblings are own data
+ * properties that are neither writable nor configurable. A JS `Proxy` over such an object must return the property's
+ * own value from its `get` trap: a bound copy or a substitute throws ("'get' on proxy: property … is a read-only and
+ * non-configurable data property on the proxy target but the proxy did not return its actual value"). The shim's
+ * objects are plain, so a wrapper that breaks the invariant passes every test that does not call this.
+ *
+ * Fixes every own function-valued data property of `o` in place, as the host's are, and returns `o`. Opt-in, because
+ * many suites patch a shim method after building it; a suite that reproduces the host calls it on its own copy.
+ */
+export const fixHostMethods = <T extends object>(o: T): T => {
+  for (const k of Reflect.ownKeys(o)) {
+    const d = Object.getOwnPropertyDescriptor(o, k)!;
+    if ('value' in d && typeof d.value === 'function') Object.defineProperty(o, k, { value: d.value, enumerable: d.enumerable, writable: false, configurable: false });
+  }
+  return o;
+};
+
 export const makeShim = (opts: ShimOpts = {}) => {
   const names = new Set(opts.vars ?? []);
   // #2265 PR 2 — `identities`: one counter for node ids, one for component keys, never reused.
