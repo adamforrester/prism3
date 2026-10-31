@@ -57,5 +57,7 @@ animation styles (#2857), waits on the owner's three in-app checks.
   held), and SETTLED.
 - Every other section opens its pages with the three motion durations at 0s (`SETTLED_MOTION`), so each surface lands
   on its end state in the frame it changes and nothing measures mid-move.
+- `test:verdict`'s #1890 arm read the drawer's place straight after a verdict opened it, which now lands mid-slide; it
+  waits for every finite animation to finish first (bounded), so it reads the end state.
 - `lint:live-css` passes unchanged: its scope is `styles.css`, and this change adds no rule there. The DECLARED arm is
   what holds the new `chrome.css` rules.
