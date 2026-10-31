@@ -58,6 +58,7 @@ import { glyph, h, hook, linkTile, menuButton, tile } from './dom';
 import { mountRail } from './rail';
 import { mountDocumentation, type DocumentationLend } from './documentation';
 import { mountUpdateFile, type UpdateFileLend } from './update-file';
+import { mountStatusStrip, type StatusLend } from './status-strip';
 import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
 import { mountBar, type BarLend } from './bar';
@@ -205,6 +206,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly updateFile: UpdateFileLend | null;
   /** #2909: Documentation's reads and writes, or null where there is no Figma file. */
   readonly documentation: DocumentationLend | null;
+  /** #3170 part 2: the status strip's reading and its Stop, or null where there is no Figma file. */
+  readonly status: StatusLend | null;
   /** The rail's Help (#2637 Q384): the main thread opens the docs in the browser. Null on the web, a link there. */
   readonly openDocs: (() => void) | null;
   /** The legacy renderers lent to the moved pages (S3: the Style guide, to Brand's preview), and the host's font
@@ -438,6 +441,8 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   // The Activity status line rides in the top bar, which is always drawn, on the bar's own ground.
   bar.append(activity.live);
+  // #3170 part 2: the status strip, at the panel's foot: first in the drawer, above its bar row (plugin only).
+  if (opts.status) activity.drawer.prepend(mountStatusStrip(opts.status, cleanups));
   // The Build style guides page (S11.2): a full-width page of the shell's own, shown in the `page` layout.
   const menuPage = hook(h('main', 'p3-sgpage'), 'menu-page');
   menuPage.id = 'p3-menu-page';

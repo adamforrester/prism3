@@ -233,6 +233,8 @@ export const UPDATE_COPY = {
   cancel: 'Cancel',
   close: 'Close',
   stop: 'Stop after this step',
+  /** #3170 Q3170.2 A: a due set's state while the run updates it. DRAFT. */
+  runState: { updating: 'Updating', updated: 'Updated' } as Record<'updating' | 'updated', string>,
   running: (step: string, at: number, of: number): string => `Step ${at} of ${of} · ${step}`,
   stopped: (step: string, headline: string): string => `The last update stopped at ${step}: ${headline}`,
   cleanLead: 'Things Prism3 wrote earlier and no longer writes. Nothing here rides Update file.',

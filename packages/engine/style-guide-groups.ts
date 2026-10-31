@@ -19,6 +19,11 @@
  * those two): each is put in the same frame the other groups use, titled as its guide is, stacked last on the semantic
  * page, Effect styles then Gradient styles.
  *
+ * THE GRIDS & LAYOUTS PAGE HAS TWO GROUPS OF ITS OWN (#3171, owner decisions Q3171.1–7, all A): Grids, the grid-style
+ * table, above Containers, the container table, each in the `layout` tier the plugin draws on `↳ Grids & layouts`. A
+ * container guide is one whose every variable is a `container/*` width, a fact the plugin reads off each name segment,
+ * as it reads `inverse`.
+ *
  * INVERSE HAS ITS OWN GROUP (owner decision, 2026-10-19, superseding the second row of #2801 and #2818): each inverse
  * family is its own guide (the owner's change on #2801, 2026-10-16), and the inverse guides sit in a group of their
  * own, Inverse colors, drawn directly below Semantic colors with each inverse guide under its default counterpart's
@@ -27,7 +32,7 @@
  * PURE — no `node:*`, no I/O, no imports.
  */
 
-export type StyleGuideTier = 'primitive' | 'semantic';
+export type StyleGuideTier = 'primitive' | 'semantic' | 'layout';
 
 export interface StyleGuideGroup {
   /** Stable across runs: the plugin data a drawn group carries. Never shown. */
@@ -52,6 +57,8 @@ export const STYLE_GUIDE_GROUPS: readonly StyleGuideGroup[] = [
   { id: 'semantic-fonts', tier: 'semantic', title: 'Fonts' },
   { id: 'effect-styles', tier: 'semantic', title: 'Effect styles' },
   { id: 'gradient-styles', tier: 'semantic', title: 'Gradient styles' },
+  { id: 'grids', tier: 'layout', title: 'Grids' },
+  { id: 'containers', tier: 'layout', title: 'Containers' },
 ];
 
 /** The font-variable kinds, each its own guide, all in the tier's Fonts group. */
@@ -65,6 +72,8 @@ export interface StyleGuideGuideFacts {
   allRadius?: boolean;
   /** The guide's path has an `inverse` segment. Read for a semantic `color` guide only. */
   inverse?: boolean;
+  /** Every row is a `container/*` width (#3171). Read for a `dimension` guide only. */
+  container?: boolean;
 }
 
 /**
@@ -74,10 +83,13 @@ export interface StyleGuideGuideFacts {
  *     of radii, Space & size for the rest (space, size, icon size, control, opacity);
  *   • a font kind: the tier's Fonts; text styles: Fonts (semantic);
  *   • effect styles (`shadow`): Effect styles; gradient styles (`gradient`): Gradient styles;
+ *   • grid styles (`grid`): Grids; a dimension guide of container widths, whatever its tier: Containers (#3171);
  *   • anything else (a later type): null.
  */
 export const styleGuideGroupOf = (g: StyleGuideGuideFacts): string | null => {
   const primitive = g.tier === 'primitive';
+  if (g.type === 'grid') return 'grids';
+  if (g.type === 'dimension' && g.container) return 'containers';
   if (g.type === 'color') return primitive ? 'palettes' : g.inverse ? 'inverse-colors' : 'semantic-colors';
   if (g.type === 'dimension' || g.type === 'borderWidth' || g.type === 'opacity') {
     if (primitive) return 'dimensions';

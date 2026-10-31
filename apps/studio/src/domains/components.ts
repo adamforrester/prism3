@@ -144,6 +144,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     bx.append(glyph(state === 'mixed' ? 'dash' : 'check'));
     b.append(bx);
     b.onclick = onToggle;
+    // #3170 Q3170.3 A: a queue write is a write to the file, so it waits while Update file's run is out, and says why.
+    const why = plugin ? lend.sets.off() : null;
+    if (why) { b.disabled = true; b.title = why; }
     return b;
   };
   /** #3129: the sets the file holds, once the host's full read has landed (else no box is drawn), and the queue. */
@@ -451,7 +454,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
             const b = hook(h('button', 'p3-btn p3-btn-ghost p3-cp-tier-act', label), role);
             b.type = 'button';
             b.dataset.key = `${role}=${tier.id}`;
-            b.disabled = !ids.length;
+            const why = lend.sets.off();
+            b.disabled = !ids.length || why !== null;
+            if (why) b.title = why;
             // The action turns off once it has acted, so focus moves to its sibling, which it has just turned on.
             b.onclick = () => { if (!ids.length) return; nextFocus = `${on ? 'cp-deselect-all' : 'cp-select-all'}=${tier.id}`; lend.sets.queueSets(ids, on); };
             return b;
