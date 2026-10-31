@@ -783,14 +783,15 @@ const bracketTiers = (member: PNode, marks: readonly AnatomyMark[]): number => {
 const stageFor = (w: number, tiers: number): number =>
   w + STAGE_PAD + Math.max(STAGE_PAD, tiers ? MARK_GAP + tiers * (MARK_ROOM + 2 * MARK_SEP) + LEADER : 0);
 /**
- * THE NARROWEST AN EXAMPLE MAY BE (#3205), from the def alone, never from the sizing the member reports. A root the def
- * builds at a width (`placementWidth`, or `builtSize` naming the member's value on its axis) is `built`, and its floor
- * is the member's own width, the width the executor built it at; Dialog's center member 560, Banner's 480. Otherwise the
- * root's literal `minWidth`, per size where it is one per size (the member's `size`, else the def's default); else 0.
+ * THE NARROWEST AN EXAMPLE MAY BE (#3205). Whether a member is `built` comes from the def alone, never from the sizing
+ * the member reports: a root the def builds at a width (`placementWidth`, `builtSize` naming the member's value on its
+ * axis, or `center` naming it, as Pagination's simple member at 428) is `built`. Its floor's width comes from the member:
+ * the width the executor built it at; Dialog's center member 560, Banner's 480. Otherwise the root's literal `minWidth`,
+ * per size where it is one per size (the member's `size`, else the def's default); else 0.
  */
 export const exampleFloor = (def: ComponentDef | undefined, m: PNode | undefined): { built: boolean; width: number } => {
   const a = def?.anatomy;
-  const root = a?.parts[a.root] as { kind?: string; placementWidth?: number; builtSize?: { axis: string; widths: Record<string, unknown> }; minWidth?: number | Record<string, number> } | undefined;
+  const root = a?.parts[a.root] as { kind?: string; placementWidth?: number; builtSize?: { axis: string; widths: Record<string, unknown> }; center?: { axis: string; value: string; placementWidth?: number }; minWidth?: number | Record<string, number> } | undefined;
   if (!root || root.kind !== 'box' || !m) return { built: false, width: 0 };
   const v = variantValues(m.name);
   const size = v.size ?? String(def?.props?.find((p) => p.name === 'size')?.default ?? '');
@@ -798,7 +799,10 @@ export const exampleFloor = (def: ComponentDef | undefined, m: PNode | undefined
   const axisValue = b ? (b.axis === 'size' ? size : v[b.axis]) : undefined;
   // A member whose name does not carry the axis (a set built before it was one) is read as built: the def builds every
   // listed value at a width, so a fixed specimen at the member's width is right for each.
-  const built = typeof root.placementWidth === 'number' || (!!b && (axisValue === undefined || axisValue in b.widths));
+  // A `center` root is built at its width only at the member it names (#2518, #3211); every other member hugs as declared.
+  const c = root.center;
+  const built = typeof root.placementWidth === 'number' || (!!b && (axisValue === undefined || axisValue in b.widths))
+    || (!!c && typeof c.placementWidth === 'number' && v[c.axis] === c.value);
   if (built) return { built, width: Math.round(Number(m.width ?? 0)) };
   const min = root.minWidth;
   const w = typeof min === 'number' ? min : min && size in min ? min[size] : 0;
@@ -907,7 +911,7 @@ export const drawDocPanel = async (
    *  sizing the template's placeholder had, a Badge's hug, so a member built at a width that hugs its content instead
    *  lays its fill-width text out at its narrowest: Banner's text went one letter per line, Checkbox.Row's label
    *  wrapped, and Dialog's anatomy drew about 60px wide, its title one letter per line (#3205). One rule
-   *  (`exampleFloor`): a def that builds its root at a width (`placementWidth`, `builtSize`) gets a fixed specimen at
+   *  (`exampleFloor`): a def that builds its root at a width (`placementWidth`, `builtSize`, `center`) gets a fixed specimen at
    *  its member's width, with that width as the specimen's `minWidth` too, whatever sizing the member reports, so
    *  nothing that sets the instance back to hug can collapse it; a def that declares a literal minimum (`minWidth`)
    *  gets that floor on a specimen that hugs. Any other member: fixed at its width when it is fixed, hugging when it hugs. */

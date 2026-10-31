@@ -66,11 +66,13 @@
  *                   and no wrapping text box under 4em that does not hold its text on one line. `collapse/hug read`: Dialog's
  *                   members read as hugging, its examples still 560 (typed). `update/redraw in place`: Dialog built by the
  *                   executor, its panel aged to the earlier format with its examples collapsed, is due, and one Update
- *                   redraws it where it was, not "(edited)". The host applies `minWidth` as Figma does, and an instance
- *                   inherits its main's. Mutations: the specimen left hugging → `collapse/dialog` and every `collapse/<def>`
- *                   built at a width, `collapse/hug read`, `update/redraw in place`; the def's width ignored (the
- *                   member's reported sizing alone) → `collapse/hug read`; `PANEL_FORMAT` not raised → `update/redraw in
- *                   place`.
+ *                   redraws it where it was, not "(edited)". `collapse/after reset` (#3211): every lead built at a width,
+ *                   its specimens set back to hug after drawing, still none under its width. The host applies `minWidth`
+ *                   as Figma does, and an instance inherits its main's. Mutations: the specimen left hugging →
+ *                   `collapse/dialog` and every `collapse/<def>` built at a width, `collapse/hug read`, `update/redraw
+ *                   in place`; the def's width ignored (the member's reported sizing alone) → `collapse/hug read`;
+ *                   `PANEL_FORMAT` not raised → `update/redraw in place`; the specimen's `minWidth` never set →
+ *                   `collapse/after reset`.
  *   markers/…       (#2916) each leader's tip lies inside its part's box, at the part's middle, and each bracket runs
  *                   exactly its part's height with both ticks ending inside it; Breadcrumbs' six entries (the `items`
  *                   slot's among them) on two specimens, pinned by hand in `marks/breadcrumbs`. Mutations: a slot
@@ -824,6 +826,28 @@ for (const d of leads) {
   const bad = collapses(panel);
   ok(first.absoluteBoundingBox!.width === DIALOG_WIDTH && !bad.length,
     `collapse/hug read: Dialog's members read as hugging, its anatomy example is still ${first.absoluteBoundingBox!.width} wide (${DIALOG_WIDTH} wanted)`, bad.slice(0, 3).join('; '));
+}
+{
+  // A LATER RESET TO HUG (#3211 X1): after a panel is drawn, something sets every specimen back to hug, as a host's
+  // reset can. Only the specimen's `minWidth` holds it then, so no lead built at a width (read off the projection's
+  // root, `placementWidth`, never off the subject's `exampleFloor`) may draw an example under that width.
+  const builtAt = (m: N): boolean => typeof (m._plan as { placementWidth?: unknown } | undefined)?.placementWidth === 'number';
+  const hit: string[] = [];
+  let built = 0;
+  for (const d of leads) {
+    const p = page(`↳ c reset ${d.id}`);
+    const set = fakeSet(p, d.id);
+    if (!set.children.some(builtAt)) continue;
+    built++;
+    await drawDocPanel(host([p]), set, d, { names });
+    const panel = panelsOn(p)[0];
+    if (!panel) { hit.push(`${d.id}: no panel drawn`); continue; }
+    for (const sp of walk(panel).filter((c) => c.name === 'specimen')) sp.layoutSizingHorizontal = 'HUG';
+    const bad = collapses(panel);
+    if (bad.length) hit.push(`${d.id}: ${bad[0]}`);
+  }
+  ok(built > 0 && !hit.length,
+    `collapse/after reset: ${built} leads built at a width, every specimen set back to hug after drawing, no example under its width`, hit.slice(0, 4).join('; '));
 }
 
 /* ── family: one panel per page, the members' earlier panels replaced ──────────────────────────────────── */
