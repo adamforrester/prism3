@@ -61,6 +61,16 @@
  *                   instance, the failure the fix guards. Mutations: the width forced to 560 → `width/checkbox-row`,
  *                   `width/room`, `width/seat`, `markers/widths`; the specimen not sized to its member →
  *                   `width/banner`, `width/checkbox-row`.
+ *   collapse/…      (#3205) every lead's examples, in this host: none narrower than the width its member is built at
+ *                   (`placementWidth`) or its literal floor (`minWidth`), read off the projection's root kept on each member,
+ *                   and no wrapping text box under 4em that does not hold its text on one line. `collapse/hug read`: Dialog's
+ *                   members read as hugging, its examples still 560 (typed). `update/redraw in place`: Dialog built by the
+ *                   executor, its panel aged to the earlier format with its examples collapsed, is due, and one Update
+ *                   redraws it where it was, not "(edited)". The host applies `minWidth` as Figma does, and an instance
+ *                   inherits its main's. Mutations: the specimen left hugging → `collapse/dialog` and every `collapse/<def>`
+ *                   built at a width, `collapse/hug read`, `update/redraw in place`; the def's width ignored (the
+ *                   member's reported sizing alone) → `collapse/hug read`; `PANEL_FORMAT` not raised → `update/redraw in
+ *                   place`.
  *   markers/…       (#2916) each leader's tip lies inside its part's box, at the part's middle, and each bracket runs
  *                   exactly its part's height with both ticks ending inside it; Breadcrumbs' six entries (the `items`
  *                   slot's among them) on two specimens, pinned by hand in `marks/breadcrumbs`. Mutations: a slot
@@ -144,27 +154,11 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
   const n = {
     id: `${type[0]}:${++seq}`, type, name, x: 0, y: 0, visible: true, children: [] as N[], fills: [], strokes: [], _mk: true,
     _w: type === 'TEXT' ? 200 : 100, _h: type === 'TEXT' ? TEXT_LINE : 0,
+    /** A FLOOR (#3205): an auto-layout frame never goes under its `minWidth`, as Figma lays one out. */
     get width(): number {
       const self = this as unknown as N;
-      if (self.type === 'TEXT' && self.textAutoResize === 'WIDTH_AND_HEIGHT') return runWidth(String(self.characters ?? ''), typeof self.fontSize === 'number' ? self.fontSize : 14);
-      const p = self.parent as N | undefined;
-      // FILL across a vertical parent: its width less its padding. A `_hug` frame hugs its children, as a specimen does.
-      if (self.layoutSizingHorizontal === 'FILL' && p?._mk && p.layoutMode === 'VERTICAL') return p.width! - Number(p.paddingLeft ?? 0) - Number(p.paddingRight ?? 0);
-      // A MEMBER'S STRETCHED LAYER (#2970): one that grows along a horizontal parent or stretches across a vertical one
-      // takes the room its parent gives it. In a parent that hugs, there is none: it shrinks to its narrowest, a text to
-      // one letter, as Banner's did in a specimen that hugged.
-      if (p?._mk && stretched(self)) {
-        if (hugs(p)) return narrowest(self);
-        const inner = p.width! - Number(p.paddingLeft ?? 0) - Number(p.paddingRight ?? 0);
-        if (p.layoutMode === 'VERTICAL') return inner;
-        const kids = flow(p), grown = kids.filter(stretched);
-        return Math.max(0, (inner - kids.filter((c) => !stretched(c)).reduce((a, c) => a + c.width!, 0) - Number(p.itemSpacing ?? 0) * (kids.length - 1)) / grown.length);
-      }
-      if (self.layoutSizingHorizontal === 'FIXED' && self._hug) return self._w as number;
-      const kids = flow(self);
-      if (!self._hug || !self.layoutMode || !kids.length) return self._w as number;
-      const pad = Number(self.paddingLeft ?? 0) + Number(self.paddingRight ?? 0);
-      return pad + (self.layoutMode === 'HORIZONTAL' ? kids.reduce((a, c) => a + c.width!, 0) + Number(self.itemSpacing ?? 0) * (kids.length - 1) : Math.max(...kids.map((c) => c.width!)));
+      const w = rawWidth(self);
+      return typeof self.minWidth === 'number' ? Math.max(w, self.minWidth) : w;
     },
     get height(): number {
       const self = this as unknown as N;
@@ -215,6 +209,32 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
   }
   return n;
 };
+/** A node's width before its floor: the host's own layout, written here, never read off the panel. */
+function rawWidth(self: N): number {
+  if (self.type === 'TEXT' && self.textAutoResize === 'WIDTH_AND_HEIGHT') return runWidth(String(self.characters ?? ''), typeof self.fontSize === 'number' ? self.fontSize : 14);
+  const p = self.parent as N | undefined;
+  // FILL across a vertical parent: its width less its padding. A `_hug` frame hugs its children, as a specimen does.
+  if (self.layoutSizingHorizontal === 'FILL' && p?._mk && p.layoutMode === 'VERTICAL') return p.width! - Number(p.paddingLeft ?? 0) - Number(p.paddingRight ?? 0);
+  // A MEMBER'S STRETCHED LAYER (#2970): one that grows along a horizontal parent or stretches across a vertical one
+  // takes the room its parent gives it. In a parent that hugs, there is none: it shrinks to its narrowest, a text to
+  // one letter, as Banner's did in a specimen that hugged.
+  if (p?._mk && stretched(self)) {
+    // A parent that hugs gives no room, unless it has a floor (#3205): then it is that floor wide, or its content's
+    // narrowest when that is wider, and the layer takes its share of it.
+    let pw: number;
+    if (hugs(p)) { if (typeof p.minWidth !== 'number') return narrowest(self); pw = Math.max(p.minWidth, narrowest(p)); }
+    else pw = p.width!;
+    const inner = pw - Number(p.paddingLeft ?? 0) - Number(p.paddingRight ?? 0);
+    if (p.layoutMode === 'VERTICAL') return inner;
+    const kids = flow(p), grown = kids.filter(stretched);
+    return Math.max(0, (inner - kids.filter((c) => !stretched(c)).reduce((a, c) => a + c.width!, 0) - Number(p.itemSpacing ?? 0) * (kids.length - 1)) / grown.length);
+  }
+  if (self.layoutSizingHorizontal === 'FIXED' && self._hug) return self._w as number;
+  const kids = flow(self);
+  if (!self._hug || !self.layoutMode || !kids.length) return self._w as number;
+  const pad = Number(self.paddingLeft ?? 0) + Number(self.paddingRight ?? 0);
+  return pad + (self.layoutMode === 'HORIZONTAL' ? kids.reduce((a, c) => a + c.width!, 0) + Number(self.itemSpacing ?? 0) * (kids.length - 1) : Math.max(...kids.map((c) => c.width!)));
+}
 /** The children an auto-layout frame lays out: shown and not absolute. */
 const flow = (n: N): N[] => n.children.filter((c) => c.visible !== false && c.layoutPositioning !== 'ABSOLUTE');
 /** A member's layer that takes its width from its parent (#2970): it grows along a horizontal parent, or stretches across
@@ -300,6 +320,8 @@ const copyLayer = (src: Record<string, unknown>): N => {
     ...(src.layoutGrow === 1 ? { layoutGrow: 1 } : {}), ...(src.layoutAlign === 'STRETCH' ? { layoutAlign: 'STRETCH' } : {}),
     ...(typeof src.textAutoResize === 'string' ? { textAutoResize: src.textAutoResize } : {}),
     ...(typeof src.characters === 'string' ? { characters: src.characters } : {}),
+    // A literal floor the plan carries (#3205), as the host builds it and every instance inherits it.
+    ...(typeof src.minWidth === 'number' ? { minWidth: src.minWidth } : {}),
   });
   if (type === 'TEXT') { n._w = 48; n._h = 16; }
   // An instance holds its main's padding and spacing as numbers (#2830's redlines read them).
@@ -321,6 +343,8 @@ const instanceOf = (sp: N, member: N): void => {
   // the main's width is what a fixed instance takes.
   sp._hug = true;
   sp._w = member.width;
+  // An instance inherits its main's floor (#3205): Figma's `minWidth` reaches every instance.
+  if (typeof member.minWidth === 'number') sp.minWidth = member.minWidth; else delete sp.minWidth;
   sp.layoutMode = member.layoutMode ?? 'VERTICAL';
   sp.itemSpacing = 4;
   const props: Record<string, { type: string; value: unknown }> = {};
@@ -342,6 +366,8 @@ const planMember = (plan: { coord: Record<string, string>; root: Record<string, 
   const built = plan.root.placementWidth;
   if (typeof built === 'number') { m._w = built; m.layoutSizingHorizontal = 'FIXED'; } else m.layoutSizingHorizontal = 'HUG';
   m.name = Object.entries(plan.coord).map(([k, v]) => `${k}=${v}`).join(', ');
+  // THE ORACLE'S WIDTH (#3205): the projection's own root, kept beside the member, never read through the panel.
+  m._plan = plan.root;
   members.set(String(m.id), m);
   return m;
 };
@@ -746,6 +772,58 @@ section('width/… — each specimen at its member\'s width, the panel as wide a
     ok(Number(after.width) === w0 + 200 && Number(sp.x) === Number(after.x) + Number(after.width) + 40 && docPanelDue(api, set, plan) === 0,
       `width/spec column: the panel widens ${w0} → ${after.width}, and the spec panel moves to ${sp.x}, 40 past it`, `want ${w0 + 200}, spec at ${Number(after.x) + Number(after.width) + 40}`);
   }
+}
+
+/* ── collapse: no example narrower than its def allows (#3205) ─────────────────────────────────────────── */
+section('collapse/… — every lead\'s examples at least as wide as the def declares, no wrapping text under a few em (#3205)');
+/** THE ORACLE (#3205): what an example may not go under, read off the projection's own root for its member (kept on the
+ *  member by `planMember`), never through the panel: the width a root is built at (`placementWidth`), else its literal
+ *  floor (`minWidth`), else nothing. And a wrapping text box narrower than `COLLAPSE_EM` em that does not hold its text on
+ *  one line has collapsed: the owner's Dialog title went one letter per line. */
+const COLLAPSE_EM = 4;
+/** Dialog's center member at its default size, typed from the def's prose (400 / 560 / 720, medium the default). */
+const DIALOG_WIDTH = 560;
+const floorOf = (m: N | undefined): number => {
+  const r = (m?._plan ?? {}) as { placementWidth?: unknown; minWidth?: unknown };
+  return typeof r.placementWidth === 'number' ? r.placementWidth : typeof r.minWidth === 'number' ? r.minWidth : 0;
+};
+/** Every collapse in a drawn panel: an example under its member's floor, or a wrapping text under `COLLAPSE_EM` em. */
+const collapses = (panel: N): string[] => {
+  const out: string[] = [];
+  walk(panel).filter((c) => c.name === 'specimen').forEach((sp, k) => {
+    const m = members.get(String(sp.swapped));
+    const need = floorOf(m), got = sp.absoluteBoundingBox!.width;
+    if (got < need - 0.5) out.push(`example ${k + 1} is ${got}px wide, under the ${need} its def declares`);
+    for (const t of walk(sp).filter((c) => c.type === 'TEXT' && c.visible !== false && c.textAutoResize === 'HEIGHT')) {
+      const em = typeof t.fontSize === 'number' ? t.fontSize : 14, line = runWidth(String(t.characters), em);
+      if (t.width! < Math.min(line, COLLAPSE_EM * em)) out.push(`example ${k + 1}: "${String(t.characters).slice(0, 20)}" wraps at ${t.width}px, under ${COLLAPSE_EM}em`);
+    }
+  });
+  return out;
+};
+for (const d of leads) {
+  const p = page(`↳ c ${d.id}`);
+  const set = fakeSet(p, d.id);
+  const r = await drawDocPanel(host([p]), set, d, { names });
+  const panel = panelsOn(p)[0];
+  const bad = panel ? collapses(panel) : ['no panel drawn'];
+  const n = panel ? walk(panel).filter((c) => c.name === 'specimen').length : 0;
+  ok(r.drawn && n > 0 && !bad.length, `collapse/${d.id}: ${n} examples, none under the def's width, no text under ${COLLAPSE_EM}em`, [...new Set(bad)].slice(0, 3).join('; '));
+}
+{
+  // THE READ THE FIX DOES NOT TRUST: Dialog's members report that they hug, as a host's read of a member can. The def
+  // builds Dialog at a width, so its examples are still 560 wide and its title holds one line.
+  const d = componentDefs.find((x) => x.id === 'dialog')!;
+  const p = page('↳ c hug read');
+  const set = fakeSet(p, 'dialog');
+  // Each member is still built 560 wide: only what its sizing reads moves (`_hug` off keeps the host's width its own).
+  for (const m of set.children) { m._hug = false; m.layoutSizingHorizontal = 'HUG'; }
+  await drawDocPanel(host([p]), set, d, { names });
+  const panel = panelsOn(p)[0];
+  const first = walk(panel).find((c) => c.name === 'specimen')!;
+  const bad = collapses(panel);
+  ok(first.absoluteBoundingBox!.width === DIALOG_WIDTH && !bad.length,
+    `collapse/hug read: Dialog's members read as hugging, its anatomy example is still ${first.absoluteBoundingBox!.width} wide (${DIALOG_WIDTH} wanted)`, bad.slice(0, 3).join('; '));
 }
 
 /* ── family: one panel per page, the members' earlier panels replaced ──────────────────────────────────── */
@@ -1175,6 +1253,41 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
   const pa = pre.sets.find((x) => x.set === 'badge'), pb = pre.sets.find((x) => x.set === 'divider');
   ok(rb.drawn && !ra.drawn && !!pb?.setMove && !pa?.furniture?.panels,
     `due/update leaves a blocker: Divider moves to ${pb?.setMove?.to.x}, but "Notes" stays in the way, so Badge's panel is not due (${JSON.stringify(pa?.furniture)})`);
+}
+
+// #3205 item 4: Update redraws a collapsed usage panel in place.
+{
+  // UPDATE REDRAWS AN AFFECTED PANEL IN PLACE (#3205 item 4): Dialog built by the executor, its panel drawn, then aged to
+  // what the fix replaces, drawn by the earlier format with its examples collapsed. The dry run lists it as due; one
+  // Update, as `main.ts` runs it, replaces it where it was, not kept as "(edited)", every example 560 wide.
+  const p = page('↳ c update');
+  const { api, sets } = await buildAll(p, ['button', 'button-group', 'divider', 'flush-icon-button-neutral', 'dialog']);
+  const set = sets[sets.length - 1];
+  // The close glyph the plan swaps to, which the shim holds off the page: here on the page, where the update finds it.
+  p.appendChild!(mk('COMPONENT', 'icon/close', [], { x: -4000, y: 0, _w: 24, _h: 24 }));
+  // Each shim numbers its nodes from 1: the swap finds this set's members here first, not another page's namesakes.
+  for (const m of set.children) members.set(String(m.id), m);
+  const panels = host([p]);
+  const uh = { ...api, root: { ...(api.root as object), findAllWithCriteria: (c: never) => labelHost(panels).root.findAllWithCriteria(c) } } as unknown as UpdateHost & PanelApi & FurnitureApi;
+  const d = componentDefs.find((x) => x.id === 'dialog')!;
+  await drawDocPanel(uh, set, d, { names });
+  const old = panelsOn(p)[0];
+  const at = { x: Number(old.x), y: Number(old.y) };
+  old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '4:'));
+  for (const sp of walk(old).filter((c) => c.name === 'specimen')) { sp.layoutSizingHorizontal = 'HUG'; delete sp.minWidth; }
+  const was = walk(old).find((c) => c.name === 'specimen')!.absoluteBoundingBox!.width;
+  const targets: UpdateTarget[] = [{ def: 'dialog', plans: plansOf('dialog'), doc: { def: d, names } }];
+  const pre = await previewUpdate(uh, targets);
+  const due = pre.sets.find((x) => x.set === 'dialog')?.furniture?.panels;
+  const furnish = async (def: string) => { await furnishUpdate(uh, { outcomes: [{ def }] }, targets, (s, id) => drawDocPanel(uh, s as unknown as PNode, componentDefs.find((x) => x.id === id)!, { names })); };
+  await applyUpdate(uh as never, uh as never, targets, previewHashOf(pre), { furnish });
+  const all = panelsOn(p), live = all.filter((n) => tagOf(n).state === 'live');
+  const now = live[0];
+  const widths = now ? walk(now).filter((c) => c.name === 'specimen').map((c) => c.absoluteBoundingBox!.width) : [];
+  ok(was < DIALOG_WIDTH / 2 && due === 1 && all.length === 1 && live.length === 1 && now !== old && Number(now.x) === at.x && Number(now.y) === at.y
+    && !String(now.name).endsWith('(edited)') && widths.length > 0 && widths.every((w) => w === DIALOG_WIDTH) && !collapses(now).length,
+    `update/redraw in place: Dialog's collapsed panel (${was}px example) is due (${due}) and one Update redraws it at (${now?.x}, ${now?.y}), examples ${[...new Set(widths)].join(', ')} wide`,
+    `panels ${all.length}, live ${live.length}, at (${at.x}, ${at.y}), names ${all.map((n) => n.name).join(' | ')}; ${now ? collapses(now).slice(0, 2).join('; ') : ''}`);
 }
 
 /* ── orphan: a deleted set's panels before its def is built again ─────────────────────────────────────── */
