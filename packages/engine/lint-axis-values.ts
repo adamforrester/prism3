@@ -546,7 +546,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button', 'sign-in-button'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button', 'sign-in-button'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
@@ -580,6 +580,17 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'below the medium field it labels. Leading with the code default is Q1 B\'s own rule (#2752), so the member '
       + 'Figma inserts is the label code renders by default. Every field host passes its own size through by `follow`, '
       + 'so the nested label takes the field\'s size whatever this set\'s first member is.',
+  },
+  {
+    axis: 'size',
+    values: ['medium', 'x-small', 'small', 'large'],
+    defs: ['link'],
+    relation: 'superset',
+    reason:
+      'The canonical ladder plus a 12px rung below `small` (#3179, owner decision D-A5 A): a link in dense metadata, '
+      + 'such as an order row or a legal line, set in `type.body.xs`. The word is `x-small`, the one Icon and Spinner '
+      + 'already use for the rung below `small` (Q3179.1 A), so it is not a new vocabulary. Led by `medium`, the code '
+      + 'default, then the ladder small to large (#2752, Q1 B); the code enum keeps the ladder\'s own order.',
   },
   {
     axis: 'size',

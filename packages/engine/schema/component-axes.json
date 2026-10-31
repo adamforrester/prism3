@@ -854,7 +854,8 @@
       "size": [
         "large",
         "medium",
-        "small"
+        "small",
+        "x-small"
       ],
       "state": [
         "focus-visible",
@@ -875,7 +876,7 @@
         "emphasis"
       ]
     },
-    "members": 144,
+    "members": 192,
     "properties": {
       "label": "TEXT",
       "trailing icon": "BOOLEAN",

@@ -3959,7 +3959,7 @@ for (const b of brands) {
 
   // 3. EVERY DEF'S SPACING, per size, at every density — px through the materializer the plugin runs. The
   //    comfortable column is what the removed shared scale resolved to (Button 16/12/6/8, 16/12/8/8,
-  //    24/16/8/12; fields 16/8/8; rows 8/8/12), so it holds PIXEL IDENTITY; the other two are the step rule's
+  //    24/16/8/12; fields 16/8/8; rows 8/8/12, whose medium gap #3173 then moved to 12), so it holds PIXEL IDENTITY; the other two are the step rule's
   //    moves, the table the PR reports. Tag's comfortable column is the owner's mockup.
   {
     const SPACE_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space.${sp.key}`, sp.px]));
@@ -3988,7 +3988,7 @@ for (const b of brands) {
       'segmented-control-segment': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
-      link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      link: { keys: ['gap'], sizes: ['x-small', 'small', 'medium', 'large'] },
       // Banner (#2579): no size axis, so its keys are bare.
       banner: { keys: [], sizes: [], bare: ['pad', 'gap', 'actions-gap'] },
       // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
@@ -4000,8 +4000,8 @@ for (const b of brands) {
       breadcrumbs: { bare: ['back-gap'], keys: ['gap'], sizes: ['small', 'medium'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
-    // Rows: block padding (the per-size minimum, #2894) / control-to-label gap.
-    const ROWS = { compact: 'small 4/6 · medium 6/6 · large 8/8', comfortable: 'small 6/8 · medium 8/8 · large 12/12', spacious: 'small 8/12 · medium 12/12 · large 16/16' };
+    // Rows: block padding (the per-size minimum, #2894) / control-to-label gap (8/12/12 since #3173, owner Q3173 A).
+    const ROWS = { compact: 'small 4/6 · medium 6/8 · large 8/8', comfortable: 'small 6/8 · medium 8/12 · large 12/12', spacious: 'small 8/12 · medium 12/16 · large 16/16' };
     const EXPECTED: Record<string, Record<typeof densities[number], string>> = {
       button: BTN, 'button-destructive': BTN, 'button-neutral': BTN,
       'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
@@ -4017,7 +4017,7 @@ for (const b of brands) {
       textarea: { compact: 'small 12/4 · medium 12/6 · large 20/6', comfortable: 'small 16/6 · medium 16/8 · large 24/8', spacious: 'small 20/8 · medium 20/12 · large 32/12' },
       select: { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
-      'switch-row': { compact: 'small 4/6 · medium 6/6', comfortable: 'small 6/8 · medium 8/8', spacious: 'small 8/12 · medium 12/12' },
+      'switch-row': { compact: 'small 4/6 · medium 6/8', comfortable: 'small 6/8 · medium 8/12', spacious: 'small 8/12 · medium 12/16' },
       // Tag: padding-x / select icon→label / dismissible VISIBLE icon→label (owner, 2026-09-29: 6/8/8) /
       // label→check / select trailing inset / dismissible trailing inset. Compact small's visible 6 steps to 4.
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
@@ -4031,8 +4031,9 @@ for (const b of brands) {
       // List (#2319, approved (Q280 A); widened one step on #3155): the item gap. Comfortable is 12/16/20.
       list: { compact: 'small 8 · medium 12 · large 16', comfortable: 'small 12 · medium 16 · large 20', spacious: 'small 16 · medium 20 · large 24' },
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
-      // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
-      link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
+      // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does. x-small (#3179)
+      // takes small's gap at every density.
+      link: { compact: 'x-small 4 · small 4 · medium 4 · large 6', comfortable: 'x-small 4 · small 4 · medium 4 · large 8', spacious: 'x-small 6 · small 6 · medium 6 · large 12' },
       // Banner (#2579, DRAFT): padding / glyph→content gap / body→actions offset / action→action gap. Comfortable is the
       // proposal's 16 / 12 / 12, and 8 between the two buttons.
       banner: { compact: 'bare 12/8/8', comfortable: 'bare 16/12/12', spacious: 'bare 20/16/16' },
@@ -4099,7 +4100,7 @@ for (const b of brands) {
       'card-number-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'sign-in-button': ['small', 'medium', 'large'].flatMap((v) => ['apple', 'google', 'facebook'].map((p) => `size.${v}.${p}.gap`)),
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
-      link: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      link: ['size.x-small.gap', 'size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2666: the label-to-separator gap inside an item, and the same gap between items.
       'breadcrumb-item': ['size.small.gap', 'size.medium.gap'],
       breadcrumbs: ['size.small.gap', 'size.medium.gap'],
@@ -20509,14 +20510,14 @@ arm: {
   //   standalone underlined at rest  → `#2580 link/standalone`;   inline not underlined at some state → `#2580 link/inline`;
   //   emphasis bound to the default weight, or default first  → `#2580 link/weight`;   a third style value → `#2580 link/style`;
   //   `{state}` allowed in a geometry key → `#2580 link/state-type-only`;
-  //   a 12px size (small bound to `type.body.xs`, or back to the label tier) → `#2580 link/body-tier` (Q297.1);
+  //   small bound to `type.body.xs`, x-small off it, or back to the label tier → `#2580 link/body-tier` (Q297.1, D-A5 A);
   //   an icon on an inline link, or a leading icon → `#2580 link/icons` (Q297.2);
   //   the `-link` suffix dropped when `weightIntent` repoints, or emphasis bound to a role nb-redesign lacks → `#2580 link/weight-intent`.
   {
     const linkDef = componentDefs.find((d) => d.id === 'link');
     ok(!!linkDef, '#2580 link: the Link component is registered');
     if (linkDef) {
-      const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+      const RUNG: Record<string, string> = { 'x-small': 'xs', small: 'sm', medium: 'md', large: 'lg' };
       // Q297.1: the body tier, the default brand's role per weight (emphasis → the heaviest body weight, `strong`).
       const ROLE: Record<string, string> = { emphasis: 'strong', default: 'default' };
       const UNDERLINED_STANDALONE = new Set(['hover', 'pressed', 'focus-visible']);
@@ -20524,17 +20525,17 @@ arm: {
       const labelStyle = (n: LN): string | undefined => (n.name === 'label' ? n.textStyle : n.children.map(labelStyle).find(Boolean));
       const plans = figmaAnatomySet(linkDef, { swapTarget: 'FPO-default-icon' });
       const rows = plans.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }));
-      ok(plans.length === 144, `#2580 link/members: style 2 × weight 2 × size 3 × surface 2 × 4 states = 96 members, plus the 48 current-page members on standalone (#2872, Q507.2 A) = 144 (got ${plans.length})`);
+      ok(plans.length === 192, `#2580 link/members: style 2 × weight 2 × size 4 × surface 2 × 4 states = 128 members, plus the 64 current-page members on standalone (#2872, Q507.2 A) = 192; size gained x-small (#3179, D-A5 A) (got ${plans.length})`);
       const want = (r: { c: Record<string, string>; size: string }, underlined: boolean) =>
         figmaTextStyleName(`type.body.${RUNG[r.size]}.${ROLE[r.c.weight]}${underlined ? '-link' : ''}`);
       // The current page (#2872) is held by its own arm; Q289.2 A is the unselected standalone link.
       const standalone = rows.filter((r) => r.c.style === 'standalone' && r.c.selection === 'unselected');
       const sOff = standalone.filter((r) => r.style !== want(r, UNDERLINED_STANDALONE.has(r.c.state)));
-      ok(standalone.length === 48 && sOff.length === 0,
+      ok(standalone.length === 64 && sOff.length === 0,
         `#2580 link/standalone (Q289.2 A): a standalone link is plain at rest and underlined at hover, pressed and focus-visible, at every weight, size and surface (${standalone.length} members${sOff.length ? `; OFF: ${sOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
       const inline = rows.filter((r) => r.c.style === 'inline');
       const iOff = inline.filter((r) => r.style !== want(r, true));
-      ok(inline.length === 48 && iOff.length === 0,
+      ok(inline.length === 64 && iOff.length === 0,
         `#2580 link/inline (Q289.2 A): an inline link is underlined at every state, weight, size and surface (${inline.length} members${iOff.length ? `; OFF: ${iOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
       const restMd = (weight: string) => rows.find((r) => r.c.style === 'standalone' && r.c.weight === weight && r.c.surface === 'default' && r.size === 'medium' && r.c.state === 'rest')?.style;
       const weightProp = linkDef.props.find((p) => p.name === 'weight');
@@ -20543,13 +20544,14 @@ arm: {
         && weightProp?.description === 'Emphasis is the starting value; choose Default for a lighter weight link.',
         `#2580 link/weight (Q289.3 B, Q297.3): two weights, emphasis first and the default, emphasis binding the heavier body role and default the reading weight, with the owner's prop wording (axis ${JSON.stringify(linkDef.variants.weight)}, prop default ${weightProp?.default}, medium rest ${restMd('emphasis')} / ${restMd('default')})`);
       // Q314 A — the owner's `size` wording, pinned as a literal: the icon sits inside the one-line box at the shipped
-      // line height, so the text no longer offers an "or as tall as the icon" case no brand reaches.
+      // line height, so the text no longer offers an "or as tall as the icon" case no brand reaches. D-A5 A (#3179) adds
+      // the 12px size to the list and to the 16px icon's sizes, and changes nothing else in the sentence.
       const sizeProp = linkDef.props.find((p) => p.name === 'size');
-      ok(sizeProp?.description === 'The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it.',
-        `#2580 link/size-wording (Q314 A): the size prop carries the owner's text verbatim (got ${JSON.stringify(sizeProp?.description)})`);
-      // Q297.1 — the body tier at 14 / 16 / 18px for both styles, and no 12px link. The font sizes are read off the
-      // committed default-brand emission and compared to literals, so a rung moved to `type.body.xs` (12px) or back to the
-      // label tier (12 / 14 / 18px) fails here by name.
+      ok(sizeProp?.description === 'The body type size: 12, 14, 16 or 18px. The box is one text line tall; the icon (16px at x-small, small and medium, 20px at large) sits inside it.',
+        `#2580 link/size-wording (Q314 A, D-A5 A): the size prop carries the owner's text verbatim, with x-small's 12px added (got ${JSON.stringify(sizeProp?.description)})`);
+      // Q297.1 — the body tier for both styles, at 14 / 16 / 18px, and (#3179, D-A5 A, revising Q297.1's "no 12px link")
+      // x-small at 12px. The font sizes are read off the committed default-brand emission and compared to literals, so
+      // small moved to `type.body.xs` (12px), x-small moved off it, or a rung back on the label tier fails here by name.
       const emitted = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8'));
       const eRoot = emitted[Object.keys(emitted).find((k) => !k.startsWith('$'))!];
       const pxOf = (styleName: string): number | undefined => {
@@ -20557,15 +20559,16 @@ arm: {
         while (typeof v === 'string' && v.startsWith('{')) v = v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value;
         return typeof v === 'string' && v.endsWith('rem') ? parseFloat(v) * 16 : typeof v === 'string' ? parseFloat(v) : undefined;
       };
-      const PX: Record<string, number> = { small: 14, medium: 16, large: 18 };
+      const PX: Record<string, number> = { 'x-small': 12, small: 14, medium: 16, large: 18 };
       const tierOff = rows.filter((r) => !r.style?.startsWith('body/') || pxOf(r.style) !== PX[r.size]);
-      ok(rows.length === 144 && tierOff.length === 0,
-        `#2580 link/body-tier (Q297.1): every member, standalone and inline, sets body type at 14 / 16 / 18px, with no 12px link${tierOff.length ? `; OFF: ${tierOff.slice(0, 4).map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style} (${pxOf(r.style ?? '')}px)`).join('; ')}` : ''}`);
+      ok(rows.length === 192 && tierOff.length === 0,
+        `#2580 link/body-tier (Q297.1, D-A5 A): every member, standalone and inline, sets body type at 12 / 14 / 16 / 18px by size, x-small the one 12px size${tierOff.length ? `; OFF: ${tierOff.slice(0, 4).map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style} (${pxOf(r.style ?? '')}px)`).join('; ')}` : ''}`);
 
       // Q297.2 — a trailing icon only, on standalone members only, 16px with 14px and 16px text and 20px with 18px text.
+      // x-small's 12px text (#3179) keeps the 16px icon: it is the smallest rung, and it fits inside the 18px line.
       type IN = { name: string; bound?: Record<string, string>; children?: IN[] };
       const nodes = (n: IN): IN[] => [n, ...(n.children ?? []).flatMap(nodes)];
-      const ICON: Record<string, string> = { small: 'icon/size/xs', medium: 'icon/size/xs', large: 'icon/size/sm' };
+      const ICON: Record<string, string> = { 'x-small': 'icon/size/xs', small: 'icon/size/xs', medium: 'icon/size/xs', large: 'icon/size/sm' };
       const emittedIconPx = ['xs', 'sm'].map((k) => eRoot.icon.size[k].$value).map((v: string) => v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value);
       const iconOff = plans.flatMap((p) => {
         const c = p.coord as Record<string, string>;
@@ -20581,14 +20584,14 @@ arm: {
       const figBools = Object.keys(linkDef.figmaProperties?.booleans ?? {});
       ok(iconOff.length === 0 && JSON.stringify(figBools) === JSON.stringify(['trailingIcon']) && !linkDef.props.some((p) => p.name === 'leadingIcon')
         && JSON.stringify(emittedIconPx) === JSON.stringify(['16px', '20px']),
-        `#2580 link/icons (Q297.2): trailing only, standalone only, 16px at small and medium and 20px at large (booleans ${JSON.stringify(figBools)}, icon xs/sm ${JSON.stringify(emittedIconPx)}${iconOff.length ? `; OFF: ${iconOff.slice(0, 4).join('; ')}` : ''})`);
+        `#2580 link/icons (Q297.2): trailing only, standalone only, 16px at x-small, small and medium and 20px at large (booleans ${JSON.stringify(figBools)}, icon xs/sm ${JSON.stringify(emittedIconPx)}${iconOff.length ? `; OFF: ${iconOff.slice(0, 4).join('; ')}` : ''})`);
 
       // Q297.1 through `weightIntent` — a brand whose body weights are [default, emphasis] (nb-redesign's shape) binds
       // its own emphasis role and keeps the underlined twin, rather than the `strong` it does not emit.
       const nbShape = figmaAnatomySet(applyWeightIntent(linkDef, { ...DEFAULT_WEIGHT_AVAILABILITY, body: ['default', 'emphasis'] }), { swapTarget: 'FPO-default-icon' });
       const nbAt = (state: string) => nbShape.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }))
         .find((r) => r.c.style === 'standalone' && r.c.selection === 'unselected' && r.c.weight === 'emphasis' && r.c.surface === 'default' && r.size === 'medium' && r.c.state === state)?.style;
-      ok(nbShape.length === 144 && nbAt('rest') === 'body/md/emphasis' && nbAt('hover') === 'body/md/emphasis-link',
+      ok(nbShape.length === 192 && nbAt('rest') === 'body/md/emphasis' && nbAt('hover') === 'body/md/emphasis-link',
         `#2580 link/weight-intent (Q297.1, #1602): in a [default, emphasis] body brand, emphasis binds body/md/emphasis at rest and body/md/emphasis-link at hover (got ${nbShape.length} members, ${nbAt('rest')} / ${nbAt('hover')})`);
 
       ok(JSON.stringify(linkDef.variants.style) === JSON.stringify(['standalone', 'inline'])
@@ -20621,6 +20624,28 @@ arm: {
       ok(realErrs.length === 0 && stateGapErrs.some((e) => e.includes(`binding key '${STATE_GAP}' names placeholder '{state}', which is not an axis`)),
         `#2580 link/state-type-only: a type key may name {state}, a geometry key may not — Link validates clean, and a clone with a state-keyed gap is refused naming the placeholder (Link: ${realErrs.join('; ') || 'no errors'}; clone: ${stateGapErrs.join('; ') || 'no errors'})`);
     }
+  }
+
+  // ---- #3179: LINK x-small, owner decision D-A5 A (2026-10-30) — held against literals typed from the issue ----
+  // EXPECTED, typed here: the value is `x-small` (Q3179.1 A), placed second, after the code default `medium` (#2752); a
+  // default-weight inline link at rest binds `type.body.xs.default-link`, the token the issue names; and the shipped
+  // usage keeps x-small for dense metadata, never running body text. ACTUAL is the def's axis, the real projection and
+  // the shipped docs. The 24px target is `lint-hit-target.ts`'s (the standalone Link arm). Mutations, each failing this
+  // arm by name: x-small spelled `xsmall`, or placed first or last; inline default bound to `type.body.sm`; the usage
+  // sentence dropped → `#3179 link x-small`.
+  {
+    const linkDef = componentDefs.find((d) => d.id === 'link')!;
+    type LN = { name: string; textStyle?: string; children: LN[] };
+    const labelStyle = (n: LN): string | undefined => (n.name === 'label' ? n.textStyle : n.children.map(labelStyle).find(Boolean));
+    const xs = figmaAnatomySet(linkDef, { swapTarget: 'FPO-default-icon' }).filter((p) => String(p.size) === 'x-small');
+    const at = (c: Record<string, string>) => xs.find((p) => Object.entries(c).every(([k, v]) => (p.coord as Record<string, string>)[k] === v));
+    const inlineRest = at({ style: 'inline', weight: 'default', surface: 'default', selection: 'unselected', state: 'rest' });
+    const inlineStyle = inlineRest ? labelStyle(inlineRest.root as unknown as LN) : undefined;
+    const usage = linkDef.docs?.usage ?? '';
+    ok(JSON.stringify(linkDef.variants.size) === JSON.stringify(['medium', 'x-small', 'small', 'large']) && xs.length === 48
+      && inlineStyle === figmaTextStyleName('type.body.xs.default-link')
+      && usage.includes('Keep x-small for dense metadata, such as an order row or a legal line, not running body text.'),
+      `#3179 link x-small (D-A5 A, Q3179.1 A): size is [medium, x-small, small, large], x-small projects 48 members, an inline default link at rest binds type.body.xs.default-link, and the usage keeps x-small for dense metadata (axis ${JSON.stringify(linkDef.variants.size)}, ${xs.length} members, inline rest ${inlineStyle})`);
   }
 
   // ---- #2666: BREADCRUMBS, the approved wireframe (every numbered call A, 2026-10-16) — each held against a literal ----
@@ -21501,7 +21526,7 @@ arm: {
       // `selection` (#2872, Q507.4) is ONE style at the rest coordinate this sweep holds: the current page and its
       // unselected twin are both plain at rest, and part only at hover, pressed and focus, where the current page stays
       // plain. That half is held by `#2872 link hover on current`, which reads every member.
-      { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, selection: 1, state: 2 } },
+      { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 4, weight: 2, style: 2, selection: 1, state: 2 } },
       // BREADCRUMBS (#2666, call 4 A): the current page binds the two default body rungs. It exists only on a current
       // member.
       { def: componentDefs.find((d) => d.id === 'breadcrumb-item')!, part: 'current', axes: { size: 2 }, at: { kind: 'current' } },
@@ -32490,6 +32515,79 @@ arm: {
   ok(offStart.length === 0, `#3153 description start: the description starts at the label's start edge, past the control, in px${offStart.length ? ` — OFF: ${offStart.slice(0, 4).join('; ')}` : ''}`);
 }
 
+// ---- #3173: THE OPTION ROWS' CONTROL-TO-LABEL GAP IS 8 / 12 / 12 (owner decision Q3173 A) ---------------------
+//
+// Q3173 A: the gap between the control and the label on Checkbox.Row, Radio.Row and Switch.Row is 8 / 12 / 12px
+// (small / medium / large) at comfortable density; medium was 8. Density still moves it one step along the space
+// ladder, so compact is 6 / 8 / 8 and spacious 12 / 16 / 16. The description (#3153) sits in the label's text column,
+// so its start edge moves with the gap: it starts one gap past the control cell.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here as px literals from the decision, never read from the defs' `space.*`
+// steps or from the step rule. ACTUAL is the gap the Figma PLAN binds on `content` (the part between the cell and the
+// text column, found by what it holds, not by name), resolved through each corpus brand's emitted token tree, and the
+// description's x by a layout walk over the plan. Mutations: medium back on `space.100` (any of the three rows) →
+// `#3173 gap`, `#3173 description start`; the three rows out of step (Switch.Row's medium alone moved) → `#3173 gap`.
+{
+  type PN = { name: string; type?: string; children: PN[]; bound?: Record<string, string>; layoutMode?: string };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const pathTo = (n: PN, name: string, trail: PN[] = []): PN[] | undefined => n.name === name ? [...trail, n] : n.children.map((c) => pathTo(c, name, [...trail, n])).find(Boolean);
+  const treeOf = (t: any) => t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+  const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+  const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); const x = String(leaf); return parseFloat(x) * (x.endsWith('rem') ? 16 : 1); };
+  // The decision, in px, per density. Switch.Row has no large.
+  const GAP_PX: Record<string, Record<string, number>> = {
+    compact: { small: 6, medium: 8, large: 8 },
+    comfortable: { small: 8, medium: 12, large: 12 },
+    spacious: { small: 12, medium: 16, large: 16 },
+  };
+  const ROWS = ['checkbox-row', 'radio-row', 'switch-row'];
+  const corpus = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
+  const worlds = corpus.map((b) => ({ brand: b, root: treeOf(JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'))) }));
+  const offGap: string[] = [], offStart: string[] = [];
+  let measured = 0, starts = 0;
+  for (const id of ROWS) {
+    const def = componentDefs.find((d) => d.id === id);
+    if (!def) { offGap.push(`${id}: no such def`); continue; }
+    for (const density of ['compact', 'comfortable', 'spacious'] as const) {
+      for (const p of figmaAnatomySet(applySpacingDensity(def, density), { swapTarget: 'FPO' }).filter((q) => (q.coord as Record<string, string>).status !== 'error')) {
+        const size = p.size ?? (p.coord as Record<string, string>).size;
+        const row = p.root as PN;
+        // The part that holds the control cell and the label's side, whatever it is named.
+        const holder = pathTo(row, 'controlCell')?.slice(-2)[0];
+        for (const w of worlds) {
+          measured++;
+          const where = `${id} ${w.brand} ${density} ${size}`;
+          const v = (name: string | undefined) => (name ? num(w.root, at(w.root, name.replace(/\//g, '.'))) : 0);
+          const gap = v(holder?.bound?.itemSpacing);
+          if (!(holder?.layoutMode === 'HORIZONTAL' && gap === GAP_PX[density][size]))
+            offGap.push(`${where}: gap ${gap}px (${holder?.bound?.itemSpacing}) — want ${GAP_PX[density][size]}`);
+          // THE DESCRIPTION'S START: one gap past the control cell, which hugs the control (comfortable; the option rows).
+          if (density !== 'comfortable' || !find(row, 'description')) continue;
+          starts++;
+          const xOf = (name: string): number => {
+            const path = pathTo(row, name)!;
+            let x = 0;
+            for (let i = 0; i < path.length - 1; i++) {
+              const parent = path[i], child = path[i + 1];
+              x += v(parent.bound?.paddingLeft);
+              if (parent.layoutMode === 'HORIZONTAL') x += parent.children.slice(0, parent.children.indexOf(child)).reduce((a, c) => a + v(find(c, 'control')?.bound?.width ?? c.bound?.width) + v(parent.bound?.itemSpacing), 0);
+            }
+            return x;
+          };
+          const ctl = v(find(row, 'control')?.bound?.width);
+          const want = xOf('controlCell') + ctl + GAP_PX[density][size];
+          if (!(ctl > 0 && Math.abs(xOf('description') - want) < 0.01 && Math.abs(xOf('label') - want) < 0.01))
+            offStart.push(`${where}: description at ${xOf('description')}, label at ${xOf('label')} — want ${want} (a ${ctl}px control, then ${GAP_PX[density][size]})`);
+        }
+      }
+    }
+  }
+  ok(measured >= 8 * 3 * worlds.length && worlds.length >= 4, `#3173: every row, size and density measured in every corpus brand (${measured}, ${worlds.length} brands)`);
+  ok(starts >= 6 * worlds.length, `#3173: the description start is measured on both option rows at every size (${starts})`);
+  ok(offGap.length === 0, `#3173 gap: the control-to-label gap is 8/12/12 at comfortable, 6/8/8 compact, 12/16/16 spacious, in px, on all three rows in every corpus brand${offGap.length ? ` — OFF: ${offGap.slice(0, 4).join('; ')}` : ''}`);
+  ok(offStart.length === 0, `#3173 description start: the label and the description start one gap past the control${offStart.length ? ` — OFF: ${offStart.slice(0, 4).join('; ')}` : ''}`);
+}
+
 // ---- #2894: THE OPTION ROWS LAND ON THE CONTROL-HEIGHT LADDER (owner decision Q539, A on every question) --------
 //
 // Radio.Row, Checkbox.Row and Switch.Row bind their floor `size.{size}.min-height` (the ladder) as the Figma row's
@@ -37612,9 +37710,9 @@ arm: {
   }).map(planComponentName);
   ok(glyphBad.length === 0, `#2668 toast glyph: success shows check-circle on inverse.icon.success at icon.size.sm, 12px from the message; neutral shows no glyph (call 3 A)${glyphBad.length ? ` — WRONG: ${glyphBad.join(', ')}` : ''}`);
 
-  // THE MESSAGE: inverse.text.primary in type.body.md.default, wrapping, the "Status message" placeholder.
+  // THE MESSAGE: inverse.text.primary, wrapping, the "Status message" placeholder. Its size is #3165's arm, below.
   const msgBad = plans.filter((p) => { const m = find(p.root as TN, 'message'); return !(m && m.paints?.fills === 'color/inverse/text/primary' && m.layoutGrow === 1); }).map(planComponentName);
-  ok(msgBad.length === 0 && td.tokens.type === 'type.body.md.default', `#2668 toast message: inverse.text.primary, body.md, wrapping across the row${msgBad.length ? ` — WRONG: ${msgBad.join(', ')}` : ''}`);
+  ok(msgBad.length === 0, `#2668 toast message: inverse.text.primary, wrapping across the row${msgBad.length ? ` — WRONG: ${msgBad.join(', ')}` : ''}`);
 
   // THE CONTROLS (calls 7, 8, 9): the action a text Button, small, inverse, off, reading "Action"; the close an
   // FlushIconButton.Neutral, flush, small, on, showing the close glyph (Q386); 4px apart, at the end edge.
@@ -37715,6 +37813,76 @@ arm: {
   }
 
   ok(validateComponentDef(td).errors.length === 0, `#2668 toast validates clean (${validateComponentDef(td).errors.slice(0, 2).join('; ')})`);
+}
+
+// ------------------------------------------------------------------- #3165: the toast's message at 14px
+// Owner request (#3165): the message is 14px, `type.body.sm`, not 16. Q3165.1 A: the card takes a floor at the
+// ladder's medium rung, so a one-line toast with no action still lands on the control-height ladder rather than at
+// 8 + 21 + 8 = 37. EXPECTED is typed here: the message's px, and the heights 36/44/56 (compact/comfortable/spacious) for
+// one line with no action and 52 at comfortable with the action. ACTUAL is the projected plan, its text style read as
+// the EMITTED composite and its bound variables resolved through each brand's emitted tree, never through the def's
+// tokens. Mutation: the message back to `type.body.md.default` → `#3165 toast message size`.
+// The glyph takes #3153's line-box cell (the #3169 review, option a): a cell whose floor is the message's own line box,
+// centring the glyph, inside a top-aligned `content`. EXPECTED: the cell's floor equals the line the message's emitted
+// composite resolves to, so the glyph's middle IS line one's. Mutation: the cell's floor bound to a size step instead of
+// the line box → `#3165 toast glyph`.
+{
+  type PN = { name: string; type?: string; children: PN[]; bound?: Record<string, string>; counterAxisAlignItems?: string; textStyle?: string; nestTarget?: string; visible?: boolean };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+  const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); return parseFloat(String(leaf)); };
+  const treeOf = (t: any) => t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+  const td = componentDefs.find((d) => d.id === 'toast')!;
+  const button = componentDefs.find((d) => d.id === 'button')!;
+  // The action's height is the small Button's own bound height, read off Button's plan (the nest's variant), not typed.
+  const actionPlan = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }).find((p) => p.size === 'small' && (p.coord as Record<string, string>).appearance === 'text');
+  const actionHeightVar = (actionPlan?.root as PN | undefined)?.bound?.height;
+  const EXPECT: Record<string, number> = { compact: 36, comfortable: 44, spacious: 56 };
+  const worlds: { brand: string; density: 'compact' | 'comfortable' | 'spacious'; root: any }[] = [];
+  const corpus = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
+  for (const b of corpus) worlds.push({ brand: b, density: 'comfortable', root: treeOf(JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'))) });
+  for (const f of readdirSync(resolve(HERE, 'examples')).filter((x) => x.endsWith('.design.md'))) {
+    const text = readFileSync(resolve(HERE, 'examples', f), 'utf8');
+    const std = parseStandardDesignMd(text);
+    const input = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+    if (!corpus.includes(input.id)) continue;
+    for (const density of ['compact', 'spacious'] as const) worlds.push({ brand: input.id, density, root: treeOf(buildTree(brandTheme({ ...input, density })).tree) });
+  }
+  const sizeBad: string[] = [], offLadder: string[] = [], offLine: string[] = [], withAction: string[] = [];
+  let measured = 0;
+  for (const density of ['compact', 'comfortable', 'spacious'] as const) {
+    const plans = figmaAnatomySet(applySpacingDensity(td, density), { swapTarget: 'FPO-default-icon' });
+    for (const p of plans) {
+      const r = p.root as PN, msg = find(r, 'message'), glyph = find(r, 'checkCircleGlyph'), close = find(r, 'close'), content = find(r, 'content'), cell = find(r, 'glyphCell');
+      for (const w of worlds.filter((x) => x.density === density)) {
+        const v = (name: string | undefined) => (name ? num(w.root, at(w.root, name.replace(/\//g, '.'))) : 0);
+        const at1 = `${planComponentName(p)} ${w.brand} ${density}`;
+        const style = at(w.root, `type.${(msg?.textStyle ?? '').replace(/\//g, '.')}`)?.$value;
+        const fontSize = style ? num(w.root, style.fontSize) : NaN, line = style ? fontSize * num(w.root, style.lineHeight) : NaN;
+        if (fontSize !== 14) sizeBad.push(`${at1}: ${msg?.textStyle} is ${fontSize}px`);
+        // The close is a flush glyph at the small rung (the FlushIconButton plan's own box), the glyph its bound width.
+        const closeH = close ? v('icon/size/sm') : 0, glyphH = glyph ? v(glyph.bound?.height) : 0;
+        // The cell hugs the glyph over its floor, so it is max(floor, glyph) tall; the glyph centers in it.
+        const cellFloor = cell ? v(cell.bound?.minHeight) : 0, cellH = cell ? Math.max(cellFloor, glyphH) : glyphH;
+        const padT = v(r.bound?.paddingTop), padB = v(r.bound?.paddingBottom), floor = v(r.bound?.minHeight);
+        const height = (lines: number, controls: number) => Math.max(floor, padT + Math.max(cellH, lines * line, controls) + padB);
+        measured++;
+        const one = height(1, closeH);
+        if (Math.abs(one - EXPECT[density]) > 0.5) offLadder.push(`${at1}: ${one.toFixed(1)} (want ${EXPECT[density]})`);
+        // The glyph sits in the line-box cell, the cell top-aligned in `content` beside line one: the cell's floor is the
+        // line, so the glyph's middle is line one's, on two lines too.
+        const inCell = !!cell && cell.children.includes(glyph!) && content?.children.includes(cell);
+        if (glyph && !(inCell && content?.counterAxisAlignItems === 'MIN' && cell?.counterAxisAlignItems === 'CENTER' && Math.abs(cellFloor - line) < 0.01 && Math.abs(cellH / 2 - line / 2) < 0.01)) offLine.push(`${at1}: glyph ${glyphH} in a ${cell ? `${cellFloor}px cell (${cell.bound?.minHeight}), ${cell.counterAxisAlignItems}` : 'no cell'} beside a ${line}px line, content ${content?.counterAxisAlignItems}`);
+        if (!glyph && cell) offLine.push(`${at1}: a glyph cell with no glyph`);
+        if (density === 'comfortable') { const a = height(1, v(actionHeightVar)); if (Math.abs(a - 52) > 0.5) withAction.push(`${at1}: ${a.toFixed(1)}`); }
+      }
+    }
+  }
+  ok(measured === 2 * worlds.length && worlds.length >= 13, `#3165: both toast members measured in every world (${measured} of ${2 * worlds.length}, ${worlds.length} worlds)`);
+  ok(sizeBad.length === 0, `#3165 toast message size: the message's text style is 14px (body.sm) in every brand and density${sizeBad.length ? ` — WRONG: ${sizeBad.slice(0, 4).join('; ')}` : ''}`);
+  ok(offLadder.length === 0, `#3165 toast height: a one-line toast with no action measures 36/44/56 (compact/comfortable/spacious), on the ladder (Q3165.1 A)${offLadder.length ? ` — OFF: ${offLadder.slice(0, 4).join('; ')}` : ''}`);
+  ok(!!actionHeightVar && withAction.length === 0, `#3165 toast height: with the action, 52 at comfortable, as built (the small Button sets it, ${actionHeightVar})${withAction.length ? ` — OFF: ${withAction.slice(0, 4).join('; ')}` : ''}`);
+  ok(offLine.length === 0, `#3165 toast glyph: the success glyph centers in a cell one message line tall (type.body.sm.line-box), top-aligned beside line one, its middle exactly the line's${offLine.length ? ` — OFF: ${offLine.slice(0, 4).join('; ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #2877: the dialog's end placement
@@ -38771,18 +38939,18 @@ arm: {
     if (want !== !!ring || (ring && (ring.nestTarget !== 'focus-ring' || JSON.stringify(ring.nestVariant) !== JSON.stringify({ surface: c.surface }))))
       ringOff.push(`${planComponentName(m)}: ${ring ? `${String(ring.nestTarget)} ${JSON.stringify(ring.nestVariant)}` : 'no ring'} (want ${want ? `focus-ring {"surface":"${c.surface}"}` : 'no ring'})`);
   }
-  ok(linkMembers.length === 144 && inkOff.length === 0 && boxOff.length === 0,
-    `#2715 link paint: 144 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state; the link box paints nothing, and a current member's bar fills color/[inverse/]icon/link/<state> (#2872) (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} box(es) off — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
-  ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 36,
-    `#2715 link focus ring: a nested focus-ring on the 36 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
+  ok(linkMembers.length === 192 && inkOff.length === 0 && boxOff.length === 0,
+    `#2715 link paint: 192 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state; the link box paints nothing, and a current member's bar fills color/[inverse/]icon/link/<state> (#2872) (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} box(es) off — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
+  ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 48,
+    `#2715 link focus ring: a nested focus-ring on the 48 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
 
   // #2872 (owner decisions Q507). THE SHAPE (2 A, 3 A): `selection` on standalone links only, so the inline × selected
-  // coordinates are absent: 48 standalone selected, 48 standalone unselected, 48 inline unselected. Typed, not read
-  // off the def's `excludeCoordinates`.
+  // coordinates are absent: 64 standalone selected, 64 standalone unselected, 64 inline unselected (16 each per size,
+  // four sizes since #3179). Typed, not read off the def's `excludeCoordinates`.
   const linkCount = (f: (c: Record<string, string>) => boolean): number => linkMembers.filter((m) => f(m.coord as Record<string, string>)).length;
-  ok(linkCount((c) => c.style === 'standalone' && c.selection === 'selected') === 48 && linkCount((c) => c.style === 'standalone' && c.selection === 'unselected') === 48
-    && linkCount((c) => c.style === 'inline' && c.selection === 'unselected') === 48 && linkCount((c) => c.style === 'inline' && c.selection === 'selected') === 0,
-    `#2872 link shape: selection on standalone only — 48 standalone selected, 48 standalone unselected, 48 inline unselected, no inline selected (${linkCount((c) => c.style === 'standalone' && c.selection === 'selected')}, ${linkCount((c) => c.style === 'standalone' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'selected')})`);
+  ok(linkCount((c) => c.style === 'standalone' && c.selection === 'selected') === 64 && linkCount((c) => c.style === 'standalone' && c.selection === 'unselected') === 64
+    && linkCount((c) => c.style === 'inline' && c.selection === 'unselected') === 64 && linkCount((c) => c.style === 'inline' && c.selection === 'selected') === 0,
+    `#2872 link shape: selection on standalone only — 64 standalone selected, 64 standalone unselected, 64 inline unselected, no inline selected (${linkCount((c) => c.style === 'standalone' && c.selection === 'selected')}, ${linkCount((c) => c.style === 'standalone' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'selected')})`);
   // THE BAR (1 C): 2px at the foot of the line box. A current member carries ONE node more than its unselected twin, a
   // childless `bar` frame 2px high (border-width/thick) pinned across the box's bottom edge out of the flow (`footPin`),
   // just before the focus ring so the ring draws over it; every other member carries no bar, so the 96 members a
@@ -38802,15 +38970,15 @@ arm: {
     const want = twinNames.includes('focusRing') ? [...twinNames.slice(0, -1), 'bar', 'focusRing'] : [...twinNames, 'bar'];
     if (!twin || JSON.stringify(names) !== JSON.stringify(want)) barOff.push(`${planComponentName(m)}: children ${JSON.stringify(names)} (want ${JSON.stringify(want)})`);
   }
-  ok(barOff.length === 0 && linkMembers.filter((m) => !!findIn(m.root as PN, 'bar')).length === 48,
-    `#2872 link bar: the 48 current members carry a 2px (border-width/thick) bar frame pinned across the foot (footPin) before the focus ring, no other member carries one, and no box binds a stroke (${barOff.length} off — ${barOff.slice(0, 2).join('; ') || 'none'})`);
+  ok(barOff.length === 0 && linkMembers.filter((m) => !!findIn(m.root as PN, 'bar')).length === 64,
+    `#2872 link bar: the 64 current members carry a 2px (border-width/thick) bar frame pinned across the foot (footPin) before the focus ring, no other member carries one, and no box binds a stroke (${barOff.length} off — ${barOff.slice(0, 2).join('; ') || 'none'})`);
   // HOVER ON THE CURRENT ITEM (4): color only. A current member's label takes the PLAIN body style at every state, never
   // its `-link` twin, so no 1px underline joins the bar; an unselected standalone member still shows it at hover.
   const typeOf = (m: (typeof linkMembers)[number]): string => String((findIn(m.root as PN, 'label') as PN & { textStyle?: string })?.textStyle);
   const curUnderlined = linkMembers.filter((m) => (m.coord as Record<string, string>).selection === 'selected' && typeOf(m).endsWith('-link')).map(planComponentName);
   const restHover = linkMembers.filter((m) => { const c = m.coord as Record<string, string>; return c.style === 'standalone' && c.selection === 'unselected' && c.state === 'hover'; });
-  ok(curUnderlined.length === 0 && restHover.length === 12 && restHover.every((m) => typeOf(m).endsWith('-link')),
-    `#2872 link hover on current: no current member takes an underlined (-link) style at any state, and the 12 unselected standalone hover members still do (${curUnderlined.length} underlined current — ${curUnderlined.slice(0, 2).join('; ') || 'none'}; ${restHover.filter((m) => typeOf(m).endsWith('-link')).length}/${restHover.length})`);
+  ok(curUnderlined.length === 0 && restHover.length === 16 && restHover.every((m) => typeOf(m).endsWith('-link')),
+    `#2872 link hover on current: no current member takes an underlined (-link) style at any state, and the 16 unselected standalone hover members still do (${curUnderlined.length} underlined current — ${curUnderlined.slice(0, 2).join('; ') || 'none'}; ${restHover.filter((m) => typeOf(m).endsWith('-link')).length}/${restHover.length})`);
   // (3) MEASURED: every link ink the plan binds clears 4.5:1 (SC 1.4.3, body-size text) on its own ground, the page
   // for a default link and the inverse band for an inverse one, in all 16 brand × mode cells.
   const linkInks = new Map<string, string>();

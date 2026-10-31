@@ -9,8 +9,8 @@
   "note": "tokens: every token a definition declares or the design-file projection binds, keyed by path below the root. components.<id>.keys are the definition binding keys that name it; parts.<part>.where lists, per axis, the values the part is bound at — an axis bound at every value is left out, so an empty where means every member. byComponent is the inverse. unused lists emitted tokens nothing binds.",
   "summary": {
     "emitted": 802,
-    "used": 273,
-    "unusedSemantic": 249,
+    "used": 275,
+    "unusedSemantic": 247,
     "unusedPrimitive": 280,
     "components": 60
   },
@@ -571,7 +571,7 @@
           ],
           "parts": {
             "bar": {
-              "members": 48,
+              "members": 64,
               "where": {
                 "selection": [
                   "selected"
@@ -5158,7 +5158,7 @@
           ],
           "parts": {
             "bar": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "selection": [
                   "selected"
@@ -5175,7 +5175,7 @@
               }
             },
             "trailingVisual": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "state": [
                   "rest"
@@ -5202,7 +5202,7 @@
           ],
           "parts": {
             "bar": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "selection": [
                   "selected"
@@ -5219,7 +5219,7 @@
               }
             },
             "trailingVisual": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "state": [
                   "focus-visible"
@@ -5246,7 +5246,7 @@
           ],
           "parts": {
             "bar": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "selection": [
                   "selected"
@@ -5263,7 +5263,7 @@
               }
             },
             "trailingVisual": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "state": [
                   "hover"
@@ -5290,7 +5290,7 @@
           ],
           "parts": {
             "bar": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "selection": [
                   "selected"
@@ -5307,7 +5307,7 @@
               }
             },
             "trailingVisual": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "state": [
                   "pressed"
@@ -11475,7 +11475,7 @@
           "keys": [],
           "parts": {
             "bar": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "selection": [
                   "selected"
@@ -11492,7 +11492,7 @@
               }
             },
             "trailingVisual": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "state": [
                   "rest"
@@ -11516,7 +11516,7 @@
           "keys": [],
           "parts": {
             "bar": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "selection": [
                   "selected"
@@ -11533,7 +11533,7 @@
               }
             },
             "trailingVisual": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "state": [
                   "focus-visible"
@@ -11557,7 +11557,7 @@
           "keys": [],
           "parts": {
             "bar": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "selection": [
                   "selected"
@@ -11574,7 +11574,7 @@
               }
             },
             "trailingVisual": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "state": [
                   "hover"
@@ -11598,7 +11598,7 @@
           "keys": [],
           "parts": {
             "bar": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "selection": [
                   "selected"
@@ -11615,7 +11615,7 @@
               }
             },
             "trailingVisual": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "state": [
                   "pressed"
@@ -14374,7 +14374,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 18,
+              "members": 24,
               "where": {
                 "state": [
                   "rest"
@@ -14395,7 +14395,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 18,
+              "members": 24,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14416,7 +14416,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 18,
+              "members": 24,
               "where": {
                 "state": [
                   "hover"
@@ -14437,7 +14437,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 18,
+              "members": 24,
               "where": {
                 "state": [
                   "pressed"
@@ -14586,7 +14586,7 @@
           ],
           "parts": {
             "label": {
-              "members": 18,
+              "members": 24,
               "where": {
                 "state": [
                   "rest"
@@ -14609,7 +14609,7 @@
           ],
           "parts": {
             "label": {
-              "members": 18,
+              "members": 24,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14632,7 +14632,7 @@
           ],
           "parts": {
             "label": {
-              "members": 18,
+              "members": 24,
               "where": {
                 "state": [
                   "hover"
@@ -14655,7 +14655,7 @@
           ],
           "parts": {
             "label": {
-              "members": 18,
+              "members": 24,
               "where": {
                 "state": [
                   "pressed"
@@ -17482,7 +17482,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 36,
+              "members": 48,
               "where": {
                 "state": [
                   "focus-visible"
@@ -18017,7 +18017,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 36,
+              "members": 48,
               "where": {
                 "state": [
                   "focus-visible"
@@ -20341,15 +20341,17 @@
         "link": {
           "keys": [
             "size.medium.icon",
-            "size.small.icon"
+            "size.small.icon",
+            "size.x-small.icon"
           ],
           "parts": {
             "trailingVisual": {
-              "members": 64,
+              "members": 96,
               "where": {
                 "size": [
                   "medium",
-                  "small"
+                  "small",
+                  "x-small"
                 ],
                 "style": [
                   "standalone"
@@ -21992,6 +21994,17 @@
             }
           }
         },
+        "toast": {
+          "keys": [
+            "min-height"
+          ],
+          "parts": {
+            "container": {
+              "members": 2,
+              "where": {}
+            }
+          }
+        },
         "wallet-button": {
           "keys": [
             "size.medium.height"
@@ -23072,15 +23085,17 @@
         "link": {
           "keys": [
             "size.medium.gap",
-            "size.small.gap"
+            "size.small.gap",
+            "size.x-small.gap"
           ],
           "parts": {
             "container": {
-              "members": 96,
+              "members": 144,
               "where": {
                 "size": [
                   "medium",
-                  "small"
+                  "small",
+                  "x-small"
                 ]
               }
             }
@@ -23692,16 +23707,14 @@
         },
         "checkbox-row": {
           "keys": [
-            "size.medium.gap",
             "size.medium.pad-y",
             "size.small.gap"
           ],
           "parts": {
             "content": {
-              "members": 4,
+              "members": 2,
               "where": {
                 "size": [
-                  "medium",
                   "small"
                 ]
               }
@@ -23898,16 +23911,14 @@
         },
         "radio-row": {
           "keys": [
-            "size.medium.gap",
             "size.medium.pad-y",
             "size.small.gap"
           ],
           "parts": {
             "content": {
-              "members": 4,
+              "members": 2,
               "where": {
                 "size": [
-                  "medium",
                   "small"
                 ]
               }
@@ -24034,14 +24045,17 @@
         },
         "switch-row": {
           "keys": [
-            "size.medium.gap",
             "size.medium.pad-y",
             "size.small.gap"
           ],
           "parts": {
             "content": {
-              "members": 4,
-              "where": {}
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
             },
             "row": {
               "members": 2,
@@ -24308,14 +24322,16 @@
         "checkbox-row": {
           "keys": [
             "size.large.gap",
-            "size.large.pad-y"
+            "size.large.pad-y",
+            "size.medium.gap"
           ],
           "parts": {
             "content": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "size": [
-                  "large"
+                  "large",
+                  "medium"
                 ]
               }
             },
@@ -24394,14 +24410,16 @@
         "radio-row": {
           "keys": [
             "size.large.gap",
-            "size.large.pad-y"
+            "size.large.pad-y",
+            "size.medium.gap"
           ],
           "parts": {
             "content": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "size": [
-                  "large"
+                  "large",
+                  "medium"
                 ]
               }
             },
@@ -24460,6 +24478,21 @@
             "inputs": {
               "members": 30,
               "where": {}
+            }
+          }
+        },
+        "switch-row": {
+          "keys": [
+            "size.medium.gap"
+          ],
+          "parts": {
+            "content": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
             }
           }
         },
@@ -26174,17 +26207,6 @@
               }
             }
           }
-        },
-        "toast": {
-          "keys": [
-            "type"
-          ],
-          "parts": {
-            "message": {
-              "members": 2,
-              "where": {}
-            }
-          }
         }
       }
     },
@@ -26851,6 +26873,17 @@
               }
             }
           }
+        },
+        "toast": {
+          "keys": [
+            "type"
+          ],
+          "parts": {
+            "message": {
+              "members": 2,
+              "where": {}
+            }
+          }
         }
       }
     },
@@ -26933,6 +26966,21 @@
               "where": {
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "toast": {
+          "keys": [
+            "glyph-cell"
+          ],
+          "parts": {
+            "glyphCell": {
+              "members": 1,
+              "where": {
+                "intent": [
+                  "success"
                 ]
               }
             }
@@ -27093,6 +27141,31 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.x-small.type.default.standalone.selected.focus-visible",
+            "size.x-small.type.default.standalone.selected.hover",
+            "size.x-small.type.default.standalone.selected.pressed",
+            "size.x-small.type.default.standalone.selected.rest",
+            "size.x-small.type.default.standalone.unselected.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "x-small"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "radio-row": {
           "keys": [
             "description.medium.text",
@@ -27148,6 +27221,42 @@
               "where": {
                 "size": [
                   "small"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.xs.default-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.x-small.type.default.inline.selected.focus-visible",
+            "size.x-small.type.default.inline.selected.hover",
+            "size.x-small.type.default.inline.selected.pressed",
+            "size.x-small.type.default.inline.selected.rest",
+            "size.x-small.type.default.inline.unselected.focus-visible",
+            "size.x-small.type.default.inline.unselected.hover",
+            "size.x-small.type.default.inline.unselected.pressed",
+            "size.x-small.type.default.inline.unselected.rest",
+            "size.x-small.type.default.standalone.unselected.focus-visible",
+            "size.x-small.type.default.standalone.unselected.hover",
+            "size.x-small.type.default.standalone.unselected.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "x-small"
+                ],
+                "weight": [
+                  "default"
                 ]
               }
             }
@@ -27232,6 +27341,67 @@
                 ],
                 "weight": [
                   "bold"
+                ]
+              }
+            }
+          }
+        },
+        "link": {
+          "keys": [
+            "size.x-small.type.emphasis.standalone.selected.focus-visible",
+            "size.x-small.type.emphasis.standalone.selected.hover",
+            "size.x-small.type.emphasis.standalone.selected.pressed",
+            "size.x-small.type.emphasis.standalone.selected.rest",
+            "size.x-small.type.emphasis.standalone.unselected.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "x-small"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "emphasis"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.xs.strong-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.x-small.type.emphasis.inline.selected.focus-visible",
+            "size.x-small.type.emphasis.inline.selected.hover",
+            "size.x-small.type.emphasis.inline.selected.pressed",
+            "size.x-small.type.emphasis.inline.selected.rest",
+            "size.x-small.type.emphasis.inline.unselected.focus-visible",
+            "size.x-small.type.emphasis.inline.unselected.hover",
+            "size.x-small.type.emphasis.inline.unselected.pressed",
+            "size.x-small.type.emphasis.inline.unselected.rest",
+            "size.x-small.type.emphasis.standalone.unselected.focus-visible",
+            "size.x-small.type.emphasis.standalone.unselected.hover",
+            "size.x-small.type.emphasis.standalone.unselected.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "x-small"
+                ],
+                "weight": [
+                  "emphasis"
                 ]
               }
             }
@@ -30554,7 +30724,7 @@
       "drawnNotDeclared": []
     },
     "link": {
-      "members": 144,
+      "members": 192,
       "axes": {
         "selection": [
           "selected",
@@ -30563,7 +30733,8 @@
         "size": [
           "large",
           "medium",
-          "small"
+          "small",
+          "x-small"
         ],
         "state": [
           "focus-visible",
@@ -30619,7 +30790,11 @@
         "type.body.sm.default",
         "type.body.sm.default-link",
         "type.body.sm.strong",
-        "type.body.sm.strong-link"
+        "type.body.sm.strong-link",
+        "type.body.xs.default",
+        "type.body.xs.default-link",
+        "type.body.xs.strong",
+        "type.body.xs.strong-link"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": [
@@ -31491,6 +31666,7 @@
         "space.0",
         "space.075",
         "space.100",
+        "space.150",
         "type.body.sm.default",
         "type.body.sm.line-box",
         "type.body.xs.default",
@@ -31794,11 +31970,13 @@
         "icon.size.sm",
         "radius.xl",
         "shadow.lg",
+        "size.md.height",
         "space.050",
         "space.100",
         "space.150",
         "space.200",
-        "type.body.md.default"
+        "type.body.sm.default",
+        "type.body.sm.line-box"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
@@ -32082,10 +32260,8 @@
       "type.body.sm.strong-italic-link",
       "type.body.xs.default-italic",
       "type.body.xs.default-italic-link",
-      "type.body.xs.default-link",
       "type.body.xs.strong-italic",
       "type.body.xs.strong-italic-link",
-      "type.body.xs.strong-link",
       "type.caption.lg.default",
       "type.caption.lg.default-link",
       "type.caption.lg.strong",

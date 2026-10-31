@@ -2365,7 +2365,7 @@
         "kind": "component set",
         "page": "↳ Link",
         "section": "Components",
-        "members": 144,
+        "members": 192,
         "variantProperties": [
           {
             "name": "style",
@@ -2399,6 +2399,7 @@
             "name": "size",
             "values": [
               "medium",
+              "x-small",
               "small",
               "large"
             ]
