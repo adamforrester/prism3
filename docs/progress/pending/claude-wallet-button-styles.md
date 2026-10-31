@@ -8,7 +8,8 @@
 
 Only valid provider × style pairs are members, and `any` comes first and is the default. `any` is the stand-in Q-W1 A
 built: the provider's area and logo, with no fill. Every member built before keeps its coordinate, now at `style=any`,
-so 20 members become 74. `plain` is the only type drawn, and PayPal still has no large member. The code prop
+so 20 members become 71. `plain` is the only type drawn, and PayPal still has no large member. Google Pay has no small
+member now, as Shop Pay has none (Q3195.3 A): its SDK draws nothing under 40px. The code prop
 `buttonStyle` (a free string) becomes `style`, an enum of the same names.
 
 **The artwork.** There is a new mark kind, `button/<provider>-<style>`, with 11 files. Each is the logo exactly as the
@@ -56,6 +57,7 @@ fill, edge or wash as a member declared unpainted. A wash or an edge with no fil
   - STYLE: each provider's members are `any` plus exactly its typed styles.
   - LOGO HEIGHT: each file's ink height and center at 44 against typed values, and each style's logo binding the
     button height.
+  - GOOGLE PAY SMALL (#3195): Google Pay has no small member, typed by size name; the HEIGHT range gains its 40 floor.
 - `LITERAL_DEFS` adds wallet-button.
 
 **Mutations, each failing by name:**
@@ -76,6 +78,7 @@ fill, edge or wash as a member declared unpainted. A wash or an edge with no fil
 | drop `silver` from PayPal's styles | test.ts | `❌ #3174 provider rules STYLE` |
 | bind a style's medium logo to `icon.size.lg` | test.ts | `❌ #3174 provider rules LOGO HEIGHT: a style's logo binds … logo 32, want 44` |
 | move Shop Pay's logo 2px down in its file | test.ts | `❌ #3174 provider rules LOGO HEIGHT: each style's logo is its provider's ink height at 44 …` |
+| drop Google Pay's 40 floor from the def (its small members return) | test.ts | `❌ #3195 provider rules GOOGLE PAY SMALL` |
 
 **The plugin.** The executor already draws `literalPaints`, so it needs no change and no `EXECUTOR_REVISION`. The
 update verifier's "a paint the plan does not give" check (`update-apply.ts`, #2369) read only bound and gradient
@@ -96,8 +99,8 @@ planned. SignInButton had the same shape, but no update test built it. The plugi
   - Shop Pay's logo is 22 high at every height.
 
   So at 36 and 56 the decided ratio reads the 44 render, not those SDKs' drawings.
-- Google Pay's and Shop Pay's SDKs draw nothing under 40px: a 36 request renders 40. Shop Pay already has no small
-  member. Google Pay's small member is under its SDK's height, which is an owner question.
+- Google Pay's and Shop Pay's SDKs draw nothing under 40px: a 36 request renders 40. Shop Pay already had no small
+  member. The owner took Q3195.3 A, so Google Pay has none either.
 - All four SDKs pass the radius through without clamping.
 
 **#3175 is not in this PR.** PayPal's 150 floor needs a per-provider `minWidth`, and today `minWidth` is keyed by size

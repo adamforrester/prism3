@@ -18893,7 +18893,7 @@ arm: {
     };
     const RULES: Record<string, Rule> = {
       'apple-pay': { minH: 30, minW: 100, logo: 'provider-logo/logo/apple-pay' },
-      'google-pay': { halfHeightRadius: true, logo: 'provider-logo/logo/google-pay' },
+      'google-pay': { minH: 40, halfHeightRadius: true, logo: 'provider-logo/logo/google-pay' },
       paypal: { minH: 25, maxH: 55, logo: 'provider-logo/logo/paypal-wordmark' },
       'shop-pay': { minH: 40, minW: 120, logo: 'provider-logo/logo/shop-pay' },
     };
@@ -18968,6 +18968,11 @@ arm: {
     const styleProp = wb.props.find((pr) => pr.name === 'style');
     ok(JSON.stringify(styleSets) === JSON.stringify(wantSets) && wb.variants.style?.[0] === 'any' && styleProp?.default === 'any',
       `#3174 provider rules STYLE: each provider's members are any plus exactly its SDK's own styles, any first and the default (got ${JSON.stringify(styleSets)}; axis ${JSON.stringify(wb.variants.style)}; default ${styleProp?.default})`);
+    // Google Pay small (Q3195.3 A): its SDK draws nothing under 40px, so a 36 request renders 40, and the design file
+    // has no small member, at any style. Typed here by size name, apart from the HEIGHT arm's ranges.
+    const googleSmall = plans.filter((p) => p.coord.provider === 'google-pay' && p.size === 'small').map(planComponentName);
+    ok(googleSmall.length === 0 && plans.some((p) => p.coord.provider === 'google-pay' && p.size === 'medium'),
+      `#3195 provider rules GOOGLE PAY SMALL: Google Pay has no small member, because its SDK draws nothing under 40 (got ${googleSmall.join(', ') || 'none'})`);
     // The logo's height (#3174): each provider's logo-to-height ratio, typed from the SDK render at 44, measured as the
     // ink height of each style's file over its 44-high artboard, with the logo where the SDK places it (centered).
     const ratioOff = Object.entries(STYLES).flatMap(([prov, ss]) => ss.flatMap((st) => {

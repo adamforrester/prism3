@@ -39,9 +39,9 @@
  *
  * THE PROVIDER RULES, AS DATA THE GATE HOLDS (`test.ts`, `#2343 PR 4 provider rules`, which types each rule again
  * from the providers' guidelines and never reads this file's numbers):
- *   - height: the shared `size.*` rungs, 36 / 44 / 56. Shop Pay's floor is 40, so it has no small member; PayPal's
- *     ceiling is 55, so it has no large member (Q-W2 A, kept by Q3174.4 A). Apple Pay's 30 and PayPal's 25 floors sit
- *     under every rung.
+ *   - height: the shared `size.*` rungs, 36 / 44 / 56. Shop Pay's floor is 40, so it has no small member; Google Pay's
+ *     SDK draws nothing under 40, so it has none either (Q3195.3 A); PayPal's ceiling is 55, so it has no large member
+ *     (Q-W2 A, kept by Q3174.4 A). Apple Pay's 30 and PayPal's 25 floors sit under every rung.
  *   - width: a 120px floor, Shop Pay's logo-button minimum and the largest any of the four states (Apple Pay plain:
  *     100). The button fills its column in use.
  *   - radius: the brand's `radius.md`. Apple Pay, PayPal and Shop Pay allow any radius; Google Pay at most half the
@@ -65,7 +65,7 @@ type Provider = (typeof PROVIDERS)[number];
  *  header above). PayPal's button carries its wordmark, not the monogram. */
 const RULES: Record<Provider, BrandedProviderRule> = {
   'apple-pay': { mark: 'logo/apple-pay', minHeight: 30 },
-  'google-pay': { mark: 'logo/google-pay' },
+  'google-pay': { mark: 'logo/google-pay', minHeight: 40 },
   paypal: { mark: 'logo/paypal-wordmark', minHeight: 25, maxHeight: 55 },
   'shop-pay': { mark: 'logo/shop-pay', minHeight: 40 },
 };
@@ -113,12 +113,12 @@ export const walletButton: ComponentDef = {
   status: 'draft',
   summary: 'Express checkout with Apple Pay, Google Pay, PayPal or Shop Pay, drawn by the provider.',
   description:
-    'A payment button for a wallet: Apple Pay, Google Pay, PayPal or Shop Pay. The provider draws the button itself, so its logo, colors, wording and font are the provider\'s and never change with the theme. The component sets the height, the width, the corner radius where the provider allows one, and the focus ring. Each provider has a smallest and a largest height, so Shop Pay starts at the medium size and PayPal stops at medium. The design file shows each provider\'s own button in each of its styles, and a stand-in with the provider\'s logo and no fill when the style is left open; the button the customer sees comes from the provider.',
+    'A payment button for a wallet: Apple Pay, Google Pay, PayPal or Shop Pay. The provider draws the button itself, so its logo, colors, wording and font are the provider\'s and never change with the theme. The component sets the height, the width, the corner radius where the provider allows one, and the focus ring. Each provider has a smallest and a largest height, so Google Pay and Shop Pay start at the medium size and PayPal stops at medium. The design file shows each provider\'s own button in each of its styles, and a stand-in with the provider\'s logo and no fill when the style is left open; the button the customer sees comes from the provider.',
 
   props: [
     { name: 'provider', type: "enum: 'apple-pay' | 'google-pay' | 'paypal' | 'shop-pay'", values: [...PROVIDERS], required: true, description: 'Which wallet. Each needs its provider\'s script on the page, which draws the button.' },
     { name: 'style', type: `enum: ${STYLE_VALUES.map((v) => `'${v}'`).join(' | ')}`, values: [...STYLE_VALUES], default: ANY, required: false, description: `The provider\'s color style, from its own list, passed to the provider: Apple Pay ${stylesOf('apple-pay').join(', ')}; Google Pay ${stylesOf('google-pay').join(', ')}; PayPal ${stylesOf('paypal').join(', ')}; Shop Pay ${stylesOf('shop-pay').join(', ')}. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style another provider uses is refused.` },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The height: 36, 44 or 56px. Shop Pay has no small size and PayPal no large one, because each provider sets a smallest and a largest height.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The height: 36, 44 or 56px. Google Pay and Shop Pay have no small size and PayPal no large one, because each provider sets a smallest and a largest height.' },
     { name: 'type', type: 'string', default: 'plain', required: false, description: 'The provider\'s wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider\'s words, translated by the provider. A value the provider does not offer falls back to plain.' },
   ],
 
@@ -176,7 +176,7 @@ export const walletButton: ComponentDef = {
     codeOnly: [
       'the provider\'s element — the component is a container the provider\'s element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify\'s Shop Pay element. It never draws a button of its own. It passes size as the element\'s height, the brand radius as the element\'s radius option (clamped for Google Pay, below), and type and style through unchanged.',
       'the style — passed to the provider under its own option name: Apple Pay\'s buttonstyle, Google Pay\'s buttonColor, PayPal\'s style.color and Shop Pay\'s one color. any passes nothing, so the provider draws its default. The design file\'s fill and edge for each style are the provider\'s own paint as its script draws it, so a style picked in the design file is the button the customer sees.',
-      'the height limits — Shop Pay\'s 40px floor and PayPal\'s 55px ceiling: a small Shop Pay button is drawn at 40 and a large PayPal button at 55, and the design file has no member for either.',
+      'the height limits — Google Pay\'s and Shop Pay\'s 40px floor and PayPal\'s 55px ceiling: a small Google Pay or Shop Pay button is drawn at 40 and a large PayPal button at 55, and the design file has no member for any of them.',
       'the corner — Google Pay allows a radius of at most half the button\'s height, so the component passes min(radius, height / 2) as its buttonRadius. A soft brand\'s radius can pass half of a small or compact button. Apple Pay, PayPal and Shop Pay take the brand radius as it is.',
       'the width — the container fills its column, with a 120px floor. Apple Pay\'s titled buttons need 140, so a titled Apple Pay button takes the larger floor; Shop Pay\'s "Buy with" button needs 193. PayPal\'s script holds its own frame at 150 or wider, so a PayPal button under 150 overflows its slot.',
       'the provider\'s own states — the provider\'s element owns hover, pressed and disabled and draws them itself, and the design file does not show them. The component adds only the focus ring, outside the provider\'s element, at focus-visible.',
@@ -271,6 +271,7 @@ export const walletButton: ComponentDef = {
       'Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A) and the provider\'s own element in code (Q-B8 A). Built in PR 4 on the owner\'s logo marks (PR 3).',
       'Q-W1 (the Figma member) was built as A, a layout stand-in with no fill, while the providers\' artwork was not in. #3174 took B (Q3174.1–6, all A): a style axis in each SDK\'s own names, each style drawn from the provider\'s SDK artwork with its record\'s ground and edge, and the stand-in kept as the any style, so every member built before is still there at style any.',
       'Q-W2 (heights outside a provider\'s range): built as A, no member, and kept by Q3174.4 A: PayPal has no large member, because 55 is its documented ceiling.',
+      'Q3195.3 A: Google Pay has no small member. Its SDK draws nothing under 40px, so a 36 request renders 40, the same floor as Shop Pay.',
       'The code prop buttonStyle (a free string) became style, an enum of the providers\' own names with any for the provider\'s default, so the code and the design file name a style the same way.',
     ],
     projection: [
