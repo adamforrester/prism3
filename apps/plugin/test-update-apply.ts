@@ -483,18 +483,22 @@ section('table moves — the Container table on Primitive tokens moves to Grids 
     const p: P = { id, name, children: [], appendChild(c: F) { for (const q of pages) { const i = q.children.indexOf(c); if (i >= 0) q.children.splice(i, 1); } p.children.push(c); c.parent = p; } };
     return p;
   };
-  // A table as the style guide draws one: its key, and a mark naming the page it was drawn on and its own id.
-  const table = (id: string, name: string, key: string, on: P): F => {
-    const f: F = { id, name, type: 'FRAME', x: 0, y: 0, width: 400, height: 200, parent: null, data: { 'prism3-style-guide': key, 'prism3-style-guide-mark': `${on.id}|${id}` },
+  // A table as the style guide draws one: its key, a mark naming the page it was drawn on and its own id, and the rows it
+  // was last written with (each row's variable name, under the group path its key ends in).
+  const table = (id: string, name: string, key: string, on: P, rows: string[]): F => {
+    const path = key.split('|').slice(2).join('|');
+    const snapshot = Object.fromEntries(rows.map((r, i) => [`VariableID:${id}:${i}`, { name: `${path}/${r}`, values: {} }]));
+    const f: F = { id, name, type: 'FRAME', x: 0, y: 0, width: 400, height: 200, parent: null,
+      data: { 'prism3-style-guide': key, 'prism3-style-guide-mark': `${on.id}|${id}`, 'prism3-style-guide-rows': JSON.stringify(snapshot) },
       getPluginData(k) { return f.data[k] ?? ''; }, setPluginData(k, v) { f.data[k] = v; } };
     on.appendChild(f);
     return f;
   };
   pages.push(pg('0:1', 'Cover'), pg('0:2', '↳ Primitive tokens'), pg('0:3', '↳ Semantic tokens'), pg('0:4', '↳ Grids & layouts'));
   const KEY = 'dimension|VariableCollectionId:layout|brand/container';
-  const cont = table('9:1', 'Style guide — Container', KEY, pages[1]);
-  const dim = table('9:2', 'Style guide — Dimension', 'dimension|VariableCollectionId:core|brand/core/dimension', pages[1]);
-  const space = table('9:3', 'Style guide — Space', 'dimension|VariableCollectionId:space|brand/space', pages[2]);
+  const cont = table('9:1', 'Style guide — Container', KEY, pages[1], ['max', 'narrow', 'min']);
+  const dim = table('9:2', 'Style guide — Dimension', 'dimension|VariableCollectionId:core|brand/core/dimension', pages[1], ['4', '8']);
+  const space = table('9:3', 'Style guide — Space', 'dimension|VariableCollectionId:space|brand/space', pages[2], ['100', '200']);
   // Each page's style-guide tables, by id: the Update draws the Cover page's own frames, which are no table.
   const census = (): string => pages.map((p) => `${p.name}:${p.children.filter((c) => !!c.data?.['prism3-style-guide']).map((c) => c.id).join('+')}`).join(', ');
   const host = { ...w.host, async loadAllPagesAsync() {}, root: { ...w.host.root, get children() { return pages; } } } as unknown as ApplyHost;
