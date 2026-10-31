@@ -27,7 +27,11 @@
  * Mutations this fails by name: the table branch removed from `renderMarkdown` → `guides/<name>.html has no markdown
  * left in its text` for every guide with a table; `.md` links no longer rewritten → `every link on guides/<name>.html
  * resolves`; the nav reversed → `nav lists the guides in index.md's order`; the site build writing its own render →
- * `public/docs/guides/<name>.html is what GET … answers, byte for byte`.
+ * `public/docs/guides/<name>.html is what GET … answers, byte for byte`. Also read off the `.md` and `index.md`:
+ * single-`*` italics left as stars → `converts every *italic* span`; numbered lists drawn as `<ul>` → `draws its N
+ * numbered step(s) in an <ol>`; "On this page" not drawn → `draws "On this page" from its N ## heading(s)`;
+ * Previous and Next swapped → `Previous and Next follow index.md's order`; the bold pass closing inside `***` →
+ * `article tags nest well formed` (build-components).
  */
 import { createServer, request } from 'node:http';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -137,6 +141,35 @@ try {
     const nav = /<nav class="gnav"[\s\S]*?<ol>([\s\S]*?)<\/ol>/.exec(html)?.[1] ?? '';
     const navOrder = [...nav.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
     ok(JSON.stringify(navOrder) === JSON.stringify(order), `guides/${n}.html's nav lists the guides in index.md's order`, `got ${navOrder.join(', ')}`);
+    const main = /<main[\s\S]*?<\/main>/.exec(html)?.[0] ?? '';
+    const prose = text(main.replace(/<code>[\s\S]*?<\/code>/g, ''));
+    const star = /\*/.exec(prose);
+    ok(!star, `guides/${n}.html converts every *italic* span: no * left in its text`, star ? `found "*" in …${prose.slice(Math.max(0, (star.index ?? 0) - 60), (star.index ?? 0) + 60).replace(/\s+/g, ' ')}…` : '');
+    const stack: string[] = [];
+    const misnested: string[] = [];
+    for (const [, close, tag] of main.matchAll(/<(\/?)([a-z][a-z0-9]*)\b[^>]*>/g)) {
+      if (/^(br|hr|img|meta|link|input|wbr)$/.test(tag)) continue;
+      if (!close) { stack.push(tag); continue; }
+      const top = stack.pop();
+      if (top !== tag) { misnested.push(`</${tag}> closes <${top}>`); break; }
+    }
+    if (!misnested.length && stack.length) misnested.push(`<${stack.join('>, <')}> never closed`);
+    ok(misnested.length === 0, `guides/${n}.html's article tags nest well formed`, misnested.join('; '));
+    const bare = md.replace(/<!--[\s\S]*?-->/g, '');
+    const steps = (bare.match(/^\d+\. /gm) ?? []).length;
+    const olItems = [...main.matchAll(/<ol>([\s\S]*?)<\/ol>/g)].reduce((t, m) => t + (m[1].match(/<li>/g) ?? []).length, 0);
+    ok(olItems === steps, `guides/${n}.html draws its ${steps} numbered step(s) in an <ol>`, `got ${olItems} <li> in <ol>`);
+    const h2s = [...bare.matchAll(/^## (.+)$/gm)].map((m) => m[1].replace(/[`*]/g, '').trim());
+    const tocAside = /<aside class="toc"[\s\S]*?<\/aside>/.exec(html)?.[0] ?? '';
+    const toc = [...tocAside.matchAll(/<a href="#[^"]+">([\s\S]*?)<\/a>/g)].map((m) => text(m[1]).trim());
+    const wantToc = h2s.length > 1 ? h2s : [];
+    ok(/On this page/.test(tocAside) === wantToc.length > 0 && JSON.stringify(toc) === JSON.stringify(wantToc), `guides/${n}.html draws "On this page" from its ${h2s.length} ## heading(s)`, `got ${JSON.stringify(toc)}`);
+    const at = order.indexOf(`${n}.html`);
+    const pager = /<nav class="pager"[\s\S]*?<\/nav>/.exec(html)?.[0] ?? '';
+    const prevHref = /<a class="prev" href="([^"]+)"><small>Previous<\/small>/.exec(pager)?.[1] ?? null;
+    const nextHref = /<a class="next" href="([^"]+)"><small>Next<\/small>/.exec(pager)?.[1] ?? null;
+    const wantPrev = at > 0 ? order[at - 1] : null, wantNext = at >= 0 && at < order.length - 1 ? order[at + 1] : null;
+    ok(prevHref === wantPrev && nextHref === wantNext, `guides/${n}.html's Previous and Next follow index.md's order`, `got Previous ${prevHref}, Next ${nextHref}; expected ${wantPrev}, ${wantNext}`);
   }
   for (const n of names) {
     const html = pages.get(n) ?? '';

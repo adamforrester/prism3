@@ -20,7 +20,7 @@ import { join } from 'node:path';
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /** A heading's anchor, the way GitHub makes it, so `file.md#anchor` links keep working on the page. */
-export const slug = (text) => text.toLowerCase().replace(/<[^>]+>/g, '').replace(/[^\p{L}\p{N}\s_-]/gu, '').trim().replace(/\s/g, '-');
+export const slug = (text) => text.toLowerCase().replace(/<[^>]+>/g, '').replace(/&(amp|lt|gt|quot);/g, '').replace(/[^\p{L}\p{N}\s_-]/gu, '').trim().replace(/\s/g, '-');
 
 /** A link to a guide's `.md` points at its page; every other link is left as written. */
 const href = (u) => /^[\w-]+\.md(#|$)/.test(u) ? u.replace(/\.md(?=#|$)/, '.html') : u;
@@ -30,7 +30,8 @@ const inline = (s) => {
   s = s.replace(/`([^`]+)`/g, (_, c) => `\0${code.push(`<code>${esc(c)}</code>`) - 1}\0`);
   return esc(s)
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => `<a href="${href(u)}">${t}</a>`)
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Bold may hold an italic span, `**Build *Name***`, so the closing `**` is the one after it, not inside `***`.
+    .replace(/\*\*((?:[^*]|\*[^*\s][^*]*\*)+?)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[^\w*])\*([^*\s][^*]*?)\*(?![\w*])/g, '$1<em>$2</em>')
     .replace(/\0(\d+)\0/g, (_, i) => code[+i]);
 };

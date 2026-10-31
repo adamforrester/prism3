@@ -144,8 +144,7 @@ a:hover .g-name { text-decoration: underline; }
 .pager .next { grid-column: 2; text-align: right; }
 .pager small { display: block; color: var(--text-muted); }
 .foot { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: var(--s-1); }
-.toc { font-size: var(--s-1); }
-.toc { align-self: start; position: sticky; top: 16px; }
+.toc { align-self: start; position: sticky; top: 16px; font-size: var(--s-1); }
 .toc ol { display: grid; gap: 6px; padding-left: 10px; border-left: 1px solid var(--border); }
 .toc a { color: var(--text-muted); text-decoration: none; }
 .toc a:hover { color: var(--link); }
