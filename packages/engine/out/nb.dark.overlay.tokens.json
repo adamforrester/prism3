@@ -74,7 +74,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{nbds.core.palette.neutral.450}",
-          "$description": "Secondary text — 4.5:1 on background.secondary"
+          "$description": "Secondary text — 4.5:1 on background.primary"
         },
         "tertiary": {
           "$type": "color",
@@ -225,7 +225,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{nbds.core.palette.neutral.450}",
-          "$description": "Secondary icon — 4.5:1 on background.secondary"
+          "$description": "Secondary icon — 4.5:1 on background.primary"
         },
         "tertiary": {
           "$type": "color",

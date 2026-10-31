@@ -816,12 +816,19 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
         // The floor itself, plus every neutral tier no farther from the page than it is.
         const grounds: Array<[string, string]> = [['floor', fl], ...TIERS.map((t) => [`${side}${t}`, roles[`${side}${t}`]?.hex] as [string, string])
           .filter(([, h]) => h && contrast(hexToRgb(page), hexToRgb(h)) <= pageToFloor + 1e-9)];
+        // `secondaryTextGround: 'page'` (owner Q-TXT1 A) moves the page's secondary ink off the floor: its promise is
+        // the page itself and every tier no farther from it (a white raised panel), not the floor. Read off the
+        // lever, never off the role's `against`; the inverse band keeps its floor.
+        // Light and dark only (owner Q3212.3 B): high contrast keeps its floor fit, so its floor promise stands.
+        const pageOnly = (ink: string) => !side && ink === 'secondary' && theme.secondaryTextGround === 'page' && !mo.hc;
+        const pageGrounds: Array<[string, string]> = [['background.primary', page], ...TIERS.map((t) => [t, roles[t]?.hex] as [string, string])
+          .filter(([t, h]) => t !== 'background.primary' && h && contrast(hexToRgb(page), hexToRgb(h)) <= 1 + 1e-9)];
         for (const fam of ['text', 'icon'] as const) for (const ink of INKS) {
           const name = `${side}${fam}.${ink}`;
           const r = roles[name];
           if (!r) { misses.push(`${m.mode} ${name}: not emitted`); continue; }
           const bar = barOf(fam, ink, mo.hc, icon31);
-          for (const [g, h] of grounds) {
+          for (const [g, h] of pageOnly(ink) ? pageGrounds : grounds) {
             cells++;
             const ratio = contrast(hexToRgb(r.hex), hexToRgb(h));
             if (ratio < bar - 1e-9) misses.push(`${m.mode} ${name} ${r.hex} ${ratio.toFixed(2)}:1 on ${g} ${h} (bar ${bar})`);
@@ -11425,6 +11432,93 @@ arm: {
   ok(JSON.stringify(probe.unresolvedType) === JSON.stringify(['type.body.md.nonesuch']) && !('type.body.md.nonesuch' in probe.type) && (probe.type['type.body.md.default']?.fontSizePx ?? 0) > 0,
     `#1720 a spec binding a type style no brand emits names that key alone (got ${probe.unresolvedType.join(', ') || 'none'})`);
 }
+// ── Q-TXT1 A — THE REFERENCE BRAND'S SECONDARY INK IS FITTED ON THE PAGE ──────────────────────────────────
+// Owner decision 2026-10-31: the reference brand's `text.secondary` is the lightest ink that still clears the body
+// bar on `background.primary` (white in light), about 4.6:1, rather than clearing it on `background.secondary`.
+// Light and dark only (owner Q3212.3 B): high contrast keeps its floor fit, so HC is pinned unchanged from main.
+// The band is light's alone (Q3212.2 A): dark has no neutral step between 5.06:1 and 4.23:1 on its page.
+// ORACLE, independent of the subject: the bars and the band are literals typed from the decision; the page is the
+// emitted `background.primary`; "lightest" is measured against every step of the brand's neutral ramp, never read
+// off the picker or the role's `against`. The other-brands table is a literal snapshot of origin/main's resolved
+// secondary inks (text, icon, inverse text), taken before the setting existed.
+// BY-NAME MUTATIONS: drop `secondaryTextGround: 'page'` from `nbThemeFrom` → arm 1 (light 5.49 > 4.8, and not the
+// lightest in light); let the page fit reach HC (drop `cfg.kind !== 'hc'` in `modes.ts`) → arm 1 (HC moved); make the page fit apply to every brand (ignore the setting in `modes.ts`)
+// → arm 2 names each brand × mode whose secondary moved.
+{
+  const BAR: Record<string, number> = { light: 4.5, dark: 4.5 };
+  // HC, unchanged from origin/main (Q3212.3 B): its floor fit, text and icon alike.
+  const HC_MAIN: Record<string, string> = { 'hc-light': '#3f4449', 'hc-dark': '#a3a8ab' };
+  const th = nbTheme();
+  const steps = (th.palettes.find((p) => p.palette === th.roleToPalette.neutral)!.steps as Array<{ rgb: RGB }>).map((s) => hex(s.rgb).toLowerCase());
+  const bad: string[] = [];
+  const all = resolveAllModes(th);
+  for (const m of all) {
+    const R = m.roles as Record<string, { hex: string }>;
+    const ink = R['text.secondary'].hex.toLowerCase(), page = R['background.primary'].hex;
+    if (HC_MAIN[m.mode]) {
+      for (const k of ['text.secondary', 'icon.secondary']) if (R[k].hex.toLowerCase() !== HC_MAIN[m.mode]) bad.push(`${m.mode} ${k} ${R[k].hex} moved from main's ${HC_MAIN[m.mode]}`);
+      continue;
+    }
+    const bar = BAR[m.mode];
+    if (bar === undefined) { bad.push(`${m.mode}: a mode the arm has no bar for`); continue; }
+    const r = contrast(hexToRgb(ink), hexToRgb(page));
+    if (r < bar - 1e-9) bad.push(`${m.mode} ${ink} ${r.toFixed(2)} < ${bar} on background.primary`);
+    // The lightest: no neutral step clears the bar on the page with less contrast than the chosen ink.
+    const lighter = steps.filter((h) => { const x = contrast(hexToRgb(h), hexToRgb(page)); return x >= bar - 1e-9 && x < r - 1e-9; });
+    if (lighter.length) bad.push(`${m.mode} ${ink} ${r.toFixed(2)} is not the lightest passing step (${lighter.join(', ')} also clear ${bar})`);
+    // The owner's band, in the mode the decision measured: light, on white, 4.5–4.8.
+    if (m.mode === 'light' && !(r >= 4.5 - 1e-9 && r <= 4.8 + 1e-9)) bad.push(`light ${ink} ${r.toFixed(2)} outside 4.5–4.8 on background.primary`);
+    // Icons sit next to text and match it (#352; the brand's iconContrast is 'text').
+    if (R['icon.secondary'].hex.toLowerCase() !== ink) bad.push(`${m.mode} icon.secondary ${R['icon.secondary'].hex} ≠ text.secondary ${ink}`);
+  }
+  ok(all.length === 4 && bad.length === 0,
+    `Q-TXT1 A: the reference brand's text.secondary is the lightest neutral step clearing the body bar on background.primary in light and dark, 4.5–4.8:1 on white in light, and unchanged from main in HC (Q3212.3 B)${bad.length ? ` — ${bad.slice(0, 4).join('; ')}` : ''}`);
+  // The emitted metadata says where it holds: measured on the page, below the bar on background.secondary.
+  const ai = JSON.parse(readFileSync(resolve(HERE, './out/nb.ai.json'), 'utf8')).color?.['text.secondary'] ?? {};
+  const cw = (ai.contrast_with ?? []) as Array<{ token: string }>;
+  ok(cw.length === 1 && cw[0].token === 'background.primary' && /Below 4\.5:1 on [^.]*`background\.secondary`/.test(ai.when_to_use ?? ''),
+    `Q-TXT1 A: nb.ai.json text.secondary is contracted on background.primary and says it falls below 4.5:1 on background.secondary (contrast_with ${cw.map((c) => c.token).join(',') || 'none'}; when_to_use "${String(ai.when_to_use ?? '').slice(0, 160)}")`);
+
+  // Arm 2: no other brand moved. origin/main's values, before the setting existed: text.secondary, icon.secondary,
+  // inverse.text.secondary per mode.
+  const BEFORE: Record<string, Record<string, string>> = {
+    prism3: { light: '#67696b #67696b #808284', dark: '#808284 #808284 #67696b', 'hc-light': '#424346 #424346 #999a9c', 'hc-dark': '#a6a7a9 #a6a7a9 #4e5052' },
+    aurora: { light: '#68686d #818286 #818286', dark: '#818286 #68686d #68686d', 'hc-light': '#434347 #68686d #9a9a9e', 'hc-dark': '#a7a7aa #818286 #4f4f54' },
+    harbor: { light: '#5e5b58 #5e5b58 #83817e', dark: '#83817e #83817e #6b6865', 'hc-light': '#454341 #454341 #9c9a98', 'hc-dark': '#a8a6a5 #a8a6a5 #514f4c' },
+    wendys: { light: '#67696a #67696a #808283', dark: '#808283 #808283 #67696a', 'hc-light': '#424345 #424345 #999a9c', 'hc-dark': '#a6a7a8 #a6a7a8 #4e5051' },
+    minimal: { light: '#66696d #66696d #7f8285', dark: '#7f8285 #7f8285 #66696d', 'hc-light': '#424347 #424347 #999a9d', 'hc-dark': '#a5a7aa #a5a7aa #4d5053' },
+    'nb-redesign': { light: '#696869 #696869 #828282' },
+  };
+  const others: Array<[string, Theme | undefined]> = [
+    ...contractCorpus().filter(({ id }) => id.split(' ')[0] !== 'nb').map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]),
+    ['prism3', exampleTheme('prism3 (Q-TXT1)', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+    ['nb-redesign', exampleTheme('nb-redesign (Q-TXT1)', () => brandTheme(readExampleBrand('./examples/nb-redesign.design.md')))],
+  ];
+  const moved: string[] = []; let compared = 0;
+  for (const [id, t] of others) {
+    // The minimal variants differ in levers that do not touch color; each is held to the minimal row.
+    const want = BEFORE[id] ?? BEFORE[id.startsWith('minimal') ? 'minimal' : ''];
+    if (!t || !want) { moved.push(`${id}: no baseline or no theme`); continue; }
+    for (const m of resolveAllModes(t)) {
+      const R = m.roles as Record<string, { hex: string }>;
+      const got = ['text.secondary', 'icon.secondary', 'inverse.text.secondary'].map((k) => R[k]?.hex?.toLowerCase()).join(' ');
+      if (!want[m.mode]) { moved.push(`${id} ${m.mode}: no baseline`); continue; }
+      compared++;
+      if (got !== want[m.mode]) moved.push(`${id} ${m.mode}: ${want[m.mode]} → ${got}`);
+    }
+  }
+  // Arm 3: the input is validated, and reaches the engine through BrandInput, not only the legacy fixture.
+  let refused = '';
+  try { brandTheme({ ...MINIMAL_BRAND, secondaryTextGround: 'surface' } as unknown as BrandInput); } catch (e) { refused = String((e as Error).message); }
+  ok(/^secondaryTextGround: "surface" is invalid — must be one of floor\/page/.test(refused), `Q-TXT1 A: secondaryTextGround refuses a value outside floor/page, by name (got "${refused.slice(0, 120)}")`);
+  const viaInput = resolveAllModes(brandTheme({ ...MINIMAL_BRAND, secondaryTextGround: 'page' } as BrandInput)).find((m) => m.mode === 'light')!.roles as Record<string, { hex: string }>;
+  const minimalPage = contrast(hexToRgb(viaInput['text.secondary'].hex), hexToRgb(viaInput['background.primary'].hex));
+  ok(viaInput['text.secondary'].hex.toLowerCase() !== BEFORE.minimal.light.split(' ')[0] && minimalPage >= 4.5 - 1e-9 && minimalPage <= 4.8 + 1e-9,
+    `Q-TXT1 A: secondaryTextGround 'page' on a BrandInput fits text.secondary on the page (minimal light ${BEFORE.minimal.light.split(' ')[0]} → ${viaInput['text.secondary'].hex}, ${minimalPage.toFixed(2)}:1 on background.primary)`);
+  ok(compared >= 41 && moved.length === 0,
+    `Q-TXT1 A: no other brand's secondary ink moved — text, icon and inverse text match origin/main in every corpus brand, prism3 and the redesign seed (${compared} brand × mode cells${moved.length ? `; MOVED: ${moved.slice(0, 4).join('; ')}` : ''})`);
+}
+
 // (10b) #63 — CLOSED, by fixing the cause rather than accepting it. History, because the shape of the
 // mistake is the reusable part: nb's semantic text on the `-subtle` tint measured ~4.0–4.2:1 in LIGHT,
 // under AA 4.5 (the banner/badge pairing; a CR-02 sibling — contracted vs the mode FLOOR but USED on a
@@ -11447,11 +11541,17 @@ arm: {
 // The gate is inverted accordingly: it asserts the shortfall is GONE, in all four modes, for the
 // fixture that used to own it. It fails if the pairing ever regresses below AA again.
 {
+  // ONE SHORTFALL IS DECLARED, and only one (owner Q-TXT1 A, 2026-10-31): the reference brand fits its secondary ink
+  // on the page, so in light it no longer clears 4.5:1 on its card, which is the same neutral.050 as
+  // `background.secondary`. The owner accepted that consequence; it is pinned here by label and mode, so any other
+  // shortfall, or this one in another mode, still fails by name.
+  const DECLARED: Record<string, string[]> = { light: ['body on card'] };
   const rp = resolvePreview(nbTheme());
   for (const mode of rp.modes) {
     const fails = rp.contracts.filter((c) => c.byMode[mode] && !c.byMode[mode]!.pass);
-    ok(fails.length === 0, `#63 (closed): nb has no preview-contract shortfall in ${mode} — the semantic-text-on-subtle-tint pairing clears AA`
-      + (fails.length ? ` — FAIL: ${fails.map((c) => `${c.label}:${c.byMode[mode]!.ratio}<${c.min}`).join('; ')}` : ''));
+    const got = fails.map((c) => c.label).sort(), want = [...(DECLARED[mode] ?? [])].sort();
+    ok(JSON.stringify(got) === JSON.stringify(want), `#63 (closed): nb has no preview-contract shortfall in ${mode} — the semantic-text-on-subtle-tint pairing clears AA${want.length ? ` (declared: ${want.join(', ')}, Q-TXT1 A)` : ''}`
+      + (JSON.stringify(got) !== JSON.stringify(want) ? ` — GOT: ${fails.map((c) => `${c.label}:${c.byMode[mode]!.ratio}<${c.min}`).join('; ') || 'none'}` : ''));
   }
   // The specific pairing #63 was about, asserted directly rather than only via the preview specs, so
   // this keeps meaning something if the alert/badge previews are ever restructured.
@@ -12214,6 +12314,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'hc-light', name: 'color/icon/warning-subtle', nb: 'palette/amber/450', engine: 'palette/amber/500' },
   { mode: 'hc-light', name: 'color/icon/danger-subtle', nb: 'palette/red/450', engine: 'palette/red/500' },
   { mode: 'hc-light', name: 'color/icon/info-subtle', nb: 'palette/info/450', engine: 'palette/info/500' },
+  // SEVENTH group (owner Q-TXT1 A, 2026-10-31): the reference brand's secondary ink is fitted on the PAGE,
+  // `background.primary`, not on the floor (`secondaryTextGround: 'page'`). It is the lightest step that clears
+  // the mode's body bar on the page, so it runs one rung lighter than authored in light (550 → 500, 5.49 → 4.59:1
+  // on white). `dark` is absent: the authored 450 is already the lightest step that clears 4.5:1 on its page, so
+  // the fit gives it back. Both HC modes are absent: the page fit is light and dark only (owner Q3212.3 B), so HC
+  // keeps its floor fit. Text and icon move together, NB's `iconContrast` being 'text'.
+  { mode: 'light', name: 'color/text/secondary', nb: 'palette/neutral/550', engine: 'palette/neutral/500' },
+  { mode: 'light', name: 'color/icon/secondary', nb: 'palette/neutral/550', engine: 'palette/neutral/500' },
   // SIXTH group (#1486): link INTERACTIVE STATES. NB hand-authored the engaged link states one/two rungs
   // off the base (hover +1, visited +2) — barely a perceptual step, and imperceptible where a saturated
   // link is pinned near the ramp extreme (the owner's QA). The engine now walks each engaged state to a
@@ -36790,20 +36898,31 @@ arm: {
     `${D3051}: the a11y contract — no role on the wrapper, both lines aria-hidden, the label read as plain text, not focusable (Q3051.2 A) (role '${divider.accessibility.role}')`);
   // Q3051.5 A, held for EVERY brand, not only the default: text.secondary clears 4.5:1 against the two page tiers in
   // every mode. Recomputed from the roles' own colors (the lint-ratio-truth lesson), never read off a reported ratio.
-  const under: string[] = [];
-  for (const [id, input] of Object.entries(exampleBrands())) {
-    for (const m of resolveAllModes(brandTheme(input as BrandInput))) {
+  // The reference brand is in scope too (owner Q3212.6 A): it fits its secondary ink on the page
+  // (`secondaryTextGround: 'page'`, Q-TXT1 A), so ONE cell is declared, light `background.secondary`, the same
+  // shortfall #63 declares as "body on card". Any other cell under 4.5:1, or a declared cell that no longer is,
+  // fails by name.
+  const DECLARED = new Set(['nb light background.secondary']);
+  const under: string[] = [], declaredSeen: string[] = [];
+  const brands: Array<[string, Theme]> = [
+    ...Object.entries(exampleBrands()).map(([id, input]) => [id, brandTheme(input as BrandInput)] as [string, Theme]),
+    ['nb', nbTheme()],
+  ];
+  for (const [id, th] of brands) {
+    for (const m of resolveAllModes(th)) {
       const ink = m.roles['text.secondary'];
       for (const g of ['background.primary', 'background.secondary']) {
         const ground = m.roles[g];
         if (!ink || !ground) { under.push(`${id} ${m.mode} ${g}: role absent`); continue; }
         const c = contrast(hexToRgb(ink.hex), hexToRgb(ground.hex));
+        const cell = `${id} ${m.mode} ${g}`;
+        if (DECLARED.has(cell)) { if (c < 4.5) declaredSeen.push(cell); else under.push(`${cell}: declared under 4.5:1 but clears it (${c.toFixed(2)}); drop the declaration`); continue; }
         if (!(c >= 4.5)) under.push(`${id} ${m.mode} text.secondary on ${g}: ${c.toFixed(2)}`);
       }
     }
   }
-  ok(under.length === 0,
-    `${D3051}: the label ink text.secondary clears 4.5:1 against background.primary and background.secondary in every mode of every example brand${under.length ? ` — UNDER: ${under.slice(0, 4).join('; ')}` : ''}`);
+  ok(under.length === 0 && declaredSeen.length === DECLARED.size,
+    `${D3051}: the label ink text.secondary clears 4.5:1 against background.primary and background.secondary in every mode of every example brand and the reference brand, but for its one declared cell (nb light background.secondary, Q3212.6 A)${under.length ? ` — UNDER: ${under.slice(0, 4).join('; ')}` : ''}${declaredSeen.length !== DECLARED.size ? ` — DECLARED NOT SEEN: ${[...DECLARED].filter((d) => !declaredSeen.includes(d)).join(', ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #3143: the vertical labeled divider
@@ -38218,10 +38337,14 @@ arm: {
       for (const [ink, floor] of INKS) {
         const i = R[ink];
         if (!i) { inkBad.push(`${at}: ${ink} UNRESOLVED`); continue; }
+        // A brand whose secondary ink is fitted on the page (`secondaryTextGround: 'page'`, owner Q-TXT1 A) promises
+        // it only on a panel as light as the page. The reference brand's own value, `white`, is one; the sweep's
+        // card values are not, and carry no promise for that ink alone. They are still measured and counted.
+        const pageFitted = ink === 'text.secondary' && th.secondaryTextGround === 'page' && !M.mode.startsWith('hc') && contrast(hexToRgb(raised.hex), hexToRgb(page.hex)) > 1 + 1e-9;
         const r = contrast(hexToRgb(i.hex), hexToRgb(raised.hex));
         inkCells++;
-        low[ink] = Math.min(low[ink] ?? Infinity, r);
-        if (r < floor) inkBad.push(`${at}: ${ink} ${r.toFixed(2)} < ${floor}`);
+        if (!pageFitted) low[ink] = Math.min(low[ink] ?? Infinity, r);
+        if (r < floor && !pageFitted) inkBad.push(`${at}: ${ink} ${r.toFixed(2)} < ${floor}`);
       }
     }
   }

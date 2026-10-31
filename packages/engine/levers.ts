@@ -115,6 +115,7 @@ export const leverManifest: Lever[] = [
   { key: 'scrimStrength', group: 'color', kind: 'value', label: 'Scrim strength', control: 'enum', default: 'standard',
     options: enumOpts(['standard', 'Standard'], ['strong', 'Strong']),
     description: 'How much the backdrop behind a dialog dims the page. Standard keeps the page readable behind it. Strong dims it further, so the page stops competing with the dialog.' },
+  // `secondaryTextGround` (owner Q-TXT1 A) is deliberately not a lever (owner Q3212.7 A): a brand-fit setting with an accessibility cost, authored in the brand input, not flipped on a slider.
   // #3073 (owner Q806, Q807 A) — label and description are a DRAFT for the owner (on the build PR). It adds roles, it
   // never moves `color.glass.surface`. Its home in the Studio is Surfaces & fills › Glass.
   { key: 'glassRoles', group: 'color', kind: 'value', label: 'Glass fills', control: 'object', advanced: true, itemLabel: 'glass fill',

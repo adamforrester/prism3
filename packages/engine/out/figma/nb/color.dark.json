@@ -349,7 +349,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Secondary text — 4.5:1 on background/secondary",
+      "description": "Secondary text — 4.5:1 on background/primary",
       "value": {
         "r": 0.4901960790157318,
         "g": 0.5137255191802979,
@@ -927,7 +927,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Secondary icon — 4.5:1 on background/secondary",
+      "description": "Secondary icon — 4.5:1 on background/primary",
       "value": {
         "r": 0.4901960790157318,
         "g": 0.5137255191802979,

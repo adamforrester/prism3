@@ -136,6 +136,10 @@ deeper carries a text promise, by design.
   every corpus brand and mode: each floor-gated ink clears its bar on the floor and on every
   surface nearer the page, and with the floor one step deeper (`floorStep`, and
   `inverseSecondary` on the band) every ink re-derives to clear the new floor.
+- **One exception: `secondaryTextGround: page`** (owner Q-TXT1 A, Q3212.3 B). A brand that sets it fits the page's
+  `text.secondary` and `icon.secondary` on `background.primary` instead, in light and dark only; HC and the inverse
+  band keep the floor. Those two inks are then promised on `background.primary` only (their `sits_on`), and the
+  `.ai.json` per-surface wording moves from `avoid_when` to `when_to_use` ("Below 4.5:1 on …").
 
 ### `interactive.<color>.*` — interactive
 

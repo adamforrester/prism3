@@ -61,6 +61,7 @@ import { isLiveSpecPanel, readSpecTag } from './spec-tag';
 import { DOC_PANEL_KEY, DOC_PANEL_NS, PANEL_GAP, SPEC_GAP, SPEC_WIDTH, docPanelBlockers, docPanelDue, docPanelReaches, ownerSet, type PanelReach, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import type { CheckedSet } from './messages';
+import type { ApplyProgress } from './update-apply';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
@@ -1454,16 +1455,33 @@ const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set
 
 export type CaptureResult = { sets: { def: string; set: string; recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }[]; missing: string[]; refused: { def: string; reason: string }[] };
 
+/**
+ * #3189: Capture baseline's and Adopt's readings for the status strip, the shape the apply posts (`ApplyProgress`):
+ * `check` before the file is read, `work` as each def is reached, `done` counting the defs before it, and `finish` once
+ * every def is done. Each `work` reading hands the thread back, so the panel hears it before the set is read.
+ */
+const reached = async (progress: ((p: ApplyProgress) => void) | undefined, breathe: (() => Promise<void>) | undefined, item: string, done: number, total: number): Promise<void> => {
+  if (!progress) return;
+  progress({ phase: 'work', item, done, total });
+  await breathe?.();
+};
+
 /** `capture-baseline`: the one-time record for sets built before the baseline existed (§4). */
-export const captureBaselines = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>): Promise<CaptureResult> => {
+export const captureBaselines = async (file: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, progress?: (p: ApplyProgress) => void): Promise<CaptureResult> => {
+  progress?.({ phase: 'check', item: null, done: 0, total: targets.length });
+  // #3189, as the update's (#3177): every set below is found in one read of the file, a page per turn, never by a search
+  // of the whole file per set. The capture writes plugin data only, which adds no node the read would miss.
+  const host = await runHost(file, breathe);
   const ports = await hostPorts(host);
   const out: CaptureResult = { sets: [], missing: [], refused: [] };
-  for (const t of targets) {
+  for (const [i, t] of targets.entries()) {
+    await reached(progress, breathe, t.def, i, targets.length);
     const v = await locateView(host, t, breathe, ports.drawVars);
     if (v.kind === 'missing') { out.missing.push(t.def); continue; }
     if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }
     out.sets.push({ def: t.def, set: v.name, ...await captureSet(v.set, t.plans, ports, breathe, v.view) });
   }
+  progress?.({ phase: 'finish', item: null, done: targets.length, total: targets.length });
   return out;
 };
 
@@ -1475,10 +1493,14 @@ export type AdoptResult = {
 };
 
 /** `capture-baseline` with `adopt: true`: Adopt over every target's set (#2283). */
-export const adoptMembers = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<AdoptResult> => {
+export const adoptMembers = async (file: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, progress?: (p: ApplyProgress) => void): Promise<AdoptResult> => {
+  progress?.({ phase: 'check', item: null, done: 0, total: targets.length });
+  // #3189: one read of the file, a page per turn, as the capture's. Adopt writes plugin data only, so it adds no node.
+  const host = await runHost(file, breathe);
   const ports = await hostPorts(host);
   const out: AdoptResult = { sets: [], missing: [], refused: [] };
-  for (const t of targets) {
+  for (const [i, t] of targets.entries()) {
+    await reached(progress, breathe, t.def, i, targets.length);
     if (t.single) { (out.notOffered ??= []).push(t.def); continue; }
     // By the current id only: Adopt claims members, and a set under an earlier id (#2759) is the update's to rename.
     const { found, name } = locateSets(host, t, []);
@@ -1488,6 +1510,7 @@ export const adoptMembers = async (host: UpdateHost, targets: readonly UpdateTar
     if (r.refused) { out.refused.push({ def: t.def, reason: r.refused }); continue; }
     out.sets.push({ def: t.def, set: name, adopted: r.adopted, skipped: r.skipped });
   }
+  progress?.({ phase: 'finish', item: null, done: targets.length, total: targets.length });
   return out;
 };
 

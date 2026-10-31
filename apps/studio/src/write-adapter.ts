@@ -51,7 +51,7 @@ export type HostMessage =
   | { kind: 'style-guide-progress'; done: number; total: number }
   // #3170 part 2 — how far a run the panel started has got, for the status strip (`state/status-strip.ts`). Non-terminal,
   // like `component-progress`: never a verdict.
-  | { kind: 'run-progress'; run: 'read' | 'update' | 'apply-theme'; phase: 'check' | 'work' | 'finish'; item: string | null; done: number; total: number }
+  | { kind: 'run-progress'; run: 'read' | 'update' | 'apply-theme' | 'capture' | 'adopt'; phase: 'check' | 'work' | 'finish'; item: string | null; done: number; total: number }
   // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
   // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
   // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
@@ -418,7 +418,7 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // #3170. Validated and dropped when unusable, for the `component-progress` reason above: a reading that says nothing
   // usable leaves the strip on the last one.
   'run-progress': (m) => {
-    const run = m.run === 'read' || m.run === 'update' || m.run === 'apply-theme' ? m.run : null;
+    const run = m.run === 'read' || m.run === 'update' || m.run === 'apply-theme' || m.run === 'capture' || m.run === 'adopt' ? m.run : null;
     const phase = m.phase === 'check' || m.phase === 'work' || m.phase === 'finish' ? m.phase : null;
     const done = count(m.done);
     const total = count(m.total);

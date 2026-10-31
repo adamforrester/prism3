@@ -160,21 +160,49 @@ and reads as clean — which also means the clean-tree check above cannot see it
 the paragraph you just read does not cover this command, because its adjacency is what
 makes it misleading.
 
-## Run the gates yourself — never take "green" on faith
-Inside the worktree, prepare it, then run the whole list with **`npm run verify`** (`verify.ts`),
-the same gates CI runs, in a declared order, with a per-gate PASS/FAIL table. Never a subset
-chosen because the diff "only touched" one area. A PR's own table is a claim, not evidence.
+## The gates: CI runs the whole list, you run what the change touches (#3216)
+Owner decision Q-CI1 A. CI is the full gate run, and you lean on it for that; your local runs
+are aimed at what the change touches. **This is the reviewer's procedure only. The author still
+runs the whole list (`npm run verify`) before pushing, as CLAUDE.md §4 requires.**
 
-1. **Prepare.** `git fetch --unshallow` (or a full fetch): on a shallow clone
+1. **Read CI's result for the exact head SHA.** Every check-run on that SHA is green and the
+   `gates` check reads `success`. `gates` waits for every job, and `lint-doc-gates` holds
+   `ci.yml` to `verify.ts` and the three checklists, so that one result covers the full gate
+   list. Read the check-runs for the head SHA itself, not the PR's summary or an earlier push.
+   If CI has not run on that SHA, or a check is red or pending, you cannot lean on it: say so,
+   and either wait for it or run the full verify yourself. Say which you relied on.
+2. **Prepare.** `git fetch --unshallow` (or a full fetch): on a shallow clone
    `lint-progress-order` and the merge-base gates report CANNOT RUN instead of a verdict. If
    verify says ENVIRONMENT NOT READY for Chromium, run the `npx playwright install …` line it
    prints (it writes outside `node_modules`) and rerun; that is not a gate result.
-2. **Gate the merged tree, not just the head.** Merge current `origin/main` into the PR head
-   locally (never pushed) and run verify there. Note the `origin/main` SHA you merged, and
-   re-fetch before posting: if `main` moved during the run, say so and re-check the files
-   both sides touched.
-3. **Report it against the exact head SHA**: "N/N reached a verdict, P PASS · F FAIL · S SKIP",
-   with every FAIL and SKIP named. A SKIP is not a pass.
+3. **Merge current `origin/main` into the PR head locally** (never pushed). Note the
+   `origin/main` SHA you merged, and re-fetch before posting: if `main` moved during your
+   runs, say so and re-check the files both sides touched.
+4. **Run the gates the change touches, on that merged tree:** `npx tsx verify.ts <id> <id> …`
+   (it labels the run a subset). Pick them from the diff: the gate the PR adds or changes, the
+   gates whose subject the diff edits (a component def: the component and paint gates; a
+   checklist or `ci.yml`: `lint-doc-gates`; shipped prose: the builds, then `lint-us-english`
+   and `lint-voice`; any `out/` change: `drift`), and any gate that reads a file the diff
+   touches. `npx tsx verify.ts --list` shows each gate's command. When unsure, include it.
+5. **Run your own mutations**, each failing by name (see "Independent verification" below).
+6. **Run the full `npm run verify` only when the merged tree differs from the CI-tested head in
+   files the change touches.** Compare the two file lists:
+   `git diff --name-only <head-sha> <merged-sha>` (what the merge brought in) against
+   `git diff --name-only $(git merge-base <head-sha> origin/main) <head-sha>` (what the PR
+   touches). If they share a file, CI's result is about a tree that no longer exists for that
+   file, so run the whole list on the merged tree. If they share none, CI's result stands.
+7. **Report it against the exact head SHA**: CI's result ("all N checks green on `<sha>`,
+   `gates` success"), your local table ("N/N reached a verdict, P PASS · F FAIL · S SKIP", a
+   subset labelled as one), every FAIL and SKIP named, and whether step 6 called for the full
+   run. A SKIP is not a pass.
+
+**Where your independence comes from (`docs/34-gate-independence.md`).** A second run of the same
+gates on the same tree compares the same two things CI already compared, so it cannot find what
+CI missed; it only adds a slower machine. Your independence is in what the author did not write:
+**your own mutations** (a defect you chose, outside the PR's own table, failing the gate that
+should catch it, by name) and **your reading** (is each claim true, and is each new gate's oracle
+independent of its subject, which is the docs/34 test). Spend the time a duplicate run used to
+take on those two.
 
 Read the actual numbers, never a baseline remembered from an earlier run. Three gates are worth
 running on their own when you need to read their output:
@@ -193,9 +221,9 @@ running on their own when you need to read their output:
   `apps/studio/src/styles.css` ships verbatim into the bundle, so the "code comments are
   exempt" carve-out does not cover it.
 
-CI is the backstop, not the workflow. Also read the check-runs for the CURRENT head SHA before
-saying CI is green, and say which you relied on. A PR that regresses any gate is blocking until
-explained.
+CI is the full gate run for the review (step 1 above); read its check-runs for the CURRENT head SHA
+before saying CI is green, and say what you relied on. A PR that regresses any gate is blocking
+until explained.
 
 Beware the cwd trap: the Bash tool's working directory persists between calls, so a
 `cd web` leaves later bare `npx tsx packages/engine/...` calls failing with
@@ -348,7 +376,8 @@ Re-derive the load-bearing ones yourself:
 - Post ONE structured review as a PR comment headed with your verdict and the full head SHA
   it covers; on a new push, post a delta check against the new SHA rather than re-reviewing
   from scratch. Never `APPROVE`.
-- Include the verify table, the mutations you ran with the line each failed on, and, for a
+- Include CI's result for the head SHA, your local gate table (and whether the full run was
+  called for, step 6 above), the mutations you ran with the line each failed on, and, for a
   merge conflict with `main` or a sibling PR, a resolution recipe per conflicted hunk (never
   "take theirs" for a whole file).
 - **End every verdict, delta and re-gate with a `Gaps` section** (#2850): what you did not do,

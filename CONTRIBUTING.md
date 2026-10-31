@@ -216,7 +216,19 @@ prose tells you **why**, and a red gate is unfixable without the second.
 npm run verify              # every gate, in a declared and checked order, with a table
 npx tsx verify.ts --list    # the list and the exact commands, running nothing
 npx tsx verify.ts lint-paint lint-voice   # a named subset, labelled as a subset in the summary
+npx tsx verify.ts --unsharded             # the chrome suite as one run, not in shards
 ```
+
+**The chrome suite runs in CI's shards, side by side (#3216).** It is the longest gate by far, and CI has
+run it as one job per shard since #2898. `verify.ts` now does the same: its `chrome` row starts one
+process per shard at once, each with `CHROME_SHARD=<n>`, reads the shard list from
+`apps/studio/chrome-shards.mjs` (the file CI's shards read, not a copy), and prints one row that is a
+PASS only when every shard passed, with a line per shard beneath it. `chrome-shards` then reads the
+shards' records, as CI's job does. `lint-doc-gates` (and `verify.ts` itself, before it runs anything)
+fails by name if the shards `verify.ts` runs and the `shard: [...]` matrix in `ci.yml` differ: a shard
+dropped, doubled, or missing from the map. Parallel is the default because it measured faster in a
+cloud container with no change in the result (the numbers are in `verify.ts`); `--unsharded` runs the
+suite whole, the way it ran before, for a machine where three browsers at once contend.
 
 Five properties, each of them a defect that has actually shipped in this repo, and all five are
 stated in `verify.ts`'s header:
@@ -237,7 +249,8 @@ stated in `verify.ts`'s header:
    makes the whole run non-green, and a table shorter than the list is itself a failure. Represented,
    not counted, the same discipline `lint-us-english.ts` applies to its own surfaces.
 5. **A gate that hangs fails at its time limit, by name (#2537).** A full run once sat in `smoke` for
-   two hours. Each gate has a limit, a default plus a longer one for `chrome`, both set from the slowest
+   two hours. Each gate has a limit, a default plus longer ones for `chrome` (each shard gets it) and
+   `plugin-test` (#3183), all set from the slowest
    healthy runs on record (the numbers and where they came from are in `verify.ts`, and only there). Past it, the gate and every process it started are killed, and its
    row reads FAIL, with its elapsed time and "timed out". On a slower machine, set
    `VERIFY_TIMEOUT_SCALE` (for example `2`) to scale every limit. CI runs each gate as its own step and
@@ -1359,14 +1372,16 @@ npm run test:chrome  -w @prism3/studio      # the new shell's chrome, measured a
                                             #   legacy frame map. Its colors are read from the render;
                                             #   lint:contrast reads the declaration — partners, not
                                             #   copies. Same one-off browser as test:smoke. CI runs
-                                            #   it in shards (#2898, chrome-shards.mjs); every run
-                                            #   writes its record to apps/studio/chrome-record/
+                                            #   it in shards (#2898, chrome-shards.mjs), and so does
+                                            #   verify, side by side (#3216); every run writes its
+                                            #   record to apps/studio/chrome-record/
 npm run test:chrome-shards -w @prism3/studio # #2898: AFTER test:chrome. Every section the unsharded
                                             #   suite lists (test-chrome.mjs --list) ran exactly once
                                             #   across the records, by name: a section in no shard or
-                                            #   in two fails. Over CI's shard records it then runs the
-                                            #   suite's end-of-run checks once (--merge); over a whole
-                                            #   local run it checks that run made them itself
+                                            #   in two fails. Over shard records (CI's or verify's) it
+                                            #   then runs the suite's end-of-run checks once (--merge);
+                                            #   over a whole run (verify --unsharded, or test:chrome by
+                                            #   hand) it checks that run made them itself
 npm run test:export-parity -w @prism3/studio # #2351 gap 1: the web and plugin token exports of every
                                             #   committed brand a UI can load are BYTE-IDENTICAL to each
                                             #   other and to out/<id>.tokens.json. Downloads from BOTH
@@ -1683,6 +1698,26 @@ bash .github/scripts/test-install-chromium.sh # the test for install-chromium.sh
 document. Live driving has repeatedly caught what in-memory shims hid (see the #148
 `getLocalVariablesAsync('COLOR')` bug in `00-progress.md`, where the shims ignored the
 type filter and the FLOAT read-back would have come back empty in production).
+
+### Reviewing a PR: CI runs the whole list, the reviewer runs what the change touches (#3216)
+
+Owner decision Q-CI1 A. **The author still runs the whole list before pushing** (`npm run verify`,
+CLAUDE.md §4); nothing here changes that. What changes is the reviewer's share. A PR used to pay for
+three full runs, the author's, the reviewer's and CI's, and the reviewer's was the same gates on the
+same tree as CI's. The reviewer now:
+
+- **relies on CI for the full gate list**: every check-run green on the exact head SHA, and the `gates`
+  check `success`. If CI has not run on that SHA, or anything is red or pending, the reviewer says so and
+  waits or runs the full list itself;
+- **runs locally, on the PR merged with current `main`**: the gates the change touches (a named subset,
+  `npx tsx verify.ts <id> …`), and its own mutations, each failing by name;
+- **runs the full `npm run verify` only when the merged tree differs from the CI-tested head in files the
+  change touches** (the two file lists and how to compare them are in `.claude/commands/review-pr.md`).
+
+The reviewer's independence comes from its own mutations and its reading, not from a second identical
+run ([`docs/34`](docs/34-gate-independence.md)): a rerun compares the same two things CI compared and
+cannot find what CI missed, while a mutation the reviewer chose, or a claim the reviewer checked, can.
+The procedure is `.claude/commands/review-pr.md`.
 
 ### Adding a gate? Prove it can fail
 

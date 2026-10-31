@@ -3986,27 +3986,25 @@
       ]
     },
     "text.secondary": {
-      "$description": "Secondary text — 4.5:1 on background.secondary",
+      "$description": "Secondary text — 4.5:1 on background.primary",
       "meaning": "Content hierarchy / reading emphasis",
-      "when_to_use": "Secondary text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
-      "avoid_when": "Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "when_to_use": "Secondary text. Clears 4.5:1 in every mode on `background.primary`. Below 4.5:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
+      "avoid_when": "Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill.",
       "mode_overrides": {
-        "light": "{nbds.core.palette.neutral.550}",
+        "light": "{nbds.core.palette.neutral.500}",
         "dark": "{nbds.core.palette.neutral.450}",
         "hc-light": "{nbds.core.palette.neutral.700}",
         "hc-dark": "{nbds.core.palette.neutral.300}"
       },
       "sits_on": [
-        "background.primary",
-        "background.secondary",
-        "foreground.primary"
+        "background.primary"
       ],
       "contrast_with": [
         {
-          "token": "background.secondary",
+          "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 4.52,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "ratio": 4.59,
+          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
     },
@@ -4649,27 +4647,25 @@
       ]
     },
     "icon.secondary": {
-      "$description": "Secondary icon — 4.5:1 on background.secondary",
+      "$description": "Secondary icon — 4.5:1 on background.primary",
       "meaning": "Content hierarchy / reading emphasis",
-      "when_to_use": "Secondary icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `icon.primary` there.",
-      "avoid_when": "Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "when_to_use": "Secondary icon. Clears 4.5:1 in every mode on `background.primary`. Below 4.5:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `icon.primary` there.",
+      "avoid_when": "Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill.",
       "mode_overrides": {
-        "light": "{nbds.core.palette.neutral.550}",
+        "light": "{nbds.core.palette.neutral.500}",
         "dark": "{nbds.core.palette.neutral.450}",
         "hc-light": "{nbds.core.palette.neutral.700}",
         "hc-dark": "{nbds.core.palette.neutral.300}"
       },
       "sits_on": [
-        "background.primary",
-        "background.secondary",
-        "foreground.primary"
+        "background.primary"
       ],
       "contrast_with": [
         {
-          "token": "background.secondary",
+          "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 4.52,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "ratio": 4.59,
+          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
     },
@@ -10135,6 +10131,7 @@
         "color.border.primary",
         "color.border.tertiary",
         "color.field.border.rest",
+        "color.icon.secondary",
         "color.inverse.border.primary",
         "color.inverse.border.secondary",
         "color.inverse.disabled.icon",
@@ -10142,7 +10139,8 @@
         "color.inverse.disabled.text",
         "color.inverse.field.border.rest",
         "color.inverse.icon.tertiary",
-        "color.inverse.text.tertiary"
+        "color.inverse.text.tertiary",
+        "color.text.secondary"
       ]
     },
     "core.palette.neutral.550": {
@@ -10158,7 +10156,6 @@
         "color.disabled.text",
         "color.field.border.rest",
         "color.field.placeholder",
-        "color.icon.secondary",
         "color.icon.tertiary",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.text",
@@ -10168,7 +10165,6 @@
         "color.inverse.icon.tertiary",
         "color.inverse.text.secondary",
         "color.inverse.text.tertiary",
-        "color.text.secondary",
         "color.text.tertiary"
       ]
     },

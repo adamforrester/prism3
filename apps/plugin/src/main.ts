@@ -23,7 +23,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
-import type { MainToUi, UiToMain, StyleGuideOptions } from './messages';
+import type { MainToUi, UiToMain, StyleGuideOptions, RunProgressKind } from './messages';
 import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
@@ -260,10 +260,12 @@ void (async (): Promise<void> => {
  * panel starts posts `run-progress` at every boundary it has (a page of the read after open, a set of the update, a
  * stage of Apply Theme) and hands the thread back there, and again after about `PACE_MS` of work inside a set (Q3170.5 A)
  * or every `COLOR_YIELD_EVERY` color variables, posting the same reading again so the panel can tell a long set from a
- * stalled panel. Never for an agent's run: its sink collects every post as a verdict.
+ * stalled panel. Never through an agent's sink, which collects every post as a verdict: an agent's update and Apply
+ * Theme post no readings, and its Capture baseline and Adopt (#3189) post theirs to the panel directly (`postProgress`),
+ * a reading at each def, for the status strip.
  */
 const PACE_MS = 50;
-const postProgress = (run: 'read' | 'update' | 'apply-theme', p: ApplyProgress): void => postToUi({ type: 'run-progress', run, ...p });
+const postProgress = (run: RunProgressKind, p: ApplyProgress): void => postToUi({ type: 'run-progress', run, ...p });
 /** An executor `yieldTo` that hands the thread back only once about `PACE_MS` of work has run since it last did, and
  *  then says `again` first. Asked after every member (`chunk: 1`); a wait the executor asks for (`ms`) is always kept. */
 const paced = (again: () => void): ((ms?: number) => Promise<void>) => {
@@ -1467,8 +1469,10 @@ const captureBaseline = async (defId: string | undefined, sink: ActionSink): Pro
   try {
     const { targets, unknown, refused } = updateTargets(defId);
     if (unknown !== null) return unknownDef(unknown, sink);
-    await loadPagesYielding();
-    const r = await captureBaselines(figma as unknown as UpdateHost, targets, breathe);
+    // #3189: the file read once, a page per turn, through the update's run host (`runHost`), never searched whole per
+    // set. Both commands are an agent's (the panel starts neither), so their readings go to the panel for the status
+    // strip directly, never through the agent's sink, which would take each one for a verdict.
+    const r = await captureBaselines(figma as unknown as UpdateHost, targets, breathe, (p) => postProgress('capture', p));
     r.refused.push(...refused);
     sink.data({ update: { mode: 'capture', ...r } });
     postVerdict({ type: 'component-update-result', ...captureVerdictText(r) }, sink);
@@ -1484,8 +1488,8 @@ const adoptMembers = async (defId: string | undefined, sink: ActionSink): Promis
   try {
     const { targets, unknown, refused } = updateTargets(defId);
     if (unknown !== null) return unknownDef(unknown, sink);
-    await loadPagesYielding();
-    const r = await adoptAll(figma as unknown as UpdateHost, targets, breathe);
+    // #3189: as the capture's, one read a page per turn, and its readings to the status strip.
+    const r = await adoptAll(figma as unknown as UpdateHost, targets, breathe, undefined, (p) => postProgress('adopt', p));
     r.refused.push(...refused);
     sink.data({ update: { mode: 'adopt', ...r } });
     postVerdict({ type: 'component-update-result', ...adoptVerdictText(r) }, sink);
