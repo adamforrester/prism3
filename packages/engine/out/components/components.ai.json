@@ -7271,6 +7271,13 @@
           "description": "Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge."
         },
         {
+          "name": "divider",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Shows the divider under the section. Turn it off when the design separates sections another way, such as spacing, a card or a background, so the page does not draw two separators."
+        },
+        {
           "name": "size",
           "type": "enum: 'small' | 'medium' | 'large'",
           "default": "medium",
@@ -7343,7 +7350,8 @@
           "Make the whole header row the button, so the hit target is the full width",
           "Write titles that say what the section holds",
           "Let a long title wrap",
-          "Let every section be closed"
+          "Let every section be closed",
+          "Turn the divider off when the sections are already separated by spacing, a card or a background."
         ],
         "dont": [
           "Hide content most users need. Show it instead.",
