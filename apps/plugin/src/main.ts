@@ -987,10 +987,10 @@ const defName = (id: string): string => componentDefs.find((d) => d.id === id)?.
  * THE USAGE PANEL FOR ONE SET (#846, `doc-panel.ts`), drawn after its labels on a build or an update. CAUGHT HERE, never
  * rethrown, as the labels are: the set is already written, and the panel is documentation, not the build.
  */
-const panelFor = async (set: XNode, defId: string): Promise<PanelOutcome> => {
+const panelFor = async (set: XNode, defId: string, api: PanelApi = figma as unknown as PanelApi): Promise<PanelOutcome> => {
   const def = componentDefs.find((d) => d.id === defId);
   if (!def) return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [], misses: [] };
-  try { return await drawDocPanel(figma as unknown as PanelApi, set as unknown as PNode, def, { names: defName }); }
+  try { return await drawDocPanel(api, set as unknown as PNode, def, { names: defName }); }
   catch (e) { return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [`No usage panel for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], misses: [] }; }
 };
 
@@ -1300,7 +1300,7 @@ const handEditsPass = async (): Promise<void> => {
 const checkSets = async (defs: readonly string[], input?: BrandInput): Promise<void> => {
   try {
     const { targets, refused } = updateTargets(defs, input);
-    await loadPagesYielding();
+    // #3177: `previewUpdate` loads and searches the file a page per turn, once, for every set it reads.
     const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe);
     r.refused.push(...refused);
     // `previewUpdate` adds a preview for each target it found, in the targets' order, and names the rest as missing or
@@ -1353,7 +1353,7 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
   try {
     const { targets, unknown, refused } = updateTargets(defId, input);
     if (unknown !== null) return unknownDef(unknown, sink);
-    await loadPagesYielding();
+    // #3177: the check and the apply each load and search the file a page per turn, once, for every set they read.
     if (previewHash === null) {
       const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe);
       r.refused.push(...refused);
@@ -1371,7 +1371,10 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // only work was its furniture (#2803) is one of them. Reported in the data, and in the verdict only where a part
     // was skipped.
     const furniture: FurnitureOutcome[] = [];
-    const furnish = async (def: string): Promise<void> => { furniture.push(...await furnishUpdate(figma as unknown as FurnitureApi, { outcomes: [{ def }] }, targets, panelFor)); };
+    // #3177: drawn through the run's host (`file`), whose lookups are answered from the run's one read of the file.
+    const furnish = async (def: string, _set: unknown, file: unknown): Promise<void> => {
+      furniture.push(...await furnishUpdate(file as FurnitureApi, { outcomes: [{ def }] }, targets, (set, d) => panelFor(set, d, file as PanelApi)));
+    };
     const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, nameOf, breathe, furnish, ...(choices ? { choices } : {}) });
     r.refused.push(...refused);
     // THE AS-BUILT LEDGER (#2909 Q2909.8 A): each set the apply acted on is recorded as built from today's def, under the

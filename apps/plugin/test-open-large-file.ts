@@ -56,6 +56,15 @@
  * Mutations failing by name: `guarded` no longer dropping the read or moving `presentGen` → `open/write-shared`; the
  * older read's answer cached without the generation check → `open/write-cache`.
  *
+ * #3177, THE UPDATE CHECK AND APPLY over every set, each on the stand-in with its pages unloaded: `update/check-no-walk`,
+ * `update/apply-no-walk` (no whole-file search during either), `update/search-yields` (one page searched per turn),
+ * `update/one-read` (each page read once per run, and by the apply once more after a write to the set on it) and
+ * `update/answers`. Mutations failing by name: the dry run without the run's read (`runHost`) → `entry/check`,
+ * `update/one-read`, `update/answers`; the apply without it → `update/apply-no-walk`, `update/search-yields`,
+ * `update/one-read`; the criteria searched in one turn → `update/search-yields`; the apply's dry run reading again →
+ * `update/one-read`; the furniture drawn on `figma` → `update/apply-no-walk`. The executor's lookups, the re-reads after a
+ * write and the twin comparison are `test-run-read.ts`'s, which builds a set the executor can write.
+ *
  * Also held: `open/race`, the checklist's own request asked while the read after open is still going, is answered
  * without `atOpen`, so the panel keeps it over the read after open (`host-session.ts`, `awaitingRead`).
  */
@@ -130,7 +139,7 @@ const mkNode = (type: string, name: string, children: Node[] = []): Node => {
   const n = (shim.createFrame as () => Node)();
   n.type = type;
   n.name = name;
-  for (const c of children) (n.children as Node[]).push(c);
+  for (const c of children) { (n.children as Node[]).push(c); c.parent = n; }
   return n;
 };
 const pages: Page[] = [];
@@ -138,7 +147,7 @@ let placed = 0;
 for (let i = 0; i < PAGES; i++) {
   const divider = i % 10 === 9;
   const children = !divider && placed < SETS ? [mkNode('COMPONENT_SET', setIds[placed++], [mkNode('COMPONENT', 'Variant=Default')])] : [];
-  pages.push({
+  const page: Page = {
     id: `PAGE:${i + 1}`, name: divider ? '---' : `Page ${i + 1}`, type: 'PAGE', isPageDivider: divider, loaded: false, children,
     async loadAsync() { loadOne(this); },
     findAllWithCriteria(c) {
@@ -148,7 +157,10 @@ for (let i = 0; i < PAGES; i++) {
       const all = this.children.flatMap((n) => [n, ...((n.children as Node[] | undefined) ?? [])]);
       return all.filter((n) => !c.types || c.types.includes(n.type as string));
     },
-  });
+  };
+  // Each node's parent, as in Figma: the run's re-read after a write finds the page a set sits on by it (#3177).
+  for (const n of children) n.parent = page as unknown as Node;
+  pages.push(page);
 }
 ok(placed === SETS, `the stand-in places ${SETS} sets on its ${PAGES} pages (${placed})`);
 
@@ -454,6 +466,57 @@ await entry('style-guide-cleanup', { type: 'style-guide-cleanup', ids: [] }, 'st
   ok(holds(recount()),
     `open/write-cache: the badge's recount after the older read ends counts the set the write added; that read's answer is not kept (${recount() ? `${recount()!.msg.present.length} present, the added set ${recount()!.msg.present.includes(ADDED) ? 'in' : 'missing'}` : 'no answer'})`);
   pages[0].children.pop();
+}
+
+/* ── the Update check and apply (#3177) ────────────────────────────────────────────────────────────── */
+
+// #3177, the Update half of #3170: the panel's Update check (`update-check-request`) and its apply (`update-sets`, under
+// the check's hash), over every set the stand-in holds, as after a theme change. Each runs on the stand-in with its pages
+// unloaded, as on a fresh open. The stand-in's sets have no variables to bind, so the apply refuses each set at its
+// preflight and writes no member: it measures the reads, which are this issue, not the writes (#3170 part 2).
+//   · `update/check-no-walk`, `update/apply-no-walk`: no search of the whole file, in one turn, during either.
+//   · `update/search-yields`: no turn searches more than one page.
+//   · `update/one-read`: one read per run. The check searches each page once per criterion it reads (3: components and
+//     sets, the furniture by its tag, the usage panels by theirs), never once per set. So does the apply, and it reads
+//     a page once more after it draws the canvas furniture of the set on it (`rereadAfter`), never more.
+//   · `update/answers`: the check answers for every set, and the apply under its hash is not refused whole.
+// MEASURED, NOT ASSERTED: whole-file searches, the most pages searched in one turn, the longest stall and each run's time.
+console.log('\n  the Update check and apply (#3177)');
+const UPDATE_READS = 3;
+const update = async (label: string, msg: unknown, answer: string): Promise<{ msg: any; searches: number; worst: number; most: number; least: number; lag: number; ms: number } | null> => {
+  for (const p of pages) p.loaded = false;
+  allCalled = false; loads = 0; inTurn = 0; worstTurn = 0; docSearches = 0; worstSearch = 0; searchesOf.clear();
+  const from = posted.length;
+  let stall = 0;
+  let on = true;
+  const tick = (): void => { const at = Date.now(); realTimeout(() => { stall = Math.max(stall, Date.now() - at - 1); if (on) tick(); }, 1); };
+  tick();
+  const at = Date.now();
+  send(msg);
+  for (let i = 0; i < 24000 && !reply(answer, from); i++) await new Promise((res) => realTimeout(res, 5));
+  const ms = Date.now() - at;
+  on = false;
+  const got = reply(answer, from);
+  const counts = pages.map((p) => searchesOf.get(p.id) ?? 0);
+  const out = got ? { msg: got.msg, searches: docSearches, worst: worstSearch, most: Math.max(...counts), least: Math.min(...counts), lag: stall, ms } : null;
+  console.log(`    ${label}: ${out ? `${out.searches} whole-file searches, most pages searched in one turn ${out.worst}, each page searched ${out.least}–${out.most} times, longest stall ${out.lag} ms, ${out.ms} ms in all` : `no ${answer}`}`);
+  return out;
+};
+{
+  const check = await update('check', { type: 'update-check-request', defs: setIds, input: stored }, 'update-check');
+  const apply = check ? await update('apply', { type: 'update-sets', defs: setIds, previewHash: check.msg.previewHash, handEdits: 'keep', input: stored }, 'component-update-result') : null;
+  ok(!!check && check.searches === 0, `update/check-no-walk: the Update check over ${SETS} sets searches no whole file in one turn (${check ? `${check.searches} whole-file searches` : 'no answer'})`);
+  ok(!!apply && apply.searches === 0, `update/apply-no-walk: the apply under the check's hash searches no whole file in one turn (${apply ? `${apply.searches} whole-file searches` : 'no answer'})`);
+  ok(!!check && !!apply && check.worst <= 1 && apply.worst <= 1, `update/search-yields: no turn of the check or the apply searches more than one page (worst ${check?.worst ?? '—'} and ${apply?.worst ?? '—'})`);
+  ok(!!check && !!apply && check.least === UPDATE_READS && check.most === UPDATE_READS && apply.least === UPDATE_READS && apply.most <= 2 * UPDATE_READS,
+    `update/one-read: each run reads the file once, every page searched ${UPDATE_READS} times, never once per set; the apply reads a page again only once after a write to the set on it (check ${check ? `${check.least}–${check.most}` : '—'}, apply ${apply ? `${apply.least}–${apply.most}` : '—'})`);
+  // MEASURED: each answer whole, digested, so a run before and after #3177 can be compared answer for answer.
+  const digest = (m: unknown): string => { let h = 2166136261; for (const ch of JSON.stringify(m)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h.toString(16); };
+  console.log(`    answers: check ${check ? digest(check.msg) : '—'} (previewHash ${check?.msg?.previewHash ?? '—'}), apply ${apply ? digest(apply.msg) : '—'}`);
+  const sets = (check?.msg?.sets ?? []) as unknown[];
+  const named = sets.length + ((check?.msg?.missing ?? []) as unknown[]).length + ((check?.msg?.refused ?? []) as unknown[]).length;
+  ok(!!check && !check.msg.error && named === SETS && !!apply && !/changed since the check/.test(String(apply.msg.summary ?? '')),
+    `update/answers: the check answers for all ${SETS} sets and the apply runs under its hash (${check ? `${sets.length} read, ${named} named` : 'no check'}; ${apply ? String(apply.msg.headline ?? '') : 'no apply'})`);
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');

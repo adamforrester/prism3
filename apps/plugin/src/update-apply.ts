@@ -59,8 +59,9 @@ import { reorderPages, stripNestPrefix } from './file-setup';
 import { emptiedLine, pageMovesLine, relocateSets, type PageMove } from './page-moves';
 import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furniture';
 import { docPanelReaches, readPanelTag, type PanelApi, type PNode } from './doc-panel';
+import { rereadAfter, withRoot } from './run-read';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
-import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, runHost, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
 import { saveVersion } from './version-title';
@@ -608,8 +609,11 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   return out;
 };
 
-/** The canvas furniture's redraw for one set the update acted on (`main.ts`'s `furnishSet`, #2406). */
-export type Furnish = (def: string, set: { id?: unknown }) => Promise<void>;
+/** The re-read after a write (#3177, `rereadAfter`): the pages `nodes` sit on, or every page. */
+type Reread = (nodes: readonly unknown[], all?: boolean) => Promise<void>;
+/** The canvas furniture's redraw for one set the update acted on (`main.ts`'s `furnishSet`, #2406). `file` is the run's
+ *  host (#3177): its lookups are answered from the run's one read of the file. */
+export type Furnish = (def: string, set: { id?: unknown }, file: ApplyHost) => Promise<void>;
 
 /**
  * THE PAGE'S SETS, RE-SPACED FROM WHAT IS ON IT NOW (#2542, #2723). The sets this update reads, each blocked when the
@@ -672,7 +676,7 @@ const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], pr
  * is saved before the first move; refused or unavailable, the sets stay where they are, and the next dry run lists
  * the moves.
  */
-const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { furnish?: Furnish; choices?: UpdateChoices; ledger?: readonly ComponentRename[]; nameOf?: (def: string) => string | undefined }): Promise<void> => {
+const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { furnish?: Furnish; choices?: UpdateChoices; ledger?: readonly ComponentRename[]; nameOf?: (def: string) => string | undefined; reread?: Reread }): Promise<void> => {
   if (!opts.furnish) return;
   // #2734: which sets sit at exactly `SET_GAP` now, before a redraw can narrow the labels beside them.
   const snug = pageSnugSets(await liveSets(host, targets, preview, res, opts) as never, docPanelReaches(host as unknown as Pick<PanelApi, 'root'>));
@@ -680,7 +684,10 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
     const t = targets.find((x) => x.def === o.def);
     if (!t || t.single) continue;
     const set = await liveFor(host, t, o.set, opts.ledger);
-    if (set) await opts.furnish(o.def, set);
+    if (!set) continue;
+    await opts.furnish(o.def, set, host);
+    // #3177: the labels and the panel just drawn are on the set's page; the run's next lookup reads that page anew.
+    await opts.reread?.([set]);
   }
   if (res.outcomes.some((o) => o.stopped)) return;
   await respaceLive(host, targets, preview, res, opts, async (names) => {
@@ -733,15 +740,25 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
  * `host` reads the file as the dry run does; `api` is the executor's port. Both are `figma` in the plugin.
  */
 export const applyUpdate = async (
-  host: ApplyHost,
-  api: ComponentsApi,
+  file: ApplyHost,
+  fileApi: ComponentsApi,
   targets: readonly UpdateTarget[],
   previewHash: string,
   /** `ledger` is the engine's `COMPONENT_RENAMES` unless a test passes its own. */
-  opts: { descriptionOf?: (def: string) => string | undefined; nameOf?: (def: string) => string | undefined; breathe?: () => Promise<void>; yieldTo?: () => Promise<void>; ledger?: readonly ComponentRename[]; choices?: UpdateChoices; furnish?: Furnish;
+  options: { descriptionOf?: (def: string) => string | undefined; nameOf?: (def: string) => string | undefined; breathe?: () => Promise<void>; yieldTo?: () => Promise<void>; ledger?: readonly ComponentRename[]; choices?: UpdateChoices; furnish?: Furnish;
     /** The run's date for the About frame, `YYYY-MM-DD`; today, UTC, unless a test passes its own. */
     today?: string } = {},
 ): Promise<ApplyResult> => {
+  // #3177: ONE READ OF THE FILE FOR THE RUN, a page per turn, shared by the dry run below, every set's lookups and the
+  // executor's (`api`, the same root when it is the same file, as `figma` is both in the plugin). After each write the
+  // pages it touched are read again (`reread`), so a lookup after it sees what it added.
+  const host = await runHost(file, options.breathe);
+  const api = (fileApi as { root?: unknown }).root === file.root ? withRoot(fileApi, host.root) : await runHost(fileApi as ComponentsApi & { root: object }, options.breathe);
+  const reread: Reread = async (nodes, all) => {
+    await rereadAfter(host.root, nodes, all);
+    if ((api as { root?: unknown }).root !== host.root) await rereadAfter((api as { root?: unknown }).root, nodes, all);
+  };
+  const opts = { ...options, reread };
   const preview = await previewUpdate(host, targets, opts.breathe, opts.ledger);
   const res: ApplyResult = { outcomes: [], missing: preview.missing, refused: preview.refused };
   if (previewHashOf(preview) !== previewHash) {
@@ -822,6 +839,8 @@ export const applyUpdate = async (
     const r = await relocateSets(host as unknown as Parameters<typeof relocateSets>[0]);
     if (r.moved.length) res.relocated = r.moved;
     if (r.emptied.length) res.emptied = r.emptied;
+    // #3177: sets moved between pages, and pages made: the whole file is read again, a page per turn.
+    if (r.moved.length || r.emptied.length) await reread([], true);
   }
   for (const { t, p, live, stampOnly } of ready) {
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
@@ -847,6 +866,9 @@ export const applyUpdate = async (
       o.content.push(...o.carried.misses);
     }
     res.outcomes.push(o);
+    // #3177: the members this set gained are on its page (a single-component def's, on its components' pages); the
+    // run's next lookup reads them anew.
+    await reread(t.single ? kidsOf(fresh) : [fresh]);
     if (o.stopped) break;
   }
   // THE SETS MOVE ON THEIR PAGES LAST (#2542, owner decision Q245.2 A), once every set has its new size, so each sits
