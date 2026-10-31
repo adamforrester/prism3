@@ -38,7 +38,8 @@
  *                  `published/blocked`; the member-itself exclusion dropped → `published/member replaced`;
  *                  `readSingleView` carrying no status → `published/single`; `breakingSection`'s per-set cap dropped →
  *                  `published/cap`; Link's `selection` axis with `selected` first → `published/link current additive`
- *                  (#2872). #2864, a layer the update removes: `removedLayers` returning nothing → `published/layer
+ *                  (#2872); `update-plan.ts` listing no adds → `published/link x-small additive`, `/link x-small
+ *                  in place` (#3179). #2864, a layer the update removes: `removedLayers` returning nothing → `published/layer
  *                  removed`, `/layer line`, `/checklist set`; the same-parent lookup dropped → `/layer removed`,
  *                  `/layer line`; the structural-skip guard dropped → `/layer hand-added`; `breakingSummary`'s layer
  *                  clause dropped → `/checklist line`, `/checklist set`; `checkedSetOf` posting no line →
@@ -117,6 +118,11 @@
  *   accordion pad-x/…  an Accordion built at the old large side padding (space/300, 24px) updates in place to the
  *                  def's 20px (space/250, Q338 A, #2726): the 16 large members updated, the 32 others current, every key
  *                  and id kept. Mutation: the def back at space.300 → `accordion pad-x/dry run`, `accordion pad-x/written`.
+ *   toast 14/…     a Toast built with its message at body/md (16px), no floor and the glyph straight under `content`
+ *                  updates in place to body/sm (14px), a size/md/height floor and the glyph in its line-box cell (#3165,
+ *                  Q3165.1 A, #3153's rule): both members updated, every key and id kept, the glyph moved into the
+ *                  inserted cell rather than rebuilt, current after. Mutation: the def's message back at body.md →
+ *                  `toast 14/written`.
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
  *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
@@ -1147,6 +1153,69 @@ section('accordion side padding — a file built at the old large 24px updates i
   ok(wrong.length === 0, `accordion pad-x/written: the large header and open panel now bind space/250 (20px) at both sides, and no member still binds space/300 there (${wrong.slice(0, 2).join('; ')})`);
   const post = (await previewUpdate(w.host, [{ def: 'accordion', plans }])).sets[0];
   ok(post?.counts.current === 48, `accordion pad-x/current: every member reads current after (${JSON.stringify(post?.counts)})`);
+}
+
+// #3165 (owner request, Q3165.1 A): the Toast's message moved from body/md (16px) to body/sm (14px), the card took a
+// floor at size/md/height, and the success glyph moved into #3153's line-box cell (the #3169 review, option a). A file
+// built before holds both members with the 16px style, no floor and the glyph straight under `content`; the Update
+// rewrites both in place and inserts the cell. THE FILE is reconstructed from today's def by putting those facts back
+// (as `before3153` does), so the subject is the real def's projection on both sides. EXPECTED, typed here: the success
+// member's `content` holding [glyphCell, message] and the cell [checkCircleGlyph], the neutral member's [message].
+// Mutation: the def's message back at `type.body.md.default` → `toast 14/written`.
+section('toast 14 — a Toast built with the 16px message, no floor and no glyph cell updates in place to 14px on the ladder, the glyph moved into its cell (#3165)');
+{
+  const now = componentDefs.find((x) => x.id === 'toast')!;
+  const { 'min-height': _mh, 'glyph-cell': _gc, ...oldTokens } = now.tokens;
+  const { glyphCell: _cell, ...oldParts } = now.anatomy!.parts;
+  const { minHeight: _m, ...oldContainer } = oldParts.container;
+  const before3165 = {
+    ...now,
+    tokens: { ...oldTokens, type: 'type.body.md.default' },
+    anatomy: { ...now.anatomy!, parts: { ...oldParts, container: oldContainer, content: { ...oldParts.content, children: oldParts.content.children!.map((c) => (c === 'glyphCell' ? 'checkCircleGlyph' : c)) } } },
+  } as ComponentDef;
+  const plans = plansOf('toast');
+  // The shim holds the nested Button and FlushIconButton as plain components with no `label` or `swap icon` property,
+  // so the two nest overrides are misses on the build, as on the corpus arm's; the update must add none.
+  const builtMisses: string[] = [];
+  const w = await world('toast', figmaAnatomySet(before3165, { swapTarget: SWAP_TARGET }), {
+    allowMisses: builtMisses,
+    extraVars: plans.flatMap((q) => [...planBoundVars(q.root), ...planPaintVars(q.root)]),
+    extraStyles: plans.flatMap((q) => planTextStyles(q.root)),
+    extraComps: [...new Set(plans.flatMap((p) => planComps(p.root)))],
+  });
+  const kids = (n: Node | undefined): string[] => ((n?.children as Node[] | undefined) ?? []).map((c) => String(c.name));
+  const messageOf = (m: Node) => childNamed(childNamed(m, 'content'), 'message');
+  const floorOf = (m: Node) => (m.boundVariables as Record<string, { id: string } | undefined>)?.minHeight?.id;
+  const floor = await varIdOf(w, 'size/md/height');
+  const lineBox = await varIdOf(w, 'type/body/sm/line-box');
+  const isSuccess = (m: Node) => /intent=success/.test(String(m.name));
+  ok(membersOf(w.set()).length === 2 && membersOf(w.set()).every((m) => /body\/md\/default/.test(String(messageOf(m).textStyleId)) && !floorOf(m) && !kids(childNamed(m, 'content')).includes('glyphCell'))
+    && membersOf(w.set()).filter(isSuccess).length === 1 && membersOf(w.set()).filter(isSuccess).every((m) => JSON.stringify(kids(childNamed(m, 'content'))) === '["checkCircleGlyph","message"]'),
+    `premise: both Toast members hold the message at body/md/default, no floor and no glyph cell; the success glyph sits straight under content (${membersOf(w.set()).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ')})`);
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: 'toast', plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.update === 2 && p.counts.add === 0 && p.counts.drop === 0 && !p.replacements.length,
+    `toast 14/dry run: both members to update, nothing added, dropped or replaced (${JSON.stringify(p?.counts)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  // KEPT, BY ID: every node a member held before is still in it, wherever it now sits; the glyph MOVED into the cell.
+  const kidsLost = [...before.members].flatMap(([name, b]) => { const ids = new Set(after.members.get(name)?.kids.values() ?? []); return [...b.kids].filter(([, id]) => !ids.has(id)).map(([path]) => `${name}/${path}`); });
+  const extra = res.outcomes[0].misses.filter((x) => !builtMisses.includes(x));
+  ok(builtMisses.every((x) => /^(action\.nestOverrides -> label|close\.nestOverrides -> swap icon) /.test(x)) && extra.length === 0 && moved.length === 0 && kidsLost.length === 0 && after.members.size === 2,
+    `toast 14/in place: every member and child keeps its key and id, adding no miss to the build's (${applyVerdict(res).headline}; ${moved.length} members moved, ${kidsLost.slice(0, 2).join(', ') || 'no child lost'}; ${extra.slice(0, 1).join('')})`);
+  const glyphId = (m: Node | undefined) => m && [...(before.members.get(String(m.name))?.kids ?? [])].find(([path]) => /checkCircleGlyph/.test(path))?.[1];
+  const success = membersOf(w.set()).find(isSuccess)!;
+  const cell = childNamed(childNamed(success, 'content'), 'glyphCell');
+  ok(JSON.stringify(kids(childNamed(success, 'content'))) === '["glyphCell","message"]' && JSON.stringify(kids(cell)) === '["checkCircleGlyph"]'
+    && String(childNamed(cell, 'checkCircleGlyph').id) === glyphId(success)
+    && (cell.boundVariables as Record<string, { id: string } | undefined>)?.minHeight?.id === lineBox && cell.counterAxisAlignItems === 'CENTER' && childNamed(success, 'content').counterAxisAlignItems === 'MIN'
+    && membersOf(w.set()).filter((m) => !isSuccess(m)).every((m) => JSON.stringify(kids(childNamed(m, 'content'))) === '["message"]'),
+    `toast 14/cell: the success member's content holds [glyphCell, message], the inserted cell centers the glyph it kept (same id) on a type/body/sm/line-box floor, content top-aligned; neutral holds [message] (${membersOf(w.set()).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ')}; cell [${kids(cell).join(', ')}] ${String(cell?.counterAxisAlignItems)})`);
+  const wrong = membersOf(w.set()).filter((m) => !(/body\/sm\/default/.test(String(messageOf(m).textStyleId)) && floorOf(m) === floor)).map((m) => `${String(m.name)}: ${String(messageOf(m).textStyleId)}, floor ${floorOf(m)}`);
+  ok(wrong.length === 0, `toast 14/written: both members' message is body/sm/default and the card's minHeight binds size/md/height (${wrong.slice(0, 2).join('; ')})`);
+  const post = (await previewUpdate(w.host, [{ def: 'toast', plans }])).sets[0];
+  ok(post?.counts.current === 2, `toast 14/current: both members read current after (${JSON.stringify(post?.counts)})`);
 }
 
 section('accordion title weight — a file built with the emphasis title takes the regular one in place, and 30 members hand-edited on the header\'s padding keep it (#3180, Q-ACC1 A)');
@@ -4976,9 +5045,10 @@ section('published — on a set in a team library, what breaks consumer files is
   // 96 keeps its node id and key, so consumer instances stay linked. With `selected` first, the 48 inline members would
   // land on a coordinate the set excludes and be dropped, and this arm fails. Counts and segments are typed here.
   {
-    const next = plansOf('link');
+    // The x-small size (#3179) is a later change with its own arm below, so both shapes here are the three-size Link.
+    const next = plansOf('link').filter((p) => String(p.size) !== 'x-small');
     // `before` is the pre-#2872 shape, rebuilt from this PR's unselected plans with the `selection` segment taken off. Its
-    // member names are the 96 a published Link carries today; their layers are pinned by test.ts's `#2580 link/…` and
+    // member names are the 96 a published Link carried then; their layers are pinned by test.ts's `#2580 link/…` and
     // `#2872 link bar` arms (an unselected member carries no bar).
     const before = next.filter((p) => p.coord.selection === 'unselected').map((p) => {
       const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
@@ -5004,6 +5074,32 @@ section('published — on a set in a team library, what breaks consumer files is
     const lost = [...was.members].filter(([name, m]) => { const to = unsel(name); return !to || after.members.get(to)!.id !== m.id || after.members.get(to)!.key !== m.key; }).map(([n]) => n);
     ok(!res.refusedAll && after.members.size === 144 && lost.length === 0,
       `published/link current in place: applied, the 96 existing members become selection=unselected with their node id and key kept, so consumer instances stay linked (${after.members.size} members, ${lost.length} not kept — ${lost.slice(0, 2).join('; ') || 'none'})`);
+  }
+
+  // LINK GAINS ITS X-SMALL SIZE (#3179, owner decision D-A5 A): a published Link of 144 members over three sizes, updated
+  // to the plan with `x-small` on the size axis. A value added to an axis that already exists renames nothing: the 144
+  // keep their names, node ids and keys, and the 48 x-small members are added. Nothing is dropped or replaced and nothing
+  // breaks library consumers (#2839's `breakingOf`). `before` is this PR's plan with the x-small members taken off, which
+  // is the published shape exactly: the other sizes' plans do not read the size list. Counts are typed here.
+  {
+    const next = plansOf('link');
+    const before = next.filter((p) => String(p.size) !== 'x-small');
+    // The file a brand built holds every body text style, x-small's included; the world seeds only what `before` binds.
+    const w = await world('link', before, { extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))], extraStyles: [...new Set(next.flatMap((p) => planTextStyles(p.root)))] });
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const was = identityOf(w.set());
+    ok(before.length === 144 && next.length === 192 && [...was.members.keys()].every((n) => !n.includes('size=x-small')),
+      `premise: a published Link of 144 members with no x-small, and a plan of 192 (${was.members.size} → ${next.length})`);
+    const { pre, res } = await confirm(w, [{ def: 'link', plans: next }]);
+    const p = pre.sets[0];
+    const added = p?.adds ?? [];
+    ok(p?.publish === 'CURRENT' && added.length === 48 && added.every((a) => a.includes('size=x-small'))
+      && p.drops.length === 0 && p.replacements.length === 0 && (p.breaking ?? []).length === 0,
+      `published/link x-small additive: the 48 x-small members are added, nothing is dropped or replaced, and nothing breaks library consumers (adds ${added.length}, drops ${JSON.stringify(p?.drops.slice(0, 2))}, replaced ${p?.replacements.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+    const after = identityOf(w.set());
+    const lost = [...was.members].filter(([name, m]) => { const to = after.members.get(name); return !to || to.id !== m.id || to.key !== m.key; }).map(([n]) => n);
+    ok(!res.refusedAll && after.members.size === 192 && lost.length === 0,
+      `published/link x-small in place: applied, the 144 existing members keep their names, node ids and keys, so consumer instances stay linked (${after.members.size} members, ${lost.length} not kept — ${lost.slice(0, 2).join('; ') || 'none'})`);
   }
 
   // ACCORDION GAINS ITS `indicator` AXIS (#2878, Q-block A): a published Accordion built before the axis, its 24 members

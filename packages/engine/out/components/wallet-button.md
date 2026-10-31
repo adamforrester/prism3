@@ -9,7 +9,7 @@
 
 ## Overview
 
-A payment button for a wallet: Apple Pay, Google Pay, PayPal or Shop Pay. The provider draws the button itself, so its logo, colors, wording and font are the provider's and never change with the theme. The component sets the height, the width, the corner radius where the provider allows one, and the focus ring. Each provider has a smallest and a largest height, so Shop Pay starts at the medium size and PayPal stops at medium. The design file shows each provider's own button in each of its styles, and a stand-in with the provider's logo and no fill when the style is left open; the button the customer sees comes from the provider.
+A payment button for a wallet: Apple Pay, Google Pay, PayPal or Shop Pay. The provider draws the button itself, so its logo, colors, wording and font are the provider's and never change with the theme. The component sets the height, the width, the corner radius where the provider allows one, and the focus ring. Each provider has a smallest and a largest height, so Google Pay and Shop Pay start at the medium size and PayPal stops at medium. The design file shows each provider's own button in each of its styles, and a stand-in with the provider's logo and no fill when the style is left open; the button the customer sees comes from the provider.
 
 - **Purpose:** Offer an express checkout with a wallet, drawn by the wallet provider.
 - **Use when:** On a cart, checkout or product page, for each wallet the store accepts: Apple Pay, Google Pay, PayPal or Shop Pay.
@@ -29,7 +29,7 @@ Shown on the default member: provider `apple-pay`, style `any`, size `medium`.
 | --- | --- | --- | --- |
 | `provider` | `apple-pay`, `google-pay`, `paypal`, `shop-pay` | once, when authored | Which wallet. Each needs its provider's script on the page, which draws the button. |
 | `style` | `any`, `black`, `white`, `white-outline`, `gold`, `blue`, `silver`, `purple` | once, when authored | The provider's color style, from its own list, passed to the provider: Apple Pay black, white, white-outline; Google Pay black, white; PayPal gold, blue, silver, white, black; Shop Pay purple. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style another provider uses is refused. |
-| `size` | `medium`, `small`, `large` | once, when authored | The height: 36, 44 or 56px. Shop Pay has no small size and PayPal no large one, because each provider sets a smallest and a largest height. |
+| `size` | `medium`, `small`, `large` | once, when authored | The height: 36, 44 or 56px. Google Pay and Shop Pay have no small size and PayPal no large one, because each provider sets a smallest and a largest height. |
 
 ### States
 
@@ -94,12 +94,12 @@ The provider's wording, in the provider's language handling. Nothing to write.
 | --- | --- | --- | --- | --- |
 | `provider` | enum: 'apple-pay' \| 'google-pay' \| 'paypal' \| 'shop-pay' | — | yes | Which wallet. Each needs its provider's script on the page, which draws the button. |
 | `style` | enum: 'any' \| 'black' \| 'white' \| 'white-outline' \| 'gold' \| 'blue' \| 'silver' \| 'purple' | `any` | no | The provider's color style, from its own list, passed to the provider: Apple Pay black, white, white-outline; Google Pay black, white; PayPal gold, blue, silver, white, black; Shop Pay purple. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style another provider uses is refused. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The height: 36, 44 or 56px. Shop Pay has no small size and PayPal no large one, because each provider sets a smallest and a largest height. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The height: 36, 44 or 56px. Google Pay and Shop Pay have no small size and PayPal no large one, because each provider sets a smallest and a largest height. |
 | `type` | string | `plain` | no | The provider's wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain. |
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 74 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 68 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 

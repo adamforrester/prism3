@@ -9885,7 +9885,7 @@
     "wallet-button": {
       "id": "wallet-button",
       "name": "WalletButton",
-      "members": 74,
+      "members": 68,
       "axes": [
         {
           "name": "provider",
@@ -9938,17 +9938,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 74
+          "members": 68
         },
         {
           "part": "container/mark",
           "kind": "instance",
-          "members": 74
+          "members": 68
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 37,
+          "members": 34,
           "when": {
             "state": [
               "focus-visible"
@@ -33967,7 +33967,7 @@
     "link": {
       "id": "link",
       "name": "Link",
-      "members": 144,
+      "members": 192,
       "axes": [
         {
           "name": "style",
@@ -34010,6 +34010,7 @@
           "figmaName": "size",
           "values": [
             "medium",
+            "x-small",
             "small",
             "large"
           ],
@@ -34032,17 +34033,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 144
+          "members": 192
         },
         {
           "part": "container/label",
           "kind": "text",
-          "members": 144
+          "members": 192
         },
         {
           "part": "container/trailingVisual",
           "kind": "swap",
-          "members": 96,
+          "members": 128,
           "when": {
             "style": [
               "standalone"
@@ -34052,7 +34053,7 @@
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 36,
+          "members": 48,
           "when": {
             "state": [
               "focus-visible"
@@ -34062,7 +34063,7 @@
         {
           "part": "container/bar",
           "kind": "frame",
-          "members": 48,
+          "members": 64,
           "when": {
             "selection": [
               "selected"
@@ -34077,6 +34078,40 @@
         {
           "where": {
             "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/trailingVisual",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "container/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small"
           },
           "parts": [
             {
@@ -34247,6 +34282,66 @@
         },
         {
           "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "unselected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "unselected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "unselected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "unselected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong-link"
+            }
+          ]
+        },
+        {
+          "where": {
             "size": "small",
             "style": "standalone",
             "weight": "emphasis",
@@ -34422,6 +34517,66 @@
             {
               "part": "container/label",
               "textStyle": "type.body.md.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong"
             }
           ]
         },
@@ -34602,6 +34757,66 @@
             {
               "part": "container/label",
               "textStyle": "type.body.md.default-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "unselected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "unselected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "unselected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "unselected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default-link"
             }
           ]
         },
@@ -34787,6 +35002,66 @@
         },
         {
           "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default"
+            }
+          ]
+        },
+        {
+          "where": {
             "size": "small",
             "style": "standalone",
             "weight": "default",
@@ -34967,6 +35242,66 @@
         },
         {
           "where": {
+            "size": "x-small",
+            "style": "inline",
+            "weight": "emphasis",
+            "selection": "unselected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "inline",
+            "weight": "emphasis",
+            "selection": "unselected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "inline",
+            "weight": "emphasis",
+            "selection": "unselected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "inline",
+            "weight": "emphasis",
+            "selection": "unselected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.strong-link"
+            }
+          ]
+        },
+        {
+          "where": {
             "size": "small",
             "style": "inline",
             "weight": "emphasis",
@@ -35142,6 +35477,66 @@
             {
               "part": "container/label",
               "textStyle": "type.body.md.default-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "inline",
+            "weight": "default",
+            "selection": "unselected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "inline",
+            "weight": "default",
+            "selection": "unselected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "inline",
+            "weight": "default",
+            "selection": "unselected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default-link"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "style": "inline",
+            "weight": "default",
+            "selection": "unselected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.xs.default-link"
             }
           ]
         },
@@ -39082,7 +39477,17 @@
           "members": 2
         },
         {
-          "part": "container/content/checkCircleGlyph",
+          "part": "container/content/glyphCell",
+          "kind": "frame",
+          "members": 1,
+          "when": {
+            "intent": [
+              "success"
+            ]
+          }
+        },
+        {
+          "part": "container/content/glyphCell/checkCircleGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -39115,6 +39520,9 @@
                 "gap": {
                   "token": "space.100"
                 },
+                "minHeight": {
+                  "token": "size.md.height"
+                },
                 "buildWidth": {
                   "px": 360,
                   "source": "literal"
@@ -39138,7 +39546,15 @@
               }
             },
             {
-              "part": "container/content/checkCircleGlyph",
+              "part": "container/content/glyphCell",
+              "values": {
+                "minHeight": {
+                  "token": "type.body.sm.line-box"
+                }
+              }
+            },
+            {
+              "part": "container/content/glyphCell/checkCircleGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -39158,7 +39574,7 @@
           "parts": [
             {
               "part": "container/content/message",
-              "textStyle": "type.body.md.default"
+              "textStyle": "type.body.sm.default"
             }
           ]
         }
@@ -39192,7 +39608,7 @@
               "fill": "color.inverse.background.primary"
             },
             {
-              "part": "container/content/checkCircleGlyph",
+              "part": "container/content/glyphCell/checkCircleGlyph",
               "icon": "color.inverse.icon.success"
             },
             {
@@ -39233,7 +39649,7 @@
           "exposes": []
         },
         {
-          "part": "container/content/checkCircleGlyph",
+          "part": "container/content/glyphCell/checkCircleGlyph",
           "kind": "instance",
           "component": "icon/check-circle",
           "variant": {},

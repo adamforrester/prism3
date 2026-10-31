@@ -5680,7 +5680,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const set = page.children.find((c) => c.name === 'link' && c.type === 'COMPONENT_SET') as Node | undefined;
   const members = ((set?.children as Node[] | undefined) ?? []);
   const kid = (n: Node, name: string): Node | undefined => ((n.children as Node[] | undefined) ?? []).find((c) => c.name === name);
-  ok(members.length === 144 && r.misses.length === 0, `link bar build: the set builds 144 members with 0 misses (${members.length}; ${r.misses[0] ?? 'none'})`);
+  ok(members.length === 192 && r.misses.length === 0, `link bar build: the set builds 192 members (four sizes since #3179) with 0 misses (${members.length}; ${r.misses[0] ?? 'none'})`);
   const off: string[] = [];
   const moved: string[] = [];
   let current = 0;
@@ -5696,9 +5696,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const twin = members.find((x) => String(x.name) === String(m.name).replace('selection=selected', 'selection=unselected'));
     if (!twin || twin.width !== m.width || twin.height !== m.height) moved.push(`${String(m.name)}: ${m.width}x${m.height} vs ${twin ? `${twin.width}x${twin.height}` : 'no twin'}`);
   }
-  ok(current === 48 && off.length === 0,
-    `link bar foot: on all 48 current members the bar is ABSOLUTE, STRETCH/MAX, as wide as the link, flush with its bottom and ${BAR}px high with the height still bound, and no other member has one (${current} current, ${off.length} off — ${off[0] ?? 'none'})`);
-  ok(current === 48 && moved.length === 0,
+  ok(current === 64 && off.length === 0,
+    `link bar foot: on all 64 current members the bar is ABSOLUTE, STRETCH/MAX, as wide as the link, flush with its bottom and ${BAR}px high with the height still bound, and no other member has one (${current} current, ${off.length} off — ${off[0] ?? 'none'})`);
+  ok(current === 64 && moved.length === 0,
     `link bar footprint: every current member measures what its unselected twin measures, so the bar moves no box (${moved.length} moved — ${moved[0] ?? 'none'})`);
 }
 
@@ -5758,7 +5758,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   catch (err) { misses = [`threw: ${(err as Error).message.slice(0, 200)}`]; }
   const set = page.children.find((c) => c.name === 'wallet-button' && c.type === 'COMPONENT_SET') as Node | undefined;
   const members = (set?.children as Node[] | undefined) ?? [];
-  ok(members.length === 74 && misses.length === 0, `wallet build: the set builds 74 members with 0 misses (${members.length}; ${misses[0] ?? 'none'})`);
+  ok(members.length === 68 && misses.length === 0, `wallet build: the set builds 68 members with 0 misses (${members.length}; ${misses[0] ?? 'none'})`);
   const marks = new Map(page.children.filter((c) => String(c.name).startsWith('provider-logo/')).map((c) => [String(c.name), c] as const));
   const off: string[] = [];
   for (const m of members) {
@@ -5774,7 +5774,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     if (!logo || logo.type !== 'INSTANCE' || String(main?.name) !== want || !t || Math.abs(t.x / t.y - ratio) > 1e-6 || !bv.height || bv.width)
       off.push(`${String(m.name)}: ${logo ? `${String(logo.type)} of ${String(main?.name)}, ratio ${t ? t.x / t.y : 'none'} vs ${ratio}, ${Object.keys(bv).join(',')}` : 'no mark'}`);
   }
-  ok(members.length === 74 && off.length === 0, `wallet build/logos: every member's logo is an instance of its provider's own provider logo, locked to that mark's proportion with only its height bound (${off.length} off — ${off[0] ?? 'none'})`);
+  ok(members.length === 68 && off.length === 0, `wallet build/logos: every member's logo is an instance of its provider's own provider logo, locked to that mark's proportion with only its height bound (${off.length} off — ${off[0] ?? 'none'})`);
   // #3174: the ground and edge each style's SDK paints, landed by the real executor as plain values. Typed here from the
   // SDK capture of 2026-10-30 and Shop Pay's #5433EB, never read off the records or the def (docs/34). any paints nothing.
   const GROUND: Record<string, { fill: string; edge?: string }> = {
@@ -5793,7 +5793,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const want = style === 'any' ? {} : GROUND[`${provider}.${style}`] ?? { fill: 'untyped' };
     return got.fill === want.fill && got.edge === want.edge ? [] : [`${String(m.name)}: ${JSON.stringify(got)} vs ${JSON.stringify(want)}`];
   });
-  ok(members.length === 74 && offGround.length === 0, `wallet build/ground: each style's member carries its SDK's ground and edge as plain values, and any carries none (${offGround.length} off — ${offGround[0] ?? 'none'})`);
+  ok(members.length === 68 && offGround.length === 0, `wallet build/ground: each style's member carries its SDK's ground and edge as plain values, and any carries none (${offGround.length} off — ${offGround[0] ?? 'none'})`);
 }
 
 // #2343 PR 5 — SIGNINBUTTON BUILT BY THE REAL EXECUTOR: each provider's literal fill, edge, wash, ink, wording and font

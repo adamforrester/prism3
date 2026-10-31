@@ -779,7 +779,7 @@
         "kind": "component set",
         "page": "↳ Wallet button",
         "section": "Components",
-        "members": 74,
+        "members": 68,
         "variantProperties": [
           {
             "name": "provider",
@@ -2389,7 +2389,7 @@
         "kind": "component set",
         "page": "↳ Link",
         "section": "Components",
-        "members": 144,
+        "members": 192,
         "variantProperties": [
           {
             "name": "style",
@@ -2423,6 +2423,7 @@
             "name": "size",
             "values": [
               "medium",
+              "x-small",
               "small",
               "large"
             ]

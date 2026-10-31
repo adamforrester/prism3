@@ -8,7 +8,7 @@
 
 Only valid provider × style pairs are members, and `any` comes first and is the default. `any` is the stand-in Q-W1 A
 built: the provider's area and logo, with no fill. Every member built before keeps its coordinate, now at `style=any`,
-so 20 members become 71. `plain` is the only type drawn, and PayPal still has no large member. Google Pay has no small
+so 20 members become 68. `plain` is the only type drawn, and PayPal still has no large member. Google Pay has no small
 member now, as Shop Pay has none (Q3195.3 A): its SDK draws nothing under 40px. The code prop
 `buttonStyle` (a free string) becomes `style`, an enum of the same names.
 
