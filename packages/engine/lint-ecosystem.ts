@@ -57,12 +57,20 @@
  *             and the dark theme. The PAIRS are authored here; the VALUES are read from the page's `:root`
  *             blocks, and the dark block written twice (for `prefers-color-scheme` and for the toggle) must be
  *             the same both times.
+ *   DOCS      The /docs pages' shared stylesheet (`docs/public/docs.css`, #3176) uses the ecosystem page's colors and
+ *             no pair the CONTRAST arm does not check:
+ *               · each token in each of its three `:root` blocks equals the ecosystem page's value in the same
+ *                 block, its two dark blocks match, and every `var(--…)` it reads is one it defines;
+ *               · every text-on-ground pair it draws is in PAIRS. A rule that sets `color` and `background` together
+ *                 draws that pair; every other ink (each `color` token that is not an `--on-*`) may land on every
+ *                 ground set without an `--on-*` ink beside it, so each of those pairs is drawn too;
+ *               · it sets no color as a literal, and the pages that load it (DOCS_PAGES) carry no style of their own.
  *
  * ── FLOORS (docs/34 shape 9) ───────────────────────────────────────────────────────────────────────
  *
  * Every set comparison passes vacuously over two empty sets, so each code set has a floor: an import or a parse
  * that silently yields nothing fails as a floor breach, not as a clean run. Same for the node, edge, feature and
- * trace counts, the features per lane, and the CONTRAST pair count per theme.
+ * trace counts, the features per lane, the CONTRAST pair count per theme, and the DOCS token and pair counts.
  *
  * ── WHAT IT DOES NOT CHECK ─────────────────────────────────────────────────────────────────────────
  *
@@ -87,6 +95,9 @@ const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const DIR = 'docs/public/ecosystem';
 const DATA = `${DIR}/ecosystem.json`;
 const PAGE = `${DIR}/index.html`;
+const DOCS_CSS = 'docs/public/docs.css';
+/** The pages that load `docs.css`. Authored here: each must link it and carry no style of its own. */
+const DOCS_PAGES = ['docs/public/index.html'];
 const MESSAGES = 'apps/plugin/src/messages.ts';
 const PLUGIN_UI_ENTRY = 'apps/plugin/src/ui/entry.ts';
 
@@ -464,6 +475,49 @@ for (const [name, theme] of [['light', light], ['dark', darkToggle && light ? { 
   }
 }
 
+// ── DOCS ─────────────────────────────────────────────────────────────────────────────────────────
+const docsCss = read(DOCS_CSS).replace(/\/\*[\s\S]*?\*\//g, '');
+const docsBlocks = [['light', ':root {', light], ['dark (prefers-color-scheme)', ':root:not([data-theme="light"])', darkMedia], ['dark (toggle)', ':root[data-theme="dark"]', darkToggle]] as const;
+let docsTokens = 0;
+const docsLight = block(docsCss, ':root {');
+for (const [name, selector, eco] of docsBlocks) {
+  const own = block(docsCss, selector);
+  if (!own || !Object.keys(own).length) { fail('DOCS', `${DOCS_CSS} has no '${selector}' block of color tokens`); continue; }
+  if (!eco) continue;
+  for (const [tok, v] of Object.entries(own)) {
+    docsTokens++;
+    if (!(tok in eco)) fail('DOCS', `${name}: ${tok} in ${DOCS_CSS} is not an ecosystem page token`);
+    else if (v.toLowerCase() !== eco[tok].toLowerCase()) fail('DOCS', `${name}: ${tok} is ${v} in ${DOCS_CSS}, ${eco[tok]} on the ecosystem page`);
+  }
+}
+const docsDarkMedia = block(docsCss, ':root:not([data-theme="light"])');
+const docsDarkToggle = block(docsCss, ':root[data-theme="dark"]');
+if (docsDarkMedia && docsDarkToggle && JSON.stringify(docsDarkMedia) !== JSON.stringify(docsDarkToggle)) fail('DOCS', `the two dark blocks in ${DOCS_CSS} differ — the switch and prefers-color-scheme would show different dark themes`);
+for (const m of docsCss.matchAll(/var\((--[a-z0-9-]+)/g)) {
+  if (docsLight && /^--(s-?\d|sans|mono)$/.test(m[1]) === false && !(m[1] in docsLight)) fail('DOCS', `${DOCS_CSS} reads ${m[1]}, which its ':root {' block does not define`);
+}
+const allowed = new Set(PAIRS.map(([f, b]) => `${f} on ${b}`));
+const drawn = new Set<string>();
+const inks = new Set<string>();
+const grounds = new Set<string>();
+for (const [, sel, body] of docsCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+  const ink = /(?<![-\w])color\s*:\s*([^;]+)/.exec(body)?.[1].trim();
+  const ground = /(?<![-\w])background(?:-color)?\s*:\s*([^;]+)/.exec(body)?.[1].trim();
+  for (const v of [ink, ground]) if (v && !/^var\(--[a-z0-9-]+\)$/.test(v) && !/^(inherit|transparent|none|currentcolor)$/i.test(v)) fail('DOCS', `'${sel.trim()}' sets a color as '${v}' — use a token, so this arm can check it`);
+  const inkTok = ink?.match(/^var\((--[a-z0-9-]+)\)$/)?.[1];
+  const groundTok = ground?.match(/^var\((--[a-z0-9-]+)\)$/)?.[1];
+  if (inkTok && groundTok) drawn.add(`${inkTok} on ${groundTok}`);
+  if (inkTok && !inkTok.startsWith('--on-')) inks.add(inkTok);
+  if (groundTok && !inkTok?.startsWith('--on-')) grounds.add(groundTok);
+}
+for (const i of inks) for (const g of grounds) drawn.add(`${i} on ${g}`);
+for (const p of drawn) if (!allowed.has(p)) fail('DOCS', `${DOCS_CSS} draws ${p}, a pair the CONTRAST arm does not check`);
+for (const p of DOCS_PAGES) {
+  const html = read(p);
+  if (!/<link rel="stylesheet" href="(?:\.\.\/)*docs\.css">/.test(html)) fail('DOCS', `${p} does not load docs.css`);
+  if (/<style[\s>]|\sstyle="/.test(html)) fail('DOCS', `${p} carries a style of its own — its colors belong in ${DOCS_CSS}, where this arm reads them`);
+}
+
 // ── FLOORS ───────────────────────────────────────────────────────────────────────────────────────
 if (uiToMain.length < 8) fail('FLOOR', `${MESSAGES} yields ${uiToMain.length} UiToMain types, under the floor of 8 — the parse has gone blind`);
 if (data.nodes.length < 15) fail('FLOOR', `${data.nodes.length} nodes, under the floor of 15`);
@@ -471,14 +525,16 @@ if (data.edges.length < 15) fail('FLOOR', `${data.edges.length} edges, under the
 if (data.features.length < 15) fail('FLOOR', `${data.features.length} features, under the floor of 15`);
 for (const l of LANES) { const k = data.features.filter((f) => f.lanes?.[l]).length; if (k < 5) fail('FLOOR', `the ${l} lane has ${k} features, under the floor of 5`); }
 if (data.traces.length < 3) fail('FLOOR', `${data.traces.length} traces, under the floor of 3`);
+if (docsTokens < 24) fail('FLOOR', `${DOCS_CSS} yields ${docsTokens} color tokens across its three blocks, under the floor of 24`);
+if (drawn.size < 6) fail('FLOOR', `${DOCS_CSS} draws ${drawn.size} text pairs, under the floor of 6 — the rule parse has gone blind`);
 if (checked < PAIRS.length * 2 && !fails.some((f) => f.startsWith('CONTRAST'))) fail('FLOOR', `checked ${checked} contrast pairs, expected ${PAIRS.length * 2}`);
 
 if (fails.length) {
-  console.error(`\n❌ ${TAG}: ${fails.length} problem(s) in ${DATA} or ${PAGE}:\n`);
+  console.error(`\n❌ ${TAG}: ${fails.length} problem(s) in ${DATA}, ${PAGE} or ${DOCS_CSS}:\n`);
   for (const f of fails) console.error(`    ${f}`);
   console.error(`\n  How to update the data when a feature ships: ${DIR}/README.md`);
   process.exit(1);
 }
 const memberCount = SURFACES.reduce((a, s) => a + s.code.length, 0);
 const shared = data.features.filter((f) => Object.keys(f.lanes).length > 1).length;
-console.log(`✅ ${TAG}: ${data.nodes.length} nodes, ${data.edges.length} edges, ${data.connections.length} connections, ${data.checks.length} checks, ${data.traces.length} traces; ${data.features.length} features (${shared} shared) whose lane claims match the code (${mcpNames.length} MCP tools, ${commands.length} agent commands, ${uiToMain.length} plugin messages; ${laneReach.web.size} web and ${laneReach.figma.size} figma bundle files walked); ${memberCount} members across ${SURFACES.length} lists match the code; ${checked} contrast pairs clear 4.5:1 in light and dark.`);
+console.log(`✅ ${TAG}: ${data.nodes.length} nodes, ${data.edges.length} edges, ${data.connections.length} connections, ${data.checks.length} checks, ${data.traces.length} traces; ${data.features.length} features (${shared} shared) whose lane claims match the code (${mcpNames.length} MCP tools, ${commands.length} agent commands, ${uiToMain.length} plugin messages; ${laneReach.web.size} web and ${laneReach.figma.size} figma bundle files walked); ${memberCount} members across ${SURFACES.length} lists match the code; ${checked} contrast pairs clear 4.5:1 in light and dark; ${DOCS_CSS} holds ${docsTokens} ecosystem tokens and draws ${drawn.size} checked pairs.`);
