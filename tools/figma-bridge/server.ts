@@ -17,7 +17,7 @@
  *     relays each command to the main thread's dispatcher (`apps/plugin/src/agent-bridge-relay.ts`).
  *
  * The plugin connects to the DEFAULT port only: the manifest names `ws://localhost:17331` in
- * `devAllowedDomains`, and Figma refuses any origin it does not list. `--port` exists for the test suite
+ * `allowedDomains` (the network build, "Prism3 Studio", since #3147), and Figma refuses any origin it does not list. `--port` exists for the test suite
  * and for a collision; using another port with the real plugin needs that manifest entry changed too.
  *
  * WIRE between this server and the plugin (JSON text frames):
@@ -36,7 +36,8 @@
  * end of the grace. The wire gains only the optional `held`; the command and result envelopes are
  * unchanged, so `AGENT_PROTOCOL_VERSION` stays 1.
  * Bound to the loopback addresses only — 127.0.0.1, and ::1 where the host has it, because `localhost`
- * resolves to either depending on the machine. stdout is the MCP channel; everything human-readable goes to stderr.
+ * resolves to either depending on the machine. An upgrade whose `Origin` is not the plugin iframe's (`null`) is
+ * refused with 403 (#3147), so a web page in a browser on this machine cannot drive it. No pairing (Q3147.2 A). stdout is the MCP channel; everything human-readable goes to stderr.
  */
 import { createServer } from 'node:http';
 import type { IncomingMessage } from 'node:http';
@@ -50,7 +51,7 @@ import { BRIDGE_PORT } from '../../apps/plugin/src/agent-bridge-relay';
 import type { AgentCommand, AgentResult, AgentLinkState, AgentProgress } from '../../apps/plugin/src/agent-protocol';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 
-/** The plugin connects here — read from the relay, which the manifest's `devAllowedDomains` matches. */
+/** The plugin connects here — read from the relay, which the manifest's `allowedDomains` entry matches (#3147). */
 export const DEFAULT_PORT = BRIDGE_PORT;
 export const SERVER_INFO = { name: 'prism3-figma-bridge', version: ENGINE_VERSION };
 
@@ -279,12 +280,25 @@ export type Bridge = ReturnType<typeof createBridge>;
 
 /* ── the WebSocket listener ─────────────────────────────────────────────────────────────────────────── */
 
+/** The one `Origin` the bridge accepts (#3147, Q3147.2 A revised): a sandboxed iframe's opaque origin, which is how a
+ *  Figma plugin's UI connects. Anything else, a missing header included, is refused. */
+export const PLUGIN_ORIGIN = 'null';
+export const originAllowed = (origin: string | string[] | undefined): boolean => origin === PLUGIN_ORIGIN;
+
 /** Start the listener on loopback (127.0.0.1, plus ::1 when available); `port` 0 picks a free one. */
 export const listen = async (bridge: Bridge, port: number): Promise<{ port: number; close(): Promise<void> }> => {
   const onUpgrade = (req: IncomingMessage, socket: Duplex) => {
     const key = req.headers['sec-websocket-key'];
     if (String(req.headers.upgrade).toLowerCase() !== 'websocket' || typeof key !== 'string' || req.headers['sec-websocket-version'] !== '13') {
       socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+      return;
+    }
+    // THE ORIGIN CHECK (#3147, the owner's Q3147.2 A revised): only the plugin's iframe may connect. Figma serves a
+    // plugin's UI from a sandboxed iframe, whose origin is opaque, so its browser sends `Origin: null`. A web page open
+    // in a browser on this machine sends its own origin and is refused here, before the handshake; so is a request
+    // with no Origin at all. There is no pairing: the loopback bind, this check and the owner's link switch are the gate.
+    if (!originAllowed(req.headers.origin)) {
+      socket.end('HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nprism3 figma-bridge: only the Prism3 plugin may connect\n');
       return;
     }
     socket.write(['HTTP/1.1 101 Switching Protocols', 'Upgrade: websocket', 'Connection: Upgrade', `Sec-WebSocket-Accept: ${acceptKey(key)}`, '', ''].join('\r\n'));

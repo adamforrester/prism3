@@ -13081,11 +13081,12 @@ const LINK_STATES = {
 /** What each state must draw, typed from the owner's AS1 A and Q3113.7 A: the closed row's word, its ink and its dot's
  *  ink (the chrome tokens' roles, resolved below from the committed emission, never the stylesheet), or none; and
  *  whether the open drawer's first line shows the full line (while the link is on, or while it holds an inbox error).
- *  Literals. MUTATION: `agentLinkWord`'s "Listening" changed in `agent-link-ui.ts` → the listening arm, by name. */
+ *  Literals. MUTATION: `agentLinkWord`'s "Listening" changed in `agent-link-ui.ts` → the listening arm, by name.
+ *  #3147 Phase 1: the word names the transport (DRAFT), and this state's is the mailbox: "Listening · mailbox". */
 if (runs('31')) {
 const LINK_WANT = {
   off: { short: null, full: false },
-  listening: { short: 'Listening', ink: 'color.text.secondary', dot: 'color.icon.success', full: true },
+  listening: { short: 'Listening · mailbox', ink: 'color.text.secondary', dot: 'color.icon.success', full: true },
   notListening: { short: 'Not listening', ink: 'color.text.danger', dot: 'color.icon.danger', full: true },
   error: { short: 'Error', ink: 'color.text.danger', dot: 'color.icon.danger', full: true },
   offStale: { short: null, full: true },

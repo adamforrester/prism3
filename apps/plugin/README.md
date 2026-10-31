@@ -399,9 +399,11 @@ transports: A, the file mailbox, and B, the local desktop bridge.
 - ✅ **Transport B, the local desktop bridge** — `tools/figma-bridge/server.ts` (a stdio MCP server plus a
   hand-rolled RFC 6455 WebSocket server on `ws://localhost:17331`) and `src/agent-bridge-relay.ts`: while
   the link is on, the UI iframe holds the socket (the main thread has no network) and relays each command
-  to the same dispatcher the mailbox uses. It streams progress and console lines back. The manifest adds
-  that one origin under `networkAccess.devAllowedDomains` only; `allowedDomains: ["none"]` is unchanged.
-  Gate: `test-agent-bridge.ts`.
+  to the same dispatcher the mailbox uses. It streams progress and console lines back. Since #3147 the
+  relay ships in the network build ("Prism3 Studio"), whose manifest lists that one origin in
+  `networkAccess.allowedDomains`; "Prism3 Studio Offline" carries no socket and offers the mailbox only.
+  The server refuses an upgrade whose `Origin` is not the iframe's (`null`). Gates: `test-agent-bridge.ts`
+  (`origin/refused`), `lint-release-bundle.ts` and `lint-network-reach.ts`.
 - ⏭ **No `cleanup` command** — no panel action removes components, and the link routes only to those.
 
 The iframe entry is now `src/ui/entry.ts`: it imports the studio entry `apps/studio/src/entry.ts` (which mounts `apps/studio/src/main.ts`) whole and unchanged (one UI,

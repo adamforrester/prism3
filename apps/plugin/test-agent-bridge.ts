@@ -15,9 +15,14 @@
  *      then travels MCP → server → socket → relay → main thread → the `ACTIONS` table → back, and the
  *      suite spies on the table to prove the command reached the UI's own handler.
  *
- * Arms, by name: mcp · no-plugin · handshake · fragmented · ping · run · stream · progress · big-frame · timeout ·
+ * Arms, by name: mcp · no-plugin · origin/refused · handshake · fragmented · ping · run · stream · progress · big-frame · timeout ·
  * unmasked · disconnect · reconnect · resend/hand · e2e/routes · e2e/parity · resend/e2e · resend/running · e2e/link-off ·
  * e2e/switch-off
+ *
+ * #3147 (Q3147.2 A revised): the server refuses an upgrade whose `Origin` is not the plugin iframe's, `null`.
+ * `origin/refused` sends a web page's origin, a localhost page's and none, and each must get 403 and never become the
+ * plugin; every other client here sends `Origin: null`, as Figma's sandboxed iframe does, so `handshake` is the accepted
+ * arm. MUTATION: `originAllowed` returning true in `server.ts` → `origin/refused` fails by name.
  *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
@@ -130,16 +135,23 @@ const frame = (op: number, payload: Buffer, fin = true, unmasked = false): Buffe
   for (let i = 0; i < body.length; i++) body[i] ^= key[i % 4];
   return Buffer.concat([Buffer.from(head), key, body]);
 };
-const openClient = async () => {
+/** The `Origin` a Figma plugin's UI iframe sends: a sandboxed iframe's origin is opaque, serialized `null` (#3147,
+ *  Q3147.2 A revised). Written here, not imported from the server, so the origin arms compare two independent things. */
+const IFRAME_ORIGIN = 'null';
+/** `origin` is the header the client sends; `null` sends none. */
+const openClient = async (origin: string | null = IFRAME_ORIGIN) => {
   const sock: Socket = connect(PORT, '127.0.0.1');
   await new Promise((r) => sock.once('connect', r));
   const key = randomBytes(16).toString('base64');
-  sock.write(`GET / HTTP/1.1\r\nHost: localhost:${PORT}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n\r\n`);
+  const originLine = origin === null ? '' : `Origin: ${origin}\r\n`;
+  sock.write(`GET / HTTP/1.1\r\nHost: localhost:${PORT}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n${originLine}Sec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n\r\n`);
   let raw = Buffer.alloc(0);
   let head: string | null = null;
   const frames: Frame[] = [];
   let closed = false;
   sock.on('close', () => { closed = true; });
+  // A refused upgrade (#3147) ends the socket; a write after that is an EPIPE, not a crash of the suite.
+  sock.on('error', () => { closed = true; });
   sock.on('data', (d: Buffer) => {
     raw = Buffer.concat([raw, d]);
     if (head === null) {
@@ -197,6 +209,22 @@ section('no-plugin');
   ok(s.value?.connected === false, 'figma_status: not connected');
   const r = await call('figma_run', { cmd: 'status' });
   ok(r.isError && /no plugin is connected/.test(r.value?.error), `figma_run with no plugin → isError (${r.value?.error?.slice(0, 40)})`);
+}
+
+/* ── the origin check (#3147) ───────────────────────────────────────────────────────────────────────── */
+section('origin — only the plugin iframe may connect (#3147, Q3147.2 A revised)');
+{
+  // A web page open in a browser on this machine sends its own origin; a bare local client may send none. Both are
+  // refused before the handshake, and neither becomes "the plugin". The accepted case is `handshake` below.
+  for (const [label, origin] of [['a web page', 'https://example.com'], ['a localhost page', 'http://localhost:3000'], ['no Origin header', null]] as const) {
+    const c = await openClient(origin);
+    ok(/^HTTP\/1\.1 403/.test(c.head) && !c.head.includes('Sec-WebSocket-Accept'),
+      `origin/refused: ${label} (${origin ?? 'none'}) is refused with 403 and no handshake (${c.head.split('\r\n')[0]})`);
+    c.sendJson({ type: 'hello', state: state() });
+    await sleep(100);
+    ok((await call('figma_status')).value?.connected === false, `origin/refused: ${label} never becomes the plugin`);
+    c.sock.destroy();
+  }
 }
 
 /* ── the hand-rolled client ─────────────────────────────────────────────────────────────────────────── */
@@ -381,8 +409,9 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
   // the relay off the bridge until the main thread has answered.
   let sock: WebSocket | null = null;
   let refuse = false;
+  // Node's WebSocket sends no `Origin`, which the server refuses (#3147); Figma's iframe sends `null`, so this does too.
   relay = createBridgeRelay({
-    open: (url) => { if (refuse) throw new Error('refused by the test'); sock = new WebSocket(url); return sock as unknown as WsLike; },
+    open: (url) => { if (refuse) throw new Error('refused by the test'); sock = new (WebSocket as unknown as new (u: string, o: unknown) => WebSocket)(url, { headers: { origin: IFRAME_ORIGIN } }); return sock as unknown as WsLike; },
     post: (m) => toMain(m),
     schedule: (fn, ms) => setTimeout(fn, ms),
     cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),

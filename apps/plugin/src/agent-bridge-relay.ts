@@ -23,7 +23,7 @@
 import type { UiToMain, MainToUi } from './messages';
 import type { AgentLinkState } from './agent-protocol';
 
-/** The bridge's default port. The manifest's `devAllowedDomains` names exactly this origin. */
+/** The bridge's default port. The manifest's `allowedDomains` names exactly this origin (#3147; `devAllowedDomains` before). */
 export const BRIDGE_PORT = 17331;
 export const BRIDGE_URL = `ws://localhost:${BRIDGE_PORT}`;
 
