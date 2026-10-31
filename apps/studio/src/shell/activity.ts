@@ -43,7 +43,7 @@
 import { subscribe } from '../state/store';
 import type { OpKey } from '../state/host-session';
 import type { Host } from './pages';
-import { glyph, h, hook, tile } from './dom';
+import { armEnter, enterMark, glyph, h, hook, tile } from './dom';
 
 /** Whether the plugin's agent link is on (the owner's top-bar decision, 2026-10-05: Activity's name and tooltip say
  *  "agent link on" while it is). The plugin's Agent tile (`apps/plugin/src/agent-link-ui.ts`) reports each state the
@@ -310,6 +310,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const toggle = hook(h('button', 'p3-drawer-bar'), 'activity-toggle');
   toggle.type = 'button';
   toggle.setAttribute('aria-controls', 'p3-activity-body');
+  const chevron = glyph('chev');
   const body = hook(h('div', 'p3-drawer-body'), 'activity-body');
   body.id = 'p3-activity-body';
   // v6's "Close Activity", which only the full-pane sheet at 380 shows: since Q3113.8 A a 24 × 24 icon in its header row,
@@ -365,6 +366,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   let open = false;     // the body shows
   let auto = false;     // it opened by itself, so it may collapse by itself
   let unread = false;   // a result landed while it was closed
+  let dotShown = false; // #3150: the last bar row drew the unread dot
   let timer: ReturnType<typeof setTimeout> | null = null;
   let last = read();
   /** Whether the status line holds a run's words (its start, or a declined request) rather than a finish (Q194). */
@@ -517,7 +519,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       head.append(glyph('chevr'), mark, h('b', undefined, OP_TITLE[k]), words, tag, when);
       const b = hook(h('div', 'p3-op-body'), 'op-body');
       b.id = `p3-op-${k}-b`;
-      head.onclick = () => { if (expanded.has(k)) expanded.delete(k); else expanded.add(k); paint(); };
+      head.onclick = () => { if (expanded.has(k)) expanded.delete(k); else { expanded.add(k); armEnter(b.id); } paint(); };
       root.append(head, b);
       el = { root, head, mark, tag, words, when, body: b, progress: null };
       rowEls.set(k, el);
@@ -537,6 +539,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const isOpen = expanded.has(k);
     el.head.setAttribute('aria-expanded', String(isOpen));
     el.body.hidden = !isOpen;
+    enterMark(el.body, el.body.id);
     const parts: Node[] = [];
     el.progress = null;
     if (running) {
@@ -551,8 +554,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     }
     if (rec.history.length) {
       const d = hook(h('details', 'p3-op-history'), 'op-history');
-      d.append(h('summary', undefined, `Earlier results (${rec.history.length})`));
-      const ul = h('ul');
+      const dSum = h('summary', undefined, `Earlier results (${rec.history.length})`);
+      d.append(dSum);
+      const ul = enterMark(h('ul'), `p3-op-${k}-history`);
+      dSum.addEventListener('click', () => { if (!d.open) { armEnter(`p3-op-${k}-history`); ul.dataset.enter = 'true'; } });
       // Q3113.6 A: each earlier result is one line, its time, its mark and its words (and Agent), that opens its own
       // lines (#2281's mono list). Never in the live region, so nothing here is announced.
       // An open entry stays open across a repaint by the result it shows, not by its place: a new result moves every entry
@@ -569,6 +574,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
           const one = h('details', 'p3-op-entry') as HTMLDetailsElement;
           const sum = h('summary');
           sum.append(head);
+          sum.addEventListener('click', () => { if (!one.open) for (const n of lines) n.dataset.enter = 'true'; });
           one.append(sum, ...lines);
           entryOf.set(one, x);
           if (wasOpen.has(x)) one.open = true;
@@ -638,12 +644,15 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     }
     // Q3113.9 A: a dot on the bar row marks a result nobody has opened, now that no Activity tile carries it.
     if (unread) {
-      const u = hook(h('span', 'p3-dot p3-status-dot'), 'activity-unread');
+      // #3150: the dot pops in the frame it first appears (Pop); a repaint while it stays draws it still.
+      if (!dotShown) armEnter('activity-unread');
+      const u = enterMark(hook(h('span', 'p3-dot p3-status-dot'), 'activity-unread'), 'activity-unread');
       u.dataset.state = 'unread';
       u.setAttribute('aria-hidden', 'true');
       lead0.push(u);
       parts.push(h('span', 'p3-sr', 'New result'));
     }
+    dotShown = unread;
     parts.push(h('span', 'p3-spacer'));
     parts.push(...countEls());
     // The agent link's status (#2213, AS1 A; Q3113.7 A), last before the caret.
@@ -651,7 +660,12 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     if (ln) parts.push(ln);
     const runs = h('span', 'p3-drawer-text');
     runs.append(...parts);
-    toggle.replaceChildren(...lead0, runs, glyph('chev'), h('span', 'p3-sr', `${open ? 'Collapse' : 'Expand'} Activity`));
+    // #3150: the chevron is one node for the drawer's life, never redrawn, so it turns as the drawer opens and closes (the
+    // chrome's motion); what is around it is drawn afresh.
+    for (const n of [...toggle.childNodes]) if (n !== chevron) n.remove();
+    if (!chevron.isConnected) toggle.append(chevron);
+    chevron.before(...lead0, runs);
+    chevron.after(h('span', 'p3-sr', `${open ? 'Collapse' : 'Expand'} Activity`));
     // The sheet's header row carries the same counts and the agent dot (Q3113.8 A).
     const sheetLink = linkEl();
     sheetCounts.replaceChildren(...countEls(), ...(sheetLink ? [sheetLink] : []));
