@@ -48,6 +48,14 @@ The oracle is the `.md` files on disk, listed and parsed with the test's own pat
 | the blockquote branch removed | `guides/apply-a-theme.html labels its 1 quoted line(s) as plugin messages` |
 | the `_` guard removed from `docsPath` | `GET /docs/guides/_page.html is refused: the template is not a page` |
 | the part pattern without `-` (empty breadcrumb) | `guides/<name>.html's breadcrumb names the page` |
+| the bold pass back to a lazy `\*\*(.+?)\*\*` | `guides/build-components.html's article tags nest well formed` |
+| single-`*` italics left as stars | `guides/<name>.html converts every *italic* span: no * left in its text`, for the 4 guides that use them |
+| numbered lists drawn as `<ul>` | `guides/<name>.html draws its N numbered step(s) in an <ol>` |
+| "On this page" never drawn | `guides/<name>.html draws "On this page" from its N ## heading(s)` |
+| Previous and Next swapped | `guides/<name>.html's Previous and Next follow index.md's order`, for all 8 guides |
+
+Review found `**Build *Name***` drawn as `<strong>Build <em>Name</strong></em>`: the lazy bold pass closed inside
+`***`. Bold now admits an italic span inside it. The last five rows came from that review.
 
 ### Next
 
