@@ -66,8 +66,8 @@ export const accordion: ComponentDef = {
     { name: 'headingLevel', type: "enum: 2 | 3 | 4 | 5 | 6", values: ['2', '3', '4', '5', '6'], default: '3', required: false, description: 'The level of the heading that wraps the header button. Set it one below the heading the accordion sits under, so the page outline stays intact.' },
     { name: 'indicator', type: "enum: 'chevron' | 'plus-minus'", values: ['chevron', 'plus-minus'], default: 'chevron', required: false, description: 'The open and closed glyph: a chevron that points down when closed and up when open, or a plus that becomes a minus.' },
     { name: 'iconPosition', type: "enum: 'leading' | 'trailing'", values: ['leading', 'trailing'], default: 'leading', required: false, description: 'Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge.' },
-    // #3198 (Q-ACC2 A): the rule under the section, on by default so existing files and code don't move. DRAFT prose.
-    { name: 'divider', type: 'boolean', default: true, required: false, description: 'Shows the rule under the section. On by default. Turn it off when the design separates sections another way, such as spacing, a card or a background, so the page does not draw two separators.' },
+    // #3198 (Q-ACC2 A): the rule under the section, on by default so existing files and code don't move.
+    { name: 'divider', type: 'boolean', default: true, required: false, description: 'Shows the divider under the section. Turn it off when the design separates sections another way, such as spacing, a card or a background, so the page does not draw two separators.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The header\'s type, padding and indicator size. Every size keeps the header at least 44px tall.' },
   ],
 
@@ -312,7 +312,7 @@ export const accordion: ComponentDef = {
       'Write titles that say what the section holds',
       'Let a long title wrap',
       'Let every section be closed',
-      'Turn the divider off when the sections are already separated by spacing, a card or a background',
+      'Turn the divider off when the sections are already separated by spacing, a card or a background.',
     ],
     dont: [
       'Hide content most users need. Show it instead.',
@@ -350,7 +350,6 @@ export const accordion: ComponentDef = {
     contested: [
       'PENDING THE OWNER\'S VISUAL QA (Q241): the block padding (8/12/16), the gap (8/12/16) and the panel\'s bottom inset (12/16/24). Decided since: the inline padding steps 12/16/20 at the header and the panel alike (Q338 A, revising 24 at large; the fields keep 24), and the panel keeps its own padding, aligned to the header edge rather than to the title (Q339 A). Approved in Q241: the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder), the Figma copy ("Section title", and the panel placeholder), the property names, the page placement and the prose.',
       'A flush style only: the brief\'s contained (boxed card) variant is not built.',
-      'DRAFT (#3198, Q-ACC2 A), for the owner: the `divider` prop\'s description and the docs\' "Turn the divider off when the sections are already separated by spacing, a card or a background". The property itself is decided: a boolean named `divider`, on by default, on the nested Divider in every member.',
       'DRAFT (#2646), for the owner: the panel slot (`content`) declares no constraint. No minimum or maximum child count, no preferred components and not preferred-only, and a new instance shows the placeholder. A section holds whatever its content is (text, a list, a form, an image), so any limit here would flag ordinary use.',
     ],
     unverified: [

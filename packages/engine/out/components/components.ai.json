@@ -7275,7 +7275,7 @@
           "type": "boolean",
           "default": true,
           "required": false,
-          "description": "Shows the rule under the section. On by default. Turn it off when the design separates sections another way, such as spacing, a card or a background, so the page does not draw two separators."
+          "description": "Shows the divider under the section. Turn it off when the design separates sections another way, such as spacing, a card or a background, so the page does not draw two separators."
         },
         {
           "name": "size",
@@ -7351,7 +7351,7 @@
           "Write titles that say what the section holds",
           "Let a long title wrap",
           "Let every section be closed",
-          "Turn the divider off when the sections are already separated by spacing, a card or a background"
+          "Turn the divider off when the sections are already separated by spacing, a card or a background."
         ],
         "dont": [
           "Hide content most users need. Show it instead.",

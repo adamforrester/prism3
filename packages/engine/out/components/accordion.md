@@ -56,7 +56,7 @@ Use an Accordion to compress a set of independent sections into scannable header
 - Write titles that say what the section holds
 - Let a long title wrap
 - Let every section be closed
-- Turn the divider off when the sections are already separated by spacing, a card or a background
+- Turn the divider off when the sections are already separated by spacing, a card or a background.
 
 ### Don't
 
@@ -118,7 +118,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 | `headingLevel` | enum: 2 \| 3 \| 4 \| 5 \| 6 | `3` | no | The level of the heading that wraps the header button. Set it one below the heading the accordion sits under, so the page outline stays intact. |
 | `indicator` | enum: 'chevron' \| 'plus-minus' | `chevron` | no | The open and closed glyph: a chevron that points down when closed and up when open, or a plus that becomes a minus. |
 | `iconPosition` | enum: 'leading' \| 'trailing' | `leading` | no | Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge. |
-| `divider` | boolean | `true` | no | Shows the rule under the section. On by default. Turn it off when the design separates sections another way, such as spacing, a card or a background, so the page does not draw two separators. |
+| `divider` | boolean | `true` | no | Shows the divider under the section. Turn it off when the design separates sections another way, such as spacing, a card or a background, so the page does not draw two separators. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The header's type, padding and indicator size. Every size keeps the header at least 44px tall. |
 
 ## Specs
