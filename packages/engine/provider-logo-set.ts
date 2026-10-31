@@ -49,6 +49,13 @@
  * provider, hugging its artwork, so its side spacing is the component's. `social/` (Q782): the full set, each in full
  * color and as `-mono`. `provider/`: the 24×24 sign-in glyphs.
  *
+ * `button/` (#3174, owner decision Q3174.3 A): a wallet button's logo for one of its provider's styles, exactly as the
+ * provider's own SDK draws it on that style's ground, named `button/<provider>-<style>` in the SDK's own style names
+ * (Q3174.2 A). Drawn on a 44-high artboard, the button height it was captured at, with the logo at the height and
+ * the vertical place the SDK gives it, hugging the logo left and right. So a host that binds the artboard to its own
+ * button height gets the provider's logo-to-height ratio by construction. The ground and the edge under it are not
+ * in the file: they are its record's `ground` and `edge`, and the host paints them (WalletButton's literal record).
+ *
  * ── WHAT IS HERE TODAY ───────────────────────────────────────────────────────────────────────────────
  *
  * The owner's artwork (PR 3 of #2343), assembled from several public sources and hand-edited, each file with its
@@ -64,6 +71,9 @@ export const PROVIDER_LOGO_ARTBOARDS = {
   tile: { width: 32, height: 20 },
   /** Standalone logos: 24 high, hugging the artwork left and right, so the width is per mark. */
   logo: { width: 'per-mark', height: 24 },
+  /** A wallet button's logo for one style (#3174): 44 high, the button height the SDK was captured at, with the logo
+   *  where the SDK places it inside that height, hugging the logo left and right. */
+  button: { width: 'per-mark', height: 44 },
 } as const;
 
 export type ProviderLogoArtboard = keyof typeof PROVIDER_LOGO_ARTBOARDS;
@@ -74,6 +84,7 @@ export const PROVIDER_LOGO_KINDS: Record<string, ProviderLogoArtboard> = {
   provider: 'square',
   logo: 'logo',
   payment: 'tile',
+  button: 'button',
 };
 
 /** Our mark name → its file under `marks/`, without `.svg`. */
@@ -110,6 +121,19 @@ export const PROVIDER_LOGO_SOURCES: Record<string, string> = {
   'logo/shop-pay': 'logo/shop-pay',
   'logo/venmo': 'logo/venmo',
   'logo/visa': 'logo/visa',
+  // A wallet button's logo per style, as the provider's SDK draws it (#3174, Q3174.3 A). Its ground and edge are its
+  // record's, painted by WalletButton.
+  'button/apple-pay-black': 'button/apple-pay-black',
+  'button/apple-pay-white': 'button/apple-pay-white',
+  'button/apple-pay-white-outline': 'button/apple-pay-white-outline',
+  'button/google-pay-black': 'button/google-pay-black',
+  'button/google-pay-white': 'button/google-pay-white',
+  'button/paypal-black': 'button/paypal-black',
+  'button/paypal-blue': 'button/paypal-blue',
+  'button/paypal-gold': 'button/paypal-gold',
+  'button/paypal-silver': 'button/paypal-silver',
+  'button/paypal-white': 'button/paypal-white',
+  'button/shop-pay-purple': 'button/shop-pay-purple',
   // The glyph a sign-in button carries.
   'provider/apple': 'provider/apple',
   'provider/facebook': 'provider/facebook',

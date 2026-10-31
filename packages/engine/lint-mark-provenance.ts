@@ -6,8 +6,14 @@
  * A provider mark is a trademark. Whether the repository may hold it, and how it may be shown, is a fact
  * about where the file came from and under what terms — so each file under `marks/` carries one record in
  * `marks/provenance.json`: `source`, `rightsHolder`, `dateRetrieved`, `terms`, `usage`, the `colors` as
- * supplied, the `allowedForms`, whether it is a `placeholder`, for a logo its `width`, and where the file was
- * normalized for the emitter, the `normalized` steps (each one says what changed and why; a color never does).
+ * supplied, the `allowedForms`, whether it is a `placeholder`, for a logo or a button logo its `width`, and where the
+ * file was normalized for the emitter, the `normalized` steps (each one says what changed and why; a color never does).
+ *
+ * A BUTTON LOGO (`button/`, #3174, owner decision Q3174.3 A) is a wallet button's logo for one style, captured from
+ * the provider's SDK. Its record also carries the paint the SDK draws UNDER it, which the file does not hold: the
+ * `ground` (a lowercase `#rrggbb`) and, where the SDK draws one, the `edge` (`{ width, color }`). Both are required to
+ * be where they belong and refused everywhere else: a `ground` on any other kind would be a literal paint no host may
+ * read. Its `source` names the SDK it was captured from (an `https://` URL), so the artwork can be captured again.
  *
  * ── WHAT IT COMPARES (docs/34) ──────────────────────────────────────────────────────────────────────
  *
@@ -39,8 +45,11 @@ const marksDir = resolve(here, 'marks');
 /** The fields every record must carry as non-empty text (proposal §1.1). A literal, the second author. */
 const TEXT_FIELDS = ['source', 'rightsHolder', 'dateRetrieved', 'terms', 'usage'] as const;
 const FORMS = ['full-color', 'mono-black', 'mono-white'];
-/** The folder whose marks take their width from the record. */
-const PER_MARK_WIDTH_FOLDER = 'logo/';
+/** The folders whose marks take their width from the record. */
+const PER_MARK_WIDTH_FOLDERS = ['logo/', 'button/'];
+/** The folder whose marks are a wallet button's logo per style, and carry the ground and edge under it (#3174). */
+const BUTTON_FOLDER = 'button/';
+const HEX6 = /^#[0-9a-f]{6}$/;
 /** The folder whose marks are tiles, the only ones that may say they are not full-bleed. */
 const TILE_FOLDER = 'payment/';
 
@@ -66,9 +75,21 @@ export const recordProblems = (file: string, r: Rec | undefined, today: string):
   const forms = r.allowedForms;
   if (!Array.isArray(forms) || forms.length === 0) out.push(`${file}: record lacks 'allowedForms'`);
   else for (const f of forms) if (!FORMS.includes(String(f))) out.push(`${file}: allowedForms names '${String(f)}', which is not one of ${FORMS.join(', ')}`);
-  const perMark = file.startsWith(PER_MARK_WIDTH_FOLDER);
-  if (perMark && !(typeof r.width === 'number' && r.width > 0)) out.push(`${file}: a logo's record lacks 'width' (its artwork's width at 24 high)`);
+  const perMark = PER_MARK_WIDTH_FOLDERS.some((f) => file.startsWith(f));
+  if (perMark && !(typeof r.width === 'number' && r.width > 0)) out.push(`${file}: a logo's record lacks 'width' (its artwork's width at its kind's height)`);
   if (!perMark && r.width !== undefined) out.push(`${file}: declares a width, and only a logo takes one (its kind fixes the artboard)`);
+  // #3174: a button logo's ground and edge, required there and refused everywhere else.
+  const button = file.startsWith(BUTTON_FOLDER);
+  if (button) {
+    if (typeof r.ground !== 'string' || !HEX6.test(r.ground)) out.push(`${file}: a button logo's record lacks 'ground' (the button's fill under it, as its SDK paints it, a lowercase #rrggbb)`);
+    const e = r.edge as Rec | undefined;
+    if (e !== undefined && !(typeof e === 'object' && typeof e.width === 'number' && e.width > 0 && typeof e.color === 'string' && HEX6.test(e.color)))
+      out.push(`${file}: 'edge' is not { width: a positive px number, color: a lowercase #rrggbb }`);
+    if (typeof r.source === 'string' && !/https:\/\//.test(r.source)) out.push(`${file}: a button logo's source names no https:// URL, so the SDK it was captured from cannot be found again`);
+  } else {
+    if (r.ground !== undefined) out.push(`${file}: declares a 'ground', and only a button logo has a button under it`);
+    if (r.edge !== undefined) out.push(`${file}: declares an 'edge', and only a button logo has a button under it`);
+  }
   if (r.normalized !== undefined && (!Array.isArray(r.normalized) || r.normalized.length === 0 || r.normalized.some((x) => typeof x !== 'string' || !x.trim())))
     out.push(`${file}: 'normalized' is not a list of the steps taken (leave it out when the file is as supplied)`);
   // Q831 A: a derived mark names the social file it was scaled from, and says so in its source line.
@@ -117,6 +138,16 @@ expectFail('tile with width', 'payment/x.svg', { ...good, width: 40 }, 'declares
 expectFail('empty normalized', 'payment/x.svg', { ...good, normalized: [] }, "'normalized'");
 expectFail('fullBleed off a tile', 'social/x.svg', { ...good, fullBleed: false }, "'fullBleed'");
 expectFail('fullBleed true', 'payment/x.svg', { ...good, fullBleed: true }, "'fullBleed'");
+const button: Rec = { ...good, source: 'captured from https://example.test/sdk.js', width: 40, ground: '#000000' };
+if (recordProblems('button/x.svg', button, today).length) self.push(`a complete button record reads as faulty: ${recordProblems('button/x.svg', button, today).join('; ')}`);
+if (recordProblems('button/x.svg', { ...button, edge: { width: 1, color: '#555555' } }, today).length) self.push('a button record with a well-formed edge reads as faulty');
+expectFail('button without ground', 'button/x.svg', { ...button, ground: undefined }, "lacks 'ground'");
+expectFail('button with an uppercase ground', 'button/x.svg', { ...button, ground: '#FFFFFF' }, "lacks 'ground'");
+expectFail('button with a malformed edge', 'button/x.svg', { ...button, edge: { width: 0, color: '#000000' } }, "'edge' is not");
+expectFail('button without width', 'button/x.svg', { ...button, width: undefined }, "lacks 'width'");
+expectFail('button with no SDK URL', 'button/x.svg', { ...button, source: 's' }, 'names no https:// URL');
+expectFail('ground off a button', 'logo/x.svg', { ...good, width: 40, ground: '#000000' }, "declares a 'ground'");
+expectFail('edge off a button', 'payment/x.svg', { ...good, edge: { width: 1, color: '#000000' } }, "declares an 'edge'");
 if (!coverageProblems(['a.svg'], {}).some((p) => p.includes('has no record'))) self.push('coverage: a file with no record is not reported');
 if (!coverageProblems([], { 'a.svg': good }).some((p) => p.includes('stale record'))) self.push('coverage: a record with no file is not reported');
 if (VISIBILITY.test('the repository is internal')) self.push('the visibility probe matches text that does not state the condition');
@@ -156,7 +187,7 @@ if (failures.length) {
   console.error(`\n❌ ${failures.length} provenance problem(s):\n`);
   for (const f of failures) console.error(`    ${f}`);
   console.error('\n  Every mark under marks/ needs one record in marks/provenance.json, with source, rightsHolder,');
-  console.error('  dateRetrieved, terms, usage, colors, allowedForms and placeholder (and width for a logo).');
+  console.error('  dateRetrieved, terms, usage, colors, allowedForms and placeholder (and width for a logo; width and ground for a button logo).');
   process.exit(1);
 }
 console.log('  ✓ clean — every file has a complete record, and every record a file.');
